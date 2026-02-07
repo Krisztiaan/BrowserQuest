@@ -90,6 +90,7 @@ This project currently ships two client build paths while modernization is in pr
     - `bun run test:smoke:esm:ws-runtime`
     - Covers success-mode handshake and forced-failure diagnostics for `BQ_ESM_WS_RUNTIME` flags.
   - Websocket boundary decision/parity checks:
+    - `bun run test:ws:runtime:drill` (scripted summary runner)
     - `bun run test:ws:runtime:decision`
     - `bun run test:ws:runtime:parity`
     - Decision record: `docs/websocket-cjs-factory-migration-decision.md`

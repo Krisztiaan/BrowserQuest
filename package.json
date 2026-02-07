@@ -39,6 +39,7 @@
     "test:smoke:esm:ws-runtime": "bun test --timeout 20000 tests/smoke/server-handshake-esm-ws-runtime.test.ts",
     "test:ws:runtime:parity": "bun test tests/unit/ws-runtime-parity.test.ts tests/unit/ws-runtime-class-factory.test.ts tests/unit/server-ws-esm.test.ts",
     "test:ws:runtime:decision": "bun test tests/unit/ws-runtime-boundary-decision.test.ts tests/unit/ws-runtime-parity.test.ts",
+    "test:ws:runtime:drill": "node tools/run-ws-boundary-drill.cjs",
     "test:logs:lifecycle": "bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts",
     "test:logs:fatal": "bun test --timeout 20000 tests/smoke/server-structured-logs.fatal.test.ts",
     "test:browser:modern": "bun run test:modern-browser",

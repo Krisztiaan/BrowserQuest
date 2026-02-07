@@ -42,6 +42,7 @@ Run this checklist for websocket boundary-touching changes:
    - `server.esm.ws_runtime_mode` reports expected `status=ok|failed`.
    - `server.esm.ws_bridge_probe` reports expected `status=ok|failed` when probe mode is enabled.
 2. Run focused boundary contract checks:
+   - `bun run test:ws:runtime:drill` (scripted drill summary runner)
    - `bun run test:ws:runtime:decision`
    - `bun run test:ws:runtime:parity`
 3. Run full gate checks:
@@ -60,6 +61,7 @@ Escalate to server-runtime maintainers when any of the following occurs:
 
 - Execute rollback drill quarterly, and after any websocket boundary refactor touching `server/js/ws.js`, `server/js/ws-runtime-esm.mjs`, or `server/js/ws-runtime-class-factory.mjs`.
 - Drill command baseline:
+  - `bun run test:ws:runtime:drill`
   - `bun run test:ws:runtime:decision`
   - `bun run verify:modern:node22`
   - `bun run verify:legacy:node22`

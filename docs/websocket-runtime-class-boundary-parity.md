@@ -14,6 +14,7 @@ Decision record: `docs/websocket-cjs-factory-migration-decision.md`
 
 ## Parity guardrail commands
 
+- Scripted drill summary: `bun run test:ws:runtime:drill`
 - Focused parity: `bun run test:ws:runtime:parity`
 - Decision contract: `bun run test:ws:runtime:decision`
 - Full modern gate: `bun run verify:modern:node22`

@@ -4411,6 +4411,24 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-276` websocket boundary drill automation seam (scripted checklist runner).
 
+- 2026-02-08 03:55:00Z
+  - Status: `in_progress` -> `done` (T-276)
+  - Actions:
+    - Added scripted websocket boundary drill runner:
+      - `tools/run-ws-boundary-drill.cjs`.
+      - Executes decision/parity checks and emits a compact pass/fail summary with timings.
+    - Added package script for drill execution:
+      - `package.json` script `test:ws:runtime:drill`.
+    - Updated websocket boundary docs/runbooks to include scripted drill command:
+      - `docs/websocket-cjs-factory-migration-decision.md`,
+      - `docs/websocket-runtime-class-boundary-parity.md`,
+      - `docs/client-build-support.md`.
+  - Evidence:
+    - `bun run test:ws:runtime:drill` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-277` websocket boundary drill CI/advisory wiring assessment.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6070,7 +6088,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: docs read-through + `bun run test:ws:runtime:decision` + `bun run verify:modern:node22`.
 
 ### T-276: Websocket boundary drill automation seam (scripted checklist runner)
-- Status: `todo`
+- Status: `done`
 - Scope: add a single scripted command that runs websocket boundary decision/parity checks and emits a compact pass/fail summary for operator drill cadence.
 - Acceptance criteria: one command executes the boundary drill checklist deterministically and is referenced from websocket decision/runbook docs.
 - Verification: run new script + `bun run verify:modern:node22`.
+
+### T-277: Websocket boundary drill CI/advisory wiring assessment
+- Status: `todo`
+- Scope: assess whether websocket boundary drill should be wired into CI as advisory/manual workflow and define trigger/owner policy.
+- Acceptance criteria: documented CI/advisory decision with explicit trigger policy and command references.
+- Verification: docs read-through + workflow/config diff review.
