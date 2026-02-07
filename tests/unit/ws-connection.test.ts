@@ -19,6 +19,7 @@ afterEach(() => {
 function createSocketMock() {
     const handlers: Record<string, Handler> = {};
     let closed: { code: number; reason: string } | null = null;
+    const sent: string[] = [];
 
     return {
         on(event: string, handler: Handler) {
@@ -32,11 +33,14 @@ function createSocketMock() {
         close(code: number, reason: string) {
             closed = { code, reason };
         },
-        send() {
-            // no-op
+        send(data: string) {
+            sent.push(data);
         },
         getClosed() {
             return closed;
+        },
+        getSent() {
+            return sent.slice();
         },
     };
 }
@@ -53,6 +57,16 @@ test('ws connection close uses provided code and trims reason length', () => {
     expect(closed).not.toBeNull();
     expect(closed?.code).toBe(WS.CLOSE_CODES.INVALID_PAYLOAD);
     expect(closed?.reason.length).toBeLessThanOrEqual(120);
+});
+
+test('ws connection close defaults to normal code when close code is invalid', () => {
+    const socket = createSocketMock();
+    const server = { removeConnection() {} };
+    const conn = new WS.wsWebSocketConnection('id-close-default', socket, server, '127.0.0.1');
+
+    conn.close('normal closure');
+
+    expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.NORMAL);
 });
 
 test('ws connection closes with invalid payload code on malformed json', () => {
@@ -133,4 +147,35 @@ test('ws connection closes with unsupported-data code on binary payload', () => 
 
     expect(listened).toBe(false);
     expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.UNSUPPORTED_DATA);
+});
+
+test('ws connection close event removes connection and triggers close callback', () => {
+    const socket = createSocketMock();
+    let removedId: string | null = null;
+    const server = {
+        removeConnection(id: string) {
+            removedId = id;
+        },
+    };
+    const conn = new WS.wsWebSocketConnection('id-close-lifecycle', socket, server, '127.0.0.1');
+    let closed = false;
+
+    conn.onClose(() => {
+        closed = true;
+    });
+
+    socket.emit('close');
+
+    expect(closed).toBe(true);
+    expect(removedId).toBe('id-close-lifecycle');
+});
+
+test('ws connection send serializes protocol payload as json', () => {
+    const socket = createSocketMock();
+    const server = { removeConnection() {} };
+    const conn = new WS.wsWebSocketConnection('id-send-json', socket, server, '127.0.0.1');
+
+    conn.send([1, 2, 3]);
+
+    expect(socket.getSent()).toEqual(['[1,2,3]']);
 });

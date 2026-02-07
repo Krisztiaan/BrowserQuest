@@ -3780,6 +3780,51 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-242` server metrics/runtime ESM mirror extraction.
 
+- 2026-02-07 13:15:00Z
+  - Status: `in_progress` -> `done` (T-242)
+  - Actions:
+    - Added ESM mirrors for metrics runtime modules:
+      - `server/js/metrics-esm.mjs`,
+      - `server/js/metrics-runtime-esm.mjs`.
+    - Added ESM/CJS parity tests:
+      - `tests/unit/server-metrics-esm.test.ts`.
+  - Evidence:
+    - `bun run test` passed (includes new metrics ESM parity tests).
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-243` server bootstrap extraction for dual-entry convergence.
+
+- 2026-02-07 13:30:00Z
+  - Status: `in_progress` -> `done` (T-243)
+  - Actions:
+    - Refactored `server/js/main.js` into a reusable module path:
+      - added `require.main === module` CLI guard,
+      - exported shared startup helpers (`main`, `getConfigFile`, `getWorldDistribution`).
+    - Updated `server/js/main-esm.mjs` to invoke shared CJS startup directly with pre-validated config instead of requiring `main.js` for side effects.
+    - Added module contract coverage:
+      - `tests/unit/server-main-module.test.ts`.
+  - Evidence:
+    - `bun run test` passed with new main-module contract test.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-244` websocket transport hardening follow-up coverage.
+
+- 2026-02-07 13:45:00Z
+  - Status: `in_progress` -> `done` (T-244)
+  - Actions:
+    - Expanded websocket transport unit coverage in `tests/unit/ws-connection.test.ts` for:
+      - default NORMAL close code fallback,
+      - close lifecycle callback/removal behavior,
+      - outbound JSON serialization contract.
+    - Re-ran focused websocket suites and full modern/legacy verify tracks.
+  - Evidence:
+    - Focused websocket tests passed:
+      - `bun test --timeout 20000 tests/unit/ws-connection.test.ts tests/unit/server-ws-esm.test.ts tests/smoke/server-handshake-esm-ws-bridge.test.ts`.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-245` ESM bootstrap convergence (remove remaining CJS side-effect bridge from `main-esm.mjs`).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5235,19 +5280,25 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` active queue and logs reflect the post-runtime-scope roadmap.
 
 ### T-242: Server metrics/runtime ESM mirror extraction
-- Status: `todo`
+- Status: `done`
 - Scope: add ESM mirror modules for `server/js/metrics.js` and `server/js/metrics-runtime.js` that preserve current CJS behavior/contracts and keep bridgeable entry semantics.
 - Acceptance criteria: ESM mirrors export parity-checked contracts with focused tests and no runtime regressions.
 - Verification: `bun run test` + targeted metrics/runtime unit coverage + `bun run verify:modern:node22`.
 
 ### T-243: Server bootstrap extraction for dual-entry convergence
-- Status: `todo`
+- Status: `done`
 - Scope: extract `main.js` runtime bootstrap logic into shared helpers so CJS and ESM entries can consume the same startup path with minimal duplication.
 - Acceptance criteria: startup lifecycle behavior and structured events remain unchanged while duplication is reduced.
 - Verification: `bun run test` + server handshake smokes + `bun run verify:legacy:node22`.
 
 ### T-244: WebSocket transport hardening follow-up (post-bridge)
-- Status: `todo`
+- Status: `done`
 - Scope: expand websocket transport contract coverage for lifecycle/backpressure/error-handling parity across CJS and ESM bridge paths.
 - Acceptance criteria: explicit contract tests exist for targeted lifecycle/error cases and remain green on both verify tracks.
 - Verification: focused websocket unit/smoke tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-245: ESM bootstrap convergence (`main-esm` bridge reduction)
+- Status: `todo`
+- Scope: continue reducing `main-esm.mjs` dependence on CJS bootstrap side effects by extracting/importing reusable startup pieces while preserving current runtime behavior.
+- Acceptance criteria: ESM bootstrap path retains preflight/probe guarantees with less CJS coupling and no handshake/config regressions.
+- Verification: `bun run test` + ESM handshake/config smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

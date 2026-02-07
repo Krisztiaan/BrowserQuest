@@ -76,6 +76,6 @@ async function runWebSocketBridgeProbeIfEnabled() {
 
 await runWebSocketBridgeProbeIfEnabled();
 
-// Compatibility bridge: keep CJS server boot path intact while the ESM entry
-// progressively validates and consumes wave-1 ESM modules.
-require('./main.js');
+// Compatibility bridge: run the shared CJS startup path with validated config.
+const mainModule = require('./main.js');
+mainModule.main(activeConfig);
