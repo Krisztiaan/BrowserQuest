@@ -4,7 +4,7 @@ import type {
     ProtocolActionValue,
     ProtocolContract,
     ProtocolOpcode,
-} from '../../shared/js/protocol-types';
+} from '../../shared/js/protocol-contract-types';
 
 const Protocol = SharedProtocol as ProtocolContract;
 

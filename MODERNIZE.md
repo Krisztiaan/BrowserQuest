@@ -4304,6 +4304,28 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-271` protocol contract TypeScript source-of-truth promotion.
 
+- 2026-02-08 00:55:00Z
+  - Status: `in_progress` -> `done` (T-271)
+  - Actions:
+    - Added canonical TypeScript protocol contract source:
+      - `shared/js/protocol-contract-types.ts`.
+      - Includes protocol action/value/opcode types, contract key inventory, and `ProtocolContract` interface.
+    - Retained runtime compatibility while promoting TS source-of-truth:
+      - updated `shared/js/protocol-types.d.ts` to re-export from the TS source module as a compatibility bridge.
+      - runtime CJS/ESM protocol modules remain unchanged in export behavior.
+    - Repointed typed consumers to the canonical TS contract surface:
+      - `tests/support/protocol.ts`
+      - JSDoc runtime type imports in `shared/js/protocol-contract.js` and `server/js/ws.js`.
+    - Added protocol key-inventory parity test:
+      - `tests/unit/protocol-contract-types.test.ts`.
+  - Evidence:
+    - Focused protocol contract tests passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-272` websocket runtime class-boundary modernization (ESM-first).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5933,7 +5955,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: focused unit tests + `tests/smoke/server-handshake-esm-entry.test.ts` + `tests/smoke/server-config-preflight-esm-entry.test.ts` + `bun run verify:modern:node22`.
 
 ### T-271: Protocol contract TypeScript source-of-truth promotion
-- Status: `todo`
+- Status: `done`
 - Scope: promote shared protocol contract definitions to a TypeScript-first source module while preserving runtime CJS/ESM compatibility exports for existing server/client consumers.
 - Acceptance criteria: shared protocol types are authored in TS, runtime exports remain stable, and CheckJs/test imports consume one canonical typed surface.
 - Verification: `bun run typecheck` + protocol contract unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

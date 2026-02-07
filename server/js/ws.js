@@ -10,7 +10,7 @@ var url = require('url'),
     useBison = false;
 var log = Log.getLogger();
 
-/** @typedef {import('../../shared/js/protocol-types').ProtocolAction} ProtocolAction */
+/** @typedef {import('../../shared/js/protocol-contract-types').ProtocolAction} ProtocolAction */
 
 module.exports = WS;
 WS.CLOSE_CODES = CLOSE_CODES;

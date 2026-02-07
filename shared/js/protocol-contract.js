@@ -1,6 +1,6 @@
 var Types = require('./gametypes');
 
-/** @typedef {import('./protocol-types').ProtocolAction} ProtocolAction */
+/** @typedef {import('./protocol-contract-types').ProtocolAction} ProtocolAction */
 
 /**
  * @param {unknown} value
