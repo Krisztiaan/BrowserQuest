@@ -4446,6 +4446,24 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-278` websocket boundary drill artifact/reporting ergonomics.
 
+- 2026-02-08 04:55:00Z
+  - Status: `in_progress` -> `done` (T-278)
+  - Actions:
+    - Added websocket boundary drill summary output support in scripted runner:
+      - `tools/run-ws-boundary-drill.cjs` now writes JSON summary when `BQ_WS_DRILL_SUMMARY_PATH` is set.
+    - Wired CI artifact upload for advisory websocket drill workflow:
+      - `.github/workflows/verify-ws-boundary-drill.yml` uploads `ws-boundary-drill-summary-<run_id>`.
+    - Updated websocket drill runbooks with artifact path/triage guidance:
+      - `docs/client-build-support.md`,
+      - `docs/websocket-cjs-factory-migration-decision.md`,
+      - `docs/websocket-runtime-class-boundary-parity.md`.
+  - Evidence:
+    - workflow/config diff review completed.
+    - docs read-through completed with artifact/report references aligned.
+    - `bun run test:ws:runtime:drill` passed.
+  - Next action:
+    - Start `T-279` websocket boundary drill escalation-template alignment.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6117,7 +6135,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: docs read-through + workflow/config diff review.
 
 ### T-278: Websocket boundary drill artifact/reporting ergonomics
-- Status: `todo`
+- Status: `done`
 - Scope: improve websocket boundary drill reporting ergonomics (summary artifact/report metadata) for faster triage in CI/manual runs.
 - Acceptance criteria: drill workflow/runbook includes concise artifact/report path guidance tied to the scripted drill output.
 - Verification: workflow/config diff review + docs read-through + `bun run test:ws:runtime:drill`.
+
+### T-279: Websocket boundary drill escalation-template alignment
+- Status: `todo`
+- Scope: align websocket drill failure handling with a compact escalation template (owner, signal snapshot, failing check, rollback command block) in runbooks/incident notes.
+- Acceptance criteria: documented escalation template is linked from websocket decision/support docs and references drill summary artifact paths.
+- Verification: docs read-through + `bun run test:ws:runtime:drill`.

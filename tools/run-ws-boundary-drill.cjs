@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const { spawnSync } = require('node:child_process');
+const { mkdirSync, writeFileSync } = require('node:fs');
+const { dirname } = require('node:path');
 
 const checks = [
     { key: 'decision', command: ['bun', 'run', 'test:ws:runtime:decision'] },
@@ -52,6 +54,25 @@ for (const item of results) {
     console.log(`- ${item.key}: ${status} (${item.durationMs}ms)`);
 }
 console.log(`- total: ${totalMs}ms`);
+
+const summary = {
+    ts: new Date().toISOString(),
+    checks: results.map((item) => ({
+        key: item.key,
+        passed: item.passed,
+        durationMs: item.durationMs,
+        status: item.status,
+    })),
+    totalMs,
+    passed: failed.length === 0,
+};
+
+const summaryPath = process.env.BQ_WS_DRILL_SUMMARY_PATH;
+if (summaryPath) {
+    mkdirSync(dirname(summaryPath), { recursive: true });
+    writeFileSync(summaryPath, JSON.stringify(summary, null, 2) + '\n', 'utf8');
+    console.log(`- summary_path: ${summaryPath}`);
+}
 
 if (failed.length > 0) {
     process.exit(1);

@@ -121,6 +121,11 @@ This project currently ships two client build paths while modernization is in pr
     - manual trigger (`workflow_dispatch`) for post-refactor validation,
     - automatic PR trigger on websocket boundary path changes.
   - Runs `bun run test:ws:runtime:drill`.
+  - Uploads summary artifact:
+    - `ws-boundary-drill-summary-<run_id>/artifacts/ws-boundary-drill-summary.json`
+  - Triage path:
+    - Open workflow run -> `Artifacts` -> download `ws-boundary-drill-summary-<run_id>`.
+    - Inspect `artifacts/ws-boundary-drill-summary.json` for per-check pass/fail and durations.
   - Decision/owner policy source: `docs/websocket-cjs-factory-migration-decision.md`.
 - `verify-dependency-drift` workflow:
   - Manual + weekly snapshot (`workflow_dispatch` and Monday cron) for direct dependency drift visibility.
