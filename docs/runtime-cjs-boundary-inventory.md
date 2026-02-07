@@ -22,6 +22,8 @@ Reason: these scripts are intentionally CJS compatibility boundaries while packa
 
 - `server/js/main-esm.mjs`
 - `shared/js/gametypes-esm.mjs`
+- `server/js/config-preflight-esm.mjs`
+- `server/js/utils-esm.mjs`
 
 Reason: provide safe adoption path without changing default runtime mode.
 

@@ -3344,6 +3344,37 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-213` server runtime CJS->ESM wave-1 module conversion.
 
+- 2026-02-07 07:15:44Z
+  - Status: `in_progress` (T-213)
+  - Actions:
+    - Added wave-1 ESM runtime modules:
+      - `server/js/config-preflight-esm.mjs`
+      - `server/js/utils-esm.mjs`
+    - Added ESM parity/unit coverage:
+      - `tests/unit/server-config-preflight-esm.test.ts`
+      - `tests/unit/server-utils-esm.test.ts`
+    - Updated readiness/boundary docs to reflect wave-1 ESM artifacts.
+  - Evidence:
+    - `bun run test` includes new ESM unit tests and passes.
+    - `bun run test:browser:protocol:node22` passes.
+  - Next action:
+    - Start `T-218` ESM entry wiring to consume wave-1 ESM modules.
+
+- 2026-02-07 07:15:44Z
+  - Status: `in_progress` -> `done` (T-214)
+  - Actions:
+    - Modernized websocket close handling semantics in `server/js/ws.js`:
+      - protocol close-code constants,
+      - reason sanitization for close frame payload length,
+      - invalid payload and unsupported-data close-code paths.
+    - Added websocket unit coverage:
+      - `tests/unit/ws-connection.test.ts`
+  - Evidence:
+    - `bun run test` passes with websocket unit coverage.
+    - `bun run test:browser:protocol:node22` passes (no protocol regressions).
+  - Next action:
+    - Continue `T-213` via ESM runtime entry wiring.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4625,13 +4656,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` and `bun run typecheck:node22`.
 
 ### T-213: Server CJS->ESM wave 1 (priority P0)
-- Status: `todo`
+- Status: `in_progress`
 - Scope: convert low-risk server runtime modules from `require/module.exports` to ESM imports/exports with compatibility maintained.
 - Acceptance criteria: selected wave-1 modules run under existing server boot paths without protocol regressions.
 - Verification: `bun run verify:modern:node22`, `bun run verify:legacy:node22`, `bun run test:browser:protocol:node22`.
 
 ### T-214: WebSocket module modernization (priority P0)
-- Status: `todo`
+- Status: `done`
 - Scope: modernize websocket runtime boundaries (`server/js/ws.js` and related entry wiring) toward ESM-first and stronger protocol/error handling.
 - Acceptance criteria: websocket handling changes preserve gameplay/protocol invariants and improve close/error semantics.
 - Verification: `bun run test:browser:protocol:node22` + targeted websocket smoke coverage.
@@ -4653,3 +4684,9 @@ Only after Phase 2, introduce TS gradually:
 - Scope: refresh queue after T-213/T-214/T-215/T-216 to sequence deeper runtime migration slices.
 - Acceptance criteria: successor queue is ordered, scoped, and evidence-backed.
 - Verification: `MODERNIZE.md` includes post-T216 successor queue with executable checks.
+
+### T-218: ESM entry wiring for wave-1 modules
+- Status: `todo`
+- Scope: update `server/js/main-esm.mjs` path to consume wave-1 ESM modules (`config-preflight-esm`, `utils-esm`) while preserving compatibility with existing runtime behavior.
+- Acceptance criteria: ESM entry path uses wave-1 ESM modules without changing default CJS boot behavior.
+- Verification: `bun run start:server:esm` smoke + protocol/browser gate.
