@@ -404,6 +404,9 @@ class World {
 
     createChest(x, y, items) {
         var chest = this.createItem(Types.Entities.CHEST, x, y);
+        if(!(chest instanceof Chest)) {
+            return chest;
+        }
         chest.setItems(items);
         return chest;
     }

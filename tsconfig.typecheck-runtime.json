@@ -12,10 +12,14 @@
     "shared/js/ws-close-codes.js",
     "server/js/log.js",
     "server/js/format.js",
+    "server/js/formulas.js",
     "server/js/utils.js",
     "server/js/entity.js",
     "server/js/item.js",
     "server/js/player.js",
+    "server/js/map.js",
+    "server/js/message.js",
+    "server/js/worldserver.js",
     "server/js/config-preflight.js",
     "server/js/ws.js"
   ]

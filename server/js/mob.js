@@ -17,6 +17,7 @@ class Mob extends Character {
         this.hatelist = [];
         this.respawnTimeout = null;
         this.returnTimeout = null;
+        this.area = null;
         this.isDead = false;
     }
     

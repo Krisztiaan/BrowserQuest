@@ -67,6 +67,7 @@ Support policy:
 - Legacy AMD/RequireJS path is compatibility mode and must be explicitly requested via legacy build scripts.
 - Details: `docs/client-build-support.md`.
 - Runtime preflight runbook: `docs/runtime-preflight.md`.
+- Runtime CheckJs worldserver/map pre-slice: `docs/runtime-checkjs-worldserver-map-pre-slice.md`
 
 Modernization snapshot
 ----------------------

@@ -3641,6 +3641,82 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-232` runtime CheckJs wave 7 planning (`worldserver.js`/`map.js` pre-slice).
 
+- 2026-02-07 10:55:00Z
+  - Status: `in_progress` -> `done` (T-232)
+  - Actions:
+    - Added staged pre-slice artifact for `map.js` / `worldserver.js` runtime CheckJs adoption:
+      - `docs/runtime-checkjs-worldserver-map-pre-slice.md`.
+    - Captured concrete isolated compiler findings and dependency blockers:
+      - `map.js` isolated CheckJs passes,
+      - `worldserver.js` admission currently blocked by `mob.area` property declarations and chest narrowing (`setItems`) typing.
+    - Linked pre-slice artifact from `README.md` modernization/support references.
+  - Evidence:
+    - `MODERNIZE.md` now includes staged checklist and follow-on execution path.
+    - Baseline and isolated compiler commands are documented in the pre-slice artifact.
+  - Next action:
+    - Start `T-233` runtime CheckJs wave 7A (`map.js` promotion).
+
+- 2026-02-07 11:05:00Z
+  - Status: `in_progress` -> `done` (T-233)
+  - Actions:
+    - Promoted `server/js/map.js` into runtime CheckJs scope in `tsconfig.typecheck-runtime.json`.
+    - Updated runtime CheckJs defer artifact to reflect `map.js` promotion.
+  - Evidence:
+    - `bun run typecheck` passed with `map.js` included in runtime CheckJs scope.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-234` runtime CheckJs wave 7B (`worldserver.js` blocker cleanup).
+
+- 2026-02-07 11:20:00Z
+  - Status: `in_progress` -> `done` (T-234)
+  - Actions:
+    - Cleared `worldserver.js` CheckJs blockers:
+      - added `area` property initialization in `server/js/mob.js`,
+      - added chest narrowing guard in `server/js/worldserver.js` before `setItems(...)`.
+    - Verified isolated `worldserver.js` CheckJs command now passes.
+  - Evidence:
+    - `bun x tsc --allowJs --checkJs --noEmit --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler server/js/worldserver.js` passed.
+    - `bun run verify:legacy:node22` passed after blocker cleanup.
+  - Next action:
+    - Start `T-235` runtime CheckJs wave 7C (`worldserver.js` promotion).
+
+- 2026-02-07 11:20:00Z
+  - Status: `in_progress` -> `done` (T-235)
+  - Actions:
+    - Promoted `server/js/worldserver.js` into runtime CheckJs scope in `tsconfig.typecheck-runtime.json`.
+    - Updated runtime CheckJs defer artifact to reflect expanded active scope.
+  - Evidence:
+    - `bun run typecheck` passed with `worldserver.js` included in runtime CheckJs scope.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-236` runtime CheckJs scope re-baseline and next-candidate queue refresh.
+
+- 2026-02-07 11:35:00Z
+  - Status: `in_progress` -> `done` (T-236)
+  - Actions:
+    - Re-baselined runtime CheckJs inventory docs after wave-7 promotions:
+      - refreshed active include scope in `docs/typescript-runtime-checkjs-defer-list.md`.
+    - Captured explicit deferred/next-candidate list for remaining server runtime modules.
+    - Ran isolated `checkJs` sweep across `server/js/*.js` to classify post-wave candidates and blockers.
+  - Evidence:
+    - Isolated check results:
+      - passing candidates include `mob.js`, `mobarea.js`, `npc.js`, `area.js`, `character.js`, `chest.js`, `chestarea.js`, `checkpoint.js`, `properties.js`,
+      - blocked set includes `main.js`, `metrics.js`, `metrics-runtime.js` (metrics typing / optional `memcache` resolution).
+    - `MODERNIZE.md` successor queue now includes `T-238` to `T-240`.
+  - Next action:
+    - Start `T-237` runtime CheckJs wave 8A (`formulas.js` + `message.js` promotion).
+
+- 2026-02-07 11:50:00Z
+  - Status: `in_progress` -> `done` (T-237)
+  - Actions:
+    - Promoted `server/js/formulas.js` and `server/js/message.js` into runtime CheckJs scope in `tsconfig.typecheck-runtime.json`.
+    - Updated runtime CheckJs defer/scope artifact to reflect expanded active scope and refreshed defer queue.
+  - Evidence:
+    - `bun run typecheck` passed with `formulas.js` and `message.js` included in runtime CheckJs scope.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-238` runtime CheckJs wave 8B (mobility runtime trio promotion).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5036,7 +5112,55 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
 
 ### T-232: Runtime CheckJs wave 7 planning (`worldserver.js`/`map.js` pre-slice)
-- Status: `todo`
+- Status: `done`
 - Scope: define scoped pre-slice checklist for `worldserver.js` and `map.js` CheckJs adoption (property inventory, dependency impacts, staged roll-in).
 - Acceptance criteria: concrete staged checklist exists with executable verification commands and rollback guardrails.
 - Verification: `MODERNIZE.md` contains the staged checklist and follow-on execution ticket.
+
+### T-233: Runtime CheckJs wave 7A (`map.js` promotion)
+- Status: `done`
+- Scope: promote `server/js/map.js` into runtime CheckJs scope as the first wave-7 execution slice.
+- Acceptance criteria: `map.js` is in runtime CheckJs include list and gates remain green.
+- Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
+
+### T-234: Runtime CheckJs wave 7B (`worldserver.js` blocker cleanup)
+- Status: `done`
+- Scope: resolve identified `worldserver.js` admission blockers (`mob.area` property shape and chest `setItems` narrowing) so module can enter runtime CheckJs scope.
+- Acceptance criteria: isolated `worldserver.js` CheckJs command is green after targeted cleanup.
+- Verification: `bun x tsc --allowJs --checkJs --noEmit --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler server/js/worldserver.js` + `bun run verify:legacy:node22`.
+
+### T-235: Runtime CheckJs wave 7C (`worldserver.js` promotion)
+- Status: `done`
+- Scope: add `server/js/worldserver.js` to runtime CheckJs include set once blocker cleanup is complete.
+- Acceptance criteria: `worldserver.js` is in runtime CheckJs scope and verify gates remain green.
+- Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
+
+### T-236: Runtime CheckJs scope re-baseline and next-candidate refresh
+- Status: `done`
+- Scope: refresh runtime CheckJs inventory after wave-7 promotions and define next candidate list (explicit include or defer) for remaining server gameplay modules.
+- Acceptance criteria: updated defer/scope docs and successor queue are consistent with current typecheck surface.
+- Verification: `MODERNIZE.md` + `docs/typescript-runtime-checkjs-defer-list.md` reflect post-wave-7 baseline.
+
+### T-237: Runtime CheckJs wave 8A (`formulas.js` + `message.js` promotion)
+- Status: `done`
+- Scope: promote `server/js/formulas.js` and `server/js/message.js` into runtime CheckJs scope as a low-risk post-wave-7 batch.
+- Acceptance criteria: both modules are included in runtime CheckJs scope and verify gates remain green.
+- Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
+
+### T-238: Runtime CheckJs wave 8B (mobility runtime trio promotion)
+- Status: `todo`
+- Scope: promote `server/js/mob.js`, `server/js/mobarea.js`, and `server/js/npc.js` into runtime CheckJs scope with any required minimal property-shape cleanup.
+- Acceptance criteria: mobility trio is included in runtime CheckJs scope and gates remain green.
+- Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
+
+### T-239: Runtime CheckJs wave 8C (zone/entity graph promotion)
+- Status: `todo`
+- Scope: promote `server/js/area.js`, `server/js/character.js`, `server/js/chest.js`, `server/js/chestarea.js`, `server/js/checkpoint.js`, and `server/js/properties.js` into runtime CheckJs scope.
+- Acceptance criteria: zone/entity graph modules enter runtime CheckJs scope without gate regressions.
+- Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
+
+### T-240: Runtime CheckJs wave 8D (metrics/main blocker pre-slice)
+- Status: `todo`
+- Scope: capture and resolve CheckJs blockers for `server/js/main.js`, `server/js/metrics.js`, and `server/js/metrics-runtime.js` (optional `memcache` type contract and metrics shape narrowing).
+- Acceptance criteria: blocker inventory and staged cleanup plan are documented with executable verification commands.
+- Verification: isolated `bun x tsc ...` checks for each blocked module + updated roadmap/docs.
