@@ -2132,6 +2132,20 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Define `T-126` for follow-up workflow evidence capture after Bun pin alignment.
 
+- 2026-02-07 04:23:38Z
+  - Status: `in_progress` -> `done` (T-126)
+  - Actions:
+    - Captured post-pin CI evidence for primary verify workflows on branch `modernize` (commit `fa8d95b`).
+    - Confirmed pinned Bun workflows execute successfully after alignment changes.
+  - Evidence:
+    - `verify-modern` run: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774101125` (`success`, 2026-02-07T04:22:24Z -> 2026-02-07T04:22:53Z)
+    - `verify-legacy` run: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774101119` (`success`, 2026-02-07T04:22:24Z -> 2026-02-07T04:22:46Z)
+    - `verify-modern-browser` run: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774101120` (`success`, 2026-02-07T04:22:24Z -> 2026-02-07T04:23:29Z)
+    - `verify-legacy-browser` run: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774101124` (`success`, 2026-02-07T04:22:24Z -> 2026-02-07T04:23:12Z)
+    - `verify-protocol-invariant` run: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774101117` (`success`, 2026-02-07T04:22:24Z -> 2026-02-07T04:23:05Z)
+  - Next action:
+    - Define `T-127` next modernization candidate refresh after CI/runtime reproducibility hardening.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2891,7 +2905,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: workflow config scan confirms `bun-version: 1.3.8` in targeted workflows and docs mention CI pin policy.
 
 ### T-126: Bun pin evidence capture for primary verify workflows
-- Status: `todo`
+- Status: `done`
 - Scope: capture successful post-pin workflow runs (at least modern + legacy + one browser gate) and record run IDs/URLs in roadmap for reproducibility baseline.
 - Acceptance criteria: roadmap contains concrete success evidence proving pinned Bun workflows execute cleanly after alignment changes.
 - Verification: GitHub Actions run links for post-pin `verify-modern`, `verify-legacy`, and one browser/protocol workflow are logged in `MODERNIZE.md`.
+
+### T-127: Post-reproducibility modernization queue refresh
+- Status: `todo`
+- Scope: refresh the next modernization execution queue after CI/runtime reproducibility hardening, prioritizing highest-leverage runtime/library debt with clear acceptance checks.
+- Acceptance criteria: roadmap includes ordered successor tickets with scope, acceptance criteria, verification commands, and dependency notes.
+- Verification: `MODERNIZE.md` has new queued ticket entries beyond T-126 with executable command-level checks.
