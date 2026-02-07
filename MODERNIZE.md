@@ -1833,6 +1833,44 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Keep T-108 open as blocked until branch push enables GitHub workflow execution evidence capture.
 
+- 2026-02-07 03:45:04Z
+  - Status: `in_progress` -> `done` (T-110)
+  - Actions:
+    - Extracted memcache client compatibility seam:
+      - `server/js/metrics-client.js`
+      - supports both legacy `Client` API and modern `Memcache`/default API.
+    - Refactored metrics runtime to use the seam:
+      - `server/js/metrics.js` now delegates connect/get/set through adapter helpers.
+    - Added deterministic adapter contract unit coverage:
+      - `tests/unit/metrics-client.test.ts`
+      - validates legacy path, modern path, and unsupported-module failure path.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/metrics-client.test.ts tests/unit/metrics-runtime.test.ts tests/smoke/server-structured-logs.lifecycle.test.ts tests/smoke/server-handshake.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Retry T-108 using fork push + workflow dispatch since upstream is read-only.
+
+- 2026-02-07 03:47:22Z
+  - Status: `blocked` -> `done` (T-108)
+  - Actions:
+    - Added fork remote and pushed branch snapshot:
+      - remote: `fork` (`git@github.com:Krisztiaan/BrowserQuest.git`)
+      - branch: `modernize`
+    - Set fork default branch to `modernize` so GitHub indexes workflow definitions from this branch.
+    - Triggered and watched optional healthy metrics workflow to completion:
+      - workflow: `verify-metrics-healthy`
+      - run id: `21773648845`
+  - Evidence:
+    - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773648845`
+    - Conclusion: `success` (2026-02-07T03:46:37Z -> 2026-02-07T03:47:08Z)
+    - Log highlights:
+      - `metrics-healthy-prereqs: ok (...)`
+      - `(pass) optional: healthy metrics path starts with memcache backend and no fallback event`
+      - `1 pass, 0 fail`
+  - Next action:
+    - Define T-111 branch/release hygiene after fork default-branch switch (document/reset strategy).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2480,14 +2518,29 @@ Only after Phase 2, introduce TS gradually:
 - Verification: dedicated runbook section added and cross-linked from `README.md` / metrics plan docs.
 
 ### T-108: Post-push healthy metrics CI evidence capture
-- Status: `blocked`
+- Status: `done`
 - Scope: execute `verify-metrics-healthy` in GitHub Actions after branch push and capture a baseline success record in modernization docs.
 - Acceptance criteria: roadmap includes at least one successful workflow run reference (run URL/id + date) for healthy metrics path.
 - Verification: successful `verify-metrics-healthy` run visible in GitHub Actions and referenced in `MODERNIZE.md` log.
-- Blocker: workflow file is not available on remote until branch changes are pushed (`HTTP 404` on dispatch).
+- Evidence:
+  - Repository: `Krisztiaan/BrowserQuest`
+  - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773648845`
+  - Result: `success`
 
 ### T-109: Memcache API compatibility and healthy signal determinism
 - Status: `done`
 - Scope: make metrics runtime compatible with modern `memcache` package exports and eliminate healthy-smoke signal loss from stream/event race conditions.
 - Acceptance criteria: in a prepared memcache+memcached env, `test:metrics:healthy` passes deterministically with `server.metrics.ready` and no fallback event.
 - Verification: local prepared run (`bun add --no-save memcache` + memcached container + `bun run test:metrics:healthy`) plus baseline `verify:modern:node22` and `verify:legacy:node22` remain green after cleanup.
+
+### T-110: Metrics client adapter seam and unit contract coverage
+- Status: `done`
+- Scope: extract memcache client API compatibility into a dedicated seam and add unit-level contract tests so legacy/modern API support remains deterministic.
+- Acceptance criteria: adapter supports both legacy and modern memcache exports with deterministic connect/get/set semantics under unit tests.
+- Verification: `tests/unit/metrics-client.test.ts` + baseline verify gates (`verify:modern:node22`, `verify:legacy:node22`) remain green.
+
+### T-111: Fork branch/default-branch hygiene follow-up
+- Status: `todo`
+- Scope: document and apply cleanup strategy for fork workflow evidence setup (default branch reset policy, tracking branch, and guardrails for future dispatch runs).
+- Acceptance criteria: fork automation setup is reproducible and does not leave ambiguous branch/default-branch state.
+- Verification: docs capture current fork state and commands to revert/reapply workflow-dispatch readiness.
