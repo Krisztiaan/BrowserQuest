@@ -84,10 +84,14 @@ Modernization snapshot
 - Legacy artifact consumer inventory: `docs/legacy-artifact-consumer-inventory.md`
 - Legacy gate demotion rehearsal plan: `docs/legacy-gate-demotion-rehearsal-plan.md`
 - Legacy branch-protection demotion runbook: `docs/legacy-branch-protection-demotion-runbook.md`
+- Legacy branch-protection demotion dry-run evidence: `docs/legacy-branch-protection-dry-run-evidence.md`
 - Legacy advisory gate incident template: `docs/legacy-advisory-gate-incident-template.md`
 - Legacy advisory incident log: `docs/legacy-advisory-incident-log.md`
 - Legacy retirement cutover PR checklist: `docs/legacy-retirement-cutover-pr-checklist.md`
 - Legacy retirement preflight gaps: `docs/legacy-retirement-preflight-gaps.md`
+- Legacy external consumer confirmation protocol: `docs/legacy-external-consumer-confirmation-protocol.md`
+- Legacy retirement rollback assignment: `docs/legacy-retirement-rollback-assignment.md`
+- Legacy retirement readiness decision gate: `docs/legacy-retirement-readiness-decision.md`
 - Package-mode trial runbook: `docs/package-mode-trial-runbook.md`
 - Legacy/package-mode compatibility matrix: `docs/legacy-package-mode-compat-matrix.md`
 - Package-mode trial decision log: `docs/package-mode-trial-decision.md`

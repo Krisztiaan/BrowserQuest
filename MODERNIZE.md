@@ -3246,6 +3246,84 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Await external execution of `T-202` runbook to advance retirement cutover.
 
+- 2026-02-07 06:44:10Z
+  - Status: `in_progress` -> `done` (T-202)
+  - Actions:
+    - Executed branch-protection demotion dry-run on sandbox protected branch in fork:
+      - created `t202-protected` branch protection with required checks (`modern`, `legacy`),
+      - opened dry-run PR (`#1`) from `t202-dry-run` to `t202-protected`,
+      - demoted required checks from (`modern`,`legacy`) to (`modern`) and captured merge-state transition.
+    - Captured concrete evidence artifact with run URLs, outcomes, and cleanup/rollback proof:
+      - `docs/legacy-branch-protection-dry-run-evidence.md`
+    - Performed immediate cleanup:
+      - removed sandbox branch protection, closed PR without merge, deleted temporary branches.
+  - Evidence:
+    - `docs/legacy-branch-protection-dry-run-evidence.md` includes PR URL + workflow run URLs + rollback verification.
+  - Next action:
+    - Start post-T203 queue refresh for remaining operational retirement blockers.
+
+- 2026-02-07 06:44:10Z
+  - Status: `in_progress` -> `done` (T-204)
+  - Actions:
+    - Refreshed queue after T-202/T-203 completion:
+      - `T-205` external `client-build` consumer confirmation protocol.
+      - `T-206` rollback owner/release-tag assignment record.
+      - `T-207` retirement cutover readiness decision gate.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes post-T203 execution queue focused on operational blockers.
+  - Next action:
+    - Start `T-205` external consumer confirmation protocol.
+
+- 2026-02-07 06:52:37Z
+  - Status: `in_progress` -> `done` (T-205)
+  - Actions:
+    - Added explicit external consumer confirmation protocol artifact:
+      - `docs/legacy-external-consumer-confirmation-protocol.md`
+    - Included stakeholder workflow, request template, response log schema, and completion criteria.
+    - Linked protocol from preflight/readme retirement docs.
+  - Evidence:
+    - Protocol artifact checked in and connected to `docs/legacy-retirement-preflight-gaps.md`.
+  - Next action:
+    - Start `T-206` rollback owner/release-tag assignment record.
+
+- 2026-02-07 06:52:37Z
+  - Status: `in_progress` -> `done` (T-206)
+  - Actions:
+    - Added rollback assignment artifact:
+      - `docs/legacy-retirement-rollback-assignment.md`
+    - Captured required owner/escalation/fallback-tag fields plus execution checklist.
+    - Linked assignment artifact from cutover checklist and preflight references.
+  - Evidence:
+    - Assignment artifact checked in and referenced from retirement cutover docs.
+  - Next action:
+    - Start `T-207` retirement cutover readiness decision gate.
+
+- 2026-02-07 06:52:37Z
+  - Status: `in_progress` -> `done` (T-207)
+  - Actions:
+    - Added final go/no-go decision gate artifact:
+      - `docs/legacy-retirement-readiness-decision.md`
+    - Included required evidence inputs, decision checklist, and signoff record template.
+    - Linked decision gate from README and retirement checklist.
+  - Evidence:
+    - Decision artifact checked in and cross-referenced by cutover/preflight documentation.
+  - Next action:
+    - Start post-T207 queue refresh for execution-phase operational records.
+
+- 2026-02-07 06:52:37Z
+  - Status: `in_progress` -> `done` (T-208)
+  - Actions:
+    - Refreshed queue after T-205/T-206/T-207 completion:
+      - `T-209` execute external consumer confirmation protocol and record responses.
+      - `T-210` assign rollback owner/fallback release-tag values.
+      - `T-211` produce signed readiness go/no-go decision record.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes post-T207 operational execution queue.
+  - Next action:
+    - Start `T-209` external consumer confirmation execution.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4461,7 +4539,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: incident-log artifact checked in and linked from demotion docs.
 
 ### T-202: Branch-protection demotion dry-run evidence
-- Status: `todo`
+- Status: `done`
 - Scope: execute dry-run per T-197 on a test PR and capture concrete evidence/results.
 - Acceptance criteria: dry-run record includes run URLs, outcome summary, and rollback-readiness note.
 - Verification: dry-run evidence artifact checked in.
@@ -4471,3 +4549,51 @@ Only after Phase 2, introduce TS gradually:
 - Scope: map open items from T-199 checklist to actionable tasks with owners/status.
 - Acceptance criteria: gap-closure list exists with clear pass/fail readiness state for cutover.
 - Verification: preflight gap artifact checked in and referenced from retirement docs.
+
+### T-204: Post-T203 queue refresh
+- Status: `done`
+- Scope: refresh queue after T-202/T-203 outcomes to focus on remaining operational retirement blockers.
+- Acceptance criteria: successor queue is ordered, scoped, and verification-backed.
+- Verification: `MODERNIZE.md` includes post-T203 successor queue with executable checks.
+
+### T-205: External consumer confirmation protocol
+- Status: `done`
+- Scope: define explicit confirmation workflow for downstream `client-build/` consumers (owners, response log, cutoff date).
+- Acceptance criteria: protocol artifact exists and references inventory + preflight gaps.
+- Verification: protocol artifact checked in and linked from retirement docs.
+
+### T-206: Rollback owner and release-tag assignment record
+- Status: `done`
+- Scope: create a structured record for retirement-cutover rollback owner, escalation path, and fallback release/tag.
+- Acceptance criteria: assignment artifact exists with concrete placeholders/checklist fields.
+- Verification: assignment artifact checked in and linked from cutover checklist.
+
+### T-207: Retirement cutover readiness decision gate
+- Status: `done`
+- Scope: define a final pass/fail decision template combining T-205/T-206 outcomes plus verification command evidence.
+- Acceptance criteria: decision artifact exists with explicit go/no-go criteria and signoff fields.
+- Verification: decision artifact checked in and referenced from retirement preflight docs.
+
+### T-208: Post-T207 queue refresh
+- Status: `done`
+- Scope: refresh queue after T-205/T-206/T-207 outcomes for operational execution records and signoff.
+- Acceptance criteria: successor queue is ordered, scoped, and verification-backed.
+- Verification: `MODERNIZE.md` includes post-T207 successor queue with executable checks.
+
+### T-209: External consumer confirmation execution
+- Status: `todo`
+- Scope: execute the T-205 protocol with real stakeholder responses and fill response log.
+- Acceptance criteria: response log has explicit entries and final classification (`no-consumer` or owned migration plans).
+- Verification: updated `docs/legacy-external-consumer-confirmation-protocol.md`.
+
+### T-210: Rollback assignment completion
+- Status: `todo`
+- Scope: populate T-206 record with concrete owner/escalation/fallback-tag values.
+- Acceptance criteria: assignment fields are filled and acknowledged by maintainers.
+- Verification: updated `docs/legacy-retirement-rollback-assignment.md`.
+
+### T-211: Readiness decision execution
+- Status: `todo`
+- Scope: populate T-207 decision gate with real pass/fail evidence and maintainer signoff.
+- Acceptance criteria: go/no-go decision is recorded with timestamp and signoffs.
+- Verification: updated `docs/legacy-retirement-readiness-decision.md`.

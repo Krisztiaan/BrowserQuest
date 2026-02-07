@@ -6,9 +6,10 @@ Use this checklist when preparing the PR that removes legacy `build:client` pipe
 
 ## Preconditions
 
-- [ ] `docs/legacy-artifact-consumer-inventory.md` confirms no blocking external `client-build/` consumers.
+- [ ] `docs/legacy-external-consumer-confirmation-protocol.md` confirms no unresolved blocking external `client-build/` consumers.
 - [ ] Advisory rehearsal completed per `docs/legacy-gate-demotion-rehearsal-plan.md`.
-- [ ] Rollback owner and rollback release/tag are confirmed.
+- [ ] Rollback owner and rollback release/tag are confirmed in `docs/legacy-retirement-rollback-assignment.md`.
+- [ ] Go/no-go is captured in `docs/legacy-retirement-readiness-decision.md`.
 
 ## Code and scripts
 

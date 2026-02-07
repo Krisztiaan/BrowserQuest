@@ -47,3 +47,7 @@ Rollback steps:
    - `bun run test:browser:legacy:node22`
    - `bun run test:browser:protocol:node22`
 4. Confirm required-check enforcement is restored on new PRs.
+
+Rehearsal evidence reference:
+
+- `docs/legacy-branch-protection-dry-run-evidence.md`

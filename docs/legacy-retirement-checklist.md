@@ -24,6 +24,7 @@ Preflight tracker: `docs/legacy-retirement-preflight-gaps.md`
 - Internal release notes include retirement date and rollback trigger conditions.
 - Any downstream consumers of `client-build/` artifacts are identified and migrated.
   - Inventory source: `docs/legacy-artifact-consumer-inventory.md`
+  - Confirmation protocol: `docs/legacy-external-consumer-confirmation-protocol.md`
 
 ## Cutover steps
 
@@ -62,3 +63,4 @@ Exit rollback mode only after:
 Legacy runtime may be retired only when:
 - All readiness criteria are met.
 - Cutover/rollback steps are reviewed and explicitly approved by maintainers.
+- Final decision record is captured in `docs/legacy-retirement-readiness-decision.md`.
