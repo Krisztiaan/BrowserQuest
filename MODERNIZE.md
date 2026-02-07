@@ -4063,6 +4063,41 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-257` server startup dependency seam docs alignment for ESM runtime injection.
 
+- 2026-02-07 18:40:00Z
+  - Status: `in_progress` -> `done` (T-257)
+  - Actions:
+    - Refreshed startup-boundary inventory docs to match current runtime seam behavior:
+      - `docs/runtime-cjs-boundary-inventory.md`,
+      - `docs/server-cjs-esm-readiness-inventory.md`,
+      - `docs/package-mode-migration-checklist.md`.
+    - Captured current startup-seam contract explicitly:
+      - default CJS startup path (`main.js` -> `main-runtime.js`),
+      - opt-in ESM websocket runtime injection path (`BQ_ESM_WS_RUNTIME=1`),
+      - structured startup signals and remaining convergence blockers.
+  - Evidence:
+    - Docs now reflect current `main-esm` runtime option wiring and `ws-runtime-esm` presence.
+    - Smoke command reference remains green for runtime-mode path:
+      - `bun test tests/smoke/server-handshake-esm-ws-runtime.test.ts`.
+  - Next action:
+    - Start `T-258` startup seam command ergonomics (dedicated npm scripts for ESM websocket runtime modes).
+
+- 2026-02-07 18:55:00Z
+  - Status: `in_progress` -> `done` (T-258)
+  - Actions:
+    - Added dedicated package scripts for ESM websocket startup seam modes:
+      - `start:server:esm:ws-bridge:probe`,
+      - `start:server:esm:ws-runtime`,
+      - `start:server:esm:ws-runtime:fail`,
+      - `test:smoke:esm:ws-runtime`.
+    - Updated runbook/docs to reference script-first usage instead of manual env composition:
+      - `README.md`,
+      - `docs/client-build-support.md`.
+  - Evidence:
+    - Added scripts execute runtime-mode paths consistently and improve command discoverability.
+    - `bun run test:smoke:esm:ws-runtime` passes.
+  - Next action:
+    - Start `T-259` startup seam runtime-options extraction (`main-esm`) for higher testability.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5608,7 +5643,19 @@ Only after Phase 2, introduce TS gradually:
 - Verification: docs lint/read-through + targeted smoke command replay.
 
 ### T-257: Server startup dependency seam docs alignment (ESM injection path)
-- Status: `todo`
+- Status: `done`
 - Scope: refresh server startup-seam docs/inventory to reflect current ESM websocket runtime injection path and remaining convergence gaps.
 - Acceptance criteria: roadmap/inventory docs accurately describe default CJS path, opt-in ESM websocket path, and next technical blockers for deeper ESM-native startup migration.
 - Verification: docs read-through against current runtime code + smoke command references.
+
+### T-258: Startup seam command ergonomics (ESM websocket runtime modes)
+- Status: `done`
+- Scope: add explicit package scripts for opt-in ESM websocket runtime startup/probe modes so contributors can run startup seam paths without manual env flag composition.
+- Acceptance criteria: package scripts cover success-mode and forced-failure mode for ESM websocket runtime startup seam and are documented in runbooks.
+- Verification: run added scripts + `bun test tests/smoke/server-handshake-esm-ws-runtime.test.ts`.
+
+### T-259: Startup seam runtime-options extraction (`main-esm`) for testability
+- Status: `todo`
+- Scope: extract ESM startup runtime-options decision logic into a focused helper module/function so env-flag behavior can be tested without booting the full server process.
+- Acceptance criteria: runtime-options decision logic is isolated behind a callable contract with focused unit coverage and unchanged startup behavior.
+- Verification: focused unit tests + `bun run test:smoke:esm:ws-runtime` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

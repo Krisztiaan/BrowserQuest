@@ -7,8 +7,10 @@ Track post-adoption server/runtime ESM migration readiness without breaking lega
 ## Current boundary snapshot
 
 - Package mode is ESM (`package.json` has `"type": "module"`).
-- Server module graph is fully CJS:
-  - `28 / 28` files in `server/js/*.js` and `server/js/**.js` use `require(...)` / `module.exports` / `exports.*`.
+- Server `.js` runtime graph is still fully CJS:
+  - `29 / 29` files in `server/js/**/*.js` use `require(...)` / `module.exports` / `exports.*`.
+- ESM server/runtime artifacts are present (`10` modules under `server/js/*.mjs`), including an ESM-native websocket runtime implementation:
+  - `server/js/ws-runtime-esm.mjs`.
 - Shared runtime contract remains dual-environment CJS/global:
   - `shared/js/gametypes.js` writes `globalThis.Types` and also uses `module.exports`.
   - `shared/js/protocol-contract.js` exposes protocol constants/parser via `module.exports`.
@@ -19,8 +21,15 @@ Track post-adoption server/runtime ESM migration readiness without breaking lega
   - `server/js/log-esm.mjs`
   - `server/js/format-esm.mjs`
   - `server/js/ws-esm.mjs`
+  - `server/js/ws-runtime-esm.mjs`
   - `shared/js/protocol-contract-esm.mjs`
   - `shared/js/ws-close-codes-esm.mjs`
+- Startup seam status:
+  - default path remains CJS (`server/js/main.js` -> `server/js/main-runtime.js`),
+  - ESM entry can inject websocket runtime via dependency seam when `BQ_ESM_WS_RUNTIME=1`,
+  - runtime mode signaling exists for bridge/runtime probes:
+    - `server.esm.ws_bridge_probe`,
+    - `server.esm.ws_runtime_mode`.
 - Tooling/runtime edges still CJS:
   - `tools/check-runtime.cjs`
   - `tools/check-modern-jquery-free.cjs`
@@ -40,17 +49,18 @@ Track post-adoption server/runtime ESM migration readiness without breaking lega
 3. `shared/js/gametypes.js` is a cross-runtime contract for both server and browser; changing export shape can break protocol/runtime parity.
 4. `server/js/metrics.js` has optional runtime dependency loading (`require("memcache")`) that must stay lazy/fault-tolerant under ESM.
 5. Existing test/runtime launch paths execute `bun server/js/main.js`; entrypoint compatibility must be preserved while reducing CJS runtime debt.
+6. Startup runtime assembly (`server/js/main-runtime.js`) is CJS and still owns most dependency wiring beyond websocket injection.
 
 ## Recommended migration sequence
 
-### Phase 0: Bridge setup (no behavior changes)
+### Phase 0: Bridge setup (no behavior changes) - completed baseline
 
 - Add an ESM entry candidate while preserving current entrypoint:
   - Keep `server/js/main.js` as compatibility bootstrap.
   - Introduce ESM runner target (for example `server/js/main.mjs`) behind explicit opt-in command first.
 - Introduce `shared/js/gametypes` ESM-compatible export surface without removing existing global/CJS behavior.
 
-### Phase 1: Leaf module conversion
+### Phase 1: Leaf/runtime mirror conversion - in progress
 
 - Convert low-fanout server utilities first:
   - `server/js/log.js`
@@ -62,14 +72,20 @@ Track post-adoption server/runtime ESM migration readiness without breaking lega
   - `server/js/metrics-adapters/memcache.js`
 - Keep CJS wrappers where required by existing test imports until test migration lands.
 
-### Phase 2: Core gameplay/server graph conversion
+### Phase 2: Startup seam convergence (current priority)
+
+- Keep default CJS entry unchanged while expanding dependency-seam injection options.
+- Adopt ESM-native implementations behind opt-in startup flags (websocket path done; next seams pending).
+- Ensure each opt-in startup seam has explicit structured signal + smoke coverage before broader adoption.
+
+### Phase 3: Core gameplay/server graph conversion
 
 - Migrate interconnected gameplay modules in dependency layers:
   - Base entities/areas/messages before `player`/`worldserver`.
   - Convert `ws` and server boot wiring only after gameplay modules are stable.
 - Replace `server/js/lib/class.js` usage with native `class` syntax once dependent modules are converted.
 
-### Phase 3: Runtime graph reduction after package adoption
+### Phase 4: Runtime graph reduction after package adoption
 
 - Switch runtime launch commands to ESM entrypoint after parity evidence.
 - Keep package-level `"type": "module"` and continue isolating intentional CJS scripts as `.cjs`.
@@ -92,8 +108,9 @@ Track post-adoption server/runtime ESM migration readiness without breaking lega
 ## Immediate follow-up tickets
 
 1. Keep package-mode boundary checks active in local and CI verification paths.
-2. Convert additional server runtime modules from CJS exports/imports where risk is acceptable.
-3. Reassess `shared/js/gametypes` dual-export strategy before removing CJS/global compatibility.
+2. Expand startup dependency seam adoption beyond websocket runtime injection while preserving default CJS path.
+3. Convert additional server runtime modules from CJS exports/imports where risk is acceptable.
+4. Reassess `shared/js/gametypes` dual-export strategy before removing CJS/global compatibility.
 
 Reference artifact: `docs/server-classjs-fanout-map.md`
 Core execution plan: `docs/server-core-class-migration-plan.md`
