@@ -4284,6 +4284,26 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-270` ESM boot-envelope seam extraction (`main-esm`).
 
+- 2026-02-08 00:15:00Z
+  - Status: `in_progress` -> `done` (T-270)
+  - Actions:
+    - Extracted top-level ESM boot envelope into helper module:
+      - `server/js/main-esm-boot-envelope.mjs` (`runMainEsmBootEnvelope(...)`).
+      - Encapsulates: config-source resolution -> config preflight checks -> startup-runner execution.
+    - Updated `server/js/main-esm.mjs` to act as a thin bootstrap wrapper wiring process/env/runtime dependencies into the boot-envelope helper.
+    - Added focused boot-envelope unit coverage:
+      - `tests/unit/server-main-esm-boot-envelope.test.ts`.
+      - Covers success path, missing-config abort path, and invalid-config abort path.
+    - Expanded helper export parity coverage:
+      - `tests/unit/server-main-esm-helpers-parity.test.ts` now includes boot-envelope helper contract checks.
+  - Evidence:
+    - Focused boot-envelope/helper tests passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-271` protocol contract TypeScript source-of-truth promotion.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5907,7 +5927,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: focused unit tests + websocket/config startup smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-270: ESM boot-envelope seam extraction (`main-esm`)
-- Status: `todo`
+- Status: `done`
 - Scope: extract top-level ESM boot envelope (`resolve config -> preflight -> startup-runner`) into a single helper contract to simplify entry script and prepare deeper ESM-native startup adoption.
 - Acceptance criteria: `main-esm.mjs` becomes a thin bootstrap wrapper and boot-envelope helper has focused contract tests with unchanged startup behavior.
 - Verification: focused unit tests + `tests/smoke/server-handshake-esm-entry.test.ts` + `tests/smoke/server-config-preflight-esm-entry.test.ts` + `bun run verify:modern:node22`.
