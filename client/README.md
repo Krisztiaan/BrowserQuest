@@ -45,3 +45,5 @@ This will use the RequireJS optimizer tool to create a client-build/ directory c
 A build log file will also be created at bin/build.txt.
 
 The client-build directory can be renamed and deployed anywhere. It has no dependencies to any other file/folder in the repository.
+
+- T-202 dry-run marker for branch-protection rehearsal.
