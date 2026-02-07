@@ -10,8 +10,11 @@
 The CJS path remains inline until CJS runtime retirement or a dedicated CJS class-factory migration slice lands.  
 The ESM path now uses an explicit class-factory seam for dependency injection and future migration flexibility.
 
+Decision record: `docs/websocket-cjs-factory-migration-decision.md`
+
 ## Parity guardrail commands
 
 - Focused parity: `bun run test:ws:runtime:parity`
+- Decision contract: `bun run test:ws:runtime:decision`
 - Full modern gate: `bun run verify:modern:node22`
 - Full legacy gate: `bun run verify:legacy:node22`

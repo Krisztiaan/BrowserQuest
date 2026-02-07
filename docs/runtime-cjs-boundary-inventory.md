@@ -45,6 +45,12 @@ Reason: provide safe adoption path without changing default runtime mode.
 
 Reason: compatibility with existing tests and legacy client/server contracts.
 
+Websocket boundary decision:
+
+- CJS websocket runtime remains inline (`server/js/ws.js`).
+- ESM websocket runtime uses class-factory seam (`server/js/ws-runtime-class-factory.mjs` via `server/js/ws-runtime-esm.mjs`).
+- Decision record: `docs/websocket-cjs-factory-migration-decision.md`.
+
 ## Startup dependency seam snapshot
 
 - Default server start (`bun run start:server`) remains CJS:
@@ -83,3 +89,4 @@ Reason: compatibility with existing tests and legacy client/server contracts.
 - `bun run check:class-fanout`
 - `bun run check:package-mode-boundaries`
 - `bun run check:legacy-optimizer-integrity`
+- `bun run test:ws:runtime:decision`

@@ -4367,6 +4367,30 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-274` CJS websocket class-factory migration decision slice.
 
+- 2026-02-08 02:45:00Z
+  - Status: `in_progress` -> `done` (T-274)
+  - Actions:
+    - Executed CJS websocket class-factory migration decision slice by locking intentional divergence:
+      - CJS runtime (`server/js/ws.js`) remains inline.
+      - ESM runtime continues using class-factory seam (`server/js/ws-runtime-class-factory.mjs`).
+    - Added boundary decision contract test:
+      - `tests/unit/ws-runtime-boundary-decision.test.ts`.
+      - Asserts ESM exposes `createWebSocketRuntimeClasses` and CJS intentionally does not.
+    - Added focused decision verification script:
+      - `package.json` script `test:ws:runtime:decision`.
+    - Added formal decision record with owner criteria + rollback notes:
+      - `docs/websocket-cjs-factory-migration-decision.md`.
+    - Updated websocket/runtime boundary docs to reference and enforce decision:
+      - `docs/websocket-runtime-class-boundary-parity.md`,
+      - `docs/runtime-cjs-boundary-inventory.md`.
+  - Evidence:
+    - `bun run test:ws:runtime:decision` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-275` websocket boundary observability/owner checklist alignment.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6014,7 +6038,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: websocket unit/smoke suites + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-274: CJS websocket class-factory migration decision slice
-- Status: `todo`
+- Status: `done`
 - Scope: decide and execute the next CJS websocket runtime step (adopt CJS class-factory seam or lock intentional divergence until CJS retirement milestone) with explicit owner criteria and rollback notes.
 - Acceptance criteria: decision is implemented/documented with updated parity tests and no runtime handshake regressions.
 - Verification: websocket unit/smoke suites + docs/runbook alignment + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-275: Websocket boundary observability/owner checklist alignment
+- Status: `todo`
+- Scope: align websocket boundary decision record with explicit operator checklist entries (signals to watch, owner handoff trigger, rollback drill cadence) in runtime runbooks.
+- Acceptance criteria: decision docs and runtime runbooks contain executable owner/observability checklist steps linked to verification commands.
+- Verification: docs read-through + `bun run test:ws:runtime:decision` + `bun run verify:modern:node22`.
