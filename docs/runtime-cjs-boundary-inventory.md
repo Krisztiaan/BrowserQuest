@@ -50,6 +50,8 @@ Websocket boundary decision:
 - CJS websocket runtime remains inline (`server/js/ws.js`).
 - ESM websocket runtime uses class-factory seam (`server/js/ws-runtime-class-factory.mjs` via `server/js/ws-runtime-esm.mjs`).
 - Decision record: `docs/websocket-cjs-factory-migration-decision.md`.
+- Operator checklist / owner handoff / rollback drill cadence:
+  - `docs/websocket-cjs-factory-migration-decision.md`.
 
 ## Startup dependency seam snapshot
 

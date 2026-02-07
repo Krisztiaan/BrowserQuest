@@ -37,6 +37,11 @@ Maintain and harden package mode (`"type": "module"`) without breaking runtime, 
      - `server/js/main-esm-runtime-options.mjs`
 4. Record import/export conversion blockers (if any) in server/runtime files before package flip.
 5. Ensure tests using `require(...)` are intentionally CJS-compatible or migrated to `import`.
+6. Keep websocket boundary decision checks aligned with runtime mode docs:
+   - decision record: `docs/websocket-cjs-factory-migration-decision.md`
+   - decision/parity checks:
+     - `bun run test:ws:runtime:decision`
+     - `bun run test:ws:runtime:parity`
 
 ## Migration sequence (completed + ongoing)
 

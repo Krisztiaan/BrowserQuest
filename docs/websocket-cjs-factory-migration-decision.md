@@ -33,3 +33,33 @@ If any websocket runtime boundary changes regress handshake/protocol behavior:
    - `bun run verify:modern:node22`
    - `bun run verify:legacy:node22`
 3. Keep CJS inline runtime as the immediate fallback baseline.
+
+## Operator checklist
+
+Run this checklist for websocket boundary-touching changes:
+
+1. Confirm runtime-mode signals in logs:
+   - `server.esm.ws_runtime_mode` reports expected `status=ok|failed`.
+   - `server.esm.ws_bridge_probe` reports expected `status=ok|failed` when probe mode is enabled.
+2. Run focused boundary contract checks:
+   - `bun run test:ws:runtime:decision`
+   - `bun run test:ws:runtime:parity`
+3. Run full gate checks:
+   - `bun run verify:modern:node22`
+   - `bun run verify:legacy:node22`
+
+## Owner handoff trigger
+
+Escalate to server-runtime maintainers when any of the following occurs:
+
+1. `test:ws:runtime:decision` fails.
+2. websocket handshake/protocol smokes fail in either modern or legacy verification tracks.
+3. ESM runtime signal events (`server.esm.ws_runtime_mode` / `server.esm.ws_bridge_probe`) are missing or inconsistent with requested startup mode.
+
+## Rollback drill cadence
+
+- Execute rollback drill quarterly, and after any websocket boundary refactor touching `server/js/ws.js`, `server/js/ws-runtime-esm.mjs`, or `server/js/ws-runtime-class-factory.mjs`.
+- Drill command baseline:
+  - `bun run test:ws:runtime:decision`
+  - `bun run verify:modern:node22`
+  - `bun run verify:legacy:node22`

@@ -89,6 +89,10 @@ This project currently ships two client build paths while modernization is in pr
   - ESM websocket runtime mode smoke:
     - `bun run test:smoke:esm:ws-runtime`
     - Covers success-mode handshake and forced-failure diagnostics for `BQ_ESM_WS_RUNTIME` flags.
+  - Websocket boundary decision/parity checks:
+    - `bun run test:ws:runtime:decision`
+    - `bun run test:ws:runtime:parity`
+    - Decision record: `docs/websocket-cjs-factory-migration-decision.md`
 - Legacy gate: `bun run verify:legacy`
   - Runs `check:package-mode-boundaries`, `check:legacy-optimizer-integrity`, `test`, `build:client`, and `build:vite:legacy`
 

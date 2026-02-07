@@ -4391,6 +4391,26 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-275` websocket boundary observability/owner checklist alignment.
 
+- 2026-02-08 03:20:00Z
+  - Status: `in_progress` -> `done` (T-275)
+  - Actions:
+    - Added explicit websocket boundary operator checklist to decision record:
+      - runtime signal checks (`server.esm.ws_runtime_mode`, `server.esm.ws_bridge_probe`),
+      - focused decision/parity commands,
+      - full verify commands.
+    - Added owner handoff triggers and rollback drill cadence to:
+      - `docs/websocket-cjs-factory-migration-decision.md`.
+    - Aligned runtime/package-mode runbooks with decision checklist references:
+      - `docs/client-build-support.md`,
+      - `docs/package-mode-migration-checklist.md`,
+      - `docs/runtime-cjs-boundary-inventory.md`.
+  - Evidence:
+    - docs/read-through complete with command/checklist references aligned.
+    - `bun run test:ws:runtime:decision` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-276` websocket boundary drill automation seam (scripted checklist runner).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6044,7 +6064,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: websocket unit/smoke suites + docs/runbook alignment + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-275: Websocket boundary observability/owner checklist alignment
-- Status: `todo`
+- Status: `done`
 - Scope: align websocket boundary decision record with explicit operator checklist entries (signals to watch, owner handoff trigger, rollback drill cadence) in runtime runbooks.
 - Acceptance criteria: decision docs and runtime runbooks contain executable owner/observability checklist steps linked to verification commands.
 - Verification: docs read-through + `bun run test:ws:runtime:decision` + `bun run verify:modern:node22`.
+
+### T-276: Websocket boundary drill automation seam (scripted checklist runner)
+- Status: `todo`
+- Scope: add a single scripted command that runs websocket boundary decision/parity checks and emits a compact pass/fail summary for operator drill cadence.
+- Acceptance criteria: one command executes the boundary drill checklist deterministically and is referenced from websocket decision/runbook docs.
+- Verification: run new script + `bun run verify:modern:node22`.
