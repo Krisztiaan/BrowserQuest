@@ -1916,6 +1916,110 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Define T-114 upstream alignment checklist (what to replicate if write access to upstream becomes available).
 
+- 2026-02-07 03:50:10Z
+  - Status: `in_progress` -> `done` (T-114)
+  - Actions:
+    - Added upstream replication checklist for optional healthy workflow:
+      - `docs/metrics-health-smoke-plan.md`
+      - includes workflow file requirements, dispatch verification commands, and evidence capture requirements.
+  - Evidence:
+    - Runbook now has an explicit ordered checklist for migrating fork-based evidence flow to upstream when permissions allow.
+  - Next action:
+    - Define T-115 baseline modernization tag point (capture commit/run references for this completed metrics slice).
+
+- 2026-02-07 03:50:27Z
+  - Status: `in_progress` -> `done` (T-115)
+  - Actions:
+    - Captured compact baseline references for completed metrics modernization slice.
+  - Evidence:
+    - Fork repo: `https://github.com/Krisztiaan/BrowserQuest`
+    - Key commits:
+      - `23df5dd` (modernization + metrics workflow snapshot)
+      - `436cb22` (T-108 evidence logging)
+      - `4c096de` (workflow `--no-save` hardening)
+    - Successful healthy workflow runs:
+      - `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773648845`
+      - `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773675770`
+  - Next action:
+    - Define T-116 optional smoke runtime matrix note (Bun version pin/watch for workflow reproducibility).
+
+- 2026-02-07 03:50:46Z
+  - Status: `in_progress` -> `done` (T-116)
+  - Actions:
+    - Added runtime matrix note and revalidation trigger for optional healthy workflow:
+      - `docs/metrics-health-smoke-plan.md`
+      - captures Node/Bun versions observed in successful runs and when to rerun.
+  - Evidence:
+    - Runbook now includes runtime references linked to successful run IDs and explicit drift triggers.
+  - Next action:
+    - Define T-117 checkpoint summary and pause marker for next modernization slice handoff.
+
+## Metrics slice checkpoint (T-104..T-116)
+
+- Completed:
+  - `T-104` structured `server.metrics.ready` signal contract.
+  - `T-105` prerequisites preflight for optional healthy smoke.
+  - `T-106` optional healthy workflow definition.
+  - `T-107` workflow trigger/triage runbook.
+  - `T-108` successful fork workflow evidence capture (`21773648845`).
+  - `T-109` memcache API compatibility + healthy signal determinism fix.
+  - `T-110` metrics client seam extraction + unit contracts.
+  - `T-111` fork default-branch hygiene instructions.
+  - `T-112` workflow dependency-step hardening (`--no-save`) + successful rerun (`21773675770`).
+  - `T-113` upstream-vs-fork handoff context notes.
+  - `T-114` upstream replication checklist.
+  - `T-115` baseline commit/run reference capture.
+  - `T-116` runtime matrix note + revalidation triggers.
+- Current execution context:
+  - Upstream `mozilla/BrowserQuest` is read-only in this environment; actionable workflow evidence is tracked on fork `Krisztiaan/BrowserQuest`.
+- Open successor queue:
+  - `T-117` checkpoint summary completion marker (this block) and next-slice handoff.
+
+- 2026-02-07 03:51:06Z
+  - Status: `in_progress` -> `done` (T-117)
+  - Actions:
+    - Added metrics slice checkpoint summary block covering outcomes from `T-104` through `T-116`.
+    - Added explicit context marker for fork-based workflow evidence and open successor queue.
+  - Evidence:
+    - `MODERNIZE.md` now includes a concise resume point without replaying full chronological logs.
+  - Next action:
+    - Define T-118 next modernization slice candidate refresh beyond metrics/CI contracts.
+
+- 2026-02-07 03:51:24Z
+  - Status: `in_progress` -> `done` (T-118)
+  - Actions:
+    - Refreshed post-metrics modernization candidate queue with explicit ordered tickets:
+      - `T-119` server config schema preflight.
+      - `T-120` optional healthy workflow runtime matrix hardening.
+      - `T-121` metrics adapter failure taxonomy expansion.
+      - `T-122` legacy/modern protocol invariant replay guard.
+    - Added acceptance criteria and verification commands for each candidate.
+  - Evidence:
+    - `MODERNIZE.md` now contains an executable next slice beyond completed metrics/CI stabilization work.
+  - Next action:
+    - Start `T-119` server config schema preflight implementation.
+
+- 2026-02-07 03:54:53Z
+  - Status: `in_progress` -> `done` (T-119)
+  - Actions:
+    - Added server config preflight validator:
+      - `server/js/config-preflight.js`
+      - validates core startup contract (port/debug level/world sizing/map path/metrics_enabled type).
+    - Wired fail-fast preflight in startup path:
+      - `server/js/main.js` now emits `server.config.invalid` with structured errors and exits before server boot when config is invalid.
+    - Added tests and docs:
+      - `tests/unit/server-config-preflight.test.ts`
+      - `tests/smoke/server-config-preflight.test.ts`
+      - `docs/server-logging-taxonomy.md`
+      - `server/README.md`
+    - Kept existing degraded metrics behavior intact by deferring metrics field checks to metrics runtime fallback path.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/server-config-preflight.test.ts tests/smoke/server-config-preflight.test.ts tests/smoke/server-handshake.test.ts tests/smoke/server-structured-logs.lifecycle.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-120` optional healthy workflow Node/Bun matrix hardening.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2603,7 +2707,55 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `README.md` and/or metrics runbook includes explicit upstream-vs-fork execution note with links.
 
 ### T-114: Upstream alignment checklist for optional workflow
-- Status: `todo`
+- Status: `done`
 - Scope: document exact steps to replicate fork-based healthy workflow setup in upstream when/if upstream write access is available.
 - Acceptance criteria: checklist exists for porting workflow/runbook evidence path from fork back to upstream.
 - Verification: checklist committed in runbook/docs and linked from roadmap.
+
+### T-115: Metrics slice baseline reference capture
+- Status: `done`
+- Scope: capture concise baseline references (branch head commit + successful workflow run IDs) for the completed metrics modernization slice.
+- Acceptance criteria: roadmap includes a compact reference block for future regressions/audits.
+- Verification: `MODERNIZE.md` contains commit/run reference bullets tied to completed T-104..T-114 work.
+
+### T-116: Optional healthy workflow runtime matrix note
+- Status: `done`
+- Scope: document observed Bun/Node runtime versions from successful healthy workflow runs and define watch policy for future runtime drifts.
+- Acceptance criteria: runbook/roadmap includes runtime-version reference and a clear revalidation trigger.
+- Verification: docs include version note tied to specific successful run IDs.
+
+### T-117: Metrics slice checkpoint summary for handoff
+- Status: `done`
+- Scope: add a concise checkpoint summary block in roadmap documenting completed T-104..T-116 outcomes and open successor tasks.
+- Acceptance criteria: a new contributor can resume from roadmap alone without replaying full log history.
+- Verification: checkpoint block exists and references the latest completed ticket IDs plus remaining todos.
+
+### T-118: Post-metrics modernization candidate refresh
+- Status: `done`
+- Scope: identify the next highest-leverage modernization batch after metrics/CI contract stabilization (runtime/library/tooling or protocol hardening candidates).
+- Acceptance criteria: roadmap includes ordered, ticketized next slice with acceptance criteria and verification commands.
+- Verification: new queued tickets are added to `MODERNIZE.md` with executable checks.
+
+### T-119: Server config schema preflight (runtime contract)
+- Status: `done`
+- Scope: add explicit server config schema validation/preflight at startup (required keys/types/ranges) before world boot.
+- Acceptance criteria: invalid configs fail fast with structured actionable errors; valid configs start unchanged.
+- Verification: targeted config-preflight tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-120: Optional healthy workflow Node/Bun matrix hardening
+- Status: `todo`
+- Scope: expand optional healthy workflow matrix to explicitly capture at least one pinned Bun version and current Node policy version for reproducibility tracking.
+- Acceptance criteria: workflow matrix and runbook make runtime drift visible without affecting default gates.
+- Verification: successful workflow run(s) for configured matrix entries with documented run IDs.
+
+### T-121: Metrics adapter failure-mode taxonomy expansion
+- Status: `todo`
+- Scope: enrich `server.metrics.unavailable` failure reasons for connect-time and runtime operation failures (not just init/config) with stable reason codes.
+- Acceptance criteria: failure reasons are structured, documented, and covered by targeted tests.
+- Verification: unit/smoke assertions for expanded reasons + logging taxonomy doc updates.
+
+### T-122: Legacy/modern protocol invariant replay guard
+- Status: `todo`
+- Scope: add a focused replay/invariant smoke that replays a deterministic action sequence against both modern and legacy entry paths and diffs key protocol outcomes.
+- Acceptance criteria: regression signal exists when protocol handling diverges between compatibility paths.
+- Verification: new smoke command + passing `verify:modern:node22`/`verify:legacy:node22`.

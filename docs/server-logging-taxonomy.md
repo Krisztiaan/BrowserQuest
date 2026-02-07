@@ -23,6 +23,8 @@ All structured records include:
   - `reason`
 - `server.error`
   - `message`
+- `server.config.invalid`
+  - `errors` (array of `{ field, reason }` config preflight failures)
 - `server.metrics.unavailable`
   - `reason` (`invalid_config` | `init_failed`)
   - `invalidFields` (for `invalid_config`)

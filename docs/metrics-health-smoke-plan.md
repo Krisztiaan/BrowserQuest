@@ -53,6 +53,15 @@ Repository context:
   - `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773648845`
   - `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773675770` (hardened `--no-save` step)
 
+Observed/runtime policy matrix:
+
+- Node: `22.x` (workflow matrix target)
+- Bun: `1.3.8` (workflow matrix pin)
+
+Revalidation trigger:
+
+- Rerun `verify-metrics-healthy` after any Node policy change, Bun major/minor bump in CI setup, or workflow dependency-step edits.
+
 - Trigger: GitHub Actions UI -> `verify-metrics-healthy` -> `Run workflow`.
 - Provisioning: job starts a memcached service container (`127.0.0.1:11211`), installs `memcache` via `bun add --no-save memcache`, and runs `bun run test:metrics:healthy`.
 
@@ -95,6 +104,23 @@ When validating this optional workflow on a fork where workflow files only exist
 - `gh workflow list --repo <user>/BrowserQuest`
 
 This keeps workflow-dispatch behavior deterministic and prevents confusion about missing/404 workflows.
+
+## Upstream alignment checklist (when write access exists)
+
+If upstream write access to `mozilla/BrowserQuest` becomes available, replicate this setup in order:
+
+1. Ensure branch with workflow changes is pushed to upstream.
+2. Keep or add `.github/workflows/verify-metrics-healthy.yml` with:
+- memcached service container
+- `bun add --no-save memcache`
+- `bun run test:metrics:healthy`
+3. Confirm workflow appears:
+- `gh workflow list --repo mozilla/BrowserQuest`
+4. Trigger and verify run:
+- `gh workflow run verify-metrics-healthy --repo mozilla/BrowserQuest --ref <branch>`
+- `gh run watch <run-id> --repo mozilla/BrowserQuest --exit-status`
+5. Capture baseline run evidence (URL/id/date) in `MODERNIZE.md`.
+6. Keep default verify gates unchanged (`verify:modern`, `verify:legacy`) and leave healthy workflow optional/manual unless policy changes.
 
 ## Pass/fail criteria (healthy smoke)
 

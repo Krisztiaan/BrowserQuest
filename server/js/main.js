@@ -1,17 +1,29 @@
 
 var fs = require('fs'),
+    ConfigPreflight = require('./config-preflight'),
     MetricsRuntime = require('./metrics-runtime'),
     Log = require('./log');
 var log = Log.getLogger();
 
 
 function main(config) {
+    var emitServerEvent = function(level, eventName, fields) {
+            log.event(level, eventName, fields);
+        },
+        validationResult = ConfigPreflight.validateConfig(config);
+
+    if(!validationResult.isValid) {
+        emitServerEvent("error", "server.config.invalid", {
+            errors: validationResult.errors
+        });
+        log.error("Invalid server configuration: " + JSON.stringify(validationResult.errors));
+        process.exit(1);
+        return;
+    }
+
     var ws = require("./ws"),
         WorldServer = require("./worldserver"),
         Player = require("./player"),
-        emitServerEvent = function(level, eventName, fields) {
-            log.event(level, eventName, fields);
-        },
         server = new ws.MultiVersionWebsocketServer(config.port),
         metrics = MetricsRuntime.createMetrics(config, emitServerEvent),
         worlds = [],

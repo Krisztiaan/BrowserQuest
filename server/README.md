@@ -15,6 +15,7 @@ Configuration
 The server settings (number of worlds, number of players per world, etc.) can be configured.
 Copy `config_local.json-dist` to a new `config_local.json` file, then edit it. The server will override default settings with this file.
 The distributed template already includes metrics-related keys so toggling `metrics_enabled` does not require guessing field names.
+Startup runs config preflight validation; invalid configs fail fast with structured event `server.config.invalid`.
 
 Metrics mode (`metrics_enabled`)
 --------------------------------
