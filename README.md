@@ -72,6 +72,7 @@ Modernization snapshot
 - Metrics healthy-path smoke plan: `docs/metrics-health-smoke-plan.md`
 - Metrics healthy-path workflow evidence currently runs on fork `Krisztiaan/BrowserQuest` (upstream `mozilla/BrowserQuest` is read-only in this context).
 - CI gates: `verify-modern`, `verify-legacy`, `verify-modern-browser`, `verify-legacy-browser`, `verify-protocol-invariant`
+  - Optional drift visibility workflow: `verify-dependency-drift`
   - Optional/manual healthy metrics workflow: `verify-metrics-healthy`
   - Trigger/triage guide: `docs/metrics-health-smoke-plan.md`
 - Primary verification commands:

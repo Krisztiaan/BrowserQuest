@@ -1,0 +1,70 @@
+name: verify-dependency-drift
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 * * 1"
+
+jobs:
+  dependency-drift:
+    strategy:
+      matrix:
+        node-version: ["22.x"]
+    runs-on: ubuntu-latest
+    name: dependency-drift (node ${{ matrix.node-version }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Capture dependency drift snapshot
+        id: drift
+        shell: bash
+        run: |
+          set +e
+          npm outdated --depth=0 > dependency-drift.txt 2>&1
+          status=$?
+          set -e
+
+          if [ "$status" -gt 1 ]; then
+            echo "npm outdated failed with status $status" >> dependency-drift.txt
+            exit "$status"
+          fi
+
+          if [ "$status" -eq 0 ]; then
+            echo "No direct dependency drift detected." > dependency-drift.txt
+            echo "{}" > dependency-drift.json
+            echo "drift_detected=false" >> "$GITHUB_OUTPUT"
+          else
+            npm outdated --depth=0 --json > dependency-drift.json || true
+            if [ ! -s dependency-drift.json ]; then
+              echo "{}" > dependency-drift.json
+            fi
+            echo "drift_detected=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Summarize dependency drift
+        shell: bash
+        run: |
+          if [ "${{ steps.drift.outputs.drift_detected }}" = "true" ]; then
+            echo "## Dependency drift detected" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Dependency drift clean" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```text' >> "$GITHUB_STEP_SUMMARY"
+          cat dependency-drift.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload dependency drift artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-drift-${{ github.run_id }}
+          path: |
+            dependency-drift.txt
+            dependency-drift.json

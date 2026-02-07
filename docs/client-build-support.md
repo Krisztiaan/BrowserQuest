@@ -88,6 +88,12 @@ This project currently ships two client build paths while modernization is in pr
     - Open the workflow run -> `Artifacts` -> download `protocol-invariant-diagnostics-<run_id>`.
     - Check `test-results/protocol-invariant-junit.xml` first for failing test case and stack metadata.
     - Use `playwright-report/**` for detailed trace/report context when available.
+- `verify-dependency-drift` workflow:
+  - Manual + weekly snapshot (`workflow_dispatch` and Monday cron) for direct dependency drift visibility.
+  - Captures `npm outdated --depth=0` output as artifacts:
+    - `dependency-drift-<run_id>/dependency-drift.txt`
+    - `dependency-drift-<run_id>/dependency-drift.json`
+  - Workflow always publishes the snapshot; dependency drift itself is reported in summary/artifacts, not treated as infra failure.
 - `verify-metrics-healthy` workflow:
   - Manual/optional (`workflow_dispatch`) job that provisions memcached and runs `test:metrics:healthy`.
   - Run/triage guide: `docs/metrics-health-smoke-plan.md`
