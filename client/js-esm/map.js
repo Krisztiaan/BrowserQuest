@@ -1,11 +1,10 @@
 import Area from 'area';
-import Class from 'compat/class';
 import log from 'compat/log';
 import Types from 'compat/gametypes';
 import { isInt } from 'compat/util';
 
-var Map = Class.extend({
-    init: function(loadMultiTilesheets, game) {
+class Map {
+    constructor(loadMultiTilesheets, game) {
         this.game = game;
         this.data = [];
         this.isLoaded = false;
@@ -17,18 +16,18 @@ var Map = Class.extend({
 
         this._loadMap(useWorker);
         this._initTilesets();
-    },
+    }
     
-    _checkReady: function() {
+    _checkReady() {
         if(this.tilesetsLoaded && this.mapLoaded) {
             this.isLoaded = true;
             if(this.ready_func) {
                 this.ready_func();
             }
         }
-    },
+    }
 
-    _loadMap: function(useWorker) {
+    _loadMap(useWorker) {
         var self = this,
             filepath = "maps/world_client.json";
         
@@ -65,9 +64,9 @@ var Map = Class.extend({
                     log.error("Failed to load map JSON: " + error.message);
                 });
         }        
-    },
+    }
     
-    _initTilesets: function() {
+    _initTilesets() {
         var tileset1, tileset2, tileset3, base = "";
         
         if(!this.loadMultiTilesheets) {
@@ -85,9 +84,9 @@ var Map = Class.extend({
         }
     
         this.tilesets = [tileset1, tileset2, tileset3];
-    },
+    }
 
-    _initMap: function(map) {
+    _initMap(map) {
         this.width = map.width;
         this.height = map.height;
         this.tilesize = map.tilesize;
@@ -101,9 +100,9 @@ var Map = Class.extend({
         
         this.doors = this._getDoors(map);
         this.checkpoints = this._getCheckpoints(map);
-    },
+    }
 
-    _getDoors: function(map) {
+    _getDoors(map) {
         var doors = {},
             self = this;
 
@@ -133,9 +132,9 @@ var Map = Class.extend({
         });
     
         return doors;
-    },
+    }
 
-    _loadTileset: function(filepath) {
+    _loadTileset(filepath) {
         var self = this;
         var tileset = new Image();
     
@@ -160,13 +159,13 @@ var Map = Class.extend({
         };
     
         return tileset;
-    },
+    }
 
-    ready: function(f) {
+    ready(f) {
         this.ready_func = f;
-    },
+    }
 
-    tileIndexToGridPosition: function(tileNum) {
+    tileIndexToGridPosition(tileNum) {
         var x = 0,
             y = 0;
     
@@ -182,27 +181,27 @@ var Map = Class.extend({
         y = Math.floor(tileNum / this.width);
 
         return { x: x, y: y };
-    },
+    }
 
-    GridPositionToTileIndex: function(x, y) {
+    GridPositionToTileIndex(x, y) {
         return (y * this.width) + x + 1;
-    },
+    }
 
-    isColliding: function(x, y) { 
+    isColliding(x, y) { 
         if(this.isOutOfBounds(x, y) || !this.grid) {
             return false;
         }
         return (this.grid[y][x] === 1);
-    },
+    }
 
-    isPlateau: function(x, y) { 
+    isPlateau(x, y) { 
         if(this.isOutOfBounds(x, y) || !this.plateauGrid) {
             return false;
         }
         return (this.plateauGrid[y][x] === 1);
-    },
+    }
     
-    _generateCollisionGrid: function() {
+    _generateCollisionGrid() {
         var tileIndex = 0,
             self = this;
 
@@ -226,9 +225,9 @@ var Map = Class.extend({
             }
         });
         log.info("Collision grid generated.");
-    },
+    }
 
-    _generatePlateauGrid: function() {
+    _generatePlateauGrid() {
         var tileIndex = 0;
 
         this.plateauGrid = [];
@@ -244,16 +243,16 @@ var Map = Class.extend({
             }
         }
         log.info("Plateau grid generated.");
-    },
+    }
 
     /**
      * Returns true if the given position is located within the dimensions of the map.
      *
      * @returns {Boolean} Whether the position is out of bounds.
      */
-    isOutOfBounds: function(x, y) {
+    isOutOfBounds(x, y) {
         return isInt(x) && isInt(y) && (x < 0 || x >= this.width || y < 0 || y >= this.height);
-    },
+    }
 
     /**
      * Returns true if the given tile id is "high", i.e. above all entities.
@@ -263,46 +262,46 @@ var Map = Class.extend({
      * @param {Number} id The tile id in the tileset
      * @see Renderer.drawHighTiles
      */
-    isHighTile: function(id) {
+    isHighTile(id) {
         return this.high.includes(id + 1);
-    },
+    }
 
     /**
      * Returns true if the tile is animated. Used by the renderer.
      * @param {Number} id The tile id in the tileset
      */
-    isAnimatedTile: function(id) {
+    isAnimatedTile(id) {
         return id+1 in this.animated;
-    },
+    }
 
     /**
      * 
      */
-    getTileAnimationLength: function(id) {
+    getTileAnimationLength(id) {
         return this.animated[id+1].l;
-    },
+    }
 
     /**
      * 
      */
-    getTileAnimationDelay: function(id) {
+    getTileAnimationDelay(id) {
         var animProperties = this.animated[id+1];
         if(animProperties.d) {
             return animProperties.d;
         } else {
             return 100;
         }
-    },
+    }
 
-    isDoor: function(x, y) {
+    isDoor(x, y) {
         return this.doors[this.GridPositionToTileIndex(x, y)] !== undefined;
-    },
+    }
 
-    getDoorDestination: function(x, y) {
+    getDoorDestination(x, y) {
         return this.doors[this.GridPositionToTileIndex(x, y)];
-    },
+    }
 
-    _getCheckpoints: function(map) {
+    _getCheckpoints(map) {
         var checkpoints = [];
         map.checkpoints.forEach(function(cp) {
             var area = new Area(cp.x, cp.y, cp.w, cp.h);
@@ -310,13 +309,13 @@ var Map = Class.extend({
             checkpoints.push(area);
         });
         return checkpoints;
-    },
+    }
 
-    getCurrentCheckpoint: function(entity) {
+    getCurrentCheckpoint(entity) {
         return this.checkpoints.find(function(checkpoint) {
             return checkpoint.contains(entity);
         });
     }
-});
+}
 
 export default Map;

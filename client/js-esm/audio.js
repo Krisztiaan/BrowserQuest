@@ -1,11 +1,10 @@
 
 import Area from 'area';
-import Class from 'compat/class';
 import Detect from 'compat/detect';
 import log from 'compat/log';
 
-var AudioManager = Class.extend({
-    init: function(game) {
+class AudioManager {
+    constructor(game) {
         var self = this;
     
         this.enabled = true;
@@ -49,9 +48,9 @@ var AudioManager = Class.extend({
         } else {
             this.enabled = false; // Disable audio on Safari Windows
         }
-    },
+    }
 
-    toggle: function() {
+    toggle() {
         if(this.enabled) {
             this.enabled = false;
         
@@ -66,9 +65,9 @@ var AudioManager = Class.extend({
             }
             this.updateMusic();
         }
-    },
+    }
 
-    load: function (basePath, name, loaded_callback, channels) {
+    load(basePath, name, loaded_callback, channels) {
         var path = basePath + name + "." + this.extension,
             sound = document.createElement('audio'),
             self = this;
@@ -95,20 +94,20 @@ var AudioManager = Class.extend({
         for(var i = 0; i < channels - 1; i += 1) {
             self.sounds[name].push(sound.cloneNode(true));
         }
-    },
+    }
 
-    loadSound: function(name, handleLoaded) {
+    loadSound(name, handleLoaded) {
         this.load("audio/sounds/", name, handleLoaded, 4);
-    },
+    }
 
-    loadMusic: function(name, handleLoaded) {
+    loadMusic(name, handleLoaded) {
         this.load("audio/music/", name, handleLoaded, 1);
         var music = this.sounds[name][0];
         music.loop = true;
         music.addEventListener('ended', function() { music.play() }, false);
-    },
+    }
 
-    getSound: function(name) {
+    getSound(name) {
         if(!this.sounds[name]) {
             return null;
         }
@@ -121,22 +120,22 @@ var AudioManager = Class.extend({
             sound = this.sounds[name][0];
         }
         return sound;
-    },
+    }
 
-    playSound: function(name) {
+    playSound(name) {
         var sound = this.enabled && this.getSound(name);
         if(sound) {
             sound.play();
         }
-    },
+    }
 
-    addArea: function(x, y, width, height, musicName) {
+    addArea(x, y, width, height, musicName) {
         var area = new Area(x, y, width, height);
         area.musicName = musicName;
         this.areas.push(area);
-    },
+    }
 
-    getSurroundingMusic: function(entity) {
+    getSurroundingMusic(entity) {
         var music = null,
             area = this.areas.find(function(area) {
                 return area.contains(entity);
@@ -146,9 +145,9 @@ var AudioManager = Class.extend({
             music = { sound: this.getSound(area.musicName), name: area.musicName };
         }
         return music;
-    },
+    }
 
-    updateMusic: function() {
+    updateMusic() {
         if(this.enabled) {
             var music = this.getSurroundingMusic(this.game.player);
     
@@ -163,13 +162,13 @@ var AudioManager = Class.extend({
                 this.fadeOutCurrentMusic();
             }
         }
-    },
+    }
 
-    isCurrentMusic: function(music) {
+    isCurrentMusic(music) {
         return this.currentMusic && (music.name === this.currentMusic.name);
-    },
+    }
 
-    playMusic: function(music) {
+    playMusic(music) {
         if(this.enabled && music && music.sound) {
             if(music.sound.fadingOut) {
                 this.fadeInMusic(music);
@@ -179,16 +178,16 @@ var AudioManager = Class.extend({
             }
             this.currentMusic = music;
         }
-    },
+    }
 
-    resetMusic: function(music) {
+    resetMusic(music) {
         if(music && music.sound && music.sound.readyState > 0) {
             music.sound.pause();
             music.sound.currentTime = 0;
         }
-    },
+    }
 
-    fadeOutMusic: function(music, ended_callback) {
+    fadeOutMusic(music, ended_callback) {
         var self = this;
         if(music && !music.sound.fadingOut) {
             this.clearFadeIn(music);
@@ -205,9 +204,9 @@ var AudioManager = Class.extend({
                 }
             }, 50);
         }
-    },
+    }
 
-    fadeInMusic: function(music) {
+    fadeInMusic(music) {
         var self = this;
         if(music && !music.sound.fadingIn) {
             this.clearFadeOut(music);
@@ -223,23 +222,23 @@ var AudioManager = Class.extend({
                 }
             }, 30);
         }
-    },
+    }
 
-    clearFadeOut: function(music) {
+    clearFadeOut(music) {
         if(music.sound.fadingOut) {
             clearInterval(music.sound.fadingOut);
             music.sound.fadingOut = null;
         }
-    },
+    }
     
-    clearFadeIn: function(music) {
+    clearFadeIn(music) {
         if(music.sound.fadingIn) {
             clearInterval(music.sound.fadingIn);
             music.sound.fadingIn = null;
         }
-    },
+    }
 
-    fadeOutCurrentMusic : function() {
+    fadeOutCurrentMusic() {
         var self = this;
         if(this.currentMusic) {
             this.fadeOutMusic(this.currentMusic, function(music) {
@@ -248,6 +247,6 @@ var AudioManager = Class.extend({
             this.currentMusic = null;
         }
     }
-});
+}
 
 export default AudioManager;
