@@ -4250,6 +4250,40 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-268` post-startup-runner queue refresh (next ESM boot seams).
 
+- 2026-02-07 23:10:00Z
+  - Status: `in_progress` -> `done` (T-268)
+  - Actions:
+    - Refreshed post-startup-runner roadmap with a prioritized successor queue spanning:
+      - ESM boot seams (`main-esm` structured event + boot envelope),
+      - TypeScript-first protocol contract promotion,
+      - websocket runtime modernization with ESM-first class boundaries.
+    - Added explicit successor tickets (`T-269` to `T-272`) with verification gates.
+  - Evidence:
+    - `MODERNIZE.md` queue now reflects ordered, verifiable next slices after `T-267`.
+  - Next action:
+    - Start `T-269` ESM structured-event emission seam extraction (`main-esm`).
+
+- 2026-02-07 23:35:00Z
+  - Status: `in_progress` -> `done` (T-269)
+  - Actions:
+    - Extracted ESM structured-event emission into helper module:
+      - `server/js/main-esm-structured-event.mjs`.
+      - Contracts:
+        - `createStructuredEventEmitter(...)`,
+        - `createProbeEventEmitter(...)`.
+    - Updated `server/js/main-esm.mjs` to consume extracted emitter helpers.
+    - Added focused structured-event helper unit coverage:
+      - `tests/unit/server-main-esm-structured-event.test.ts`.
+    - Expanded helper export parity coverage:
+      - `tests/unit/server-main-esm-helpers-parity.test.ts` now includes structured-event helper contract checks.
+  - Evidence:
+    - Focused structured-event/helper tests passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-270` ESM boot-envelope seam extraction (`main-esm`).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5861,7 +5895,31 @@ Only after Phase 2, introduce TS gradually:
 - Verification: focused unit tests + websocket/config startup smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-268: Post-startup-runner queue refresh (next ESM boot seams)
-- Status: `todo`
+- Status: `done`
 - Scope: refresh modernization queue after startup runner/helper extraction to prioritize the next ESM boot convergence candidates (structured-event emission seam and top-level boot envelope simplification).
 - Acceptance criteria: successor tickets are explicit, ordered, and bound to current startup/unit/smoke gates.
 - Verification: `MODERNIZE.md` queue/log alignment + startup helper test replay.
+
+### T-269: ESM structured-event emission seam extraction (`main-esm`)
+- Status: `done`
+- Scope: extract `main-esm` structured event + bridge-probe event emission into a focused helper module so emitter behavior is unit-testable without process boot.
+- Acceptance criteria: emitter helper contracts exist with focused unit coverage and startup behavior remains unchanged across ESM entry smokes.
+- Verification: focused unit tests + websocket/config startup smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-270: ESM boot-envelope seam extraction (`main-esm`)
+- Status: `todo`
+- Scope: extract top-level ESM boot envelope (`resolve config -> preflight -> startup-runner`) into a single helper contract to simplify entry script and prepare deeper ESM-native startup adoption.
+- Acceptance criteria: `main-esm.mjs` becomes a thin bootstrap wrapper and boot-envelope helper has focused contract tests with unchanged startup behavior.
+- Verification: focused unit tests + `tests/smoke/server-handshake-esm-entry.test.ts` + `tests/smoke/server-config-preflight-esm-entry.test.ts` + `bun run verify:modern:node22`.
+
+### T-271: Protocol contract TypeScript source-of-truth promotion
+- Status: `todo`
+- Scope: promote shared protocol contract definitions to a TypeScript-first source module while preserving runtime CJS/ESM compatibility exports for existing server/client consumers.
+- Acceptance criteria: shared protocol types are authored in TS, runtime exports remain stable, and CheckJs/test imports consume one canonical typed surface.
+- Verification: `bun run typecheck` + protocol contract unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-272: WebSocket runtime class-boundary modernization (ESM-first)
+- Status: `todo`
+- Scope: introduce an ESM-first websocket runtime class boundary (constructor + lifecycle methods) consumed via startup dependency seams, reducing ad-hoc module wiring and improving typed transport contracts.
+- Acceptance criteria: websocket runtime path supports class-based seam injection with parity-tested handshake/error/close behavior and retains current CJS default path.
+- Verification: websocket unit/smoke suites + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

@@ -6,6 +6,10 @@ import PreflightFailuresModule, {
     ensureConfigSourcePresent,
 } from '../../server/js/main-esm-preflight-failures.mjs';
 import StartupRunnerModule, { runStartupWithConfig } from '../../server/js/main-esm-startup-runner.mjs';
+import StructuredEventModule, {
+    createProbeEventEmitter,
+    createStructuredEventEmitter,
+} from '../../server/js/main-esm-structured-event.mjs';
 import RuntimeOptionsModule, { resolveStartupRuntimeOptions } from '../../server/js/main-esm-runtime-options.mjs';
 
 test('main-esm bridge probe helper exports stable named/default contract', () => {
@@ -40,4 +44,12 @@ test('main-esm startup-runner helper exports stable named/default contract', () 
     expect(typeof runStartupWithConfig).toBe('function');
     expect(typeof StartupRunnerModule).toBe('object');
     expect(StartupRunnerModule.runStartupWithConfig).toBe(runStartupWithConfig);
+});
+
+test('main-esm structured-event helper exports stable named/default contract', () => {
+    expect(typeof createStructuredEventEmitter).toBe('function');
+    expect(typeof createProbeEventEmitter).toBe('function');
+    expect(typeof StructuredEventModule).toBe('object');
+    expect(StructuredEventModule.createStructuredEventEmitter).toBe(createStructuredEventEmitter);
+    expect(StructuredEventModule.createProbeEventEmitter).toBe(createProbeEventEmitter);
 });
