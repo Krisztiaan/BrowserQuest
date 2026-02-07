@@ -74,6 +74,29 @@ if (summaryPath) {
     console.log(`- summary_path: ${summaryPath}`);
 }
 
+const markdownPath = process.env.BQ_WS_DRILL_MARKDOWN_PATH;
+if (markdownPath) {
+    const lines = [
+        '# Websocket Boundary Drill Summary',
+        '',
+        `- Timestamp: ${summary.ts}`,
+        `- Overall: ${summary.passed ? 'PASS' : 'FAIL'}`,
+        `- Total: ${summary.totalMs}ms`,
+        '',
+        '## Checks',
+        '',
+    ];
+
+    for (const item of summary.checks) {
+        lines.push(`- ${item.key}: ${item.passed ? 'PASS' : 'FAIL'} (${item.durationMs}ms, exit=${item.status})`);
+    }
+
+    lines.push('');
+    mkdirSync(dirname(markdownPath), { recursive: true });
+    writeFileSync(markdownPath, lines.join('\n'), 'utf8');
+    console.log(`- markdown_path: ${markdownPath}`);
+}
+
 if (failed.length > 0) {
     process.exit(1);
 }

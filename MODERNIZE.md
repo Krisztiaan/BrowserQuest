@@ -4514,6 +4514,23 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-282` websocket boundary drill optional CI summary markdown emission.
 
+- 2026-02-08 06:35:00Z
+  - Status: `in_progress` -> `done` (T-282)
+  - Actions:
+    - Added optional markdown summary emission support to websocket drill runner:
+      - `tools/run-ws-boundary-drill.cjs` now writes markdown summary when `BQ_WS_DRILL_MARKDOWN_PATH` is set.
+    - Updated websocket drill CI workflow to emit/upload markdown summary alongside JSON:
+      - `.github/workflows/verify-ws-boundary-drill.yml`.
+    - Updated websocket drill runbooks with markdown summary artifact/local command references:
+      - `docs/client-build-support.md`,
+      - `docs/websocket-cjs-factory-migration-decision.md`,
+      - `docs/websocket-runtime-class-boundary-parity.md`.
+  - Evidence:
+    - drill command with summary envs passed and generated both JSON + markdown outputs.
+    - docs read-through completed.
+  - Next action:
+    - Start `T-283` websocket boundary drill failure-snapshot payload extension.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6209,7 +6226,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: docs/read-through + proposed script/workflow diff review.
 
 ### T-282: Websocket boundary drill optional CI summary markdown emission
-- Status: `todo`
+- Status: `done`
 - Scope: add optional markdown summary emission for websocket boundary drill runs to improve quick human scan in CI logs/comments.
 - Acceptance criteria: drill runner can emit concise markdown summary when requested, without changing default pass/fail behavior.
 - Verification: run drill command with markdown-output flag/env + docs/read-through.
+
+### T-283: Websocket boundary drill failure-snapshot payload extension
+- Status: `todo`
+- Scope: extend drill summary payload with concise failure snapshot fields (failed check names, exit codes, log-tail hints) for faster escalation handoff.
+- Acceptance criteria: JSON/markdown summary includes compact failure snapshot metadata when checks fail, while success output remains concise.
+- Verification: forced-failure drill simulation + docs/read-through.

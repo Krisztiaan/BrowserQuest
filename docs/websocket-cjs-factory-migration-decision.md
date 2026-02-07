@@ -64,7 +64,9 @@ CI/advisory trigger policy:
 2. Let PR path triggers run automatically when websocket boundary files change.
 3. Owner group for interpreting/adopting outcomes: server-runtime maintainers.
 4. CI drill summary artifact name pattern:
-   - `ws-boundary-drill-summary-<run_id>` containing `artifacts/ws-boundary-drill-summary.json`.
+   - `ws-boundary-drill-summary-<run_id>` containing:
+     - `artifacts/ws-boundary-drill-summary.json`
+     - `artifacts/ws-boundary-drill-summary.md`
 5. Escalation template:
    - `docs/websocket-boundary-escalation-template.md`.
 
@@ -77,4 +79,4 @@ CI/advisory trigger policy:
   - `bun run verify:modern:node22`
   - `bun run verify:legacy:node22`
 - Optional local summary file:
-  - `BQ_WS_DRILL_SUMMARY_PATH=artifacts/ws-boundary-drill-summary.json bun run test:ws:runtime:drill`
+  - `BQ_WS_DRILL_SUMMARY_PATH=artifacts/ws-boundary-drill-summary.json BQ_WS_DRILL_MARKDOWN_PATH=artifacts/ws-boundary-drill-summary.md bun run test:ws:runtime:drill`

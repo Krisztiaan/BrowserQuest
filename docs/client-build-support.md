@@ -124,9 +124,10 @@ This project currently ships two client build paths while modernization is in pr
   - Runs `bun run test:ws:runtime:drill`.
   - Uploads summary artifact:
     - `ws-boundary-drill-summary-<run_id>/artifacts/ws-boundary-drill-summary.json`
+    - `ws-boundary-drill-summary-<run_id>/artifacts/ws-boundary-drill-summary.md`
   - Triage path:
     - Open workflow run -> `Artifacts` -> download `ws-boundary-drill-summary-<run_id>`.
-    - Inspect `artifacts/ws-boundary-drill-summary.json` for per-check pass/fail and durations.
+    - Quick scan `artifacts/ws-boundary-drill-summary.md`, then use `artifacts/ws-boundary-drill-summary.json` for per-check detail.
     - If escalation is required, use `docs/websocket-boundary-escalation-template.md`.
   - Decision/owner policy source: `docs/websocket-cjs-factory-migration-decision.md`.
 - `verify-dependency-drift` workflow:

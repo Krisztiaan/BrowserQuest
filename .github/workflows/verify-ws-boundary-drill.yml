@@ -42,6 +42,7 @@ jobs:
       - name: Run websocket boundary drill
         env:
           BQ_WS_DRILL_SUMMARY_PATH: artifacts/ws-boundary-drill-summary.json
+          BQ_WS_DRILL_MARKDOWN_PATH: artifacts/ws-boundary-drill-summary.md
         run: bun run test:ws:runtime:drill
 
       - name: Upload websocket boundary drill summary
@@ -49,5 +50,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ws-boundary-drill-summary-${{ github.run_id }}
-          path: artifacts/ws-boundary-drill-summary.json
+          path: artifacts/ws-boundary-drill-summary.*
           if-no-files-found: warn
