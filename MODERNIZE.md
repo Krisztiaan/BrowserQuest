@@ -4326,6 +4326,28 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-272` websocket runtime class-boundary modernization (ESM-first).
 
+- 2026-02-08 01:35:00Z
+  - Status: `in_progress` -> `done` (T-272)
+  - Actions:
+    - Introduced ESM-first websocket runtime class factory:
+      - `server/js/ws-runtime-class-factory.mjs` (`createWebSocketRuntimeClasses(...)`).
+      - Encapsulates websocket server/connection class assembly behind explicit dependency injection boundaries.
+    - Updated ESM websocket runtime module to consume the class factory:
+      - `server/js/ws-runtime-esm.mjs` now wires runtime dependencies into `createWebSocketRuntimeClasses(...)`.
+      - Re-exported class factory through `server/js/ws-runtime-esm.mjs` and `server/js/ws-esm.mjs`.
+    - Added focused class-factory unit coverage:
+      - `tests/unit/ws-runtime-class-factory.test.ts`.
+      - Covers invalid payload rejection and valid action forwarding/send serialization through factory-built connection class.
+    - Expanded websocket ESM export contract test:
+      - `tests/unit/server-ws-esm.test.ts` now asserts factory export parity.
+  - Evidence:
+    - Focused websocket factory/contract tests passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-273` websocket class-factory adoption alignment (CJS/ESM parity sweep).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5961,7 +5983,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` + protocol contract unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-272: WebSocket runtime class-boundary modernization (ESM-first)
-- Status: `todo`
+- Status: `done`
 - Scope: introduce an ESM-first websocket runtime class boundary (constructor + lifecycle methods) consumed via startup dependency seams, reducing ad-hoc module wiring and improving typed transport contracts.
 - Acceptance criteria: websocket runtime path supports class-based seam injection with parity-tested handshake/error/close behavior and retains current CJS default path.
+- Verification: websocket unit/smoke suites + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-273: WebSocket class-factory adoption alignment (CJS/ESM parity sweep)
+- Status: `todo`
+- Scope: align CJS websocket runtime path with the new class-factory seam inventory (or document intentional divergence) and add explicit parity assertions for shared class behavior contracts.
+- Acceptance criteria: CJS/ESM websocket class-boundary parity expectations are explicit with focused tests/docs and no startup handshake regressions.
 - Verification: websocket unit/smoke suites + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
