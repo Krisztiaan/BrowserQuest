@@ -4179,6 +4179,20 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-264` post-helper extraction queue refresh (next runtime seams).
 
+- 2026-02-07 21:00:00Z
+  - Status: `in_progress` -> `done` (T-264)
+  - Actions:
+    - Refreshed post-helper extraction startup/runtime seam queue for `main-esm` convergence.
+    - Prioritized next candidates by risk and verification cost:
+      - config-source resolution seam extraction,
+      - preflight failure-emission seam extraction,
+      - startup runner assembly seam extraction.
+    - Added explicit successor tickets with verification gates.
+  - Evidence:
+    - `MODERNIZE.md` now includes ordered successor startup-seam tickets after T-264.
+  - Next action:
+    - Start `T-265` config-source resolution seam extraction (`main-esm`).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5766,7 +5780,25 @@ Only after Phase 2, introduce TS gradually:
 - Verification: docs read-through + `bun run test:smoke:esm:ws-runtime`.
 
 ### T-264: Post-helper-extraction queue refresh (next runtime seams)
-- Status: `todo`
+- Status: `done`
 - Scope: refresh modernization queue after `main-esm` helper extraction/docs alignment to prioritize next startup/runtime seam candidates for ESM-native convergence.
 - Acceptance criteria: successor tickets are explicit, ordered, and tied to current verify/smoke gates.
 - Verification: `MODERNIZE.md` queue/log alignment + helper smoke command replay.
+
+### T-265: Config-source resolution seam extraction (`main-esm`)
+- Status: `todo`
+- Scope: extract config file resolution/loading (`config_local` fallback to `config`) from `main-esm` into a focused helper so config-source behavior is unit-testable.
+- Acceptance criteria: config-source resolution logic is isolated with focused unit coverage and unchanged startup behavior.
+- Verification: focused unit tests + config-preflight smokes + `bun run verify:modern:node22`.
+
+### T-266: ESM preflight failure-emission seam extraction (`main-esm`)
+- Status: `todo`
+- Scope: extract invalid-config/no-config failure emission behavior into explicit helper contracts so fatal-startup diagnostics are testable without full process execution.
+- Acceptance criteria: startup preflight failure paths are isolated and unit-tested; structured/error output behavior remains unchanged.
+- Verification: focused unit tests + `tests/smoke/server-config-preflight-esm-entry.test.ts` + `bun run verify:modern:node22`.
+
+### T-267: ESM startup runner assembly seam extraction (`main-esm`)
+- Status: `todo`
+- Scope: extract final startup runner composition (`probe -> runtime options -> startServer`) into a small orchestrator helper to reduce top-level script complexity and prepare deeper ESM-native boot adoption.
+- Acceptance criteria: orchestrator helper exists with contract tests and no behavior change across startup smokes.
+- Verification: focused unit tests + websocket/config startup smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
