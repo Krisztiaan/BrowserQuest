@@ -4496,6 +4496,24 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-281` websocket boundary runbook consistency linter/check script assessment.
 
+- 2026-02-08 06:10:00Z
+  - Status: `in_progress` -> `done` (T-281)
+  - Actions:
+    - Added websocket boundary runbook consistency checker:
+      - `tools/check-ws-boundary-runbook-consistency.cjs`.
+      - Validates required doc/workflow link + command patterns across primary websocket boundary artifacts.
+    - Added package script:
+      - `package.json` script `check:ws:runbooks`.
+    - Updated websocket/runtime runbooks to include the new consistency check command:
+      - `docs/client-build-support.md`,
+      - `docs/runtime-cjs-boundary-inventory.md`,
+      - `docs/websocket-cjs-factory-migration-decision.md`.
+  - Evidence:
+    - proposed script/workflow diff review completed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-282` websocket boundary drill optional CI summary markdown emission.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6185,7 +6203,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: docs read-through + link grep checks.
 
 ### T-281: Websocket boundary runbook consistency linter/check script assessment
-- Status: `todo`
+- Status: `done`
 - Scope: assess lightweight automated checks for websocket boundary runbook consistency (required doc links/commands present) and define adoption plan.
 - Acceptance criteria: concrete check strategy is documented with command/file scope and failure policy.
 - Verification: docs/read-through + proposed script/workflow diff review.
+
+### T-282: Websocket boundary drill optional CI summary markdown emission
+- Status: `todo`
+- Scope: add optional markdown summary emission for websocket boundary drill runs to improve quick human scan in CI logs/comments.
+- Acceptance criteria: drill runner can emit concise markdown summary when requested, without changing default pass/fail behavior.
+- Verification: run drill command with markdown-output flag/env + docs/read-through.

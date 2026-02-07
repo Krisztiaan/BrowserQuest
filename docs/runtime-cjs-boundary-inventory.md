@@ -93,5 +93,6 @@ Websocket boundary decision:
 - `bun run check:class-fanout`
 - `bun run check:package-mode-boundaries`
 - `bun run check:legacy-optimizer-integrity`
+- `bun run check:ws:runbooks`
 - `bun run test:ws:runtime:drill`
 - `bun run test:ws:runtime:decision`

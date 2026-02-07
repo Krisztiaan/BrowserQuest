@@ -45,6 +45,7 @@ Run this checklist for websocket boundary-touching changes:
    - `bun run test:ws:runtime:drill` (scripted drill summary runner)
    - `bun run test:ws:runtime:decision`
    - `bun run test:ws:runtime:parity`
+   - `bun run check:ws:runbooks` (runbook backlink consistency check)
 3. Run full gate checks:
    - `bun run verify:modern:node22`
    - `bun run verify:legacy:node22`

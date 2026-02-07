@@ -28,6 +28,7 @@
     "typecheck": "npx tsc -p tsconfig.typecheck.json && npx tsc -p tsconfig.typecheck-runtime.json",
     "typecheck:node22": "bash tools/node22-run.sh bun run typecheck",
     "check:class-fanout": "node tools/check-classjs-fanout.cjs",
+    "check:ws:runbooks": "node tools/check-ws-boundary-runbook-consistency.cjs",
     "check:package-mode-boundaries": "node tools/check-package-mode-boundaries.cjs",
     "check:legacy-optimizer-integrity": "node tools/check-legacy-optimizer-integrity.cjs",
     "check:modern-jquery-free": "node tools/check-modern-jquery-free.cjs",

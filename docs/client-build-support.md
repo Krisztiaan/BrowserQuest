@@ -93,6 +93,7 @@ This project currently ships two client build paths while modernization is in pr
     - `bun run test:ws:runtime:drill` (scripted summary runner)
     - `bun run test:ws:runtime:decision`
     - `bun run test:ws:runtime:parity`
+    - `bun run check:ws:runbooks` (runbook backlink consistency check)
     - Decision record: `docs/websocket-cjs-factory-migration-decision.md`
 - Legacy gate: `bun run verify:legacy`
   - Runs `check:package-mode-boundaries`, `check:legacy-optimizer-integrity`, `test`, `build:client`, and `build:vite:legacy`
