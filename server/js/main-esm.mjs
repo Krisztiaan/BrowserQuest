@@ -1,6 +1,6 @@
-import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { runWebSocketBridgeProbeIfEnabled } from './main-esm-bridge-probe.mjs';
+import { resolveActiveConfig } from './main-esm-config-source.mjs';
 import { validateConfig } from './config-preflight-esm.mjs';
 import { createRuntimeDependencies, main as startServer } from './main-runtime-esm.mjs';
 import { resolveStartupRuntimeOptions } from './main-esm-runtime-options.mjs';
@@ -29,18 +29,11 @@ function emitProbeEvent(level, fields) {
     emitStructuredEvent(level, 'server.esm.ws_bridge_probe', fields);
 }
 
-async function getConfigFile(configPath) {
-    try {
-        const raw = await fs.readFile(configPath, 'utf8');
-        return JSON.parse(raw);
-    } catch (_) {
-        return null;
-    }
-}
-
-const defaultConfig = await getConfigFile(defaultConfigPath);
-const localConfig = await getConfigFile(customConfigPath);
-const activeConfig = localConfig || defaultConfig;
+const configSource = await resolveActiveConfig({
+    defaultConfigPath,
+    customConfigPath,
+});
+const activeConfig = configSource.activeConfig;
 
 if (!activeConfig) {
     console.error('Server cannot start without any configuration file.');

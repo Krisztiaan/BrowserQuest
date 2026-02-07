@@ -4193,6 +4193,22 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-265` config-source resolution seam extraction (`main-esm`).
 
+- 2026-02-07 21:25:00Z
+  - Status: `in_progress` -> `done` (T-265)
+  - Actions:
+    - Extracted ESM config-source resolution/loading into a focused helper:
+      - `server/js/main-esm-config-source.mjs` (`loadConfigFile`, `resolveActiveConfig`).
+    - Updated `server/js/main-esm.mjs` to consume `resolveActiveConfig(...)` for config source selection.
+    - Added focused unit coverage for config-source behavior:
+      - `tests/unit/server-main-esm-config-source.test.ts`.
+      - Covers local-over-default precedence, default fallback, missing-source behavior, and parse/read failure handling.
+  - Evidence:
+    - Focused config-source unit + ESM startup smokes pass.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-266` ESM preflight failure-emission seam extraction (`main-esm`).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5786,7 +5802,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` queue/log alignment + helper smoke command replay.
 
 ### T-265: Config-source resolution seam extraction (`main-esm`)
-- Status: `todo`
+- Status: `done`
 - Scope: extract config file resolution/loading (`config_local` fallback to `config`) from `main-esm` into a focused helper so config-source behavior is unit-testable.
 - Acceptance criteria: config-source resolution logic is isolated with focused unit coverage and unchanged startup behavior.
 - Verification: focused unit tests + config-preflight smokes + `bun run verify:modern:node22`.
