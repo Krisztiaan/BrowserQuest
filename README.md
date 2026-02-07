@@ -95,6 +95,9 @@ Modernization snapshot
 - Server core class-migration plan: `docs/server-core-class-migration-plan.md`
 - Package-mode migration checklist: `docs/package-mode-migration-checklist.md`
 - Runtime CJS boundary inventory: `docs/runtime-cjs-boundary-inventory.md`
+- Websocket runtime class-boundary parity runbook: `docs/websocket-runtime-class-boundary-parity.md`
+- Websocket CJS class-factory decision record: `docs/websocket-cjs-factory-migration-decision.md`
+- Websocket boundary escalation template: `docs/websocket-boundary-escalation-template.md`
 - Legacy optimizer containment assessment: `docs/legacy-optimizer-containment-assessment.md`
 - Legacy optimizer provenance + integrity baseline: `docs/legacy-optimizer-provenance.md`
 - Legacy artifact consumer inventory: `docs/legacy-artifact-consumer-inventory.md`
@@ -120,6 +123,7 @@ Modernization snapshot
 - Primary verification commands:
   - `bun run verify:modern` (or `bun run verify:modern:node22`)
   - `bun run verify:legacy` (or `bun run verify:legacy:node22`)
+  - `bun run test:ws:runtime:drill` (websocket boundary drill summary)
   - `bun run test:browser:modern` / `bun run test:browser:legacy` / `bun run test:browser:protocol` / `bun run test:browser:protocol-invariant`
 
 

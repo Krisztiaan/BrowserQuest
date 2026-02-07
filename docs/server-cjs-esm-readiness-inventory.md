@@ -119,6 +119,9 @@ Reference artifact: `docs/server-classjs-fanout-map.md`
 Core execution plan: `docs/server-core-class-migration-plan.md`
 Package-mode checklist: `docs/package-mode-migration-checklist.md`
 Runtime CJS boundaries: `docs/runtime-cjs-boundary-inventory.md`
+Websocket boundary parity runbook: `docs/websocket-runtime-class-boundary-parity.md`
+Websocket CJS class-factory decision record: `docs/websocket-cjs-factory-migration-decision.md`
+Websocket boundary escalation template: `docs/websocket-boundary-escalation-template.md`
 Package-mode trial runbook: `docs/package-mode-trial-runbook.md`
 Legacy/package-mode compatibility matrix: `docs/legacy-package-mode-compat-matrix.md`
 Package-mode trial decision: `docs/package-mode-trial-decision.md`

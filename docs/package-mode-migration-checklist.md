@@ -40,6 +40,7 @@ Maintain and harden package mode (`"type": "module"`) without breaking runtime, 
 6. Keep websocket boundary decision checks aligned with runtime mode docs:
    - decision record: `docs/websocket-cjs-factory-migration-decision.md`
    - decision/parity checks:
+     - `bun run test:ws:runtime:drill`
      - `bun run test:ws:runtime:decision`
      - `bun run test:ws:runtime:parity`
 

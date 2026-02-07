@@ -50,6 +50,8 @@ Websocket boundary decision:
 - CJS websocket runtime remains inline (`server/js/ws.js`).
 - ESM websocket runtime uses class-factory seam (`server/js/ws-runtime-class-factory.mjs` via `server/js/ws-runtime-esm.mjs`).
 - Decision record: `docs/websocket-cjs-factory-migration-decision.md`.
+- Parity runbook: `docs/websocket-runtime-class-boundary-parity.md`.
+- Escalation template: `docs/websocket-boundary-escalation-template.md`.
 - Operator checklist / owner handoff / rollback drill cadence:
   - `docs/websocket-cjs-factory-migration-decision.md`.
 
@@ -91,4 +93,5 @@ Websocket boundary decision:
 - `bun run check:class-fanout`
 - `bun run check:package-mode-boundaries`
 - `bun run check:legacy-optimizer-integrity`
+- `bun run test:ws:runtime:drill`
 - `bun run test:ws:runtime:decision`

@@ -4480,6 +4480,22 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-280` websocket boundary decision index/backlink sweep.
 
+- 2026-02-08 05:45:00Z
+  - Status: `in_progress` -> `done` (T-280)
+  - Actions:
+    - Added websocket boundary runbook backlinks to top-level docs/indexes:
+      - `README.md`,
+      - `docs/server-cjs-esm-readiness-inventory.md`,
+      - `docs/runtime-cjs-boundary-inventory.md`,
+      - `docs/package-mode-migration-checklist.md`.
+    - Extended primary verification command references to include scripted websocket drill:
+      - `bun run test:ws:runtime:drill`.
+  - Evidence:
+    - docs read-through complete.
+    - link grep checks confirm websocket decision/drill/escalation artifacts are referenced from primary entry docs.
+  - Next action:
+    - Start `T-281` websocket boundary runbook consistency linter/check script assessment.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6163,7 +6179,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: docs read-through + `bun run test:ws:runtime:drill`.
 
 ### T-280: Websocket boundary decision index/backlink sweep
-- Status: `todo`
+- Status: `done`
 - Scope: ensure core docs/indexes (`README`/runtime inventories/checklists) link websocket decision + drill + escalation artifacts consistently.
 - Acceptance criteria: no orphan websocket boundary runbook artifacts remain and backlinks are explicit across primary entry docs.
 - Verification: docs read-through + link grep checks.
+
+### T-281: Websocket boundary runbook consistency linter/check script assessment
+- Status: `todo`
+- Scope: assess lightweight automated checks for websocket boundary runbook consistency (required doc links/commands present) and define adoption plan.
+- Acceptance criteria: concrete check strategy is documented with command/file scope and failure policy.
+- Verification: docs/read-through + proposed script/workflow diff review.
