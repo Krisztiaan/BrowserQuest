@@ -2,9 +2,10 @@ import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from 'ws';
 import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol';
+import WsCloseCodes from '../../shared/js/ws-close-codes-esm.mjs';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
-const CLOSE_INVALID_PAYLOAD = 1007;
+const CLOSE_INVALID_PAYLOAD = WsCloseCodes.INVALID_PAYLOAD;
 
 async function getFreePort() {
     return await new Promise<number>((resolve, reject) => {

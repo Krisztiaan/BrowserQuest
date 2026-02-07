@@ -4,14 +4,10 @@ var url = require('url'),
     Log = require('./log'),
     Utils = require('./utils'),
     Protocol = require('../../shared/js/protocol-contract'),
+    CLOSE_CODES = require('../../shared/js/ws-close-codes'),
     WebSocket = require('ws'),
     WS = {},
-    useBison = false,
-    CLOSE_CODES = {
-        NORMAL: 1000,
-        UNSUPPORTED_DATA: 1003,
-        INVALID_PAYLOAD: 1007
-    };
+    useBison = false;
 var log = Log.getLogger();
 
 module.exports = WS;

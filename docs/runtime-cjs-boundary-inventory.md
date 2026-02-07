@@ -23,6 +23,7 @@ Reason: these scripts are intentionally CJS compatibility boundaries while packa
 - `server/js/main-esm.mjs`
 - `shared/js/gametypes-esm.mjs`
 - `shared/js/protocol-contract-esm.mjs`
+- `shared/js/ws-close-codes-esm.mjs`
 - `server/js/config-preflight-esm.mjs`
 - `server/js/utils-esm.mjs`
 - `server/js/log-esm.mjs`
@@ -36,6 +37,7 @@ Reason: provide safe adoption path without changing default runtime mode.
 - `server/js/main.js` (default server boot path)
 - `shared/js/gametypes.js` (CJS + global contract)
 - `shared/js/protocol-contract.js` (CJS protocol constants/parser contract)
+- `shared/js/ws-close-codes.js` (CJS websocket close-code contract)
 
 Reason: compatibility with existing tests and legacy client/server contracts.
 

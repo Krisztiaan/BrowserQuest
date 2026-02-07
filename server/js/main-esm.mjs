@@ -32,6 +32,27 @@ if (!validationResult.isValid) {
     process.exit(1);
 }
 
+async function runWebSocketBridgeProbeIfEnabled() {
+    if (process.env.BQ_ESM_WS_BRIDGE_PROBE !== '1') {
+        return;
+    }
+
+    const wsCjs = require('./ws');
+    const wsEsm = await import('./ws-esm.mjs');
+    const contractMatches =
+        wsEsm.default === wsCjs &&
+        wsEsm.CLOSE_CODES === wsCjs.CLOSE_CODES &&
+        wsEsm.MultiVersionWebsocketServer === wsCjs.MultiVersionWebsocketServer &&
+        wsEsm.wsWebSocketConnection === wsCjs.wsWebSocketConnection;
+
+    if (!contractMatches) {
+        console.error('ESM websocket bridge probe failed: contract mismatch.');
+        process.exit(1);
+    }
+}
+
+await runWebSocketBridgeProbeIfEnabled();
+
 // Compatibility bridge: keep CJS server boot path intact while the ESM entry
 // progressively validates and consumes wave-1 ESM modules.
 require('./main.js');

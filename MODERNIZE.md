@@ -3565,6 +3565,41 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-227` websocket ESM entry adoption probe.
 
+- 2026-02-07 10:05:00Z
+  - Status: `in_progress` -> `done` (T-227)
+  - Actions:
+    - Added opt-in websocket ESM-entry probe to `server/js/main-esm.mjs`:
+      - `BQ_ESM_WS_BRIDGE_PROBE=1` now validates `ws-esm` bridge contract before CJS handoff.
+    - Added ESM-entry probe smoke coverage:
+      - `tests/smoke/server-handshake-esm-ws-bridge.test.ts`.
+    - Documented probe usage in `README.md`.
+  - Evidence:
+    - `bun run test` passed (includes new ESM websocket bridge smoke).
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-228` protocol-close-code contract extraction.
+
+- 2026-02-07 10:05:00Z
+  - Status: `in_progress` -> `done` (T-228)
+  - Actions:
+    - Extracted websocket close-code contract into shared modules:
+      - `shared/js/ws-close-codes.js`
+      - `shared/js/ws-close-codes-esm.mjs`
+    - Rewired websocket runtime to shared close-code source:
+      - `server/js/ws.js` now imports close codes from `shared/js/ws-close-codes.js`.
+    - Reused shared close-code contract in smoke tests:
+      - `tests/smoke/server-payload-guards.test.ts` now imports invalid-payload code from shared ESM close-code contract.
+    - Added close-code contract coverage:
+      - `tests/unit/ws-close-codes-contract.test.ts`.
+    - Updated runtime boundary/readiness inventory and runtime CheckJs scope docs for close-code artifacts.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run test` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-229` websocket ESM entry adoption signal hardening.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4930,13 +4965,25 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
 
 ### T-227: WebSocket ESM entry adoption probe (priority P1)
-- Status: `todo`
+- Status: `done`
 - Scope: wire an opt-in smoke path that imports websocket transport through `server/js/ws-esm.mjs` in ESM entry flow and validates parity.
 - Acceptance criteria: ESM websocket mirror is exercised in a runtime smoke without changing default CJS boot path.
 - Verification: `bun run test` + `bun run test:browser:protocol:node22`.
 
 ### T-228: Protocol-close-code contract extraction
-- Status: `todo`
+- Status: `done`
 - Scope: centralize websocket close-code constants into a shared runtime contract to remove local duplication and improve close-code consistency.
 - Acceptance criteria: transport/runtime code paths consume one close-code source and protocol rejection tests remain stable.
 - Verification: `bun run test` + `bun run verify:modern:node22`.
+
+### T-229: WebSocket ESM entry adoption signal hardening
+- Status: `todo`
+- Scope: add structured diagnostic event/log for `BQ_ESM_WS_BRIDGE_PROBE=1` success/failure path so operators can confirm probe execution in smoke/CI logs.
+- Acceptance criteria: probe-enabled ESM entry emits an explicit success signal and failure remains fail-fast.
+- Verification: `bun run test` + `bun run test:browser:protocol:node22`.
+
+### T-230: Runtime CheckJs wave 5 (next gameplay pilot)
+- Status: `todo`
+- Scope: promote one additional deferred gameplay module (`item.js` or `player.js` pre-slice) into runtime CheckJs scope with targeted property-shape cleanup.
+- Acceptance criteria: runtime CheckJs scope expands by one gameplay module without verify-gate regressions.
+- Verification: `bun run typecheck` + `bun run verify:legacy:node22`.

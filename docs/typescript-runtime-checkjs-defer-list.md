@@ -6,6 +6,7 @@
 
 - `shared/js/gametypes.js`
 - `shared/js/protocol-contract.js`
+- `shared/js/ws-close-codes.js`
 - `server/js/log.js`
 - `server/js/format.js`
 - `server/js/utils.js`

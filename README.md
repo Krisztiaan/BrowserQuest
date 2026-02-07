@@ -33,6 +33,7 @@ Vite (modern tooling):
   - Legacy default override: `BQ_VITE_DEFAULT_ENTRY=legacy bun run dev:vite:full`
 - Optional server ESM bridge entrypoint: `bun run start:server:esm` (default path remains `bun run start:server`).
   - ESM entry currently runs ESM config preflight before handing off to compatible CJS runtime boot.
+  - Optional websocket mirror probe: run with `BQ_ESM_WS_BRIDGE_PROBE=1` to validate `server/js/ws-esm.mjs` bridge contract during ESM boot.
 
 Build profiles (modern vs legacy):
 - `bun run build:vite` builds the modern ESM page (`client/modern.html`) and is the default production path.
