@@ -2290,6 +2290,18 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-137` protocol invariant transcript fixture extraction.
 
+- 2026-02-07 04:39:28Z
+  - Status: `in_progress` -> `done` (T-135 follow-up)
+  - Actions:
+    - Resolved CI regression introduced during diagnostics hardening:
+      - `.github/workflows/verify-protocol-invariant.yml` now uses `bunx playwright ...` instead of `playwright ...` to avoid PATH-dependent command resolution failures.
+    - Revalidated the workflow-equivalent command locally under Node 22 wrapper with JUnit reporter enabled.
+  - Evidence:
+    - Failing run evidence (before fix): `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774311749` (`failure`, `exit code 127`, `Verify protocol invariants` step).
+    - Local parity (after fix): `bash tools/node22-run.sh sh -lc 'PLAYWRIGHT_JUNIT_OUTPUT_NAME=protocol-invariant-junit.xml bun run check:runtime && bunx playwright test --config=playwright.config.ts tests/browser/protocol-invariant.playwright.ts --reporter=line,junit'` passed.
+  - Next action:
+    - Push fix and capture green `verify-protocol-invariant` run evidence for the diagnostics workflow revision.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
