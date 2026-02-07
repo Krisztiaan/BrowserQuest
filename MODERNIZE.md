@@ -2768,6 +2768,254 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-169` entity/character native-class migration.
 
+- 2026-02-07 05:38:31Z
+  - Status: `in_progress` -> `done` (T-169)
+  - Actions:
+    - Migrated base hierarchy modules off `Class.extend`:
+      - `server/js/entity.js`
+      - `server/js/character.js`
+    - Migrated direct dependent chain required for compatibility:
+      - `server/js/item.js`
+      - `server/js/npc.js`
+      - `server/js/chest.js`
+      - `server/js/player.js`
+    - Preserved runtime export contracts (`module.exports`) and inheritance behavior via native `class extends`.
+  - Evidence:
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-170` mob migration and combat/protocol parity check.
+
+- 2026-02-07 05:38:31Z
+  - Status: `in_progress` -> `done` (T-170)
+  - Actions:
+    - Migrated `server/js/mob.js` to native class syntax (`extends Character`) with behavior-preserving constructor and combat/aggro methods.
+    - Removed legacy class helper usage from the full mob/entity/player chain.
+  - Evidence:
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-171` core class-migration sequence planning artifact.
+
+- 2026-02-07 05:38:31Z
+  - Status: `in_progress` -> `done` (T-171)
+  - Actions:
+    - Added core sequence planning artifact for remaining high-risk modules:
+      - `docs/server-core-class-migration-plan.md`
+    - Refreshed fanout guard and artifact to current state:
+      - `tools/check-classjs-fanout.cjs` allowlist reduced to `map`, `metrics`, `ws`, `worldserver`.
+      - `docs/server-classjs-fanout-map.md` now reflects 4 remaining `lib/class.js` dependents.
+    - Linked plan artifact in project docs:
+      - `README.md`
+      - `docs/server-cjs-esm-readiness-inventory.md`
+  - Evidence:
+    - `bun run check:class-fanout` passed (`4` tracked dependencies).
+    - `bun run lint` and `bun run format:check` passed.
+  - Next action:
+    - Define `T-172` post-core-plan queue refresh.
+
+- 2026-02-07 05:40:51Z
+  - Status: `in_progress` -> `done` (T-172)
+  - Actions:
+    - Refreshed post-T171 queue to execute remaining class migrations in updated risk order:
+      - `T-173` map migration pilot.
+      - `T-174` metrics migration.
+      - `T-175` websocket server migration.
+      - `T-176` worldserver migration.
+    - Added module-specific scope and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes a concrete execution queue from 4 remaining `lib/class.js` dependents.
+  - Next action:
+    - Start `T-173` map native-class migration pilot.
+
+- 2026-02-07 05:40:51Z
+  - Status: `in_progress` -> `done` (T-173)
+  - Actions:
+    - Migrated `server/js/map.js` from `Class.extend` to native class syntax.
+    - Updated class fanout guard allowlist and artifacts to current remaining modules:
+      - `tools/check-classjs-fanout.cjs`
+      - `docs/server-classjs-fanout-map.md`
+      - `docs/server-core-class-migration-plan.md`
+  - Evidence:
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run check:class-fanout` passed (`3` tracked dependencies).
+  - Next action:
+    - Start `T-174` metrics native-class migration.
+
+- 2026-02-07 05:47:13Z
+  - Status: `in_progress` -> `done` (T-174)
+  - Actions:
+    - Migrated `server/js/metrics.js` from `Class.extend` to native class syntax.
+    - Preserved optional memcache initialization and unavailable-reason reporting behavior.
+    - Refreshed fanout artifacts/plan to current state.
+  - Evidence:
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run check:class-fanout` passed (after allowlist refresh).
+  - Next action:
+    - Start `T-175` websocket server migration.
+
+- 2026-02-07 05:47:13Z
+  - Status: `in_progress` -> `done` (T-175)
+  - Actions:
+    - Migrated websocket abstractions in `server/js/ws.js` to native classes:
+      - `Server`
+      - `Connection`
+      - `WS.MultiVersionWebsocketServer`
+      - `WS.wsWebSocketConnection`
+    - Fixed constructor-order regression (`super()` before `this`) discovered during runtime smoke.
+  - Evidence:
+    - `timeout 6s bun server/js/main.js` reached healthy boot window after fix.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-176` worldserver migration.
+
+- 2026-02-07 05:47:13Z
+  - Status: `in_progress` -> `done` (T-176)
+  - Actions:
+    - Migrated `server/js/worldserver.js` from `Class.extend` to native class syntax.
+    - Completed server-side `lib/class.js` retirement:
+      - `server/js` now has zero direct `require("./lib/class")` imports.
+    - Refreshed guard/docs:
+      - `tools/check-classjs-fanout.cjs` allowlist now empty.
+      - `docs/server-classjs-fanout-map.md` reflects zero remaining dependents.
+      - `docs/server-core-class-migration-plan.md` marked complete.
+  - Evidence:
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run check:class-fanout` passed (`0` tracked dependencies).
+    - `bun run lint` and `bun run format:check` passed.
+  - Next action:
+    - Define `T-177` post-class-retirement queue refresh.
+
+- 2026-02-07 05:47:35Z
+  - Status: `in_progress` -> `done` (T-177)
+  - Actions:
+    - Refreshed modernization queue after server-side class retirement completion:
+      - `T-178` package-mode migration readiness checklist (`commonjs` -> staged `module` plan).
+      - `T-179` server/runtime CJS entrypoint bridge hardening and `.cjs` boundary inventory.
+      - `T-180` legacy client/runtime de-risking queue refresh after package-mode prep.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes executable post-T176 tickets for the next modernization frontier.
+  - Next action:
+    - Start `T-178` package-mode migration readiness checklist.
+
+- 2026-02-07 05:48:35Z
+  - Status: `in_progress` -> `done` (T-178)
+  - Actions:
+    - Added package-mode migration readiness artifact:
+      - `docs/package-mode-migration-checklist.md`
+    - Captured staged sequence and rollback criteria for eventual package-mode transition.
+    - Linked checklist from primary modernization docs.
+  - Evidence:
+    - `docs/package-mode-migration-checklist.md` checked in and referenced from `README.md` and server readiness inventory docs.
+  - Next action:
+    - Start `T-179` runtime CJS boundary inventory hardening.
+
+- 2026-02-07 05:48:35Z
+  - Status: `in_progress` -> `done` (T-179)
+  - Actions:
+    - Added explicit CJS boundary inventory artifact:
+      - `docs/runtime-cjs-boundary-inventory.md`
+    - Classified tooling/runtime boundaries (`.cjs`, ESM bridges, default CJS entries) and target destinations.
+    - Linked inventory from root and server modernization docs.
+  - Evidence:
+    - `docs/runtime-cjs-boundary-inventory.md` checked in and referenced from `README.md` and `docs/server-cjs-esm-readiness-inventory.md`.
+    - `bun run check:class-fanout`, `bun run lint`, and `bun run format:check` passed after inventory/guard updates.
+  - Next action:
+    - Start `T-180` post-package-prep queue refresh.
+
+- 2026-02-07 05:48:35Z
+  - Status: `in_progress` -> `done` (T-180)
+  - Actions:
+    - Refreshed queue after package-prep artifacts:
+      - `T-181` package-mode trial execution plan and guardrail commands.
+      - `T-182` legacy runtime/package-mode compatibility smoke matrix.
+      - `T-183` post-package-trial queue refresh.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes executable post-T180 successor tickets focused on package-mode trial readiness.
+  - Next action:
+    - Start `T-181` package-mode trial execution plan.
+
+- 2026-02-07 05:49:26Z
+  - Status: `in_progress` -> `done` (T-181)
+  - Actions:
+    - Added package-mode trial runbook artifact:
+      - `docs/package-mode-trial-runbook.md`
+    - Captured branch workflow, mandatory gates, pass criteria, and rollback steps.
+  - Evidence:
+    - Runbook is checked in and linked from top-level/docs modernization references.
+  - Next action:
+    - Start `T-182` legacy/package-mode compatibility smoke matrix.
+
+- 2026-02-07 05:49:26Z
+  - Status: `in_progress` -> `done` (T-182)
+  - Actions:
+    - Added compatibility matrix artifact:
+      - `docs/legacy-package-mode-compat-matrix.md`
+    - Defined baseline and package-trial verification rows with explicit gate commands and rollback trigger.
+  - Evidence:
+    - Matrix is checked in and linked from `README.md` and server readiness inventory docs.
+    - `bun run check:class-fanout`, `bun run lint`, and `bun run format:check` passed.
+  - Next action:
+    - Start `T-183` post-package-trial queue refresh.
+
+- 2026-02-07 05:49:26Z
+  - Status: `in_progress` -> `done` (T-183)
+  - Actions:
+    - Refreshed queue after package-trial planning artifacts:
+      - `T-184` package-mode trial branch execution.
+      - `T-185` package-mode trial evidence capture and defer/advance decision.
+      - `T-186` post-trial implementation/defer queue refresh.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes executable post-T183 tickets aligned with trial runbook + matrix artifacts.
+  - Next action:
+    - Start `T-184` package-mode trial branch execution.
+
+- 2026-02-07 05:51:49Z
+  - Status: `in_progress` -> `done` (T-184, deferred)
+  - Actions:
+    - Executed controlled local package-mode trial by temporarily switching `package.json` `"type"` to `"module"`.
+    - Ran core gate `bun run verify:legacy:node22` and captured failure mode.
+    - Reverted trial package-mode switch to restore baseline.
+  - Evidence:
+    - Trial failure in legacy build path (`build:client`): `bin/r.js` strict-mode syntax error (`Octal literals are not allowed in strict mode`).
+    - Post-rollback baseline restored:
+      - `bun run verify:legacy:node22` passed.
+      - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-185` package-mode trial decision record.
+
+- 2026-02-07 05:51:49Z
+  - Status: `in_progress` -> `done` (T-185)
+  - Actions:
+    - Added formal trial decision artifact:
+      - `docs/package-mode-trial-decision.md`
+    - Recorded blocker, rollback evidence, and defer recommendation.
+    - Linked decision artifact from root and server readiness docs.
+  - Evidence:
+    - Decision document includes explicit failing command path + restored-green command evidence.
+  - Next action:
+    - Start `T-186` post-trial queue refresh.
+
+- 2026-02-07 05:51:49Z
+  - Status: `in_progress` -> `done` (T-186)
+  - Actions:
+    - Refreshed queue after deferred package-mode trial outcome:
+      - `T-187` legacy RequireJS build blocker isolation plan (`bin/r.js` boundary strategy).
+      - `T-188` package-mode trial retry prerequisites and guardrail checklist.
+      - `T-189` post-blocker-reduction queue refresh.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes executable next tickets tied directly to the observed trial blocker.
+  - Next action:
+    - Start `T-187` legacy RequireJS build blocker isolation plan.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -3785,19 +4033,127 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes post-T167 successor queue with executable checks.
 
 ### T-169: Native-class migration tier-2 (`entity.js` + `character.js`)
-- Status: `todo`
+- Status: `done`
 - Scope: migrate base entity hierarchy modules from `Class.extend` to native classes while preserving inheritance behavior used by players/mobs/items.
 - Acceptance criteria: entity/character exports and runtime behavior remain compatible with downstream modules.
 - Verification: `bun run verify:legacy:node22` and `bun run test:browser:protocol:node22`.
 
 ### T-170: Native-class migration tier-2.5 (`mob.js`)
-- Status: `todo`
+- Status: `done`
 - Scope: migrate `server/js/mob.js` off `lib/class.js` after entity/character migration, keeping combat/aggro behavior unchanged.
 - Acceptance criteria: combat-path protocol flow remains stable with no regressions in server/gameplay parity checks.
 - Verification: `bun run verify:legacy:node22` and `bun run test:browser:protocol:node22`.
 
-### T-171: Core class-migration sequence plan (`map`/`ws`/`player`/`worldserver`)
-- Status: `todo`
+### T-171: Core class-migration sequence plan (`map`/`metrics`/`ws`/`worldserver`)
+- Status: `done`
 - Scope: define execution plan and guardrails for remaining highest-risk `lib/class.js` dependents before implementation.
 - Acceptance criteria: plan captures ordering constraints, rollback points, and required smoke/CI gates per slice.
 - Verification: plan artifact is checked in and referenced from `MODERNIZE.md`.
+
+### T-172: Post-core-plan queue refresh
+- Status: `done`
+- Scope: refresh queue after T-171 to execute remaining class migrations in plan order (`map` -> `metrics` -> `ws` -> `worldserver`).
+- Acceptance criteria: successor tickets have module-specific scope, risk notes, and command-level verification.
+- Verification: `MODERNIZE.md` includes post-T171 successor queue with explicit checks.
+
+### T-173: Native-class migration core pilot (`map.js`)
+- Status: `done`
+- Scope: migrate `server/js/map.js` off `lib/class.js` to native class syntax while preserving map load/group/checkpoint behavior.
+- Acceptance criteria: map-dependent server startup and gameplay protocol checks remain stable.
+- Verification: `bun run verify:legacy:node22`, `bun run test:browser:protocol:node22`, and `bun run check:class-fanout`.
+
+### T-174: Native-class migration core (`metrics.js`)
+- Status: `done`
+- Scope: migrate `server/js/metrics.js` off `lib/class.js` while preserving optional memcache behavior and unavailable fallbacks.
+- Acceptance criteria: metrics runtime tests/smokes remain stable and no metrics bootstrap regressions occur.
+- Verification: `bun run verify:legacy:node22` and `bun run test:browser:protocol:node22`.
+
+### T-175: Native-class migration core (`ws.js`)
+- Status: `done`
+- Scope: migrate websocket server/connection abstractions from `Class.extend` to native classes without changing handshake/broadcast behavior.
+- Acceptance criteria: websocket lifecycle logs, handshake smoke, and browser protocol tests remain green.
+- Verification: `bun run verify:legacy:node22` and `bun run test:browser:protocol:node22`.
+
+### T-176: Native-class migration core (`worldserver.js`)
+- Status: `done`
+- Scope: migrate `server/js/worldserver.js` off `lib/class.js` as final high-risk class migration slice.
+- Acceptance criteria: world orchestration, combat/drop flows, and protocol invariants remain unchanged.
+- Verification: `bun run verify:legacy:node22`, `bun run test:browser:protocol:node22`, and `bun run check:class-fanout`.
+
+### T-177: Post-class-retirement queue refresh
+- Status: `done`
+- Scope: refresh modernization queue after complete server-side `lib/class.js` retirement to focus on next 2026 modernization frontier (ESM package-mode migration and legacy-client de-risking).
+- Acceptance criteria: successor tickets include explicit sequencing, rollback guardrails, and verification commands.
+- Verification: `MODERNIZE.md` contains post-T176 successor queue with executable checks.
+
+### T-178: Package-mode migration readiness checklist
+- Status: `done`
+- Scope: create a concrete checklist for moving package mode from `"type": "commonjs"` to staged ESM, including script/extension boundaries and rollback plan.
+- Acceptance criteria: checklist captures blockers, migration prerequisites, and a command-level validation sequence.
+- Verification: checklist artifact is checked in and referenced from `MODERNIZE.md`.
+
+### T-179: Runtime CJS boundary inventory hardening
+- Status: `done`
+- Scope: inventory remaining intentional CJS entrypoints (`.cjs` tooling, legacy boot bridges) and classify which can move to ESM vs stay CJS.
+- Acceptance criteria: explicit boundary map exists with rationale and planned destination for each entrypoint.
+- Verification: boundary inventory artifact is checked in and linked from modernization docs.
+
+### T-180: Post-package-prep queue refresh
+- Status: `done`
+- Scope: refresh queue after T-178/T-179 to prioritize low-risk package-mode transition slices and legacy compatibility verification.
+- Acceptance criteria: successor tickets include risk tiers, rollback points, and verification commands.
+- Verification: `MODERNIZE.md` includes post-T179 successor queue with executable checks.
+
+### T-181: Package-mode trial execution plan
+- Status: `done`
+- Scope: define an explicit package-mode trial runbook (branch strategy, toggle steps, rollback commands, and pass/fail gates).
+- Acceptance criteria: contributors can run an isolated package-mode trial with deterministic rollback.
+- Verification: trial runbook artifact is checked in with command-level gates.
+
+### T-182: Legacy/package-mode compatibility smoke matrix
+- Status: `done`
+- Scope: define compatibility matrix for legacy client + server runtime entrypoints under current mode vs package-mode trial.
+- Acceptance criteria: matrix identifies required smoke commands and expected outcomes for each path.
+- Verification: matrix artifact is checked in and linked from modernization docs.
+
+### T-183: Post-package-trial queue refresh
+- Status: `done`
+- Scope: refresh queue after T-181/T-182 to sequence package-mode implementation tickets or defer criteria.
+- Acceptance criteria: successor tickets (or defer rules) are explicit, ordered, and verification-backed.
+- Verification: `MODERNIZE.md` includes post-T182 queue with executable checks.
+
+### T-184: Package-mode trial branch execution
+- Status: `done` (deferred)
+- Scope: execute an isolated package-mode trial branch per runbook (`"type": "module"` switch + boundary checks) and run full gates.
+- Acceptance criteria: trial result is clear (green with evidence or rollback with explicit blockers).
+- Verification: `verify:legacy:node22`, protocol browser suite, and guard commands executed in trial.
+
+### T-185: Package-mode trial decision record
+- Status: `done`
+- Scope: record trial outcome, blockers, and recommendation (advance or defer) with concrete evidence.
+- Acceptance criteria: decision record includes command outcomes and rollback/next-step rationale.
+- Verification: decision artifact/checkpoint is linked from `MODERNIZE.md`.
+
+### T-186: Post-trial queue refresh
+- Status: `done`
+- Scope: refresh modernization queue based on T-185 decision (implementation slices if green, blocker-reduction slices if deferred).
+- Acceptance criteria: next queue is ordered, scoped, and verification-backed.
+- Verification: `MODERNIZE.md` includes post-T185 queue with executable checks.
+
+### T-187: Legacy RequireJS build blocker isolation plan
+- Status: `todo`
+- Scope: isolate and document remediation options for `bin/r.js` strict-mode blocker under package-mode trial.
+- Acceptance criteria: blocker root cause and at least one safe remediation path are documented with risk/effort tradeoffs.
+- Verification: blocker-plan artifact is checked in and linked from modernization docs.
+
+### T-188: Package-mode retry prerequisites checklist
+- Status: `todo`
+- Scope: define explicit prerequisites that must be met before rerunning package-mode trial.
+- Acceptance criteria: checklist is objective, testable, and linked to concrete commands.
+- Verification: prerequisite checklist artifact is checked in and referenced from `MODERNIZE.md`.
+
+### T-189: Post-blocker-reduction queue refresh
+- Status: `todo`
+- Scope: refresh queue after T-187/T-188 to schedule package-mode retry or alternate modernization path.
+- Acceptance criteria: successor queue is ordered, scoped, and evidence-driven.
+- Verification: `MODERNIZE.md` includes post-T188 successor queue with executable checks.

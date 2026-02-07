@@ -84,3 +84,9 @@ Establish an executable migration baseline for moving server/runtime code from C
 3. Create a `class.js` retirement ticket with dependency fanout map and incremental replacement plan.
 
 Reference artifact: `docs/server-classjs-fanout-map.md`
+Core execution plan: `docs/server-core-class-migration-plan.md`
+Package-mode checklist: `docs/package-mode-migration-checklist.md`
+Runtime CJS boundaries: `docs/runtime-cjs-boundary-inventory.md`
+Package-mode trial runbook: `docs/package-mode-trial-runbook.md`
+Legacy/package-mode compatibility matrix: `docs/legacy-package-mode-compat-matrix.md`
+Package-mode trial decision: `docs/package-mode-trial-decision.md`

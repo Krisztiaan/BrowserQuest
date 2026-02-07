@@ -3,16 +3,16 @@ var Utils = require('./utils'),
     Item = require('./item'),
     Types = require("../../shared/js/gametypes");
 
-var Chest = Item.extend({
-    init: function(id, x, y) {
-        this._super(id, Types.Entities.CHEST, x, y);
-    },
+class Chest extends Item {
+    constructor(id, x, y) {
+        super(id, Types.Entities.CHEST, x, y);
+    }
     
-    setItems: function(items) {
+    setItems(items) {
         this.items = items;
-    },
+    }
     
-    getRandomItem: function() {
+    getRandomItem() {
         var nbItems = this.items.length,
             item = null;
 
@@ -21,6 +21,6 @@ var Chest = Item.extend({
         }
         return item;
     }
-});
+}
 
 module.exports = Chest;

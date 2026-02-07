@@ -1,11 +1,10 @@
 
-var cls = require("./lib/class"),
-    MetricsClient = require("./metrics-client"),
+var MetricsClient = require("./metrics-client"),
     Log = require("./log");
 var log = Log.getLogger();
 
-var Metrics = cls.Class.extend({
-    init: function(config, options) {
+class Metrics {
+    constructor(config, options) {
         var self = this,
             runtimeOptions = options || {},
             memcacheModule = require("memcache");
@@ -55,16 +54,16 @@ var Metrics = cls.Class.extend({
             }
         });
         this.client.connect();
-    },
+    }
     
-    ready: function(callback) {
+    ready(callback) {
         this.ready_callback = callback;
         if(this.isReady && typeof this.ready_callback === "function") {
             this.ready_callback();
         }
-    },
+    }
 
-    setValue: function(key, value, callback) {
+    setValue(key, value, callback) {
         var done = typeof callback === "function" ? callback : function() {};
 
         if(!this.isReady) {
@@ -73,9 +72,9 @@ var Metrics = cls.Class.extend({
         }
 
         this.client.set(key, value, done);
-    },
+    }
 
-    getValue: function(key, callback) {
+    getValue(key, callback) {
         var done = typeof callback === "function" ? callback : function() {};
 
         if(!this.isReady) {
@@ -84,9 +83,9 @@ var Metrics = cls.Class.extend({
         }
 
         this.client.get(key, done);
-    },
+    }
     
-    updatePlayerCounters: function(worlds, updatedCallback) {
+    updatePlayerCounters(worlds, updatedCallback) {
         var self = this,
             config = this.config,
             gameServers = Array.isArray(config.game_servers) ? config.game_servers : [],
@@ -118,23 +117,23 @@ var Metrics = cls.Class.extend({
         } else {
             log.error("Memcached client not connected");
         }
-    },
+    }
     
-    updateWorldDistribution: function(worlds) {
+    updateWorldDistribution(worlds) {
         this.setValue('world_distribution_'+this.config.server_name, worlds);
-    },
+    }
     
-    getOpenWorldCount: function(callback) {
+    getOpenWorldCount(callback) {
         this.getValue('world_count_'+this.config.server_name, function(result) {
             callback(result);
         });
-    },
+    }
     
-    getTotalPlayers: function(callback) {
+    getTotalPlayers(callback) {
         this.getValue('total_players', function(result) {
             callback(result);
         });
     }
-});
+}
 
 module.exports = Metrics;

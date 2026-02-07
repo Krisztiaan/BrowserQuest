@@ -73,6 +73,12 @@ Modernization snapshot
 - Server logging taxonomy: `docs/server-logging-taxonomy.md`
 - Server CJS->ESM readiness inventory: `docs/server-cjs-esm-readiness-inventory.md`
 - Server `lib/class.js` fanout map: `docs/server-classjs-fanout-map.md`
+- Server core class-migration plan: `docs/server-core-class-migration-plan.md`
+- Package-mode migration checklist: `docs/package-mode-migration-checklist.md`
+- Runtime CJS boundary inventory: `docs/runtime-cjs-boundary-inventory.md`
+- Package-mode trial runbook: `docs/package-mode-trial-runbook.md`
+- Legacy/package-mode compatibility matrix: `docs/legacy-package-mode-compat-matrix.md`
+- Package-mode trial decision log: `docs/package-mode-trial-decision.md`
 - Metrics healthy-path smoke plan: `docs/metrics-health-smoke-plan.md`
 - Metrics healthy-path workflow evidence currently runs on fork `Krisztiaan/BrowserQuest` (upstream `mozilla/BrowserQuest` is read-only in this context).
 - CI gates: `verify-modern`, `verify-legacy`, `verify-modern-browser`, `verify-legacy-browser`, `verify-protocol-invariant`

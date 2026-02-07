@@ -6,16 +6,7 @@ const path = require('node:path');
 const repoRoot = path.resolve(__dirname, '..');
 const serverRoot = path.join(repoRoot, 'server', 'js');
 
-const allowed = new Set([
-    'server/js/character.js',
-    'server/js/entity.js',
-    'server/js/map.js',
-    'server/js/metrics.js',
-    'server/js/mob.js',
-    'server/js/player.js',
-    'server/js/worldserver.js',
-    'server/js/ws.js',
-]);
+const allowed = new Set([]);
 
 const classRequirePattern = /require\((['"])\.\/lib\/class\1\)/;
 

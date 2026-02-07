@@ -1,23 +1,23 @@
 
 var Entity = require("./entity");
 
-var Item = Entity.extend({
-    init: function(id, kind, x, y) {
-        this._super(id, "item", kind, x, y);
+class Item extends Entity {
+    constructor(id, kind, x, y) {
+        super(id, "item", kind, x, y);
         this.isStatic = false;
         this.isFromChest = false;
-    },
+    }
     
-    handleDespawn: function(params) {
+    handleDespawn(params) {
         var self = this;
         
         this.blinkTimeout = setTimeout(function() {
             params.blinkCallback();
             self.despawnTimeout = setTimeout(params.despawnCallback, params.blinkingDuration);
         }, params.beforeBlinkDelay);
-    },
+    }
     
-    destroy: function() {
+    destroy() {
         if(this.blinkTimeout) {
             clearTimeout(this.blinkTimeout);
         }
@@ -28,20 +28,20 @@ var Item = Entity.extend({
         if(this.isStatic) {
             this.scheduleRespawn(30000);
         }
-    },
+    }
     
-    scheduleRespawn: function(delay) {
+    scheduleRespawn(delay) {
         var self = this;
         setTimeout(function() {
             if(self.respawn_callback) {
                 self.respawn_callback();
             }
         }, delay);
-    },
+    }
     
-    onRespawn: function(callback) {
+    onRespawn(callback) {
         this.respawn_callback = callback;
     }
-});
+}
 
 module.exports = Item;

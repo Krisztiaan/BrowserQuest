@@ -1,6 +1,5 @@
 
-var cls = require("./lib/class"),
-    url = require('url'),
+var url = require('url'),
     http = require('http'),
     Log = require('./log'),
     Utils = require('./utils'),
@@ -34,74 +33,74 @@ var logConnectionEvent = function(level, eventName, connection, extraFields) {
 /**
  * Abstract Server and Connection classes
  */
-var Server = cls.Class.extend({
-    init: function(port) {
+class Server {
+    constructor(port) {
         this.port = port;
         this._connections = {};
         this._counter = 0;
-    },
+    }
     
-    onConnect: function(callback) {
+    onConnect(callback) {
         this.connection_callback = callback;
-    },
+    }
     
-    onError: function(callback) {
+    onError(callback) {
         this.error_callback = callback;
-    },
+    }
     
-    broadcast: function(message) {
+    broadcast(message) {
         throw new Error("Not implemented");
-    },
+    }
     
-    forEachConnection: function(callback) {
+    forEachConnection(callback) {
         Object.keys(this._connections).forEach(function(connectionId) {
             callback(this._connections[connectionId], connectionId);
         }, this);
-    },
+    }
     
-    addConnection: function(connection) {
+    addConnection(connection) {
         this._connections[connection.id] = connection;
-    },
+    }
     
-    removeConnection: function(id) {
+    removeConnection(id) {
         delete this._connections[id];
-    },
+    }
     
-    getConnection: function(id) {
+    getConnection(id) {
         return this._connections[id];
     }
-});
+}
 
 
-var Connection = cls.Class.extend({
-    init: function(id, connection, server, remoteAddress) {
+class Connection {
+    constructor(id, connection, server, remoteAddress) {
         this._connection = connection;
         this._server = server;
         this.id = id;
         this.remoteAddress = remoteAddress;
-    },
+    }
     
-    onClose: function(callback) {
+    onClose(callback) {
         this.close_callback = callback;
-    },
+    }
     
-    listen: function(callback) {
+    listen(callback) {
         this.listen_callback = callback;
-    },
+    }
     
-    broadcast: function(message) {
+    broadcast(message) {
         throw new Error("Not implemented");
-    },
+    }
     
-    send: function(message) {
+    send(message) {
         throw new Error("Not implemented");
-    },
+    }
     
-    sendUTF8: function(data) {
+    sendUTF8(data) {
         throw new Error("Not implemented");
-    },
+    }
     
-    close: function(logError) {
+    close(logError) {
         log.info("Closing connection to "+this.remoteAddress+". Error: "+logError);
         logConnectionEvent("info", "ws.connection.close_request", this, {
             reason: String(logError || "")
@@ -112,7 +111,7 @@ var Connection = cls.Class.extend({
             // ignore
         }
     }
-});
+}
 
 
 
@@ -121,11 +120,10 @@ var Connection = cls.Class.extend({
  * 
  * Modern WebSocket server (RFC 6455).
  */
-WS.MultiVersionWebsocketServer = Server.extend({
-    init: function(port) {
+WS.MultiVersionWebsocketServer = class MultiVersionWebsocketServer extends Server {
+    constructor(port) {
+        super(port);
         var self = this;
-        
-        this._super(port);
         
         this._httpServer = http.createServer(function(request, response) {
             var requestPath = url.parse(request.url).pathname;
@@ -163,32 +161,31 @@ WS.MultiVersionWebsocketServer = Server.extend({
             self.addConnection(c);
             logConnectionEvent("info", "ws.connection.open", c);
         });
-    },
+    }
     
-    _createId: function() {
+    _createId() {
         return '5' + Utils.random(99) + '' + (this._counter++);
-    },
+    }
     
-    broadcast: function(message) {
+    broadcast(message) {
         this.forEachConnection(function(connection) {
             connection.send(message);
         });
-    },
+    }
     
-    onRequestStatus: function(status_callback) {
+    onRequestStatus(status_callback) {
         this.status_callback = status_callback;
     }
-});
+};
 
 
 /**
  * Connection class for ws
  */
-WS.wsWebSocketConnection = Connection.extend({
-    init: function(id, connection, server, remoteAddress) {
+WS.wsWebSocketConnection = class wsWebSocketConnection extends Connection {
+    constructor(id, connection, server, remoteAddress) {
+        super(id, connection, server, remoteAddress);
         var self = this;
-        
-        this._super(id, connection, server, remoteAddress);
 
         this._connection.on('message', function(data, isBinary) {
             if(!self.listen_callback || isBinary) {
@@ -231,13 +228,13 @@ WS.wsWebSocketConnection = Connection.extend({
                 error: String(err)
             });
         });
-    },
+    }
     
-    send: function(message) {
+    send(message) {
         this.sendUTF8(JSON.stringify(message));
-    },
+    }
     
-    sendUTF8: function(data) {
+    sendUTF8(data) {
         this._connection.send(data);
     }
-});
+};

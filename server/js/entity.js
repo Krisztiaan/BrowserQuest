@@ -1,48 +1,47 @@
 
-var cls = require("./lib/class"),
-    Messages = require('./message'),
+var Messages = require('./message'),
     Utils = require('./utils');
 
-var Entity = cls.Class.extend({
-    init: function(id, type, kind, x, y) {
+class Entity {
+    constructor(id, type, kind, x, y) {
         this.id = Number.parseInt(id, 10);
         this.type = type;
         this.kind = kind;
         this.x = x;
         this.y = y;
-    },
+    }
     
-    destroy: function() {
+    destroy() {
 
-    },
+    }
     
-    _getBaseState: function() {
+    _getBaseState() {
         return [
             Number.parseInt(this.id, 10),
             this.kind,
             this.x,
             this.y
         ];
-    },
+    }
     
-    getState: function() {
+    getState() {
         return this._getBaseState();
-    },
+    }
     
-    spawn: function() {
+    spawn() {
         return new Messages.Spawn(this);
-    },
+    }
     
-    despawn: function() {
+    despawn() {
         return new Messages.Despawn(this.id);
-    },
+    }
     
-    setPosition: function(x, y) {
+    setPosition(x, y) {
         this.x = x;
         this.y = y;
-    },
+    }
     
-    getPositionNextTo: function(entity) {
+    getPositionNextTo(entity) {
         var pos = null;
         if(entity) {
             pos = {};
@@ -63,6 +62,6 @@ var Entity = cls.Class.extend({
         }
         return pos;
     }
-});
+}
 
 module.exports = Entity;

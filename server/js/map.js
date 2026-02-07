@@ -1,13 +1,12 @@
 
-var cls = require('./lib/class'),
-    fs = require('fs'),
+var fs = require('fs'),
     Log = require('./log'),
     Utils = require('./utils'),
     Checkpoint = require('./checkpoint');
 var log = Log.getLogger();
 
-var Map = cls.Class.extend({    
-    init: function(filepath) {
+class Map {
+    constructor(filepath) {
     	var self = this;
     
     	this.isLoaded = false;
@@ -32,9 +31,9 @@ var Map = cls.Class.extend({
                 }
             });
         });
-    },
+    }
 
-    initMap: function(map) {
+    initMap(map) {
         this.width = map.width;
         this.height = map.height;
         this.collisions = map.collisions;
@@ -56,13 +55,13 @@ var Map = cls.Class.extend({
         if(this.ready_func) {
             this.ready_func();
         }
-    },
+    }
 
-    ready: function(f) {
+    ready(f) {
     	this.ready_func = f;
-    },
+    }
 
-    tileIndexToGridPosition: function(tileNum) {
+    tileIndexToGridPosition(tileNum) {
         var x = 0,
             y = 0;
         
@@ -78,13 +77,13 @@ var Map = cls.Class.extend({
         y = Math.floor(tileNum / this.width);
     
         return { x: x, y: y };
-    },
+    }
 
-    GridPositionToTileIndex: function(x, y) {
+    GridPositionToTileIndex(x, y) {
         return (y * this.width) + x + 1;
-    },
+    }
 
-    generateCollisionGrid: function() {
+    generateCollisionGrid() {
         this.grid = [];
     
         if(this.isLoaded) {
@@ -102,26 +101,26 @@ var Map = cls.Class.extend({
             }
             //log.info("Collision grid generated.");
         }
-    },
+    }
 
-    isOutOfBounds: function(x, y) {
+    isOutOfBounds(x, y) {
         return x <= 0 || x >= this.width || y <= 0 || y >= this.height;
-    },
+    }
 
-    isColliding: function(x, y) {
+    isColliding(x, y) {
         if(this.isOutOfBounds(x, y)) {
             return false;
         }
         return this.grid[y][x] === 1;
-    },
+    }
     
-    GroupIdToGroupPosition: function(id) {
+    GroupIdToGroupPosition(id) {
         var posArray = id.split('-');
         
         return pos(Number.parseInt(posArray[0], 10), Number.parseInt(posArray[1], 10));
-    },
+    }
     
-    forEachGroup: function(callback) {
+    forEachGroup(callback) {
         var width = this.groupWidth,
             height = this.groupHeight;
         
@@ -130,18 +129,18 @@ var Map = cls.Class.extend({
                 callback(x+'-'+y);
             }
         }
-    },
+    }
     
-    getGroupIdFromPosition: function(x, y) {
+    getGroupIdFromPosition(x, y) {
         var w = this.zoneWidth,
             h = this.zoneHeight,
             gx = Math.floor((x - 1) / w),
             gy = Math.floor((y - 1) / h);
 
         return gx+'-'+gy;
-    },
+    }
     
-    getAdjacentGroupPositions: function(id) {
+    getAdjacentGroupPositions(id) {
         var self = this,
             position = this.GroupIdToGroupPosition(id),
             x = position.x,
@@ -162,17 +161,17 @@ var Map = cls.Class.extend({
         return list.filter(function(pos) {
             return pos.x >= 0 && pos.y >= 0 && pos.x < self.groupWidth && pos.y < self.groupHeight;
         });
-    },
+    }
     
-    forEachAdjacentGroup: function(groupId, callback) {
+    forEachAdjacentGroup(groupId, callback) {
         if(groupId) {
             this.getAdjacentGroupPositions(groupId).forEach(function(pos) {
                 callback(pos.x+'-'+pos.y);
             });
         }
-    },
+    }
     
-    initConnectedGroups: function(doors) {
+    initConnectedGroups(doors) {
         var self = this;
 
         this.connectedGroups = {};
@@ -187,9 +186,9 @@ var Map = cls.Class.extend({
                 self.connectedGroups[groupId] = [connectedPosition];
             }
         });
-    },
+    }
     
-    initCheckpoints: function(cpList) {
+    initCheckpoints(cpList) {
         var self = this;
         
         this.checkpoints = {};
@@ -202,20 +201,20 @@ var Map = cls.Class.extend({
                 self.startingAreas.push(checkpoint);
             }
         });
-    },
+    }
     
-    getCheckpoint: function(id) {
+    getCheckpoint(id) {
         return this.checkpoints[id];
-    },
+    }
     
-    getRandomStartingPosition: function() {
+    getRandomStartingPosition() {
         var nbAreas = this.startingAreas.length,
             i = Utils.randomInt(0, nbAreas-1),
             area = this.startingAreas[i];
         
         return area.getRandomPosition();
     }
-});
+}
 
 var pos = function(x, y) {
     return { x: x, y: y };
