@@ -3892,6 +3892,30 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-248` server runtime process-event seam extraction (fatal/reporting/timers).
 
+- 2026-02-07 15:10:00Z
+  - Status: `in_progress` -> `done` (T-248)
+  - Actions:
+    - Extracted process/event side-effect seams in `server/js/main-runtime.js`:
+      - `createServerEventEmitter(logger)`,
+      - `createPopulationCheckTimer(metrics, getWorlds, setIntervalFn)`,
+      - `createFatalReporter(emitServerEvent, logger)`,
+      - `installFatalHandlers(processObject, reportFatal)`,
+      - `triggerFatalTestEvent(env, setTimeoutFn, reportFatal)`.
+    - Updated runtime dependency seam to include process/timer injection points:
+      - `processObject`, `setIntervalFn`, `setTimeoutFn`.
+    - Routed `main(config, options)` through extracted process-event seams with unchanged behavior.
+    - Exposed new process-event helpers through `server/js/main.js` and `server/js/main-runtime-esm.mjs`.
+    - Added focused process/event seam unit coverage:
+      - `tests/unit/server-main-runtime-process.test.ts`.
+    - Expanded startup parity tests to assert newly exported seam contracts.
+  - Evidence:
+    - Focused process/startup tests passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-249` server runtime lifecycle cleanup seam extraction (timer teardown + hook cleanup contract).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5383,7 +5407,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: focused startup/runtime unit coverage + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-248: Server runtime process-event seam extraction (fatal/reporting/timers)
-- Status: `todo`
+- Status: `done`
 - Scope: extract process-bound side effects (fatal handlers, interval/timer wiring, structured event emission helpers) behind explicit seams to reduce implicit globals in startup runtime.
 - Acceptance criteria: process/event side effects remain behaviorally identical while seam boundaries are explicit and testable.
 - Verification: focused startup/runtime unit + fatal/log smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-249: Server runtime lifecycle cleanup seam extraction (timer/hook teardown)
+- Status: `todo`
+- Scope: introduce explicit runtime lifecycle cleanup seams (population timer teardown and process fatal-hook teardown contracts) to make startup runtime deterministic for tests/future ESM-native server lifecycle management.
+- Acceptance criteria: cleanup contracts exist and can be invoked without changing live runtime behavior defaults.
+- Verification: focused startup/runtime unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

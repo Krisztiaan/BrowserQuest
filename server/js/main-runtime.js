@@ -10,8 +10,34 @@ function createRuntimeDependencies(overrides) {
         ws: injected.ws || require("./ws"),
         WorldServer: injected.WorldServer || require("./worldserver"),
         Player: injected.Player || require("./player"),
-        metricsRuntime: injected.metricsRuntime || MetricsRuntime
+        metricsRuntime: injected.metricsRuntime || MetricsRuntime,
+        processObject: injected.processObject || process,
+        setIntervalFn: injected.setIntervalFn || setInterval,
+        setTimeoutFn: injected.setTimeoutFn || setTimeout
     };
+}
+
+function createServerEventEmitter(logger) {
+    return function(level, eventName, fields) {
+        logger.event(level, eventName, fields);
+    };
+}
+
+function createPopulationCheckTimer(metrics, getWorlds, setIntervalFn) {
+    var lastTotalPlayers = 0;
+
+    return setIntervalFn(function() {
+        if(metrics.isEnabled && metrics.isReady) {
+            metrics.getTotalPlayers(function(totalPlayers) {
+                if(totalPlayers !== lastTotalPlayers) {
+                    lastTotalPlayers = totalPlayers;
+                    getWorlds().forEach(function(world) {
+                        world.updatePopulation(totalPlayers);
+                    });
+                }
+            });
+        }
+    }, 1000);
 }
 
 function createServerAndMetrics(config, emitServerEvent, dependencies) {
@@ -37,11 +63,58 @@ function createWorlds(config, server, metrics, dependencies, onPopulationChange)
     return worlds;
 }
 
+function createFatalReporter(emitServerEvent, logger) {
+    var fatalEvents = {
+        uncaughtException: "server.fatal.uncaught_exception",
+        unhandledRejection: "server.fatal.unhandled_rejection"
+    };
+
+    return function(label, err) {
+        var eventName = fatalEvents[label] || "server.fatal.unknown";
+        if(err && err.stack) {
+            logger.error(label + ": " + err.stack);
+            emitServerEvent("error", eventName, {
+                source: label,
+                message: String(err.message || err),
+                stack: String(err.stack)
+            });
+        } else {
+            logger.error(label + ": " + err);
+            emitServerEvent("error", eventName, {
+                source: label,
+                message: String(err)
+            });
+        }
+    };
+}
+
+function installFatalHandlers(processObject, reportFatal) {
+    processObject.on('uncaughtException', function (e) {
+        reportFatal('uncaughtException', e);
+    });
+
+    processObject.on('unhandledRejection', function (reason) {
+        reportFatal('unhandledRejection', reason);
+    });
+}
+
+function triggerFatalTestEvent(env, setTimeoutFn, reportFatal) {
+    var runtimeEnv = env || {};
+    var fatalTestTrigger = runtimeEnv.BQ_TEST_TRIGGER_FATAL_EVENT;
+    if(fatalTestTrigger === "unhandled_rejection") {
+        setTimeoutFn(function() {
+            reportFatal('unhandledRejection', new Error("bq-fatal-test-unhandled-rejection"));
+        }, 10);
+    } else if(fatalTestTrigger === "uncaught_exception") {
+        setTimeoutFn(function() {
+            reportFatal('uncaughtException', new Error("bq-fatal-test-uncaught-exception"));
+        }, 10);
+    }
+}
+
 function main(config, options) {
     var runtimeOptions = options || {};
-    var emitServerEvent = function(level, eventName, fields) {
-            log.event(level, eventName, fields);
-        },
+    var emitServerEvent = createServerEventEmitter(log),
         validationResult = ConfigPreflight.validateConfig(config),
         dependencies = createRuntimeDependencies(runtimeOptions.dependencies);
 
@@ -50,7 +123,7 @@ function main(config, options) {
             errors: validationResult.errors
         });
         log.error("Invalid server configuration: " + JSON.stringify(validationResult.errors));
-        process.exit(1);
+        dependencies.processObject.exit(1);
         return;
     }
 
@@ -59,20 +132,11 @@ function main(config, options) {
         runtime = createServerAndMetrics(config, emitServerEvent, dependencies),
         server = runtime.server,
         metrics = runtime.metrics,
-        worlds = [],
-        lastTotalPlayers = 0,
-        checkPopulationInterval = setInterval(function() {
-            if(metrics.isEnabled && metrics.isReady) {
-                metrics.getTotalPlayers(function(totalPlayers) {
-                    if(totalPlayers !== lastTotalPlayers) {
-                        lastTotalPlayers = totalPlayers;
-                        worlds.forEach(function(world) {
-                            world.updatePopulation(totalPlayers);
-                        });
-                    }
-                });
-            }
-        }, 1000);
+        worlds = [];
+
+    createPopulationCheckTimer(metrics, function() {
+        return worlds;
+    }, dependencies.setIntervalFn);
     
     switch(config.debug_level) {
         case "error":
@@ -158,47 +222,10 @@ function main(config, options) {
             onPopulationChange(); // initialize all counters to 0 when the server starts
         });
     }
-    
-    var fatalEvents = {
-        uncaughtException: "server.fatal.uncaught_exception",
-        unhandledRejection: "server.fatal.unhandled_rejection"
-    };
-    var reportFatal = function(label, err) {
-        var eventName = fatalEvents[label] || "server.fatal.unknown";
-        if(err && err.stack) {
-            log.error(label + ": " + err.stack);
-            emitServerEvent("error", eventName, {
-                source: label,
-                message: String(err.message || err),
-                stack: String(err.stack)
-            });
-        } else {
-            log.error(label + ": " + err);
-            emitServerEvent("error", eventName, {
-                source: label,
-                message: String(err)
-            });
-        }
-    };
 
-    process.on('uncaughtException', function (e) {
-        reportFatal('uncaughtException', e);
-    });
-
-    process.on('unhandledRejection', function (reason) {
-        reportFatal('unhandledRejection', reason);
-    });
-
-    var fatalTestTrigger = process.env.BQ_TEST_TRIGGER_FATAL_EVENT;
-    if(fatalTestTrigger === "unhandled_rejection") {
-        setTimeout(function() {
-            reportFatal('unhandledRejection', new Error("bq-fatal-test-unhandled-rejection"));
-        }, 10);
-    } else if(fatalTestTrigger === "uncaught_exception") {
-        setTimeout(function() {
-            reportFatal('uncaughtException', new Error("bq-fatal-test-uncaught-exception"));
-        }, 10);
-    }
+    var reportFatal = createFatalReporter(emitServerEvent, log);
+    installFatalHandlers(dependencies.processObject, reportFatal);
+    triggerFatalTestEvent(dependencies.processObject.env, dependencies.setTimeoutFn, reportFatal);
 }
 
 function getWorldDistribution(worlds) {
@@ -212,5 +239,10 @@ module.exports = {
     getWorldDistribution: getWorldDistribution,
     createRuntimeDependencies: createRuntimeDependencies,
     createServerAndMetrics: createServerAndMetrics,
-    createWorlds: createWorlds
+    createWorlds: createWorlds,
+    createServerEventEmitter: createServerEventEmitter,
+    createPopulationCheckTimer: createPopulationCheckTimer,
+    createFatalReporter: createFatalReporter,
+    installFatalHandlers: installFatalHandlers,
+    triggerFatalTestEvent: triggerFatalTestEvent
 };

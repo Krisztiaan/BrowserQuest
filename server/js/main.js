@@ -48,5 +48,10 @@ module.exports = {
     getWorldDistribution: MainRuntime.getWorldDistribution,
     createRuntimeDependencies: MainRuntime.createRuntimeDependencies,
     createServerAndMetrics: MainRuntime.createServerAndMetrics,
-    createWorlds: MainRuntime.createWorlds
+    createWorlds: MainRuntime.createWorlds,
+    createServerEventEmitter: MainRuntime.createServerEventEmitter,
+    createPopulationCheckTimer: MainRuntime.createPopulationCheckTimer,
+    createFatalReporter: MainRuntime.createFatalReporter,
+    installFatalHandlers: MainRuntime.installFatalHandlers,
+    triggerFatalTestEvent: MainRuntime.triggerFatalTestEvent
 };
