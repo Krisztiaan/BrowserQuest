@@ -1,0 +1,53 @@
+name: verify-protocol-invariant
+
+on:
+  pull_request:
+    paths:
+      - "client/**"
+      - "server/**"
+      - "shared/**"
+      - "tests/browser/**"
+      - "playwright.config.ts"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/verify-protocol-invariant.yml"
+  push:
+    paths:
+      - "client/**"
+      - "server/**"
+      - "shared/**"
+      - "tests/browser/**"
+      - "playwright.config.ts"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/verify-protocol-invariant.yml"
+
+jobs:
+  protocol-invariant:
+    strategy:
+      matrix:
+        node-version: ["22.x"]
+    runs-on: ubuntu-latest
+    name: protocol-invariant (node ${{ matrix.node-version }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: Verify protocol invariants
+        run: bun run test:browser:protocol-invariant

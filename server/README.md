@@ -63,6 +63,9 @@ Fallback behavior:
 
 - Invalid metrics config emits structured event `server.metrics.unavailable` with `reason: "invalid_config"` and `invalidFields`.
 - Metrics adapter init failure emits structured event `server.metrics.unavailable` with `reason: "init_failed"` and `error`.
+- Metrics connect/runtime failures emit structured event `server.metrics.unavailable` with:
+  - `reason: "connect_failed"` or `reason: "read_failed"` or `reason: "write_failed"`
+  - `error` (and `operation`/`key` for read/write failures)
 - In both fallback cases, gameplay and handshake paths continue normally.
 - Structured event taxonomy: `docs/server-logging-taxonomy.md`
 
@@ -76,8 +79,14 @@ Metrics dependency policy and troubleshooting:
    - `reason: "invalid_config"`:
      - fix keys listed in `invalidFields`.
    - `reason: "init_failed"`:
-     - verify `memcache` package is installed in deployment artifact.
-     - verify memcached is running and reachable from the server host/network.
+      - verify `memcache` package is installed in deployment artifact.
+      - verify memcached is running and reachable from the server host/network.
+   - `reason: "connect_failed"`:
+      - verify memcached daemon/network reachability and firewall rules.
+      - verify host/port values match deployment topology.
+   - `reason: "read_failed"` or `reason: "write_failed"`:
+      - inspect `operation` and `key` fields for failing metric path.
+      - verify memcached health/capacity and network stability under load.
 4. Optional healthy-path smoke strategy:
    - `docs/metrics-health-smoke-plan.md`
    - command: `bun run test:metrics:healthy` (runs prerequisites preflight + healthy smoke)

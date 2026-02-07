@@ -2039,6 +2039,66 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-121` metrics adapter failure-mode taxonomy expansion.
 
+- 2026-02-07 04:13:48Z
+  - Status: `in_progress` -> `done` (T-121)
+  - Actions:
+    - Expanded metrics unavailability taxonomy with stable runtime/connect reason codes:
+      - `server/js/metrics-runtime.js` forwards adapter unavailability hooks into structured `server.metrics.unavailable`.
+      - `server/js/metrics.js` now reports one-time reason-coded unavailability for:
+        - `connect_failed`
+        - `read_failed`
+        - `write_failed`
+      - `server/js/metrics-client.js` now surfaces modern/legacy connect and operation errors with structured details (`operation`, `key`, `error`).
+    - Updated memcache adapter wiring:
+      - `server/js/metrics-adapters/memcache.js` passes runtime hook options into metrics constructor.
+    - Added/expanded targeted coverage:
+      - `tests/unit/metrics-runtime.test.ts` (adapter unavailability forwarding contract)
+      - `tests/unit/metrics-client.test.ts` (modern/legacy connect+operation error surfaces)
+    - Updated docs:
+      - `docs/server-logging-taxonomy.md`
+      - `server/README.md`
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/metrics-client.test.ts tests/unit/metrics-runtime.test.ts tests/smoke/server-structured-logs.lifecycle.test.ts tests/smoke/server-handshake.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-122` legacy/modern protocol invariant replay guard.
+
+- 2026-02-07 04:19:22Z
+  - Status: `in_progress` -> `done` (T-122)
+  - Actions:
+    - Added deterministic browser replay parity guard:
+      - `tests/browser/protocol-invariant.playwright.ts`
+      - replays `go` -> `HELLO` -> `WELCOME` -> `CHAT` against both `client/modern.html` and `client/index.html`.
+    - Added canonical script entrypoints:
+      - `test:browser:protocol-invariant`
+      - `test:browser:protocol-invariant:node22`
+    - Updated support docs:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:browser:protocol-invariant:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-123` protocol invariant CI gate workflow.
+
+- 2026-02-07 04:19:40Z
+  - Status: `in_progress` -> `done` (T-123)
+  - Actions:
+    - Added path-filtered browser protocol gate workflow:
+      - `.github/workflows/verify-protocol-invariant.yml`
+      - executes `bun run test:browser:protocol-invariant` on browser/runtime-sensitive changes.
+    - Added CI mapping references:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - Local parity gate remained green:
+      - `bun run test:browser:protocol-invariant:node22`
+    - Workflow config committed with Node `22.x` runtime matrix and Playwright chromium install step.
+  - Next action:
+    - Define `T-124` for post-protocol-gate roadmap refresh (workflow evidence capture + next modernization candidates).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2768,13 +2828,25 @@ Only after Phase 2, introduce TS gradually:
 - Verification: successful workflow run(s) for configured matrix entries with documented run IDs.
 
 ### T-121: Metrics adapter failure-mode taxonomy expansion
-- Status: `todo`
+- Status: `done`
 - Scope: enrich `server.metrics.unavailable` failure reasons for connect-time and runtime operation failures (not just init/config) with stable reason codes.
 - Acceptance criteria: failure reasons are structured, documented, and covered by targeted tests.
 - Verification: unit/smoke assertions for expanded reasons + logging taxonomy doc updates.
 
 ### T-122: Legacy/modern protocol invariant replay guard
-- Status: `todo`
+- Status: `done`
 - Scope: add a focused replay/invariant smoke that replays a deterministic action sequence against both modern and legacy entry paths and diffs key protocol outcomes.
 - Acceptance criteria: regression signal exists when protocol handling diverges between compatibility paths.
 - Verification: new smoke command + passing `verify:modern:node22`/`verify:legacy:node22`.
+
+### T-123: Protocol invariant CI gate workflow
+- Status: `done`
+- Scope: add a path-filtered CI workflow running `test:browser:protocol-invariant` so replay parity regressions are automatically caught on browser/runtime-sensitive changes.
+- Acceptance criteria: dedicated workflow exists, is discoverable in support docs, and mirrors local protocol invariant command behavior.
+- Verification: workflow file committed + local parity command `bun run test:browser:protocol-invariant:node22` passes.
+
+### T-124: Post-protocol roadmap refresh and evidence capture
+- Status: `todo`
+- Scope: capture first successful `verify-protocol-invariant` GitHub run evidence and refresh the next modernization candidate queue beyond protocol parity coverage.
+- Acceptance criteria: roadmap references a concrete successful run URL/id and includes ordered follow-up ticket(s) with acceptance criteria and verification commands.
+- Verification: `MODERNIZE.md` log includes run evidence + queued successor tickets.

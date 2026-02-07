@@ -26,9 +26,11 @@ All structured records include:
 - `server.config.invalid`
   - `errors` (array of `{ field, reason }` config preflight failures)
 - `server.metrics.unavailable`
-  - `reason` (`invalid_config` | `init_failed`)
+  - `reason` (`invalid_config` | `init_failed` | `connect_failed` | `read_failed` | `write_failed`)
   - `invalidFields` (for `invalid_config`)
-  - `error` (for `init_failed`)
+  - `error` (for `init_failed`/`connect_failed`/`read_failed`/`write_failed`)
+  - `operation` (for `read_failed`/`write_failed`)
+  - `key` (for `read_failed`/`write_failed`, when available)
 - `server.metrics.ready`
   - `memcachedHost`
   - `memcachedPort`

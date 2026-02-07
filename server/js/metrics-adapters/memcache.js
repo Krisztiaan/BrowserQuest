@@ -1,9 +1,9 @@
 var Metrics = require('../metrics');
 
 function createMemcacheMetricsAdapter(config, options) {
-    var metrics = new Metrics(config);
-    metrics.isEnabled = true;
     var adapterOptions = options || {};
+    var metrics = new Metrics(config, adapterOptions);
+    metrics.isEnabled = true;
 
     if(typeof adapterOptions.onReady === "function") {
         var originalReady = metrics.ready;

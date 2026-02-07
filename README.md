@@ -42,6 +42,7 @@ Verification gates:
 - `bun run verify:legacy` runs tests + legacy RequireJS build + legacy-inclusive Vite build.
 - `bun run test:modern-browser:install` (one-time) then `bun run test:browser:modern` runs a headless Playwright smoke against `client/modern.html`.
 - `bun run test:browser:legacy` runs the legacy compatibility browser smoke against `client/index.html`.
+- `bun run test:browser:protocol-invariant` replays deterministic `go`/`HELLO`/`WELCOME`/`CHAT` protocol flow against both modern and legacy entry paths and asserts invariant parity.
 - `bun run test:static-entry` validates `bun run dev` entry routing (`/` => modern by default, `/index.html` legacy, env override supported).
 - `bun run test:metrics:healthy` runs the opt-in healthy metrics smoke (`BQ_TEST_METRICS_HEALTH=1`) with built-in prerequisites preflight (`check:metrics:healthy-prereqs` for memcache package + memcached reachability).
 - `bun run test:logs:lifecycle` / `bun run test:logs:fatal` run split structured-log smoke contracts.
@@ -63,13 +64,13 @@ Modernization snapshot
 - Server logging taxonomy: `docs/server-logging-taxonomy.md`
 - Metrics healthy-path smoke plan: `docs/metrics-health-smoke-plan.md`
 - Metrics healthy-path workflow evidence currently runs on fork `Krisztiaan/BrowserQuest` (upstream `mozilla/BrowserQuest` is read-only in this context).
-- CI gates: `verify-modern`, `verify-legacy`, `verify-modern-browser`, `verify-legacy-browser`
+- CI gates: `verify-modern`, `verify-legacy`, `verify-modern-browser`, `verify-legacy-browser`, `verify-protocol-invariant`
   - Optional/manual healthy metrics workflow: `verify-metrics-healthy`
   - Trigger/triage guide: `docs/metrics-health-smoke-plan.md`
 - Primary verification commands:
   - `bun run verify:modern` (or `bun run verify:modern:node22`)
   - `bun run verify:legacy` (or `bun run verify:legacy:node22`)
-  - `bun run test:browser:modern` / `bun run test:browser:legacy`
+  - `bun run test:browser:modern` / `bun run test:browser:legacy` / `bun run test:browser:protocol-invariant`
 
 
 Documentation

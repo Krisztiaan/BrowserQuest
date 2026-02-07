@@ -165,3 +165,35 @@ test('metrics runtime wires structured metrics-ready signal via memcache adapter
     expect(emitted[0].fields.serverName).toBe('local');
     expect(emitted[0].fields.memcachedHost).toBe('127.0.0.1');
 });
+
+test('metrics runtime forwards adapter unavailability signals with stable reason codes', () => {
+    const emitted: Array<{ level: string; event: string; fields: Record<string, unknown> }> = [];
+    let onUnavailableHook: ((reason: string, details?: Record<string, unknown>) => void) | null = null;
+
+    MetricsRuntime.createMetrics(
+        createValidConfig(),
+        (level: string, event: string, fields: Record<string, unknown>) => {
+            emitted.push({ level, event, fields });
+        },
+        {
+            adapters: {
+                createNoopMetricsAdapter: (meta: Record<string, unknown>) => ({ isEnabled: false, meta }),
+                createMemcacheMetricsAdapter: (
+                    _config: BaseConfig,
+                    options: { onUnavailable?: (reason: string, details?: Record<string, unknown>) => void } | undefined
+                ) => {
+                    onUnavailableHook = options?.onUnavailable || null;
+                    return { isEnabled: true };
+                },
+            },
+        }
+    );
+
+    expect(typeof onUnavailableHook).toBe('function');
+    onUnavailableHook?.('connect_failed', { error: 'connect timeout' });
+
+    expect(emitted.length).toBe(1);
+    expect(emitted[0].event).toBe('server.metrics.unavailable');
+    expect(emitted[0].fields.reason).toBe('connect_failed');
+    expect(emitted[0].fields.error).toBe('connect timeout');
+});

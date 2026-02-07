@@ -123,3 +123,107 @@ test('metrics client throws on unsupported memcache module shape', () => {
         MetricsClient.createMetricsClient({}, config, {});
     }).toThrow('Unsupported memcache client API');
 });
+
+test('metrics client surfaces modern connect failures through onError hook', async () => {
+    const errors: string[] = [];
+
+    class ModernMemcacheClient {
+        constructor(_endpoint: string) {}
+        on(_event: string, _cb: () => void) {}
+        async connect() {
+            throw new Error('connect refused');
+        }
+        async set() {
+            return true;
+        }
+        async get() {
+            return '0';
+        }
+    }
+
+    const client = MetricsClient.createMetricsClient({ Memcache: ModernMemcacheClient }, config, {
+        onError: (err: unknown) => errors.push(String(err)),
+    });
+
+    client.connect();
+    await Bun.sleep(0);
+
+    expect(errors.length).toBe(1);
+    expect(errors[0]).toContain('connect refused');
+});
+
+test('metrics client surfaces modern read/write operation failures through onOperationError hook', async () => {
+    const operationErrors: Array<{ operation?: string; key?: string; error?: string }> = [];
+
+    class ModernMemcacheClient {
+        constructor(_endpoint: string) {}
+        on(_event: string, _cb: () => void) {}
+        async connect() {}
+        async set() {
+            throw new Error('write timeout');
+        }
+        async get() {
+            throw new Error('read timeout');
+        }
+    }
+
+    const client = MetricsClient.createMetricsClient({ Memcache: ModernMemcacheClient }, config, {
+        onOperationError: (details: { operation?: string; key?: string; error?: string }) =>
+            operationErrors.push(details),
+    });
+
+    const setResult = await new Promise<boolean>((resolve) => client.set('player_count_local', 1, resolve));
+    const getResult = await new Promise<string | undefined>((resolve) => client.get('total_players', resolve));
+
+    expect(setResult).toBe(false);
+    expect(getResult).toBeUndefined();
+    expect(operationErrors.length).toBe(2);
+    expect(operationErrors[0].operation).toBe('write');
+    expect(operationErrors[0].key).toBe('player_count_local');
+    expect(operationErrors[0].error).toContain('write timeout');
+    expect(operationErrors[1].operation).toBe('read');
+    expect(operationErrors[1].key).toBe('total_players');
+    expect(operationErrors[1].error).toContain('read timeout');
+});
+
+test('metrics client surfaces legacy read/write callback errors through onOperationError hook', async () => {
+    const operationErrors: Array<{ operation?: string; key?: string; error?: string }> = [];
+    let connectHandler: (() => void) | null = null;
+
+    class LegacyClient {
+        on(event: string, cb: () => void) {
+            if (event === 'connect') {
+                connectHandler = cb;
+            }
+        }
+        connect() {
+            connectHandler?.();
+        }
+        set(_key: string, _value: unknown, cb: (error?: unknown) => void) {
+            cb(new Error('legacy write failed'));
+        }
+        get(_key: string, cb: (error: unknown, result?: string) => void) {
+            cb(new Error('legacy read failed'));
+        }
+    }
+
+    const client = MetricsClient.createMetricsClient({ Client: LegacyClient }, config, {
+        onOperationError: (details: { operation?: string; key?: string; error?: string }) =>
+            operationErrors.push(details),
+    });
+
+    client.connect();
+
+    const setResult = await new Promise<boolean>((resolve) => client.set('player_count_local', 2, resolve));
+    const getResult = await new Promise<string | undefined>((resolve) => client.get('total_players', resolve));
+
+    expect(setResult).toBe(false);
+    expect(getResult).toBeUndefined();
+    expect(operationErrors.length).toBe(2);
+    expect(operationErrors[0].operation).toBe('write');
+    expect(operationErrors[0].key).toBe('player_count_local');
+    expect(operationErrors[0].error).toContain('legacy write failed');
+    expect(operationErrors[1].operation).toBe('read');
+    expect(operationErrors[1].key).toBe('total_players');
+    expect(operationErrors[1].error).toContain('legacy read failed');
+});

@@ -5,13 +5,24 @@ var cls = require("./lib/class"),
 var log = Log.getLogger();
 
 var Metrics = cls.Class.extend({
-    init: function(config) {
+    init: function(config, options) {
         var self = this,
+            runtimeOptions = options || {},
             memcacheModule = require("memcache");
         
         this.config = config;
         this.client = null;
         this.isReady = false;
+        this.unavailableReasons = {};
+        this.onUnavailable = typeof runtimeOptions.onUnavailable === "function" ? runtimeOptions.onUnavailable : function() {};
+
+        var reportUnavailable = function(reason, fields) {
+            if(self.unavailableReasons[reason]) {
+                return;
+            }
+            self.unavailableReasons[reason] = true;
+            self.onUnavailable(reason, fields || {});
+        };
 
         var markReady = function() {
             if(self.isReady) {
@@ -27,7 +38,20 @@ var Metrics = cls.Class.extend({
         this.client = MetricsClient.createMetricsClient(memcacheModule, config, {
             onReady: markReady,
             onError: function(error) {
-                log.error("Memcached client connect failed: " + String(error && error.message ? error.message : error));
+                var errorMessage = String(error && error.message ? error.message : error);
+                log.error("Memcached client connect failed: " + errorMessage);
+                reportUnavailable("connect_failed", {
+                    error: errorMessage
+                });
+            },
+            onOperationError: function(details) {
+                var operation = details && details.operation ? String(details.operation) : "unknown";
+                var reason = operation === "read" ? "read_failed" : "write_failed";
+                reportUnavailable(reason, {
+                    operation: operation,
+                    key: details && details.key ? String(details.key) : undefined,
+                    error: details && details.error ? String(details.error) : "unknown_error"
+                });
             }
         });
         this.client.connect();
