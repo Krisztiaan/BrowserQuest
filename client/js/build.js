@@ -4,6 +4,7 @@
     dir: "../../client-build",
     optimize: "uglify",
     optimizeCss: "standard.keepLines",
+    fileExclusionRegExp: /(^|\/)js-esm(\/|$)/,
     
     paths: {
         "jquery": "lib/require-jquery"

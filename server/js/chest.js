@@ -1,8 +1,9 @@
 
 var Utils = require('./utils'),
+    Item = require('./item'),
     Types = require("../../shared/js/gametypes");
 
-module.exports = Chest = Item.extend({
+var Chest = Item.extend({
     init: function(id, x, y) {
         this._super(id, Types.Entities.CHEST, x, y);
     },
@@ -12,7 +13,7 @@ module.exports = Chest = Item.extend({
     },
     
     getRandomItem: function() {
-        var nbItems = _.size(this.items),
+        var nbItems = this.items.length,
             item = null;
 
         if(nbItems > 0) {
@@ -21,3 +22,5 @@ module.exports = Chest = Item.extend({
         return item;
     }
 });
+
+module.exports = Chest;

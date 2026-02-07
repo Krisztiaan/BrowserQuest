@@ -11,14 +11,10 @@ define(['jquery', 'animation', 'sprites'], function($, Animation, sprites) {
             this.loadJSON(sprites[name]);
         },
         
-        loadJSON: function(data) {
-    		this.id = data.id;
-    		if(this.id === "chest") { // Temporary hack to prevent CDN bug with CORS headers not being sent for chest.png
-    		    this.filepath = "img/" + this.scale + "/" + this.id + ".png";
-    		} else {
-    		    this.filepath = "http://cdn.mozilla.net/browserquest/img/" + this.scale + "/" + this.id + ".png";
-    		}
-    		this.animationData = data.animations;
+	    loadJSON: function(data) {
+	    	this.id = data.id;
+            this.filepath = "img/" + this.scale + "/" + this.id + ".png";
+	    	this.animationData = data.animations;
     		this.width = data.width;
     		this.height = data.height;
     		this.offsetX = (data.offset_x !== undefined) ? data.offset_x : -16;
@@ -96,11 +92,11 @@ define(['jquery', 'animation', 'sprites'], function($, Animation, sprites) {
     	},
 	
     	createSilhouette: function() {
-    	    var canvas = document.createElement('canvas'),
-    	        ctx = canvas.getContext('2d'),
-    	        width = this.image.width,
-    		    height = this.image.height,
-    	        spriteData, finalData, data;
+	    	    var canvas = document.createElement('canvas'),
+	    	        ctx = canvas.getContext('2d'),
+	    	        width = this.image.width,
+	    		    height = this.image.height,
+	    	        spriteData, finalData, data, fdata;
 	    
     	    canvas.width = width;
     	    canvas.height = height;

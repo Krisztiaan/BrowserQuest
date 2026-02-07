@@ -1,6 +1,6 @@
 
-define(['jquery', 'app'], function($, App) {
-    var app, game;
+define(['jquery', 'app', 'eventcompat'], function($, App, EventCompat) {
+var app, game;
 
     var initApp = function() {
         $(document).ready(function() {
@@ -114,7 +114,7 @@ define(['jquery', 'app'], function($, App) {
                 app.toggleScrollContent('about');
         	});
 
-            $('#nameinput').bind("keyup", function() {
+            EventCompat.bind($('#nameinput'), "keyup", function() {
                 app.toggleButton();
             });
     
@@ -142,7 +142,7 @@ define(['jquery', 'app'], function($, App) {
                 }
             });
 
-            $('#notifications div').bind(TRANSITIONEND, app.resetMessagesPosition.bind(app));
+            EventCompat.bind($('#notifications div'), TRANSITIONEND, app.resetMessagesPosition.bind(app));
     
             $('.close').click(function() {
                 app.hideWindows();
@@ -180,9 +180,9 @@ define(['jquery', 'app'], function($, App) {
         
             document.addEventListener("touchstart", function() {},false);
             
-            $('#resize-check').bind("transitionend", app.resizeUi.bind(app));
-            $('#resize-check').bind("webkitTransitionEnd", app.resizeUi.bind(app));
-            $('#resize-check').bind("oTransitionEnd", app.resizeUi.bind(app));
+            EventCompat.bind($('#resize-check'), "transitionend", app.resizeUi.bind(app));
+            EventCompat.bind($('#resize-check'), "webkitTransitionEnd", app.resizeUi.bind(app));
+            EventCompat.bind($('#resize-check'), "oTransitionEnd", app.resizeUi.bind(app));
         
             log.info("App initialized.");
         
@@ -271,11 +271,11 @@ define(['jquery', 'app'], function($, App) {
     		$('#chatbox').attr('value', '');
     		
         	if(game.renderer.mobile || game.renderer.tablet) {
-                $('#foreground').bind('touchstart', function(event) {
+                EventCompat.bind($('#foreground'), 'touchstart', function(event) {
                     app.center();
                     app.setMouseCoordinates(event.originalEvent.touches[0]);
-                	game.click();
-                	app.hideWindows();
+                    game.click();
+                    app.hideWindows();
                 });
             } else {
                 $('#foreground').click(function(event) {
@@ -288,7 +288,7 @@ define(['jquery', 'app'], function($, App) {
                 });
             }
 
-            $('body').unbind('click');
+            EventCompat.unbind($('body'), 'click');
             $('body').click(function(event) {
                 var hasClosedParchment = false;
                 
@@ -426,11 +426,11 @@ define(['jquery', 'app'], function($, App) {
                 game.audioManager.toggle();
             });
             
-            $(document).bind("keydown", function(e) {
+            EventCompat.bind($(document), "keydown", function(e) {
             	var key = e.which,
             	    $chat = $('#chatinput');
 
-                if($('#chatinput:focus').size() == 0 && $('#nameinput:focus').size() == 0) {
+                if($('#chatinput:focus').length === 0 && $('#nameinput:focus').length === 0) {
                     if(key === 13) { // Enter
                         if(game.ready) {
                             $chat.focus();

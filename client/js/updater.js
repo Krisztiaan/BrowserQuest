@@ -88,11 +88,13 @@ define(['character', 'timer'], function(Character, Timer) {
                 ts = 16,
                 speed = 500;
         
-            if(z && z.inProgress === false) {
-                var orientation = this.game.zoningOrientation,
-                    startValue = endValue = offset = 0,
-                    updateFunc = null,
-                    endFunc = null;
+	            if(z && z.inProgress === false) {
+	                var orientation = this.game.zoningOrientation,
+	                    startValue = 0,
+	                    endValue = 0,
+	                    offset = 0,
+	                    updateFunc = null,
+	                    endFunc = null;
             
                 if(orientation === Types.Orientations.LEFT || orientation === Types.Orientations.RIGHT) {
                     offset = (c.gridW - 2) * ts;

@@ -1,10 +1,9 @@
 
 var cls = require('./lib/class'),
-    _ = require('underscore'),
     Utils = require('./utils'),
     Types = require("../../shared/js/gametypes");
 
-module.exports = Area = cls.Class.extend({
+var Area = cls.Class.extend({
     init: function(id, x, y, width, height, world) {
         this.id = id;
         this.x = x;
@@ -29,7 +28,9 @@ module.exports = Area = cls.Class.extend({
     },
     
     removeFromArea: function(entity) {
-        var i = _.indexOf(_.pluck(this.entities, 'id'), entity.id);
+        var i = this.entities.findIndex(function(currentEntity) {
+            return currentEntity.id === entity.id;
+        });
         this.entities.splice(i, 1);
         
         if(this.isEmpty() && this.hasCompletelyRespawned && this.empty_callback) {
@@ -42,7 +43,7 @@ module.exports = Area = cls.Class.extend({
         if(entity) {
             this.entities.push(entity);
             entity.area = this;
-            if(entity instanceof Mob) {
+            if(entity.type === "mob") {
                 this.world.addMob(entity);
             }
         }
@@ -57,14 +58,16 @@ module.exports = Area = cls.Class.extend({
     },
     
     isEmpty: function() {
-        return !_.any(this.entities, function(entity) { return !entity.isDead });
+        return !this.entities.some(function(entity) { return !entity.isDead; });
     },
     
     isFull: function() {
-        return !this.isEmpty() && (this.nbEntities === _.size(this.entities));
+        return !this.isEmpty() && (this.nbEntities === this.entities.length);
     },
     
     onEmpty: function(callback) {
         this.empty_callback = callback;
     }
 });
+
+module.exports = Area;

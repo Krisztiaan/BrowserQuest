@@ -1,5 +1,5 @@
 
-define(['jquery', 'storage'], function($, Storage) {
+define(['jquery', 'storage', 'eventcompat'], function($, Storage, EventCompat) {
 
     var App = Class.extend({
         init: function() {
@@ -27,10 +27,10 @@ define(['jquery', 'storage'], function($, Storage) {
             this.ready = true;
         },
     
-        center: function() {
-            window.scrollTo(0, 1);
-        },
-        
+    center: function() {
+        window.scrollTo(0, 1);
+    },
+
         canStartGame: function() {
             if(this.isDesktop) {
                 return (this.game && this.game.map && this.game.map.isLoaded);
@@ -49,7 +49,7 @@ define(['jquery', 'storage'], function($, Storage) {
                         // on desktop and tablets, add a spinner to the play button
                         $play.addClass('loading');
                     }
-                    this.$playDiv.unbind('click');
+                    EventCompat.unbind(this.$playDiv, 'click');
                     var watchCanStart = setInterval(function() {
                         log.debug("waiting...");
                         if(self.canStartGame()) {
@@ -63,7 +63,7 @@ define(['jquery', 'storage'], function($, Storage) {
                         }
                     }, 100);
                 } else {
-                    this.$playDiv.unbind('click');
+                    EventCompat.unbind(this.$playDiv, 'click');
                     this.startGame(username, starting_callback);
                 }      
             }
@@ -225,18 +225,19 @@ define(['jquery', 'storage'], function($, Storage) {
                 $achievements = $('#achievements');
 
             if($achievements.hasClass('active')) {
-                $achievements.bind(TRANSITIONEND, function() {
+                var onTransitionEnd = function() {
                     $achievements.removeClass('page' + self.currentPage).addClass('page1');
                     self.currentPage = 1;
-                    $achievements.unbind(TRANSITIONEND);
-                });
+                    EventCompat.unbind($achievements, TRANSITIONEND, onTransitionEnd);
+                };
+                EventCompat.bind($achievements, TRANSITIONEND, onTransitionEnd);
             }
         },
 
         initEquipmentIcons: function() {
             var scale = this.game.renderer.getScaleFactor();
             var getIconPath = function(spriteName) {
-                    return 'http://cdn.mozilla.net/browserquest/img/'+ scale +'/item-' + spriteName + '.png';
+                    return 'img/'+ scale +'/item-' + spriteName + '.png';
                 },
                 weapon = this.game.player.getWeaponName(),
                 armor = this.game.player.getSpriteName(),
@@ -422,8 +423,10 @@ define(['jquery', 'storage'], function($, Storage) {
             top = (h / 2) - (popupHeight / 2);
             left = (w / 2) - (popupWidth / 2);
 
-        	newwindow = window.open(url,'name','height=' + popupHeight + ',width=' + popupWidth + ',top=' + top + ',left=' + left);
-        	if (window.focus) {newwindow.focus()}
+	        	var newwindow = window.open(url, 'name', 'height=' + popupHeight + ',width=' + popupWidth + ',top=' + top + ',left=' + left);
+	        	if(window.focus && newwindow) {
+	        	    newwindow.focus();
+	        	}
         },
 
         animateParchment: function(origin, destination) {

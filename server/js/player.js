@@ -1,14 +1,23 @@
 
 var cls = require("./lib/class"),
-    _ = require("underscore"),
+    Character = require("./character"),
+    Chest = require("./chest"),
+    Log = require("./log"),
     Messages = require("./message"),
     Utils = require("./utils"),
     Properties = require("./properties"),
     Formulas = require("./formulas"),
     check = require("./format").check,
     Types = require("../../shared/js/gametypes");
+var log = Log.getLogger();
 
-module.exports = Player = Character.extend({
+var NAME_MAX_UTF8_BYTES = 64;
+var NAME_MAX_CODEPOINTS = 15;
+var CHAT_MAX_UTF8_BYTES = 512;
+var CHAT_MAX_CODEPOINTS = 60;
+var WHO_MAX_IDS = 1000;
+
+var Player = Character.extend({
     init: function(connection, worldServer) {
         var self = this;
         
@@ -21,11 +30,10 @@ module.exports = Player = Character.extend({
         this.isDead = false;
         this.haters = {};
         this.lastCheckpoint = null;
-        this.formatChecker = new FormatChecker();
         this.disconnectTimeout = null;
         
         this.connection.listen(function(message) {
-            var action = parseInt(message[0]);
+            var action = Number.parseInt(message[0], 10);
             
             log.debug("Received: "+message);
             if(!check(message)) {
@@ -45,12 +53,18 @@ module.exports = Player = Character.extend({
             self.resetTimeout();
             
             if(action === Types.Messages.HELLO) {
+                if(!Utils.hasMaxUtf8Bytes(message[1], NAME_MAX_UTF8_BYTES)) {
+                    self.connection.close("Name is too long.");
+                    return;
+                }
                 var name = Utils.sanitize(message[1]);
+                name = Utils.limitUtf8Bytes(name, NAME_MAX_UTF8_BYTES);
+                name = Utils.limitCodePoints(name, NAME_MAX_CODEPOINTS);
                 
                 // If name was cleared by the sanitizer, give a default name.
                 // Always ensure that the name is not longer than a maximum length.
                 // (also enforced by the maxlength attribute of the name input element).
-                self.name = (name === "") ? "lorem ipsum" : name.substr(0, 15);
+                self.name = (name === "") ? "lorem ipsum" : name;
                 
                 self.kind = Types.Entities.WARRIOR;
                 self.equipArmor(message[2]);
@@ -67,6 +81,10 @@ module.exports = Player = Character.extend({
                 self.isDead = false;
             }
             else if(action === Types.Messages.WHO) {
+                if((message.length - 1) > WHO_MAX_IDS) {
+                    self.connection.close("WHO message is too large.");
+                    return;
+                }
                 message.shift();
                 self.server.pushSpawnsToPlayer(self, message);
             }
@@ -74,11 +92,16 @@ module.exports = Player = Character.extend({
                 self.zone_callback();
             }
             else if(action === Types.Messages.CHAT) {
+                if(!Utils.hasMaxUtf8Bytes(message[1], CHAT_MAX_UTF8_BYTES)) {
+                    self.connection.close("Chat message is too long.");
+                    return;
+                }
                 var msg = Utils.sanitize(message[1]);
+                msg = Utils.limitUtf8Bytes(msg, CHAT_MAX_UTF8_BYTES);
+                msg = Utils.limitCodePoints(msg, CHAT_MAX_CODEPOINTS);
                 
                 // Sanitized messages may become empty. No need to broadcast empty chat messages.
                 if(msg && msg !== "") {
-                    msg = msg.substr(0, 60); // Enforce maxlength of chat input
                     self.broadcastToZone(new Messages.Chat(self, msg), false);
                 }
             }
@@ -327,9 +350,10 @@ module.exports = Player = Character.extend({
     },
     
     forEachHater: function(callback) {
-        _.each(this.haters, function(mob) {
+        Object.keys(this.haters).forEach(function(haterId) {
+            var mob = this.haters[haterId];
             callback(mob);
-        });
+        }, this);
     },
     
     equipArmor: function(kind) {
@@ -381,3 +405,5 @@ module.exports = Player = Character.extend({
         this.connection.close("Player was idle for too long");
     }
 });
+
+module.exports = Player;

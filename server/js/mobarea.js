@@ -1,9 +1,10 @@
 
 var Area = require('./area'),
-    _ = require('underscore'),
+    Mob = require('./mob'),
+    Utils = require('./utils'),
     Types = require("../../shared/js/gametypes");
 
-module.exports = MobArea = Area.extend({
+var MobArea = Area.extend({
     init: function(id, nb, kind, x, y, width, height, world) {
         this._super(id, x, y, width, height, world);
         this.nb = nb;
@@ -50,7 +51,7 @@ module.exports = MobArea = Area.extend({
         var self = this;
         
         setInterval(function() {
-            _.each(self.entities, function(mob) {
+            self.entities.forEach(function(mob) {
                 var canRoam = (Utils.random(20) === 1),
                     pos;
                 
@@ -70,3 +71,5 @@ module.exports = MobArea = Area.extend({
         return { x: pos.x, y: pos.y, kind: Types.Entities.CHEST };
     }
 });
+
+module.exports = MobArea;

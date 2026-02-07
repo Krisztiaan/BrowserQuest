@@ -1,6 +1,5 @@
 
 var Log = require('log'),
-    _ = require('underscore'),
     log = new Log(Log.DEBUG),
     Types = require("../../shared/js/gametypes");
 
@@ -73,7 +72,7 @@ module.exports = function processMap(json, options) {
     }
     
     if(Tiled.tileset instanceof Array) {
-        _.each(Tiled.tileset, function(tileset) {
+        Tiled.tileset.forEach(function(tileset) {
             if(tileset.name === "tilesheet") {
                 log.info("Processing terrain properties...");
                 tileProperties = tileset.tile;
@@ -92,7 +91,7 @@ module.exports = function processMap(json, options) {
             else if(tileset.name === "Mobs" && mode === "server") {
                 log.info("Processing static entity properties...");
                 mobsFirstgid = tileset.firstgid;
-                _.each(tileset.tile, function(p) {
+                tileset.tile.forEach(function(p) {
                     var property = p.properties.property,
                         id = p.id + 1;
 
@@ -127,7 +126,7 @@ module.exports = function processMap(json, options) {
     }
 
     // Object layers
-    _.each(Tiled.objectgroup, function(objectlayer) {
+    Tiled.objectgroup.forEach(function(objectlayer) {
         if(objectlayer.name === "roaming" && mode === "server") {
             log.info("Processing roaming areas...");
             var areas = objectlayer.object;
@@ -149,16 +148,16 @@ module.exports = function processMap(json, options) {
         }
         else if(objectlayer.name === "chestareas" && mode === "server") {
             log.info("Processing chest areas...");
-            _.each(objectlayer.object, function(area) {
+            objectlayer.object.forEach(function(area) {
                 var chestArea = {
                     x: area.x / map.tilesize,
                     y: area.y / map.tilesize,
                     w: area.width / map.tilesize,
                     h: area.height / map.tilesize
                 };
-                _.each(area.properties.property, function(prop) {
+                area.properties.property.forEach(function(prop) {
                     if(prop.name === 'items') {
-                        chestArea['i'] = _.map(prop.value.split(','), function(name) { 
+                        chestArea['i'] = prop.value.split(',').map(function(name) {
                             return Types.getKindFromString(name);
                         });
                     } else {
@@ -170,12 +169,12 @@ module.exports = function processMap(json, options) {
         }
         else if(objectlayer.name === "chests" && mode === "server") {
             log.info("Processing static chests...");
-            _.each(objectlayer.object, function(chest) {
+            objectlayer.object.forEach(function(chest) {
                 var items = chest.properties.property.value;
                 var newChest = {
                     x: chest.x / map.tilesize,
                     y: chest.y / map.tilesize,
-                    i: _.map(items.split(','), function(name) {
+                    i: items.split(',').map(function(name) {
                         return Types.getKindFromString(name);
                     })
                 };
@@ -184,7 +183,7 @@ module.exports = function processMap(json, options) {
         }
         else if(objectlayer.name === "music" && mode === "client") {
             log.info("Processing music areas...");
-            _.each(objectlayer.object, function(music) {
+            objectlayer.object.forEach(function(music) {
                 var musicArea = {
                     x: music.x / map.tilesize,
                     y: music.y / map.tilesize,
@@ -198,7 +197,7 @@ module.exports = function processMap(json, options) {
         else if(objectlayer.name === "checkpoints") {
             log.info("Processing check points...");
             var count = 0;
-            _.each(objectlayer.object, function(checkpoint) {
+            objectlayer.object.forEach(function(checkpoint) {
                 var cp = {
                     id: ++count,
                     x: checkpoint.x / map.tilesize,

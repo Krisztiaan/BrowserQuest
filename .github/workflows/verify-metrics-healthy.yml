@@ -1,0 +1,51 @@
+name: verify-metrics-healthy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  metrics-healthy:
+    strategy:
+      matrix:
+        node-version: ["22.x"]
+    runs-on: ubuntu-latest
+    name: metrics-healthy (node ${{ matrix.node-version }})
+    services:
+      memcached:
+        image: memcached:1.6-alpine
+        ports:
+          - 11211:11211
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install optional metrics dependency
+        run: bun add memcache
+
+      - name: Wait for memcached service
+        run: |
+          for i in {1..30}; do
+            if timeout 1 bash -lc "cat < /dev/null > /dev/tcp/127.0.0.1/11211" 2>/dev/null; then
+              echo "memcached is reachable"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "memcached is not reachable on 127.0.0.1:11211"
+          exit 1
+
+      - name: Verify healthy metrics path
+        run: bun run test:metrics:healthy

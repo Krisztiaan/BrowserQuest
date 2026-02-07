@@ -1,0 +1,32 @@
+name: verify-modern
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  modern:
+    strategy:
+      matrix:
+        node-version: ["22.x"]
+    runs-on: ubuntu-latest
+    name: modern (node ${{ matrix.node-version }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify modern path
+        run: bun run verify:modern

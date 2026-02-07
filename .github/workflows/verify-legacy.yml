@@ -1,0 +1,54 @@
+name: verify-legacy
+
+on:
+  pull_request:
+    paths:
+      - "bin/**"
+      - "client/**"
+      - "server/**"
+      - "shared/**"
+      - "tools/**"
+      - "vite.config.ts"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/verify-legacy.yml"
+      - ".github/workflows/verify-modern.yml"
+  push:
+    paths:
+      - "bin/**"
+      - "client/**"
+      - "server/**"
+      - "shared/**"
+      - "tools/**"
+      - "vite.config.ts"
+      - "package.json"
+      - "bun.lock"
+      - ".github/workflows/verify-legacy.yml"
+      - ".github/workflows/verify-modern.yml"
+
+jobs:
+  legacy:
+    strategy:
+      matrix:
+        node-version: ["22.x"]
+    runs-on: ubuntu-latest
+    name: legacy (node ${{ matrix.node-version }})
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify legacy path
+        run: bun run verify:legacy

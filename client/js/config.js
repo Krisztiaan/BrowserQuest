@@ -13,6 +13,8 @@ function(build) {
         } catch(e) {
             // Exception triggered when config_local.json does not exist. Nothing to do here.
         }
+    }, function() {
+        // config_local.json is optional in dev.
     });
     //>>excludeEnd("prodHost");
     

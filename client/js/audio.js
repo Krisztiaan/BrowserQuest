@@ -94,11 +94,11 @@ define(['area'], function(Area) {
         },
     
         loadSound: function(name, handleLoaded) {
-            this.load("http://cdn.mozilla.net/browserquest/audio/sounds/", name, handleLoaded, 4);
+            this.load("audio/sounds/", name, handleLoaded, 4);
         },
     
         loadMusic: function(name, handleLoaded) {
-            this.load("http://cdn.mozilla.net/browserquest/audio/music/", name, handleLoaded, 1);
+            this.load("audio/music/", name, handleLoaded, 1);
             var music = this.sounds[name][0];
             music.loop = true;
             music.addEventListener('ended', function() { music.play() }, false);
@@ -189,7 +189,7 @@ define(['area'], function(Area) {
             if(music && !music.sound.fadingOut) {
                 this.clearFadeIn(music);
                 music.sound.fadingOut = setInterval(function() {
-                    var step = 0.02;
+                    var step = 0.02,
                         volume = music.sound.volume - step;
                 
                     if(self.enabled && volume >= step) {
@@ -208,7 +208,7 @@ define(['area'], function(Area) {
             if(music && !music.sound.fadingIn) {
                 this.clearFadeOut(music);
                 music.sound.fadingIn = setInterval(function() {
-                    var step = 0.01;
+                    var step = 0.01,
                         volume = music.sound.volume + step;
 
                     if(self.enabled && volume < 1 - step) {

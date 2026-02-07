@@ -1,5 +1,7 @@
 
-module.exports = Item = Entity.extend({
+var Entity = require("./entity");
+
+var Item = Entity.extend({
     init: function(id, kind, x, y) {
         this._super(id, "item", kind, x, y);
         this.isStatic = false;
@@ -41,3 +43,5 @@ module.exports = Item = Entity.extend({
         this.respawn_callback = callback;
     }
 });
+
+module.exports = Item;

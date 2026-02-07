@@ -1,6 +1,30 @@
 BrowserQuest client documentation
 =================================
 
+Local development
+-----------------
+
+From the project root:
+
+- `bun install`
+- `bun run dev`
+- Open `http://localhost:3000/` (modern by default)
+- Legacy compatibility entry: `http://localhost:3000/index.html`
+
+Vite (modern tooling):
+
+- `bun run dev:vite:full`
+- Open `http://localhost:5173/` (modern default redirect)
+- Explicit entries: `http://localhost:5173/client/modern.html` (ESM) or `http://localhost:5173/client/index.html` (legacy)
+- Legacy default override: `BQ_VITE_DEFAULT_ENTRY=legacy bun run dev:vite:full`
+
+Build support policy:
+
+- Modern ESM (`client/modern.html`) is the primary supported path.
+- Legacy AMD (`client/index.html`) is compatibility mode and should be changed only for parity/bugfixes.
+- Full matrix and verification gates: `docs/client-build-support.md`.
+
+
 The client directory should never be directly deployed to staging/production. Deployment steps:
 
 1) Configure the websocket host/port:

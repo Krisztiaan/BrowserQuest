@@ -1,11 +1,12 @@
 
 var cls = require("./lib/class"),
-    _ = require("underscore"),
+    Character = require("./character"),
     Messages = require("./message"),
     Properties = require("./properties"),
+    Utils = require("./utils"),
     Types = require("../../shared/js/gametypes");
 
-module.exports = Mob = Character.extend({
+var Mob = Character.extend({
     init: function(id, kind, x, y) {
         this._super(id, "mob", kind, x, y);
         
@@ -35,16 +36,19 @@ module.exports = Mob = Character.extend({
     },
     
     hates: function(playerId) {
-        return _.any(this.hatelist, function(obj) { 
+        return this.hatelist.some(function(obj) {
             return obj.id === playerId; 
         });
     },
     
     increaseHateFor: function(playerId, points) {
         if(this.hates(playerId)) {
-            _.detect(this.hatelist, function(obj) {
+            var entry = this.hatelist.find(function(obj) {
                 return obj.id === playerId;
-            }).hate += points;
+            });
+            if(entry) {
+                entry.hate += points;
+            }
         }
         else {
             this.hatelist.push({ id: playerId, hate: points });
@@ -52,7 +56,7 @@ module.exports = Mob = Character.extend({
 
         /*
         log.debug("Hatelist : "+this.id);
-        _.each(this.hatelist, function(obj) {
+        this.hatelist.forEach(function(obj) {
             log.debug(obj.id + " -> " + obj.hate);
         });*/
         
@@ -66,8 +70,8 @@ module.exports = Mob = Character.extend({
     
     getHatedPlayerId: function(hateRank) {
         var i, playerId,
-            sorted = _.sortBy(this.hatelist, function(obj) { return obj.hate; }),
-            size = _.size(this.hatelist);
+            sorted = this.hatelist.slice().sort(function(a, b) { return a.hate - b.hate; }),
+            size = this.hatelist.length;
         
         if(hateRank && hateRank <= size) {
             i = size - hateRank;
@@ -83,7 +87,7 @@ module.exports = Mob = Character.extend({
     },
     
     forgetPlayer: function(playerId, duration) {
-        this.hatelist = _.reject(this.hatelist, function(obj) { return obj.id === playerId; });
+        this.hatelist = this.hatelist.filter(function(obj) { return obj.id !== playerId; });
         
         if(this.hatelist.length === 0) {
             this.returnToSpawningPosition(duration);
@@ -105,12 +109,12 @@ module.exports = Mob = Character.extend({
         var delay = 30000,
             self = this;
         
-        if(this.area && this.area instanceof MobArea) {
+        if(this.area && typeof this.area.respawnMob === "function") {
             // Respawn inside the area if part of a MobArea
             this.area.respawnMob(this, delay);
         }
         else {
-            if(this.area && this.area instanceof ChestArea) {
+            if(this.area && typeof this.area.removeFromArea === "function") {
                 this.area.removeFromArea(this);
             }
             
@@ -161,3 +165,5 @@ module.exports = Mob = Character.extend({
         return Utils.distanceTo(x, y, this.spawningX, this.spawningY);
     }
 });
+
+module.exports = Mob;

@@ -1,10 +1,9 @@
 
 var cls = require('./lib/class'),
-    _ = require('underscore'),
     Utils = require('./utils'),
     Types = require("../../shared/js/gametypes");
 
-module.exports = Checkpoint = cls.Class.extend({
+var Checkpoint = cls.Class.extend({
     init: function(id, x, y, width, height) {
         this.id = id;
         this.x = x;
@@ -21,3 +20,5 @@ module.exports = Checkpoint = cls.Class.extend({
         return pos;
     }
 });
+
+module.exports = Checkpoint;

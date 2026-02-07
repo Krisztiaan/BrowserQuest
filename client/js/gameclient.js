@@ -45,16 +45,17 @@ define(['player', 'entityfactory', 'lib/bison'], function(Player, EntityFactory,
         },
         
         connect: function(dispatcherMode) {
-            var url = "ws://"+ this.host +":"+ this.port +"/",
+            var scheme = window.location.protocol === "https:" ? "wss://" : "ws://",
+                url = scheme + this.host +":"+ this.port +"/",
                 self = this;
             
             log.info("Trying to connect to server : "+url);
 
-            if(window.MozWebSocket) {
-                this.connection = new MozWebSocket(url);
-            } else {
-                this.connection = new WebSocket(url);
-            }
+	            if(window.MozWebSocket) {
+	                this.connection = new window.MozWebSocket(url);
+	            } else {
+	                this.connection = new WebSocket(url);
+	            }
             
             if(dispatcherMode) {
                 this.connection.onmessage = function(e) {

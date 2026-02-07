@@ -1823,9 +1823,8 @@ function(InfoManager, BubbleManager, Renderer, Map, Animation, Sprite, AnimatedT
          */
         findPath: function(character, x, y, ignoreList) {
             var self = this,
-                grid = this.pathingGrid;
-                path = [],
-                isPlayer = (character === this.player);
+                grid = this.pathingGrid,
+                path = [];
         
             if(this.map.isColliding(x, y)) {
                 return path;

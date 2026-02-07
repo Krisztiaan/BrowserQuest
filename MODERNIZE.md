@@ -1,0 +1,2493 @@
+# BrowserQuest modernization (2026)
+
+This repo is an early-2010s HTML5 game (AMD/RequireJS client + Node server). The goal of the `modernize` branch is to move it to 2026-era JavaScript standards and tooling *without breaking gameplay*, using small, verifiable steps.
+
+## Current state (audit highlights)
+
+- **Client**: AMD modules (`define(...)`) loaded via `require-jquery.js`, plus some global-script modules (e.g. `client/js/lib/class.js`, `client/js/lib/log.js`). Build uses the legacy RequireJS optimizer (`bin/r.js` + `client/js/build.js`).
+- **Server**: CommonJS modules, custom websocket wrapper, plus several pre-2015 dependencies and deprecated Node APIs (now fixed where required for Node 20+/Bun).
+- **Protocol**: JSON message arrays over WebSocket. (BISON exists in-tree on the client, but “modern mode” keeps JSON-only.)
+
+## Phase 0: Working baseline (done on `modernize`)
+
+- Bun-based install works (`bun install`).
+- Server runs on Node 20+/Bun and speaks modern WebSocket (RFC 6455) via `ws`.
+- Local dev is one command: `bun run dev` (client on `:3000`, server on `:8000`).
+
+## Phase 1: Stabilize + safety nets (next)
+
+1) **Smoke tests**: add a tiny script/test that starts the server, connects a WebSocket client, and asserts the initial `"go"` handshake.
+2) **Runtime invariants**: add basic validation/limits for chat/name payloads (length, UTF-8, etc.).
+3) **Observability**: improve uncaught exception logging to include stack traces and add structured logs (likely `pino`).
+
+## Phase 2: Modern client build without rewriting gameplay
+
+Target: run the same game logic under a modern bundler with ESM output.
+
+Two viable paths:
+
+### Option A: Convert AMD → ESM (recommended)
+
+Use a converter like `prantlf/requirejs-esm-converter` to do the mechanical conversion, then fix the small set of hard cases:
+
+- **RequireJS plugins**: `text!…` imports (sprites/config) become `import ... from "...?raw"` or JSON imports (Vite handles JSON well).
+- **Globals/shims**: modules like `class.js` and `log.js` become explicit exports and are imported where used.
+- **Workers**: `new Worker('js/mapworker.js')` becomes `new Worker(new URL('./mapworker.js', import.meta.url), { type: 'module' })`.
+
+Once converted, wire it up with:
+
+- **Vite** (or **Rspack**) for dev server + production build
+- **ESM output** with code-splitting
+
+Status: initial AMD→ESM conversion exists in `client/js-esm` with an ESM entry page at `client/modern.html` (served via Vite).
+
+### Option B: Keep AMD, modernize around it (fallback)
+
+Continue using RequireJS at runtime but modernize server/dev tooling first. This reduces conversion work but blocks long-term improvements (tree-shaking, modern imports, etc.).
+
+## Phase 3: Remove legacy dependencies incrementally
+
+- Replace `underscore` with built-in JS (`Array.prototype.*`, `Object.*`) module-by-module.
+- Reduce `jQuery` usage to the UI shell (or replace with vanilla/modern framework only if desired).
+
+## Phase 4: TypeScript (optional)
+
+Only after Phase 2, introduce TS gradually:
+
+- Start with `shared/` message/types and the websocket protocol layer.
+- Keep the renderer/game loop JS initially to avoid destabilizing performance/behavior.
+
+## Target stack (2026-friendly)
+
+- Runtime: **Node 22 LTS** (keep Node 20+ compatibility while migrating)
+- Package manager: **Bun**
+- Client tooling: **Vite** (+ ESM)
+- Lint/format: **ESLint (flat config)** + **Prettier**
+- Test: **Vitest** (unit) + a small **Playwright** smoke test (optional)
+
+## Ticket board
+
+### T-001: Stabilize builds and dev entrypoints
+- Status: `done`
+- Scope: make legacy + Vite build paths run on current Bun/Node, fix critical runtime asset/path issues.
+- Out of scope: full gameplay refactor, full dependency replacement.
+- Acceptance criteria: `bun run test`, `bun run build:client`, and `bun run build:vite` all succeed.
+- Verification: run the 3 commands above and confirm no fatal errors.
+- Dependencies/blockers: none.
+
+### T-002: Remove modern-page non-module boot globals
+- Status: `done`
+- Scope: modern page must not require `client/js/detect.js` or `client/js/lib/modernizr.js`; replace with ESM compat + module preflight.
+- Out of scope: legacy `client/index.html` boot path.
+- Acceptance criteria:
+  - `client/modern.html` has no non-module detect/modernizr scripts.
+  - localStorage/WebSocket preflight behavior remains.
+  - ESM modules relying on Detect/Modernizr continue to work.
+- Verification: `bun run test`, `bun run build:vite`, `bun run build:client`.
+- Dependencies/blockers: depends on T-001 baseline.
+
+### T-003: Reduce `js-esm` implicit globals (Class/log/Types/utility)
+- Status: `done`
+- Scope: replace global assumptions in converted ESM files with explicit imports incrementally.
+- Out of scope: full gameplay architecture changes.
+- Acceptance criteria: each converted cluster builds/tests cleanly with no behavior regression in smoke checks.
+- Verification: per-PR run of `bun run test` + `bun run build:vite`.
+- Dependencies/blockers: T-002 complete.
+
+### T-004: Modern-only Vite build profile
+- Status: `done`
+- Scope: default `build:vite` targets modern page cleanly; legacy page remains buildable via an explicit opt-in script/profile.
+- Out of scope: removing legacy page runtime.
+- Acceptance criteria: modern build has no legacy non-module script warnings.
+- Verification: `bun run build:vite` (clean modern), plus opt-in legacy build command.
+- Dependencies/blockers: none.
+
+## Live progress log
+
+- 2026-02-05 21:57:30Z
+  - Status: `in_progress` -> `done` (T-002)
+  - Actions:
+    - Added ESM feature compat module: `client/js-esm/compat/features.js`.
+    - Added ESM detect compat module: `client/js-esm/compat/detect.js`.
+    - Added module preflight: `client/js-esm/preflight.js`.
+    - Updated `client/js-esm/{main.js,audio.js,renderer.js,storage.js,bootstrap.js}` to use compat modules.
+    - Removed `modernizr` + `detect` script tags and inline global preflight from `client/modern.html`.
+  - Evidence:
+    - `bun run test` passed (`tests/smoke/server-handshake.test.ts`).
+    - `bun run build:vite` passed; only expected warnings remain for legacy `client/index.html` non-module scripts.
+    - `bun run build:client` passed; expected legacy r.js ES-module uglify warnings remain for `client/js-esm/*`.
+  - Next action:
+    - Continue T-003 by replacing implicit global usage in remaining `client/js-esm/*` modules with explicit imports.
+
+- 2026-02-05 21:59:45Z
+  - Status: `in_progress` (T-003)
+  - Actions:
+    - Converted a first ESM cluster to explicit imports:
+      - `client/js-esm/main.js`: `log`, `TRANSITIONEND`.
+      - `client/js-esm/audio.js`: `Class`, `_`, `log`.
+      - `client/js-esm/renderer.js`: `Class`, `_`, `log`.
+      - `client/js-esm/storage.js`: `Class`, `_`.
+  - Evidence:
+    - `bun run test` passed.
+    - `bun run build:vite` passed.
+  - Next action:
+    - Continue T-003 by converting the next cluster (`gameclient`, `map`, `game`, `entity*`) from implicit globals to explicit imports.
+
+- 2026-02-05 22:00:47Z
+  - Status: `in_progress` (T-003)
+  - Actions:
+    - Converted core runtime cluster to explicit imports:
+      - `client/js-esm/gameclient.js`: `$`, `_`, `Class`, `log`, `Types`.
+      - `client/js-esm/map.js`: `_`, `Class`, `log`, `Types`, `isInt`.
+      - `client/js-esm/entityfactory.js`: `_`, `log`, `Types`.
+      - `client/js-esm/game.js`: `_`, `Class`, `log`, `Types`, `requestAnimFrame`.
+  - Evidence:
+    - `bun run test` passed.
+    - `bun run build:vite` passed.
+  - Next action:
+    - Continue T-003 with remaining gameplay modules (`entity`, `character`, `npc/mob/items`, `pathfinder`, `updater`, `app`) to remove implicit globals end-to-end.
+
+- 2026-02-05 22:09:55Z
+  - Status: `in_progress` -> `done` (T-003A, T-003B, T-003C, T-004)
+  - Actions:
+    - Completed explicit-import migration for all top-level ESM gameplay/app modules (`client/js-esm/*.js`) to remove implicit global dependency on `Class`, `Types`, `log`, `_`, and util helpers.
+    - Added modern-only default Vite build mode via `BQ_VITE_INCLUDE_LEGACY` switch in `vite.config.ts`.
+    - Added opt-in legacy-inclusive build script: `build:vite:legacy`.
+  - Evidence:
+    - Global-debt import check script returns no missing imports across `client/js-esm/*.js`.
+    - `bun run test` passed.
+    - `bun run build:vite` passed with no legacy non-module warnings.
+    - `bun run build:vite:legacy` passed (legacy warnings expected by design).
+    - `bun run build:client` passed (legacy r.js ES-module uglify warnings expected).
+  - Next action:
+    - Start the next modernization tranche on runtime hardening and dependency reduction.
+
+- 2026-02-05 22:14:47Z
+  - Status: `in_progress` -> `done` (T-005)
+  - Actions:
+    - Added UTF-8 payload helpers in `server/js/utils.js` (`utf8ByteLength`, `hasMaxUtf8Bytes`, `limitUtf8Bytes`, `limitCodePoints`).
+    - Hardened numeric payload validation in `server/js/format.js` to require finite safe integers.
+    - Applied payload guards in `server/js/player.js` for `HELLO`, `CHAT`, and `WHO` limits using UTF-8-safe clamping.
+    - Removed underscore dependency from shared helpers in `shared/js/gametypes.js` used by server-side validation/error paths.
+    - Added integration tests in `tests/smoke/server-payload-guards.test.ts`.
+  - Evidence:
+    - `bun run test` passed (3 tests including new payload-guard checks).
+    - `bun run build:vite` passed.
+    - `bun run build:client` passed (legacy r.js ES-module uglify warnings remain expected).
+  - Next action:
+    - Start T-006 structured logging modernization.
+
+- 2026-02-05 22:16:35Z
+  - Status: `in_progress` -> `done` (T-006)
+  - Actions:
+    - Added structured event logging API `log.event(...)` in `server/js/log.js`.
+    - Emitted structured lifecycle events in `server/js/ws.js` for listen/open/close/error paths.
+    - Emitted structured startup/fatal/server-error events in `server/js/main.js`.
+    - Emitted structured join/leave events in `server/js/worldserver.js`.
+    - Added logger format tests in `tests/unit/server-log.test.ts`.
+  - Evidence:
+    - `bun run test` passed (5 tests total).
+    - `bun run build:vite` passed.
+    - `bun run build:client` passed (legacy r.js ES-module uglify warnings remain expected).
+  - Next action:
+    - Start T-007 underscore reduction batch for low-risk modules.
+
+- 2026-02-05 22:17:38Z
+  - Status: `in_progress` -> `done` (T-007)
+  - Actions:
+    - Replaced low-risk underscore usage with native APIs in:
+      - `client/js-esm/infomanager.js`
+      - `client/js-esm/bubble.js`
+      - `client/js-esm/storage.js`
+    - Removed now-unneeded underscore imports from those modules.
+  - Evidence:
+    - underscore call scan for those modules returns no matches.
+    - `bun run test` passed.
+    - `bun run build:vite` passed.
+  - Next action:
+    - Define the next reduction batch (targeting medium-risk gameplay loops) with per-file risk gating.
+
+- 2026-02-06 01:08:41Z
+  - Status: `in_progress` -> `done` (T-008, T-009, T-010)
+  - Actions:
+    - Reduced medium-risk underscore usage in:
+      - `client/js-esm/map.js`
+      - `client/js-esm/gameclient.js`
+      - `client/js-esm/main.js`
+    - Reduced legacy build noise by stashing `client/js-esm` during legacy `r.js` optimization in `bin/build.sh` and restoring it in trap-based cleanup.
+    - Added `fileExclusionRegExp` in `client/js/build.js` to keep legacy optimizer intent aligned with legacy-only output.
+    - Added structured-log smoke coverage in `tests/smoke/server-structured-logs.test.ts`.
+  - Evidence:
+    - `bun run test` passed (6 tests).
+    - `bun run build:vite` passed.
+    - `bun run build:client` passed with `js-esm` uglify noise removed.
+  - Next action:
+    - Continue underscore reduction in high-risk gameplay loops (`client/js-esm/game.js`) with incremental guarded refactors.
+
+- 2026-02-06 01:10:17Z
+  - Status: `in_progress` (T-011)
+  - Actions:
+    - Converted a first high-risk subset of underscore calls in `client/js-esm/game.js` to native APIs:
+      - `size/isNull/isArray/isNaN/include/keys/pluck/intersection/difference/reject` callsites where direct equivalents are clear.
+    - Preserved null-safe behavior in grid access paths (`getEntityAt`, `getItemAt`) with explicit guards.
+  - Evidence:
+    - `bun run test` passed (6 tests).
+    - `bun run build:vite` passed.
+    - `bun run build:client` passed.
+  - Next action:
+    - Continue T-011 with remaining underscore patterns in `game.js` (`each/map/any/reject/pluck` clusters) in small verified batches.
+
+- 2026-02-06 01:11:57Z
+  - Status: `in_progress` -> `done` (T-011)
+  - Actions:
+    - Completed remaining underscore removals in `client/js-esm/game.js` by replacing object/array iteration and predicates with native APIs.
+    - Removed underscore import from `client/js-esm/game.js`.
+    - Preserved behavior in null-sensitive paths with explicit guards.
+  - Evidence:
+    - underscore scan for `client/js-esm/game.js` returns no matches.
+    - `bun run test` passed.
+    - `bun run build:vite` passed.
+    - `bun run build:client` passed.
+  - Next action:
+    - Start T-012 to remove underscore from the remaining ESM modules.
+
+- 2026-02-06 01:19:50Z
+  - Status: `in_progress` -> `done` (T-012, T-013, T-014)
+  - Actions:
+    - Finished remaining underscore removals in modern ESM/runtime paths:
+      - `client/js-esm/game.js` (removed final wrapper-style underscore include call).
+      - `client/js-esm/bootstrap.js` (removed global underscore boot wiring).
+    - Replaced underscore usage across server runtime modules with native APIs:
+      - `server/js/{main.js,ws.js,format.js,metrics.js,area.js,chest.js,message.js,player.js,mobarea.js,chestarea.js,checkpoint.js,mob.js,map.js,worldserver.js}`.
+    - Replaced underscore usage in map tooling:
+      - `tools/maps/processmap.js`.
+    - Removed `underscore` from runtime dependencies in `package.json` and refreshed `bun.lock`.
+  - Evidence:
+    - Underscore scan across server + ESM + map tooling returns no matches.
+    - `bun run test` passed (6 tests).
+    - `bun run build:vite` passed.
+    - `bun run build:client` passed.
+  - Next action:
+    - Start lint/format modernization to enforce native-style consistency (`ESLint` flat config + `Prettier`) and prevent regression.
+
+- 2026-02-06 20:24:13Z
+  - Status: `in_progress` -> `done` (T-015)
+  - Actions:
+    - Added ESLint flat config baseline in `eslint.config.cjs` covering:
+      - `server/js/**/*.js`
+      - `client/js-esm/**/*.js`
+      - `shared/js/**/*.js`
+      - `tests/**/*.ts`
+    - Added Prettier config and ignore files:
+      - `.prettierrc.json`
+      - `.prettierignore`
+    - Added npm scripts in `package.json`:
+      - `lint`
+      - `format`
+      - `format:check`
+    - Ran `prettier --write` on the non-disruptive baseline formatting set (tests + selected modernized server/client/shared files used in active migration).
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run format:check` passed.
+    - `bun run test` passed (6 tests).
+    - `bun run build:vite` passed.
+    - `bun run build:client` passed.
+  - Next action:
+    - Start T-016 server runtime hardening for Node 22-era compatibility and deprecation cleanup.
+
+- 2026-02-06 20:26:40Z
+  - Status: `in_progress` -> `done` (T-016)
+  - Actions:
+    - Hardened server runtime parsing/error paths:
+      - Added radix-safe numeric parsing (`Number.parseInt(..., 10)`) in `server/js/{main.js,player.js,entity.js,metrics.js,map.js}`.
+      - Added JSON parse guards for server config and map loading in `server/js/{main.js,map.js}` with explicit error logs instead of uncaught parse crashes.
+      - Replaced string throws with `Error` instances in abstract WS methods in `server/js/ws.js`.
+      - Simplified WS `/status` route handling in `server/js/ws.js` to explicit 200/404 paths (no fallthrough ambiguity).
+      - Added explicit "server full" connection rejection path in `server/js/main.js` when no world capacity is available.
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run format:check` passed.
+    - `bun run test` passed (6 tests).
+    - `bun run build:vite` passed.
+    - `bun run build:client` passed.
+    - `timeout 4s node --trace-warnings server/js/main.js server/config.json` showed clean startup with no deprecation warnings.
+  - Next action:
+    - Start T-017 legacy/modern client isolation policy and build gating.
+
+- 2026-02-06 20:27:43Z
+  - Status: `in_progress` -> `done` (T-017)
+  - Actions:
+    - Added explicit client build support matrix documentation:
+      - `docs/client-build-support.md`
+      - linked from `README.md` and `client/README.md`.
+    - Added dedicated verification scripts in `package.json`:
+      - `verify:modern` = `lint + format:check + test + build:vite`
+      - `verify:legacy` = `test + build:client + build:vite:legacy`
+    - Clarified primary-vs-compatibility support policy:
+      - modern ESM (`client/modern.html`) is tier-1 path
+      - legacy AMD/RequireJS (`client/index.html`) is compatibility mode
+  - Evidence:
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+    - `bun run build:vite:legacy` succeeded with expected non-module script warnings for legacy `index.html`.
+  - Next action:
+    - Start T-018 CI workflow automation for `verify:modern` and `verify:legacy`.
+
+- 2026-02-06 20:28:39Z
+  - Status: `in_progress` -> `done` (T-018)
+  - Actions:
+    - Added CI workflow for modern gate on every push/PR:
+      - `.github/workflows/verify-modern.yml`
+    - Added CI workflow for legacy gate on migration-sensitive path changes:
+      - `.github/workflows/verify-legacy.yml`
+      - path filters cover `client`, `server`, `shared`, `tools`, build configs, and workflow files.
+    - Kept workflow steps aligned with local scripts (`bun install --frozen-lockfile`, then `verify:*` scripts) for direct parity.
+  - Evidence:
+    - Local parity command for modern gate passed: `bun run verify:modern`.
+    - Local parity command for legacy gate passed: `bun run verify:legacy`.
+  - Next action:
+    - Start T-019 modernization debt triage for legacy AMD globals and duplicate config sources.
+
+- 2026-02-06 20:29:46Z
+  - Status: `in_progress` -> `done` (T-019)
+  - Actions:
+    - Audited remaining legacy runtime debt across client/server/build paths.
+    - Added prioritized triage artifact:
+      - `docs/legacy-runtime-debt.md`
+    - Captured concrete follow-up execution order and ticket breakdown (`T-020` to `T-024`).
+  - Evidence:
+    - Debt inventory includes runtime/global patterns, duplicate code surfaces, and build-path coupling.
+    - Prioritized plan and acceptance-focused follow-up tickets are documented in-repo.
+  - Next action:
+    - Start T-020 server export/global cleanup to reduce load-order coupling and prepare CJS->ESM migration.
+
+- 2026-02-06 20:33:42Z
+  - Status: `in_progress` -> `done` (T-020)
+  - Actions:
+    - Removed implicit global export patterns across server runtime modules by replacing
+      `module.exports = Name = ...` with explicit local declarations + explicit export statements.
+    - Explicitized server dependencies previously relying on global side effects:
+      - added required imports for base/entity classes where needed (`Entity`, `Character`, `Item`, `Chest`).
+      - removed global `FormatChecker` reliance in `player.js`.
+      - rewrote `server/js/format.js` to export `FormatChecker`/`check` without global `Class`/symbol leakage.
+      - removed `instanceof` checks that depended on globally-injected classes and replaced with stable capability/type checks where appropriate.
+  - Evidence:
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+    - Server smoke tests remained green (6 tests).
+  - Next action:
+    - Start T-021 shared gametypes single-source adapter to remove duplicated protocol/type logic bodies.
+
+- 2026-02-06 20:36:23Z
+  - Status: `in_progress` -> `done` (T-021)
+  - Actions:
+    - Promoted `shared/js/gametypes.js` as the canonical gametypes source by removing implicit global assignment style (`var Types = ...`).
+    - Replaced duplicated ESM compat gametypes body with a thin adapter:
+      - `client/js-esm/compat/gametypes.js` now imports from `shared/js/gametypes.js`, sets `globalThis.Types`, and re-exports.
+    - Verified server/runtime behavior remained unchanged after shared-source consolidation.
+  - Evidence:
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+    - Legacy-inclusive Vite build completed with expected legacy non-module warnings only.
+  - Next action:
+    - Start T-022 legacy build boundary tightening (minimize copied legacy runtime surface while preserving compatibility).
+
+- 2026-02-06 20:37:28Z
+  - Status: `in_progress` -> `done` (T-022)
+  - Actions:
+    - Tightened legacy asset copy boundary in Vite legacy build plugin:
+      - reduced `shared` copy scope from whole `shared/js` directory to single required runtime file `shared/js/gametypes.js`.
+    - Preserved compatibility by keeping client legacy runtime assets unchanged where required.
+  - Evidence:
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+    - Legacy-inclusive build still succeeds with only expected non-module script warnings for `client/index.html`.
+  - Next action:
+    - Start T-023 legacy `index.html` boot globals reduction with behavior-preserving guardrails.
+
+- 2026-02-06 20:39:04Z
+  - Status: `in_progress` -> `done` (T-023)
+  - Actions:
+    - Removed `modernizr` boot dependency from legacy `client/index.html`.
+    - Replaced legacy feature checks with native/Detect-based checks:
+      - `Detect.canPlayMP3()` now uses native `audio.canPlayType`.
+      - Added `Detect.supportsLocalStorage()` probe.
+      - Switched localStorage checks in `client/index.html` and `client/js/storage.js` from `Modernizr.localstorage` to `Detect.supportsLocalStorage()`.
+    - Updated legacy page header comment to reflect current boot libraries.
+  - Evidence:
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+    - Legacy-inclusive Vite warning set reduced (removed `modernizr` non-module warning).
+  - Next action:
+    - Start T-024 legacy runtime retirement checklist and cutover criteria draft.
+
+- 2026-02-06 20:39:32Z
+  - Status: `in_progress` -> `done` (T-024)
+  - Actions:
+    - Added retirement/cutover checklist with rollback plan:
+      - `docs/legacy-retirement-checklist.md`
+    - Documented measurable readiness criteria, cutover sequence, rollback triggers/actions, and approval gate.
+  - Evidence:
+    - Checklist committed in-repo and aligned with current verification commands (`verify:modern`, `verify:legacy`).
+  - Next action:
+    - Start T-025 modern gameplay parity e2e coverage for release-signoff confidence.
+
+- 2026-02-06 20:45:11Z
+  - Status: `in_progress` -> `done` (T-025)
+  - Actions:
+    - Added modern gameplay parity smoke test:
+      - `tests/smoke/modern-gameplay-parity.test.ts`
+      - Covers login, move, chat, zone, combat-path signaling, lootmove, and reconnect against a live server.
+    - Added explicit script for focused execution:
+      - `test:modern-parity` in `package.json`
+    - Documented parity smoke command in support matrix docs:
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:modern-parity` passed.
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+    - Test suite now includes 7 passing tests across 5 files.
+  - Next action:
+    - Start T-026 modern runtime browser-e2e harness (Playwright) for UI-level parity confidence.
+
+- 2026-02-06 20:49:24Z
+  - Status: `in_progress` (T-026)
+  - Actions:
+    - Added Playwright harness scaffolding:
+      - `playwright.config.ts` with managed Bun server + Vite webServer entries and Chromium project.
+      - `tests/browser/modern-ui-smoke.playwright.ts` for modern UI boot + play-entry interaction smoke.
+    - Added npm scripts:
+      - `test:modern-browser`
+      - `test:modern-browser:install`
+    - Added CI workflow:
+      - `.github/workflows/verify-modern-browser.yml`
+    - Documented browser smoke commands in:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - Pending local verification (`test:modern-browser`) and regression gate run (`verify:modern`).
+  - Next action:
+    - Install Chromium for Playwright, run browser smoke locally, then run `verify:modern`.
+
+- 2026-02-06 20:59:09Z
+  - Status: `in_progress` -> `done` (T-026)
+  - Actions:
+    - Finalized Playwright browser-level smoke harness for modern runtime:
+      - `playwright.config.ts` (isolated test port, managed Bun server + Vite dev webservers, Chromium project).
+      - `tests/browser/modern-ui-smoke.playwright.ts` (UI boot + play-entry interaction assertions).
+    - Added script wiring in `package.json`:
+      - `test:modern-browser`
+      - `test:modern-browser:install`
+    - Added CI workflow:
+      - `.github/workflows/verify-modern-browser.yml`
+    - Updated runbook docs:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:modern-browser:install` passed (Chromium downloaded).
+    - `bun run test:modern-browser` passed.
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+  - Next action:
+    - Define T-027 for deeper browser-runtime parity (e.g., in-browser websocket gameplay action assertions with stable instrumentation hooks).
+
+- 2026-02-06 21:10:54Z
+  - Status: `in_progress` -> `done` (T-027)
+  - Actions:
+    - Hardened modern browser runtime regressions surfaced by Playwright:
+      - fixed strict-mode undeclared variable in `client/js-esm/character.js` (`o` in `animate`).
+      - fixed strict-mode undeclared variables in `client/js-esm/renderer.js` (`wx/wy/ww/wh` weapon draw path).
+      - replaced strict-mode-unsafe `arguments.callee` in `client/js-esm/audio.js`.
+    - Fixed modern/shared gametypes runtime bridge without reintroducing non-module script warnings:
+      - `shared/js/gametypes.js` now sets `globalThis.Types` in addition to existing CJS export.
+      - `client/js-esm/compat/gametypes.js` now side-effect imports `shared/js/gametypes.js` and reads `globalThis.Types`.
+      - removed temporary non-module gametypes script injection from `client/modern.html`.
+    - Upgraded browser smoke depth:
+      - `tests/browser/modern-ui-smoke.playwright.ts` now asserts server websocket presence, `go` handshake, `body.started`, non-zero player count, and zero page errors.
+    - Updated support matrix wording to match stronger browser smoke assertions:
+      - `docs/client-build-support.md`.
+  - Evidence:
+    - `bun run test:modern-browser` passed.
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+    - `build:vite` modern warnings remained clean (no new non-module warning on `modern.html`).
+  - Next action:
+    - Define T-028 for browser-level protocol action assertions (chat/move/zone) through UI-safe hooks or deterministic test controls.
+
+- 2026-02-06 21:14:28Z
+  - Status: `in_progress` -> `done` (T-028)
+  - Actions:
+    - Added deeper browser protocol parity test:
+      - `tests/browser/modern-protocol-actions.playwright.ts`
+      - Asserts live server websocket traffic includes outbound `HELLO` and `CHAT`, inbound `WELCOME`, and chat echo for a UI-submitted message.
+    - Updated browser support-matrix wording to reflect protocol action coverage:
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:modern-browser` passed (2 Playwright tests).
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+  - Next action:
+    - Define T-029 for browser-level move/zone deterministic assertions (path click/telemetry-safe hooks).
+
+- 2026-02-06 21:21:34Z
+  - Status: `in_progress` -> `done` (T-029, T-030)
+  - Actions:
+    - Finalized deterministic browser move/zone parity:
+      - `client/js-esm/main.js` test-mode API (`__BQ_TEST_API`) drives cross-zone move/zone actions.
+      - `tests/browser/modern-protocol-actions.playwright.ts` validates outbound `MOVE`/`ZONE` and inbound post-zone `LIST`.
+    - Added browser reconnect parity assertion:
+      - `tests/browser/modern-protocol-actions.playwright.ts` now verifies reload-driven reconnect with second `go`, `HELLO`, and `WELCOME`.
+    - Updated support matrix wording for reconnect/browser protocol coverage:
+      - `docs/client-build-support.md`.
+  - Evidence:
+    - `bun run test:modern-browser` passed (3 Playwright tests).
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+  - Next action:
+    - Define T-031 for browser combat/loot protocol parity coverage with deterministic hooks.
+
+- 2026-02-06 21:26:06Z
+  - Status: `in_progress` -> `done` (T-031, T-032)
+  - Actions:
+    - Added deterministic browser combat/loot controls in test mode:
+      - `client/js-esm/main.js` now exposes `getActionTargets()` and `sendCombatLootProbe()` on `__BQ_TEST_API`.
+    - Expanded browser protocol parity suite:
+      - `tests/browser/modern-protocol-actions.playwright.ts` now validates outbound `ATTACK`, `HIT`, and `LOOTMOVE` from live modern runtime.
+    - Added dependency/library modernization audit artifact:
+      - `docs/dependency-modernization-audit.md` with runtime baseline, direct dependency status, and jQuery 4 migration execution order.
+    - Updated browser support matrix wording for broader protocol parity coverage:
+      - `docs/client-build-support.md`.
+  - Evidence:
+    - `bun run test:modern-browser` passed (5 Playwright tests).
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+    - `bun outdated` completed; direct runtime dependency gap identified (`jquery` 3.7.1 -> 4.0.0 latest).
+  - Next action:
+    - Define T-033 for jQuery 4 migration readiness (UI coverage expansion + trial upgrade branch criteria).
+
+- 2026-02-06 21:58:02Z
+  - Status: `in_progress` -> `done` (T-033)
+  - Actions:
+    - Expanded browser UI lock coverage for jQuery-driven controls:
+      - `tests/browser/modern-ui-smoke.playwright.ts` now validates in-session toggles for chat, population panel, about/help, legal, and credits.
+    - Added explicit jQuery 4 trial readiness checklist:
+      - `docs/jquery4-readiness-checklist.md`.
+    - Linked dependency audit to the readiness checklist:
+      - `docs/dependency-modernization-audit.md`.
+    - Updated support matrix wording to reflect stronger modern browser UI coverage:
+      - `docs/client-build-support.md`.
+  - Evidence:
+    - `bun run test:modern-browser` passed (6 Playwright tests).
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+  - Next action:
+    - Start T-034 scoped jQuery 4 trial upgrade with compatibility triage.
+
+- 2026-02-06 22:00:07Z
+  - Status: `in_progress` -> `done` (T-034)
+  - Actions:
+    - Executed scoped jQuery major upgrade trial and kept upgrade:
+      - dependency bumped to `jquery@4.0.0` in `package.json` and lockfile refreshed.
+    - Validated modern browser parity after upgrade:
+      - all browser protocol + UI parity tests remained green.
+    - Updated dependency/audit docs with trial outcome and follow-up:
+      - `docs/dependency-modernization-audit.md`
+      - `docs/jquery4-readiness-checklist.md`
+  - Evidence:
+    - `bun run test:modern-browser` passed (6 Playwright tests).
+    - `bun run verify:modern` passed.
+    - `bun run verify:legacy` passed.
+    - `bun outdated` shows no pending direct dependency updates.
+  - Next action:
+    - Define T-035 Node 22 baseline verification and runtime gate updates.
+
+- 2026-02-06 22:04:57Z
+  - Status: `in_progress` -> `done` (T-035)
+  - Actions:
+    - Verified Node 22 runtime baseline (`v22.22.0`) by executing gates with a temporary `node` shim pointing to `npx node@22`.
+    - Ran Node 22-scoped verification commands:
+      - `bun run verify:modern`
+      - `bun run verify:legacy`
+      - `bun run test:modern-browser`
+    - Performed direct Node 22 server startup probe with warnings enabled:
+      - `timeout 6s npx -y node@22 --trace-warnings server/js/main.js server/config.json`
+    - Documented Node 22 outcomes in dependency/runtime audit:
+      - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - All Node 22-scoped verification commands passed.
+    - Node 22 server startup completed cleanly with no warning output before timeout.
+  - Next action:
+    - Define T-036 CI Node 22 baseline matrix gate.
+
+- 2026-02-06 22:05:46Z
+  - Status: `in_progress` -> `done` (T-036)
+  - Actions:
+    - Added explicit Node 22 setup and matrix pinning to CI verification workflows:
+      - `.github/workflows/verify-modern.yml`
+      - `.github/workflows/verify-legacy.yml`
+      - `.github/workflows/verify-modern-browser.yml`
+    - Updated dependency/runtime audit with CI Node 22 enforcement notes:
+      - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - Workflow configs now execute verification jobs with `actions/setup-node@v4` and `node-version: 22.x`.
+    - Local equivalent Node 22 gate commands (from T-035) are green.
+  - Next action:
+    - Define T-037 runtime policy pinning (`engines` + `.nvmrc`) to align local/dev/CI baselines.
+
+- 2026-02-06 22:07:05Z
+  - Status: `in_progress` -> `done` (T-037)
+  - Actions:
+    - Pinned runtime policy in project metadata:
+      - added `engines` in `package.json` (`node >=22 <23`, `bun >=1.3.0`).
+      - added `.nvmrc` with `22`.
+    - Updated runtime policy docs:
+      - `README.md` runtime requirements section.
+      - `server/README.md` runtime baseline wording.
+      - `docs/client-build-support.md` runtime baseline section.
+      - `docs/dependency-modernization-audit.md` runtime policy baseline wording.
+    - Re-ran verification gates after policy pinning:
+      - `bun run verify:modern`
+      - `bun run verify:legacy`
+  - Evidence:
+    - Both verification gates passed after runtime policy updates.
+    - CI workflows already pinned to Node 22 from T-036.
+  - Next action:
+    - Define T-038 runtime drift guardrails (preflight check script for node/bun versions in CI/local commands).
+
+- 2026-02-06 22:08:43Z
+  - Status: `in_progress` -> `done` (T-038)
+  - Actions:
+    - Added runtime preflight script:
+      - `tools/check-runtime.cjs`
+      - validates Node major (`22`) and Bun minimum (`1.3.0`) with actionable error messages.
+    - Wired runtime preflight into primary verification/browser commands in `package.json`:
+      - `verify:modern`, `verify:legacy`, `test:modern-browser`.
+    - Updated docs to surface runtime preflight usage and policy:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - Unsupported runtime path validated:
+      - `bun run check:runtime` on system Node 20 fails with expected message.
+    - Supported runtime path validated:
+      - `PATH=<node22-shim> bun run check:runtime` passes.
+      - `PATH=<node22-shim> bun run verify:modern` passes.
+      - `PATH=<node22-shim> bun run verify:legacy` passes.
+  - Next action:
+    - Define T-039 Node 22 developer bootstrap ergonomics (`nvm use`/docs/tooling shortcuts).
+
+- 2026-02-06 22:10:19Z
+  - Status: `in_progress` -> `done` (T-039)
+  - Actions:
+    - Added Node 22 command wrapper for mismatched shells:
+      - `tools/node22-run.sh` (temporary Node 22 shim wrapper).
+    - Added convenience scripts in `package.json`:
+      - `check:runtime:node22`
+      - `verify:modern:node22`
+      - `verify:legacy:node22`
+      - `test:modern-browser:node22`
+    - Updated runtime bootstrap docs:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - `bun run check:runtime:node22` passed from Node 20 shell.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-040 browser parity command runtime preflight adoption in CI documentation/runbooks.
+
+- 2026-02-06 22:10:57Z
+  - Status: `in_progress` -> `done` (T-040)
+  - Actions:
+    - Added dedicated runtime-preflight runbook:
+      - `docs/runtime-preflight.md`
+      - includes policy, failure modes, recovery paths, and CI expectations.
+    - Linked runbook from core docs:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - `bun run check:runtime:node22` passed after runbook updates.
+    - Documentation now consistently references runtime preflight behavior and recovery commands.
+  - Next action:
+    - Define T-041 legacy jQuery runtime debt scan (identify remaining jQuery 4-risk callsites in legacy AMD path).
+
+- 2026-02-06 22:12:24Z
+  - Status: `in_progress` -> `done` (T-041)
+  - Actions:
+    - Scanned legacy AMD client runtime (`client/js/**`) for jQuery 4-sensitive patterns.
+    - Produced ticketized risk inventory:
+      - `docs/legacy-jquery4-risk-scan.md`
+    - Linked scan artifact from dependency/runtime audit:
+      - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - Confirmed legacy `.size()` usage in `client/js/main.js:433`.
+    - Identified `.bind()`/`.unbind()` callsites in `client/js/{main,app}.js` as migration-risk candidates.
+    - No direct `.live()`/`.die()`/`.delegate()`/`.undelegate()` matches in legacy app/runtime files.
+  - Next action:
+    - Start T-042 legacy `.size()` removal batch.
+
+- 2026-02-06 22:13:56Z
+  - Status: `in_progress` -> `done` (T-042, T-043)
+  - Actions:
+    - Removed legacy jQuery `.size()` usage in:
+      - `client/js/main.js` (`.length` replacement).
+    - Migrated legacy jQuery event APIs from `.bind/.unbind` to `.on/.off` in:
+      - `client/js/main.js`
+      - `client/js/app.js`
+    - Updated legacy jQuery risk scan execution status:
+      - `docs/legacy-jquery4-risk-scan.md`
+  - Evidence:
+    - jQuery-style `.bind/.unbind` scan over `client/js/{main,app}.js` returns no matches.
+    - jQuery `.size()` usage removed from `client/js/main.js`.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-044 legacy event-wiring smoke coverage.
+
+- 2026-02-06 22:18:46Z
+  - Status: `in_progress` -> `done` (T-044)
+  - Actions:
+    - Added legacy event-wiring browser smoke:
+      - `tests/browser/legacy-ui-smoke.playwright.ts`
+      - validates intro keyup wiring that drives play-button enablement on legacy `client/index.html`.
+    - Added legacy browser smoke scripts:
+      - `test:legacy-browser`
+      - `test:legacy-browser:node22`
+    - Updated support docs:
+      - `docs/client-build-support.md`
+    - Resolved legacy compatibility regression discovered during T-044:
+      - direct `.on/.off` was incompatible with bundled legacy jQuery.
+      - added compatibility wrappers in `client/js/{main,app}.js` to use `.on/.off` when available and fall back to `.bind/.unbind`.
+    - Updated risk-scan artifact status:
+      - `docs/legacy-jquery4-risk-scan.md`
+  - Evidence:
+    - `bun run test:legacy-browser:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-045 legacy jQuery compatibility helper centralization (deduplicate event wrapper logic).
+
+- 2026-02-06 22:20:54Z
+  - Status: `in_progress` -> `done` (T-045)
+  - Actions:
+    - Centralized legacy jQuery compatibility event helpers into a shared AMD module:
+      - `client/js/eventcompat.js`
+    - Migrated legacy consumers to shared helper:
+      - `client/js/main.js`
+      - `client/js/app.js`
+    - Confirmed legacy smoke/gates after centralization:
+      - `bun run test:legacy-browser:node22`
+      - `bun run verify:legacy:node22`
+    - Updated legacy jQuery risk scan progress:
+      - `docs/legacy-jquery4-risk-scan.md`
+  - Evidence:
+    - No direct jQuery-style `.bind/.unbind/.size` callsites remain in `client/js/{main,app}.js`.
+    - Shared helper usage is present for all migrated event bindings.
+    - Legacy browser smoke and legacy gate passed.
+  - Next action:
+    - Define T-046 legacy smoke integration into CI (path-filtered workflow).
+
+- 2026-02-06 22:21:41Z
+  - Status: `in_progress` -> `done` (T-046)
+  - Actions:
+    - Added path-filtered CI workflow for legacy browser smoke:
+      - `.github/workflows/verify-legacy-browser.yml`
+      - includes Node 22 setup + Bun setup + Playwright Chromium install + `test:legacy-browser`.
+    - Updated dependency/runtime audit CI inventory with new workflow:
+      - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - Local parity command passed:
+      - `bun run test:legacy-browser:node22`
+    - Workflow config committed and scoped to legacy/browser-sensitive path changes.
+  - Next action:
+    - Define T-047 legacy browser smoke expansion (post-intro controls once stable on legacy path).
+
+- 2026-02-06 22:25:07Z
+  - Status: `in_progress` (T-047)
+  - Actions:
+    - Attempted expansion of legacy browser smoke to cover additional intro/footer controls.
+    - Reverted unstable assertions after repeated headless interaction flake:
+      - footer/bar controls had pointer interception and non-deterministic intro overlay behavior in legacy path.
+    - Kept stable deterministic coverage:
+      - intro `keyup` -> play-button enablement guard in `tests/browser/legacy-ui-smoke.playwright.ts`.
+  - Evidence:
+    - Expanded assertions failed with deterministic click-interception timeouts.
+    - Stable legacy smoke remains green:
+      - `bun run test:legacy-browser:node22` passed.
+  - Next action:
+    - Define T-048 legacy smoke harness stabilization (test-mode hooks or forced intro-overlay bypass for deterministic extra controls).
+
+- 2026-02-06 22:26:24Z
+  - Status: `in_progress` -> `done` (T-047, T-048)
+  - Actions:
+    - Expanded legacy browser smoke depth with deterministic additional check:
+      - `tests/browser/legacy-ui-smoke.playwright.ts` now validates chatbar active toggle in addition to intro name-input keyup wiring.
+    - Stabilized flaky legacy interactions by using DOM-dispatched click for controls affected by intro overlay pointer interception.
+    - Re-validated legacy browser and full legacy gate:
+      - `bun run test:legacy-browser:node22`
+      - `bun run verify:legacy:node22`
+    - Updated support matrix wording for current legacy smoke coverage:
+      - `docs/client-build-support.md`.
+  - Evidence:
+    - Legacy browser smoke remains green with added deterministic check.
+    - Legacy build/test gate remains green after smoke depth expansion.
+  - Next action:
+    - Define T-049 modern gate integration of Node22-wrapper shortcuts in contributor onboarding docs.
+
+- 2026-02-06 22:26:58Z
+  - Status: `in_progress` -> `done` (T-049)
+  - Actions:
+    - Updated contributor quickstart onboarding with runtime mismatch recovery path:
+      - `README.md`
+    - Expanded runtime preflight runbook with onboarding flow:
+      - `docs/runtime-preflight.md`
+  - Evidence:
+    - `bun run check:runtime:node22` passed following documented onboarding path.
+  - Next action:
+    - Define T-050 modernization state snapshot update (concise executive status in `README.md` linking active artifacts).
+
+- 2026-02-06 22:27:28Z
+  - Status: `in_progress` -> `done` (T-050)
+  - Actions:
+    - Added concise modernization status snapshot to root `README.md`:
+      - links roadmap/support/audit/risk artifacts.
+      - lists canonical verification/browser commands (with Node22 wrapper variants).
+  - Evidence:
+    - README now exposes one-glance modernization state and command entrypoints.
+    - Runtime wrapper command remains green:
+      - `bun run check:runtime:node22`
+  - Next action:
+    - Define T-051 docs/script parity sweep (ensure all docs mention newly added legacy browser and Node22 wrapper commands consistently).
+
+- 2026-02-06 22:27:57Z
+  - Status: `in_progress` -> `done` (T-051)
+  - Actions:
+    - Performed docs/script parity sweep against `package.json` scripts and workflow changes.
+    - Fixed stale/missing command references:
+      - added `test:legacy-browser` mention in `README.md` verification gates.
+      - added `test:legacy-browser` and `test:legacy-browser:node22` to `docs/runtime-preflight.md`.
+  - Evidence:
+    - Command references in key onboarding/support docs now match current script surfaces.
+  - Next action:
+    - Define T-052 legacy browser smoke workflow linkage from README/support docs.
+
+- 2026-02-06 22:28:40Z
+  - Status: `in_progress` -> `done` (T-052)
+  - Actions:
+    - Added CI-workflow mapping section to support matrix doc:
+      - `docs/client-build-support.md`
+      - includes workflow names, trigger scope summaries, and local parity command.
+    - Added CI gate names to modernization snapshot:
+      - `README.md`
+  - Evidence:
+    - Local parity command for legacy browser workflow remains green:
+      - `bun run test:legacy-browser:node22`
+  - Next action:
+    - Define T-053 modern-browser and legacy-browser command naming cleanup (`test:browser:*`) for clearer discoverability.
+
+- 2026-02-06 22:29:39Z
+  - Status: `in_progress` -> `done` (T-053)
+  - Actions:
+    - Added browser command aliases for consistent naming:
+      - `test:browser:modern`
+      - `test:browser:legacy`
+      - `test:browser:modern:node22`
+      - `test:browser:legacy:node22`
+    - Kept existing script names for backward compatibility (`test:modern-browser`, `test:legacy-browser`).
+    - Updated docs to use alias names as canonical entries:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/runtime-preflight.md`
+  - Evidence:
+    - `bun run test:browser:legacy:node22` passed.
+  - Next action:
+    - Define T-054 browser command alias adoption in CI workflow steps (use canonical alias names for consistency).
+
+- 2026-02-06 22:46:00Z
+  - Status: `in_progress` -> `done` (T-054, T-055, T-056, T-057)
+  - Actions:
+    - Adopted canonical browser alias scripts in browser CI workflows:
+      - `.github/workflows/verify-modern-browser.yml` now runs `test:browser:modern`.
+      - `.github/workflows/verify-legacy-browser.yml` now runs `test:browser:legacy`.
+    - Aligned support-matrix CI mapping text with alias command names:
+      - `docs/client-build-support.md`.
+    - Fixed strict-mode undeclared identifier regressions uncovered during alias parity runs (modern + legacy parity):
+      - `path` declaration in `client/js-esm/game.js` and `client/js/game.js`.
+      - `rect` declaration in `client/js-esm/renderer.js` and `client/js/renderer.js`.
+      - `volume` declaration in `client/js-esm/audio.js` and `client/js/audio.js`.
+      - `newwindow` declaration in `client/js-esm/app.js` and `client/js/app.js`.
+      - `fdata` declaration in `client/js-esm/sprite.js` and `client/js/sprite.js`.
+      - `startValue/endValue/offset` declaration split in `client/js-esm/updater.js` and `client/js/updater.js`.
+      - `window.MozWebSocket` usage in `client/js-esm/gameclient.js` and `client/js/gameclient.js`.
+    - Added lint guardrail for strict ESM undeclared-variable regressions:
+      - `eslint.config.cjs` now enforces `no-undef` for `client/js-esm/**/*.js`.
+    - Stabilized modern browser startup helper paths to reduce intro-start flakes:
+      - `tests/browser/modern-protocol-actions.playwright.ts`.
+      - `tests/browser/modern-ui-smoke.playwright.ts`.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:modern:node22` passed (post-hardening rerun).
+    - `bun run test:browser:legacy:node22` passed.
+    - `bunx eslint "client/js-esm/**/*.js" --rule "no-undef:error"` passed.
+  - Next action:
+    - Define T-058 server module logger importization so `no-undef` can be enforced for `server/js/**/*.js` (remove global `log` dependency).
+
+- 2026-02-06 22:50:40Z
+  - Status: `in_progress` -> `done` (T-058)
+  - Actions:
+    - Replaced ambient server `log` dependency with explicit logger imports from `server/js/log.js` in active runtime modules:
+      - `server/js/main.js`
+      - `server/js/ws.js`
+      - `server/js/worldserver.js`
+      - `server/js/player.js`
+      - `server/js/map.js`
+      - `server/js/format.js`
+      - `server/js/metrics.js`
+      - `server/js/character.js`
+      - `server/js/properties.js`
+    - Added singleton logger helpers in `server/js/log.js`:
+      - `Log.getLogger()`
+      - `Log.setLevel(level)`
+    - Updated server startup debug-level wiring to configure shared logger level via `Log.setLevel(...)` rather than assigning global `log`.
+    - Enabled `no-undef` lint guardrail for server runtime scope in `eslint.config.cjs`.
+  - Evidence:
+    - `bun run lint` passed with server `no-undef` enforced.
+    - `bunx eslint "server/js/**/*.js" --rule "no-undef:error"` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:modern:node22` passed.
+  - Next action:
+    - Define T-059 server logger callsite simplification (remove redundant `if(log && ...)` guards now that logger is explicit and always present).
+
+- 2026-02-06 22:52:18Z
+  - Status: `in_progress` -> `done` (T-059)
+  - Actions:
+    - Simplified server logger callsites by removing redundant event guard wrappers now that explicit logger singleton is always available:
+      - `server/js/main.js`
+      - `server/js/ws.js`
+      - `server/js/worldserver.js`
+    - Normalized structured event logging to direct `log.event(...)` calls for startup/connect/error/close/join/leave flows.
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-060 logger API cleanup and callsite helper reduction (consolidate repeated event field construction patterns where practical).
+
+- 2026-02-06 22:53:37Z
+  - Status: `in_progress` -> `done` (T-060)
+  - Actions:
+    - Added lightweight helper patterns to reduce repeated server structured-event payload boilerplate:
+      - `server/js/ws.js`:
+        - added `appendFields(...)`
+        - added `logConnectionEvent(...)`
+        - normalized connection open/close/error/close-request event emission through helper.
+      - `server/js/worldserver.js`:
+        - added local `logPlayerEvent(...)` helper for join/leave payload shape consistency.
+      - `server/js/main.js`:
+        - added `emitServerEvent(...)` helper to normalize server lifecycle/error event calls.
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-061 logger singleton safety hardening (guard invalid `setLevel` inputs and add unit coverage for logger singleton behavior).
+
+- 2026-02-06 22:54:25Z
+  - Status: `in_progress` -> `done` (T-061)
+  - Actions:
+    - Hardened logger singleton level setter in `server/js/log.js`:
+      - `Log.setLevel(...)` now validates level input and falls back to `Log.INFO` on invalid values.
+    - Added logger singleton safety tests in `tests/unit/server-log.test.ts`:
+      - shared singleton identity assertion (`Log.getLogger()`).
+      - `setLevel` return/behavior assertions.
+      - invalid-level fallback assertion.
+    - Added test-level reset in unit test teardown to avoid cross-test leakage.
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun test --timeout 20000 tests/unit/server-log.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-062 server logging semantics audit (review event naming/field consistency and align event taxonomy docs).
+
+- 2026-02-06 22:55:34Z
+  - Status: `in_progress` -> `done` (T-062)
+  - Actions:
+    - Normalized fatal server event names for taxonomy consistency in `server/js/main.js`:
+      - `uncaughtException` -> `server.fatal.uncaught_exception`
+      - `unhandledRejection` -> `server.fatal.unhandled_rejection`
+      - added `source` field preserving original runtime label.
+    - Added structured logging taxonomy document:
+      - `docs/server-logging-taxonomy.md`
+      - includes envelope contract + canonical event names + payload fields.
+    - Linked taxonomy doc from modernization snapshot in `README.md`.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-063 structured-log contract tests for fatal-event naming and payload fields.
+
+- 2026-02-06 22:58:23Z
+  - Status: `in_progress` -> `done` (T-063)
+  - Actions:
+    - Expanded structured-log smoke coverage in `tests/smoke/server-structured-logs.test.ts`:
+      - added fatal-event contract test for normalized server taxonomy:
+        - `server.fatal.unhandled_rejection`
+      - asserted required fields:
+        - `level`, `source`, `message`
+      - added reusable event-wait helper and stderr event-stream parsing for error-level structured records.
+    - Added test trigger hook in `server/js/main.js`:
+      - `BQ_TEST_TRIGGER_FATAL_EVENT=unhandled_rejection`
+      - emits deterministic fatal log path for contract testing without changing normal runtime behavior.
+    - Resolved formatting drift from new test via Prettier.
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-064 structured-log test coverage for `server.fatal.uncaught_exception` and shared assertion helper reuse.
+
+- 2026-02-06 22:59:14Z
+  - Status: `in_progress` -> `done` (T-064)
+  - Actions:
+    - Expanded structured-log fatal parity coverage in `tests/smoke/server-structured-logs.test.ts`:
+      - added `server.fatal.uncaught_exception` contract test.
+      - asserted required fields:
+        - `level`, `source`, `message`, `stack`.
+    - Reused server test-trigger hook path in `server/js/main.js` via:
+      - `BQ_TEST_TRIGGER_FATAL_EVENT=uncaught_exception`
+    - Stabilized fatal-event smoke parsing by consuming both stdout and stderr streams for structured event lines.
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.test.ts` passed (3 structured-log tests).
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-065 structured-log test harness deduplication (extract shared spawn/event-capture helpers to reduce repeated smoke boilerplate).
+
+- 2026-02-06 23:01:22Z
+  - Status: `in_progress` -> `done` (T-065)
+  - Actions:
+    - Refactored `tests/smoke/server-structured-logs.test.ts` to remove repeated boilerplate:
+      - added shared event-stream parser helper `attachEventReader(...)`
+      - added shared server bootstrap helper `startServerWithEventCapture(...)`
+      - added websocket handshake helper `openAndCloseWebSocketSession(...)`
+      - unified test config writing and status wait flow through helper layer.
+    - Preserved existing structured-log assertions and fatal taxonomy coverage behavior.
+    - Resolved formatting drift from refactor with Prettier.
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-066 structured-log fixture split (separate lifecycle and fatal taxonomy tests into dedicated files for faster targeted runs).
+
+- 2026-02-06 23:03:02Z
+  - Status: `in_progress` -> `done` (T-066)
+  - Actions:
+    - Split structured-log smoke coverage into focused files:
+      - `tests/smoke/server-structured-logs.lifecycle.test.ts`
+      - `tests/smoke/server-structured-logs.fatal.test.ts`
+    - Extracted shared helper utilities into:
+      - `tests/smoke/server-structured-logs.harness.ts`
+      - includes server bootstrap, event capture/parsing, status wait, websocket handshake, and cleanup helpers.
+    - Removed monolithic structured-log file:
+      - deleted `tests/smoke/server-structured-logs.test.ts`
+    - Ensured formatting/lint alignment after split.
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts tests/smoke/server-structured-logs.fatal.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-067 structured-log fatal test parameterization (single table-driven fatal taxonomy test to reduce duplicate assertions).
+
+- 2026-02-06 23:04:10Z
+  - Status: `in_progress` -> `done` (T-067)
+  - Actions:
+    - Refactored fatal structured-log tests to a table-driven pattern in:
+      - `tests/smoke/server-structured-logs.fatal.test.ts`
+    - Consolidated duplicated setup/assertions for fatal taxonomy cases while preserving event-specific expectations:
+      - `server.fatal.unhandled_rejection`
+      - `server.fatal.uncaught_exception`
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.fatal.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-068 structured-log harness robustness pass (add helper-level timeouts/error context to improve smoke failure diagnostics).
+
+- 2026-02-06 23:05:30Z
+  - Status: `in_progress` -> `done` (T-068)
+  - Actions:
+    - Hardened structured-log harness diagnostics in `tests/smoke/server-structured-logs.harness.ts`:
+      - added rolling recent-structured-line capture (stdout/stderr labeled).
+      - improved `waitForEvent(...)` timeout errors with:
+        - seen event summary
+        - recent structured line context.
+      - improved `waitForHttpOk(...)` timeout errors with last observed error/status context.
+    - Kept lifecycle/fatal structured-log suites using shared harness with unchanged contract assertions.
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts tests/smoke/server-structured-logs.fatal.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-069 structured-log harness API cleanup (type exports + helper naming polish + minimal inline docs).
+
+- 2026-02-06 23:06:45Z
+  - Status: `in_progress` -> `done` (T-069)
+  - Actions:
+    - Polished structured-log harness API in `tests/smoke/server-structured-logs.harness.ts`:
+      - added explicit helper option/result/interface types:
+        - `StartServerWithEventCaptureOptions`
+        - `StartServerWithEventCaptureResult`
+        - `StructuredLogHarness`
+      - added concise inline docs for harness method intent and usage.
+      - retained existing exported surface and behavior for existing tests.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-070 structured-log harness dead-export cleanup (`StructuredLogEvent` type usage/removal) and test import consistency sweep.
+
+- 2026-02-06 23:07:46Z
+  - Status: `in_progress` -> `done` (T-070)
+  - Actions:
+    - Completed structured-log harness export hygiene:
+      - removed dead unused export from `tests/smoke/server-structured-logs.harness.ts`.
+    - Confirmed split structured-log tests use minimal, consistent harness imports:
+      - `tests/smoke/server-structured-logs.lifecycle.test.ts`
+      - `tests/smoke/server-structured-logs.fatal.test.ts`
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts tests/smoke/server-structured-logs.fatal.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-071 structured-log docs alignment (document new split test file entrypoints and harness location in modernization support docs).
+
+- 2026-02-06 23:09:35Z
+  - Status: `in_progress` -> `done` (T-071)
+  - Actions:
+    - Aligned structured-log documentation with split smoke suites and shared harness location:
+      - `docs/client-build-support.md`
+      - `docs/server-logging-taxonomy.md`
+    - Confirmed command snippets map to lifecycle-only and fatal-only entrypoints.
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts` passed.
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.fatal.test.ts` passed.
+  - Next action:
+    - Define T-072 structured-log command alias cleanup (`test:logs:*`) for shorter contributor run paths.
+
+- 2026-02-06 23:10:03Z
+  - Status: `in_progress` -> `done` (T-072)
+  - Actions:
+    - Added canonical structured-log alias scripts in `package.json`:
+      - `test:logs:lifecycle`
+      - `test:logs:fatal`
+    - Updated contributor-facing docs to use alias commands:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/server-logging-taxonomy.md`
+  - Evidence:
+    - `bun run test:logs:lifecycle` passed.
+    - `bun run test:logs:fatal` passed.
+  - Next action:
+    - Define T-073 modern client jQuery surface audit (inventory remaining jQuery-dependent ESM callsites and sequence reduction batches).
+
+- 2026-02-06 23:12:48Z
+  - Status: `in_progress` -> `done` (T-073)
+  - Actions:
+    - Audited modern ESM jQuery usage and callsite density in `client/js-esm/**`.
+    - Added phased reduction plan artifact:
+      - `docs/modern-jquery-surface-audit.md`
+    - Linked new audit from modernization status docs:
+      - `docs/dependency-modernization-audit.md`
+      - `README.md`
+  - Evidence:
+    - `rg -nF "import $ from 'jquery';" client/js-esm` captured remaining jQuery import surface.
+    - callsite density scan identified high-risk files (`client/js-esm/{main,app}.js`) and low-risk quick wins (`client/js-esm/{sprite,map,gameclient}.js`).
+  - Next action:
+    - Start T-074 low-risk modern jQuery reduction batch (`sprite`, `map`, `gameclient`).
+
+- 2026-02-06 23:14:43Z
+  - Status: `in_progress` -> `done` (T-074)
+  - Actions:
+    - Removed dead jQuery import in `client/js-esm/sprite.js`.
+    - Replaced low-risk jQuery callsites with native APIs:
+      - `client/js-esm/map.js`: `$.get(...)` -> `fetch(...).then(...).catch(...)` JSON load flow.
+      - `client/js-esm/gameclient.js`: `$('#container').addClass('error')` -> `document.getElementById(...).classList.add(...)`.
+  - Evidence:
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-075 modern jQuery reduction batch for `client/js-esm/bubble.js`.
+
+- 2026-02-06 23:16:20Z
+  - Status: `in_progress` -> `done` (T-075)
+  - Actions:
+    - Removed jQuery dependency from `client/js-esm/bubble.js`:
+      - dropped `jquery` import.
+      - replaced jQuery remove/create/update/append calls with vanilla DOM APIs.
+      - preserved existing API compatibility for selector-string container inputs (`'#bubbles'`) by resolving `document.querySelector(...)` in manager init.
+    - Updated execution status in jQuery-surface plan:
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-076 high-risk event-surface jQuery reduction in `client/js-esm/{app,main}.js` via incremental `.bind/.unbind` migration.
+
+- 2026-02-06 23:18:36Z
+  - Status: `in_progress` -> `done` (T-076)
+  - Actions:
+    - Migrated remaining jQuery `.bind/.unbind` callsites in modern ESM UI/event modules to `.on/.off`:
+      - `client/js-esm/app.js`
+      - `client/js-esm/main.js`
+    - Verified no jQuery-style `.bind/.unbind` callsites remain in those files.
+    - Updated jQuery-surface execution status:
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `rg -n "\\$\\([^\\n]*\\)\\.bind\\(|\\$\\([^\\n]*\\)\\.unbind\\(" client/js-esm/app.js client/js-esm/main.js` returned no matches.
+    - `bun run test:browser:modern:node22` passed (serial rerun).
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-077 modern selector/event decoupling for highest-frequency jQuery callsites in `client/js-esm/{app,main}.js`.
+
+- 2026-02-06 23:26:36Z
+  - Status: `in_progress` -> `done` (T-077)
+  - Actions:
+    - Reduced high-frequency selector coupling in `client/js-esm/main.js`:
+      - switched population UI updates to cached DOM nodes + `textContent`.
+      - switched death/respawn body class updates to `document.body.classList`.
+      - replaced repeated reset selector writes with direct DOM element access.
+    - Caught and fixed one behavior regression during validation:
+      - `#nameinput` reset initially switched from attribute-set to property-set, which could clear typed names and re-disable Play during async init.
+      - restored attribute semantics (`setAttribute('value', '')`) to preserve prior behavior.
+    - Updated jQuery-surface execution status:
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-078 targeted app-shell selector decoupling in `client/js-esm/app.js`.
+
+- 2026-02-06 23:28:26Z
+  - Status: `in_progress` -> `done` (T-078)
+  - Actions:
+    - Reduced high-frequency jQuery selector churn in `client/js-esm/app.js` by using cached DOM references and native class/style APIs in targeted hot paths:
+      - `showChat` / `hideChat`
+      - `toggleButton`
+      - `initHealthBar` / `blinkHealthBar`
+      - `hideIntro`
+      - `togglePopulationInfo`
+    - Updated jQuery-surface execution status:
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-079 remaining selector debt reduction for app/main overlay/parchment/achievement wiring.
+
+- 2026-02-06 23:32:04Z
+  - Status: `in_progress` -> `done` (T-079)
+  - Actions:
+    - Reduced remaining selector-heavy app-shell clusters in `client/js-esm/app.js` with DOM helper seams:
+      - overlay/parchment toggle and close paths.
+      - achievement panel toggles, notification state, and unlocked counters.
+      - message/notification animation paths and popup sizing.
+      - kept jQuery template-clone wiring for achievement list generation unchanged to avoid high-risk behavior drift.
+    - Updated jQuery-surface audit with current selector density and next-batch scope:
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - selector density snapshot:
+      - `client/js-esm/app.js`: `7` matches for `$('...'` pattern.
+      - `client/js-esm/main.js`: `90` matches for `$('...'` pattern.
+  - Next action:
+    - Start T-080 remaining main-runtime selector/event debt reduction (`client/js-esm/main.js`).
+
+- 2026-02-06 23:35:02Z
+  - Status: `in_progress` -> `done` (T-080)
+  - Actions:
+    - Reduced main-runtime selector/event debt in `client/js-esm/main.js` by migrating targeted chat/name/parchment interaction paths to DOM APIs:
+      - chat input key/focus handlers now use `addEventListener`, direct `value`, and placeholder/class updates.
+      - name input tooltip/focus/keypress wiring now uses DOM listeners and DOM class toggles.
+      - gameplay body click parchment checks now use cached `parchment` element `classList.contains(...)`.
+      - mute/respawn handlers and focus-state checks now use DOM APIs (`document.activeElement`) instead of selector+`:focus`/`.size()`.
+    - Updated jQuery-surface audit with new selector-density snapshot and next batch scope:
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - selector density snapshot:
+      - `client/js-esm/app.js`: `7` matches for `$('...'` pattern.
+      - `client/js-esm/main.js`: `55` matches for `$('...'` pattern.
+  - Next action:
+    - Start T-081 main boot/runtime handler normalization for remaining click/social/achievement paging/foreground handler clusters.
+
+- 2026-02-06 23:37:41Z
+  - Status: `in_progress` -> `done` (T-081)
+  - Actions:
+    - Normalized remaining selector-heavy boot/runtime handler clusters in `client/js-esm/main.js`:
+      - converted bar/help/achievement/social/paging handlers to DOM listeners.
+      - converted boot parchment checks, legal/privacy label updates, and `playername`/`playerimage` boot wiring to DOM APIs.
+      - converted `resize-check` transition listeners and `.play div` boot click wiring to DOM event handlers.
+    - Updated jQuery-surface audit with current selector-density snapshot and next batch:
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - selector density snapshot:
+      - `client/js-esm/app.js`: `7` matches for `$('...'` pattern.
+      - `client/js-esm/main.js`: `7` matches for `$('...'` pattern.
+  - Next action:
+    - Start T-082 final modern jQuery runtime extraction for residual modern callsites/imports.
+
+- 2026-02-06 23:39:51Z
+  - Status: `in_progress` -> `done` (T-082)
+  - Actions:
+    - Removed remaining jQuery runtime usage from `client/js-esm/main.js`:
+      - replaced jQuery `ready`, body class toggles, disconnect UI updates, and mobile touch foreground handler with DOM APIs.
+      - dropped `jquery` import from `client/js-esm/main.js`.
+    - Updated jQuery-surface audit with current import/callsite state and explicit residual `app.js` defer-or-migrate scope:
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - selector density snapshot:
+      - `client/js-esm/main.js`: `0` matches for `$('...'` pattern.
+      - `client/js-esm/app.js`: `7` matches for `$('...'` pattern.
+  - Next action:
+    - Start T-083 app final jQuery extraction or explicit-defer decision for template/offset/play-button callsites.
+
+- 2026-02-06 23:42:21Z
+  - Status: `in_progress` -> `done` (T-083)
+  - Actions:
+    - Completed modern-runtime jQuery extraction in `client/js-esm/app.js`:
+      - migrated play-button loading/start watcher to DOM helpers with explicit `isStarting` guard.
+      - migrated mouse container offset math to DOM `getBoundingClientRect` + scroll offsets.
+      - migrated achievement template/list rendering from jQuery clone/find/click APIs to DOM clone/query/listener APIs.
+    - Modern ESM runtime jQuery usage is now fully removed:
+      - `client/js-esm/main.js` already jQuery-free from T-082.
+      - `client/js-esm/app.js` no longer imports/uses jQuery.
+    - Updated audit status and follow-up scope:
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `rg -nF "$(" client/js-esm/app.js client/js-esm/main.js` returned no matches.
+    - `rg -n "import \\$ from 'jquery';" client/js-esm` returned no matches.
+  - Next action:
+    - Start T-084 modern jQuery-free policy lock (docs + static guardrails).
+
+- 2026-02-06 23:46:34Z
+  - Status: `in_progress` -> `done` (T-084)
+  - Actions:
+    - Locked modern ESM jQuery-free policy with static guardrails:
+      - `tools/check-modern-jquery-free.cjs` is now the policy gate.
+      - `verify:modern` runs the policy check before lint/test/build.
+    - Updated policy docs and roadmap artifacts:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/modern-jquery-surface-audit.md`
+  - Evidence:
+    - `bun run check:modern-jquery-free` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-085 modern jQuery-free guard expansion from `app/main` scope to all `client/js-esm/**/*.js`.
+
+- 2026-02-06 23:46:34Z
+  - Status: `in_progress` -> `done` (T-085)
+  - Actions:
+    - Expanded `check:modern-jquery-free` coverage to all modern ESM runtime files (`client/js-esm/**/*.js`).
+    - Updated policy wording in docs to reflect full modern ESM scope.
+  - Evidence:
+    - `bun run check:modern-jquery-free` passed (`46 files checked`).
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-086 for next modernization slice after jQuery-free lock (dependency/runtime modernization candidate queue).
+
+- 2026-02-06 23:50:53Z
+  - Status: `in_progress` -> `done` (T-086)
+  - Actions:
+    - Refreshed post-jQuery modernization queue with concrete next tickets:
+      - T-087 modern-first local dev default entrypoint.
+      - T-088 static dev entry contract smoke test.
+      - T-089 modern-first Vite dev root redirect.
+  - Evidence:
+    - Active queue definitions updated in `MODERNIZE.md`.
+  - Next action:
+    - Start T-087 modern-first local dev default entrypoint.
+
+- 2026-02-06 23:50:53Z
+  - Status: `in_progress` -> `done` (T-087)
+  - Actions:
+    - Switched local static dev root (`bun run dev`) to modern-first routing:
+      - `/` now serves `client/modern.html` by default.
+      - legacy fallback remains available at `/index.html`.
+      - opt-in legacy default override: `BQ_CLIENT_DEFAULT_ENTRY=index.html`.
+    - Updated local runbook docs:
+      - `README.md`
+      - `client/README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - Runtime probe:
+      - root path excludes `js/detect.js` and contains `js-esm/preflight.js`.
+      - `/index.html` retains legacy markers (`js/detect.js`).
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-088 static dev entry contract smoke test.
+
+- 2026-02-06 23:50:53Z
+  - Status: `in_progress` -> `done` (T-088)
+  - Actions:
+    - Added static dev entry smoke suite:
+      - `tests/smoke/static-server-entry-default.test.ts`
+      - covers default modern root route and legacy override path.
+    - Added execution alias:
+      - `package.json` `test:static-entry`.
+    - Documented new smoke gate in:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:static-entry` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-089 modern-first Vite dev root redirect.
+
+- 2026-02-06 23:50:53Z
+  - Status: `in_progress` -> `done` (T-089)
+  - Actions:
+    - Switched Vite dev root redirect to modern-first:
+      - `/` and `/index.html` now redirect to `/client/modern.html` by default.
+      - legacy override flag supported: `BQ_VITE_DEFAULT_ENTRY=legacy`.
+      - implementation updated in `vite.config.ts`.
+    - Updated Vite dev docs to match new default and override:
+      - `README.md`
+      - `client/README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - Runtime probe:
+      - `curl -I http://127.0.0.1:5173/` returns `Location: /client/modern.html`.
+      - `BQ_VITE_DEFAULT_ENTRY=legacy` returns `Location: /client/index.html`.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-090 dependency/runtime modernization candidate queue refresh after modern-first dev entry consolidation.
+
+- 2026-02-06 23:50:53Z
+  - Status: `in_progress` -> `done` (T-090)
+  - Actions:
+    - Refreshed dependency/runtime modernization candidate queue after entrypoint consolidation.
+    - Updated dependency audit with current direct dependency drift evidence:
+      - `docs/dependency-modernization-audit.md`
+      - identified pending major upgrade candidates in `eslint` toolchain.
+    - Defined follow-up execution tickets for the dependency slice:
+      - T-091 (`eslint@10` readiness scan)
+      - T-092 (scoped `eslint@10` upgrade trial)
+  - Evidence:
+    - `bun outdated` reports:
+      - `@eslint/js` `9.39.2` -> `10.0.1`
+      - `eslint` `9.39.2` -> `10.0.0`
+  - Next action:
+    - Start T-091 `eslint@10` readiness scan and compatibility triage.
+
+- 2026-02-06 23:50:53Z
+  - Status: `in_progress` -> `done` (T-091)
+  - Actions:
+    - Completed local compatibility scan for `eslint@10` readiness:
+      - verified current `eslint.config.cjs` shape is compatible.
+      - captured upstream peer-range state for `@typescript-eslint` packages.
+      - confirmed current lint baseline before upgrade trial.
+    - Readiness result: no blocking config/runtime issues found for proceeding with upgrade trial.
+  - Evidence:
+    - `bun run lint` passed on baseline.
+    - peer metadata snapshot:
+      - local + npm latest `@typescript-eslint` peer range: `eslint: ^8.57.0 || ^9.0.0`.
+  - Next action:
+    - Start T-092 scoped `eslint@10` + `@eslint/js@10` upgrade trial.
+
+- 2026-02-06 23:50:53Z
+  - Status: `in_progress` -> `done` (T-092)
+  - Actions:
+    - Upgraded lint toolchain:
+      - `eslint` -> `10.0.0`
+      - `@eslint/js` -> `10.0.1`
+      - lockfile refreshed (`bun.lock`).
+    - Kept upgrade after full verification suite remained green.
+    - Updated dependency audit and follow-up order:
+      - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `npm outdated --depth=0` returned no direct dependency drift.
+  - Next action:
+    - Define T-093 for post-upgrade hardening (track `@typescript-eslint` explicit peer support and periodic dependency re-audit cadence).
+
+- 2026-02-06 23:56:02Z
+  - Status: `in_progress` -> `done` (T-093)
+  - Actions:
+    - Implemented explicit dependency-watch workflow:
+      - added script alias `check:deps:drift` in `package.json` (`npm outdated --depth=0`).
+      - updated root runbook and dependency audit with watch cadence and trigger actions.
+        - `README.md`
+        - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - `bun run check:deps:drift` passed (no direct dependency drift reported).
+  - Next action:
+    - Define T-094 for next modernization slice beyond dependency/toolchain drift (runtime/library modernization candidate execution).
+
+- 2026-02-06 23:59:36Z
+  - Status: `in_progress` -> `done` (T-094)
+  - Actions:
+    - Refreshed runtime/library modernization candidate queue beyond dependency/tooling drift.
+    - Selected highest-leverage immediate runtime hardening batch:
+      - T-095 metrics backend optional-dependency startup hardening.
+      - T-096 structured fallback observability and contract coverage.
+  - Evidence:
+    - Candidate implementation targets and verification commands documented in active queue.
+  - Next action:
+    - Start T-095 server metrics optional-dependency hardening.
+
+- 2026-02-06 23:59:36Z
+  - Status: `in_progress` -> `done` (T-095)
+  - Actions:
+    - Hardened server startup when `metrics_enabled` is true but metrics backend cannot initialize:
+      - added safe metrics initializer in `server/js/main.js` with guarded fallback to non-metrics runtime path.
+      - added structured fallback event:
+        - `server.metrics.unavailable` with `reason` and `error`.
+      - prevented null dereference risk by gating `metrics.ready(...)` on actual metrics availability.
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-handshake.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start T-096 metrics fallback observability contract coverage.
+
+- 2026-02-06 23:59:36Z
+  - Status: `in_progress` -> `done` (T-096)
+  - Actions:
+    - Added explicit contract coverage for metrics-backend-missing fallback:
+      - `tests/smoke/server-handshake.test.ts` now includes metrics-enabled fallback handshake scenario.
+      - extended structured log harness config overrides for targeted server boot scenarios:
+        - `tests/smoke/server-structured-logs.harness.ts`
+      - added lifecycle structured-log assertion for `server.metrics.unavailable`:
+        - `tests/smoke/server-structured-logs.lifecycle.test.ts`
+    - Updated server event taxonomy docs:
+      - `docs/server-logging-taxonomy.md`
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-097 runtime/library next slice after metrics hardening (metrics adapter boundary + dependency strategy).
+
+- 2026-02-07 00:02:09Z
+  - Status: `in_progress` -> `done` (T-097)
+  - Actions:
+    - Implemented concrete metrics runtime boundary and dependency strategy in server runtime:
+      - added `server/js/metrics-runtime.js` to centralize metrics enablement checks, config validation, and safe adapter initialization.
+      - added explicit fallback reason taxonomy:
+        - `invalid_config` (with `invalidFields`)
+        - `init_failed` (with `error`)
+      - updated `server/js/main.js` to consume the runtime boundary instead of direct metrics construction.
+    - Expanded runtime/observability coverage:
+      - `tests/smoke/server-handshake.test.ts` adds invalid-config metrics-enabled fallback handshake case.
+      - `tests/smoke/server-structured-logs.lifecycle.test.ts` adds `invalid_config` structured-event contract.
+      - `docs/server-logging-taxonomy.md` updated for reason/field contract.
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-handshake.test.ts` passed (3 tests).
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts` passed (3 tests).
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-098 metrics backend adapter modularization (pluggable no-op/memcache adapter policy + targeted unit coverage).
+
+- 2026-02-07 02:08:15Z
+  - Status: `in_progress` -> `done` (T-098)
+  - Actions:
+    - Modularized metrics runtime into explicit adapters:
+      - added no-op adapter module:
+        - `server/js/metrics-adapters/noop.js`
+      - added memcache adapter module:
+        - `server/js/metrics-adapters/memcache.js`
+      - refactored runtime selector to use adapter registry:
+        - `server/js/metrics-runtime.js`
+      - updated server runtime to consume adapter capability flag (`isEnabled`) instead of null checks:
+        - `server/js/main.js`
+    - Added deterministic unit contracts for adapter selection/fallback behavior without requiring external memcache:
+      - `tests/unit/metrics-runtime.test.ts`
+    - Kept existing smoke/log fallback coverage green after modularization.
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun test --timeout 20000 tests/unit/metrics-runtime.test.ts` passed (4 tests).
+    - `bun test --timeout 20000 tests/smoke/server-handshake.test.ts tests/smoke/server-structured-logs.lifecycle.test.ts` passed (6 tests).
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-099 metrics config documentation/runbook hardening (explicit required fields + examples for `metrics_enabled`).
+
+- 2026-02-07 02:08:54Z
+  - Status: `in_progress` -> `done` (T-099)
+  - Actions:
+    - Hardened metrics configuration runbook in `server/README.md`:
+      - documented required fields for `metrics_enabled: true`.
+      - added valid example configs for metrics disabled/enabled modes.
+      - documented fallback semantics (`invalid_config` vs `init_failed`) and structured event linkage.
+  - Evidence:
+    - `server/README.md` now contains explicit metrics config contract and operator-facing examples.
+    - Fallback event contract remains aligned with runtime + smoke coverage in `docs/server-logging-taxonomy.md` and lifecycle tests.
+  - Next action:
+    - Define T-100 metrics config sample/template update (`config_local.json-dist`) to mirror documented metrics-enabled contract.
+
+- 2026-02-07 02:09:40Z
+  - Status: `in_progress` -> `done` (T-100)
+  - Actions:
+    - Updated distributed local config template to match metrics validation contract:
+      - `server/config_local.json-dist` now includes metrics-enabled required keys:
+        - `memcached_host`
+        - `memcached_port`
+        - `server_name`
+        - `game_servers`
+    - Updated server runbook note:
+      - `server/README.md` now calls out that template includes metrics keys for safe `metrics_enabled` toggling.
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/server-handshake.test.ts tests/smoke/server-structured-logs.lifecycle.test.ts` passed.
+  - Next action:
+    - Define T-101 metrics adapter package dependency policy (explicit optional dependency install guidance + failure-mode troubleshooting).
+
+- 2026-02-07 02:10:04Z
+  - Status: `in_progress` -> `done` (T-101)
+  - Actions:
+    - Added metrics adapter dependency/runbook guidance in `server/README.md`:
+      - optional dependency/install policy (`memcache` package + memcached service).
+      - troubleshooting mapped to structured fallback reasons:
+        - `invalid_config`
+        - `init_failed`
+  - Evidence:
+    - Server runbook now maps each `server.metrics.unavailable` reason to concrete operator actions.
+  - Next action:
+    - Define T-102 metrics adapter health-check smoke (assert fallback-to-healthy transition readiness once memcache dependency is available).
+
+- 2026-02-07 02:10:59Z
+  - Status: `in_progress` -> `done` (T-102)
+  - Actions:
+    - Defined deterministic healthy-metrics smoke strategy with opt-in gating and environment prerequisites:
+      - `docs/metrics-health-smoke-plan.md`
+    - Linked strategy into runbooks:
+      - `server/README.md`
+      - `README.md`
+  - Evidence:
+    - Plan now specifies prerequisites, pass/fail contract, and follow-up implementation sequence without impacting default CI/local flows.
+  - Next action:
+    - Define T-103 for implementing optional healthy-path smoke command + test scaffold using the documented gate.
+
+- 2026-02-07 02:12:55Z
+  - Status: `in_progress` -> `done` (T-103)
+  - Actions:
+    - Implemented optional healthy metrics smoke scaffold:
+      - added env-gated smoke test:
+        - `tests/smoke/server-metrics-healthy.optional.test.ts`
+      - added opt-in command:
+        - `package.json` `test:metrics:healthy`
+    - Updated docs and runbooks for the new optional command:
+      - `docs/metrics-health-smoke-plan.md`
+      - `server/README.md`
+      - `README.md`
+      - `docs/client-build-support.md`
+    - Kept default test/verify behavior unchanged via `test.skip` when `BQ_TEST_METRICS_HEALTH` is not set.
+  - Evidence:
+    - `bun run lint` passed.
+    - `bun run verify:modern:node22` passed (`server-metrics-healthy.optional` skipped by default).
+    - `bun run verify:legacy:node22` passed (`server-metrics-healthy.optional` skipped by default).
+  - Next action:
+    - Define T-104 structured healthy-path signal (`server.metrics.ready`) so optional smoke can assert positive backend readiness deterministically.
+
+- 2026-02-07 02:16:33Z
+  - Status: `in_progress` -> `done` (T-104)
+  - Actions:
+    - Finalized structured healthy-path signal contract:
+      - `server/js/metrics-runtime.js` now emits `server.metrics.ready` when memcache-backed metrics reports ready.
+      - optional healthy smoke asserts `server.metrics.ready` and no longer depends on unstructured log text.
+    - Updated taxonomy/runbook docs to reflect the active contract:
+      - `docs/server-logging-taxonomy.md`
+      - `docs/metrics-health-smoke-plan.md`
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/metrics-runtime.test.ts tests/smoke/server-metrics-healthy.optional.test.ts` passed (`server-metrics-healthy.optional` skipped by default).
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-105 healthy metrics smoke prerequisites preflight (fail-fast dependency/service validation before running opt-in healthy smoke).
+
+- 2026-02-07 02:18:16Z
+  - Status: `in_progress` -> `done` (T-105)
+  - Actions:
+    - Added healthy-smoke prerequisites preflight command:
+      - `tools/check-metrics-healthy-prereqs.cjs`
+      - validates optional `memcache` dependency presence.
+      - validates memcached reachability at `BQ_TEST_METRICS_HOST:BQ_TEST_METRICS_PORT` (defaults `127.0.0.1:11211`).
+    - Wired preflight into optional healthy smoke command:
+      - `package.json`:
+        - `check:metrics:healthy-prereqs`
+        - `test:metrics:healthy` now runs preflight before env-gated smoke.
+    - Updated docs/runbooks:
+      - `README.md`
+      - `server/README.md`
+      - `docs/client-build-support.md`
+      - `docs/metrics-health-smoke-plan.md`
+  - Evidence:
+    - `bun run check:metrics:healthy-prereqs` fails fast with actionable output when prerequisites are missing.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Define T-106 optional CI profile for healthy metrics smoke with provisioned memcached service.
+
+- 2026-02-07 02:20:02Z
+  - Status: `in_progress` -> `done` (T-106)
+  - Actions:
+    - Added optional healthy metrics CI workflow:
+      - `.github/workflows/verify-metrics-healthy.yml` (`workflow_dispatch` only).
+      - provisions `memcached` service in job container context.
+      - installs optional `memcache` package and runs `bun run test:metrics:healthy`.
+    - Updated supporting docs to surface optional automation path:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/metrics-health-smoke-plan.md`
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run check:metrics:healthy-prereqs` returns actionable fail output when prerequisites are missing (local unprepared environment).
+  - Next action:
+    - Define T-107 operational runbook for triggering and interpreting `verify-metrics-healthy` workflow results.
+
+- 2026-02-07 02:20:33Z
+  - Status: `in_progress` -> `done` (T-107)
+  - Actions:
+    - Added explicit runbook for optional healthy metrics workflow trigger + triage:
+      - `docs/metrics-health-smoke-plan.md`
+      - includes expected success signals and common failure mappings.
+    - Added cross-links to the runbook:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - Documentation reflects current workflow + command contracts end-to-end.
+    - `bun run verify:modern:node22` and `bun run verify:legacy:node22` remained green in this slice.
+  - Next action:
+    - Define T-108 post-push workflow evidence capture (run `verify-metrics-healthy` in GitHub and record baseline output).
+
+- 2026-02-07 03:41:04Z
+  - Status: `in_progress` -> `blocked` (T-108)
+  - Actions:
+    - Attempted workflow dispatch for post-push evidence capture:
+      - `gh workflow run verify-metrics-healthy.yml --ref modernize`
+    - Confirmed remote workflow absence:
+      - GitHub API reports no workflows in `mozilla/BrowserQuest` (`total_count: 0`).
+  - Evidence:
+    - Dispatch failed with: `HTTP 404: Not Found (https://api.github.com/repos/mozilla/BrowserQuest/actions/workflows/verify-metrics-healthy.yml)`.
+  - Blocker:
+    - Workflow file is local-only until branch changes are committed and pushed to a remote ref.
+  - Next action:
+    - Push branch containing `.github/workflows/verify-metrics-healthy.yml`, then rerun dispatch and record run URL/id.
+
+- 2026-02-07 03:41:04Z
+  - Status: `in_progress` -> `done` (T-109)
+  - Actions:
+    - Fixed healthy metrics runtime compatibility for current `memcache` package API:
+      - `server/js/metrics.js` now supports both legacy (`Client`) and modern (`Memcache`/default) constructors.
+      - added callback-safe `setValue`/`getValue` adapters for promise-based modern client operations.
+      - fixed ready/connect race windows (connect listener ordering + immediate callback when already ready).
+    - Fixed optional healthy smoke event capture:
+      - `tests/smoke/server-metrics-healthy.optional.test.ts` now parses structured events from both `stdout` and `stderr`.
+    - Validated healthy path end-to-end with temporary local provisioning:
+      - installed `memcache` using `bun add --no-save memcache`.
+      - started local memcached via docker container.
+      - ran `bun run test:metrics:healthy` (passed).
+      - removed temporary local memcache package and container after validation.
+  - Evidence:
+    - `bun run test:metrics:healthy` passed in prepared local env.
+    - `bun run lint` and `bun run format:check` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Keep T-108 open as blocked until branch push enables GitHub workflow execution evidence capture.
+
+## Next roadmap slice (active queue)
+
+### T-003A: Base gameplay primitives import hygiene
+- Status: `done`
+- Scope: add explicit imports for `Class`, `Types`, `log`, `_`, util helpers in:
+  - `animation`, `area`, `camera`, `entity`, `exceptions`, `infomanager`, `pathfinder`, `sprite`, `tile`, `timer`, `transition`, `updater`.
+- Acceptance criteria: no missing-import hits for these files in the global-debt check script.
+- Verification: `bun run test` and `bun run build:vite`.
+
+### T-003B: Character/NPC/item family import hygiene
+- Status: `done`
+- Scope: explicit imports in:
+  - `character`, `player`, `warrior`, `npc`, `npcs`, `mob`, `mobs`, `item`, `items`, `chest`.
+- Acceptance criteria: these modules run without implicit `Types/log/_` globals.
+- Verification: `bun run test` and `bun run build:vite`.
+
+### T-003C: App shell import hygiene
+- Status: `done`
+- Scope: `client/js-esm/app.js` and any remaining `main.js` global utility usage.
+- Acceptance criteria: app shell has explicit imports for util/log/underscore needs.
+- Verification: `bun run test` and `bun run build:vite`.
+
+### T-004: Modern-only Vite build profile
+- Status: `done`
+- Scope: default `build:vite` targets modern page cleanly; legacy page remains buildable via an explicit opt-in script/profile.
+- Acceptance criteria: modern build has no legacy non-module script warnings.
+- Verification: `bun run build:vite` (clean modern), plus opt-in legacy build command.
+
+### T-005: Runtime payload guards
+- Status: `done`
+- Scope: validate and clamp inbound/outbound name/chat payload size/shape on server boundary.
+- Acceptance criteria: malformed payloads are rejected safely; normal gameplay payloads unaffected.
+- Verification: `bun run test` plus focused server unit/smoke tests for invalid payloads.
+
+### T-006: Logging modernization
+- Status: `done`
+- Scope: structured server logs for connect/disconnect/error paths with consistent fields.
+- Acceptance criteria: key lifecycle events are machine-parseable and include error stacks.
+- Verification: smoke run + assertion in tests on log format for selected events.
+
+### T-007: Underscore reduction batch 1
+- Status: `done`
+- Scope: replace low-risk underscore usages in ESM modules with native APIs.
+- Acceptance criteria: no behavior change; reduced underscore call sites in targeted files.
+- Verification: `bun run test` and `bun run build:vite`.
+
+### T-008: Underscore reduction batch 2 (medium-risk)
+- Status: `done`
+- Scope: replace underscore usage in selected medium-risk client modules without changing gameplay behavior.
+- Acceptance criteria: targeted files have no underscore callsites and runtime/tests remain stable.
+- Verification: `bun run test` and `bun run build:vite`.
+
+### T-009: Legacy build noise cleanup
+- Status: `done`
+- Scope: prevent `build:client` legacy optimization from processing modern `js-esm` sources.
+- Acceptance criteria: legacy build no longer reports `client-build/js-esm/*` uglify parse errors.
+- Verification: `bun run build:client`.
+
+### T-010: Structured log smoke assertions
+- Status: `done`
+- Scope: verify structured websocket lifecycle events in an end-to-end smoke test.
+- Acceptance criteria: smoke test asserts presence/shape of key events (server start/listen, ws open/close).
+- Verification: `bun run test`.
+
+### T-011: Underscore reduction batch 3 (high-risk loops)
+- Status: `done`
+- Scope: incrementally replace underscore in `client/js-esm/game.js` and related hot paths with behavior-preserving refactors.
+- Acceptance criteria: reduced underscore callsites in `game.js` with no gameplay regression in smoke checks.
+- Verification: `bun run test` and `bun run build:vite`.
+
+### T-012: Underscore reduction batch 4 (remaining modules)
+- Status: `done`
+- Scope: remove remaining underscore usage in `client/js-esm/*` outside already-modernized files.
+- Acceptance criteria: underscore call scan over `client/js-esm/*.js` has no matches.
+- Verification: `bun run test` and `bun run build:vite`.
+
+### T-013: Server underscore reduction
+- Status: `done`
+- Scope: remove underscore dependency from `server/js/*` runtime modules without changing gameplay behavior.
+- Acceptance criteria: underscore call scan over `server/js/*.js` has no matches.
+- Verification: `bun run test` and server smoke checks.
+
+### T-014: Remove underscore package dependency
+- Status: `done`
+- Scope: remove remaining underscore usage in tooling/bootstraps and drop `underscore` from `package.json`.
+- Acceptance criteria: no repo runtime/tool usage requires npm `underscore`; lockfile updated.
+- Verification: `bun run test`, `bun run build:vite`, `bun run build:client`.
+
+### T-015: Lint/format modernization baseline
+- Status: `done`
+- Scope: add ESLint flat config + Prettier for `server/js`, `client/js-esm`, `shared/js`, and `tests` with a non-disruptive baseline.
+- Acceptance criteria: lint/format scripts exist and pass on current codebase.
+- Verification: `bun run lint` and `bun run format:check`.
+
+### T-016: Server runtime modernization (CJS hardening)
+- Status: `done`
+- Scope: modernize server module/style hot spots for Node 22 readiness without full ESM migration.
+- Acceptance criteria: server smoke tests pass on latest Node LTS/Bun with no deprecated runtime warnings in startup path.
+- Verification: `bun run test` plus manual `bun run dev:server` startup check.
+
+### T-017: Legacy client isolation plan
+- Status: `done`
+- Scope: isolate legacy AMD client path from modern Vite path with explicit support policy and CI/build gating.
+- Acceptance criteria: documented support matrix + dedicated scripts/checks for modern-only vs legacy-inclusive builds.
+- Verification: `bun run build:vite` and `bun run build:vite:legacy`.
+
+### T-018: CI verification automation
+- Status: `done`
+- Scope: add CI workflow(s) to run `verify:modern` on every change and `verify:legacy` on migration-sensitive changes.
+- Acceptance criteria: reproducible pipeline config exists in-repo and passes on current branch.
+- Verification: run workflow locally (or equivalent command parity) and confirm green execution.
+
+### T-019: Legacy runtime debt triage
+- Status: `done`
+- Scope: audit remaining legacy AMD/global runtime debt and produce a prioritized removal plan with concrete tickets.
+- Acceptance criteria: debt inventory is categorized by risk/impact with an execution order.
+- Verification: documented triage artifact committed and reviewed against current scripts/build paths.
+
+### T-020: Server export/global cleanup
+- Status: `done`
+- Scope: remove implicit `module.exports = Name = ...` patterns and explicitize server module dependencies.
+- Acceptance criteria: server modules no longer rely on implicit global symbol assignment side effects.
+- Verification: `bun run test` + `bun run dev:server` startup + `bun run build:vite`.
+
+### T-021: Shared gametypes single-source adapter
+- Status: `done`
+- Scope: define one authoritative gametypes implementation and adapt consumers without duplicated logic copies.
+- Acceptance criteria: no duplicated gametypes logic body across `shared` and ESM compat layer.
+- Verification: `bun run test` + `bun run build:vite` + focused protocol smoke checks.
+
+### T-022: Legacy build boundary tightening
+- Status: `done`
+- Scope: reduce legacy asset/runtime surface copied into legacy-inclusive outputs to minimum required set.
+- Acceptance criteria: legacy build still works, but copied/runtime footprint is reduced and documented.
+- Verification: `bun run verify:legacy`.
+
+### T-023: Legacy boot globals reduction
+- Status: `done`
+- Scope: reduce non-essential global boot scripts in `client/index.html` while preserving compatibility behavior.
+- Acceptance criteria: fewer global script dependencies with no regression in legacy path startup.
+- Verification: `bun run verify:legacy` + manual legacy page smoke.
+
+### T-024: Legacy runtime retirement plan
+- Status: `done`
+- Scope: define measurable readiness criteria and cutover steps to retire `client-build` path safely.
+- Acceptance criteria: approved checklist exists with rollback/contingency plan.
+- Verification: checklist walkthrough against current build/test gates.
+
+### T-025: Modern gameplay parity e2e coverage
+- Status: `done`
+- Scope: add focused e2e coverage for modern runtime critical flows (login, move, combat, loot, zone, reconnect).
+- Acceptance criteria: reproducible modern-flow checks exist and are runnable in CI or scripted local parity mode.
+- Verification: e2e command(s) pass on current branch and are documented in support/runbook docs.
+
+### T-026: Modern browser-e2e harness
+- Status: `done`
+- Scope: add Playwright-based browser-level smoke flow for `client/modern.html` against local server.
+- Acceptance criteria: at least one stable browser e2e scenario runs headless in CI/local and validates modern UI boot + basic interaction.
+- Verification: browser e2e command passes locally and is wired into CI strategy.
+
+### T-027: Modern browser runtime parity hardening
+- Status: `done`
+- Scope: fix modern-browser runtime regressions surfaced by Playwright and increase browser smoke depth to assert first real session startup against live server.
+- Acceptance criteria: modern browser smoke asserts websocket handshake + started session signals, with no page-level runtime exceptions.
+- Verification: `bun run test:modern-browser`, `bun run verify:modern`, `bun run verify:legacy`.
+
+### T-028: Browser protocol action parity hooks
+- Status: `done`
+- Scope: add deterministic browser-test hooks or controls to assert key in-browser actions (chat/move/zone) over live websocket in Playwright without flaky timing.
+- Acceptance criteria: at least one stable browser test validates post-handshake gameplay actions from the browser runtime.
+- Verification: dedicated Playwright command passes locally and in CI.
+
+### T-029: Browser move/zone action parity
+- Status: `done`
+- Scope: extend browser protocol parity with stable movement/zoning assertions from user-like interactions or explicit deterministic controls.
+- Acceptance criteria: Playwright validates at least one move/zone protocol roundtrip in-browser without relying on brittle timing.
+- Verification: `bun run test:modern-browser` plus verification gates.
+
+### T-030: Browser reconnect protocol parity
+- Status: `done`
+- Scope: extend browser protocol parity to cover reconnect behavior and repeat handshake from the real modern UI runtime.
+- Acceptance criteria: Playwright validates reconnect emits a second `go` handshake and second `HELLO`/`WELCOME` roundtrip after reload.
+- Verification: `bun run test:modern-browser` plus verification gates.
+
+### T-031: Browser combat/loot protocol parity
+- Status: `done`
+- Scope: add deterministic browser test controls for attack/hit/lootmove and validate stable protocol roundtrip assertions in Playwright.
+- Acceptance criteria: browser e2e includes at least one deterministic combat/loot action flow with non-flaky assertions.
+- Verification: `bun run test:modern-browser` plus verification gates.
+
+### T-032: Dependency/runtime modernization audit
+- Status: `done`
+- Scope: capture current runtime/tooling/dependency baseline and identify concrete upgrade candidates with risk notes.
+- Acceptance criteria: committed audit artifact with actionable execution order for next upgrade tranche.
+- Verification: `bun outdated` output incorporated and audited document committed.
+
+### T-033: jQuery 4 migration readiness
+- Status: `done`
+- Scope: expand UI coverage around jQuery-driven flows and define safe trial-upgrade criteria before bumping to `jquery@4`.
+- Acceptance criteria: measurable pass/fail checklist exists for attempting jQuery 4 without breaking modern or legacy play entry flows.
+- Verification: expanded browser assertions + documented trial plan, then gate runs.
+
+### T-034: Scoped jQuery 4 trial upgrade
+- Status: `done`
+- Scope: run a controlled `jquery@4` upgrade attempt on this branch, capture regressions, and either keep upgrade with fixes or roll back with a documented blocker list.
+- Acceptance criteria: trial outcome is explicit (`upgrade landed` or `blocked`), with concrete breakage evidence and next actions.
+- Verification: `bun run test:modern-browser`, `bun run verify:modern`, `bun run verify:legacy`, and `bun outdated`.
+
+### T-035: Node 22 baseline verification
+- Status: `done`
+- Scope: verify modern and legacy gates on Node 22 runtime and document any compatibility deltas from current Node 20 local baseline.
+- Acceptance criteria: documented Node 22 pass/fail outcome with required fixes (if any) and updated runtime policy notes.
+- Verification: `node -v` (Node 22), `bun run verify:modern`, `bun run verify:legacy`, and browser parity run.
+
+### T-036: CI Node 22 baseline matrix
+- Status: `done`
+- Scope: add CI coverage (or matrix extension) that runs modernization gates on Node 22 to keep runtime baseline enforced.
+- Acceptance criteria: workflow config includes Node 22 execution path for relevant verify/browser jobs and is green.
+- Verification: workflow parity command(s) or local equivalent pass and are documented.
+
+### T-037: Runtime policy pinning
+- Status: `done`
+- Scope: pin Node/Bun policy in repo metadata (`engines`, `.nvmrc`, and docs) so local dev defaults align with CI/runtime targets.
+- Acceptance criteria: runtime policy files/docs are explicit and consistent with verified baselines.
+- Verification: documented policy check plus standard verify gates pass.
+
+### T-038: Runtime drift guardrails
+- Status: `done`
+- Scope: add lightweight runtime-version preflight checks to fail fast when Node/Bun versions drift from policy in local/CI workflows.
+- Acceptance criteria: clear actionable failure message when runtime version is out-of-policy.
+- Verification: simulate supported and unsupported runtime invocations for the preflight command and run standard verify gates.
+
+### T-039: Node 22 dev bootstrap ergonomics
+- Status: `done`
+- Scope: add developer-friendly runtime bootstrap guidance/shortcuts so switching to policy runtimes is one command.
+- Acceptance criteria: documented and runnable bootstrap path for Node 22 + Bun policy compliance.
+- Verification: bootstrap path succeeds from a mismatched runtime shell and passes `bun run check:runtime`.
+
+### T-040: Runtime-preflight runbook alignment
+- Status: `done`
+- Scope: update runbooks/CI docs so runtime-preflight behavior is explicit for contributors and pipeline maintainers.
+- Acceptance criteria: docs clearly describe expected preflight failure modes and Node 22 wrapper recovery path.
+- Verification: documentation walkthrough aligns with current scripts/workflows and no contradictions remain.
+
+### T-041: Legacy jQuery 4 risk scan
+- Status: `done`
+- Scope: audit legacy AMD client (`client/js/**`) for jQuery patterns likely to break under jQuery 4 and define remediation batches.
+- Acceptance criteria: prioritized risk list with concrete files/callsite patterns and ticketized fix order.
+- Verification: committed scan artifact with actionable remediation tickets.
+
+### T-042: Legacy `.size()` removal
+- Status: `done`
+- Scope: replace legacy `.size()` usage with `.length` equivalents in `client/js/**`.
+- Acceptance criteria: no `.size()` calls remain in legacy app/runtime files.
+- Verification: static scan + `bun run verify:legacy`.
+
+### T-043: Legacy `.bind/.unbind` migration
+- Status: `done`
+- Scope: replace legacy `.bind()`/`.unbind()` usage with `.on()`/`.off()` in `client/js/{main,app}.js`.
+- Acceptance criteria: no `.bind()`/`.unbind()` in legacy app/runtime files; behavior parity preserved.
+- Verification: static scan + `bun run verify:legacy`.
+
+### T-044: Legacy event-wiring smoke
+- Status: `done`
+- Scope: add targeted smoke assertions for legacy UI event wiring affected by `.on/.off` migration.
+- Acceptance criteria: regression guard exists for critical legacy controls impacted by event API migration.
+- Verification: legacy-focused smoke run + `bun run verify:legacy`.
+
+### T-045: Legacy event helper centralization
+- Status: `done`
+- Scope: centralize legacy jQuery compatibility event helpers to avoid duplicated wrapper logic in `client/js/main.js` and `client/js/app.js`.
+- Acceptance criteria: one shared helper module/function surface used by legacy app/runtime event bindings.
+- Verification: static usage check + `bun run test:legacy-browser:node22` + `bun run verify:legacy:node22`.
+
+### T-046: Legacy browser smoke CI gate
+- Status: `done`
+- Scope: add path-filtered CI workflow for `test:legacy-browser` so legacy event-wiring compatibility regressions are caught automatically.
+- Acceptance criteria: workflow exists, runs on legacy-sensitive changes, and is green.
+- Verification: local parity command `bun run test:legacy-browser:node22` passes and workflow config is committed.
+
+### T-047: Legacy browser smoke depth expansion
+- Status: `done`
+- Scope: expand legacy browser smoke beyond intro wiring to cover additional stable controls as legacy startup reliability allows.
+- Acceptance criteria: increased legacy smoke coverage without flaky assertions.
+- Verification: `bun run test:legacy-browser:node22` remains green and covers additional deterministic checks.
+
+### T-048: Legacy smoke harness stabilization
+- Status: `done`
+- Scope: add deterministic legacy test harness controls (or intro-overlay bypass) so additional legacy UI checks can be asserted without click-interception flakes.
+- Acceptance criteria: previously flaky legacy control assertions become deterministic and green.
+- Verification: expanded legacy smoke passes consistently in local/CI runs.
+
+### T-049: Runtime onboarding doc alignment
+- Status: `done`
+- Scope: align contributor onboarding docs with new Node22 wrapper scripts and runtime-preflight workflow expectations.
+- Acceptance criteria: onboarding path clearly maps from mismatched shell runtime to passing verify commands.
+- Verification: docs walkthrough from clean shell reproduces `check:runtime:node22` and `verify:modern:node22`.
+
+### T-050: Modernization status snapshot
+- Status: `done`
+- Scope: add a concise status snapshot section in root README pointing to roadmap/support/audit artifacts and current tier-1 commands.
+- Acceptance criteria: newcomer can find current modernization status and canonical verification commands in under one minute.
+- Verification: docs review of README links/commands against current scripts and artifacts.
+
+### T-051: Docs-script parity sweep
+- Status: `done`
+- Scope: reconcile all runbook/support docs against current scripts/workflows to remove stale command references.
+- Acceptance criteria: docs command references match `package.json` scripts and active workflows exactly.
+- Verification: scripted or manual cross-check of docs command strings against `package.json` and workflow steps.
+
+### T-052: Legacy browser CI discoverability
+- Status: `done`
+- Scope: ensure docs explicitly mention the new `verify-legacy-browser` CI workflow and when it triggers.
+- Acceptance criteria: contributor can quickly locate legacy browser CI gate behavior and local parity command.
+- Verification: docs contain workflow name, trigger scope summary, and parity command.
+
+### T-053: Browser command naming cleanup
+- Status: `done`
+- Scope: introduce clearer browser script aliases (`test:browser:modern`, `test:browser:legacy`) while preserving backward-compatible existing script names.
+- Acceptance criteria: both modern and legacy browser commands are discoverable and documented with consistent naming.
+- Verification: aliases run successfully and docs reference the canonical names.
+
+### T-054: CI command alias alignment
+- Status: `done`
+- Scope: update browser CI workflows to use canonical `test:browser:*` script aliases for consistency with docs.
+- Acceptance criteria: workflow steps invoke alias names and remain behaviorally identical.
+- Verification: local alias command parity plus workflow config diff review.
+
+### T-055: Strict-mode undeclared variable sweep
+- Status: `done`
+- Scope: fix undeclared-identifier regressions discovered by strict ESM/browser runs and mirror parity-safe fixes to legacy equivalents.
+- Acceptance criteria: modern browser smoke no longer throws undeclared-variable runtime errors in covered paths.
+- Verification: browser alias Node22 runs pass after fixes and static no-undef sweep is clean.
+
+### T-056: ESM undeclared-variable lint guardrail
+- Status: `done`
+- Scope: enforce `no-undef` for `client/js-esm/**/*.js` so strict-mode identifier regressions fail fast in lint/CI.
+- Acceptance criteria: `bun run lint` enforces `no-undef` for ESM client files without broadening unrelated legacy/server debt.
+- Verification: lint passes and targeted `bunx eslint "client/js-esm/**/*.js" --rule "no-undef:error"` is clean.
+
+### T-057: Modern browser startup flake hardening
+- Status: `done`
+- Scope: harden modern Playwright smoke startup bootstrap so intro-to-start transitions are deterministic under CI timing jitter.
+- Acceptance criteria: modern browser smoke no longer intermittently stalls on intro state after play click.
+- Verification: repeated `bun run test:browser:modern:node22` pass after helper hardening.
+
+### T-058: Server logger dependency importization
+- Status: `done`
+- Scope: replace implicit global `log` usage in `server/js/**/*.js` with explicit imports from `server/js/log.js`.
+- Acceptance criteria: server runtime modules no longer depend on ambient `log` globals.
+- Verification: enable `no-undef` for server lint scope and keep `verify:modern`/`verify:legacy` green.
+
+### T-059: Server logger callsite simplification
+- Status: `done`
+- Scope: simplify server logger callsites by removing redundant null-guards and normalizing event helper usage now that explicit logger singleton is guaranteed.
+- Acceptance criteria: server logging callsites are consistent, concise, and avoid repetitive guard boilerplate.
+- Verification: `bun run lint` + `bun run verify:modern:node22` remain green.
+
+### T-060: Logger event payload normalization
+- Status: `done`
+- Scope: reduce repeated structured-event field boilerplate in server lifecycle paths by introducing lightweight helper patterns where repetition is high.
+- Acceptance criteria: equivalent event payloads with less duplicated callsite code and unchanged event semantics.
+- Verification: `bun run lint` + `bun run verify:modern:node22` + selected log smoke tests stay green.
+
+### T-061: Logger singleton safety hardening
+- Status: `done`
+- Scope: harden logger singleton API (`setLevel` input validation/defaulting) and add unit tests for shared-instance behavior and level-change semantics.
+- Acceptance criteria: invalid level inputs do not leave logger in broken state; singleton behavior is explicit and test-covered.
+- Verification: updated logger unit tests pass alongside `bun run verify:modern:node22`.
+
+### T-062: Server logging semantics audit
+- Status: `done`
+- Scope: audit structured server event names and payload fields for consistency, and document a normalized event taxonomy for future log analysis.
+- Acceptance criteria: core server lifecycle events follow a consistent naming and field contract with clear documentation.
+- Verification: documentation + smoke checks confirm unchanged runtime behavior while field naming remains stable.
+
+### T-063: Structured-log contract tests expansion
+- Status: `done`
+- Scope: extend structured-log smoke tests to assert fatal-event naming and required payload fields for server error taxonomy stability.
+- Acceptance criteria: tests fail on accidental fatal-event naming drift or missing mandatory fields.
+- Verification: `bun test tests/smoke/server-structured-logs.test.ts` (or equivalent expanded suite) plus `verify:modern:node22`.
+
+### T-064: Structured-log fatal exception parity test
+- Status: `done`
+- Scope: add explicit contract coverage for `server.fatal.uncaught_exception` event semantics and field expectations, mirroring rejection-path coverage.
+- Acceptance criteria: both fatal taxonomy events (`uncaught_exception`, `unhandled_rejection`) are test-guarded.
+- Verification: expanded structured-log smoke suite passes and remains green in `verify:modern:node22`.
+
+### T-065: Structured-log smoke harness deduplication
+- Status: `done`
+- Scope: refactor structured-log smoke tests to reuse shared server spawn/event capture helpers and reduce duplicated setup/reader logic.
+- Acceptance criteria: equivalent test coverage with lower boilerplate and easier future event-contract additions.
+- Verification: structured-log smoke suite remains green and readable after helper extraction.
+
+### T-066: Structured-log test file split
+- Status: `done`
+- Scope: split structured-log smoke coverage into focused files (lifecycle vs fatal taxonomy) while preserving shared helper utilities.
+- Acceptance criteria: targeted smoke invocation is faster and easier (`bun test` on individual files) with unchanged assertions.
+- Verification: both split suites pass individually and as part of `verify:modern:node22`.
+
+### T-067: Structured-log fatal taxonomy parameterization
+- Status: `done`
+- Scope: convert fatal taxonomy tests into a table-driven pattern to reduce repeated setup/assertion code while preserving per-event semantics.
+- Acceptance criteria: both fatal event contracts remain fully covered with less duplicated test body code.
+- Verification: fatal suite + full `verify:modern:node22` remain green.
+
+### T-068: Structured-log harness diagnostics hardening
+- Status: `done`
+- Scope: improve shared structured-log harness failure diagnostics (enhanced timeout context, captured recent lines/events) for faster triage in CI.
+- Acceptance criteria: failures in structured-log smoke tests provide actionable context without reruns.
+- Verification: harness changes keep structured-log suites and modernization verify gates green.
+
+### T-069: Structured-log harness API polish
+- Status: `done`
+- Scope: clean up helper API naming/types and add minimal inline usage docs for structured-log harness maintainability.
+- Acceptance criteria: harness surface is clear and self-documenting for future smoke test additions.
+- Verification: lint + structured-log suites + `verify:modern:node22` remain green.
+
+### T-070: Structured-log harness export hygiene
+- Status: `done`
+- Scope: clean dead/unused harness exports and align import usage across split structured-log test files.
+- Acceptance criteria: no stale exported types/helpers remain and test imports are minimal/consistent.
+- Verification: lint + structured-log targeted suite + `verify:modern:node22` remain green.
+
+### T-071: Structured-log docs alignment
+- Status: `done`
+- Scope: update docs to reflect split structured-log smoke files and shared harness location for contributor discoverability.
+- Acceptance criteria: contributors can quickly run lifecycle-only or fatal-only structured-log smoke tests from docs.
+- Verification: docs command snippets match current test file paths and succeed locally.
+
+### T-072: Structured-log command alias cleanup
+- Status: `done`
+- Scope: introduce short `test:logs:*` script aliases and align docs to those canonical commands.
+- Acceptance criteria: contributors can run lifecycle/fatal structured-log suites without long file-path commands.
+- Verification: `bun run test:logs:lifecycle` and `bun run test:logs:fatal` pass; docs reference aliases consistently.
+
+### T-073: Modern jQuery surface audit
+- Status: `done`
+- Scope: inventory remaining jQuery usage in `client/js-esm/**`, categorize by risk/replaceability, and define phased reduction batches.
+- Acceptance criteria: committed audit artifact lists concrete files/callsites with execution order and regression guard suggestions.
+- Verification: static usage scan evidence is captured in-doc and linked from dependency/runtime audit.
+
+### T-074: Modern jQuery reduction batch 1 (low-risk)
+- Status: `done`
+- Scope: remove dead/low-risk jQuery usage from `client/js-esm/{sprite,map,gameclient}.js` with behavior-preserving replacements.
+- Acceptance criteria: those files no longer import/use jQuery and modern/legacy/browser gates remain green.
+- Verification: `bun run test:browser:modern:node22`, `bun run verify:modern:node22`, `bun run verify:legacy:node22`.
+
+### T-075: Modern jQuery reduction batch 2 (bubble DOM)
+- Status: `done`
+- Scope: replace `client/js-esm/bubble.js` jQuery DOM create/update/remove usage with vanilla DOM APIs.
+- Acceptance criteria: bubble behavior remains unchanged while removing direct jQuery dependency in the module.
+- Verification: modern browser parity suite + full modern/legacy verify gates.
+
+### T-076: Modern jQuery reduction batch 3 (app/main event surface)
+- Status: `done`
+- Scope: migrate remaining `.bind/.unbind` and high-coupling jQuery event wiring in `client/js-esm/{app,main}.js` incrementally.
+- Acceptance criteria: no `.bind/.unbind` callsites remain in these modern ESM files and browser parity remains stable.
+- Verification: `bun run test:browser:modern:node22` + `bun run test:browser:legacy:node22` + verify gates.
+
+### T-077: Modern jQuery reduction batch 4 (selector/event decoupling)
+- Status: `done`
+- Scope: reduce highest-frequency jQuery selector/event coupling in `client/js-esm/{app,main}.js` via small DOM helper seams while preserving behavior.
+- Acceptance criteria: targeted subset of repeated jQuery selector/event patterns is replaced with DOM helpers and modern/legacy parity remains stable.
+- Verification: `bun run test:browser:modern:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-078: Modern jQuery reduction batch 5 (app shell selector decoupling)
+- Status: `done`
+- Scope: reduce highest-frequency selector churn in `client/js-esm/app.js` (chat toggles, intro/button state, healthbar updates) with targeted DOM helper seams.
+- Acceptance criteria: selected hot-path app-shell interactions reduce direct jQuery selector calls while preserving behavior.
+- Verification: `bun run test:browser:modern:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-079: Modern jQuery reduction batch 6 (remaining selector debt)
+- Status: `done`
+- Scope: continue reducing remaining selector churn in `client/js-esm/{app,main}.js` around overlay toggles, parchment state transitions, and achievement wiring.
+- Acceptance criteria: targeted remaining selector-heavy clusters are migrated to helper seams without browser/legacy regressions.
+- Verification: `bun run test:browser:modern:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-080: Modern jQuery reduction batch 7 (main runtime selector/event debt)
+- Status: `done`
+- Scope: reduce remaining selector/event churn in `client/js-esm/main.js` (chat input key/focus handling, tooltip/focus wiring, global parchment checks, and repeated click handlers).
+- Acceptance criteria: targeted main-runtime selector-heavy clusters are migrated to DOM helper seams with stable browser/legacy parity.
+- Verification: `bun run test:browser:modern:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-081: Modern jQuery reduction batch 8 (main boot/runtime handler normalization)
+- Status: `done`
+- Scope: normalize remaining selector-heavy boot/runtime handler clusters in `client/js-esm/main.js` (bar/help/achievement/social/paging handlers and foreground touch/click wiring).
+- Acceptance criteria: targeted clusters use DOM helper seams with unchanged behavior in browser parity and legacy gates.
+- Verification: `bun run test:browser:modern:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-082: Modern jQuery reduction batch 9 (final runtime extraction)
+- Status: `done`
+- Scope: remove residual jQuery-only callsites in modern `client/js-esm/{app,main}.js` and evaluate removing modern runtime jQuery imports where feasible.
+- Acceptance criteria: modern app/main residual callsites are either migrated or explicitly documented as deferred, with unchanged browser/legacy parity.
+- Verification: `bun run test:browser:modern:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-083: Modern jQuery reduction batch 10 (app final extraction or defer)
+- Status: `done`
+- Scope: resolve remaining `client/js-esm/app.js` jQuery callsites (play-button watcher, container offset helper, achievement template wiring) via migration or explicit defer.
+- Acceptance criteria: remaining app jQuery surface is either eliminated or explicitly deferred with rationale and guardrails.
+- Verification: `bun run test:browser:modern:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-084: Modern jQuery-free policy lock
+- Status: `done`
+- Scope: codify and enforce that modern ESM runtime remains jQuery-free while keeping legacy AMD jQuery compatibility isolated.
+- Acceptance criteria: docs and lightweight static checks prevent reintroduction of jQuery imports/selectors in modern ESM runtime modules.
+- Verification: static scan commands + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-085: Modern jQuery-free guard expansion (full ESM scope)
+- Status: `done`
+- Scope: expand jQuery reintroduction guard from `client/js-esm/{app,main}.js` to all modern ESM runtime modules (`client/js-esm/**/*.js`).
+- Acceptance criteria: static policy check scans the full modern ESM tree and docs reflect the stronger guard scope.
+- Verification: `bun run check:modern-jquery-free` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-086: Modernization queue refresh (post-jQuery lock)
+- Status: `done`
+- Scope: define and prioritize the next modernization slice after modern runtime jQuery extraction (dependency/runtime modernization candidates with acceptance criteria and verification plans).
+- Acceptance criteria: concrete ticketized next-slice plan exists with explicit order and executable verification commands.
+- Verification: updated `MODERNIZE.md` queue with reviewed ticket scopes and run commands.
+
+### T-087: Modern-first local dev default entrypoint
+- Status: `done`
+- Scope: make `bun run dev` serve modern runtime by default at `/` while preserving explicit legacy fallback entry.
+- Acceptance criteria: root route defaults to modern entry, legacy route stays accessible, and behavior is documented.
+- Verification: runtime route probe + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-088: Static dev entry contract smoke
+- Status: `done`
+- Scope: add automated smoke tests for static dev entry routing contract (`/` modern default, `/index.html` legacy, env override support).
+- Acceptance criteria: deterministic smoke test exists and runs in the standard test suite.
+- Verification: `bun run test:static-entry` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-089: Modern-first Vite dev root redirect
+- Status: `done`
+- Scope: align Vite dev root redirect behavior with modern-first policy while keeping an explicit legacy override.
+- Acceptance criteria: `/` resolves to modern entry by default for Vite dev server and override flag is documented.
+- Verification: Vite route probe + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-090: Dependency/runtime modernization queue refresh
+- Status: `done`
+- Scope: refresh dependency/runtime modernization candidates after modern-first entrypoint consolidation (including direct dependency drift and execution order).
+- Acceptance criteria: ticketized next-slice plan with explicit pass/fail checks and verification commands is committed in `MODERNIZE.md`.
+- Verification: updated roadmap queue + supporting audit notes (`docs/dependency-modernization-audit.md`) are in sync.
+
+### T-091: ESLint 10 readiness scan
+- Status: `done`
+- Scope: assess compatibility of current lint stack/config with `eslint@10` and `@eslint/js@10` before upgrading.
+- Acceptance criteria: explicit compatibility checklist and blocker list exists (or ready-to-upgrade confirmation) with concrete affected files/config sections.
+- Verification: documented readiness results + current `bun run lint` baseline remains green.
+
+### T-092: Scoped ESLint 10 upgrade trial
+- Status: `done`
+- Scope: run controlled major upgrade trial for `eslint` + `@eslint/js`, apply minimal compatibility fixes, and keep upgrade only if full gates stay green.
+- Acceptance criteria: dependency bump is either landed with green verify gates or rolled back with a documented blocker list and retry plan.
+- Verification: `bun run lint` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` (+ `bun outdated` snapshot after trial).
+
+### T-093: Post-upgrade lint ecosystem watch
+- Status: `done`
+- Scope: track `@typescript-eslint` explicit `eslint@10` peer support and define revalidation cadence for future dependency drift checks.
+- Acceptance criteria: documented watch strategy exists with concrete check commands and trigger conditions for re-trial/cleanup work.
+- Verification: updated dependency audit and roadmap notes include watch actions and command cadence.
+
+### T-094: Runtime/library modernization candidate refresh
+- Status: `done`
+- Scope: identify the highest-leverage next modernization batch beyond lint/dependency drift (runtime/library modernization with measurable behavior and risk boundaries).
+- Acceptance criteria: next batch is ticketized with scope, acceptance criteria, verification commands, and dependency ordering.
+- Verification: updated `MODERNIZE.md` active queue with executable next-batch tickets and linked supporting docs.
+
+### T-095: Metrics backend optional-dependency startup hardening
+- Status: `done`
+- Scope: ensure server startup/degraded gameplay path remains functional when `metrics_enabled` is requested but metrics backend adapter is unavailable.
+- Acceptance criteria: server no longer crashes on metrics adapter init failure; fallback path is explicit and observable.
+- Verification: `bun test --timeout 20000 tests/smoke/server-handshake.test.ts` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-096: Metrics fallback observability and contract coverage
+- Status: `done`
+- Scope: add structured-log taxonomy/coverage for metrics fallback and ensure runtime handshake parity remains intact.
+- Acceptance criteria: `server.metrics.unavailable` event is documented and asserted by automated smoke coverage.
+- Verification: `bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-097: Metrics adapter boundary and dependency strategy
+- Status: `done`
+- Scope: implement metrics backend abstraction boundary (optional dependency policy, config validation, and testability without external memcache daemon).
+- Acceptance criteria: server metrics initialization is centralized and safe, emits structured fallback reasons, and has coverage for missing backend and invalid config paths.
+- Verification: `bun test --timeout 20000 tests/smoke/server-handshake.test.ts` + `bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-098: Metrics adapter modularization and unit contract coverage
+- Status: `done`
+- Scope: split metrics backend runtime into explicit adapter modules (no-op + memcache) with unit-level contracts for selection/fallback behavior.
+- Acceptance criteria: adapter selection logic is isolated/tested and does not require external memcache service for deterministic coverage.
+- Verification: new targeted unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-099: Metrics config runbook hardening
+- Status: `done`
+- Scope: document required metrics configuration fields, valid examples, and expected fallback semantics when metrics backend is unavailable or misconfigured.
+- Acceptance criteria: server/runtime docs clearly define metrics enablement contract and operators can configure metrics mode without code spelunking.
+- Verification: updated docs (`server/README.md` and/or dedicated runbook) reviewed against current runtime checks + smoke/log contracts.
+
+### T-100: Metrics config template alignment
+- Status: `done`
+- Scope: update `server/config_local.json-dist` (or equivalent config template) so metrics-enabled examples and field hints match runtime validation contract.
+- Acceptance criteria: shipped config template reflects required `metrics_enabled` fields and avoids ambiguous/invalid starter configs.
+- Verification: template/docs alignment review plus smoke tests (`server-handshake`, structured lifecycle logs) remain green.
+
+### T-101: Metrics adapter dependency policy/runbook
+- Status: `done`
+- Scope: document explicit memcache dependency/install policy for metrics-enabled deployments and add troubleshooting steps for `server.metrics.unavailable` reasons.
+- Acceptance criteria: operators can move from fallback mode to healthy metrics mode with clear install/config/runbook steps.
+- Verification: updated server/docs runbook references current adapter behavior and structured event semantics.
+
+### T-102: Metrics adapter health-path smoke design
+- Status: `done`
+- Scope: define a deterministic validation strategy for healthy metrics path (when memcache dependency/service is available) without destabilizing default CI/local flows.
+- Acceptance criteria: concrete test plan exists for optional healthy-metrics smoke coverage, including gating strategy and environment prerequisites.
+- Verification: documented in roadmap with explicit commands/env expectations and fallback-safe defaults.
+
+### T-103: Optional healthy metrics smoke scaffold
+- Status: `done`
+- Scope: implement opt-in healthy-path smoke test scaffold and script command (`BQ_TEST_METRICS_HEALTH=1`) without wiring into default verification gates.
+- Acceptance criteria: optional command/test exists, is documented, and cleanly skips in default environments.
+- Verification: default verify gates remain green; optional command behavior is documented and locally runnable in prepared environments.
+
+### T-104: Structured metrics-ready event contract
+- Status: `done`
+- Scope: emit an explicit structured `server.metrics.ready` event when memcache-backed metrics become ready, and assert it in optional healthy-path smoke.
+- Acceptance criteria: healthy metrics path has a deterministic positive structured signal; optional smoke no longer relies on unstructured log text.
+- Verification: optional healthy metrics smoke asserts `server.metrics.ready`; default verify gates remain green with test skipped by default.
+
+### T-105: Healthy metrics smoke prerequisites preflight
+- Status: `done`
+- Scope: add a fail-fast preflight command for optional healthy metrics smoke that validates memcache dependency + memcached reachability before test execution.
+- Acceptance criteria: `test:metrics:healthy` provides actionable setup failures instead of opaque runtime/test errors when prerequisites are missing.
+- Verification: `bun run check:metrics:healthy-prereqs` (expected pass in prepared env; actionable fail otherwise) + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-106: Optional CI profile for healthy metrics smoke
+- Status: `done`
+- Scope: add a separate opt-in CI workflow/profile that provisions memcached and runs `bun run test:metrics:healthy` without changing default verify gates.
+- Acceptance criteria: healthy metrics path can be validated in automation with deterministic environment setup and clear isolation from baseline CI.
+- Verification: workflow definition + docs landed; baseline verify gates remain green and optional healthy command preflight behavior is explicit/actionable.
+
+### T-107: Healthy metrics CI runbook and result contract
+- Status: `done`
+- Scope: document how to trigger `verify-metrics-healthy`, what successful output/events should look like, and how to triage common failures.
+- Acceptance criteria: contributors/operators can execute the optional workflow and interpret failures without code spelunking.
+- Verification: dedicated runbook section added and cross-linked from `README.md` / metrics plan docs.
+
+### T-108: Post-push healthy metrics CI evidence capture
+- Status: `blocked`
+- Scope: execute `verify-metrics-healthy` in GitHub Actions after branch push and capture a baseline success record in modernization docs.
+- Acceptance criteria: roadmap includes at least one successful workflow run reference (run URL/id + date) for healthy metrics path.
+- Verification: successful `verify-metrics-healthy` run visible in GitHub Actions and referenced in `MODERNIZE.md` log.
+- Blocker: workflow file is not available on remote until branch changes are pushed (`HTTP 404` on dispatch).
+
+### T-109: Memcache API compatibility and healthy signal determinism
+- Status: `done`
+- Scope: make metrics runtime compatible with modern `memcache` package exports and eliminate healthy-smoke signal loss from stream/event race conditions.
+- Acceptance criteria: in a prepared memcache+memcached env, `test:metrics:healthy` passes deterministically with `server.metrics.ready` and no fallback event.
+- Verification: local prepared run (`bun add --no-save memcache` + memcached container + `bun run test:metrics:healthy`) plus baseline `verify:modern:node22` and `verify:legacy:node22` remain green after cleanup.
