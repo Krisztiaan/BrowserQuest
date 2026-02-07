@@ -2205,6 +2205,32 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Define `T-131` manual-dispatch workflow evidence capture for `verify-protocol-invariant`.
 
+- 2026-02-07 04:32:31Z
+  - Status: `in_progress` -> `done` (T-131)
+  - Actions:
+    - Triggered protocol invariant workflow manually through `workflow_dispatch` to validate non-path-triggered operator flow.
+    - Captured workflow evidence for the manual-dispatch execution path.
+  - Evidence:
+    - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774218607`
+    - Conclusion: `success` (2026-02-07T04:31:31Z -> 2026-02-07T04:32:25Z)
+    - Event: `workflow_dispatch`
+    - Job: `protocol-invariant (node 22.x)` passed.
+  - Next action:
+    - Define `T-132` next protocol/testing modernization candidate queue beyond invariant gate hardening.
+
+- 2026-02-07 04:32:51Z
+  - Status: `in_progress` -> `done` (T-132)
+  - Actions:
+    - Refreshed post-invariant-gate modernization queue with ordered successor tickets:
+      - `T-133` protocol invariant negative-path parity (invalid payload rejection).
+      - `T-134` protocol replay transcript helper extraction for browser tests.
+      - `T-135` protocol workflow failure diagnostics (artifact/log summary).
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now contains a concrete next-slice protocol/testing queue beyond workflow trigger hardening.
+  - Next action:
+    - Start `T-133` protocol invariant negative-path parity coverage.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2994,7 +3020,31 @@ Only after Phase 2, introduce TS gradually:
 - Verification: workflow includes `workflow_dispatch`; docs mention trigger paths + manual trigger + local parity command.
 
 ### T-131: Manual-dispatch protocol workflow evidence capture
-- Status: `todo`
+- Status: `done`
 - Scope: run `verify-protocol-invariant` via `workflow_dispatch` and capture successful run evidence (URL/id/timestamps) in roadmap for operator triage baseline.
 - Acceptance criteria: roadmap includes at least one successful manual-dispatch run proving the workflow_dispatch path is functional.
 - Verification: `gh workflow run verify-protocol-invariant.yml -R Krisztiaan/BrowserQuest --ref modernize` succeeds and run evidence is logged in `MODERNIZE.md`.
+
+### T-132: Post-invariant-gate candidate refresh
+- Status: `done`
+- Scope: refresh the next protocol/runtime modernization queue beyond invariant CI gate hardening (focus on highest-leverage regression-signal improvements).
+- Acceptance criteria: roadmap includes ordered successor tickets with scope, acceptance criteria, and executable verification commands.
+- Verification: `MODERNIZE.md` adds queued post-T131 tickets with concrete command-level checks.
+
+### T-133: Protocol invariant negative-path parity
+- Status: `todo`
+- Scope: extend protocol invariant replay to cover one invalid payload case (e.g., malformed `MOVE`) and assert modern/legacy parity in rejection/connection behavior.
+- Acceptance criteria: invariant suite detects divergence on invalid-payload handling while staying deterministic.
+- Verification: updated `tests/browser/protocol-invariant.playwright.ts` + `bun run test:browser:protocol-invariant:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-134: Protocol replay transcript helper extraction
+- Status: `todo`
+- Scope: extract reusable transcript capture/assert helpers for browser protocol tests (`modern-protocol-actions` + `protocol-invariant`) to reduce repeated frame parsing/counting logic.
+- Acceptance criteria: both suites use shared helper module(s) with no behavior drift and improved readability.
+- Verification: `bun run test:browser:modern:node22` + `bun run test:browser:protocol-invariant:node22` pass after helper extraction.
+
+### T-135: Protocol workflow failure diagnostics
+- Status: `todo`
+- Scope: improve `verify-protocol-invariant` workflow failure triage by emitting concise artifact/log summaries from Playwright output when the gate fails.
+- Acceptance criteria: failing workflow run exposes actionable replay/test diagnostics without manual log spelunking.
+- Verification: workflow config update + docs note; local parity command remains green (`bun run test:browser:protocol-invariant:node22`).
