@@ -13,6 +13,7 @@ Document intentional CommonJS boundaries after server-side class modernization a
 - `tools/check-metrics-healthy-prereqs.cjs`
 - `tools/check-classjs-fanout.cjs`
 - `tools/check-package-mode-boundaries.cjs`
+- `tools/check-legacy-optimizer-integrity.cjs`
 - `bin/r.cjs` (legacy RequireJS optimizer runner wrapper)
 
 Reason: these scripts are intentionally CJS compatibility boundaries while package mode is ESM.
@@ -46,3 +47,4 @@ Reason: compatibility with existing tests and legacy client/server contracts.
 - `bun run test:browser:protocol:node22`
 - `bun run check:class-fanout`
 - `bun run check:package-mode-boundaries`
+- `bun run check:legacy-optimizer-integrity`

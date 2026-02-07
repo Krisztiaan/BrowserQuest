@@ -3077,6 +3077,54 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-191` legacy optimizer containment assessment.
 
+- 2026-02-07 06:10:02Z
+  - Status: `in_progress` -> `done` (T-191)
+  - Actions:
+    - Added optimizer strategy assessment artifact:
+      - `docs/legacy-optimizer-containment-assessment.md`
+    - Documented replace/contain options with effort/risk/rollback tradeoffs.
+    - Selected strategy:
+      - contain `r.js` behind explicit boundary now,
+      - drive toward eventual legacy runtime retirement instead of high-risk optimizer replacement.
+    - Linked assessment from `README.md` modernization snapshot.
+  - Evidence:
+    - Assessment artifact checked in with explicit recommendation and revisit triggers.
+  - Next action:
+    - Start `T-192` post-package-adoption queue refresh.
+
+- 2026-02-07 06:10:02Z
+  - Status: `in_progress` -> `done` (T-192)
+  - Actions:
+    - Refreshed queue after T-191 decision into implementation slices:
+      - `T-193` optimizer boundary provenance + integrity guardrails.
+      - `T-194` downstream `client-build/` consumer inventory and retirement dependency mapping.
+      - `T-195` legacy gate demotion rehearsal plan (required -> advisory) with rollback.
+      - `T-196` post-containment queue refresh.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes post-T191 execution queue aligned to containment-first strategy.
+  - Next action:
+    - Start `T-193` optimizer boundary provenance + integrity guardrails.
+
+- 2026-02-07 06:14:27Z
+  - Status: `in_progress` -> `done` (T-193)
+  - Actions:
+    - Added legacy optimizer integrity guard command:
+      - `tools/check-legacy-optimizer-integrity.cjs`
+      - `package.json` script `check:legacy-optimizer-integrity`
+      - integrated guard into `verify:legacy`.
+    - Added provenance/integrity baseline artifact:
+      - `docs/legacy-optimizer-provenance.md`
+    - Linked provenance and guard coverage in primary docs:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+  - Evidence:
+    - `bun run check:legacy-optimizer-integrity` passed.
+    - `bun run verify:legacy:node22` passed with new guard included.
+  - Next action:
+    - Start `T-194` downstream `client-build/` consumer inventory.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4226,13 +4274,37 @@ Only after Phase 2, introduce TS gradually:
 - Verification: docs/workflow scan + `check:package-mode-boundaries` + `verify:modern:node22` and `verify:legacy:node22`.
 
 ### T-191: Legacy optimizer containment assessment
-- Status: `todo`
+- Status: `done`
 - Scope: assess medium-term options for replacing or containing legacy RequireJS optimizer dependency (`r.js`) under ESM package mode.
 - Acceptance criteria: options are documented with effort/risk/rollback tradeoffs.
 - Verification: assessment artifact is checked in and linked from modernization docs.
 
 ### T-192: Post-package-adoption queue refresh
-- Status: `todo`
+- Status: `done`
 - Scope: refresh queue after T-190/T-191 to sequence concrete implementation slices from the chosen optimizer strategy.
 - Acceptance criteria: successor queue is ordered, scoped, and verification-backed.
 - Verification: `MODERNIZE.md` includes post-T191 successor queue with executable checks.
+
+### T-193: Optimizer boundary provenance and integrity guardrails
+- Status: `done`
+- Scope: record provenance/version metadata for vendored `bin/r.js` and enforce integrity checks for wrapper/boundary files.
+- Acceptance criteria: provenance artifact + integrity guard command exist and run in local verification.
+- Verification: new guard command + `verify:legacy:node22`.
+
+### T-194: Legacy artifact consumer inventory
+- Status: `todo`
+- Scope: identify all downstream consumers (if any) of `client-build/` artifacts and classify retirement blockers.
+- Acceptance criteria: inventory artifact exists with owner, dependency type, and migration path/risk per consumer.
+- Verification: inventory artifact is checked in and linked from modernization docs.
+
+### T-195: Legacy gate demotion rehearsal plan
+- Status: `todo`
+- Scope: design a reversible plan to demote legacy gate from required to advisory once T-194 blockers are cleared.
+- Acceptance criteria: demotion criteria, rollback trigger, and CI workflow impact are explicitly documented.
+- Verification: rehearsal plan artifact checked in with runnable command matrix.
+
+### T-196: Post-containment queue refresh
+- Status: `todo`
+- Scope: refresh queue after T-193/T-194/T-195 outcomes to schedule concrete implementation PR slices.
+- Acceptance criteria: successor queue is ordered, scoped, and evidence-driven.
+- Verification: `MODERNIZE.md` includes post-T195 successor queue with executable checks.

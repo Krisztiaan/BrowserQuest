@@ -43,6 +43,8 @@ Verification gates:
 - `bun run check:deps:drift` reports direct dependency drift (`npm outdated --depth=0`).
   - Node22 policy variant: `bun run check:deps:drift:node22`.
 - `bun run check:class-fanout` guards accidental new `server/js/lib/class.js` dependencies during native-class migration.
+- `bun run check:package-mode-boundaries` guards ESM package-mode assumptions (`"type": "module"` + legacy `bin/r.cjs` boundary wiring).
+- `bun run check:legacy-optimizer-integrity` guards vendored legacy optimizer/wrapper/config integrity and expected `bin/r.js` version header.
 - `bun run check:modern-jquery-free` enforces that modern ESM runtime (`client/js-esm/**/*.js`) stays jQuery-free.
 - `bun run verify:legacy` runs tests + legacy RequireJS build + legacy-inclusive Vite build.
 - `bun run test:modern-browser:install` (one-time) then `bun run test:browser:modern` runs a headless Playwright smoke against `client/modern.html`.
@@ -77,6 +79,8 @@ Modernization snapshot
 - Server core class-migration plan: `docs/server-core-class-migration-plan.md`
 - Package-mode migration checklist: `docs/package-mode-migration-checklist.md`
 - Runtime CJS boundary inventory: `docs/runtime-cjs-boundary-inventory.md`
+- Legacy optimizer containment assessment: `docs/legacy-optimizer-containment-assessment.md`
+- Legacy optimizer provenance + integrity baseline: `docs/legacy-optimizer-provenance.md`
 - Package-mode trial runbook: `docs/package-mode-trial-runbook.md`
 - Legacy/package-mode compatibility matrix: `docs/legacy-package-mode-compat-matrix.md`
 - Package-mode trial decision log: `docs/package-mode-trial-decision.md`

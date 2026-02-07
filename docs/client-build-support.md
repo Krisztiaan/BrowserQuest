@@ -36,11 +36,13 @@ This project currently ships two client build paths while modernization is in pr
   - Default compatibility path: `bun run start:server` (`server/js/main.js`).
   - Opt-in ESM bridge path: `bun run start:server:esm` (`server/js/main-esm.mjs`).
 - Modern gate: `bun run verify:modern`
-  - Runs `check:modern-jquery-free` (all `client/js-esm/**/*.js`), `lint`, `format:check`, `test`, and `build:vite`
+  - Runs `check:package-mode-boundaries`, `check:modern-jquery-free` (all `client/js-esm/**/*.js`), `lint`, `format:check`, `test`, and `build:vite`
 - Dependency drift check: `bun run check:deps:drift`
   - Node22 policy variant: `bun run check:deps:drift:node22`
 - Class fanout guard: `bun run check:class-fanout`
   - Fails only on newly introduced `server/js/lib/class.js` imports outside tracked allowlist.
+- Legacy optimizer integrity guard: `bun run check:legacy-optimizer-integrity`
+  - Verifies vendored optimizer/wrapper/config hashes and expected `bin/r.js` version header.
 - Modern gameplay parity smoke: `bun run test:modern-parity`
   - Covers login, move, chat, zone, combat-path signaling, lootmove, and reconnect against a live server.
 - Static dev entry smoke: `bun run test:static-entry`
@@ -73,7 +75,7 @@ This project currently ships two client build paths while modernization is in pr
   - Optional healthy metrics path: `bun run test:metrics:healthy` (runs `check:metrics:healthy-prereqs` before executing the env-gated smoke)
   - Shared harness: `tests/smoke/server-structured-logs.harness.ts`
 - Legacy gate: `bun run verify:legacy`
-  - Runs `test`, `build:client`, and `build:vite:legacy`
+  - Runs `check:package-mode-boundaries`, `check:legacy-optimizer-integrity`, `test`, `build:client`, and `build:vite:legacy`
 
 ## CI mapping
 
