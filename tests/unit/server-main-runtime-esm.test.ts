@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import MainRuntimeEsm, {
+    createRuntimeDependencies as createRuntimeDependenciesEsm,
     getWorldDistribution as getWorldDistributionEsm,
     main as mainEsm,
 } from '../../server/js/main-runtime-esm.mjs';
@@ -11,4 +12,5 @@ test('main runtime esm mirror exports cjs runtime contract', () => {
     expect(MainRuntimeEsm).toBe(MainRuntimeCjs);
     expect(mainEsm).toBe(MainRuntimeCjs.main);
     expect(getWorldDistributionEsm).toBe(MainRuntimeCjs.getWorldDistribution);
+    expect(createRuntimeDependenciesEsm).toBe(MainRuntimeCjs.createRuntimeDependencies);
 });

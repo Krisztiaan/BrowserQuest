@@ -3848,6 +3848,27 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-246` server runtime dependency boundary extraction (`main-runtime` split follow-up).
 
+- 2026-02-07 14:25:00Z
+  - Status: `in_progress` -> `done` (T-246)
+  - Actions:
+    - Introduced explicit dependency-boundary contract in `server/js/main-runtime.js`:
+      - added `createRuntimeDependencies(overrides)` helper,
+      - updated `main(config, options)` to consume dependency boundaries via helper instead of in-function direct requires.
+    - Exposed boundary helper through startup module contracts:
+      - `server/js/main.js` exports `createRuntimeDependencies`,
+      - `server/js/main-runtime-esm.mjs` exports `createRuntimeDependencies`.
+    - Added boundary contract unit coverage:
+      - `tests/unit/server-main-runtime-dependencies.test.ts`.
+    - Updated existing startup contract tests for new export parity.
+  - Evidence:
+    - Focused startup/runtime tests passed:
+      - `bun test --timeout 20000 tests/unit/server-main-module.test.ts tests/unit/server-main-runtime-esm.test.ts tests/unit/server-main-runtime-dependencies.test.ts tests/smoke/server-handshake-esm-entry.test.ts tests/smoke/server-config-preflight-esm-entry.test.ts`.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-247` server runtime constructor seam extraction (`main-runtime` factory step).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5327,7 +5348,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run test` + ESM handshake/config smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-246: Server runtime dependency boundary extraction (`main-runtime` follow-up)
-- Status: `todo`
+- Status: `done`
 - Scope: split heavyweight dependency wiring (`ws`, `worldserver`, `player`) out of `main-runtime` startup flow into explicit dependency boundaries to prepare future ESM-native startup runtime migration.
 - Acceptance criteria: startup behavior remains unchanged while dependency construction points are isolated behind explicit helpers/contracts.
 - Verification: focused startup/runtime unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-247: Server runtime constructor seam extraction (`main-runtime` factory step)
+- Status: `todo`
+- Scope: extract startup constructor wiring (`server`, `metrics`, world instance loop) into explicit factory helpers so runtime assembly can be tested and migrated independently of process/event wiring.
+- Acceptance criteria: constructor assembly logic is isolated behind explicit helpers with unchanged runtime behavior.
+- Verification: focused startup/runtime unit coverage + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

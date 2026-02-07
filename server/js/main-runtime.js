@@ -4,11 +4,22 @@ var ConfigPreflight = require('./config-preflight'),
     Log = require('./log');
 var log = Log.getLogger();
 
-function main(config) {
+function createRuntimeDependencies(overrides) {
+    var injected = overrides || {};
+    return {
+        ws: injected.ws || require("./ws"),
+        WorldServer: injected.WorldServer || require("./worldserver"),
+        Player: injected.Player || require("./player")
+    };
+}
+
+function main(config, options) {
+    var runtimeOptions = options || {};
     var emitServerEvent = function(level, eventName, fields) {
             log.event(level, eventName, fields);
         },
-        validationResult = ConfigPreflight.validateConfig(config);
+        validationResult = ConfigPreflight.validateConfig(config),
+        dependencies = createRuntimeDependencies(runtimeOptions.dependencies);
 
     if(!validationResult.isValid) {
         emitServerEvent("error", "server.config.invalid", {
@@ -19,9 +30,9 @@ function main(config) {
         return;
     }
 
-    var ws = require("./ws"),
-        WorldServer = require("./worldserver"),
-        Player = require("./player"),
+    var ws = dependencies.ws,
+        WorldServer = dependencies.WorldServer,
+        Player = dependencies.Player,
         server = new ws.MultiVersionWebsocketServer(config.port),
         metrics = MetricsRuntime.createMetrics(config, emitServerEvent),
         worlds = [],
@@ -182,5 +193,6 @@ function getWorldDistribution(worlds) {
 
 module.exports = {
     main: main,
-    getWorldDistribution: getWorldDistribution
+    getWorldDistribution: getWorldDistribution,
+    createRuntimeDependencies: createRuntimeDependencies
 };

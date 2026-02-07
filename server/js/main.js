@@ -45,5 +45,6 @@ if(require.main === module) {
 module.exports = {
     main: MainRuntime.main,
     getConfigFile: getConfigFile,
-    getWorldDistribution: MainRuntime.getWorldDistribution
+    getWorldDistribution: MainRuntime.getWorldDistribution,
+    createRuntimeDependencies: MainRuntime.createRuntimeDependencies
 };
