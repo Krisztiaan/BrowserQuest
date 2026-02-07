@@ -46,5 +46,7 @@ module.exports = {
     main: MainRuntime.main,
     getConfigFile: getConfigFile,
     getWorldDistribution: MainRuntime.getWorldDistribution,
-    createRuntimeDependencies: MainRuntime.createRuntimeDependencies
+    createRuntimeDependencies: MainRuntime.createRuntimeDependencies,
+    createServerAndMetrics: MainRuntime.createServerAndMetrics,
+    createWorlds: MainRuntime.createWorlds
 };

@@ -9,8 +9,32 @@ function createRuntimeDependencies(overrides) {
     return {
         ws: injected.ws || require("./ws"),
         WorldServer: injected.WorldServer || require("./worldserver"),
-        Player: injected.Player || require("./player")
+        Player: injected.Player || require("./player"),
+        metricsRuntime: injected.metricsRuntime || MetricsRuntime
     };
+}
+
+function createServerAndMetrics(config, emitServerEvent, dependencies) {
+    return {
+        server: new dependencies.ws.MultiVersionWebsocketServer(config.port),
+        metrics: dependencies.metricsRuntime.createMetrics(config, emitServerEvent)
+    };
+}
+
+function createWorlds(config, server, metrics, dependencies, onPopulationChange) {
+    var worlds = [];
+
+    for(var i = 0; i < config.nb_worlds; i += 1) {
+        var world = new dependencies.WorldServer('world'+ (i+1), config.nb_players_per_world, server);
+        world.run(config.map_filepath);
+        worlds.push(world);
+        if(metrics.isEnabled) {
+            world.onPlayerAdded(onPopulationChange);
+            world.onPlayerRemoved(onPopulationChange);
+        }
+    }
+
+    return worlds;
 }
 
 function main(config, options) {
@@ -31,10 +55,10 @@ function main(config, options) {
     }
 
     var ws = dependencies.ws,
-        WorldServer = dependencies.WorldServer,
         Player = dependencies.Player,
-        server = new ws.MultiVersionWebsocketServer(config.port),
-        metrics = MetricsRuntime.createMetrics(config, emitServerEvent),
+        runtime = createServerAndMetrics(config, emitServerEvent, dependencies),
+        server = runtime.server,
+        metrics = runtime.metrics,
         worlds = [],
         lastTotalPlayers = 0,
         checkPopulationInterval = setInterval(function() {
@@ -123,15 +147,7 @@ function main(config, options) {
         metrics.updateWorldDistribution(getWorldDistribution(worlds));
     };
 
-    for(var i = 0; i < config.nb_worlds; i += 1) {
-        var world = new WorldServer('world'+ (i+1), config.nb_players_per_world, server);
-        world.run(config.map_filepath);
-        worlds.push(world);
-        if(metrics.isEnabled) {
-            world.onPlayerAdded(onPopulationChange);
-            world.onPlayerRemoved(onPopulationChange);
-        }
-    }
+    worlds = createWorlds(config, server, metrics, dependencies, onPopulationChange);
     
     server.onRequestStatus(function() {
         return JSON.stringify(getWorldDistribution(worlds));
@@ -194,5 +210,7 @@ function getWorldDistribution(worlds) {
 module.exports = {
     main: main,
     getWorldDistribution: getWorldDistribution,
-    createRuntimeDependencies: createRuntimeDependencies
+    createRuntimeDependencies: createRuntimeDependencies,
+    createServerAndMetrics: createServerAndMetrics,
+    createWorlds: createWorlds
 };

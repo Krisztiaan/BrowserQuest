@@ -10,7 +10,11 @@ test('server main module exports shared startup helpers', () => {
     expect(typeof MainModule.getConfigFile).toBe('function');
     expect(typeof MainModule.getWorldDistribution).toBe('function');
     expect(typeof MainModule.createRuntimeDependencies).toBe('function');
+    expect(typeof MainModule.createServerAndMetrics).toBe('function');
+    expect(typeof MainModule.createWorlds).toBe('function');
     expect(MainModule.main).toBe(MainRuntimeModule.main);
     expect(MainModule.getWorldDistribution).toBe(MainRuntimeModule.getWorldDistribution);
     expect(MainModule.createRuntimeDependencies).toBe(MainRuntimeModule.createRuntimeDependencies);
+    expect(MainModule.createServerAndMetrics).toBe(MainRuntimeModule.createServerAndMetrics);
+    expect(MainModule.createWorlds).toBe(MainRuntimeModule.createWorlds);
 });

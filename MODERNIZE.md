@@ -3869,6 +3869,29 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-247` server runtime constructor seam extraction (`main-runtime` factory step).
 
+- 2026-02-07 14:45:00Z
+  - Status: `in_progress` -> `done` (T-247)
+  - Actions:
+    - Extracted startup constructor assembly seams in `server/js/main-runtime.js`:
+      - added `createServerAndMetrics(config, emitServerEvent, dependencies)`,
+      - added `createWorlds(config, server, metrics, dependencies, onPopulationChange)`,
+      - routed `main(config, options)` through these helpers.
+    - Extended runtime dependency contract to include injectable metrics constructor boundary:
+      - `metricsRuntime` in `createRuntimeDependencies(...)`.
+    - Exposed new constructor helpers in startup contracts:
+      - `server/js/main.js`,
+      - `server/js/main-runtime-esm.mjs`.
+    - Added focused constructor seam unit coverage:
+      - `tests/unit/server-main-runtime-factories.test.ts`.
+    - Updated startup parity tests to assert new exports.
+  - Evidence:
+    - Focused startup/runtime tests passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-248` server runtime process-event seam extraction (fatal/reporting/timers).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5354,7 +5377,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: focused startup/runtime unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-247: Server runtime constructor seam extraction (`main-runtime` factory step)
-- Status: `todo`
+- Status: `done`
 - Scope: extract startup constructor wiring (`server`, `metrics`, world instance loop) into explicit factory helpers so runtime assembly can be tested and migrated independently of process/event wiring.
 - Acceptance criteria: constructor assembly logic is isolated behind explicit helpers with unchanged runtime behavior.
 - Verification: focused startup/runtime unit coverage + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-248: Server runtime process-event seam extraction (fatal/reporting/timers)
+- Status: `todo`
+- Scope: extract process-bound side effects (fatal handlers, interval/timer wiring, structured event emission helpers) behind explicit seams to reduce implicit globals in startup runtime.
+- Acceptance criteria: process/event side effects remain behaviorally identical while seam boundaries are explicit and testable.
+- Verification: focused startup/runtime unit + fatal/log smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

@@ -6,4 +6,6 @@ const MainRuntime = require('./main-runtime');
 export const main = MainRuntime.main;
 export const getWorldDistribution = MainRuntime.getWorldDistribution;
 export const createRuntimeDependencies = MainRuntime.createRuntimeDependencies;
+export const createServerAndMetrics = MainRuntime.createServerAndMetrics;
+export const createWorlds = MainRuntime.createWorlds;
 export default MainRuntime;
