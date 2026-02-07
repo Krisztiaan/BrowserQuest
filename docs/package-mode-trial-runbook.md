@@ -4,7 +4,7 @@ Date: 2026-02-07
 
 ## Goal
 
-Run an isolated trial of switching package mode to `"type": "module"` with deterministic rollback.
+Run deterministic package-mode regression checks and retain a clean rollback path.
 
 ## Trial branch workflow
 

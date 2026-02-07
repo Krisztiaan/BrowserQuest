@@ -3016,6 +3016,47 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-187` legacy RequireJS build blocker isolation plan.
 
+- 2026-02-07 05:56:53Z
+  - Status: `in_progress` -> `done` (T-187)
+  - Actions:
+    - Implemented legacy RequireJS package-mode compatibility boundary:
+      - added `bin/r.cjs` wrapper that compiles `bin/r.js` in explicit CJS context.
+      - updated `bin/build.sh` to invoke `node bin/r.cjs -o build.js`.
+    - Confirmed legacy optimizer runs under package mode (`"type": "module"`).
+  - Evidence:
+    - `bun run build:client` passed with `package.json` set to `"type": "module"`.
+    - `bun run verify:legacy:node22` passed under package mode.
+  - Next action:
+    - Start `T-188` package-mode retry prerequisites checklist.
+
+- 2026-02-07 05:56:53Z
+  - Status: `in_progress` -> `done` (T-188)
+  - Actions:
+    - Executed retry prerequisites and full package-mode validation:
+      - package mode set to `"type": "module"`.
+      - verified legacy/protocol/modern gates and static checks.
+    - Updated package-mode decision and boundary docs to reflect successful adoption.
+  - Evidence:
+    - `bun run verify:legacy:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run check:class-fanout`, `bun run lint`, `bun run format:check` passed.
+  - Next action:
+    - Start `T-189` post-blocker-reduction queue refresh.
+
+- 2026-02-07 05:56:53Z
+  - Status: `in_progress` -> `done` (T-189)
+  - Actions:
+    - Refreshed queue after successful package-mode adoption:
+      - `T-190` package-mode CI drift hardening (`verify` workflows + docs coherence).
+      - `T-191` legacy build toolchain modernization options assessment (replace/contain RequireJS optimizer).
+      - `T-192` post-package-adoption queue refresh.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes post-adoption successor queue aligned with package-mode evidence.
+  - Next action:
+    - Start `T-190` package-mode CI drift hardening.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4123,7 +4164,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes post-T182 queue with executable checks.
 
 ### T-184: Package-mode trial branch execution
-- Status: `done` (deferred)
+- Status: `done` (resolved)
 - Scope: execute an isolated package-mode trial branch per runbook (`"type": "module"` switch + boundary checks) and run full gates.
 - Acceptance criteria: trial result is clear (green with evidence or rollback with explicit blockers).
 - Verification: `verify:legacy:node22`, protocol browser suite, and guard commands executed in trial.
@@ -4141,19 +4182,37 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes post-T185 queue with executable checks.
 
 ### T-187: Legacy RequireJS build blocker isolation plan
-- Status: `todo`
+- Status: `done`
 - Scope: isolate and document remediation options for `bin/r.js` strict-mode blocker under package-mode trial.
 - Acceptance criteria: blocker root cause and at least one safe remediation path are documented with risk/effort tradeoffs.
 - Verification: blocker-plan artifact is checked in and linked from modernization docs.
 
 ### T-188: Package-mode retry prerequisites checklist
-- Status: `todo`
+- Status: `done`
 - Scope: define explicit prerequisites that must be met before rerunning package-mode trial.
 - Acceptance criteria: checklist is objective, testable, and linked to concrete commands.
 - Verification: prerequisite checklist artifact is checked in and referenced from `MODERNIZE.md`.
 
 ### T-189: Post-blocker-reduction queue refresh
-- Status: `todo`
+- Status: `done`
 - Scope: refresh queue after T-187/T-188 to schedule package-mode retry or alternate modernization path.
 - Acceptance criteria: successor queue is ordered, scoped, and evidence-driven.
 - Verification: `MODERNIZE.md` includes post-T188 successor queue with executable checks.
+
+### T-190: Package-mode CI drift hardening
+- Status: `todo`
+- Scope: harden docs/CI coherence now that package mode is ESM, ensuring workflows and runbooks do not assume CommonJS default semantics.
+- Acceptance criteria: no contradictory package-mode assumptions remain in primary docs/workflow notes.
+- Verification: docs/workflow scan + `verify:modern:node22` and `verify:legacy:node22`.
+
+### T-191: Legacy optimizer containment assessment
+- Status: `todo`
+- Scope: assess medium-term options for replacing or containing legacy RequireJS optimizer dependency (`r.js`) under ESM package mode.
+- Acceptance criteria: options are documented with effort/risk/rollback tradeoffs.
+- Verification: assessment artifact is checked in and linked from modernization docs.
+
+### T-192: Post-package-adoption queue refresh
+- Status: `todo`
+- Scope: refresh queue after T-190/T-191 to sequence concrete implementation slices from the chosen optimizer strategy.
+- Acceptance criteria: successor queue is ordered, scoped, and verification-backed.
+- Verification: `MODERNIZE.md` includes post-T191 successor queue with executable checks.

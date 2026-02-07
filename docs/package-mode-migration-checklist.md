@@ -1,10 +1,10 @@
-# Package-Mode Migration Checklist (`commonjs` -> staged ESM)
+# Package-Mode Migration Checklist (Post-Adoption)
 
 Date: 2026-02-07
 
 ## Objective
 
-Prepare a low-risk path to eventually change `package.json` from `"type": "commonjs"` to `"type": "module"` without breaking runtime, tests, or legacy compatibility workflows.
+Maintain and harden package mode (`"type": "module"`) without breaking runtime, tests, or legacy compatibility workflows.
 
 ## Prerequisites
 
@@ -30,17 +30,14 @@ Prepare a low-risk path to eventually change `package.json` from `"type": "commo
 4. Record import/export conversion blockers (if any) in server/runtime files before package flip.
 5. Ensure tests using `require(...)` are intentionally CJS-compatible or migrated to `import`.
 
-## Migration sequence
+## Migration sequence (completed + ongoing)
 
-1. Keep package mode as CommonJS while converting any remaining ambiguous boundary files.
-2. Add package-mode trial ticket with explicit rollback:
-   - switch `"type"` in a dedicated branch/slice,
-   - run full verification matrix,
-   - revert quickly if legacy/test runners regress.
-3. After successful trial, lock follow-up guardrails and update docs/CI references.
+1. Keep intentional CJS boundaries explicit (`.cjs`) and documented.
+2. Re-run package-mode verification matrix on boundary/tooling changes.
+3. Keep rollback steps ready for any future regression in legacy build/runtime paths.
 
 ## Rollback plan
 
-- If any gate fails during package-mode trial:
-  - revert only package-mode flip + directly related boundary edits,
+- If any package-mode boundary change causes gate failures:
+  - revert only the boundary change + directly related edits,
   - re-run `verify:legacy:node22` and protocol browser suite to confirm baseline restoration.

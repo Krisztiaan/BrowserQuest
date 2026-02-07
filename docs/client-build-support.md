@@ -6,6 +6,7 @@ This project currently ships two client build paths while modernization is in pr
 
 - Node.js `22.x` (policy target; CI-enforced)
 - Bun `>= 1.3.0`
+- Package mode: `"type": "module"` (with explicit CJS boundary scripts where required)
 - CI verify workflows pin Bun `1.3.8` for reproducibility.
 - Runtime preflight command: `bun run check:runtime`
 - Node 22 wrapper for mismatched shells: `bash tools/node22-run.sh <command ...>`
@@ -23,7 +24,7 @@ This project currently ships two client build paths while modernization is in pr
 2. Compatibility (`Tier 2`): Legacy AMD/RequireJS client
 - Entry page: `client/index.html`
 - Build commands:
-  - `bun run build:client` (RequireJS optimizer output in `client-build/`)
+  - `bun run build:client` (RequireJS optimizer output in `client-build/`, invoked via `bin/r.cjs` compatibility runner)
   - `bun run build:vite:legacy` (legacy-inclusive Vite bundle for migration verification)
 - Local static dev legacy entry: `/index.html` (or set `BQ_CLIENT_DEFAULT_ENTRY=index.html` before `bun run dev`)
 - Vite dev legacy default override: `BQ_VITE_DEFAULT_ENTRY=legacy bun run dev:vite:full`

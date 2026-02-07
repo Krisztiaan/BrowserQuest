@@ -4,24 +4,26 @@
 
 - Trial action: temporary switch in `package.json` from `"type": "commonjs"` to `"type": "module"`.
 - Gate command executed: `bun run verify:legacy:node22`.
-- Outcome: **defer package-mode transition for now**.
+- Outcome: **advance and keep package-mode transition**.
 
 ## Evidence
 
-- `bun run test` segment passed under trial.
-- Failure occurred in legacy build step (`build:client`):
-  - `bin/r.js` raises strict-mode syntax error under module mode:
-  - `SyntaxError: Octal literals are not allowed in strict mode.`
-- Baseline restored by reverting package-mode change.
-- Post-rollback validation:
+- Initial trial found legacy build blocker:
+  - `bin/r.js` strict-mode error under module mode (`Octal literals are not allowed in strict mode`).
+- Mitigation implemented:
+  - Added `bin/r.cjs` wrapper that compiles `bin/r.js` in explicit CJS context.
+  - Updated `bin/build.sh` to run `node bin/r.cjs -o build.js`.
+- Retry result under package mode (`"type": "module"`):
   - `bun run verify:legacy:node22` passed.
   - `bun run test:browser:protocol:node22` passed.
+  - `bun run verify:modern:node22` passed.
+  - `bun run check:class-fanout`, `bun run lint`, `bun run format:check` passed.
 
 ## Decision
 
-Defer package-mode switch until legacy RequireJS build path (`bin/r.js` and related tooling) is isolated, upgraded, or replaced behind a compatibility boundary.
+Keep package mode as `"type": "module"` with explicit CJS boundaries (`.cjs`) for legacy/tooling compatibility.
 
 ## Next steps
 
-1. Isolate legacy build tooling behind explicit CJS boundary strategy.
-2. Re-run package-mode trial once legacy build blocker is addressed.
+1. Keep `bin/r.cjs` boundary stable and documented.
+2. Continue reducing legacy/tooling friction behind explicit CJS boundaries.

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Document intentional CommonJS boundaries after server-side class modernization, to support staged package-mode migration.
+Document intentional CommonJS boundaries after server-side class modernization and package-mode adoption.
 
 ## Current boundary map
 
@@ -12,8 +12,9 @@ Document intentional CommonJS boundaries after server-side class modernization, 
 - `tools/check-modern-jquery-free.cjs`
 - `tools/check-metrics-healthy-prereqs.cjs`
 - `tools/check-classjs-fanout.cjs`
+- `bin/r.cjs` (legacy RequireJS optimizer runner wrapper)
 
-Reason: simple Node tooling scripts with stable CJS behavior; no migration pressure.
+Reason: these scripts are intentionally CJS compatibility boundaries while package mode is ESM.
 
 ### ESM bridge artifacts already present
 
@@ -22,7 +23,7 @@ Reason: simple Node tooling scripts with stable CJS behavior; no migration press
 
 Reason: provide safe adoption path without changing default runtime mode.
 
-### Legacy/default runtime entrypoints still CJS-targeted
+### Runtime entrypoints under ESM package mode
 
 - `server/js/main.js` (default server boot path)
 - `shared/js/gametypes.js` (CJS + global contract)
@@ -34,7 +35,7 @@ Reason: compatibility with existing tests and legacy client/server contracts.
 - Tooling `.cjs` scripts:
   - remain CJS unless strong reason to migrate.
 - Runtime/server bridge:
-  - continue expanding ESM-safe paths before package-mode flip.
+  - continue expanding ESM-safe paths after package-mode adoption.
 - Shared contracts:
   - maintain dual-export compatibility until full package-mode migration is complete.
 

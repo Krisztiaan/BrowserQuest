@@ -48,7 +48,7 @@ rm -rf "${BUILDDIR}"
 
 echo "Building client with RequireJS"
 cd "${PROJECTDIR}"
-node "${REPO_ROOT}/bin/r.js" -o build.js
+node "${REPO_ROOT}/bin/r.cjs" -o build.js
 
 echo "Removing unnecessary js files from the build directory"
 find "${BUILDDIR}/js" -type f -not \( -name "game.js" -o -name "home.js" -o -name "log.js" -o -name "require-jquery.js" -o -name "modernizr.js" -o -name "css3-mediaqueries.js" -o -name "mapworker.js" -o -name "detect.js" -o -name "underscore.min.js" -o -name "text.js" \) -delete
