@@ -11,6 +11,7 @@ The CJS path remains inline until CJS runtime retirement or a dedicated CJS clas
 The ESM path now uses an explicit class-factory seam for dependency injection and future migration flexibility.
 
 Decision record: `docs/websocket-cjs-factory-migration-decision.md`
+Escalation template: `docs/websocket-boundary-escalation-template.md`
 
 ## Parity guardrail commands
 

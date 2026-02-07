@@ -4464,6 +4464,22 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-279` websocket boundary drill escalation-template alignment.
 
+- 2026-02-08 05:20:00Z
+  - Status: `in_progress` -> `done` (T-279)
+  - Actions:
+    - Added websocket boundary escalation template:
+      - `docs/websocket-boundary-escalation-template.md`.
+      - Includes owner/handoff block, signal snapshot, failing-check capture, and rollback command block.
+    - Linked escalation template from websocket decision/support docs:
+      - `docs/websocket-cjs-factory-migration-decision.md`,
+      - `docs/client-build-support.md`,
+      - `docs/websocket-runtime-class-boundary-parity.md`.
+  - Evidence:
+    - docs read-through complete with escalation-template links aligned.
+    - `bun run test:ws:runtime:drill` passed.
+  - Next action:
+    - Start `T-280` websocket boundary decision index/backlink sweep.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6141,7 +6157,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: workflow/config diff review + docs read-through + `bun run test:ws:runtime:drill`.
 
 ### T-279: Websocket boundary drill escalation-template alignment
-- Status: `todo`
+- Status: `done`
 - Scope: align websocket drill failure handling with a compact escalation template (owner, signal snapshot, failing check, rollback command block) in runbooks/incident notes.
 - Acceptance criteria: documented escalation template is linked from websocket decision/support docs and references drill summary artifact paths.
 - Verification: docs read-through + `bun run test:ws:runtime:drill`.
+
+### T-280: Websocket boundary decision index/backlink sweep
+- Status: `todo`
+- Scope: ensure core docs/indexes (`README`/runtime inventories/checklists) link websocket decision + drill + escalation artifacts consistently.
+- Acceptance criteria: no orphan websocket boundary runbook artifacts remain and backlinks are explicit across primary entry docs.
+- Verification: docs read-through + link grep checks.

@@ -64,6 +64,8 @@ CI/advisory trigger policy:
 3. Owner group for interpreting/adopting outcomes: server-runtime maintainers.
 4. CI drill summary artifact name pattern:
    - `ws-boundary-drill-summary-<run_id>` containing `artifacts/ws-boundary-drill-summary.json`.
+5. Escalation template:
+   - `docs/websocket-boundary-escalation-template.md`.
 
 ## Rollback drill cadence
 
