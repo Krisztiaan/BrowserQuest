@@ -2020,6 +2020,25 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-120` optional healthy workflow Node/Bun matrix hardening.
 
+- 2026-02-07 03:55:58Z
+  - Status: `in_progress` -> `done` (T-120)
+  - Actions:
+    - Hardened optional healthy workflow with explicit runtime matrix pinning:
+      - `.github/workflows/verify-metrics-healthy.yml`
+      - Node `22.x`, Bun `1.3.8` matrix entries are now explicit in job name and setup steps.
+    - Updated runtime policy wording:
+      - `docs/metrics-health-smoke-plan.md`
+    - Triggered and validated the hardened matrix workflow run.
+  - Evidence:
+    - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773758960`
+    - Conclusion: `success` (2026-02-07T03:55:25Z -> 2026-02-07T03:55:45Z)
+    - Log highlights:
+      - job label: `metrics-healthy (node 22.x, bun 1.3.8)`
+      - `metrics-healthy-prereqs: ok (...)`
+      - `(pass) optional: healthy metrics path starts with memcache backend and no fallback event`
+  - Next action:
+    - Start `T-121` metrics adapter failure-mode taxonomy expansion.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2743,7 +2762,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: targeted config-preflight tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-120: Optional healthy workflow Node/Bun matrix hardening
-- Status: `todo`
+- Status: `done`
 - Scope: expand optional healthy workflow matrix to explicitly capture at least one pinned Bun version and current Node policy version for reproducibility tracking.
 - Acceptance criteria: workflow matrix and runbook make runtime drift visible without affecting default gates.
 - Verification: successful workflow run(s) for configured matrix entries with documented run IDs.
