@@ -1,4 +1,4 @@
-# Dependency Modernization Audit (2026-02-06)
+# Dependency Modernization Audit (2026-02-07)
 
 ## Runtime baseline
 
@@ -11,6 +11,9 @@
 - `ws@8.19.0`: current on latest major line.
 - `jquery@4.0.0`: upgraded and now on latest major line.
 - `eslint@10.0.0` and `@eslint/js@10.0.1`: upgraded and verified in this branch.
+- Fresh drift snapshot (2026-02-07):
+  - `bun run check:deps:drift` returns no direct dependency drift.
+  - Node22 policy variant `bun run check:deps:drift:node22` is available for runtime-consistent local audits.
 - Residual compatibility watch:
   - `@typescript-eslint` latest (`8.54.0`) still declares peer range `eslint: ^8.57.0 || ^9.0.0`, but lint/test/verify gates pass with `eslint@10.0.0` in this repo.
 
@@ -55,6 +58,7 @@
 ## Dependency watch cadence
 
 - Weekly (or before release): `bun run check:deps:drift`.
+- Runtime-policy parity check: `bun run check:deps:drift:node22`.
 - If drift is reported:
   - create/refresh upgrade trial tickets in `MODERNIZE.md` with explicit verification gates.
   - run `bun run verify:modern:node22` and `bun run verify:legacy:node22` before keeping any upgrade.

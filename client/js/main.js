@@ -2,9 +2,81 @@
 define(['jquery', 'app', 'eventcompat'], function($, App, EventCompat) {
 var app, game;
 
+    var getLegacyTestGlobal = function() {
+        if(typeof window === 'undefined') {
+            return null;
+        }
+        if(typeof globalThis !== 'undefined') {
+            return globalThis;
+        }
+        return window;
+    };
+
+    var installLegacyTestApi = function() {
+        var root = getLegacyTestGlobal();
+        if(!root) {
+            return;
+        }
+        if(!root.__BQ_LEGACY_TEST_MODE__ && !root.__BQ_TEST_MODE__) {
+            return;
+        }
+
+        root.__BQ_LEGACY_TEST_API = {
+            isReady: function() {
+                return !!(app && game && app.ready && app.canStartGame && app.canStartGame());
+            },
+
+            getState: function() {
+                return {
+                    appReady: !!(app && app.ready),
+                    canStartGame: !!(app && app.canStartGame && app.canStartGame()),
+                    gameStarted: !!(game && game.started)
+                };
+            },
+
+            startSession: function(name) {
+                if(!app) {
+                    return { ok: false, reason: 'app_unavailable' };
+                }
+
+                var nameFromInput = $('#nameinput').attr('value'),
+                    nameFromStorage = $('#playername').html(),
+                    username = name || nameFromInput || nameFromStorage;
+
+                if(!username) {
+                    return { ok: false, reason: 'name_required' };
+                }
+                if(game && game.started) {
+                    return { ok: false, reason: 'already_started', username: username };
+                }
+
+                $('#nameinput').attr('value', username);
+                app.toggleButton();
+                app.tryStartingGame(username);
+                return { ok: true, username: username };
+            }
+        };
+
+        if(typeof root.__BQ_LEGACY_TEST_START__ === 'string' && root.__BQ_LEGACY_TEST_START__.length > 0) {
+            var autoStartName = root.__BQ_LEGACY_TEST_START__,
+                attempts = 0,
+                maxAttempts = 300,
+                watchReady = setInterval(function() {
+                    attempts += 1;
+                    if(root.__BQ_LEGACY_TEST_API.isReady()) {
+                        clearInterval(watchReady);
+                        root.__BQ_LEGACY_TEST_API.startSession(autoStartName);
+                    } else if(attempts >= maxAttempts) {
+                        clearInterval(watchReady);
+                    }
+                }, 50);
+        }
+    };
+
     var initApp = function() {
         $(document).ready(function() {
         	app = new App();
+            installLegacyTestApi();
             app.center();
         
             if(Detect.isWindows()) {

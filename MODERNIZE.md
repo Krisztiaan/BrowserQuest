@@ -2475,6 +2475,133 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-149` legacy intro deterministic-start hook design.
 
+- 2026-02-07 04:58:01Z
+  - Status: `in_progress` -> `done` (T-149)
+  - Actions:
+    - Implemented opt-in legacy deterministic-start test hook in `client/js/main.js`:
+      - `__BQ_LEGACY_TEST_API` now exposes:
+        - `isReady()`
+        - `getState()`
+        - `startSession(name?)`
+      - API only installs when `__BQ_LEGACY_TEST_MODE__` or `__BQ_TEST_MODE__` is enabled before boot.
+      - Supports optional auto-start via `__BQ_LEGACY_TEST_START__` with bounded readiness polling.
+    - Added support-matrix documentation for the hook:
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:browser:legacy:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-150` legacy protocol smoke split (optional).
+
+- 2026-02-07 04:58:01Z
+  - Status: `in_progress` -> `done` (T-150, deferred)
+  - Actions:
+    - Attempted to introduce dedicated optional legacy protocol smoke command, but deterministic `__BQ_LEGACY_TEST_API` observability was not stable under current legacy/Vite browser harness timing.
+    - Reverted the optional legacy protocol test/commands to avoid introducing a flaky opt-in path.
+    - Kept decision explicit: legacy protocol smoke remains deferred until deterministic legacy-start controls are validated in-browser end-to-end.
+    - Tagged defer exit criteria owner as `T-155` and support-note section in `docs/client-build-support.md`.
+  - Evidence:
+    - Attempted optional run failed with timeout waiting for legacy test API availability.
+    - Baseline guardrail remains green: `bun run test:browser:legacy:node22` passed after rollback.
+  - Next action:
+    - Start `T-151` protocol workflow/readme snapshot refresh.
+
+- 2026-02-07 04:58:01Z
+  - Status: `in_progress` -> `done` (T-151)
+  - Actions:
+    - Refreshed protocol triage snapshot across primary docs:
+      - `README.md` protocol quick-path section now captures local (`test:browser:protocol:node22`) and CI (`verify-protocol-invariant` + diagnostics artifact) routes.
+      - `docs/runtime-preflight.md` includes protocol command aliases and Node22 wrapper variants.
+      - `docs/client-build-support.md` includes protocol command set + artifact triage path and legacy test-hook note.
+  - Evidence:
+    - Docs scan confirms canonical protocol command references across README/support docs.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Define `T-152` post-legacy-hook queue refresh.
+
+- 2026-02-07 04:58:01Z
+  - Status: `in_progress` -> `done` (T-152)
+  - Actions:
+    - Refreshed post-T151 queue with legacy deterministic-start resolution focus:
+      - `T-153` legacy hook observability probe command.
+      - `T-154` legacy smoke diagnostics enrichment (console/pageerror capture).
+      - `T-155` legacy optional protocol smoke reopen criteria.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes an executable next queue that directly addresses the T-150 defer root cause.
+  - Next action:
+    - Start `T-153` legacy hook observability probe command.
+
+- 2026-02-07 05:03:09Z
+  - Status: `in_progress` -> `done` (T-153)
+  - Actions:
+    - Added optional legacy hook probe test:
+      - `tests/browser/legacy-hook-probe.playwright.ts`
+      - Asserts `window.__BQ_LEGACY_TEST_API` is installed under test flag and exposes callable `isReady/getState/startSession`.
+    - Added probe command aliases:
+      - `test:browser:legacy:hook-probe`
+      - `test:browser:legacy:hook-probe:node22`
+    - Documented probe command in support docs/README.
+  - Evidence:
+    - `bun run test:browser:legacy:hook-probe:node22` passed.
+  - Next action:
+    - Start `T-154` legacy smoke diagnostics enrichment.
+
+- 2026-02-07 05:03:09Z
+  - Status: `in_progress` -> `done` (T-154)
+  - Actions:
+    - Enriched legacy smoke diagnostics in `tests/browser/legacy-ui-smoke.playwright.ts`:
+      - Captures `pageerror` messages.
+      - Captures browser console `warning`/`error` messages.
+      - On assertion failure, appends compact diagnostics payload (`pageErrors` + `console`) to thrown error text.
+    - Preserved smoke semantics (no new protocol assertions).
+  - Evidence:
+    - `bun run test:browser:legacy:node22` passed.
+  - Next action:
+    - Start `T-155` legacy optional protocol smoke reopen criteria.
+
+- 2026-02-07 05:03:09Z
+  - Status: `in_progress` -> `done` (T-155)
+  - Actions:
+    - Documented explicit reopen criteria for deferred optional legacy protocol smoke in:
+      - `docs/client-build-support.md`
+    - Linked defer context from T-150 log to T-155-owned criteria.
+    - Added README gate note for optional hook probe command for discoverability.
+  - Evidence:
+    - `docs/client-build-support.md` now includes trigger checklist tied to stable hook-probe evidence + baseline legacy smoke green requirement.
+    - `bun run lint` passed after test/docs updates.
+  - Next action:
+    - Define `T-156` post-legacy-defer-resolution queue refresh.
+
+- 2026-02-07 05:04:49Z
+  - Status: `in_progress` -> `done` (T-156)
+  - Actions:
+    - Refreshed post-T155 queue with dependency/runtime modernization focus:
+      - `T-157` Node22-aligned dependency drift audit parity command.
+      - `T-158` dependency drift CI visibility workflow.
+      - `T-159` CommonJS-to-ESM server migration readiness inventory.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now contains ordered successor tickets explicitly targeting 2026 dependency/runtime modernization work.
+  - Next action:
+    - Start `T-157` Node22-aligned dependency drift audit parity command.
+
+- 2026-02-07 05:04:49Z
+  - Status: `in_progress` -> `done` (T-157)
+  - Actions:
+    - Added Node22 wrapper command for dependency drift audits:
+      - `check:deps:drift:node22` in `package.json`
+    - Updated docs to surface runtime-consistent drift audit path:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/dependency-modernization-audit.md`
+    - Captured fresh drift evidence snapshot (no direct dependency drift reported).
+  - Evidence:
+    - `bun run check:deps:drift` passed (no drift output).
+    - `bun run check:deps:drift:node22` passed (no drift output).
+  - Next action:
+    - Start `T-158` dependency drift CI visibility workflow.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -3372,19 +3499,67 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes queued post-T147 tickets with executable checks.
 
 ### T-149: Legacy intro deterministic-start hook design
-- Status: `todo`
+- Status: `done`
 - Scope: design minimal legacy runtime test hook or deterministic-start control to guarantee websocket session start from legacy intro flow without flaky click timing.
 - Acceptance criteria: actionable design/implementation path exists with clear guardrails to avoid gameplay behavior changes.
 - Verification: roadmap/design notes include concrete command-level validation plan for legacy protocol assertions.
 
 ### T-150: Legacy protocol smoke split (optional)
-- Status: `todo`
+- Status: `done` (deferred)
 - Scope: split legacy protocol assertions into a dedicated optional smoke command/workflow separate from fragile UI wiring checks.
 - Acceptance criteria: legacy UI wiring smoke remains stable while protocol-level checks are isolated behind explicit opt-in conditions.
 - Verification: new optional command (or documented defer) with legacy baseline command `bun run test:browser:legacy:node22` remaining green.
 
 ### T-151: Protocol workflow/readme snapshot refresh
-- Status: `todo`
+- Status: `done`
 - Scope: refresh README and support docs snapshot after protocol command/diagnostics changes, ensuring one concise canonical section for protocol triage paths.
 - Acceptance criteria: docs provide a single coherent path for local protocol triage + CI artifact triage without contradictory command references.
 - Verification: docs scan across README/support docs confirms canonical command set and workflow references.
+
+### T-152: Post-legacy-hook queue refresh
+- Status: `done`
+- Scope: refresh modernization queue after legacy test-hook design/defer outcomes, prioritizing deterministic legacy harness validation and protocol-signal improvements.
+- Acceptance criteria: roadmap includes ordered successor tickets with explicit defer-resolution path and command-level verification steps.
+- Verification: `MODERNIZE.md` includes queued post-T151 tickets with executable checks.
+
+### T-153: Legacy hook observability probe command
+- Status: `done`
+- Scope: add a targeted browser probe command that verifies `__BQ_LEGACY_TEST_API` installation/shape under explicit test-mode flags, independent of full legacy gameplay protocol assertions.
+- Acceptance criteria: command deterministically reports whether hook is installed and callable in the legacy page.
+- Verification: dedicated command/test passes locally (`node22` wrapper variant) and is documented in roadmap/support notes.
+
+### T-154: Legacy smoke diagnostics enrichment
+- Status: `done`
+- Scope: enrich `legacy-ui-smoke` failure diagnostics with captured page errors/console messages (without making protocol assertions mandatory).
+- Acceptance criteria: legacy smoke failures include actionable context beyond assertion mismatch text.
+- Verification: `bun run test:browser:legacy:node22` remains green; failure artifacts/logging hooks are present in test code.
+
+### T-155: Legacy optional protocol smoke reopen criteria
+- Status: `done`
+- Scope: document concrete reopen criteria and gating conditions for reintroducing optional legacy protocol smoke after T-150 defer.
+- Acceptance criteria: defer has explicit exit criteria tied to deterministic-start evidence, not ad hoc retries.
+- Verification: criteria and trigger checklist are captured in roadmap/docs and linked from the T-150 deferred note.
+
+### T-156: Post-legacy-defer-resolution queue refresh
+- Status: `done`
+- Scope: refresh modernization queue after T-153/T-154/T-155 completion, prioritizing high-signal 2026 dependency/runtime upgrades and execution risk reduction.
+- Acceptance criteria: roadmap includes ordered successor tickets with command-level evidence paths for dependency and runtime modernization work.
+- Verification: `MODERNIZE.md` contains queued post-T155 successor tickets with explicit checks.
+
+### T-157: Node22-aligned dependency drift audit parity command
+- Status: `done`
+- Scope: add a Node22-wrapper variant for dependency drift checks so local dependency audits follow the same runtime baseline as verification gates.
+- Acceptance criteria: dependency drift can be checked under default runtime and Node22 policy runtime via explicit commands.
+- Verification: `bun run check:deps:drift` and `bun run check:deps:drift:node22`.
+
+### T-158: Dependency drift CI visibility workflow
+- Status: `todo`
+- Scope: add an opt-in/manual CI workflow that runs dependency drift checks and captures direct dependency status for modernization tracking.
+- Acceptance criteria: maintainers can trigger a workflow and retrieve drift status without local setup assumptions.
+- Verification: workflow run evidence is logged in `MODERNIZE.md` with run id/url and outcome.
+
+### T-159: CommonJS-to-ESM server readiness inventory
+- Status: `todo`
+- Scope: create a concrete inventory of server/runtime CommonJS boundaries and blockers for incremental ESM migration planning aligned with 2026 JS standards.
+- Acceptance criteria: roadmap/docs enumerate high-risk modules, sequencing constraints, and verification gates for staged CJS->ESM transition.
+- Verification: inventory artifact is checked in and referenced from `MODERNIZE.md`.

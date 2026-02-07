@@ -39,12 +39,17 @@ Build profiles (modern vs legacy):
 Verification gates:
 - `bun run verify:modern` runs lint + format check + tests + modern Vite build.
 - `bun run check:deps:drift` reports direct dependency drift (`npm outdated --depth=0`).
+  - Node22 policy variant: `bun run check:deps:drift:node22`.
 - `bun run check:modern-jquery-free` enforces that modern ESM runtime (`client/js-esm/**/*.js`) stays jQuery-free.
 - `bun run verify:legacy` runs tests + legacy RequireJS build + legacy-inclusive Vite build.
 - `bun run test:modern-browser:install` (one-time) then `bun run test:browser:modern` runs a headless Playwright smoke against `client/modern.html`.
 - `bun run test:browser:legacy` runs the legacy compatibility browser smoke against `client/index.html`.
+- `bun run test:browser:legacy:hook-probe` is an opt-in legacy test-hook observability probe (`BQ_TEST_LEGACY_HOOK=1`) for deterministic-start API availability checks.
 - `bun run test:browser:protocol` runs protocol-focused browser tests (`modern-protocol-actions` + `protocol-invariant`) for faster protocol triage loops.
 - `bun run test:browser:protocol-invariant` replays deterministic `go`/`HELLO`/`WELCOME`/`CHAT` + `MOVE`/`ZONE` protocol flow plus invalid `MOVE` rejection behavior against both modern and legacy entry paths and asserts invariant parity.
+- Protocol triage quick path:
+  - Local: `bun run test:browser:protocol:node22` (or `bun run test:browser:protocol-invariant:node22` for invariant-only focus).
+  - CI gate: `verify-protocol-invariant` (runs `test:browser:protocol:ci` and uploads `protocol-invariant-diagnostics-<run_id>` artifacts).
 - `bun run test:static-entry` validates `bun run dev` entry routing (`/` => modern by default, `/index.html` legacy, env override supported).
 - `bun run test:metrics:healthy` runs the opt-in healthy metrics smoke (`BQ_TEST_METRICS_HEALTH=1`) with built-in prerequisites preflight (`check:metrics:healthy-prereqs` for memcache package + memcached reachability).
 - `bun run test:logs:lifecycle` / `bun run test:logs:fatal` run split structured-log smoke contracts.

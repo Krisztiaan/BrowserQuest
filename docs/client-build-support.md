@@ -33,6 +33,8 @@ This project currently ships two client build paths while modernization is in pr
 
 - Modern gate: `bun run verify:modern`
   - Runs `check:modern-jquery-free` (all `client/js-esm/**/*.js`), `lint`, `format:check`, `test`, and `build:vite`
+- Dependency drift check: `bun run check:deps:drift`
+  - Node22 policy variant: `bun run check:deps:drift:node22`
 - Modern gameplay parity smoke: `bun run test:modern-parity`
   - Covers login, move, chat, zone, combat-path signaling, lootmove, and reconnect against a live server.
 - Static dev entry smoke: `bun run test:static-entry`
@@ -48,6 +50,17 @@ This project currently ships two client build paths while modernization is in pr
 - Protocol-focused browser suite: `bun run test:browser:protocol`
   - Runs `tests/browser/modern-protocol-actions.playwright.ts` and `tests/browser/protocol-invariant.playwright.ts` without full browser-smoke breadth for faster protocol triage.
   - CI variant: `bun run test:browser:protocol:ci` (adds JUnit reporter output for artifact capture).
+- Legacy deterministic-start test hook (test-only):
+  - Legacy runtime now exposes `window.__BQ_LEGACY_TEST_API` only when `window.__BQ_LEGACY_TEST_MODE__` (or `window.__BQ_TEST_MODE__`) is enabled before boot.
+  - Observability probe command: `bun run test:browser:legacy:hook-probe` (Node22 wrapper: `bun run test:browser:legacy:hook-probe:node22`).
+  - Intended for future optional legacy protocol assertions once deterministic legacy-start controls are fully stabilized.
+- Deferred optional legacy protocol smoke reopen criteria:
+  - Keep protocol assertions opt-in; baseline legacy smoke (`test:browser:legacy`) remains intro wiring only.
+  - Reopen only when deterministic-start evidence is stable:
+    - `test:browser:legacy:hook-probe:node22` passes consistently across repeated local runs.
+    - Hook probe confirms `startSession(...)` callability without timing retries outside bounded test polling.
+    - Baseline guardrail `test:browser:legacy:node22` stays green in the same change set.
+  - After criteria are met, add optional legacy protocol smoke behind explicit env gate and document its non-blocking CI posture.
 - Structured server log smoke:
   - Lifecycle-only: `bun run test:logs:lifecycle`
   - Fatal taxonomy-only: `bun run test:logs:fatal`
