@@ -6,6 +6,8 @@ Retire the legacy AMD/RequireJS runtime (`client/index.html` + `build:client`) w
 
 ## Readiness criteria (must all be true)
 
+Preflight tracker: `docs/legacy-retirement-preflight-gaps.md`
+
 1. Modern runtime parity
 - Core flows validated on `client/modern.html`: login, move, combat, loot, zone transitions, chat, disconnect/reconnect.
 - No blocker bugs open that reproduce only on modern path.

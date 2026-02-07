@@ -3212,6 +3212,40 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-201` advisory-era legacy incident log bootstrap.
 
+- 2026-02-07 06:35:22Z
+  - Status: `in_progress` -> `done` (T-201)
+  - Actions:
+    - Added advisory incident log bootstrap artifact:
+      - `docs/legacy-advisory-incident-log.md`
+    - Included reusable log schema and initial placeholder state.
+    - Linked incident log from `README.md` and demotion docs.
+  - Evidence:
+    - Incident log artifact checked in and cross-referenced from rehearsal docs.
+  - Next action:
+    - Start `T-202` branch-protection demotion dry-run evidence.
+
+- 2026-02-07 06:35:22Z
+  - Status: `todo` (T-202, blocked external)
+  - Actions:
+    - Confirmed T-202 requires branch-protection operations and dry-run PR evidence capture outside repository code changes.
+    - No direct in-repo automation can execute or verify branch-protection toggles.
+  - Evidence:
+    - `docs/legacy-branch-protection-demotion-runbook.md` defines required external steps.
+  - Next action:
+    - Start `T-203` retirement cutover preflight gap closure (in-repo trackable).
+
+- 2026-02-07 06:35:22Z
+  - Status: `in_progress` -> `done` (T-203)
+  - Actions:
+    - Added preflight gap closure artifact:
+      - `docs/legacy-retirement-preflight-gaps.md`
+    - Mapped cutover checklist open/done items with owners, exit criteria, and blocking rationale.
+    - Linked preflight gap tracker from `README.md` and `docs/legacy-retirement-checklist.md`.
+  - Evidence:
+    - Preflight artifact checked in with explicit readiness state and blockers.
+  - Next action:
+    - Await external execution of `T-202` runbook to advance retirement cutover.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4421,7 +4455,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes post-T199 successor queue with executable checks.
 
 ### T-201: Advisory-era legacy incident log bootstrap
-- Status: `todo`
+- Status: `done`
 - Scope: add a reusable incident-log artifact populated from the T-198 template for advisory `verify-legacy` failures.
 - Acceptance criteria: incident-log format exists and includes at least one example entry schema.
 - Verification: incident-log artifact checked in and linked from demotion docs.
@@ -4433,7 +4467,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: dry-run evidence artifact checked in.
 
 ### T-203: Retirement cutover preflight gap closure
-- Status: `todo`
+- Status: `done`
 - Scope: map open items from T-199 checklist to actionable tasks with owners/status.
 - Acceptance criteria: gap-closure list exists with clear pass/fail readiness state for cutover.
 - Verification: preflight gap artifact checked in and referenced from retirement docs.

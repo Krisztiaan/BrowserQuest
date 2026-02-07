@@ -58,3 +58,4 @@ Define a reversible, low-risk plan to demote legacy CI gate coverage (`verify:le
 2. Re-run full legacy verification matrix (legacy + protocol browser coverage).
 3. Freeze further retirement changes until root cause and consumer impact are resolved.
 4. Record incident using `docs/legacy-advisory-gate-incident-template.md`.
+5. Append incident summary row to `docs/legacy-advisory-incident-log.md`.
