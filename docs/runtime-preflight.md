@@ -13,6 +13,8 @@ This project enforces runtime policy through `bun run check:runtime`.
 - `bun run verify:legacy`
 - `bun run test:browser:modern` (alias of `test:modern-browser`)
 - `bun run test:browser:legacy` (alias of `test:legacy-browser`)
+- `bun run test:browser:protocol`
+- `bun run test:browser:protocol-invariant`
 
 Each command now runs `check:runtime` first and fails fast on unsupported runtimes.
 
@@ -33,6 +35,8 @@ Example:
 - `bun run verify:legacy:node22`
 - `bun run test:browser:modern:node22`
 - `bun run test:browser:legacy:node22`
+- `bun run test:browser:protocol:node22`
+- `bun run test:browser:protocol-invariant:node22`
 
 ## Onboarding quick path
 

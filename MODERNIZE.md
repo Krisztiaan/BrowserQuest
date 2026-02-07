@@ -2424,6 +2424,57 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-145` protocol CI evidence recapture after command alignment.
 
+- 2026-02-07 04:49:11Z
+  - Status: `in_progress` -> `done` (T-145)
+  - Actions:
+    - Captured fresh protocol CI evidence after command-alignment updates (`test:browser:protocol:ci` path in workflow).
+  - Evidence:
+    - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774438684`
+    - Conclusion: `success` (2026-02-07T04:48:07Z -> 2026-02-07T04:49:04Z)
+    - Workflow: `verify-protocol-invariant` (push event)
+  - Next action:
+    - Start `T-146` protocol command discoverability docs sweep.
+
+- 2026-02-07 04:49:46Z
+  - Status: `in_progress` -> `done` (T-146)
+  - Actions:
+    - Completed protocol command discoverability sweep across primary docs:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/runtime-preflight.md`
+    - Added protocol-focused command aliases to runtime-preflight runbook (`when checks run` + Node22 recovery paths).
+  - Evidence:
+    - `bun run test:browser:protocol:node22` passed.
+    - Primary docs now consistently reference `test:browser:protocol` / `test:browser:protocol:node22`.
+  - Next action:
+    - Start `T-147` optional legacy protocol observer extension evaluation.
+
+- 2026-02-07 04:51:20Z
+  - Status: `in_progress` -> `done` (T-147, deferred)
+  - Actions:
+    - Evaluated extending legacy UI smoke with protocol observer assertions (`socket/go`), but observed non-deterministic websocket startup in legacy intro path under Playwright timing.
+    - Reverted strict protocol observer assertions from `tests/browser/legacy-ui-smoke.playwright.ts` to preserve legacy smoke stability.
+    - Kept outcome explicitly documented as deferred with guardrail:
+      - do not add hard websocket handshake assertions to legacy smoke until deterministic start controls/hooks are available for legacy runtime.
+  - Evidence:
+    - Attempted extension failed with timeout waiting for socket observation (`observer.getSocketCount() > 0`).
+    - Restored baseline command passed: `bun run test:browser:legacy:node22`.
+  - Next action:
+    - Define `T-148` post-legacy-observer-defer queue refresh.
+
+- 2026-02-07 04:51:36Z
+  - Status: `in_progress` -> `done` (T-148)
+  - Actions:
+    - Refreshed post-T147 queue with deterministic-legacy prerequisites focus:
+      - `T-149` legacy intro deterministic-start hook design.
+      - `T-150` optional legacy protocol smoke split from UI wiring smoke.
+      - `T-151` protocol workflow/readme snapshot refresh after recent command and diagnostics changes.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now captures a concrete defer-resolution path for future legacy protocol assertion work.
+  - Next action:
+    - Start `T-149` legacy intro deterministic-start hook design.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -3297,19 +3348,43 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` contains queued post-T143 tickets with executable checks.
 
 ### T-145: Protocol CI evidence recapture after command alignment
-- Status: `todo`
+- Status: `done`
 - Scope: capture fresh successful `verify-protocol-invariant` workflow evidence after adopting `test:browser:protocol:ci` alias and diagnostics updates.
 - Acceptance criteria: roadmap links at least one post-alignment successful run (URL/id/timestamps) showing updated workflow path is green.
 - Verification: successful GitHub run for `verify-protocol-invariant` is logged in `MODERNIZE.md`.
 
 ### T-146: Protocol command discoverability docs sweep
-- Status: `todo`
+- Status: `done`
 - Scope: ensure all top-level docs consistently reference `test:browser:protocol` / `test:browser:protocol:node22` for protocol-focused triage.
 - Acceptance criteria: no stale protocol command references remain in primary onboarding/support docs.
 - Verification: docs scan + local command check `bun run test:browser:protocol:node22`.
 
 ### T-147: Optional legacy protocol observer extension
-- Status: `todo`
+- Status: `done` (deferred)
 - Scope: evaluate and optionally add lightweight websocket protocol observer hooks for `tests/browser/legacy-ui-smoke.playwright.ts` to support future legacy protocol parity assertions.
 - Acceptance criteria: extension is either landed with stable assertions or explicitly deferred with rationale and guardrails.
 - Verification: legacy browser smoke command remains green (`bun run test:browser:legacy:node22`) and docs/roadmap reflect outcome.
+
+### T-148: Post-legacy-observer-defer queue refresh
+- Status: `done`
+- Scope: refresh modernization queue after T-147 defer decision, focusing on deterministic legacy harness preconditions before protocol-level assertions.
+- Acceptance criteria: roadmap contains ordered successor tickets with explicit defer-resolution path and command-level verification steps.
+- Verification: `MODERNIZE.md` includes queued post-T147 tickets with executable checks.
+
+### T-149: Legacy intro deterministic-start hook design
+- Status: `todo`
+- Scope: design minimal legacy runtime test hook or deterministic-start control to guarantee websocket session start from legacy intro flow without flaky click timing.
+- Acceptance criteria: actionable design/implementation path exists with clear guardrails to avoid gameplay behavior changes.
+- Verification: roadmap/design notes include concrete command-level validation plan for legacy protocol assertions.
+
+### T-150: Legacy protocol smoke split (optional)
+- Status: `todo`
+- Scope: split legacy protocol assertions into a dedicated optional smoke command/workflow separate from fragile UI wiring checks.
+- Acceptance criteria: legacy UI wiring smoke remains stable while protocol-level checks are isolated behind explicit opt-in conditions.
+- Verification: new optional command (or documented defer) with legacy baseline command `bun run test:browser:legacy:node22` remaining green.
+
+### T-151: Protocol workflow/readme snapshot refresh
+- Status: `todo`
+- Scope: refresh README and support docs snapshot after protocol command/diagnostics changes, ensuring one concise canonical section for protocol triage paths.
+- Acceptance criteria: docs provide a single coherent path for local protocol triage + CI artifact triage without contradictory command references.
+- Verification: docs scan across README/support docs confirms canonical command set and workflow references.
