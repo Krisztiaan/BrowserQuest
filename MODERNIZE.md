@@ -4565,7 +4565,22 @@ Only after Phase 2, introduce TS gradually:
     - `bun run verify:modern:node22` passed.
     - `bun run verify:legacy:node22` passed.
   - Next action:
-    - Start `T-285` client ESM native-class migration wave 2 (entity/sprite/timer-adjacent modules).
+    - Start `T-285` client ESM native-class migration wave 2 (independent utility modules).
+
+- 2026-02-08 07:50:00Z
+  - Status: `in_progress` -> `done` (T-285)
+  - Actions:
+    - Migrated additional independent modern ESM modules from `Class.extend` to native classes:
+      - `client/js-esm/animation.js`
+      - `client/js-esm/transition.js`
+      - `client/js-esm/pathfinder.js`
+      - `client/js-esm/bubble.js`
+    - Removed `compat/class` imports from migrated modules while preserving runtime method behavior and existing call sites.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-286` client ESM native-class migration wave 3 (storage/updater/audio/map/app shells).
 
 ## Next roadmap slice (active queue)
 
@@ -6279,8 +6294,14 @@ Only after Phase 2, introduce TS gradually:
 - Acceptance criteria: migrated modules no longer import `compat/class`, build/runtime parity is preserved.
 - Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
-### T-285: Client ESM native-class migration wave 2 (entity/sprite/timer-adjacent modules)
+### T-285: Client ESM native-class migration wave 2 (independent utility modules)
+- Status: `done`
+- Scope: migrate independent modern ESM utility modules still using `Class.extend` (`animation`, `transition`, `pathfinder`, `bubble`) to native classes while preserving runtime behavior.
+- Acceptance criteria: wave-2 modules no longer import `compat/class` and keep modern/legacy verification parity.
+- Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-286: Client ESM native-class migration wave 3 (storage/updater/audio/map/app shells)
 - Status: `todo`
-- Scope: continue migration of medium-risk modern ESM modules still using `Class.extend` (`entity`, `animation`, `sprite`, `transition`, and adjacent helpers) in small behavior-preserving slices.
-- Acceptance criteria: selected wave-2 modules use native classes and retain modern/legacy verification parity.
-- Verification: focused browser protocol smoke + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+- Scope: continue conversion on remaining high-use but independent `Class.extend` modules (`storage`, `updater`, `audio`, `map`, `gameclient`, `renderer`, `app`) before touching inheritance chains (`entity`/`character`/`player`).
+- Acceptance criteria: selected wave-3 modules run with native classes and no regression in verify/browser protocol gates.
+- Verification: `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
