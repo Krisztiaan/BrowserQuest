@@ -17,6 +17,12 @@
 - `server/js/mob.js`
 - `server/js/mobarea.js`
 - `server/js/npc.js`
+- `server/js/area.js`
+- `server/js/character.js`
+- `server/js/checkpoint.js`
+- `server/js/chest.js`
+- `server/js/chestarea.js`
+- `server/js/properties.js`
 - `server/js/map.js`
 - `server/js/message.js`
 - `server/js/worldserver.js`
@@ -27,21 +33,14 @@ These files were selected because they are runtime-adjacent and passed `allowJs`
 
 ## Deferred for later waves
 
-- `server/js/area.js`
-- `server/js/character.js`
-- `server/js/checkpoint.js`
-- `server/js/chest.js`
-- `server/js/chestarea.js`
-- `server/js/properties.js`
 - `server/js/main.js`
 - `server/js/metrics.js`
 - `server/js/metrics-runtime.js`
 - `server/js/metrics-client.js`
 
-## Next-candidate queue (post-wave-8 baseline)
+## Next-candidate queue (post-wave-8C baseline)
 
-1. Promote zone/entity graph set: `server/js/area.js`, `server/js/character.js`, `server/js/chest.js`, `server/js/chestarea.js`, `server/js/checkpoint.js`, `server/js/properties.js`.
-2. Resolve metrics typing blockers before promoting `server/js/main.js`, `server/js/metrics.js`, `server/js/metrics-runtime.js`, and then `server/js/metrics-client.js`.
+1. Resolve metrics typing blockers before promoting `server/js/main.js`, `server/js/metrics.js`, `server/js/metrics-runtime.js`, and then `server/js/metrics-client.js`.
 
 ## Defer rationale
 

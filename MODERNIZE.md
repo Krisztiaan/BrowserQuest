@@ -3731,6 +3731,23 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-239` runtime CheckJs wave 8C (zone/entity graph promotion).
 
+- 2026-02-07 12:25:00Z
+  - Status: `in_progress` -> `done` (T-239)
+  - Actions:
+    - Promoted zone/entity graph modules into runtime CheckJs scope in `tsconfig.typecheck-runtime.json`:
+      - `server/js/area.js`,
+      - `server/js/character.js`,
+      - `server/js/chest.js`,
+      - `server/js/chestarea.js`,
+      - `server/js/checkpoint.js`,
+      - `server/js/properties.js`.
+    - Updated runtime CheckJs defer artifact to reflect near-complete gameplay/runtime scope.
+  - Evidence:
+    - `bun run typecheck` passed with zone/entity graph modules included.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-240` runtime CheckJs wave 8D (metrics/main blocker pre-slice).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5168,7 +5185,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
 
 ### T-239: Runtime CheckJs wave 8C (zone/entity graph promotion)
-- Status: `todo`
+- Status: `done`
 - Scope: promote `server/js/area.js`, `server/js/character.js`, `server/js/chest.js`, `server/js/chestarea.js`, `server/js/checkpoint.js`, and `server/js/properties.js` into runtime CheckJs scope.
 - Acceptance criteria: zone/entity graph modules enter runtime CheckJs scope without gate regressions.
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
