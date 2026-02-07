@@ -28,6 +28,13 @@ Maintain and harden package mode (`"type": "module"`) without breaking runtime, 
    - default: `bun run start:server` (`server/js/main.js`)
    - opt-in ESM bridge: `bun run start:server:esm`
    - opt-in ESM websocket runtime seam: `BQ_ESM_WS_RUNTIME=1 bun run start:server:esm`
+   - script aliases for startup seam modes:
+     - `bun run start:server:esm:ws-bridge:probe`
+     - `bun run start:server:esm:ws-runtime`
+     - `bun run start:server:esm:ws-runtime:fail`
+   - extracted startup helper contracts:
+     - `server/js/main-esm-bridge-probe.mjs`
+     - `server/js/main-esm-runtime-options.mjs`
 4. Record import/export conversion blockers (if any) in server/runtime files before package flip.
 5. Ensure tests using `require(...)` are intentionally CJS-compatible or migrated to `import`.
 

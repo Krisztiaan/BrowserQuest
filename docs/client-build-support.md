@@ -35,10 +35,16 @@ This project currently ships two client build paths while modernization is in pr
 - Server entrypoint options:
   - Default compatibility path: `bun run start:server` (`server/js/main.js`).
   - Opt-in ESM bridge path: `bun run start:server:esm` (`server/js/main-esm.mjs`).
+  - Extracted ESM startup helper contracts:
+    - `server/js/main-esm-bridge-probe.mjs` (bridge-probe decision contract)
+    - `server/js/main-esm-runtime-options.mjs` (runtime-option decision contract)
   - Optional websocket startup-mode flags for ESM entry:
     - Bridge parity probe: `bun run start:server:esm:ws-bridge:probe` (emits `server.esm.ws_bridge_probe`).
     - ESM websocket runtime mode: `bun run start:server:esm:ws-runtime` (emits `server.esm.ws_runtime_mode`, `status=ok`).
     - Forced-failure diagnostics: `bun run start:server:esm:ws-runtime:fail` (emits `server.esm.ws_runtime_mode`, `status=failed`, then exits non-zero).
+  - Helper-to-command mapping:
+    - Bridge probe helper -> `start:server:esm:ws-bridge:probe`.
+    - Runtime-options helper -> `start:server:esm:ws-runtime` and `start:server:esm:ws-runtime:fail`.
 - Modern gate: `bun run verify:modern`
   - Runs `check:package-mode-boundaries`, `check:modern-jquery-free` (all `client/js-esm/**/*.js`), `lint`, `format:check`, `test`, and `build:vite`
 - Incremental TypeScript gate: `bun run typecheck`

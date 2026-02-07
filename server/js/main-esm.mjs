@@ -1,7 +1,9 @@
 import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
+import { runWebSocketBridgeProbeIfEnabled } from './main-esm-bridge-probe.mjs';
 import { validateConfig } from './config-preflight-esm.mjs';
 import { createRuntimeDependencies, main as startServer } from './main-runtime-esm.mjs';
+import { resolveStartupRuntimeOptions } from './main-esm-runtime-options.mjs';
 import Utils from './utils-esm.mjs';
 
 const require = createRequire(import.meta.url);
@@ -52,78 +54,21 @@ if (!validationResult.isValid) {
     process.exit(1);
 }
 
-async function runWebSocketBridgeProbeIfEnabled() {
-    if (process.env.BQ_ESM_WS_BRIDGE_PROBE !== '1') {
-        return;
-    }
+await runWebSocketBridgeProbeIfEnabled({
+    env: process.env,
+    emitProbeEvent,
+    requireWsCjs: () => require('./ws'),
+    importWsEsm: () => import('./ws-esm.mjs'),
+    fail: (code) => process.exit(code),
+});
 
-    const wsCjs = require('./ws');
-    const wsEsm = await import('./ws-esm.mjs');
-    const contractMatches =
-        wsEsm.default &&
-        wsEsm.default.CLOSE_CODES === wsEsm.CLOSE_CODES &&
-        wsEsm.default.MultiVersionWebsocketServer === wsEsm.MultiVersionWebsocketServer &&
-        wsEsm.default.wsWebSocketConnection === wsEsm.wsWebSocketConnection &&
-        typeof wsEsm.MultiVersionWebsocketServer === 'function' &&
-        typeof wsEsm.wsWebSocketConnection === 'function' &&
-        wsEsm.CLOSE_CODES.NORMAL === wsCjs.CLOSE_CODES.NORMAL &&
-        wsEsm.CLOSE_CODES.UNSUPPORTED_DATA === wsCjs.CLOSE_CODES.UNSUPPORTED_DATA &&
-        wsEsm.CLOSE_CODES.INVALID_PAYLOAD === wsCjs.CLOSE_CODES.INVALID_PAYLOAD;
-    const forceFail = process.env.BQ_ESM_WS_BRIDGE_PROBE_FORCE_FAIL === '1';
-
-    if (!contractMatches || forceFail) {
-        emitProbeEvent('error', {
-            status: 'failed',
-            reason: forceFail ? 'forced_failure' : 'contract_mismatch',
-        });
-        process.exit(1);
-    }
-
-    emitProbeEvent('info', {
-        status: 'ok',
-    });
-}
-
-await runWebSocketBridgeProbeIfEnabled();
-
-async function createStartupRuntimeOptions() {
-    if (process.env.BQ_ESM_WS_RUNTIME !== '1') {
-        return undefined;
-    }
-
-    if (process.env.BQ_ESM_WS_RUNTIME_FORCE_FAIL === '1') {
-        emitStructuredEvent('error', 'server.esm.ws_runtime_mode', {
-            mode: 'esm',
-            status: 'failed',
-            reason: 'forced_failure',
-        });
-        process.exit(1);
-    }
-
-    try {
-        const wsEsm = await import('./ws-esm.mjs');
-        emitStructuredEvent('info', 'server.esm.ws_runtime_mode', {
-            mode: 'esm',
-            status: 'ok',
-        });
-
-        return {
-            dependencies: createRuntimeDependencies({
-                ws: wsEsm.default,
-            }),
-        };
-    } catch (error) {
-        emitStructuredEvent('error', 'server.esm.ws_runtime_mode', {
-            mode: 'esm',
-            status: 'failed',
-            reason: 'load_error',
-            error: String(error),
-        });
-        process.exit(1);
-    }
-}
-
-const runtimeOptions = await createStartupRuntimeOptions();
+const runtimeOptions = await resolveStartupRuntimeOptions({
+    env: process.env,
+    emitStructuredEvent,
+    importWsEsm: () => import('./ws-esm.mjs'),
+    createRuntimeDependencies,
+    fail: (code) => process.exit(code),
+});
 
 // Compatibility bridge: run the shared CJS startup path with validated config.
 startServer(activeConfig, runtimeOptions);

@@ -4098,6 +4098,87 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-259` startup seam runtime-options extraction (`main-esm`) for higher testability.
 
+- 2026-02-07 19:25:00Z
+  - Status: `in_progress` -> `done` (T-259)
+  - Actions:
+    - Extracted ESM startup runtime-option decision logic into a focused helper:
+      - `server/js/main-esm-runtime-options.mjs` (`resolveStartupRuntimeOptions(...)`).
+    - Updated `server/js/main-esm.mjs` to consume the extracted helper while preserving existing startup behavior.
+    - Added focused unit coverage for startup runtime-option paths:
+      - `tests/unit/server-main-esm-runtime-options.test.ts`.
+      - Covers disabled mode, forced-failure diagnostics, success-mode dependency injection, and load-error failure diagnostics.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run test:smoke:esm:ws-runtime` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-260` ESM bridge-probe helper extraction (`main-esm`) for parity with runtime-options seam testability.
+
+- 2026-02-07 19:55:00Z
+  - Status: `in_progress` -> `done` (T-260)
+  - Actions:
+    - Extracted ESM websocket bridge-probe logic from `server/js/main-esm.mjs` into a focused helper:
+      - `server/js/main-esm-bridge-probe.mjs` (`runWebSocketBridgeProbeIfEnabled(...)`).
+    - Updated `server/js/main-esm.mjs` to call the extracted bridge-probe helper with injected dependencies.
+    - Added focused unit coverage for bridge probe logic:
+      - `tests/unit/server-main-esm-bridge-probe.test.ts`.
+      - Covers disabled mode, success contract match, forced-failure diagnostics, and contract-mismatch diagnostics.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-261` ESM startup helper module export parity tests and contract docs alignment.
+
+- 2026-02-07 20:20:00Z
+  - Status: `in_progress` -> `done` (T-261)
+  - Actions:
+    - Added helper-module export parity coverage:
+      - `tests/unit/server-main-esm-helpers-parity.test.ts`.
+      - Asserts stable named/default export contracts for:
+        - `server/js/main-esm-bridge-probe.mjs`,
+        - `server/js/main-esm-runtime-options.mjs`.
+    - Updated startup-seam inventory/readiness docs to reference extracted helper modules:
+      - `docs/runtime-cjs-boundary-inventory.md`,
+      - `docs/server-cjs-esm-readiness-inventory.md`.
+  - Evidence:
+    - Focused helper + startup-smoke suite passes.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-262` ESM startup helper command mapping docs alignment.
+
+- 2026-02-07 20:35:00Z
+  - Status: `in_progress` -> `done` (T-262)
+  - Actions:
+    - Added explicit helper-to-command mapping in startup runbooks:
+      - `README.md`,
+      - `docs/client-build-support.md`.
+    - Linked extracted helper contracts to concrete startup scripts:
+      - `main-esm-bridge-probe` -> `start:server:esm:ws-bridge:probe`,
+      - `main-esm-runtime-options` -> `start:server:esm:ws-runtime` / `start:server:esm:ws-runtime:fail`.
+  - Evidence:
+    - Docs now map helper contracts, env-mode behavior, and runnable script aliases without ambiguity.
+    - Helper-focused runtime smoke remains green: `bun run test:smoke:esm:ws-runtime`.
+  - Next action:
+    - Start `T-263` ESM startup helper adoption note in package-mode runbook.
+
+- 2026-02-07 20:45:00Z
+  - Status: `in_progress` -> `done` (T-263)
+  - Actions:
+    - Updated package-mode migration runbook to reference extracted startup helpers and script aliases:
+      - `docs/package-mode-migration-checklist.md`.
+    - Added explicit startup seam checklist entries for:
+      - `start:server:esm:ws-bridge:probe`,
+      - `start:server:esm:ws-runtime`,
+      - `start:server:esm:ws-runtime:fail`,
+      - helper modules `main-esm-bridge-probe` and `main-esm-runtime-options`.
+  - Evidence:
+    - Package-mode checklist now reflects current startup seam contracts and command ergonomics.
+    - `bun run test:smoke:esm:ws-runtime` passed.
+  - Next action:
+    - Start `T-264` post-helper extraction queue refresh (next runtime seams).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5655,7 +5736,37 @@ Only after Phase 2, introduce TS gradually:
 - Verification: run added scripts + `bun test tests/smoke/server-handshake-esm-ws-runtime.test.ts`.
 
 ### T-259: Startup seam runtime-options extraction (`main-esm`) for testability
-- Status: `todo`
+- Status: `done`
 - Scope: extract ESM startup runtime-options decision logic into a focused helper module/function so env-flag behavior can be tested without booting the full server process.
 - Acceptance criteria: runtime-options decision logic is isolated behind a callable contract with focused unit coverage and unchanged startup behavior.
 - Verification: focused unit tests + `bun run test:smoke:esm:ws-runtime` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-260: ESM bridge-probe helper extraction (`main-esm`) for seam parity
+- Status: `done`
+- Scope: extract websocket bridge-probe decision logic from `main-esm` into a focused helper module/function so bridge contract checks are unit-testable without full process startup.
+- Acceptance criteria: bridge-probe logic is isolated with focused unit coverage and existing probe smoke behavior remains unchanged.
+- Verification: focused unit tests + `bun test tests/smoke/server-handshake-esm-ws-bridge.test.ts` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-261: ESM startup helper contract docs + export parity sweep
+- Status: `done`
+- Scope: align docs and tests around extracted `main-esm` startup helper modules (`main-esm-runtime-options`, `main-esm-bridge-probe`) to keep startup seam contracts explicit and discoverable.
+- Acceptance criteria: helper contracts are documented and have explicit unit/export parity references without changing runtime behavior.
+- Verification: focused unit tests + docs read-through + `bun run verify:modern:node22`.
+
+### T-262: ESM startup helper command mapping docs alignment
+- Status: `done`
+- Scope: ensure runbook references map startup helper contracts to concrete script commands (`start:server:esm:*`, `test:smoke:esm:ws-runtime`) for faster operator/debug workflows.
+- Acceptance criteria: docs explicitly tie helper contracts, runtime flags, and script aliases together without ambiguity.
+- Verification: docs read-through + helper-focused test command replay.
+
+### T-263: ESM startup helper adoption note in package-mode runbook
+- Status: `done`
+- Scope: update package-mode migration checklist with current extracted startup helper contracts and script aliases so migration sequencing references the real 2026 startup seam state.
+- Acceptance criteria: package-mode runbook explicitly references helper modules + startup script aliases in migration boundary checklist.
+- Verification: docs read-through + `bun run test:smoke:esm:ws-runtime`.
+
+### T-264: Post-helper-extraction queue refresh (next runtime seams)
+- Status: `todo`
+- Scope: refresh modernization queue after `main-esm` helper extraction/docs alignment to prioritize next startup/runtime seam candidates for ESM-native convergence.
+- Acceptance criteria: successor tickets are explicit, ordered, and tied to current verify/smoke gates.
+- Verification: `MODERNIZE.md` queue/log alignment + helper smoke command replay.

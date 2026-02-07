@@ -42,6 +42,9 @@ Vite (modern tooling):
     - `bun run start:server:esm:ws-runtime:fail`
     - Emits `server.esm.ws_runtime_mode` with `status=failed` and `reason=forced_failure`, then exits non-zero.
   - Runtime-mode smoke command: `bun run test:smoke:esm:ws-runtime`
+  - Helper contract mapping:
+    - `server/js/main-esm-bridge-probe.mjs` -> `start:server:esm:ws-bridge:probe`
+    - `server/js/main-esm-runtime-options.mjs` -> `start:server:esm:ws-runtime` / `start:server:esm:ws-runtime:fail`
 
 Build profiles (modern vs legacy):
 - `bun run build:vite` builds the modern ESM page (`client/modern.html`) and is the default production path.

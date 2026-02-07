@@ -53,6 +53,9 @@ Reason: compatibility with existing tests and legacy client/server contracts.
   - ESM config preflight,
   - optional websocket bridge probe (`BQ_ESM_WS_BRIDGE_PROBE=1`),
   - optional ESM websocket runtime injection (`BQ_ESM_WS_RUNTIME=1`) by passing `ws-esm` through `createRuntimeDependencies(...)`.
+- Extracted helper seams for ESM startup entry:
+  - `server/js/main-esm-bridge-probe.mjs` (bridge-probe contract checks + diagnostics),
+  - `server/js/main-esm-runtime-options.mjs` (runtime-option/env decision contract).
 - Runtime mode signals:
   - `server.esm.ws_bridge_probe` (`status=ok|failed`)
   - `server.esm.ws_runtime_mode` (`mode=esm`, `status=ok|failed`)

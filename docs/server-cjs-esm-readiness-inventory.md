@@ -27,6 +27,9 @@ Track post-adoption server/runtime ESM migration readiness without breaking lega
 - Startup seam status:
   - default path remains CJS (`server/js/main.js` -> `server/js/main-runtime.js`),
   - ESM entry can inject websocket runtime via dependency seam when `BQ_ESM_WS_RUNTIME=1`,
+  - ESM startup decision/probe logic is now isolated in helper modules:
+    - `server/js/main-esm-runtime-options.mjs`,
+    - `server/js/main-esm-bridge-probe.mjs`,
   - runtime mode signaling exists for bridge/runtime probes:
     - `server.esm.ws_bridge_probe`,
     - `server.esm.ws_runtime_mode`.
