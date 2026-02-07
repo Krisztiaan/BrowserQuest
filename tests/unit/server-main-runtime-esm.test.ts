@@ -1,6 +1,7 @@
 import { expect, test } from 'bun:test';
 import MainRuntimeEsm, {
     createFatalReporter as createFatalReporterEsm,
+    createPopulationChangeHandler as createPopulationChangeHandlerEsm,
     createPopulationCheckCleanup as createPopulationCheckCleanupEsm,
     createPopulationCheckTimer as createPopulationCheckTimerEsm,
     createRuntimeCleanup as createRuntimeCleanupEsm,
@@ -9,7 +10,9 @@ import MainRuntimeEsm, {
     createRuntimeDependencies as createRuntimeDependenciesEsm,
     createWorlds as createWorldsEsm,
     getWorldDistribution as getWorldDistributionEsm,
+    initializeMetricsPopulation as initializeMetricsPopulationEsm,
     installFatalHandlers as installFatalHandlersEsm,
+    installWorldPopulationHooks as installWorldPopulationHooksEsm,
     main as mainEsm,
     triggerFatalTestEvent as triggerFatalTestEventEsm,
 } from '../../server/js/main-runtime-esm.mjs';
@@ -24,6 +27,9 @@ test('main runtime esm mirror exports cjs runtime contract', () => {
     expect(createRuntimeDependenciesEsm).toBe(MainRuntimeCjs.createRuntimeDependencies);
     expect(createServerAndMetricsEsm).toBe(MainRuntimeCjs.createServerAndMetrics);
     expect(createWorldsEsm).toBe(MainRuntimeCjs.createWorlds);
+    expect(createPopulationChangeHandlerEsm).toBe(MainRuntimeCjs.createPopulationChangeHandler);
+    expect(installWorldPopulationHooksEsm).toBe(MainRuntimeCjs.installWorldPopulationHooks);
+    expect(initializeMetricsPopulationEsm).toBe(MainRuntimeCjs.initializeMetricsPopulation);
     expect(createServerEventEmitterEsm).toBe(MainRuntimeCjs.createServerEventEmitter);
     expect(createPopulationCheckTimerEsm).toBe(MainRuntimeCjs.createPopulationCheckTimer);
     expect(createPopulationCheckCleanupEsm).toBe(MainRuntimeCjs.createPopulationCheckCleanup);

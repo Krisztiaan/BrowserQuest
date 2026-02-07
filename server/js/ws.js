@@ -10,6 +10,8 @@ var url = require('url'),
     useBison = false;
 var log = Log.getLogger();
 
+/** @typedef {import('../../shared/js/protocol-types').ProtocolAction} ProtocolAction */
+
 module.exports = WS;
 WS.CLOSE_CODES = CLOSE_CODES;
 
@@ -218,6 +220,7 @@ WS.wsWebSocketConnection = class wsWebSocketConnection extends Connection {
                 return;
             }
 
+            /** @type {ProtocolAction[]} */
             var actions = Protocol.parseProtocolActionBatch(text);
             if(actions.length !== 1) {
                 self.closeInvalidPayload("Invalid message: expected a single protocol action Array.");

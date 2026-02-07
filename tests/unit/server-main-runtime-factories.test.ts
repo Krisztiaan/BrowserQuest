@@ -38,7 +38,7 @@ test('main runtime createServerAndMetrics builds server and metrics via dependen
     expect(runtime.metrics).toBe(fakeMetrics);
 });
 
-test('main runtime createWorlds assembles worlds and wires population callbacks when metrics are enabled', () => {
+test('main runtime createWorlds assembles worlds and runs configured map path', () => {
     const created: Array<{ name: string; capacity: number; server: unknown }> = [];
     let onPlayerAddedCount = 0;
     let onPlayerRemovedCount = 0;
@@ -90,15 +90,13 @@ test('main runtime createWorlds assembles worlds and wires population callbacks 
         nb_players_per_world: 50,
         map_filepath: 'maps/world.json',
     };
-    const worlds = MainRuntime.createWorlds(config, { id: 'server' }, { isEnabled: true }, dependencies, () => {
-        // no-op
-    });
+    const worlds = MainRuntime.createWorlds(config, { id: 'server' }, dependencies);
 
     expect(worlds.length).toBe(2);
     expect(created.map((entry) => entry.name)).toEqual(['world1', 'world2']);
     expect(created.map((entry) => entry.capacity)).toEqual([50, 50]);
     expect(worlds[0].runPath).toBe('maps/world.json');
     expect(worlds[1].runPath).toBe('maps/world.json');
-    expect(onPlayerAddedCount).toBe(2);
-    expect(onPlayerRemovedCount).toBe(2);
+    expect(onPlayerAddedCount).toBe(0);
+    expect(onPlayerRemovedCount).toBe(0);
 });

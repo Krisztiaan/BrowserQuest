@@ -12,6 +12,9 @@ test('server main module exports shared startup helpers', () => {
     expect(typeof MainModule.createRuntimeDependencies).toBe('function');
     expect(typeof MainModule.createServerAndMetrics).toBe('function');
     expect(typeof MainModule.createWorlds).toBe('function');
+    expect(typeof MainModule.createPopulationChangeHandler).toBe('function');
+    expect(typeof MainModule.installWorldPopulationHooks).toBe('function');
+    expect(typeof MainModule.initializeMetricsPopulation).toBe('function');
     expect(typeof MainModule.createServerEventEmitter).toBe('function');
     expect(typeof MainModule.createPopulationCheckTimer).toBe('function');
     expect(typeof MainModule.createPopulationCheckCleanup).toBe('function');
@@ -24,6 +27,9 @@ test('server main module exports shared startup helpers', () => {
     expect(MainModule.createRuntimeDependencies).toBe(MainRuntimeModule.createRuntimeDependencies);
     expect(MainModule.createServerAndMetrics).toBe(MainRuntimeModule.createServerAndMetrics);
     expect(MainModule.createWorlds).toBe(MainRuntimeModule.createWorlds);
+    expect(MainModule.createPopulationChangeHandler).toBe(MainRuntimeModule.createPopulationChangeHandler);
+    expect(MainModule.installWorldPopulationHooks).toBe(MainRuntimeModule.installWorldPopulationHooks);
+    expect(MainModule.initializeMetricsPopulation).toBe(MainRuntimeModule.initializeMetricsPopulation);
     expect(MainModule.createServerEventEmitter).toBe(MainRuntimeModule.createServerEventEmitter);
     expect(MainModule.createPopulationCheckTimer).toBe(MainRuntimeModule.createPopulationCheckTimer);
     expect(MainModule.createPopulationCheckCleanup).toBe(MainRuntimeModule.createPopulationCheckCleanup);

@@ -3957,6 +3957,45 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-251` server runtime metrics seam extraction (population/update hooks).
 
+- 2026-02-07 16:20:00Z
+  - Status: `in_progress` -> `done` (T-251)
+  - Actions:
+    - Extracted metrics population/update wiring from `server/js/main-runtime.js` into explicit seams:
+      - `createPopulationChangeHandler(metrics, getWorlds, getWorldDistributionFn)`,
+      - `installWorldPopulationHooks(worlds, metrics, onPopulationChange)`,
+      - `initializeMetricsPopulation(metrics, onPopulationChange)`.
+    - Simplified world-constructor seam by narrowing `createWorlds(...)` to world assembly only.
+    - Updated CJS/ESM/export parity surfaces:
+      - `server/js/main.js`,
+      - `server/js/main-runtime-esm.mjs`.
+    - Added focused metrics-seam unit coverage:
+      - `tests/unit/server-main-runtime-metrics-hooks.test.ts`,
+      - updated startup parity/factory tests for new seam surface.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-252` shared protocol typing unification (runtime + tests).
+
+- 2026-02-07 16:45:00Z
+  - Status: `in_progress` -> `done` (T-252)
+  - Actions:
+    - Added shared protocol type contract:
+      - `shared/js/protocol-types.d.ts`.
+    - Wired protocol type contract into runtime parser and websocket transport boundaries via JSDoc imports:
+      - `shared/js/protocol-contract.js`,
+      - `server/js/ws.js`.
+    - Replaced duplicated protocol shape declarations in test support with shared type imports:
+      - `tests/support/protocol.ts`.
+    - Hardened protocol action parser typing with explicit `isProtocolAction(...)` guard to keep CheckJs/runtime type gates green.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-253` websocket native ESM extraction wave-1 (`ws` runtime convergence).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5466,7 +5505,19 @@ Only after Phase 2, introduce TS gradually:
 - Verification: focused unit suite + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-251: Server runtime metrics seam extraction (population/update hooks)
-- Status: `todo`
+- Status: `done`
 - Scope: extract metrics population/update callback wiring from `main-runtime` into explicit seam helpers so metrics behavior can be tested/migrated independently of connection bootstrap.
 - Acceptance criteria: metrics hook wiring is isolated behind explicit helpers with unchanged runtime behavior.
 - Verification: focused runtime unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-252: Shared protocol typing unification (runtime + tests)
+- Status: `done`
+- Scope: establish a single shared protocol type contract consumable by runtime CheckJs surfaces and TypeScript test/support modules to reduce duplicate protocol shape definitions.
+- Acceptance criteria: runtime parser/transport and test protocol helpers import one shared protocol type contract with green typecheck gates.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-253: WebSocket native ESM extraction wave-1 (`ws` runtime convergence)
+- Status: `todo`
+- Scope: introduce an ESM-native websocket runtime module path for server entry convergence, reducing reliance on `createRequire` bridge wrappers while preserving current CJS compatibility behavior.
+- Acceptance criteria: websocket runtime has an ESM-native implementation path with parity coverage and unchanged handshake/protocol behavior on both verify tracks.
+- Verification: websocket-focused unit/smoke coverage + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

@@ -55,20 +55,50 @@ function createServerAndMetrics(config, emitServerEvent, dependencies) {
     };
 }
 
-function createWorlds(config, server, metrics, dependencies, onPopulationChange) {
+function createWorlds(config, server, dependencies) {
     var worlds = [];
 
     for(var i = 0; i < config.nb_worlds; i += 1) {
         var world = new dependencies.WorldServer('world'+ (i+1), config.nb_players_per_world, server);
         world.run(config.map_filepath);
         worlds.push(world);
-        if(metrics.isEnabled) {
-            world.onPlayerAdded(onPopulationChange);
-            world.onPlayerRemoved(onPopulationChange);
-        }
     }
 
     return worlds;
+}
+
+function createPopulationChangeHandler(metrics, getWorlds, getWorldDistributionFn) {
+    return function() {
+        var worlds = getWorlds();
+
+        metrics.updatePlayerCounters(worlds, function(totalPlayers) {
+            worlds.forEach(function(world) {
+                world.updatePopulation(totalPlayers);
+            });
+        });
+        metrics.updateWorldDistribution(getWorldDistributionFn(worlds));
+    };
+}
+
+function installWorldPopulationHooks(worlds, metrics, onPopulationChange) {
+    if(!metrics.isEnabled) {
+        return;
+    }
+
+    worlds.forEach(function(world) {
+        world.onPlayerAdded(onPopulationChange);
+        world.onPlayerRemoved(onPopulationChange);
+    });
+}
+
+function initializeMetricsPopulation(metrics, onPopulationChange) {
+    if(!metrics.isEnabled) {
+        return;
+    }
+
+    metrics.ready(function() {
+        onPopulationChange(); // initialize all counters to 0 when the server starts
+    });
 }
 
 function createFatalReporter(emitServerEvent, logger) {
@@ -241,26 +271,17 @@ function main(config, options) {
         });
     });
     
-    var onPopulationChange = function() {
-        metrics.updatePlayerCounters(worlds, function(totalPlayers) {
-            worlds.forEach(function(world) {
-                world.updatePopulation(totalPlayers);
-            });
-        });
-        metrics.updateWorldDistribution(getWorldDistribution(worlds));
-    };
-
-    worlds = createWorlds(config, server, metrics, dependencies, onPopulationChange);
+    var onPopulationChange = createPopulationChangeHandler(metrics, function() {
+        return worlds;
+    }, getWorldDistribution);
+    worlds = createWorlds(config, server, dependencies);
+    installWorldPopulationHooks(worlds, metrics, onPopulationChange);
     
     server.onRequestStatus(function() {
         return JSON.stringify(getWorldDistribution(worlds));
     });
     
-    if(metrics.isEnabled) {
-        metrics.ready(function() {
-            onPopulationChange(); // initialize all counters to 0 when the server starts
-        });
-    }
+    initializeMetricsPopulation(metrics, onPopulationChange);
 
     var reportFatal = createFatalReporter(emitServerEvent, logger);
     var cleanupFatalHandlers = installFatalHandlers(dependencies.processObject, reportFatal);
@@ -291,6 +312,9 @@ module.exports = {
     createRuntimeDependencies: createRuntimeDependencies,
     createServerAndMetrics: createServerAndMetrics,
     createWorlds: createWorlds,
+    createPopulationChangeHandler: createPopulationChangeHandler,
+    installWorldPopulationHooks: installWorldPopulationHooks,
+    initializeMetricsPopulation: initializeMetricsPopulation,
     createServerEventEmitter: createServerEventEmitter,
     createPopulationCheckTimer: createPopulationCheckTimer,
     createPopulationCheckCleanup: createPopulationCheckCleanup,

@@ -1,5 +1,34 @@
 var Types = require('./gametypes');
 
+/** @typedef {import('./protocol-types').ProtocolAction} ProtocolAction */
+
+/**
+ * @param {unknown} value
+ * @returns {value is ProtocolAction}
+ */
+function isProtocolAction(value) {
+    if(!Array.isArray(value) || value.length === 0) {
+        return false;
+    }
+
+    if(typeof value[0] !== 'number') {
+        return false;
+    }
+
+    for(var i = 1; i < value.length; i += 1) {
+        var param = value[i];
+        var isAllowedPrimitive = typeof param === 'number'
+            || typeof param === 'string'
+            || typeof param === 'boolean'
+            || param === null;
+        if(!isAllowedPrimitive) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 var Protocol = {
     MSG_HELLO: Types.Messages.HELLO,
     MSG_WELCOME: Types.Messages.WELCOME,
@@ -17,6 +46,10 @@ var Protocol = {
     ENTITY_SWORD_1: Types.Entities.SWORD1,
 };
 
+/**
+ * @param {string} payload
+ * @returns {ProtocolAction[]}
+ */
 Protocol.parseProtocolActionBatch = function (payload) {
     var parsed;
     try {
@@ -31,11 +64,11 @@ Protocol.parseProtocolActionBatch = function (payload) {
 
     if (parsed.length > 0 && Array.isArray(parsed[0])) {
         return parsed.filter(function (entry) {
-            return Array.isArray(entry) && typeof entry[0] === 'number';
+            return isProtocolAction(entry);
         });
     }
 
-    if (typeof parsed[0] === 'number') {
+    if (isProtocolAction(parsed)) {
         return [parsed];
     }
 
