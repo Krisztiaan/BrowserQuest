@@ -2159,6 +2159,52 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-128` protocol invariant replay depth expansion.
 
+- 2026-02-07 04:30:57Z
+  - Status: `in_progress` -> `done` (T-128)
+  - Actions:
+    - Expanded protocol invariant replay to include deterministic movement/zone coverage in addition to handshake/chat:
+      - `tests/browser/protocol-invariant.playwright.ts` now sends `MOVE` and `ZONE` after `WELCOME` and asserts socket remains open after the expanded sequence.
+    - Updated protocol invariant command docs to reflect `MOVE`/`ZONE` coverage:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:browser:protocol-invariant:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-129` protocol fixture/harness reuse across parity suites.
+
+- 2026-02-07 04:30:57Z
+  - Status: `in_progress` -> `done` (T-129)
+  - Actions:
+    - Added shared protocol fixture module:
+      - `tests/support/protocol.ts` with protocol message constants and `parseProtocolActionBatch(...)`.
+    - Reused shared protocol fixtures in:
+      - `tests/smoke/modern-gameplay-parity.test.ts`
+      - `tests/browser/modern-protocol-actions.playwright.ts`
+      - `tests/browser/protocol-invariant.playwright.ts`
+  - Evidence:
+    - `bun test --timeout 20000 tests/smoke/modern-gameplay-parity.test.ts` passed.
+    - `bun run test:browser:protocol-invariant:node22` passed.
+    - `bun run test:browser:modern:node22` passed.
+  - Next action:
+    - Start `T-130` protocol gate CI runbook and trigger ergonomics.
+
+- 2026-02-07 04:30:57Z
+  - Status: `in_progress` -> `done` (T-130)
+  - Actions:
+    - Added optional manual trigger support for protocol gate workflow:
+      - `.github/workflows/verify-protocol-invariant.yml` now includes `workflow_dispatch`.
+    - Updated docs/runbook references for protocol gate usage:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - includes manual-trigger guidance and local parity command context.
+  - Evidence:
+    - Workflow now supports both path-triggered and manual (`workflow_dispatch`) execution modes.
+    - `bun run test:browser:protocol-invariant:node22` passed after workflow/docs update.
+  - Next action:
+    - Define `T-131` manual-dispatch workflow evidence capture for `verify-protocol-invariant`.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2930,19 +2976,25 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` has new queued ticket entries beyond T-126 with executable command-level checks.
 
 ### T-128: Protocol invariant replay depth expansion
-- Status: `todo`
+- Status: `done`
 - Scope: extend `test:browser:protocol-invariant` beyond handshake/chat to include one deterministic movement/zone action invariant asserted across modern and legacy entry paths.
 - Acceptance criteria: replay guard fails when modern/legacy handling diverges on the expanded action sequence, while remaining deterministic in CI.
 - Verification: updated protocol invariant Playwright suite + `bun run test:browser:protocol-invariant:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-129: Protocol fixture/harness reuse across parity suites
-- Status: `todo`
+- Status: `done`
 - Scope: extract shared protocol replay helpers/fixtures used by browser invariant and smoke parity suites to reduce duplicated websocket parsing/retry logic.
 - Acceptance criteria: helper reuse is explicit, targeted suites remain readable, and no behavior drift is introduced.
 - Verification: affected tests pass (`bun test --timeout 20000 tests/smoke/modern-gameplay-parity.test.ts`) + browser invariant command stays green.
 
 ### T-130: Protocol gate CI runbook and trigger ergonomics
-- Status: `todo`
+- Status: `done`
 - Scope: document when to use `verify-protocol-invariant`, add optional manual trigger support (`workflow_dispatch`), and align local parity commands in docs/runbooks.
 - Acceptance criteria: contributors can run/triage protocol gate from docs alone; workflow supports both path-triggered and manual runs.
 - Verification: workflow includes `workflow_dispatch`; docs mention trigger paths + manual trigger + local parity command.
+
+### T-131: Manual-dispatch protocol workflow evidence capture
+- Status: `todo`
+- Scope: run `verify-protocol-invariant` via `workflow_dispatch` and capture successful run evidence (URL/id/timestamps) in roadmap for operator triage baseline.
+- Acceptance criteria: roadmap includes at least one successful manual-dispatch run proving the workflow_dispatch path is functional.
+- Verification: `gh workflow run verify-protocol-invariant.yml -R Krisztiaan/BrowserQuest --ref modernize` succeeds and run evidence is logged in `MODERNIZE.md`.

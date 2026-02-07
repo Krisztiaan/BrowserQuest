@@ -1,16 +1,17 @@
 import { expect, test, type Page } from '@playwright/test';
+import {
+    MSG_ATTACK,
+    MSG_CHAT,
+    MSG_HELLO,
+    MSG_HIT,
+    MSG_LIST,
+    MSG_LOOTMOVE,
+    MSG_MOVE,
+    MSG_WELCOME,
+    MSG_ZONE,
+    parseProtocolActionBatch,
+} from '../support/protocol';
 
-const MSG_HELLO = 0;
-const MSG_WELCOME = 1;
-const MSG_LOOTMOVE = 5;
-const MSG_ATTACK = 7;
-const MSG_HIT = 8;
-const MSG_CHAT = 11;
-const MSG_LIST = 19;
-const MSG_ZONE = 21;
-const MSG_MOVE = 4;
-
-type Action = number[] | [number, number, string];
 type ZoneMoveResult = {
     ok: boolean;
     reason?: string;
@@ -32,29 +33,6 @@ type CombatLootResult = {
     itemX?: number;
     itemY?: number;
 };
-
-function parseActionBatch(payload: string): Action[] {
-    let parsed: unknown;
-    try {
-        parsed = JSON.parse(payload);
-    } catch (_) {
-        return [];
-    }
-
-    if (!Array.isArray(parsed)) {
-        return [];
-    }
-
-    if (parsed.length > 0 && Array.isArray(parsed[0])) {
-        return parsed.filter((entry): entry is Action => Array.isArray(entry) && typeof entry[0] === 'number');
-    }
-
-    if (typeof parsed[0] === 'number') {
-        return [parsed as Action];
-    }
-
-    return [];
-}
 
 async function startModernSession(page: Page, name: string, options?: { testMode?: boolean }) {
     const testMode = options?.testMode === true;
@@ -101,13 +79,13 @@ test('modern browser emits HELLO and CHAT protocol actions over live websocket',
 
         ws.on('framesent', ({ payload }) => {
             const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseActionBatch(text);
+            const actions = parseProtocolActionBatch(text);
             actions.forEach((action) => sentTypes.push(action[0]));
         });
 
         ws.on('framereceived', ({ payload }) => {
             const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseActionBatch(text);
+            const actions = parseProtocolActionBatch(text);
             actions.forEach((action) => {
                 receivedTypes.push(action[0]);
                 if (action[0] === MSG_CHAT && typeof action[2] === 'string') {
@@ -150,13 +128,13 @@ test('modern browser emits MOVE and ZONE actions for deterministic cross-zone co
 
         ws.on('framesent', ({ payload }) => {
             const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseActionBatch(text);
+            const actions = parseProtocolActionBatch(text);
             actions.forEach((action) => sentTypes.push(action[0]));
         });
 
         ws.on('framereceived', ({ payload }) => {
             const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseActionBatch(text);
+            const actions = parseProtocolActionBatch(text);
             actions.forEach((action) => receivedTypes.push(action[0]));
         });
     });
@@ -212,7 +190,7 @@ test('modern browser reconnects and repeats go/HELLO/WELCOME after reload', asyn
 
         ws.on('framesent', ({ payload }) => {
             const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseActionBatch(text);
+            const actions = parseProtocolActionBatch(text);
             actions.forEach((action) => sentTypes.push(action[0]));
         });
 
@@ -223,7 +201,7 @@ test('modern browser reconnects and repeats go/HELLO/WELCOME after reload', asyn
                 return;
             }
 
-            const actions = parseActionBatch(text);
+            const actions = parseProtocolActionBatch(text);
             actions.forEach((action) => receivedTypes.push(action[0]));
         });
     });
@@ -262,13 +240,13 @@ test('modern browser emits ATTACK/HIT/LOOTMOVE via deterministic combat-loot tes
 
         ws.on('framesent', ({ payload }) => {
             const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseActionBatch(text);
+            const actions = parseProtocolActionBatch(text);
             actions.forEach((action) => sentTypes.push(action[0]));
         });
 
         ws.on('framereceived', ({ payload }) => {
             const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseActionBatch(text);
+            const actions = parseProtocolActionBatch(text);
             actions.forEach((action) => receivedTypes.push(action[0]));
         });
     });

@@ -1,26 +1,28 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from 'ws';
+import {
+    ENTITY_CLOTH_ARMOR,
+    ENTITY_SWORD_1,
+    MSG_ATTACK,
+    MSG_CHAT,
+    MSG_DAMAGE,
+    MSG_HELLO,
+    MSG_HIT,
+    MSG_LIST,
+    MSG_LOOTMOVE,
+    MSG_MOVE,
+    MSG_SPAWN,
+    MSG_WELCOME,
+    MSG_WHO,
+    MSG_ZONE,
+    parseProtocolActionBatch,
+    type ProtocolAction,
+} from '../support/protocol';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
-const MSG_HELLO = 0;
-const MSG_WELCOME = 1;
-const MSG_SPAWN = 2;
-const MSG_MOVE = 4;
-const MSG_LOOTMOVE = 5;
-const MSG_ATTACK = 7;
-const MSG_HIT = 8;
-const MSG_CHAT = 11;
-const MSG_DAMAGE = 16;
-const MSG_LIST = 19;
-const MSG_WHO = 20;
-const MSG_ZONE = 21;
-
-const ENTITY_CLOTH_ARMOR = 21;
-const ENTITY_SWORD_1 = 60;
-
-type Action = number[];
+type Action = ProtocolAction;
 
 type ActionStream = {
     actions: Action[];
@@ -39,14 +41,7 @@ function isActionArray(value: unknown): value is Action {
 }
 
 function collectActionsFromPayload(payload: string): Action[] {
-    const parsed = JSON.parse(payload);
-    if (isActionArray(parsed)) {
-        return [parsed];
-    }
-    if (Array.isArray(parsed)) {
-        return parsed.filter((entry): entry is Action => isActionArray(entry));
-    }
-    return [];
+    return parseProtocolActionBatch(payload).filter((entry): entry is Action => isActionArray(entry));
 }
 
 function createActionStream(ws: WebSocket): ActionStream {

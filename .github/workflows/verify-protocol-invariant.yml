@@ -1,6 +1,7 @@
 name: verify-protocol-invariant
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
       - "client/**"

@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { MSG_CHAT, MSG_HELLO, MSG_MOVE, MSG_WELCOME, MSG_ZONE } from '../support/protocol';
 
 type ReplayTranscript = {
     sent: number[];
@@ -6,6 +7,9 @@ type ReplayTranscript = {
     goCount: number;
     welcomeCount: number;
     echoedChatCount: number;
+    moveCount: number;
+    zoneCount: number;
+    stayedOpenAfterMoveZone: boolean;
     errors: string[];
 };
 
@@ -26,13 +30,16 @@ async function replayProtocolSequence(
     await page.goto(entryPath, { waitUntil: 'domcontentloaded' });
 
     const result = await page.evaluate(
-        async ({ wsUrl, helloName, chatMessage }) => {
+        async ({ wsUrl, helloName, chatMessage, types }) => {
             const transcript: ReplayTranscript = {
                 sent: [],
                 received: [],
                 goCount: 0,
                 welcomeCount: 0,
                 echoedChatCount: 0,
+                moveCount: 0,
+                zoneCount: 0,
+                stayedOpenAfterMoveZone: false,
                 errors: [],
             };
 
@@ -55,6 +62,8 @@ async function replayProtocolSequence(
             return await new Promise<ReplayResult>((resolve) => {
                 let sentHello = false;
                 let sentChat = false;
+                let sentMove = false;
+                let sentZone = false;
                 let done = false;
                 const ws = new WebSocket(wsUrl);
 
@@ -81,8 +90,8 @@ async function replayProtocolSequence(
                         transcript.received.push('go');
                         transcript.goCount += 1;
                         if (!sentHello) {
-                            ws.send(JSON.stringify([0, helloName, 1, 1]));
-                            transcript.sent.push(0);
+                            ws.send(JSON.stringify([types.MSG_HELLO, helloName, 1, 1]));
+                            transcript.sent.push(types.MSG_HELLO);
                             sentHello = true;
                         }
                         return;
@@ -93,18 +102,35 @@ async function replayProtocolSequence(
                         const type = Number(action[0]);
                         transcript.received.push(type);
 
-                        if (type === 1) {
+                        if (type === types.MSG_WELCOME) {
                             transcript.welcomeCount += 1;
+                            const welcomeX = Number(action[3]);
+                            const welcomeY = Number(action[4]);
                             if (!sentChat) {
-                                ws.send(JSON.stringify([11, chatMessage]));
-                                transcript.sent.push(11);
+                                ws.send(JSON.stringify([types.MSG_CHAT, chatMessage]));
+                                transcript.sent.push(types.MSG_CHAT);
                                 sentChat = true;
+                            }
+                            if (!sentMove && Number.isFinite(welcomeX) && Number.isFinite(welcomeY)) {
+                                ws.send(JSON.stringify([types.MSG_MOVE, welcomeX, welcomeY]));
+                                transcript.sent.push(types.MSG_MOVE);
+                                transcript.moveCount += 1;
+                                sentMove = true;
+                            }
+                            if (sentMove && !sentZone) {
+                                ws.send(JSON.stringify([types.MSG_ZONE]));
+                                transcript.sent.push(types.MSG_ZONE);
+                                transcript.zoneCount += 1;
+                                sentZone = true;
                             }
                         }
 
-                        if (type === 11 && action[2] === chatMessage) {
+                        if (type === types.MSG_CHAT && action[2] === chatMessage) {
                             transcript.echoedChatCount += 1;
-                            finalize({ ok: true, transcript });
+                            window.setTimeout(() => {
+                                transcript.stayedOpenAfterMoveZone = ws.readyState === WebSocket.OPEN;
+                                finalize({ ok: transcript.stayedOpenAfterMoveZone, transcript });
+                            }, 120);
                         }
                     });
                 };
@@ -119,6 +145,13 @@ async function replayProtocolSequence(
             wsUrl: 'ws://127.0.0.1:8000/',
             helloName: `pi-${suffix}`,
             chatMessage: `pi-chat-${suffix}`,
+            types: {
+                MSG_HELLO,
+                MSG_WELCOME,
+                MSG_CHAT,
+                MSG_MOVE,
+                MSG_ZONE,
+            },
         }
     );
 
@@ -136,28 +169,37 @@ test('protocol replay invariants match between modern and legacy entry paths', a
     expect(legacy.ok).toBe(true);
 
     const modernInvariant = {
-        sentHello: modern.transcript.sent.includes(0),
-        sentChat: modern.transcript.sent.includes(11),
+        sentHello: modern.transcript.sent.includes(MSG_HELLO),
+        sentChat: modern.transcript.sent.includes(MSG_CHAT),
+        sentMove: modern.transcript.sent.includes(MSG_MOVE),
+        sentZone: modern.transcript.sent.includes(MSG_ZONE),
         sawGo: modern.transcript.goCount > 0,
         sawWelcome: modern.transcript.welcomeCount > 0,
         sawEchoedChat: modern.transcript.echoedChatCount > 0,
+        stayedOpenAfterMoveZone: modern.transcript.stayedOpenAfterMoveZone,
         sawErrors: modern.transcript.errors.length > 0,
     };
     const legacyInvariant = {
-        sentHello: legacy.transcript.sent.includes(0),
-        sentChat: legacy.transcript.sent.includes(11),
+        sentHello: legacy.transcript.sent.includes(MSG_HELLO),
+        sentChat: legacy.transcript.sent.includes(MSG_CHAT),
+        sentMove: legacy.transcript.sent.includes(MSG_MOVE),
+        sentZone: legacy.transcript.sent.includes(MSG_ZONE),
         sawGo: legacy.transcript.goCount > 0,
         sawWelcome: legacy.transcript.welcomeCount > 0,
         sawEchoedChat: legacy.transcript.echoedChatCount > 0,
+        stayedOpenAfterMoveZone: legacy.transcript.stayedOpenAfterMoveZone,
         sawErrors: legacy.transcript.errors.length > 0,
     };
 
     expect(modernInvariant).toEqual({
         sentHello: true,
         sentChat: true,
+        sentMove: true,
+        sentZone: true,
         sawGo: true,
         sawWelcome: true,
         sawEchoedChat: true,
+        stayedOpenAfterMoveZone: true,
         sawErrors: false,
     });
     expect(legacyInvariant).toEqual(modernInvariant);
