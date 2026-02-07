@@ -6,6 +6,9 @@ class Item extends Entity {
         super(id, "item", kind, x, y);
         this.isStatic = false;
         this.isFromChest = false;
+        this.blinkTimeout = null;
+        this.despawnTimeout = null;
+        this.respawn_callback = null;
     }
     
     handleDespawn(params) {

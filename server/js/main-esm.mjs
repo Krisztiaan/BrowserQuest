@@ -7,6 +7,21 @@ const require = createRequire(import.meta.url);
 const defaultConfigPath = './server/config.json';
 const customConfigPath = process.argv[2] || './server/config_local.json';
 
+function emitProbeEvent(level, fields) {
+    const payload = JSON.stringify({
+        ts: new Date().toISOString(),
+        level,
+        event: 'server.esm.ws_bridge_probe',
+        ...fields,
+    });
+
+    if (level === 'error') {
+        console.error(payload);
+        return;
+    }
+    console.info(payload);
+}
+
 async function getConfigFile(configPath) {
     try {
         const raw = await fs.readFile(configPath, 'utf8');
@@ -44,11 +59,19 @@ async function runWebSocketBridgeProbeIfEnabled() {
         wsEsm.CLOSE_CODES === wsCjs.CLOSE_CODES &&
         wsEsm.MultiVersionWebsocketServer === wsCjs.MultiVersionWebsocketServer &&
         wsEsm.wsWebSocketConnection === wsCjs.wsWebSocketConnection;
+    const forceFail = process.env.BQ_ESM_WS_BRIDGE_PROBE_FORCE_FAIL === '1';
 
-    if (!contractMatches) {
-        console.error('ESM websocket bridge probe failed: contract mismatch.');
+    if (!contractMatches || forceFail) {
+        emitProbeEvent('error', {
+            status: 'failed',
+            reason: forceFail ? 'forced_failure' : 'contract_mismatch',
+        });
         process.exit(1);
     }
+
+    emitProbeEvent('info', {
+        status: 'ok',
+    });
 }
 
 await runWebSocketBridgeProbeIfEnabled();

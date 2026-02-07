@@ -3600,6 +3600,35 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-229` websocket ESM entry adoption signal hardening.
 
+- 2026-02-07 10:25:00Z
+  - Status: `in_progress` -> `done` (T-229)
+  - Actions:
+    - Added structured probe diagnostics in ESM server entry:
+      - `server/js/main-esm.mjs` now emits `server.esm.ws_bridge_probe` structured events with `status` (`ok`/`failed`).
+      - failure path remains fail-fast and supports deterministic test forcing via `BQ_ESM_WS_BRIDGE_PROBE_FORCE_FAIL=1`.
+    - Expanded ESM websocket bridge smoke coverage:
+      - `tests/smoke/server-handshake-esm-ws-bridge.test.ts` now asserts probe success event emission and fail-fast structured failure signal.
+  - Evidence:
+    - `bun run test` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-230` runtime CheckJs wave 5 gameplay pilot.
+
+- 2026-02-07 10:25:00Z
+  - Status: `in_progress` -> `done` (T-230)
+  - Actions:
+    - Promoted next gameplay module pilot into runtime CheckJs scope:
+      - added `server/js/item.js` to `tsconfig.typecheck-runtime.json`.
+    - Applied property-shape initialization cleanup in `server/js/item.js` (`blinkTimeout`, `despawnTimeout`, `respawn_callback`) to satisfy CheckJs without behavior changes.
+    - Updated runtime CheckJs defer artifact to reflect active scope expansion:
+      - `docs/typescript-runtime-checkjs-defer-list.md`.
+  - Evidence:
+    - `bun run typecheck` passed with `item.js` in runtime CheckJs scope.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-231` runtime CheckJs wave 6 planning (`player.js` pre-slice).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4977,13 +5006,19 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run test` + `bun run verify:modern:node22`.
 
 ### T-229: WebSocket ESM entry adoption signal hardening
-- Status: `todo`
+- Status: `done`
 - Scope: add structured diagnostic event/log for `BQ_ESM_WS_BRIDGE_PROBE=1` success/failure path so operators can confirm probe execution in smoke/CI logs.
 - Acceptance criteria: probe-enabled ESM entry emits an explicit success signal and failure remains fail-fast.
 - Verification: `bun run test` + `bun run test:browser:protocol:node22`.
 
 ### T-230: Runtime CheckJs wave 5 (next gameplay pilot)
-- Status: `todo`
+- Status: `done`
 - Scope: promote one additional deferred gameplay module (`item.js` or `player.js` pre-slice) into runtime CheckJs scope with targeted property-shape cleanup.
 - Acceptance criteria: runtime CheckJs scope expands by one gameplay module without verify-gate regressions.
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
+
+### T-231: Runtime CheckJs wave 6 planning (`player.js` pre-slice)
+- Status: `todo`
+- Scope: define a scoped pre-slice for `server/js/player.js` CheckJs adoption (property-shape inventory + safe initialization guardrails) before promoting it into runtime scope.
+- Acceptance criteria: plan artifact lists required property-shape fixes and staging steps with verification commands.
+- Verification: `MODERNIZE.md` contains an executable pre-slice checklist and follow-on ticket split.

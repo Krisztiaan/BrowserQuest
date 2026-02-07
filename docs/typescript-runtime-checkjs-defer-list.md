@@ -11,6 +11,7 @@
 - `server/js/format.js`
 - `server/js/utils.js`
 - `server/js/entity.js`
+- `server/js/item.js`
 - `server/js/config-preflight.js`
 - `server/js/ws.js`
 
@@ -19,7 +20,6 @@ These files were selected because they are runtime-adjacent and passed `allowJs`
 ## Deferred for later waves
 
 - `server/js/player.js`
-- `server/js/item.js`
 - `server/js/worldserver.js`
 - `server/js/map.js`
 
