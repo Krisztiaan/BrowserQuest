@@ -3549,6 +3549,22 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-226` runtime CheckJs wave 4 gameplay pilot.
 
+- 2026-02-07 09:45:00Z
+  - Status: `in_progress` -> `done` (T-226)
+  - Actions:
+    - Promoted deferred gameplay module pilot into runtime CheckJs scope:
+      - added `server/js/entity.js` to `tsconfig.typecheck-runtime.json`.
+    - Applied low-risk CheckJs cleanup in `server/js/entity.js`:
+      - removed redundant `Number.parseInt` call on numeric `id`,
+      - added explicit `pos` shape typing in `getPositionNextTo(...)`.
+    - Updated defer artifact to reflect promoted gameplay module:
+      - `docs/typescript-runtime-checkjs-defer-list.md`.
+  - Evidence:
+    - `bun run typecheck` passed with `entity.js` included in runtime CheckJs scope.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-227` websocket ESM entry adoption probe.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4908,7 +4924,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run test` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22`.
 
 ### T-226: Runtime CheckJs wave 4 (selected gameplay pilot)
-- Status: `todo`
+- Status: `done`
 - Scope: expand `tsconfig.typecheck-runtime.json` into one deferred gameplay module pilot (`player` or `entity`) with targeted property-shape cleanup.
 - Acceptance criteria: at least one deferred gameplay module is promoted from defer list into active CheckJs scope without gate regressions.
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.

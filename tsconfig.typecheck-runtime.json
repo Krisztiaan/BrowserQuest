@@ -12,6 +12,7 @@
     "server/js/log.js",
     "server/js/format.js",
     "server/js/utils.js",
+    "server/js/entity.js",
     "server/js/config-preflight.js",
     "server/js/ws.js"
   ]

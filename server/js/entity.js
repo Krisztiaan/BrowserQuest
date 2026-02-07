@@ -17,7 +17,7 @@ class Entity {
     
     _getBaseState() {
         return [
-            Number.parseInt(this.id, 10),
+            this.id,
             this.kind,
             this.x,
             this.y
@@ -42,15 +42,14 @@ class Entity {
     }
     
     getPositionNextTo(entity) {
+        /** @type {{x: number, y: number} | null} */
         var pos = null;
         if(entity) {
-            pos = {};
+            pos = { x: entity.x, y: entity.y };
             // This is a quick & dirty way to give mobs a random position
             // close to another entity.
             var r = Utils.random(4);
-            
-            pos.x = entity.x;
-            pos.y = entity.y;
+
             if(r === 0)
                 pos.y -= 1;
             if(r === 1)
