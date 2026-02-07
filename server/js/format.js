@@ -1,5 +1,4 @@
-var cls = require('./lib/class'),
-    Log = require('./log'),
+var Log = require('./log'),
     Types = require('../../shared/js/gametypes');
 var log = Log.getLogger();
 
@@ -7,8 +6,8 @@ var isValidNumberParam = function (param) {
     return typeof param === 'number' && Number.isFinite(param) && Number.isSafeInteger(param);
 };
 
-var FormatChecker = cls.Class.extend({
-    init: function () {
+class FormatChecker {
+    constructor() {
         this.formats = [];
         this.formats[Types.Messages.HELLO] = ['s', 'n', 'n'];
         this.formats[Types.Messages.MOVE] = ['n', 'n'];
@@ -23,9 +22,9 @@ var FormatChecker = cls.Class.extend({
         this.formats[Types.Messages.ZONE] = [];
         this.formats[Types.Messages.OPEN] = ['n'];
         this.formats[Types.Messages.CHECK] = ['n'];
-    },
+    }
 
-    check: function (msg) {
+    check(msg) {
         var message = msg.slice(0),
             type = message[0],
             format = this.formats[type];
@@ -60,8 +59,8 @@ var FormatChecker = cls.Class.extend({
 
         log.error('Unknown message type: ' + type);
         return false;
-    },
-});
+    }
+}
 
 var checker = new FormatChecker();
 

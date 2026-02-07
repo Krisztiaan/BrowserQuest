@@ -2602,6 +2602,172 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-158` dependency drift CI visibility workflow.
 
+- 2026-02-07 05:09:20Z
+  - Status: `in_progress` -> `done` (T-158)
+  - Actions:
+    - Added dependency drift visibility workflow:
+      - `.github/workflows/verify-dependency-drift.yml`
+      - Triggers: `workflow_dispatch` + weekly Monday cron.
+      - Captures `npm outdated --depth=0` summary and uploads artifacts (`dependency-drift.txt`, `dependency-drift.json`).
+    - Updated docs for workflow discoverability and triage:
+      - `README.md`
+      - `docs/client-build-support.md`
+    - Dispatched workflow on `modernize` branch and captured run evidence.
+  - Evidence:
+    - Successful workflow run: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774682597` (conclusion: `success`, 2026-02-07 05:07:47Z).
+    - Artifact naming pattern in run: `dependency-drift-21774682597`.
+  - Next action:
+    - Start `T-159` CommonJS-to-ESM server readiness inventory.
+
+- 2026-02-07 05:09:20Z
+  - Status: `in_progress` -> `done` (T-159)
+  - Actions:
+    - Created server/runtime CJS->ESM migration readiness inventory:
+      - `docs/server-cjs-esm-readiness-inventory.md`
+    - Documented:
+      - current CJS boundary snapshot (`server/js` graph fully CJS),
+      - high-risk blockers (`worldserver`, `player`, `ws`, `main`, `shared/js/gametypes`, `lib/class`),
+      - phased migration sequencing and verification gates.
+    - Linked the inventory in primary project docs for roadmap discoverability.
+  - Evidence:
+    - Inventory artifact is checked in and includes command-level gates tied to existing `verify:*` and browser protocol/legacy smoke checks.
+  - Next action:
+    - Define `T-160` post-CJS-inventory queue refresh.
+
+- 2026-02-07 05:09:42Z
+  - Status: `in_progress` -> `done` (T-160)
+  - Actions:
+    - Refreshed post-T159 queue with CJS->ESM execution focus:
+      - `T-161` server ESM bridge bootstrap (opt-in entrypoint).
+      - `T-162` shared gametypes dual-export contract hardening.
+      - `T-163` `lib/class.js` dependency fanout map and retirement pilot.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes ordered CJS->ESM successor tickets with explicit guardrails tied to modern/legacy/protocol verification gates.
+  - Next action:
+    - Start `T-161` server ESM bridge bootstrap (opt-in entrypoint).
+
+- 2026-02-07 05:11:58Z
+  - Status: `in_progress` -> `done` (T-161)
+  - Actions:
+    - Added opt-in server ESM bridge entrypoint:
+      - `server/js/main-esm.mjs`
+      - `package.json` scripts: `start:server:esm`, `dev:server:esm`
+    - Kept default compatibility path unchanged (`server/js/main.js`).
+    - Updated docs to surface new opt-in command:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `timeout 8s bun run start:server:esm` produced clean startup logs (`server.start`, `ws.server.listen`) before timeout.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-162` shared gametypes dual-export contract hardening.
+
+- 2026-02-07 05:11:58Z
+  - Status: `in_progress` -> `done` (T-162)
+  - Actions:
+    - Added ESM bridge module for shared protocol contract:
+      - `shared/js/gametypes-esm.mjs` (default + named export bridge to existing CJS contract).
+    - Added contract test coverage:
+      - `tests/unit/gametypes-contract.test.ts`
+      - Verifies CJS + global contract and ESM bridge exports reference the same `Types` object.
+  - Evidence:
+    - `bun test tests/unit/gametypes-contract.test.ts --timeout 20000` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run test:browser:legacy:node22` passed.
+    - `bun run lint` and `bun run format:check` passed.
+  - Next action:
+    - Start `T-163` `lib/class.js` retirement pilot fanout map.
+
+- 2026-02-07 05:13:48Z
+  - Status: `in_progress` -> `done` (T-163)
+  - Actions:
+    - Produced explicit `lib/class.js` dependency fanout inventory:
+      - `docs/server-classjs-fanout-map.md`
+      - Captures remaining direct dependents after pilot migration.
+    - Completed first low-risk native-class migration pilot:
+      - migrated `server/js/format.js` from `Class.extend` to native `class` while preserving exports (`FormatChecker`, `check`).
+    - Added documentation linkage:
+      - `README.md` modernization snapshot now links fanout map.
+      - `docs/server-cjs-esm-readiness-inventory.md` references fanout artifact.
+  - Evidence:
+    - Remaining direct `./lib/class` dependents reduced from 12 to 11.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run lint` and `bun run format:check` passed.
+  - Next action:
+    - Define `T-164` post-class-pilot queue refresh.
+
+- 2026-02-07 05:14:02Z
+  - Status: `in_progress` -> `done` (T-164)
+  - Actions:
+    - Refreshed post-T163 queue with risk-tiered native-class migration targets:
+      - `T-165` low-risk leaf migration (`checkpoint.js`).
+      - `T-166` low/mid-risk domain migration (`area.js`, `message.js`).
+      - `T-167` bridge hardening after tiered migrations (class-usage guard + remaining fanout refresh).
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes an executable, ordered queue for continued `lib/class.js` retirement progress.
+  - Next action:
+    - Start `T-165` low-risk leaf native-class migration (`checkpoint.js`).
+
+- 2026-02-07 05:19:58Z
+  - Status: `in_progress` -> `done` (T-165)
+  - Actions:
+    - Migrated `server/js/checkpoint.js` from `Class.extend` to native class syntax.
+    - Preserved module export shape (`module.exports = Checkpoint`) and call-site compatibility.
+  - Evidence:
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-166` tier-1.5 native-class migration (`area.js` + `message.js`).
+
+- 2026-02-07 05:19:58Z
+  - Status: `in_progress` -> `done` (T-166)
+  - Actions:
+    - Migrated domain modules to native classes:
+      - `server/js/area.js`
+      - `server/js/message.js`
+    - Migrated dependent subclasses to preserve inheritance behavior:
+      - `server/js/mobarea.js`
+      - `server/js/chestarea.js`
+    - Addressed startup regression discovered during verify run (`Area.extend` dependency) by converting inheriting modules to native `extends Area`.
+  - Evidence:
+    - `bun run verify:legacy:node22` passed after migration/fix.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-167` class-bridge hardening and fanout refresh.
+
+- 2026-02-07 05:19:58Z
+  - Status: `in_progress` -> `done` (T-167)
+  - Actions:
+    - Refreshed `lib/class.js` fanout artifact:
+      - `docs/server-classjs-fanout-map.md`
+      - current direct dependency count now `8`.
+    - Added automated guard against accidental new `lib/class.js` imports:
+      - `tools/check-classjs-fanout.cjs`
+      - `package.json` command: `check:class-fanout`
+    - Updated docs for command discoverability:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run check:class-fanout` passed (`8` tracked dependencies).
+    - `bun run lint` passed.
+  - Next action:
+    - Define `T-168` post-tiered-class-migration queue refresh.
+
+- 2026-02-07 05:20:17Z
+  - Status: `in_progress` -> `done` (T-168)
+  - Actions:
+    - Refreshed post-T167 queue to target remaining `lib/class.js` dependents in risk order:
+      - `T-169` entity/character native-class migration.
+      - `T-170` mob migration and combat/protocol parity check.
+      - `T-171` core-graph migration plan (`map`/`ws`/`player`/`worldserver`) with staged sequencing.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes explicit remaining-module queue aligned with current fanout artifact and verification gates.
+  - Next action:
+    - Start `T-169` entity/character native-class migration.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -3553,13 +3719,85 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run check:deps:drift` and `bun run check:deps:drift:node22`.
 
 ### T-158: Dependency drift CI visibility workflow
-- Status: `todo`
+- Status: `done`
 - Scope: add an opt-in/manual CI workflow that runs dependency drift checks and captures direct dependency status for modernization tracking.
 - Acceptance criteria: maintainers can trigger a workflow and retrieve drift status without local setup assumptions.
 - Verification: workflow run evidence is logged in `MODERNIZE.md` with run id/url and outcome.
 
 ### T-159: CommonJS-to-ESM server readiness inventory
-- Status: `todo`
+- Status: `done`
 - Scope: create a concrete inventory of server/runtime CommonJS boundaries and blockers for incremental ESM migration planning aligned with 2026 JS standards.
 - Acceptance criteria: roadmap/docs enumerate high-risk modules, sequencing constraints, and verification gates for staged CJS->ESM transition.
 - Verification: inventory artifact is checked in and referenced from `MODERNIZE.md`.
+
+### T-160: Post-CJS-inventory queue refresh
+- Status: `done`
+- Scope: refresh modernization queue after T-158/T-159 with executable follow-on tickets for ESM bridge bootstrapping and shared-contract hardening.
+- Acceptance criteria: ordered successor tickets are documented with scope, guardrails, and command-level verification.
+- Verification: `MODERNIZE.md` includes post-T159 successor queue with explicit checks.
+
+### T-161: Server ESM bridge bootstrap (opt-in entrypoint)
+- Status: `done`
+- Scope: introduce an opt-in ESM server entrypoint path while keeping `server/js/main.js` as stable compatibility bootstrap.
+- Acceptance criteria: an explicit command can start server through ESM bridge without changing default runtime path.
+- Verification: ESM bridge command starts cleanly and `bun run verify:legacy:node22` remains green.
+
+### T-162: Shared gametypes dual-export contract hardening
+- Status: `done`
+- Scope: formalize `shared/js/gametypes` compatibility contract for CJS + global + future ESM export surfaces.
+- Acceptance criteria: compatibility tests/guards prevent message/entity enum drift across server and client entry paths.
+- Verification: protocol/browser parity checks remain green (`bun run test:browser:protocol:node22` and `bun run test:browser:legacy:node22`).
+
+### T-163: `lib/class.js` retirement pilot fanout map
+- Status: `done`
+- Scope: map exact `server/js/lib/class.js` dependency fanout and implement a first low-risk native-class migration pilot module.
+- Acceptance criteria: at least one target module no longer depends on `lib/class.js` with behavior-preserving tests green.
+- Verification: targeted tests + `bun run verify:legacy:node22` pass.
+
+### T-164: Post-class-pilot queue refresh
+- Status: `done`
+- Scope: refresh modernization queue after T-163 with ordered next modules for native-class migration and CJS->ESM bridge hardening.
+- Acceptance criteria: successor tickets include explicit module targets, risk tiers, and verification commands.
+- Verification: `MODERNIZE.md` includes post-T163 successor queue with executable checks.
+
+### T-165: Native-class migration tier-1 (`checkpoint.js`)
+- Status: `done`
+- Scope: migrate `server/js/checkpoint.js` off `lib/class.js` to native class syntax with no behavior change.
+- Acceptance criteria: module export contract and call sites remain stable while direct `lib/class` usage is removed.
+- Verification: `bun run test` and `bun run verify:legacy:node22`.
+
+### T-166: Native-class migration tier-1.5 (`area.js` + `message.js`)
+- Status: `done`
+- Scope: migrate `server/js/area.js` and `server/js/message.js` from `Class.extend` to native classes while preserving constructor and method behavior.
+- Acceptance criteria: protocol formatting/entity flow behavior remains unchanged in runtime and browser protocol checks.
+- Verification: `bun run verify:legacy:node22` and `bun run test:browser:protocol:node22`.
+
+### T-167: Class-bridge hardening and fanout refresh
+- Status: `done`
+- Scope: add/refresh guardrails around remaining `lib/class.js` usage and update fanout artifact after tiered migrations.
+- Acceptance criteria: remaining dependency set is explicit and accidental new `lib/class` imports are detectable.
+- Verification: fanout artifact refresh + lint/test gates pass.
+
+### T-168: Post-tiered-class-migration queue refresh
+- Status: `done`
+- Scope: refresh modernization queue after T-165/T-166/T-167, prioritizing remaining high-value `lib/class.js` dependents and ESM bridge adoption.
+- Acceptance criteria: ordered successor tickets identify exact module targets and verification commands.
+- Verification: `MODERNIZE.md` includes post-T167 successor queue with executable checks.
+
+### T-169: Native-class migration tier-2 (`entity.js` + `character.js`)
+- Status: `todo`
+- Scope: migrate base entity hierarchy modules from `Class.extend` to native classes while preserving inheritance behavior used by players/mobs/items.
+- Acceptance criteria: entity/character exports and runtime behavior remain compatible with downstream modules.
+- Verification: `bun run verify:legacy:node22` and `bun run test:browser:protocol:node22`.
+
+### T-170: Native-class migration tier-2.5 (`mob.js`)
+- Status: `todo`
+- Scope: migrate `server/js/mob.js` off `lib/class.js` after entity/character migration, keeping combat/aggro behavior unchanged.
+- Acceptance criteria: combat-path protocol flow remains stable with no regressions in server/gameplay parity checks.
+- Verification: `bun run verify:legacy:node22` and `bun run test:browser:protocol:node22`.
+
+### T-171: Core class-migration sequence plan (`map`/`ws`/`player`/`worldserver`)
+- Status: `todo`
+- Scope: define execution plan and guardrails for remaining highest-risk `lib/class.js` dependents before implementation.
+- Acceptance criteria: plan captures ordering constraints, rollback points, and required smoke/CI gates per slice.
+- Verification: plan artifact is checked in and referenced from `MODERNIZE.md`.

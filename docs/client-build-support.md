@@ -31,10 +31,15 @@ This project currently ships two client build paths while modernization is in pr
 
 ## Build/verification gates
 
+- Server entrypoint options:
+  - Default compatibility path: `bun run start:server` (`server/js/main.js`).
+  - Opt-in ESM bridge path: `bun run start:server:esm` (`server/js/main-esm.mjs`).
 - Modern gate: `bun run verify:modern`
   - Runs `check:modern-jquery-free` (all `client/js-esm/**/*.js`), `lint`, `format:check`, `test`, and `build:vite`
 - Dependency drift check: `bun run check:deps:drift`
   - Node22 policy variant: `bun run check:deps:drift:node22`
+- Class fanout guard: `bun run check:class-fanout`
+  - Fails only on newly introduced `server/js/lib/class.js` imports outside tracked allowlist.
 - Modern gameplay parity smoke: `bun run test:modern-parity`
   - Covers login, move, chat, zone, combat-path signaling, lootmove, and reconnect against a live server.
 - Static dev entry smoke: `bun run test:static-entry`

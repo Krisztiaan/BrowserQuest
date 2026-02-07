@@ -1,10 +1,8 @@
 
-var cls = require('./lib/class'),
-    Utils = require('./utils'),
-    Types = require("../../shared/js/gametypes");
+var Utils = require('./utils');
 
-var Area = cls.Class.extend({
-    init: function(id, x, y, width, height, world) {
+class Area {
+    constructor(id, x, y, width, height, world) {
         this.id = id;
         this.x = x;
         this.y = y;
@@ -13,9 +11,9 @@ var Area = cls.Class.extend({
         this.world = world;
         this.entities = [];
         this.hasCompletelyRespawned = true;
-    },
+    }
     
-    _getRandomPositionInsideArea: function() {
+    _getRandomPositionInsideArea() {
         var pos = {},
             valid = false;
         
@@ -25,9 +23,9 @@ var Area = cls.Class.extend({
             valid = this.world.isValidPosition(pos.x, pos.y);
         }
         return pos;
-    },
+    }
     
-    removeFromArea: function(entity) {
+    removeFromArea(entity) {
         var i = this.entities.findIndex(function(currentEntity) {
             return currentEntity.id === entity.id;
         });
@@ -37,9 +35,9 @@ var Area = cls.Class.extend({
             this.hasCompletelyRespawned = false;
             this.empty_callback();
         }
-    },
+    }
     
-    addToArea: function(entity) {
+    addToArea(entity) {
         if(entity) {
             this.entities.push(entity);
             entity.area = this;
@@ -51,23 +49,23 @@ var Area = cls.Class.extend({
         if(this.isFull()) {
             this.hasCompletelyRespawned = true;
         }
-    },
+    }
     
-    setNumberOfEntities: function(nb) {
+    setNumberOfEntities(nb) {
         this.nbEntities = nb;
-    },
+    }
     
-    isEmpty: function() {
+    isEmpty() {
         return !this.entities.some(function(entity) { return !entity.isDead; });
-    },
+    }
     
-    isFull: function() {
+    isFull() {
         return !this.isEmpty() && (this.nbEntities === this.entities.length);
-    },
+    }
     
-    onEmpty: function(callback) {
+    onEmpty(callback) {
         this.empty_callback = callback;
     }
-});
+}
 
 module.exports = Area;

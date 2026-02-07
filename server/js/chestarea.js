@@ -1,16 +1,15 @@
 
-var Area = require('./area'),
-    Types = require("../../shared/js/gametypes");
+var Area = require('./area');
 
-var ChestArea = Area.extend({
-    init: function(id, x, y, width, height, cx, cy, items, world) {
-        this._super(id, x, y, width, height, world);
+class ChestArea extends Area {
+    constructor(id, x, y, width, height, cx, cy, items, world) {
+        super(id, x, y, width, height, world);
         this.items = items;
         this.chestX = cx;
         this.chestY = cy;
-    },
+    }
     
-    contains: function(entity) {
+    contains(entity) {
         if(entity) {
             return entity.x >= this.x
                 && entity.y >= this.y
@@ -20,6 +19,6 @@ var ChestArea = Area.extend({
             return false;
         }
     }
-});
+}
 
 module.exports = ChestArea;

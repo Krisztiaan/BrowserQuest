@@ -30,6 +30,7 @@ Vite (modern tooling):
 - `bun run dev:vite:full` then open `http://localhost:5173/` (modern default redirect)
   - Explicit entries: `http://localhost:5173/client/modern.html` (ESM), `http://localhost:5173/client/index.html` (legacy)
   - Legacy default override: `BQ_VITE_DEFAULT_ENTRY=legacy bun run dev:vite:full`
+- Optional server ESM bridge entrypoint: `bun run start:server:esm` (default path remains `bun run start:server`).
 
 Build profiles (modern vs legacy):
 - `bun run build:vite` builds the modern ESM page (`client/modern.html`) and is the default production path.
@@ -40,6 +41,7 @@ Verification gates:
 - `bun run verify:modern` runs lint + format check + tests + modern Vite build.
 - `bun run check:deps:drift` reports direct dependency drift (`npm outdated --depth=0`).
   - Node22 policy variant: `bun run check:deps:drift:node22`.
+- `bun run check:class-fanout` guards accidental new `server/js/lib/class.js` dependencies during native-class migration.
 - `bun run check:modern-jquery-free` enforces that modern ESM runtime (`client/js-esm/**/*.js`) stays jQuery-free.
 - `bun run verify:legacy` runs tests + legacy RequireJS build + legacy-inclusive Vite build.
 - `bun run test:modern-browser:install` (one-time) then `bun run test:browser:modern` runs a headless Playwright smoke against `client/modern.html`.
@@ -69,6 +71,8 @@ Modernization snapshot
 - Legacy jQuery migration risk scan: `docs/legacy-jquery4-risk-scan.md`
 - Modern ESM jQuery surface audit: `docs/modern-jquery-surface-audit.md`
 - Server logging taxonomy: `docs/server-logging-taxonomy.md`
+- Server CJS->ESM readiness inventory: `docs/server-cjs-esm-readiness-inventory.md`
+- Server `lib/class.js` fanout map: `docs/server-classjs-fanout-map.md`
 - Metrics healthy-path smoke plan: `docs/metrics-health-smoke-plan.md`
 - Metrics healthy-path workflow evidence currently runs on fork `Krisztiaan/BrowserQuest` (upstream `mozilla/BrowserQuest` is read-only in this context).
 - CI gates: `verify-modern`, `verify-legacy`, `verify-modern-browser`, `verify-legacy-browser`, `verify-protocol-invariant`
