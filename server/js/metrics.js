@@ -2,15 +2,17 @@
 var MetricsClient = require("./metrics-client"),
     Log = require("./log");
 var log = Log.getLogger();
+var MEMCACHE_MODULE_NAME = "memcache";
 
 class Metrics {
     constructor(config, options) {
         var self = this,
             runtimeOptions = options || {},
-            memcacheModule = require("memcache");
+            memcacheModule = require(MEMCACHE_MODULE_NAME);
         
         this.config = config;
         this.client = null;
+        this.isEnabled = false;
         this.isReady = false;
         this.unavailableReasons = {};
         this.onUnavailable = typeof runtimeOptions.onUnavailable === "function" ? runtimeOptions.onUnavailable : function() {};

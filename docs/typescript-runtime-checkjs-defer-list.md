@@ -11,6 +11,10 @@
 - `server/js/format.js`
 - `server/js/formulas.js`
 - `server/js/utils.js`
+- `server/js/main.js`
+- `server/js/metrics.js`
+- `server/js/metrics-runtime.js`
+- `server/js/metrics-client.js`
 - `server/js/entity.js`
 - `server/js/item.js`
 - `server/js/player.js`
@@ -33,19 +37,15 @@ These files were selected because they are runtime-adjacent and passed `allowJs`
 
 ## Deferred for later waves
 
-- `server/js/main.js`
-- `server/js/metrics.js`
-- `server/js/metrics-runtime.js`
-- `server/js/metrics-client.js`
+- (none in current server runtime scope)
 
-## Next-candidate queue (post-wave-8C baseline)
+## Next-candidate queue (post-wave-8D baseline)
 
-1. Resolve metrics typing blockers before promoting `server/js/main.js`, `server/js/metrics.js`, `server/js/metrics-runtime.js`, and then `server/js/metrics-client.js`.
+1. Keep runtime CheckJs scope synchronized with any newly introduced server runtime module files.
 
 ## Defer rationale
 
-- Remaining gameplay/runtime files are deferred to keep promotion batches small and verification deterministic.
-- Metrics/entrypoint files are deferred behind explicit blocker cleanup: optional `memcache` module typing and `Metrics` method-shape checks under CheckJs.
+- Runtime CheckJs scope is currently broad enough to require ongoing discipline: new runtime modules should be added with isolated checks and full verify gates.
 
 ## Reopen criteria
 

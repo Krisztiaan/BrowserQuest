@@ -3748,6 +3748,38 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-240` runtime CheckJs wave 8D (metrics/main blocker pre-slice).
 
+- 2026-02-07 12:45:00Z
+  - Status: `in_progress` -> `done` (T-240)
+  - Actions:
+    - Cleared metrics/main CheckJs blockers in `server/js/metrics.js`:
+      - added explicit `isEnabled` field initialization on `Metrics`,
+      - switched memcache import to named module constant lookup to remove hard module-resolution failure in CheckJs.
+    - Re-ran isolated checks for prior blocker modules:
+      - `server/js/metrics.js`,
+      - `server/js/metrics-runtime.js`,
+      - `server/js/main.js`.
+    - Promoted `server/js/main.js`, `server/js/metrics.js`, `server/js/metrics-runtime.js`, and `server/js/metrics-client.js` into runtime CheckJs scope.
+    - Re-baselined runtime CheckJs defer artifact to reflect zero deferred files in current server runtime scope.
+  - Evidence:
+    - Isolated `bun x tsc --allowJs --checkJs --noEmit --skipLibCheck --target ES2022 --module ESNext --moduleResolution bundler <file>` checks passed for all previously blocked modules.
+    - `bun run typecheck` passed with full promoted runtime scope.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-241` post-runtime-scope-completion queue refresh (ESM/class and websocket-focused slices).
+
+- 2026-02-07 12:55:00Z
+  - Status: `in_progress` -> `done` (T-241)
+  - Actions:
+    - Refreshed post-runtime-scope modernization queue to pivot from CheckJs expansion into ESM/class and websocket-focused modernization slices.
+    - Added ordered successor tickets for:
+      - metrics/runtime ESM mirrors,
+      - server bootstrap extraction for dual CJS/ESM entry convergence,
+      - websocket transport hardening follow-up coverage.
+  - Evidence:
+    - `MODERNIZE.md` active queue now includes `T-242` to `T-244` with scope, acceptance criteria, and verification commands.
+  - Next action:
+    - Start `T-242` server metrics/runtime ESM mirror extraction.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5191,7 +5223,31 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
 
 ### T-240: Runtime CheckJs wave 8D (metrics/main blocker pre-slice)
+- Status: `done`
+- Scope: resolve CheckJs blockers for `server/js/main.js`, `server/js/metrics.js`, and `server/js/metrics-runtime.js`, then promote metrics/main runtime modules into CheckJs scope.
+- Acceptance criteria: previously blocked modules pass isolated CheckJs and are included in runtime CheckJs scope with green gates.
+- Verification: isolated `bun x tsc ...` checks for blocked modules + `bun run typecheck` + `bun run verify:legacy:node22`.
+
+### T-241: Post-runtime-scope completion queue refresh (ESM/class + websocket focus)
+- Status: `done`
+- Scope: refresh the modernization queue after runtime CheckJs scope completion, prioritizing server ESM/class migration slices and websocket transport hardening follow-ups.
+- Acceptance criteria: successor tickets are explicit, ordered, and tied to verification commands.
+- Verification: `MODERNIZE.md` active queue and logs reflect the post-runtime-scope roadmap.
+
+### T-242: Server metrics/runtime ESM mirror extraction
 - Status: `todo`
-- Scope: capture and resolve CheckJs blockers for `server/js/main.js`, `server/js/metrics.js`, and `server/js/metrics-runtime.js` (optional `memcache` type contract and metrics shape narrowing).
-- Acceptance criteria: blocker inventory and staged cleanup plan are documented with executable verification commands.
-- Verification: isolated `bun x tsc ...` checks for each blocked module + updated roadmap/docs.
+- Scope: add ESM mirror modules for `server/js/metrics.js` and `server/js/metrics-runtime.js` that preserve current CJS behavior/contracts and keep bridgeable entry semantics.
+- Acceptance criteria: ESM mirrors export parity-checked contracts with focused tests and no runtime regressions.
+- Verification: `bun run test` + targeted metrics/runtime unit coverage + `bun run verify:modern:node22`.
+
+### T-243: Server bootstrap extraction for dual-entry convergence
+- Status: `todo`
+- Scope: extract `main.js` runtime bootstrap logic into shared helpers so CJS and ESM entries can consume the same startup path with minimal duplication.
+- Acceptance criteria: startup lifecycle behavior and structured events remain unchanged while duplication is reduced.
+- Verification: `bun run test` + server handshake smokes + `bun run verify:legacy:node22`.
+
+### T-244: WebSocket transport hardening follow-up (post-bridge)
+- Status: `todo`
+- Scope: expand websocket transport contract coverage for lifecycle/backpressure/error-handling parity across CJS and ESM bridge paths.
+- Acceptance criteria: explicit contract tests exist for targeted lifecycle/error cases and remain green on both verify tracks.
+- Verification: focused websocket unit/smoke tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
