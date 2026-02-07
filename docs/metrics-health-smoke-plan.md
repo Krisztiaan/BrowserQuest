@@ -47,7 +47,7 @@ Preflight command:
 Workflow: `.github/workflows/verify-metrics-healthy.yml`
 
 - Trigger: GitHub Actions UI -> `verify-metrics-healthy` -> `Run workflow`.
-- Provisioning: job starts a memcached service container (`127.0.0.1:11211`), installs `memcache`, and runs `bun run test:metrics:healthy`.
+- Provisioning: job starts a memcached service container (`127.0.0.1:11211`), installs `memcache` via `bun add --no-save memcache`, and runs `bun run test:metrics:healthy`.
 
 Expected success signals:
 
@@ -67,6 +67,27 @@ Common failure triage:
 - healthy smoke fails on fallback event:
   - inspect structured log lines for `server.metrics.unavailable`.
   - verify config fields injected by test are valid (`memcached_host`, `memcached_port`, `server_name`, `game_servers`).
+
+## Fork workflow hygiene (dispatch readiness)
+
+When validating this optional workflow on a fork where workflow files only exist on a feature branch:
+
+1. Push the branch containing workflow definitions:
+- `git push fork modernize`
+
+2. Set fork default branch to that branch so GitHub indexes workflows:
+- `gh api -X PATCH repos/<user>/BrowserQuest -f default_branch=modernize`
+
+3. Run workflow dispatch:
+- `gh workflow run verify-metrics-healthy --repo <user>/BrowserQuest --ref modernize`
+
+4. After evidence capture, reset default branch if desired:
+- `gh api -X PATCH repos/<user>/BrowserQuest -f default_branch=master`
+
+5. Verify active workflow inventory for the current default branch:
+- `gh workflow list --repo <user>/BrowserQuest`
+
+This keeps workflow-dispatch behavior deterministic and prevents confusion about missing/404 workflows.
 
 ## Pass/fail criteria (healthy smoke)
 

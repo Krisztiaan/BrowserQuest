@@ -32,8 +32,8 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Install optional metrics dependency
-        run: bun add memcache
+      - name: Install optional metrics dependency (no-save)
+        run: bun add --no-save memcache
 
       - name: Wait for memcached service
         run: |
