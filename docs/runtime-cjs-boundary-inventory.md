@@ -27,6 +27,7 @@ Reason: these scripts are intentionally CJS compatibility boundaries while packa
 - `server/js/utils-esm.mjs`
 - `server/js/log-esm.mjs`
 - `server/js/format-esm.mjs`
+- `server/js/ws-esm.mjs`
 
 Reason: provide safe adoption path without changing default runtime mode.
 

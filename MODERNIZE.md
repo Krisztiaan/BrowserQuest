@@ -3523,6 +3523,32 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-224` post-wave queue refresh after websocket+TS wave-3 completion.
 
+- 2026-02-07 09:20:00Z
+  - Status: `in_progress` -> `done` (T-224)
+  - Actions:
+    - Refreshed post-T223 queue and executed the highest-priority successor (`T-225`) in the same slice.
+    - Added next successor queue (`T-227`, `T-228`) to keep runtime migration sequencing explicit.
+  - Evidence:
+    - `MODERNIZE.md` now includes updated post-T225 successor tickets with verification gates.
+  - Next action:
+    - Start `T-226` runtime CheckJs wave 4 gameplay pilot.
+
+- 2026-02-07 09:20:00Z
+  - Status: `in_progress` -> `done` (T-225)
+  - Actions:
+    - Added websocket ESM mirror module:
+      - `server/js/ws-esm.mjs`.
+    - Added websocket mirror parity coverage:
+      - `tests/unit/server-ws-esm.test.ts`.
+    - Updated runtime boundary/readiness inventories with `ws-esm` bridge artifact.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run test` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-226` runtime CheckJs wave 4 gameplay pilot.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4870,13 +4896,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` + `bun run verify:modern:node22`.
 
 ### T-224: Post-wave queue refresh (websocket+TS wave 3)
-- Status: `todo`
+- Status: `done`
 - Scope: refresh modernization queue after T-222/T-223 to prioritize the next highest-leverage runtime migration slices.
 - Acceptance criteria: successor queue is ordered, scoped, and mapped to existing verification gates.
 - Verification: `MODERNIZE.md` includes executable successor tickets after T-223.
 
 ### T-225: WebSocket ESM mirror extraction (priority P0)
-- Status: `todo`
+- Status: `done`
 - Scope: introduce `server/js/ws-esm.mjs` mirror with parity tests while preserving CJS runtime entry compatibility.
 - Acceptance criteria: websocket ESM mirror behavior matches CJS transport semantics for handshake/error/close paths.
 - Verification: `bun run test` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22`.
@@ -4886,3 +4912,15 @@ Only after Phase 2, introduce TS gradually:
 - Scope: expand `tsconfig.typecheck-runtime.json` into one deferred gameplay module pilot (`player` or `entity`) with targeted property-shape cleanup.
 - Acceptance criteria: at least one deferred gameplay module is promoted from defer list into active CheckJs scope without gate regressions.
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
+
+### T-227: WebSocket ESM entry adoption probe (priority P1)
+- Status: `todo`
+- Scope: wire an opt-in smoke path that imports websocket transport through `server/js/ws-esm.mjs` in ESM entry flow and validates parity.
+- Acceptance criteria: ESM websocket mirror is exercised in a runtime smoke without changing default CJS boot path.
+- Verification: `bun run test` + `bun run test:browser:protocol:node22`.
+
+### T-228: Protocol-close-code contract extraction
+- Status: `todo`
+- Scope: centralize websocket close-code constants into a shared runtime contract to remove local duplication and improve close-code consistency.
+- Acceptance criteria: transport/runtime code paths consume one close-code source and protocol rejection tests remain stable.
+- Verification: `bun run test` + `bun run verify:modern:node22`.
