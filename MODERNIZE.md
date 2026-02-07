@@ -4348,6 +4348,25 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-273` websocket class-factory adoption alignment (CJS/ESM parity sweep).
 
+- 2026-02-08 02:10:00Z
+  - Status: `in_progress` -> `done` (T-273)
+  - Actions:
+    - Added explicit CJS/ESM websocket runtime parity harness:
+      - `tests/unit/ws-runtime-parity.test.ts`.
+      - Asserts shared connection behavior across both runtimes (invalid payload close code, JSON send serialization, default close code).
+    - Added focused parity command:
+      - `package.json` script `test:ws:runtime:parity`.
+    - Documented intentional class-boundary divergence and parity commands:
+      - `docs/websocket-runtime-class-boundary-parity.md`.
+      - Captures current state: CJS inline class assembly vs ESM class-factory seam.
+  - Evidence:
+    - `bun run test:ws:runtime:parity` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-274` CJS websocket class-factory migration decision slice.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5989,7 +6008,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: websocket unit/smoke suites + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-273: WebSocket class-factory adoption alignment (CJS/ESM parity sweep)
-- Status: `todo`
+- Status: `done`
 - Scope: align CJS websocket runtime path with the new class-factory seam inventory (or document intentional divergence) and add explicit parity assertions for shared class behavior contracts.
 - Acceptance criteria: CJS/ESM websocket class-boundary parity expectations are explicit with focused tests/docs and no startup handshake regressions.
 - Verification: websocket unit/smoke suites + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-274: CJS websocket class-factory migration decision slice
+- Status: `todo`
+- Scope: decide and execute the next CJS websocket runtime step (adopt CJS class-factory seam or lock intentional divergence until CJS retirement milestone) with explicit owner criteria and rollback notes.
+- Acceptance criteria: decision is implemented/documented with updated parity tests and no runtime handshake regressions.
+- Verification: websocket unit/smoke suites + docs/runbook alignment + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

@@ -37,6 +37,7 @@
     "test:static-entry": "bun test --timeout 20000 tests/smoke/static-server-entry-default.test.ts",
     "test:metrics:healthy": "bun run check:metrics:healthy-prereqs && BQ_TEST_METRICS_HEALTH=1 bun test --timeout 30000 tests/smoke/server-metrics-healthy.optional.test.ts",
     "test:smoke:esm:ws-runtime": "bun test --timeout 20000 tests/smoke/server-handshake-esm-ws-runtime.test.ts",
+    "test:ws:runtime:parity": "bun test tests/unit/ws-runtime-parity.test.ts tests/unit/ws-runtime-class-factory.test.ts tests/unit/server-ws-esm.test.ts",
     "test:logs:lifecycle": "bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts",
     "test:logs:fatal": "bun test --timeout 20000 tests/smoke/server-structured-logs.fatal.test.ts",
     "test:browser:modern": "bun run test:modern-browser",
