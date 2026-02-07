@@ -24,11 +24,13 @@ class Player extends Character {
         this.server = worldServer;
         this.connection = connection;
 
+        this.name = '';
         this.hasEnteredGame = false;
         this.isDead = false;
         this.haters = {};
         this.lastCheckpoint = null;
         this.disconnectTimeout = null;
+        this.firepotionTimeout = null;
         var closeInvalidPayload = function(reason) {
             if(self.connection && typeof self.connection.closeInvalidPayload === "function") {
                 self.connection.closeInvalidPayload(reason);

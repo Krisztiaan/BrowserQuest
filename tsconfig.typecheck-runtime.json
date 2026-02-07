@@ -15,6 +15,7 @@
     "server/js/utils.js",
     "server/js/entity.js",
     "server/js/item.js",
+    "server/js/player.js",
     "server/js/config-preflight.js",
     "server/js/ws.js"
   ]

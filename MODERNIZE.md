@@ -3629,6 +3629,18 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-231` runtime CheckJs wave 6 planning (`player.js` pre-slice).
 
+- 2026-02-07 10:45:00Z
+  - Status: `in_progress` -> `done` (T-231)
+  - Actions:
+    - Promoted `server/js/player.js` into runtime CheckJs scope in `tsconfig.typecheck-runtime.json`.
+    - Applied minimal property-shape initialization cleanup in `server/js/player.js` (`name`, `firepotionTimeout`) to satisfy CheckJs without gameplay behavior changes.
+    - Updated runtime CheckJs defer artifact to reflect `player.js` promotion.
+  - Evidence:
+    - `bun run typecheck` passed with `player.js` included in runtime CheckJs scope.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-232` runtime CheckJs wave 7 planning (`worldserver.js`/`map.js` pre-slice).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5017,8 +5029,14 @@ Only after Phase 2, introduce TS gradually:
 - Acceptance criteria: runtime CheckJs scope expands by one gameplay module without verify-gate regressions.
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
 
-### T-231: Runtime CheckJs wave 6 planning (`player.js` pre-slice)
+### T-231: Runtime CheckJs wave 6 (`player.js` pilot)
+- Status: `done`
+- Scope: promote `server/js/player.js` into runtime CheckJs scope with minimal property-shape initialization cleanup.
+- Acceptance criteria: `player.js` is included in runtime CheckJs scope and verify gates remain green.
+- Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
+
+### T-232: Runtime CheckJs wave 7 planning (`worldserver.js`/`map.js` pre-slice)
 - Status: `todo`
-- Scope: define a scoped pre-slice for `server/js/player.js` CheckJs adoption (property-shape inventory + safe initialization guardrails) before promoting it into runtime scope.
-- Acceptance criteria: plan artifact lists required property-shape fixes and staging steps with verification commands.
-- Verification: `MODERNIZE.md` contains an executable pre-slice checklist and follow-on ticket split.
+- Scope: define scoped pre-slice checklist for `worldserver.js` and `map.js` CheckJs adoption (property inventory, dependency impacts, staged roll-in).
+- Acceptance criteria: concrete staged checklist exists with executable verification commands and rollback guardrails.
+- Verification: `MODERNIZE.md` contains the staged checklist and follow-on execution ticket.
