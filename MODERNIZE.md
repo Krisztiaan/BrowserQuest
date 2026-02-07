@@ -4550,7 +4550,22 @@ Only after Phase 2, introduce TS gradually:
     - normal drill run remained passing with concise summary output.
     - docs read-through completed with failure-snapshot handoff paths aligned.
   - Next action:
-    - Start `T-284` websocket boundary drill failure taxonomy normalization (optional owner labels per failure class).
+    - Start `T-284` client ESM native-class migration wave 1 (low-risk primitives).
+
+- 2026-02-08 07:25:00Z
+  - Status: `in_progress` -> `done` (T-284)
+  - Actions:
+    - Migrated low-risk modern ESM runtime modules from `Class.extend` to native classes:
+      - `client/js-esm/timer.js`
+      - `client/js-esm/area.js`
+      - `client/js-esm/tile.js`
+      - `client/js-esm/camera.js`
+    - Removed `compat/class` imports from the migrated files and kept behavior-preserving method/constructor semantics.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-285` client ESM native-class migration wave 2 (entity/sprite/timer-adjacent modules).
 
 ## Next roadmap slice (active queue)
 
@@ -6257,3 +6272,15 @@ Only after Phase 2, introduce TS gradually:
 - Scope: extend drill summary payload with concise failure snapshot fields (failed check names, exit codes, log-tail hints) for faster escalation handoff.
 - Acceptance criteria: JSON/markdown summary includes compact failure snapshot metadata when checks fail, while success output remains concise.
 - Verification: forced-failure drill simulation + docs/read-through.
+
+### T-284: Client ESM native-class migration wave 1 (low-risk primitives)
+- Status: `done`
+- Scope: migrate low-risk modern ESM modules from `Class.extend` to native classes while preserving constructor/method behavior (`timer`, `area`, `tile`, `camera`).
+- Acceptance criteria: migrated modules no longer import `compat/class`, build/runtime parity is preserved.
+- Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-285: Client ESM native-class migration wave 2 (entity/sprite/timer-adjacent modules)
+- Status: `todo`
+- Scope: continue migration of medium-risk modern ESM modules still using `Class.extend` (`entity`, `animation`, `sprite`, `transition`, and adjacent helpers) in small behavior-preserving slices.
+- Acceptance criteria: selected wave-2 modules use native classes and retain modern/legacy verification parity.
+- Verification: focused browser protocol smoke + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
