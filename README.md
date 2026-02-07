@@ -83,6 +83,9 @@ Modernization snapshot
 - Legacy optimizer provenance + integrity baseline: `docs/legacy-optimizer-provenance.md`
 - Legacy artifact consumer inventory: `docs/legacy-artifact-consumer-inventory.md`
 - Legacy gate demotion rehearsal plan: `docs/legacy-gate-demotion-rehearsal-plan.md`
+- Legacy branch-protection demotion runbook: `docs/legacy-branch-protection-demotion-runbook.md`
+- Legacy advisory gate incident template: `docs/legacy-advisory-gate-incident-template.md`
+- Legacy retirement cutover PR checklist: `docs/legacy-retirement-cutover-pr-checklist.md`
 - Package-mode trial runbook: `docs/package-mode-trial-runbook.md`
 - Legacy/package-mode compatibility matrix: `docs/legacy-package-mode-compat-matrix.md`
 - Package-mode trial decision log: `docs/package-mode-trial-decision.md`

@@ -35,6 +35,7 @@ Retire the legacy AMD/RequireJS runtime (`client/index.html` + `build:client`) w
 3. Remove legacy build pipeline
 - Remove `build:client` and `verify:legacy` from required release gates.
 - Keep one tagged release containing legacy artifacts for emergency rollback.
+  - Execution checklist: `docs/legacy-retirement-cutover-pr-checklist.md`
 
 4. Cleanup code/assets
 - Remove obsolete legacy-only scripts/assets and docs once rollback window expires.

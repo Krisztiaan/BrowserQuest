@@ -3164,6 +3164,54 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-197` branch-protection change runbook.
 
+- 2026-02-07 06:29:48Z
+  - Status: `in_progress` -> `done` (T-197)
+  - Actions:
+    - Added branch-protection demotion runbook:
+      - `docs/legacy-branch-protection-demotion-runbook.md`
+    - Captured exact preconditions, change steps, dry-run checks, and rollback procedure for `verify-legacy` demotion.
+  - Evidence:
+    - Runbook artifact checked in and linked in modernization docs.
+  - Next action:
+    - Start `T-198` advisory legacy gate evidence template.
+
+- 2026-02-07 06:29:48Z
+  - Status: `in_progress` -> `done` (T-198)
+  - Actions:
+    - Added advisory incident evidence template:
+      - `docs/legacy-advisory-gate-incident-template.md`
+    - Included metadata, reproduction commands, risk classification, and decision/owner fields.
+    - Linked template from demotion rehearsal plan.
+  - Evidence:
+    - Template artifact checked in and cross-referenced from demotion docs.
+  - Next action:
+    - Start `T-199` legacy retirement cutover PR checklist.
+
+- 2026-02-07 06:29:48Z
+  - Status: `in_progress` -> `done` (T-199)
+  - Actions:
+    - Added execution checklist for retirement cutover PR:
+      - `docs/legacy-retirement-cutover-pr-checklist.md`
+    - Covered preconditions, code/script, CI/workflow, docs, verification, and rollback readiness gates.
+    - Linked checklist from `docs/legacy-retirement-checklist.md`.
+  - Evidence:
+    - Cutover checklist artifact checked in and linked from core retirement docs.
+  - Next action:
+    - Start `T-200` post-demotion queue refresh.
+
+- 2026-02-07 06:29:48Z
+  - Status: `in_progress` -> `done` (T-200)
+  - Actions:
+    - Refreshed queue after T-197/T-198/T-199 outcomes:
+      - `T-201` advisory-era legacy incident log bootstrap.
+      - `T-202` branch-protection demotion dry-run execution and evidence capture.
+      - `T-203` retirement-cutover preflight gap closure.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes post-T199 execution queue aligned to newly added runbooks/templates/checklists.
+  - Next action:
+    - Start `T-201` advisory-era legacy incident log bootstrap.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4349,25 +4397,43 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes post-T195 successor queue with executable checks.
 
 ### T-197: Branch-protection demotion runbook
-- Status: `todo`
+- Status: `done`
 - Scope: define exact branch-protection changes and dry-run checklist for demoting `verify-legacy` to advisory status.
 - Acceptance criteria: runbook includes pre-change checks, change steps, verification, and rollback.
 - Verification: runbook artifact checked in and linked from modernization docs.
 
 ### T-198: Advisory legacy gate evidence template
-- Status: `todo`
+- Status: `done`
 - Scope: define standard evidence capture format for advisory `verify-legacy` failures during rehearsal window.
 - Acceptance criteria: template includes incident fields, reproduction commands, and risk classification.
 - Verification: template artifact checked in and referenced by demotion runbook.
 
 ### T-199: Legacy retirement cutover PR checklist
-- Status: `todo`
+- Status: `done`
 - Scope: prepare concrete PR checklist for eventual removal of `build:client` and required legacy gate enforcement.
 - Acceptance criteria: checklist includes code, docs, CI, and rollback-tag requirements.
 - Verification: checklist artifact checked in and linked from legacy retirement docs.
 
 ### T-200: Post-demotion queue refresh
-- Status: `todo`
+- Status: `done`
 - Scope: refresh queue after T-197/T-198/T-199 outcomes for execution-phase retirement slices.
 - Acceptance criteria: successor queue is ordered, scoped, and verification-backed.
 - Verification: `MODERNIZE.md` includes post-T199 successor queue with executable checks.
+
+### T-201: Advisory-era legacy incident log bootstrap
+- Status: `todo`
+- Scope: add a reusable incident-log artifact populated from the T-198 template for advisory `verify-legacy` failures.
+- Acceptance criteria: incident-log format exists and includes at least one example entry schema.
+- Verification: incident-log artifact checked in and linked from demotion docs.
+
+### T-202: Branch-protection demotion dry-run evidence
+- Status: `todo`
+- Scope: execute dry-run per T-197 on a test PR and capture concrete evidence/results.
+- Acceptance criteria: dry-run record includes run URLs, outcome summary, and rollback-readiness note.
+- Verification: dry-run evidence artifact checked in.
+
+### T-203: Retirement cutover preflight gap closure
+- Status: `todo`
+- Scope: map open items from T-199 checklist to actionable tasks with owners/status.
+- Acceptance criteria: gap-closure list exists with clear pass/fail readiness state for cutover.
+- Verification: preflight gap artifact checked in and referenced from retirement docs.

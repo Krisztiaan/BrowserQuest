@@ -35,6 +35,8 @@ Define a reversible, low-risk plan to demote legacy CI gate coverage (`verify:le
   - none required for initial rehearsal (workflow stays intact).
 - Operational change outside repo:
   - branch protection rules switch `verify-legacy` from required -> optional/advisory.
+- Operational runbook:
+  - `docs/legacy-branch-protection-demotion-runbook.md`
 
 ## Command matrix
 
@@ -55,3 +57,4 @@ Define a reversible, low-risk plan to demote legacy CI gate coverage (`verify:le
 1. Reinstate `verify-legacy` as required in branch protection.
 2. Re-run full legacy verification matrix (legacy + protocol browser coverage).
 3. Freeze further retirement changes until root cause and consumer impact are resolved.
+4. Record incident using `docs/legacy-advisory-gate-incident-template.md`.
