@@ -4580,7 +4580,20 @@ Only after Phase 2, introduce TS gradually:
     - `bun run verify:modern:node22` passed.
     - `bun run verify:legacy:node22` passed.
   - Next action:
-    - Start `T-286` client ESM native-class migration wave 3 (storage/updater/audio/map/app shells).
+    - Start `T-286` client ESM native-class migration wave 3 (storage/updater core loop modules).
+
+- 2026-02-08 08:15:00Z
+  - Status: `in_progress` -> `done` (T-286)
+  - Actions:
+    - Migrated additional high-use independent modern ESM modules from `Class.extend` to native classes:
+      - `client/js-esm/storage.js`
+      - `client/js-esm/updater.js`
+    - Preserved constructor + method behavior while removing `compat/class` import dependency from these modules.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-287` client ESM native-class migration wave 4 (audio/map/gameclient/renderer/app).
 
 ## Next roadmap slice (active queue)
 
@@ -6300,8 +6313,14 @@ Only after Phase 2, introduce TS gradually:
 - Acceptance criteria: wave-2 modules no longer import `compat/class` and keep modern/legacy verification parity.
 - Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
-### T-286: Client ESM native-class migration wave 3 (storage/updater/audio/map/app shells)
+### T-286: Client ESM native-class migration wave 3 (storage/updater core loop modules)
+- Status: `done`
+- Scope: migrate high-use independent modern ESM modules (`storage`, `updater`) from `Class.extend` to native classes while preserving runtime behavior.
+- Acceptance criteria: wave-3 modules no longer import `compat/class` and retain modern/legacy verification parity.
+- Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-287: Client ESM native-class migration wave 4 (audio/map/gameclient/renderer/app)
 - Status: `todo`
-- Scope: continue conversion on remaining high-use but independent `Class.extend` modules (`storage`, `updater`, `audio`, `map`, `gameclient`, `renderer`, `app`) before touching inheritance chains (`entity`/`character`/`player`).
-- Acceptance criteria: selected wave-3 modules run with native classes and no regression in verify/browser protocol gates.
+- Scope: continue conversion on remaining high-use but independent `Class.extend` modules (`audio`, `map`, `gameclient`, `renderer`, `app`) before touching inheritance chains (`entity`/`character`/`player`).
+- Acceptance criteria: wave-4 modules use native classes and keep protocol/runtime parity gates green.
 - Verification: `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

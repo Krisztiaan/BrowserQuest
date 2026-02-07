@@ -1,17 +1,16 @@
 
-import Class from 'compat/class';
 import { supportsLocalStorage } from 'compat/features';
 
-var Storage = Class.extend({
-    init: function() {
+class Storage {
+    constructor() {
         if(this.hasLocalStorage() && localStorage.data) {
             this.data = JSON.parse(localStorage.data);
         } else {
             this.resetData();
         }
-    },
+    }
 
-    resetData: function() {
+    resetData() {
         this.data = {
             hasAlreadyPlayed: false,
             player: {
@@ -29,140 +28,140 @@ var Storage = Class.extend({
                 totalRevives: 0
             }
         };
-    },
+    }
 
-    hasLocalStorage: function() {
+    hasLocalStorage() {
         return supportsLocalStorage();
-    },
+    }
 
-    save: function() {
+    save() {
         if(this.hasLocalStorage()) {
             localStorage.data = JSON.stringify(this.data);
         }
-    },
+    }
 
-    clear: function() {
+    clear() {
         if(this.hasLocalStorage()) {
             localStorage.data = "";
             this.resetData();
         }
-    },
+    }
 
     // Player
 
-    hasAlreadyPlayed: function() {
+    hasAlreadyPlayed() {
         return this.data.hasAlreadyPlayed;
-    },
+    }
 
-    initPlayer: function(name) {
+    initPlayer(name) {
         this.data.hasAlreadyPlayed = true;
         this.setPlayerName(name);
-    },
+    }
     
-    setPlayerName: function(name) {
+    setPlayerName(name) {
         this.data.player.name = name;
         this.save();
-    },
+    }
 
-    setPlayerImage: function(img) {
+    setPlayerImage(img) {
         this.data.player.image = img;
         this.save();
-    },
+    }
 
-    setPlayerArmor: function(armor) {
+    setPlayerArmor(armor) {
         this.data.player.armor = armor;
         this.save();
-    },
+    }
 
-    setPlayerWeapon: function(weapon) {
+    setPlayerWeapon(weapon) {
         this.data.player.weapon = weapon;
         this.save();
-    },
+    }
 
-    savePlayer: function(img, armor, weapon) {
+    savePlayer(img, armor, weapon) {
         this.setPlayerImage(img);
         this.setPlayerArmor(armor);
         this.setPlayerWeapon(weapon);
-    },
+    }
 
     // Achievements
 
-    hasUnlockedAchievement: function(id) {
+    hasUnlockedAchievement(id) {
         return this.data.achievements.unlocked.includes(id);
-    },
+    }
 
-    unlockAchievement: function(id) {
+    unlockAchievement(id) {
         if(!this.hasUnlockedAchievement(id)) {
             this.data.achievements.unlocked.push(id);
             this.save();
             return true;
         }
         return false;
-    },
+    }
 
-    getAchievementCount: function() {
+    getAchievementCount() {
         return this.data.achievements.unlocked.length;
-    },
+    }
 
     // Angry rats
-    getRatCount: function() {
+    getRatCount() {
         return this.data.achievements.ratCount;
-    },
+    }
 
-    incrementRatCount: function() {
+    incrementRatCount() {
         if(this.data.achievements.ratCount < 10) {
             this.data.achievements.ratCount++;
             this.save();
         }
-    },
+    }
     
     // Skull Collector
-    getSkeletonCount: function() {
+    getSkeletonCount() {
         return this.data.achievements.skeletonCount;
-    },
+    }
 
-    incrementSkeletonCount: function() {
+    incrementSkeletonCount() {
         if(this.data.achievements.skeletonCount < 10) {
             this.data.achievements.skeletonCount++;
             this.save();
         }
-    },
+    }
 
     // Meatshield
-    getTotalDamageTaken: function() {
+    getTotalDamageTaken() {
         return this.data.achievements.totalDmg;
-    },
+    }
 
-    addDamage: function(damage) {
+    addDamage(damage) {
         if(this.data.achievements.totalDmg < 5000) {
             this.data.achievements.totalDmg += damage;
             this.save();
         }
-    },
+    }
     
     // Hunter
-    getTotalKills: function() {
+    getTotalKills() {
         return this.data.achievements.totalKills;
-    },
+    }
 
-    incrementTotalKills: function() {
+    incrementTotalKills() {
         if(this.data.achievements.totalKills < 50) {
             this.data.achievements.totalKills++;
             this.save();
         }
-    },
+    }
 
     // Still Alive
-    getTotalRevives: function() {
+    getTotalRevives() {
         return this.data.achievements.totalRevives;
-    },
+    }
 
-    incrementRevives: function() {
+    incrementRevives() {
         if(this.data.achievements.totalRevives < 5) {
             this.data.achievements.totalRevives++;
             this.save();
         }
-    },
-});
+    }
+}
 
 export default Storage;

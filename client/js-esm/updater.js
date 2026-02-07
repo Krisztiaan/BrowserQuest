@@ -1,16 +1,15 @@
 
 import Character from 'character';
 import Timer from 'timer';
-import Class from 'compat/class';
 import Types from 'compat/gametypes';
 
-var Updater = Class.extend({
-    init: function(game) {
+class Updater {
+    constructor(game) {
         this.game = game;
         this.playerAggroTimer = new Timer(1000);
-    },
+    }
 
-    update: function() {
+    update() {
         this.updateZoning();
         this.updateCharacters();
         this.updatePlayerAggro();
@@ -19,9 +18,9 @@ var Updater = Class.extend({
         this.updateAnimatedTiles();
         this.updateChatBubbles();
         this.updateInfos();
-    },
+    }
 
-    updateCharacters: function() {
+    updateCharacters() {
         var self = this;
     
         this.game.forEachEntity(function(entity) {
@@ -35,9 +34,9 @@ var Updater = Class.extend({
                 self.updateEntityFading(entity);
             }
         });
-    },
+    }
     
-    updatePlayerAggro: function() {
+    updatePlayerAggro() {
         var t = this.game.currentTime,
             player = this.game.player;
         
@@ -45,9 +44,9 @@ var Updater = Class.extend({
         if(player && !player.isMoving() && !player.isAttacking()  && this.playerAggroTimer.isOver(t)) {
             player.checkAggro();
         }
-    },
+    }
 
-    updateEntityFading: function(entity) {
+    updateEntityFading(entity) {
         if(entity && entity.isFading) {
             var duration = 1000,
                 t = this.game.currentTime,
@@ -60,9 +59,9 @@ var Updater = Class.extend({
                 entity.fadingAlpha = dt / duration;
             }
         }
-    },
+    }
 
-    updateTransitions: function() {
+    updateTransitions() {
         var self = this,
             m = null,
             z = this.game.currentZoning;
@@ -81,9 +80,9 @@ var Updater = Class.extend({
                 z.step(this.game.currentTime);
             }
         }
-    },
+    }
 
-    updateZoning: function() {
+    updateZoning() {
         var g = this.game,
             c = g.camera,
             z = g.currentZoning,
@@ -129,9 +128,9 @@ var Updater = Class.extend({
         
             z.start(this.game.currentTime, updateFunc, endFunc, startValue, endValue, speed);
         }
-    },
+    }
 
-    updateCharacter: function(c) {
+    updateCharacter(c) {
         var self = this;
 
         // Estimate of the movement distance for one update
@@ -199,9 +198,9 @@ var Updater = Class.extend({
                                  c.moveSpeed);
             }
         }
-    },
+    }
 
-    updateAnimations: function() {
+    updateAnimations() {
         var t = this.game.currentTime;
 
         this.game.forEachEntity(function(entity) {
@@ -223,9 +222,9 @@ var Updater = Class.extend({
         if(target) {
             target.update(t);
         }
-    },
+    }
 
-    updateAnimatedTiles: function() {
+    updateAnimatedTiles() {
         var self = this,
             t = this.game.currentTime;
     
@@ -239,19 +238,19 @@ var Updater = Class.extend({
                 }
             }
         });
-    },
+    }
 
-    updateChatBubbles: function() {
+    updateChatBubbles() {
         var t = this.game.currentTime;
     
         this.game.bubbleManager.update(t);
-    },
+    }
 
-    updateInfos: function() {
+    updateInfos() {
         var t = this.game.currentTime;
     
         this.game.infoManager.update(t);
     }
-});
+}
 
 export default Updater;
