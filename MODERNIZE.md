@@ -3825,6 +3825,29 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-245` ESM bootstrap convergence (remove remaining CJS side-effect bridge from `main-esm.mjs`).
 
+- 2026-02-07 14:05:00Z
+  - Status: `in_progress` -> `done` (T-245)
+  - Actions:
+    - Extracted reusable startup runtime from `server/js/main.js` into:
+      - `server/js/main-runtime.js`.
+    - Converted `server/js/main.js` to a thin CLI/config loader delegating to `main-runtime`.
+    - Added ESM mirror for startup runtime contract:
+      - `server/js/main-runtime-esm.mjs`.
+    - Updated `server/js/main-esm.mjs` to call ESM runtime contract (`main-runtime-esm`) after preflight/probe.
+    - Added/expanded startup contract tests:
+      - `tests/unit/server-main-module.test.ts`,
+      - `tests/unit/server-main-runtime-esm.test.ts`.
+    - Re-baselined runtime CheckJs inventory for newly introduced runtime module:
+      - added `server/js/main-runtime.js` to `tsconfig.typecheck-runtime.json`,
+      - updated `docs/typescript-runtime-checkjs-defer-list.md`.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run test` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-246` server runtime dependency boundary extraction (`main-runtime` split follow-up).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5298,7 +5321,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: focused websocket unit/smoke tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-245: ESM bootstrap convergence (`main-esm` bridge reduction)
-- Status: `todo`
+- Status: `done`
 - Scope: continue reducing `main-esm.mjs` dependence on CJS bootstrap side effects by extracting/importing reusable startup pieces while preserving current runtime behavior.
 - Acceptance criteria: ESM bootstrap path retains preflight/probe guarantees with less CJS coupling and no handshake/config regressions.
 - Verification: `bun run test` + ESM handshake/config smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-246: Server runtime dependency boundary extraction (`main-runtime` follow-up)
+- Status: `todo`
+- Scope: split heavyweight dependency wiring (`ws`, `worldserver`, `player`) out of `main-runtime` startup flow into explicit dependency boundaries to prepare future ESM-native startup runtime migration.
+- Acceptance criteria: startup behavior remains unchanged while dependency construction points are isolated behind explicit helpers/contracts.
+- Verification: focused startup/runtime unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { validateConfig } from './config-preflight-esm.mjs';
+import { main as startServer } from './main-runtime-esm.mjs';
 import Utils from './utils-esm.mjs';
 
 const require = createRequire(import.meta.url);
@@ -77,5 +78,4 @@ async function runWebSocketBridgeProbeIfEnabled() {
 await runWebSocketBridgeProbeIfEnabled();
 
 // Compatibility bridge: run the shared CJS startup path with validated config.
-const mainModule = require('./main.js');
-mainModule.main(activeConfig);
+startServer(activeConfig);

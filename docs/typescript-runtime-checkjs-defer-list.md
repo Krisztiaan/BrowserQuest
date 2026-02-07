@@ -11,6 +11,7 @@
 - `server/js/format.js`
 - `server/js/formulas.js`
 - `server/js/utils.js`
+- `server/js/main-runtime.js`
 - `server/js/main.js`
 - `server/js/metrics.js`
 - `server/js/metrics-runtime.js`
