@@ -12,9 +12,11 @@ Track post-adoption server/runtime ESM migration readiness without breaking lega
 - Shared runtime contract remains dual-environment CJS/global:
   - `shared/js/gametypes.js` writes `globalThis.Types` and also uses `module.exports`.
   - `shared/js/protocol-contract.js` exposes protocol constants/parser via `module.exports`.
-- Wave-1 ESM runtime mirrors landed:
+- ESM runtime mirrors landed:
   - `server/js/config-preflight-esm.mjs`
   - `server/js/utils-esm.mjs`
+  - `server/js/log-esm.mjs`
+  - `server/js/format-esm.mjs`
   - `shared/js/protocol-contract-esm.mjs`
 - Tooling/runtime edges still CJS:
   - `tools/check-runtime.cjs`

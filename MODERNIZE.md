@@ -3468,6 +3468,24 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-221` server CJS->ESM wave 2.
 
+- 2026-02-07 08:40:00Z
+  - Status: `in_progress` -> `done` (T-221)
+  - Actions:
+    - Added wave-2 ESM server mirrors:
+      - `server/js/log-esm.mjs`
+      - `server/js/format-esm.mjs`
+    - Added parity/unit coverage:
+      - `tests/unit/server-log-esm.test.ts`
+      - `tests/unit/server-format-esm.test.ts`
+    - Updated runtime CJS/ESM inventory docs to include new mirror artifacts.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run typecheck`, `bun run lint`, and `bun run format:check` passed.
+  - Next action:
+    - Start `T-222` websocket transport modernization wave 2.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4797,9 +4815,9 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` + `bun run test` + `bun run test:browser:protocol:node22`.
 
 ### T-221: Server CJS->ESM wave 2 (priority P0)
-- Status: `todo`
+- Status: `done`
 - Scope: convert the next low/medium-risk server modules (starting with websocket-adjacent and utility boundaries) to ESM while keeping CJS compatibility bridge behavior stable.
-- Acceptance criteria: selected wave-2 modules load through modern ESM entry and maintain parity in smoke/browser protocol paths.
+- Acceptance criteria: selected wave-2 modules have ESM mirrors with parity coverage and no regressions in smoke/browser protocol paths.
 - Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
 
 ### T-222: WebSocket transport modernization wave 2 (priority P1)
