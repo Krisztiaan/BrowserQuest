@@ -2302,6 +2302,17 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Push fix and capture green `verify-protocol-invariant` run evidence for the diagnostics workflow revision.
 
+- 2026-02-07 04:40:35Z
+  - Status: `in_progress` -> `done` (T-135 follow-up verification)
+  - Actions:
+    - Captured successful post-fix workflow evidence for diagnostics-enabled protocol gate.
+  - Evidence:
+    - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774333381`
+    - Conclusion: `success` (2026-02-07T04:39:44Z -> 2026-02-07T04:40:28Z)
+    - Workflow: `verify-protocol-invariant` (push event)
+  - Next action:
+    - Start `T-137` protocol invariant transcript fixture extraction.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
