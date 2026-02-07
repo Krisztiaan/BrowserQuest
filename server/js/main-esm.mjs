@@ -91,16 +91,36 @@ async function createStartupRuntimeOptions() {
         return undefined;
     }
 
-    const wsEsm = await import('./ws-esm.mjs');
-    emitStructuredEvent('info', 'server.esm.ws_runtime_mode', {
-        mode: 'esm',
-    });
+    if (process.env.BQ_ESM_WS_RUNTIME_FORCE_FAIL === '1') {
+        emitStructuredEvent('error', 'server.esm.ws_runtime_mode', {
+            mode: 'esm',
+            status: 'failed',
+            reason: 'forced_failure',
+        });
+        process.exit(1);
+    }
 
-    return {
-        dependencies: createRuntimeDependencies({
-            ws: wsEsm.default,
-        }),
-    };
+    try {
+        const wsEsm = await import('./ws-esm.mjs');
+        emitStructuredEvent('info', 'server.esm.ws_runtime_mode', {
+            mode: 'esm',
+            status: 'ok',
+        });
+
+        return {
+            dependencies: createRuntimeDependencies({
+                ws: wsEsm.default,
+            }),
+        };
+    } catch (error) {
+        emitStructuredEvent('error', 'server.esm.ws_runtime_mode', {
+            mode: 'esm',
+            status: 'failed',
+            reason: 'load_error',
+            error: String(error),
+        });
+        process.exit(1);
+    }
 }
 
 const runtimeOptions = await createStartupRuntimeOptions();

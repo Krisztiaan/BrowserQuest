@@ -4030,6 +4030,22 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-255` websocket ESM runtime probe hardening (failure-path + mode contract assertions).
 
+- 2026-02-07 18:10:00Z
+  - Status: `in_progress` -> `done` (T-255)
+  - Actions:
+    - Hardened opt-in ESM websocket runtime probe contract in `server/js/main-esm.mjs`:
+      - emits success signal with `status=ok`,
+      - supports explicit forced-failure path via `BQ_ESM_WS_RUNTIME_FORCE_FAIL=1`,
+      - emits deterministic failure payload with reason/status fields.
+    - Extended websocket runtime smoke coverage:
+      - `tests/smoke/server-handshake-esm-ws-runtime.test.ts` now asserts both success mode contract and forced-failure diagnostics.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-256` websocket ESM startup-mode docs/runbook alignment.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5563,7 +5579,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: websocket bridge/protocol smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-255: WebSocket ESM runtime probe hardening (failure-path + mode contract)
-- Status: `todo`
+- Status: `done`
 - Scope: extend ESM runtime-mode observability/probe checks to include explicit failure-path diagnostics and assertions that runtime mode signaling matches startup wiring.
 - Acceptance criteria: probe/failure contracts are explicit in smoke tests and runtime logs for both success and forced-failure paths.
 - Verification: websocket runtime/bridge smoke tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-256: WebSocket ESM startup-mode docs/runbook alignment
+- Status: `todo`
+- Scope: document opt-in ESM websocket runtime controls (`BQ_ESM_WS_RUNTIME`, failure probe toggles) and associated smoke commands for contributor/operator use.
+- Acceptance criteria: README/runbook references include startup-mode flags, expected structured signals, and failure-diagnostic command examples.
+- Verification: docs lint/read-through + targeted smoke command replay.
