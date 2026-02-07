@@ -44,6 +44,10 @@ function collectActionsFromPayload(payload: string): Action[] {
     return parseProtocolActionBatch(payload).filter((entry): entry is Action => isActionArray(entry));
 }
 
+function isSafeInteger(value: unknown): value is number {
+    return typeof value === 'number' && Number.isSafeInteger(value);
+}
+
 function createActionStream(ws: WebSocket): ActionStream {
     const stream: ActionStream = {
         actions: [],
@@ -229,7 +233,7 @@ test('modern gameplay protocol parity: login, move, chat, zone, combat path, loo
     expect(typeof playerY).toBe('number');
 
     const listAction = await waitForNextAction(stream, (action) => action[0] === MSG_LIST, 'LIST');
-    const nearbyEntityIds = listAction.slice(1).filter((id) => Number.isSafeInteger(id));
+    const nearbyEntityIds = listAction.slice(1).filter((id): id is number => isSafeInteger(id));
 
     let combatTargetId: number | null = null;
     if (nearbyEntityIds.length > 0) {
@@ -239,10 +243,11 @@ test('modern gameplay protocol parity: login, move, chat, zone, combat path, loo
         const spawns = stream.actions.filter((action) => action[0] === MSG_SPAWN);
         const mobSpawn = spawns.find((action) => {
             const kind = action[2];
-            return Number.isSafeInteger(kind) && kind >= 2 && kind <= 14;
+            return isSafeInteger(kind) && kind >= 2 && kind <= 14;
         });
-        const fallbackSpawn = spawns.find((action) => Number.isSafeInteger(action[1]));
-        combatTargetId = (mobSpawn ?? fallbackSpawn)?.[1] ?? null;
+        const fallbackSpawn = spawns.find((action) => isSafeInteger(action[1]));
+        const candidateTargetId = (mobSpawn ?? fallbackSpawn)?.[1];
+        combatTargetId = isSafeInteger(candidateTargetId) ? candidateTargetId : null;
     }
 
     ws.send(JSON.stringify([MSG_MOVE, playerX, playerY]));

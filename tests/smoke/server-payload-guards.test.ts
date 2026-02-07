@@ -1,13 +1,9 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from 'ws';
+import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
-
-const MSG_HELLO = 0;
-const MSG_MOVE = 4;
-const ENTITY_CLOTH_ARMOR = 21;
-const ENTITY_SWORD_1 = 60;
 
 async function getFreePort() {
     return await new Promise<number>((resolve, reject) => {

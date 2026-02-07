@@ -1,21 +1,42 @@
-export const MSG_HELLO = 0;
-export const MSG_WELCOME = 1;
-export const MSG_SPAWN = 2;
-export const MSG_MOVE = 4;
-export const MSG_LOOTMOVE = 5;
-export const MSG_ATTACK = 7;
-export const MSG_HIT = 8;
-export const MSG_CHAT = 11;
-export const MSG_DAMAGE = 16;
-export const MSG_LIST = 19;
-export const MSG_WHO = 20;
-export const MSG_ZONE = 21;
+import SharedTypes from '../../shared/js/gametypes-esm.mjs';
 
-export const ENTITY_CLOTH_ARMOR = 21;
-export const ENTITY_SWORD_1 = 60;
+const Types = SharedTypes as {
+    Messages: Record<string, number>;
+    Entities: Record<string, number>;
+};
+
+export const MSG_HELLO = Types.Messages.HELLO;
+export const MSG_WELCOME = Types.Messages.WELCOME;
+export const MSG_SPAWN = Types.Messages.SPAWN;
+export const MSG_MOVE = Types.Messages.MOVE;
+export const MSG_LOOTMOVE = Types.Messages.LOOTMOVE;
+export const MSG_ATTACK = Types.Messages.ATTACK;
+export const MSG_HIT = Types.Messages.HIT;
+export const MSG_CHAT = Types.Messages.CHAT;
+export const MSG_DAMAGE = Types.Messages.DAMAGE;
+export const MSG_LIST = Types.Messages.LIST;
+export const MSG_WHO = Types.Messages.WHO;
+export const MSG_ZONE = Types.Messages.ZONE;
+
+export const ENTITY_CLOTH_ARMOR = Types.Entities.CLOTHARMOR;
+export const ENTITY_SWORD_1 = Types.Entities.SWORD1;
+
+export type ProtocolOpcode =
+    | typeof MSG_HELLO
+    | typeof MSG_WELCOME
+    | typeof MSG_SPAWN
+    | typeof MSG_MOVE
+    | typeof MSG_LOOTMOVE
+    | typeof MSG_ATTACK
+    | typeof MSG_HIT
+    | typeof MSG_CHAT
+    | typeof MSG_DAMAGE
+    | typeof MSG_LIST
+    | typeof MSG_WHO
+    | typeof MSG_ZONE;
 
 export type ProtocolActionValue = number | string | boolean | null;
-export type ProtocolAction = [number, ...ProtocolActionValue[]];
+export type ProtocolAction = [ProtocolOpcode | number, ...ProtocolActionValue[]];
 
 export function parseProtocolActionBatch(payload: string): ProtocolAction[] {
     let parsed: unknown;

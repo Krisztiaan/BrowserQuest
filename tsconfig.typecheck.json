@@ -12,10 +12,7 @@
     "verbatimModuleSyntax": true
   },
   "include": [
-    "tests/support/protocol.ts",
-    "tests/browser/protocol-observer.ts",
-    "tools/static-server.ts",
-    "tools/dev.ts",
-    "tools/dev-vite.ts"
+    "tests/**/*.ts",
+    "tools/*.ts"
   ]
 }

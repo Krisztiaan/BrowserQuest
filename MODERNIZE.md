@@ -3402,6 +3402,50 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-215` shared protocol typing.
 
+- 2026-02-07 07:54:10Z
+  - Status: `in_progress` -> `done` (T-215)
+  - Actions:
+    - Moved protocol test constants to a single shared source in `tests/support/protocol.ts` via `shared/js/gametypes-esm.mjs`.
+    - Removed duplicated protocol/entity constants from `tests/smoke/server-payload-guards.test.ts`.
+    - Added protocol contract coverage in `tests/unit/protocol-support-contract.test.ts`.
+  - Evidence:
+    - `bun run test` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-216` TypeScript expansion wave 2.
+
+- 2026-02-07 07:54:10Z
+  - Status: `in_progress` -> `done` (T-216)
+  - Actions:
+    - Expanded `tsconfig.typecheck.json` coverage from a narrow seed list to `tests/**/*.ts` and `tools/*.ts`.
+    - Fixed newly surfaced type issues in:
+      - `tests/browser/protocol-invariant.playwright.ts`
+      - `tests/smoke/modern-gameplay-parity.test.ts`
+      - `tests/smoke/server-config-preflight.test.ts`
+      - `tests/smoke/server-metrics-healthy.optional.test.ts`
+      - `tests/smoke/server-structured-logs.harness.ts`
+    - Normalized stream/protocol value narrowing to keep Node22 + Playwright + Bun execution paths green.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run test` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run lint` and `bun run format:check` passed.
+  - Next action:
+    - Start `T-219` post-wave-1 queue refresh.
+
+- 2026-02-07 07:54:10Z
+  - Status: `in_progress` -> `done` (T-219)
+  - Actions:
+    - Refreshed post-wave-1 technical modernization queue with explicit priority/order for:
+      - shared protocol type extraction,
+      - deeper server ESM conversion,
+      - websocket transport modernization.
+    - Added executable successor tickets `T-220` to `T-223` with scoped verification commands.
+  - Evidence:
+    - `MODERNIZE.md` now contains ordered post-wave-1 successors with concrete acceptance criteria.
+  - Next action:
+    - Start `T-220` shared protocol contract extraction.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4695,19 +4739,19 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run test:browser:protocol:node22` + targeted websocket smoke coverage.
 
 ### T-215: Shared protocol typing (priority P1)
-- Status: `todo`
+- Status: `done`
 - Scope: establish shared typed protocol action contracts used by tests and server/client boundaries.
 - Acceptance criteria: protocol helper/types are single-source and referenced by both runtime-adjacent code and tests.
 - Verification: `bun run typecheck` + protocol browser suite.
 
 ### T-216: TypeScript expansion wave 2 (priority P1)
-- Status: `todo`
+- Status: `done`
 - Scope: expand TS checking surface from initial tools/helpers into smoke/unit test suites with explicit exclusions tracked.
 - Acceptance criteria: expanded `tsconfig` coverage lands with documented defer list for unresolved files.
 - Verification: `bun run typecheck` + `bun run test`.
 
 ### T-217: Post-technical-wave queue refresh
-- Status: `todo`
+- Status: `done`
 - Scope: refresh queue after T-213/T-214/T-215/T-216 to sequence deeper runtime migration slices.
 - Acceptance criteria: successor queue is ordered, scoped, and evidence-backed.
 - Verification: `MODERNIZE.md` includes post-T216 successor queue with executable checks.
@@ -4719,7 +4763,31 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run start:server:esm` smoke + protocol/browser gate.
 
 ### T-219: Post-wave-1 queue refresh
-- Status: `todo`
+- Status: `done`
 - Scope: refresh technical queue after T-213/T-218 completion to sequence deeper server module conversion batches.
 - Acceptance criteria: successor queue is ordered and scoped by risk/dependency.
 - Verification: `MODERNIZE.md` includes post-wave-1 successor queue with executable checks.
+
+### T-220: Shared protocol contract extraction (priority P0)
+- Status: `todo`
+- Scope: extract reusable protocol opcode/entity/action typing into a shared module consumable by tests and runtime-adjacent server/client entry code.
+- Acceptance criteria: tests no longer define ad-hoc protocol opcode contracts; shared protocol definitions are imported from one maintained location.
+- Verification: `bun run typecheck` + `bun run test` + `bun run test:browser:protocol:node22`.
+
+### T-221: Server CJS->ESM wave 2 (priority P0)
+- Status: `todo`
+- Scope: convert the next low/medium-risk server modules (starting with websocket-adjacent and utility boundaries) to ESM while keeping CJS compatibility bridge behavior stable.
+- Acceptance criteria: selected wave-2 modules load through modern ESM entry and maintain parity in smoke/browser protocol paths.
+- Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-222: WebSocket transport modernization wave 2 (priority P1)
+- Status: `todo`
+- Scope: continue websocket modernization toward explicit typed payload handling, close/error semantics, and module-boundary cleanup without protocol behavior regressions.
+- Acceptance criteria: websocket runtime and protocol-invariant suites remain stable with improved transport boundary clarity.
+- Verification: `bun run test` + `bun run test:browser:protocol:node22`.
+
+### T-223: TypeScript expansion wave 3 (priority P1)
+- Status: `todo`
+- Scope: extend TS checks beyond tests/tools into selected runtime-adjacent shared/server modules with tracked defers for high-churn legacy surfaces.
+- Acceptance criteria: expanded TS coverage lands with explicit defer list and no regression in existing verify gates.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22`.

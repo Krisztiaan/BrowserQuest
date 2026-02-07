@@ -23,6 +23,9 @@ type ReplayResult = {
     transcript: ReplayTranscript;
 };
 
+type ReplayActionValue = number | string | boolean | null;
+type ReplayAction = [number, ...ReplayActionValue[]];
+
 async function replaySequence(
     page: Page,
     entryPath: '/client/modern.html' | '/client/index.html',
@@ -50,15 +53,17 @@ async function replaySequence(
                 errors: [],
             };
 
-            const parseActions = (raw: string): number[][] => {
+            const parseActions = (raw: string): ReplayAction[] => {
                 try {
                     const parsed = JSON.parse(raw);
                     if (!Array.isArray(parsed)) return [];
                     if (parsed.length > 0 && Array.isArray(parsed[0])) {
-                        return parsed.filter((entry) => Array.isArray(entry) && typeof entry[0] === 'number');
+                        return parsed.filter(
+                            (entry): entry is ReplayAction => Array.isArray(entry) && typeof entry[0] === 'number'
+                        );
                     }
                     if (typeof parsed[0] === 'number') {
-                        return [parsed];
+                        return [parsed as ReplayAction];
                     }
                     return [];
                 } catch (_) {

@@ -116,11 +116,11 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     }
 
     function attachEventReader(
-        stream: ReadableStream<Uint8Array> | null | undefined,
+        stream: ReadableStream<unknown> | number | null | undefined,
         events: EventRecord[],
         sourceLabel: string
     ) {
-        if (!stream) {
+        if (!stream || typeof stream === 'number') {
             return;
         }
         const reader = stream.getReader();
@@ -130,6 +130,9 @@ export function createStructuredLogHarness(): StructuredLogHarness {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
+                    if (!(value instanceof Uint8Array)) {
+                        continue;
+                    }
                     carry += new TextDecoder().decode(value);
                     const lines = carry.split('\n');
                     carry = lines.pop() ?? '';

@@ -8,8 +8,12 @@ const maybeTest = runHealthySmoke ? test : test.skip;
 
 type EventRecord = Record<string, unknown>;
 
-function startStructuredLogCapture(stream: ReadableStream<Uint8Array> | null | undefined, events: EventRecord[]) {
-    const reader = stream?.getReader();
+function startStructuredLogCapture(stream: ReadableStream<unknown> | number | null | undefined, events: EventRecord[]) {
+    if (!stream || typeof stream === 'number') {
+        return;
+    }
+
+    const reader = stream.getReader();
     if (!reader) {
         return;
     }
@@ -19,6 +23,9 @@ function startStructuredLogCapture(stream: ReadableStream<Uint8Array> | null | u
         while (true) {
             const { done, value } = await reader.read();
             if (done) break;
+            if (!(value instanceof Uint8Array)) {
+                continue;
+            }
             carry += new TextDecoder().decode(value);
             const chunks = carry.split('\n');
             carry = chunks.pop() || '';
