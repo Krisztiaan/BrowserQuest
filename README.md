@@ -8,6 +8,7 @@ Runtime requirements
 
 - Node.js `22.x` (see `.nvmrc`)
 - Bun `>= 1.3.0`
+- CI verify workflows pin Bun `1.3.8` for reproducibility.
 - Optional preflight: `bun run check:runtime`
 - If your shell Node is not `22.x`, run commands with:
   - `bash tools/node22-run.sh bun run check:runtime`

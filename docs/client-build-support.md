@@ -6,6 +6,7 @@ This project currently ships two client build paths while modernization is in pr
 
 - Node.js `22.x` (policy target; CI-enforced)
 - Bun `>= 1.3.0`
+- CI verify workflows pin Bun `1.3.8` for reproducibility.
 - Runtime preflight command: `bun run check:runtime`
 - Node 22 wrapper for mismatched shells: `bash tools/node22-run.sh <command ...>`
 - Runbook: `docs/runtime-preflight.md`

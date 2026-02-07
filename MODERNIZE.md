@@ -2099,6 +2099,39 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Define `T-124` for post-protocol-gate roadmap refresh (workflow evidence capture + next modernization candidates).
 
+- 2026-02-07 04:21:17Z
+  - Status: `in_progress` -> `done` (T-124)
+  - Actions:
+    - Pushed `modernize` branch with protocol-invariant workflow additions to fork `Krisztiaan/BrowserQuest`.
+    - Captured first successful run evidence for the new workflow:
+      - workflow: `verify-protocol-invariant`
+      - run ID: `21774078504`
+  - Evidence:
+    - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21774078504`
+    - Conclusion: `success` (2026-02-07T04:20:35Z -> 2026-02-07T04:21:17Z)
+    - Job: `protocol-invariant (node 22.x)` passed.
+  - Next action:
+    - Start `T-125` CI Bun pin alignment for reproducibility across primary verify workflows.
+
+- 2026-02-07 04:21:48Z
+  - Status: `in_progress` -> `done` (T-125)
+  - Actions:
+    - Pinned Bun version to `1.3.8` across primary verify workflows:
+      - `.github/workflows/verify-modern.yml`
+      - `.github/workflows/verify-legacy.yml`
+      - `.github/workflows/verify-modern-browser.yml`
+      - `.github/workflows/verify-legacy-browser.yml`
+      - `.github/workflows/verify-protocol-invariant.yml`
+    - Updated runtime-policy docs to reflect CI pin:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - Workflow configs now consistently use `bun-version: 1.3.8` in setup steps.
+    - Local parity remains green:
+      - `bun run test:browser:protocol-invariant:node22` passed during this slice.
+  - Next action:
+    - Define `T-126` for follow-up workflow evidence capture after Bun pin alignment.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2846,7 +2879,19 @@ Only after Phase 2, introduce TS gradually:
 - Verification: workflow file committed + local parity command `bun run test:browser:protocol-invariant:node22` passes.
 
 ### T-124: Post-protocol roadmap refresh and evidence capture
-- Status: `todo`
+- Status: `done`
 - Scope: capture first successful `verify-protocol-invariant` GitHub run evidence and refresh the next modernization candidate queue beyond protocol parity coverage.
 - Acceptance criteria: roadmap references a concrete successful run URL/id and includes ordered follow-up ticket(s) with acceptance criteria and verification commands.
 - Verification: `MODERNIZE.md` log includes run evidence + queued successor tickets.
+
+### T-125: CI Bun pin alignment for reproducibility
+- Status: `done`
+- Scope: pin Bun runtime version consistently across primary verify workflows (`verify-modern`, `verify-legacy`, browser gates, protocol invariant gate) to reduce drift from `latest`.
+- Acceptance criteria: workflow setup steps use a single pinned Bun version aligned with runtime policy notes.
+- Verification: workflow config scan confirms `bun-version: 1.3.8` in targeted workflows and docs mention CI pin policy.
+
+### T-126: Bun pin evidence capture for primary verify workflows
+- Status: `todo`
+- Scope: capture successful post-pin workflow runs (at least modern + legacy + one browser gate) and record run IDs/URLs in roadmap for reproducibility baseline.
+- Acceptance criteria: roadmap contains concrete success evidence proving pinned Bun workflows execute cleanly after alignment changes.
+- Verification: GitHub Actions run links for post-pin `verify-modern`, `verify-legacy`, and one browser/protocol workflow are logged in `MODERNIZE.md`.
