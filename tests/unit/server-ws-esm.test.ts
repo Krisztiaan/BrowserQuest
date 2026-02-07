@@ -9,10 +9,14 @@ import WSEsm, {
 const WSCjs = require('../../server/js/ws');
 
 test('ws esm mirror exports cjs websocket contract', () => {
-    expect(WSEsm).toBe(WSCjs);
-    expect(CLOSE_CODES_ESM).toBe(WSCjs.CLOSE_CODES);
+    expect(typeof WSEsm).toBe('object');
+    expect(WSEsm.CLOSE_CODES).toBe(CLOSE_CODES_ESM);
+    expect(WSEsm.MultiVersionWebsocketServer).toBe(MultiVersionWebsocketServerESM);
+    expect(WSEsm.wsWebSocketConnection).toBe(WsWebSocketConnectionESM);
     expect(CLOSE_CODES_ESM.INVALID_PAYLOAD).toBe(1007);
     expect(CLOSE_CODES_ESM.UNSUPPORTED_DATA).toBe(1003);
-    expect(MultiVersionWebsocketServerESM).toBe(WSCjs.MultiVersionWebsocketServer);
-    expect(WsWebSocketConnectionESM).toBe(WSCjs.wsWebSocketConnection);
+    expect(CLOSE_CODES_ESM.INVALID_PAYLOAD).toBe(WSCjs.CLOSE_CODES.INVALID_PAYLOAD);
+    expect(CLOSE_CODES_ESM.UNSUPPORTED_DATA).toBe(WSCjs.CLOSE_CODES.UNSUPPORTED_DATA);
+    expect(typeof MultiVersionWebsocketServerESM).toBe('function');
+    expect(typeof WsWebSocketConnectionESM).toBe('function');
 });

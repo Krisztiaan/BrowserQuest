@@ -1,9 +1,4 @@
-import { createRequire } from 'node:module';
+import WS, { CLOSE_CODES, MultiVersionWebsocketServer, wsWebSocketConnection } from './ws-runtime-esm.mjs';
 
-const require = createRequire(import.meta.url);
-const WS = require('./ws');
-
-export const CLOSE_CODES = WS.CLOSE_CODES;
-export const MultiVersionWebsocketServer = WS.MultiVersionWebsocketServer;
-export const wsWebSocketConnection = WS.wsWebSocketConnection;
+export { CLOSE_CODES, MultiVersionWebsocketServer, wsWebSocketConnection };
 export default WS;

@@ -3996,6 +3996,24 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-253` websocket native ESM extraction wave-1 (`ws` runtime convergence).
 
+- 2026-02-07 17:15:00Z
+  - Status: `in_progress` -> `done` (T-253)
+  - Actions:
+    - Added ESM-native websocket runtime module:
+      - `server/js/ws-runtime-esm.mjs`.
+    - Updated `server/js/ws-esm.mjs` to export from the ESM-native runtime module instead of the CJS bridge.
+    - Updated ESM bridge probe contract in `server/js/main-esm.mjs`:
+      - moved from strict CJS reference identity checks to explicit export-surface + close-code parity checks.
+    - Expanded websocket ESM parity coverage:
+      - updated `tests/unit/server-ws-esm.test.ts`,
+      - added `tests/unit/ws-connection-esm.test.ts`.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-254` websocket ESM runtime adoption in startup dependency seam (opt-in).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5517,7 +5535,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-253: WebSocket native ESM extraction wave-1 (`ws` runtime convergence)
-- Status: `todo`
+- Status: `done`
 - Scope: introduce an ESM-native websocket runtime module path for server entry convergence, reducing reliance on `createRequire` bridge wrappers while preserving current CJS compatibility behavior.
 - Acceptance criteria: websocket runtime has an ESM-native implementation path with parity coverage and unchanged handshake/protocol behavior on both verify tracks.
 - Verification: websocket-focused unit/smoke coverage + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-254: WebSocket ESM runtime adoption in startup dependency seam (opt-in)
+- Status: `todo`
+- Scope: add an opt-in startup path that injects ESM-native websocket runtime through `main-runtime` dependency seams, keeping CJS default unchanged.
+- Acceptance criteria: opt-in startup path exercises ESM-native websocket runtime in live server flow with explicit probe/smoke evidence and no protocol regressions.
+- Verification: websocket bridge/protocol smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
