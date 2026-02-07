@@ -1,6 +1,8 @@
 import { createRequire } from 'node:module';
 import { runWebSocketBridgeProbeIfEnabled } from './main-esm-bridge-probe.mjs';
 import { resolveActiveConfig } from './main-esm-config-source.mjs';
+import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './main-esm-preflight-failures.mjs';
+import { runStartupWithConfig } from './main-esm-startup-runner.mjs';
 import { validateConfig } from './config-preflight-esm.mjs';
 import { createRuntimeDependencies, main as startServer } from './main-runtime-esm.mjs';
 import { resolveStartupRuntimeOptions } from './main-esm-runtime-options.mjs';
@@ -35,33 +37,32 @@ const configSource = await resolveActiveConfig({
 });
 const activeConfig = configSource.activeConfig;
 
-if (!activeConfig) {
-    console.error('Server cannot start without any configuration file.');
-    process.exit(1);
+ensureConfigSourcePresent({
+    activeConfig,
+    emitError: (message) => console.error(message),
+    fail: (code) => process.exit(code),
+});
+
+if (activeConfig) {
+    ensureConfigPreflightValid({
+        activeConfig,
+        validateConfig,
+        limitUtf8Bytes: Utils.limitUtf8Bytes,
+        emitError: (message) => console.error(message),
+        fail: (code) => process.exit(code),
+    });
 }
 
-const validationResult = validateConfig(activeConfig);
-if (!validationResult.isValid) {
-    const compactErrors = Utils.limitUtf8Bytes(JSON.stringify(validationResult.errors), 512);
-    console.error(`ESM preflight: invalid server configuration: ${compactErrors}`);
-    process.exit(1);
-}
-
-await runWebSocketBridgeProbeIfEnabled({
+await runStartupWithConfig({
+    activeConfig,
     env: process.env,
+    emitStructuredEvent,
     emitProbeEvent,
     requireWsCjs: () => require('./ws'),
     importWsEsm: () => import('./ws-esm.mjs'),
-    fail: (code) => process.exit(code),
-});
-
-const runtimeOptions = await resolveStartupRuntimeOptions({
-    env: process.env,
-    emitStructuredEvent,
-    importWsEsm: () => import('./ws-esm.mjs'),
     createRuntimeDependencies,
+    startServer,
     fail: (code) => process.exit(code),
+    runBridgeProbeFn: runWebSocketBridgeProbeIfEnabled,
+    resolveRuntimeOptionsFn: resolveStartupRuntimeOptions,
 });
-
-// Compatibility bridge: run the shared CJS startup path with validated config.
-startServer(activeConfig, runtimeOptions);

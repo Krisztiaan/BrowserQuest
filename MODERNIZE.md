@@ -4209,6 +4209,47 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-266` ESM preflight failure-emission seam extraction (`main-esm`).
 
+- 2026-02-07 21:55:00Z
+  - Status: `in_progress` -> `done` (T-266)
+  - Actions:
+    - Extracted ESM preflight failure-emission behavior into helper module:
+      - `server/js/main-esm-preflight-failures.mjs`.
+      - Contracts:
+        - `ensureConfigSourcePresent(...)`,
+        - `ensureConfigPreflightValid(...)`.
+    - Updated `server/js/main-esm.mjs` to use extracted preflight failure helpers.
+    - Added focused preflight helper unit coverage:
+      - `tests/unit/server-main-esm-preflight-failures.test.ts`.
+    - Expanded helper export-parity coverage:
+      - `tests/unit/server-main-esm-helpers-parity.test.ts` now includes preflight helper module contract checks.
+  - Evidence:
+    - Focused helper/config startup tests passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-267` ESM startup runner assembly seam extraction (`main-esm`).
+
+- 2026-02-07 22:35:00Z
+  - Status: `in_progress` -> `done` (T-267)
+  - Actions:
+    - Extracted final ESM startup orchestration into helper module:
+      - `server/js/main-esm-startup-runner.mjs` (`runStartupWithConfig(...)`).
+      - Encapsulates: bridge probe -> runtime-options resolution -> `startServer(...)`.
+    - Updated `server/js/main-esm.mjs` to use startup runner helper contract.
+    - Added focused startup-runner unit coverage:
+      - `tests/unit/server-main-esm-startup-runner.test.ts`.
+      - Verifies execution order and startServer runtime-options wiring.
+    - Expanded helper export parity coverage for new module:
+      - `tests/unit/server-main-esm-helpers-parity.test.ts`.
+  - Evidence:
+    - Focused startup-helper/smoke tests passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-268` post-startup-runner queue refresh (next ESM boot seams).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5808,13 +5849,19 @@ Only after Phase 2, introduce TS gradually:
 - Verification: focused unit tests + config-preflight smokes + `bun run verify:modern:node22`.
 
 ### T-266: ESM preflight failure-emission seam extraction (`main-esm`)
-- Status: `todo`
+- Status: `done`
 - Scope: extract invalid-config/no-config failure emission behavior into explicit helper contracts so fatal-startup diagnostics are testable without full process execution.
 - Acceptance criteria: startup preflight failure paths are isolated and unit-tested; structured/error output behavior remains unchanged.
 - Verification: focused unit tests + `tests/smoke/server-config-preflight-esm-entry.test.ts` + `bun run verify:modern:node22`.
 
 ### T-267: ESM startup runner assembly seam extraction (`main-esm`)
-- Status: `todo`
+- Status: `done`
 - Scope: extract final startup runner composition (`probe -> runtime options -> startServer`) into a small orchestrator helper to reduce top-level script complexity and prepare deeper ESM-native boot adoption.
 - Acceptance criteria: orchestrator helper exists with contract tests and no behavior change across startup smokes.
 - Verification: focused unit tests + websocket/config startup smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-268: Post-startup-runner queue refresh (next ESM boot seams)
+- Status: `todo`
+- Scope: refresh modernization queue after startup runner/helper extraction to prioritize the next ESM boot convergence candidates (structured-event emission seam and top-level boot envelope simplification).
+- Acceptance criteria: successor tickets are explicit, ordered, and bound to current startup/unit/smoke gates.
+- Verification: `MODERNIZE.md` queue/log alignment + startup helper test replay.
