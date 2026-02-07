@@ -102,3 +102,19 @@ test('ws connection forwards valid array payload to listener', () => {
     expect(received).toEqual([1, 2, 3]);
     expect(socket.getClosed()).toBeNull();
 });
+
+test('ws connection rejects batched action arrays', () => {
+    const socket = createSocketMock();
+    const server = { removeConnection() {} };
+    const conn = new WS.wsWebSocketConnection('id-5', socket, server, '127.0.0.1');
+    let listened = false;
+
+    conn.listen(() => {
+        listened = true;
+    });
+
+    socket.emit('message', '[[1,2],[3,4]]', false);
+
+    expect(listened).toBe(false);
+    expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.INVALID_PAYLOAD);
+});

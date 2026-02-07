@@ -3,6 +3,7 @@ var url = require('url'),
     http = require('http'),
     Log = require('./log'),
     Utils = require('./utils'),
+    Protocol = require('../../shared/js/protocol-contract'),
     WebSocket = require('ws'),
     WS = {},
     useBison = false,
@@ -209,20 +210,13 @@ WS.wsWebSocketConnection = class wsWebSocketConnection extends Connection {
                 return;
             }
 
-            try {
-                var parsed = JSON.parse(text);
-                if(!Array.isArray(parsed)) {
-                    self.close("Invalid message: expected an Array.", CLOSE_CODES.INVALID_PAYLOAD);
-                    return;
-                }
-                self.listen_callback(parsed);
-            } catch(e) {
-                if(e instanceof SyntaxError) {
-                    self.close("Received message was not valid JSON.", CLOSE_CODES.INVALID_PAYLOAD);
-                } else {
-                    throw e;
-                }
+            var actions = Protocol.parseProtocolActionBatch(text);
+            if(actions.length !== 1) {
+                self.close("Invalid message: expected a single protocol action Array.", CLOSE_CODES.INVALID_PAYLOAD);
+                return;
             }
+
+            self.listen_callback(actions[0]);
         });
 
         this._connection.on('close', function() {

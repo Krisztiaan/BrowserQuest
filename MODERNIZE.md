@@ -3446,6 +3446,28 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-220` shared protocol contract extraction.
 
+- 2026-02-07 08:16:30Z
+  - Status: `in_progress` -> `done` (T-220)
+  - Actions:
+    - Added shared protocol contract modules:
+      - `shared/js/protocol-contract.js`
+      - `shared/js/protocol-contract-esm.mjs`
+    - Rewired protocol test helpers to shared contract source:
+      - `tests/support/protocol.ts` now reads constants/parser from the shared protocol contract bridge.
+    - Wired websocket runtime payload parsing to shared protocol contract:
+      - `server/js/ws.js` now uses `Protocol.parseProtocolActionBatch(...)` and rejects non-single-action payloads.
+    - Added protocol contract and websocket guard coverage:
+      - `tests/unit/protocol-contract-module.test.ts`
+      - expanded `tests/unit/ws-connection.test.ts` with batched-action rejection case.
+    - Updated runtime boundary/readiness inventories for new protocol bridge artifacts.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run test` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run lint` and `bun run format:check` passed.
+  - Next action:
+    - Start `T-221` server CJS->ESM wave 2.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4769,7 +4791,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes post-wave-1 successor queue with executable checks.
 
 ### T-220: Shared protocol contract extraction (priority P0)
-- Status: `todo`
+- Status: `done`
 - Scope: extract reusable protocol opcode/entity/action typing into a shared module consumable by tests and runtime-adjacent server/client entry code.
 - Acceptance criteria: tests no longer define ad-hoc protocol opcode contracts; shared protocol definitions are imported from one maintained location.
 - Verification: `bun run typecheck` + `bun run test` + `bun run test:browser:protocol:node22`.
