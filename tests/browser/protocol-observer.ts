@@ -11,6 +11,7 @@ export type ProtocolObserver = {
     receivedTypes: number[];
     receivedChats: string[];
     getGoCount: () => number;
+    getSocketCount: () => number;
 };
 
 export function attachProtocolObserver(page: Page, options?: ProtocolObserverOptions): ProtocolObserver {
@@ -20,11 +21,13 @@ export function attachProtocolObserver(page: Page, options?: ProtocolObserverOpt
     const receivedTypes: number[] = [];
     const receivedChats: string[] = [];
     let goCount = 0;
+    let socketCount = 0;
 
     page.on('websocket', (ws) => {
         if (!ws.url().includes(wsUrlSubstring)) {
             return;
         }
+        socketCount += 1;
 
         ws.on('framesent', ({ payload }) => {
             const text = typeof payload === 'string' ? payload : payload.toString();
@@ -54,5 +57,6 @@ export function attachProtocolObserver(page: Page, options?: ProtocolObserverOpt
         receivedTypes,
         receivedChats,
         getGoCount: () => goCount,
+        getSocketCount: () => socketCount,
     };
 }

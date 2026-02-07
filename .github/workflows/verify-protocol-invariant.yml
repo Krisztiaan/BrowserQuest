@@ -51,9 +51,7 @@ jobs:
         run: bunx playwright install --with-deps chromium
 
       - name: Verify protocol invariants
-        env:
-          PLAYWRIGHT_JUNIT_OUTPUT_NAME: protocol-invariant-junit.xml
-        run: bun run check:runtime && bunx playwright test --config=playwright.config.ts tests/browser/protocol-invariant.playwright.ts --reporter=line,junit
+        run: bun run test:browser:protocol:ci
 
       - name: Upload protocol invariant diagnostics
         if: always()

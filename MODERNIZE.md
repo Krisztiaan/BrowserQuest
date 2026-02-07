@@ -2313,6 +2313,117 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-137` protocol invariant transcript fixture extraction.
 
+- 2026-02-07 04:42:15Z
+  - Status: `in_progress` -> `done` (T-137)
+  - Actions:
+    - Refactored protocol invariant test into a single replay harness with mode-based behavior:
+      - `tests/browser/protocol-invariant.playwright.ts`
+      - unified parser/timeout/finalize/socket handling for `positive` and `invalid_move` replay paths.
+    - Preserved positive and negative parity assertions (modern vs legacy) while reducing duplicated replay boilerplate.
+  - Evidence:
+    - `bun run test:browser:protocol-invariant:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-138` protocol browser suite command segmentation.
+
+- 2026-02-07 04:43:24Z
+  - Status: `in_progress` -> `done` (T-138)
+  - Actions:
+    - Added protocol-focused browser command aliases:
+      - `test:browser:protocol`
+      - `test:browser:protocol:node22`
+      - targets `modern-protocol-actions` + `protocol-invariant` suites for faster protocol triage loops.
+    - Updated docs:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-139` protocol artifact/runbook retention alignment.
+
+- 2026-02-07 04:43:47Z
+  - Status: `in_progress` -> `done` (T-139)
+  - Actions:
+    - Updated protocol artifact runbook details:
+      - `docs/client-build-support.md`
+      - documented artifact naming pattern (`protocol-invariant-diagnostics-<run_id>`) and retrieval/triage steps.
+    - Aligned documentation with current workflow artifact paths:
+      - `test-results/protocol-invariant-junit.xml`
+      - `playwright-report/**`
+  - Evidence:
+    - Workflow and docs now share the same artifact naming/path contract for protocol-gate triage.
+  - Next action:
+    - Define `T-140` post-protocol-artifact queue refresh.
+
+- 2026-02-07 04:44:00Z
+  - Status: `in_progress` -> `done` (T-140)
+  - Actions:
+    - Refreshed post-T139 queue with ordered successor tickets:
+      - `T-141` protocol-focused browser CI workflow command alignment (`test:browser:protocol` adoption).
+      - `T-142` protocol observer helper reuse in modern UI smoke where appropriate.
+      - `T-143` protocol replay timeout/retry diagnostics enrichment.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now contains a concrete next queue beyond protocol artifact/runbook alignment.
+  - Next action:
+    - Start `T-141` protocol-focused browser CI workflow command alignment.
+
+- 2026-02-07 04:45:14Z
+  - Status: `in_progress` -> `done` (T-141)
+  - Actions:
+    - Added CI-specific protocol browser alias:
+      - `test:browser:protocol:ci`
+      - includes JUnit reporter output for artifact capture.
+    - Aligned protocol workflow command usage:
+      - `.github/workflows/verify-protocol-invariant.yml` now runs `bun run test:browser:protocol:ci`.
+    - Updated support docs:
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-142` protocol observer helper reuse expansion.
+
+- 2026-02-07 04:46:35Z
+  - Status: `in_progress` -> `done` (T-142)
+  - Actions:
+    - Expanded protocol observer helper reuse:
+      - `tests/browser/modern-ui-smoke.playwright.ts` now uses `tests/browser/protocol-observer.ts` for socket/go-handshake tracking in the first UI smoke test.
+      - `tests/browser/protocol-observer.ts` now exposes socket-count access (`getSocketCount`).
+  - Evidence:
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run lint` passed.
+    - `bun run format:check` passed.
+  - Next action:
+    - Start `T-143` protocol replay timeout diagnostics enrichment.
+
+- 2026-02-07 04:47:24Z
+  - Status: `in_progress` -> `done` (T-143)
+  - Actions:
+    - Enriched protocol invariant replay diagnostics:
+      - `tests/browser/protocol-invariant.playwright.ts` now tracks replay stage (`await_go`/`await_welcome`/`await_chat_echo`/`await_invalid_close`).
+      - timeout and websocket error reasons now include stage context.
+      - timeout diagnostics include compact go/welcome/sent/received counters in transcript errors.
+  - Evidence:
+    - `bun run test:browser:protocol-invariant:node22` passed.
+    - `bun run lint` passed.
+    - `bun run format:check` passed.
+  - Next action:
+    - Define `T-144` next protocol/testing queue refresh after replay-diagnostics enrichment.
+
+- 2026-02-07 04:47:39Z
+  - Status: `in_progress` -> `done` (T-144)
+  - Actions:
+    - Refreshed post-T143 queue with ordered successor tickets:
+      - `T-145` protocol CI evidence recapture after alias/diagnostics command alignment.
+      - `T-146` browser protocol command discoverability sweep across docs.
+      - `T-147` protocol observer helper extension for optional legacy browser protocol tracing.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes an executable next queue after replay diagnostics enrichment.
+  - Next action:
+    - Start `T-145` protocol CI evidence recapture after command alignment.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -3138,19 +3249,67 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` adds queued post-T135 tickets with executable checks.
 
 ### T-137: Protocol invariant transcript fixture extraction
-- Status: `todo`
+- Status: `done`
 - Scope: extract shared in-page replay helpers for `tests/browser/protocol-invariant.playwright.ts` to reduce duplicated parse/timeout/socket-finalize logic between positive and negative paths.
 - Acceptance criteria: protocol invariant test keeps behavior parity while reducing repeated replay boilerplate.
 - Verification: `bun run test:browser:protocol-invariant:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-138: Protocol browser suite command segmentation
-- Status: `todo`
+- Status: `done`
 - Scope: add a dedicated `test:browser:protocol` alias that targets protocol-focused browser tests (`modern-protocol-actions`, `protocol-invariant`) for quicker local/CI triage loops.
 - Acceptance criteria: command exists, is documented, and runs only protocol browser tests.
 - Verification: new script command passes locally (`node22` wrapper variant included) and docs reflect usage.
 
 ### T-139: Protocol artifact/runbook retention alignment
-- Status: `todo`
+- Status: `done`
 - Scope: document protocol diagnostics artifact expectations (names/paths/retention usage) and align workflow naming with runbook triage steps.
 - Acceptance criteria: contributors can locate and interpret protocol workflow artifacts without trial-and-error.
 - Verification: docs mention artifact names/paths + retrieval flow; workflow artifact naming remains stable and referenced.
+
+### T-140: Post-protocol-artifact queue refresh
+- Status: `done`
+- Scope: refresh modernization queue after protocol artifact/runbook alignment, prioritizing remaining high-leverage quality-signal improvements.
+- Acceptance criteria: roadmap includes ordered successor tickets with scope, acceptance criteria, and executable verification commands.
+- Verification: `MODERNIZE.md` includes queued post-T139 tickets with command-level checks.
+
+### T-141: Protocol-focused browser CI command alignment
+- Status: `done`
+- Scope: update relevant browser CI workflow steps to use canonical `test:browser:protocol` alias where protocol-only suites are intended.
+- Acceptance criteria: workflow command usage aligns with documented protocol-focused alias and remains behaviorally equivalent.
+- Verification: workflow config update + local parity command `bun run test:browser:protocol:node22` passes.
+
+### T-142: Protocol observer helper reuse expansion
+- Status: `done`
+- Scope: expand `tests/browser/protocol-observer.ts` reuse into additional browser suites where websocket frame parsing/counting boilerplate remains.
+- Acceptance criteria: targeted suites reduce duplicated protocol observer logic without changing test semantics.
+- Verification: affected Playwright suites pass (`bun run test:browser:modern:node22`) and lint/format remain green.
+
+### T-143: Protocol replay timeout diagnostics enrichment
+- Status: `done`
+- Scope: enrich protocol replay failure reasons in invariant tests with structured timeout context (what stage stalled, last seen message types/counts).
+- Acceptance criteria: timeout failures in protocol invariant tests provide actionable context without rerunning under debugger.
+- Verification: protocol invariant command remains green and failure messages include stage/context fields.
+
+### T-144: Post-replay-diagnostics queue refresh
+- Status: `done`
+- Scope: refresh modernization queue after replay diagnostics enrichment with the next highest-leverage protocol/browser quality-signal improvements.
+- Acceptance criteria: roadmap includes ordered successor tickets with scope, acceptance criteria, and command-level verification.
+- Verification: `MODERNIZE.md` contains queued post-T143 tickets with executable checks.
+
+### T-145: Protocol CI evidence recapture after command alignment
+- Status: `todo`
+- Scope: capture fresh successful `verify-protocol-invariant` workflow evidence after adopting `test:browser:protocol:ci` alias and diagnostics updates.
+- Acceptance criteria: roadmap links at least one post-alignment successful run (URL/id/timestamps) showing updated workflow path is green.
+- Verification: successful GitHub run for `verify-protocol-invariant` is logged in `MODERNIZE.md`.
+
+### T-146: Protocol command discoverability docs sweep
+- Status: `todo`
+- Scope: ensure all top-level docs consistently reference `test:browser:protocol` / `test:browser:protocol:node22` for protocol-focused triage.
+- Acceptance criteria: no stale protocol command references remain in primary onboarding/support docs.
+- Verification: docs scan + local command check `bun run test:browser:protocol:node22`.
+
+### T-147: Optional legacy protocol observer extension
+- Status: `todo`
+- Scope: evaluate and optionally add lightweight websocket protocol observer hooks for `tests/browser/legacy-ui-smoke.playwright.ts` to support future legacy protocol parity assertions.
+- Acceptance criteria: extension is either landed with stable assertions or explicitly deferred with rationale and guardrails.
+- Verification: legacy browser smoke command remains green (`bun run test:browser:legacy:node22`) and docs/roadmap reflect outcome.

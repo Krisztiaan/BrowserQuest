@@ -1,6 +1,8 @@
 import { expect, test, type Page } from '@playwright/test';
 import { MSG_CHAT, MSG_HELLO, MSG_MOVE, MSG_WELCOME, MSG_ZONE } from '../support/protocol';
 
+type ReplayMode = 'positive' | 'invalid_move';
+
 type ReplayTranscript = {
     sent: number[];
     received: Array<number | 'go'>;
@@ -10,6 +12,8 @@ type ReplayTranscript = {
     moveCount: number;
     zoneCount: number;
     stayedOpenAfterMoveZone: boolean;
+    sentInvalidMove: boolean;
+    closedAfterInvalidMove: boolean;
     errors: string[];
 };
 
@@ -19,26 +23,11 @@ type ReplayResult = {
     transcript: ReplayTranscript;
 };
 
-type InvalidMoveTranscript = {
-    sent: number[];
-    received: Array<number | 'go'>;
-    sawGo: boolean;
-    sawWelcome: boolean;
-    sentInvalidMove: boolean;
-    closedAfterInvalidMove: boolean;
-    errors: string[];
-};
-
-type InvalidMoveResult = {
-    ok: boolean;
-    reason?: string;
-    transcript: InvalidMoveTranscript;
-};
-
-async function replayProtocolSequence(
+async function replaySequence(
     page: Page,
     entryPath: '/client/modern.html' | '/client/index.html',
-    suffix: string
+    suffix: string,
+    mode: ReplayMode
 ) {
     await page.addInitScript(() => {
         window.localStorage.clear();
@@ -46,7 +35,7 @@ async function replayProtocolSequence(
     await page.goto(entryPath, { waitUntil: 'domcontentloaded' });
 
     const result = await page.evaluate(
-        async ({ wsUrl, helloName, chatMessage, types }) => {
+        async ({ wsUrl, helloName, chatMessage, mode, types }) => {
             const transcript: ReplayTranscript = {
                 sent: [],
                 received: [],
@@ -56,6 +45,8 @@ async function replayProtocolSequence(
                 moveCount: 0,
                 zoneCount: 0,
                 stayedOpenAfterMoveZone: false,
+                sentInvalidMove: false,
+                closedAfterInvalidMove: false,
                 errors: [],
             };
 
@@ -80,6 +71,7 @@ async function replayProtocolSequence(
                 let sentChat = false;
                 let sentMove = false;
                 let sentZone = false;
+                let stage: 'await_go' | 'await_welcome' | 'await_chat_echo' | 'await_invalid_close' = 'await_go';
                 let done = false;
                 const ws = new WebSocket(wsUrl);
 
@@ -96,7 +88,12 @@ async function replayProtocolSequence(
                 };
 
                 const timeout = window.setTimeout(() => {
-                    finalize({ ok: false, reason: 'timeout', transcript });
+                    transcript.errors.push(
+                        `timeout:${stage}:go=${transcript.goCount}:welcome=${transcript.welcomeCount}:sent=${transcript.sent.join(',')}:received=${transcript.received
+                            .slice(-5)
+                            .join(',')}`
+                    );
+                    finalize({ ok: false, reason: `timeout:${stage}`, transcript });
                 }, 15000);
 
                 ws.onmessage = (event) => {
@@ -105,6 +102,7 @@ async function replayProtocolSequence(
                     if (text === 'go') {
                         transcript.received.push('go');
                         transcript.goCount += 1;
+                        stage = 'await_welcome';
                         if (!sentHello) {
                             ws.send(JSON.stringify([types.MSG_HELLO, helloName, 1, 1]));
                             transcript.sent.push(types.MSG_HELLO);
@@ -118,14 +116,28 @@ async function replayProtocolSequence(
                         const type = Number(action[0]);
                         transcript.received.push(type);
 
-                        if (type === types.MSG_WELCOME) {
-                            transcript.welcomeCount += 1;
+                        if (type !== types.MSG_WELCOME) {
+                            if (mode === 'positive' && type === types.MSG_CHAT && action[2] === chatMessage) {
+                                transcript.echoedChatCount += 1;
+                                window.setTimeout(() => {
+                                    transcript.stayedOpenAfterMoveZone = ws.readyState === WebSocket.OPEN;
+                                    finalize({ ok: transcript.stayedOpenAfterMoveZone, transcript });
+                                }, 120);
+                            }
+                            return;
+                        }
+
+                        transcript.welcomeCount += 1;
+
+                        if (mode === 'positive') {
                             const welcomeX = Number(action[3]);
                             const welcomeY = Number(action[4]);
+
                             if (!sentChat) {
                                 ws.send(JSON.stringify([types.MSG_CHAT, chatMessage]));
                                 transcript.sent.push(types.MSG_CHAT);
                                 sentChat = true;
+                                stage = 'await_chat_echo';
                             }
                             if (!sentMove && Number.isFinite(welcomeX) && Number.isFinite(welcomeY)) {
                                 ws.send(JSON.stringify([types.MSG_MOVE, welcomeX, welcomeY]));
@@ -139,28 +151,44 @@ async function replayProtocolSequence(
                                 transcript.zoneCount += 1;
                                 sentZone = true;
                             }
+                            return;
                         }
 
-                        if (type === types.MSG_CHAT && action[2] === chatMessage) {
-                            transcript.echoedChatCount += 1;
-                            window.setTimeout(() => {
-                                transcript.stayedOpenAfterMoveZone = ws.readyState === WebSocket.OPEN;
-                                finalize({ ok: transcript.stayedOpenAfterMoveZone, transcript });
-                            }, 120);
+                        if (mode === 'invalid_move' && !transcript.sentInvalidMove) {
+                            ws.send(JSON.stringify([types.MSG_MOVE, 10.5, 7]));
+                            transcript.sent.push(types.MSG_MOVE);
+                            transcript.sentInvalidMove = true;
+                            stage = 'await_invalid_close';
                         }
+                    });
+                };
+
+                ws.onclose = () => {
+                    if (mode === 'positive') {
+                        finalize({ ok: false, reason: `unexpected_close:${stage}`, transcript });
+                        return;
+                    }
+                    transcript.closedAfterInvalidMove = transcript.sentInvalidMove;
+                    finalize({
+                        ok: transcript.goCount > 0 && transcript.welcomeCount > 0 && transcript.closedAfterInvalidMove,
+                        transcript,
                     });
                 };
 
                 ws.onerror = () => {
                     transcript.errors.push('ws_error');
-                    finalize({ ok: false, reason: 'ws_error', transcript });
+                    if (mode === 'invalid_move' && transcript.closedAfterInvalidMove) {
+                        return;
+                    }
+                    finalize({ ok: false, reason: `ws_error:${stage}`, transcript });
                 };
             });
         },
         {
             wsUrl: 'ws://127.0.0.1:8000/',
-            helloName: `pi-${suffix}`,
+            helloName: `pi-${mode}-${suffix}`,
             chatMessage: `pi-chat-${suffix}`,
+            mode,
             types: {
                 MSG_HELLO,
                 MSG_WELCOME,
@@ -174,128 +202,18 @@ async function replayProtocolSequence(
     return result;
 }
 
-async function replayInvalidMoveSequence(
-    page: Page,
-    entryPath: '/client/modern.html' | '/client/index.html',
-    suffix: string
-) {
-    await page.addInitScript(() => {
-        window.localStorage.clear();
-    });
-    await page.goto(entryPath, { waitUntil: 'domcontentloaded' });
-
-    const result = await page.evaluate(
-        async ({ wsUrl, helloName, types }) => {
-            const transcript: InvalidMoveTranscript = {
-                sent: [],
-                received: [],
-                sawGo: false,
-                sawWelcome: false,
-                sentInvalidMove: false,
-                closedAfterInvalidMove: false,
-                errors: [],
-            };
-
-            const parseActions = (raw: string): number[][] => {
-                try {
-                    const parsed = JSON.parse(raw);
-                    if (!Array.isArray(parsed)) return [];
-                    if (parsed.length > 0 && Array.isArray(parsed[0])) {
-                        return parsed.filter((entry) => Array.isArray(entry) && typeof entry[0] === 'number');
-                    }
-                    if (typeof parsed[0] === 'number') {
-                        return [parsed];
-                    }
-                    return [];
-                } catch (_) {
-                    return [];
-                }
-            };
-
-            return await new Promise<InvalidMoveResult>((resolve) => {
-                let sentHello = false;
-                let done = false;
-                const ws = new WebSocket(wsUrl);
-
-                const finalize = (payload: InvalidMoveResult) => {
-                    if (done) return;
-                    done = true;
-                    clearTimeout(timeout);
-                    try {
-                        ws.close();
-                    } catch (_) {
-                        // ignore
-                    }
-                    resolve(payload);
-                };
-
-                const timeout = window.setTimeout(() => {
-                    finalize({ ok: false, reason: 'timeout', transcript });
-                }, 15000);
-
-                ws.onmessage = (event) => {
-                    const text = typeof event.data === 'string' ? event.data : String(event.data);
-                    if (text === 'go') {
-                        transcript.received.push('go');
-                        transcript.sawGo = true;
-                        if (!sentHello) {
-                            ws.send(JSON.stringify([types.MSG_HELLO, helloName, 1, 1]));
-                            transcript.sent.push(types.MSG_HELLO);
-                            sentHello = true;
-                        }
-                        return;
-                    }
-
-                    const actions = parseActions(text);
-                    actions.forEach((action) => {
-                        const type = Number(action[0]);
-                        transcript.received.push(type);
-                        if (type === types.MSG_WELCOME && !transcript.sentInvalidMove) {
-                            transcript.sawWelcome = true;
-                            ws.send(JSON.stringify([types.MSG_MOVE, 10.5, 7]));
-                            transcript.sent.push(types.MSG_MOVE);
-                            transcript.sentInvalidMove = true;
-                        }
-                    });
-                };
-
-                ws.onclose = () => {
-                    transcript.closedAfterInvalidMove = transcript.sentInvalidMove;
-                    finalize({
-                        ok: transcript.sawGo && transcript.sawWelcome && transcript.closedAfterInvalidMove,
-                        transcript,
-                    });
-                };
-
-                ws.onerror = () => {
-                    transcript.errors.push('ws_error');
-                    if (!transcript.closedAfterInvalidMove) {
-                        finalize({ ok: false, reason: 'ws_error', transcript });
-                    }
-                };
-            });
-        },
-        {
-            wsUrl: 'ws://127.0.0.1:8000/',
-            helloName: `pi-invalid-${suffix}`,
-            types: {
-                MSG_HELLO,
-                MSG_WELCOME,
-                MSG_MOVE,
-            },
-        }
-    );
-
-    return result;
-}
-
 test('protocol replay invariants match between modern and legacy entry paths', async ({ page, context }) => {
-    const modern = await replayProtocolSequence(page, '/client/modern.html', `modern-${Date.now()}`);
-    const modernInvalid = await replayInvalidMoveSequence(page, '/client/modern.html', `modern-${Date.now()}`);
+    const modern = await replaySequence(page, '/client/modern.html', `modern-${Date.now()}`, 'positive');
+    const modernInvalid = await replaySequence(page, '/client/modern.html', `modern-${Date.now()}`, 'invalid_move');
 
     const legacyPage = await context.newPage();
-    const legacy = await replayProtocolSequence(legacyPage, '/client/index.html', `legacy-${Date.now()}`);
-    const legacyInvalid = await replayInvalidMoveSequence(legacyPage, '/client/index.html', `legacy-${Date.now()}`);
+    const legacy = await replaySequence(legacyPage, '/client/index.html', `legacy-${Date.now()}`, 'positive');
+    const legacyInvalid = await replaySequence(
+        legacyPage,
+        '/client/index.html',
+        `legacy-${Date.now()}`,
+        'invalid_move'
+    );
     await legacyPage.close();
 
     expect(modern.ok).toBe(true);
@@ -342,16 +260,16 @@ test('protocol replay invariants match between modern and legacy entry paths', a
     const modernInvalidInvariant = {
         sentHello: modernInvalid.transcript.sent.includes(MSG_HELLO),
         sentInvalidMove: modernInvalid.transcript.sentInvalidMove,
-        sawGo: modernInvalid.transcript.sawGo,
-        sawWelcome: modernInvalid.transcript.sawWelcome,
+        sawGo: modernInvalid.transcript.goCount > 0,
+        sawWelcome: modernInvalid.transcript.welcomeCount > 0,
         closedAfterInvalidMove: modernInvalid.transcript.closedAfterInvalidMove,
         sawErrors: modernInvalid.transcript.errors.length > 0,
     };
     const legacyInvalidInvariant = {
         sentHello: legacyInvalid.transcript.sent.includes(MSG_HELLO),
         sentInvalidMove: legacyInvalid.transcript.sentInvalidMove,
-        sawGo: legacyInvalid.transcript.sawGo,
-        sawWelcome: legacyInvalid.transcript.sawWelcome,
+        sawGo: legacyInvalid.transcript.goCount > 0,
+        sawWelcome: legacyInvalid.transcript.welcomeCount > 0,
         closedAfterInvalidMove: legacyInvalid.transcript.closedAfterInvalidMove,
         sawErrors: legacyInvalid.transcript.errors.length > 0,
     };

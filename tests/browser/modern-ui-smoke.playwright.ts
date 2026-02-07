@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { attachProtocolObserver } from './protocol-observer';
 
 async function startModernSession(page: Page, name: string) {
     await page.addInitScript(() => {
@@ -26,23 +27,8 @@ async function startModernSession(page: Page, name: string) {
 }
 
 test('modern UI boots and reaches first playable session', async ({ page }) => {
-    let sawServerSocket = false;
-    let sawGoHandshake = false;
+    const observer = attachProtocolObserver(page);
     const pageErrors: string[] = [];
-
-    page.on('websocket', (ws) => {
-        if (!ws.url().includes(':8000')) {
-            return;
-        }
-
-        sawServerSocket = true;
-        ws.on('framereceived', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            if (text === 'go') {
-                sawGoHandshake = true;
-            }
-        });
-    });
 
     page.on('pageerror', (err) => {
         pageErrors.push(err.message);
@@ -50,8 +36,8 @@ test('modern UI boots and reaches first playable session', async ({ page }) => {
 
     await startModernSession(page, 'modern-smoke');
     await expect(page.locator('#playercount .count')).toHaveText(/[1-9]\d*/, { timeout: 20_000 });
-    await expect.poll(() => sawServerSocket, { timeout: 20_000 }).toBe(true);
-    await expect.poll(() => sawGoHandshake, { timeout: 20_000 }).toBe(true);
+    await expect.poll(() => observer.getSocketCount(), { timeout: 20_000 }).toBeGreaterThan(0);
+    await expect.poll(() => observer.getGoCount(), { timeout: 20_000 }).toBeGreaterThan(0);
     expect(pageErrors).toEqual([]);
 });
 
