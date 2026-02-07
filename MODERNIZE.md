@@ -1871,6 +1871,51 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Define T-111 branch/release hygiene after fork default-branch switch (document/reset strategy).
 
+- 2026-02-07 03:48:15Z
+  - Status: `in_progress` -> `done` (T-111)
+  - Actions:
+    - Added explicit fork workflow hygiene instructions to the metrics healthy runbook:
+      - `docs/metrics-health-smoke-plan.md`
+      - includes push/default-branch switch, dispatch, reset, and verification commands.
+    - Captured deterministic commands for both enabling and reverting workflow-dispatch readiness on forks.
+  - Evidence:
+    - Runbook now documents exact command sequence used for successful `verify-metrics-healthy` execution evidence capture.
+  - Next action:
+    - Define T-112 optional workflow hardening (non-destructive dependency install step in CI).
+
+- 2026-02-07 03:49:15Z
+  - Status: `in_progress` -> `done` (T-112)
+  - Actions:
+    - Hardened optional healthy workflow dependency install step:
+      - `.github/workflows/verify-metrics-healthy.yml`
+      - changed from `bun add memcache` to `bun add --no-save memcache`.
+    - Updated runbook wording to match hardened behavior:
+      - `docs/metrics-health-smoke-plan.md`
+    - Pushed workflow update and reran healthy metrics workflow.
+  - Evidence:
+    - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773675770`
+    - Conclusion: `success` (2026-02-07T03:48:50Z -> 2026-02-07T03:49:04Z)
+    - Log highlights:
+      - `Install optional metrics dependency (no-save)` executed.
+      - `metrics-healthy-prereqs: ok (...)`
+      - `(pass) optional: healthy metrics path starts with memcache backend and no fallback event`
+  - Next action:
+    - Define T-113 upstream handoff note (origin is read-only; fork workflow evidence location + sync instructions).
+
+- 2026-02-07 03:49:40Z
+  - Status: `in_progress` -> `done` (T-113)
+  - Actions:
+    - Added explicit upstream-vs-fork execution context for healthy metrics workflow evidence:
+      - `docs/metrics-health-smoke-plan.md`
+      - `README.md`
+    - Linked successful fork runs for maintainers/operators:
+      - `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773648845`
+      - `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773675770`
+  - Evidence:
+    - Runbook now clearly states why evidence runs are on fork and where to find them.
+  - Next action:
+    - Define T-114 upstream alignment checklist (what to replicate if write access to upstream becomes available).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2540,7 +2585,25 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `tests/unit/metrics-client.test.ts` + baseline verify gates (`verify:modern:node22`, `verify:legacy:node22`) remain green.
 
 ### T-111: Fork branch/default-branch hygiene follow-up
-- Status: `todo`
+- Status: `done`
 - Scope: document and apply cleanup strategy for fork workflow evidence setup (default branch reset policy, tracking branch, and guardrails for future dispatch runs).
 - Acceptance criteria: fork automation setup is reproducible and does not leave ambiguous branch/default-branch state.
 - Verification: docs capture current fork state and commands to revert/reapply workflow-dispatch readiness.
+
+### T-112: Optional workflow dependency-step hardening
+- Status: `done`
+- Scope: harden `verify-metrics-healthy` workflow dependency installation so optional `memcache` add does not unintentionally mutate lockfile expectations in CI.
+- Acceptance criteria: workflow uses an explicit non-lockfile-mutating install approach and remains green.
+- Verification: updated workflow run succeeds and runbook references the hardened behavior.
+
+### T-113: Upstream handoff for workflow evidence context
+- Status: `done`
+- Scope: document that workflow evidence currently runs on fork (`Krisztiaan/BrowserQuest`) because upstream (`mozilla/BrowserQuest`) is read-only/archived, and provide sync instructions.
+- Acceptance criteria: maintainers can locate evidence runs and understand how to reproduce them under available permissions.
+- Verification: `README.md` and/or metrics runbook includes explicit upstream-vs-fork execution note with links.
+
+### T-114: Upstream alignment checklist for optional workflow
+- Status: `todo`
+- Scope: document exact steps to replicate fork-based healthy workflow setup in upstream when/if upstream write access is available.
+- Acceptance criteria: checklist exists for porting workflow/runbook evidence path from fork back to upstream.
+- Verification: checklist committed in runbook/docs and linked from roadmap.

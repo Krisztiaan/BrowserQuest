@@ -46,6 +46,13 @@ Preflight command:
 
 Workflow: `.github/workflows/verify-metrics-healthy.yml`
 
+Repository context:
+
+- Upstream `mozilla/BrowserQuest` is archived/read-only in current access context, so workflow-dispatch evidence is captured on fork `Krisztiaan/BrowserQuest`.
+- Baseline successful fork runs:
+  - `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773648845`
+  - `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773675770` (hardened `--no-save` step)
+
 - Trigger: GitHub Actions UI -> `verify-metrics-healthy` -> `Run workflow`.
 - Provisioning: job starts a memcached service container (`127.0.0.1:11211`), installs `memcache` via `bun add --no-save memcache`, and runs `bun run test:metrics:healthy`.
 
