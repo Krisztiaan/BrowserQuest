@@ -3375,6 +3375,33 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Continue `T-213` via ESM runtime entry wiring.
 
+- 2026-02-07 07:23:41Z
+  - Status: `in_progress` -> `done` (T-218)
+  - Actions:
+    - Updated `server/js/main-esm.mjs` to consume wave-1 ESM modules before CJS handoff:
+      - loads config via ESM path,
+      - validates config with `config-preflight-esm`,
+      - uses `utils-esm` for compact validation error reporting.
+    - Added ESM entry smoke coverage:
+      - `tests/smoke/server-config-preflight-esm-entry.test.ts`
+      - `tests/smoke/server-handshake-esm-entry.test.ts`
+  - Evidence:
+    - `bun run test` passes with ESM entry smoke tests included.
+  - Next action:
+    - Complete T-213 acceptance with full verify matrix.
+
+- 2026-02-07 07:23:41Z
+  - Status: `in_progress` -> `done` (T-213)
+  - Actions:
+    - Landed wave-1 ESM runtime modules and consumed them through ESM entry path.
+    - Added dedicated unit/smoke coverage for ESM wave-1 modules and entrypoint behavior.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run test` passed (includes ESM unit + ESM entry smoke coverage).
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-215` shared protocol typing.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4656,7 +4683,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` and `bun run typecheck:node22`.
 
 ### T-213: Server CJS->ESM wave 1 (priority P0)
-- Status: `in_progress`
+- Status: `done`
 - Scope: convert low-risk server runtime modules from `require/module.exports` to ESM imports/exports with compatibility maintained.
 - Acceptance criteria: selected wave-1 modules run under existing server boot paths without protocol regressions.
 - Verification: `bun run verify:modern:node22`, `bun run verify:legacy:node22`, `bun run test:browser:protocol:node22`.
@@ -4686,7 +4713,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes post-T216 successor queue with executable checks.
 
 ### T-218: ESM entry wiring for wave-1 modules
-- Status: `todo`
+- Status: `done`
 - Scope: update `server/js/main-esm.mjs` path to consume wave-1 ESM modules (`config-preflight-esm`, `utils-esm`) while preserving compatibility with existing runtime behavior.
 - Acceptance criteria: ESM entry path uses wave-1 ESM modules without changing default CJS boot behavior.
 - Verification: `bun run start:server:esm` smoke + protocol/browser gate.
+
+### T-219: Post-wave-1 queue refresh
+- Status: `todo`
+- Scope: refresh technical queue after T-213/T-218 completion to sequence deeper server module conversion batches.
+- Acceptance criteria: successor queue is ordered and scoped by risk/dependency.
+- Verification: `MODERNIZE.md` includes post-wave-1 successor queue with executable checks.
