@@ -128,6 +128,7 @@ This project currently ships two client build paths while modernization is in pr
   - Triage path:
     - Open workflow run -> `Artifacts` -> download `ws-boundary-drill-summary-<run_id>`.
     - Quick scan `artifacts/ws-boundary-drill-summary.md`, then use `artifacts/ws-boundary-drill-summary.json` for per-check detail.
+    - On failures, read `failureSnapshot.failedCheckKeys` and `failureSnapshot.failedChecks[*].{exitCode,logTailHint}` first for escalation handoff.
     - If escalation is required, use `docs/websocket-boundary-escalation-template.md`.
   - Decision/owner policy source: `docs/websocket-cjs-factory-migration-decision.md`.
 - `verify-dependency-drift` workflow:

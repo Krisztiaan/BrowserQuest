@@ -80,3 +80,6 @@ CI/advisory trigger policy:
   - `bun run verify:legacy:node22`
 - Optional local summary file:
   - `BQ_WS_DRILL_SUMMARY_PATH=artifacts/ws-boundary-drill-summary.json BQ_WS_DRILL_MARKDOWN_PATH=artifacts/ws-boundary-drill-summary.md bun run test:ws:runtime:drill`
+- Optional forced-failure simulation:
+  - `BQ_WS_DRILL_FORCE_FAIL_CHECK=parity BQ_WS_DRILL_SUMMARY_PATH=artifacts/ws-boundary-drill-summary.json BQ_WS_DRILL_MARKDOWN_PATH=artifacts/ws-boundary-drill-summary.md bun run test:ws:runtime:drill || true`
+  - inspect `failureSnapshot.failedChecks[*].{exitCode,logTailHint}` for escalation-ready handoff data.

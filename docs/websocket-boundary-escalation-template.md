@@ -24,6 +24,10 @@ Use this template when websocket boundary drill checks fail or runtime-mode sign
 - `server.esm.ws_bridge_probe` status/event payload:
 - Boundary drill summary artifact path:
   - `ws-boundary-drill-summary-<run_id>/artifacts/ws-boundary-drill-summary.json`
+  - failure snapshot fields:
+    - `failureSnapshot.failedCheckKeys`
+    - `failureSnapshot.failedChecks[*].exitCode`
+    - `failureSnapshot.failedChecks[*].logTailHint`
 
 ## 4) Failing checks
 

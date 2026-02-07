@@ -4531,6 +4531,27 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-283` websocket boundary drill failure-snapshot payload extension.
 
+- 2026-02-08 07:00:00Z
+  - Status: `in_progress` -> `done` (T-283)
+  - Actions:
+    - Extended websocket drill summary payload failure metadata in:
+      - `tools/run-ws-boundary-drill.cjs`.
+      - Added `failureSnapshot` with `failedCheckKeys` and per-check `{ exitCode, logTailHint }`.
+      - Kept success-path summary concise (failure snapshot omitted when checks pass).
+    - Added deterministic forced-failure simulation seam:
+      - `BQ_WS_DRILL_FORCE_FAIL_CHECK=<check-key>`.
+    - Updated websocket runbooks/escalation docs with failure-snapshot field references:
+      - `docs/websocket-runtime-class-boundary-parity.md`,
+      - `docs/websocket-cjs-factory-migration-decision.md`,
+      - `docs/client-build-support.md`,
+      - `docs/websocket-boundary-escalation-template.md`.
+  - Evidence:
+    - forced-failure drill simulation emitted failure snapshot metadata in JSON + markdown artifacts.
+    - normal drill run remained passing with concise summary output.
+    - docs read-through completed with failure-snapshot handoff paths aligned.
+  - Next action:
+    - Start `T-284` websocket boundary drill failure taxonomy normalization (optional owner labels per failure class).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6232,7 +6253,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: run drill command with markdown-output flag/env + docs/read-through.
 
 ### T-283: Websocket boundary drill failure-snapshot payload extension
-- Status: `todo`
+- Status: `done`
 - Scope: extend drill summary payload with concise failure snapshot fields (failed check names, exit codes, log-tail hints) for faster escalation handoff.
 - Acceptance criteria: JSON/markdown summary includes compact failure snapshot metadata when checks fail, while success output remains concise.
 - Verification: forced-failure drill simulation + docs/read-through.
