@@ -35,6 +35,10 @@ This project currently ships two client build paths while modernization is in pr
 - Server entrypoint options:
   - Default compatibility path: `bun run start:server` (`server/js/main.js`).
   - Opt-in ESM bridge path: `bun run start:server:esm` (`server/js/main-esm.mjs`).
+  - Optional websocket startup-mode flags for ESM entry:
+    - Bridge parity probe: `BQ_ESM_WS_BRIDGE_PROBE=1 bun run start:server:esm` (emits `server.esm.ws_bridge_probe`).
+    - ESM websocket runtime mode: `BQ_ESM_WS_RUNTIME=1 bun run start:server:esm` (emits `server.esm.ws_runtime_mode`, `status=ok`).
+    - Forced-failure diagnostics: `BQ_ESM_WS_RUNTIME=1 BQ_ESM_WS_RUNTIME_FORCE_FAIL=1 bun run start:server:esm` (emits `server.esm.ws_runtime_mode`, `status=failed`, then exits non-zero).
 - Modern gate: `bun run verify:modern`
   - Runs `check:package-mode-boundaries`, `check:modern-jquery-free` (all `client/js-esm/**/*.js`), `lint`, `format:check`, `test`, and `build:vite`
 - Incremental TypeScript gate: `bun run typecheck`
@@ -76,6 +80,9 @@ This project currently ships two client build paths while modernization is in pr
   - Fatal taxonomy-only: `bun run test:logs:fatal`
   - Optional healthy metrics path: `bun run test:metrics:healthy` (runs `check:metrics:healthy-prereqs` before executing the env-gated smoke)
   - Shared harness: `tests/smoke/server-structured-logs.harness.ts`
+  - ESM websocket runtime mode smoke:
+    - `bun test tests/smoke/server-handshake-esm-ws-runtime.test.ts`
+    - Covers success-mode handshake and forced-failure diagnostics for `BQ_ESM_WS_RUNTIME` flags.
 - Legacy gate: `bun run verify:legacy`
   - Runs `check:package-mode-boundaries`, `check:legacy-optimizer-integrity`, `test`, `build:client`, and `build:vite:legacy`
 

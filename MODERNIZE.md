@@ -4046,6 +4046,23 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-256` websocket ESM startup-mode docs/runbook alignment.
 
+- 2026-02-07 18:25:00Z
+  - Status: `in_progress` -> `done` (T-256)
+  - Actions:
+    - Updated ESM websocket startup-mode documentation:
+      - `README.md`,
+      - `docs/client-build-support.md`.
+    - Documented opt-in mode flags and diagnostics:
+      - `BQ_ESM_WS_BRIDGE_PROBE=1`,
+      - `BQ_ESM_WS_RUNTIME=1`,
+      - `BQ_ESM_WS_RUNTIME_FORCE_FAIL=1`.
+    - Added expected structured-event contracts and command examples for success/failure runtime-mode probes.
+  - Evidence:
+    - Docs/runbook now include executable startup/probe commands and expected event/status outputs.
+    - Existing smoke coverage for runtime-mode contracts remains green (`tests/smoke/server-handshake-esm-ws-runtime.test.ts`).
+  - Next action:
+    - Start `T-257` server startup dependency seam docs alignment for ESM runtime injection.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5585,7 +5602,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: websocket runtime/bridge smoke tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-256: WebSocket ESM startup-mode docs/runbook alignment
-- Status: `todo`
+- Status: `done`
 - Scope: document opt-in ESM websocket runtime controls (`BQ_ESM_WS_RUNTIME`, failure probe toggles) and associated smoke commands for contributor/operator use.
 - Acceptance criteria: README/runbook references include startup-mode flags, expected structured signals, and failure-diagnostic command examples.
 - Verification: docs lint/read-through + targeted smoke command replay.
+
+### T-257: Server startup dependency seam docs alignment (ESM injection path)
+- Status: `todo`
+- Scope: refresh server startup-seam docs/inventory to reflect current ESM websocket runtime injection path and remaining convergence gaps.
+- Acceptance criteria: roadmap/inventory docs accurately describe default CJS path, opt-in ESM websocket path, and next technical blockers for deeper ESM-native startup migration.
+- Verification: docs read-through against current runtime code + smoke command references.
