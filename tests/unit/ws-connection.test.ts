@@ -118,3 +118,19 @@ test('ws connection rejects batched action arrays', () => {
     expect(listened).toBe(false);
     expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.INVALID_PAYLOAD);
 });
+
+test('ws connection closes with unsupported-data code on binary payload', () => {
+    const socket = createSocketMock();
+    const server = { removeConnection() {} };
+    const conn = new WS.wsWebSocketConnection('id-6', socket, server, '127.0.0.1');
+    let listened = false;
+
+    conn.listen(() => {
+        listened = true;
+    });
+
+    socket.emit('message', Buffer.from([1, 2, 3]), true);
+
+    expect(listened).toBe(false);
+    expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.UNSUPPORTED_DATA);
+});

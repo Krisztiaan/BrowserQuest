@@ -123,6 +123,14 @@ class Connection {
             // ignore
         }
     }
+
+    closeInvalidPayload(logError) {
+        this.close(logError, CLOSE_CODES.INVALID_PAYLOAD);
+    }
+
+    closeUnsupportedData(logError) {
+        this.close(logError, CLOSE_CODES.UNSUPPORTED_DATA);
+    }
 }
 
 
@@ -200,19 +208,23 @@ WS.wsWebSocketConnection = class wsWebSocketConnection extends Connection {
         var self = this;
 
         this._connection.on('message', function(data, isBinary) {
-            if(!self.listen_callback || isBinary) {
+            if(!self.listen_callback) {
+                return;
+            }
+            if(isBinary) {
+                self.closeUnsupportedData("Binary websocket frames are not supported.");
                 return;
             }
 
             var text = typeof data === "string" ? data : data.toString("utf8");
             if(useBison) {
-                self.close("BISON is not supported in modern mode.", CLOSE_CODES.UNSUPPORTED_DATA);
+                self.closeUnsupportedData("BISON is not supported in modern mode.");
                 return;
             }
 
             var actions = Protocol.parseProtocolActionBatch(text);
             if(actions.length !== 1) {
-                self.close("Invalid message: expected a single protocol action Array.", CLOSE_CODES.INVALID_PAYLOAD);
+                self.closeInvalidPayload("Invalid message: expected a single protocol action Array.");
                 return;
             }
 

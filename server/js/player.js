@@ -29,22 +29,29 @@ class Player extends Character {
         this.haters = {};
         this.lastCheckpoint = null;
         this.disconnectTimeout = null;
+        var closeInvalidPayload = function(reason) {
+            if(self.connection && typeof self.connection.closeInvalidPayload === "function") {
+                self.connection.closeInvalidPayload(reason);
+            } else {
+                self.connection.close(reason);
+            }
+        };
         
         this.connection.listen(function(message) {
             var action = Number.parseInt(message[0], 10);
             
             log.debug("Received: "+message);
             if(!check(message)) {
-                self.connection.close("Invalid "+Types.getMessageTypeAsString(action)+" message format: "+message);
+                closeInvalidPayload("Invalid "+Types.getMessageTypeAsString(action)+" message format: "+message);
                 return;
             }
             
             if(!self.hasEnteredGame && action !== Types.Messages.HELLO) { // HELLO must be the first message
-                self.connection.close("Invalid handshake message: "+message);
+                closeInvalidPayload("Invalid handshake message: "+message);
                 return;
             }
             if(self.hasEnteredGame && !self.isDead && action === Types.Messages.HELLO) { // HELLO can be sent only once
-                self.connection.close("Cannot initiate handshake twice: "+message);
+                closeInvalidPayload("Cannot initiate handshake twice: "+message);
                 return;
             }
             
@@ -52,7 +59,7 @@ class Player extends Character {
             
             if(action === Types.Messages.HELLO) {
                 if(!Utils.hasMaxUtf8Bytes(message[1], NAME_MAX_UTF8_BYTES)) {
-                    self.connection.close("Name is too long.");
+                    closeInvalidPayload("Name is too long.");
                     return;
                 }
                 var name = Utils.sanitize(message[1]);
@@ -80,7 +87,7 @@ class Player extends Character {
             }
             else if(action === Types.Messages.WHO) {
                 if((message.length - 1) > WHO_MAX_IDS) {
-                    self.connection.close("WHO message is too large.");
+                    closeInvalidPayload("WHO message is too large.");
                     return;
                 }
                 message.shift();
@@ -91,7 +98,7 @@ class Player extends Character {
             }
             else if(action === Types.Messages.CHAT) {
                 if(!Utils.hasMaxUtf8Bytes(message[1], CHAT_MAX_UTF8_BYTES)) {
-                    self.connection.close("Chat message is too long.");
+                    closeInvalidPayload("Chat message is too long.");
                     return;
                 }
                 var msg = Utils.sanitize(message[1]);

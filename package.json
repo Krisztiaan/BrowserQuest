@@ -22,7 +22,7 @@
     "check:runtime": "node tools/check-runtime.cjs",
     "check:deps:drift": "npm outdated --depth=0",
     "check:deps:drift:node22": "bash tools/node22-run.sh bun run check:deps:drift",
-    "typecheck": "npx tsc -p tsconfig.typecheck.json",
+    "typecheck": "npx tsc -p tsconfig.typecheck.json && npx tsc -p tsconfig.typecheck-runtime.json",
     "typecheck:node22": "bash tools/node22-run.sh bun run typecheck",
     "check:class-fanout": "node tools/check-classjs-fanout.cjs",
     "check:package-mode-boundaries": "node tools/check-package-mode-boundaries.cjs",

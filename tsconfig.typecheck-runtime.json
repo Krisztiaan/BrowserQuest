@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.typecheck.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": [
+    "shared/js/gametypes.js",
+    "shared/js/protocol-contract.js",
+    "server/js/log.js",
+    "server/js/format.js",
+    "server/js/utils.js",
+    "server/js/config-preflight.js",
+    "server/js/ws.js"
+  ]
+}

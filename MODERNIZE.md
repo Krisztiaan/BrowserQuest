@@ -3486,6 +3486,43 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-222` websocket transport modernization wave 2.
 
+- 2026-02-07 08:55:00Z
+  - Status: `in_progress` -> `done` (T-222)
+  - Actions:
+    - Hardened websocket transport close semantics:
+      - `server/js/ws.js` now rejects binary frames with explicit unsupported-data close code (`1003`).
+      - introduced `Connection.closeInvalidPayload(...)` and `Connection.closeUnsupportedData(...)` helpers for consistent close-code usage.
+    - Aligned protocol-invalid player-path closes to explicit invalid-payload semantics:
+      - `server/js/player.js` now routes handshake/format/payload-size protocol violations through `closeInvalidPayload(...)` (`1007`).
+    - Expanded websocket and payload-guard coverage:
+      - `tests/unit/ws-connection.test.ts` now asserts binary-frame rejection close code.
+      - `tests/smoke/server-payload-guards.test.ts` now asserts invalid payload close code (`1007`) for oversized `HELLO` and malformed `MOVE`.
+  - Evidence:
+    - `bun run test` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `bun run typecheck`, `bun run lint`, and `bun run format:check` passed.
+  - Next action:
+    - Start `T-223` TypeScript expansion wave 3.
+
+- 2026-02-07 08:55:00Z
+  - Status: `in_progress` -> `done` (T-223)
+  - Actions:
+    - Added runtime-adjacent CheckJs config:
+      - `tsconfig.typecheck-runtime.json` targeting selected `shared/js` and `server/js` modules.
+    - Expanded `typecheck` gate:
+      - `bun run typecheck` now executes `tsconfig.typecheck.json` and `tsconfig.typecheck-runtime.json`.
+    - Added explicit defer artifact for high-churn gameplay modules:
+      - `docs/typescript-runtime-checkjs-defer-list.md`.
+    - Updated docs to reflect expanded TypeScript scope:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run typecheck` passed with runtime CheckJs scope enabled.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-224` post-wave queue refresh after websocket+TS wave-3 completion.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4821,13 +4858,31 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
 
 ### T-222: WebSocket transport modernization wave 2 (priority P1)
-- Status: `todo`
+- Status: `done`
 - Scope: continue websocket modernization toward explicit typed payload handling, close/error semantics, and module-boundary cleanup without protocol behavior regressions.
 - Acceptance criteria: websocket runtime and protocol-invariant suites remain stable with improved transport boundary clarity.
 - Verification: `bun run test` + `bun run test:browser:protocol:node22`.
 
 ### T-223: TypeScript expansion wave 3 (priority P1)
-- Status: `todo`
+- Status: `done`
 - Scope: extend TS checks beyond tests/tools into selected runtime-adjacent shared/server modules with tracked defers for high-churn legacy surfaces.
 - Acceptance criteria: expanded TS coverage lands with explicit defer list and no regression in existing verify gates.
 - Verification: `bun run typecheck` + `bun run verify:modern:node22`.
+
+### T-224: Post-wave queue refresh (websocket+TS wave 3)
+- Status: `todo`
+- Scope: refresh modernization queue after T-222/T-223 to prioritize the next highest-leverage runtime migration slices.
+- Acceptance criteria: successor queue is ordered, scoped, and mapped to existing verification gates.
+- Verification: `MODERNIZE.md` includes executable successor tickets after T-223.
+
+### T-225: WebSocket ESM mirror extraction (priority P0)
+- Status: `todo`
+- Scope: introduce `server/js/ws-esm.mjs` mirror with parity tests while preserving CJS runtime entry compatibility.
+- Acceptance criteria: websocket ESM mirror behavior matches CJS transport semantics for handshake/error/close paths.
+- Verification: `bun run test` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22`.
+
+### T-226: Runtime CheckJs wave 4 (selected gameplay pilot)
+- Status: `todo`
+- Scope: expand `tsconfig.typecheck-runtime.json` into one deferred gameplay module pilot (`player` or `entity`) with targeted property-shape cleanup.
+- Acceptance criteria: at least one deferred gameplay module is promoted from defer list into active CheckJs scope without gate regressions.
+- Verification: `bun run typecheck` + `bun run verify:legacy:node22`.

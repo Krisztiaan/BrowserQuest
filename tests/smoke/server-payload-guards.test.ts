@@ -4,6 +4,7 @@ import WebSocket from 'ws';
 import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
+const CLOSE_INVALID_PAYLOAD = 1007;
 
 async function getFreePort() {
     return await new Promise<number>((resolve, reject) => {
@@ -81,16 +82,16 @@ async function waitForAnyJsonMessage(ws: WebSocket, timeoutMs = 3000) {
 }
 
 async function waitForClose(ws: WebSocket, timeoutMs = 3000) {
-    return await new Promise<void>((resolve, reject) => {
+    return await new Promise<{ code: number; reason: Buffer }>((resolve, reject) => {
         if (ws.readyState === WebSocket.CLOSED) {
-            resolve();
+            resolve({ code: WebSocket.CLOSED, reason: Buffer.alloc(0) });
             return;
         }
 
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for close')), timeoutMs);
-        ws.once('close', () => {
+        ws.once('close', (code, reason) => {
             clearTimeout(timeout);
-            resolve();
+            resolve({ code, reason });
         });
         ws.once('error', () => {
             // close is expected shortly after protocol rejection
@@ -158,8 +159,9 @@ test('rejects HELLO payload with oversized UTF-8 name', async () => {
     const oversizedName = '🚀'.repeat(40); // 160 bytes in UTF-8
     ws.send(JSON.stringify([MSG_HELLO, oversizedName, ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
 
-    await waitForClose(ws);
+    const closed = await waitForClose(ws);
     expect(ws.readyState).toBe(WebSocket.CLOSED);
+    expect(closed.code).toBe(CLOSE_INVALID_PAYLOAD);
 });
 
 test('rejects MOVE payload containing non-integer coordinates', async () => {
@@ -173,6 +175,7 @@ test('rejects MOVE payload containing non-integer coordinates', async () => {
 
     ws.send(JSON.stringify([MSG_MOVE, 10.5, 7]));
 
-    await waitForClose(ws);
+    const closed = await waitForClose(ws);
     expect(ws.readyState).toBe(WebSocket.CLOSED);
+    expect(closed.code).toBe(CLOSE_INVALID_PAYLOAD);
 });

@@ -41,7 +41,7 @@ Build profiles (modern vs legacy):
 
 Verification gates:
 - `bun run verify:modern` runs lint + format check + tests + modern Vite build.
-- `bun run typecheck` runs incremental TypeScript checks for selected tests/tooling surface (`tsconfig.typecheck.json`).
+- `bun run typecheck` runs incremental TypeScript checks for selected tests/tooling plus runtime-adjacent JS modules (`tsconfig.typecheck.json` + `tsconfig.typecheck-runtime.json`).
 - `bun run check:deps:drift` reports direct dependency drift (`npm outdated --depth=0`).
   - Node22 policy variant: `bun run check:deps:drift:node22`.
 - `bun run check:class-fanout` guards accidental new `server/js/lib/class.js` dependencies during native-class migration.
@@ -77,6 +77,7 @@ Modernization snapshot
 - Modern ESM jQuery surface audit: `docs/modern-jquery-surface-audit.md`
 - Server logging taxonomy: `docs/server-logging-taxonomy.md`
 - Server CJS->ESM readiness inventory: `docs/server-cjs-esm-readiness-inventory.md`
+- TypeScript runtime CheckJs defer list: `docs/typescript-runtime-checkjs-defer-list.md`
 - Server `lib/class.js` fanout map: `docs/server-classjs-fanout-map.md`
 - Server core class-migration plan: `docs/server-core-class-migration-plan.md`
 - Package-mode migration checklist: `docs/package-mode-migration-checklist.md`
