@@ -3125,6 +3125,45 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-194` downstream `client-build/` consumer inventory.
 
+- 2026-02-07 06:19:11Z
+  - Status: `in_progress` -> `done` (T-194)
+  - Actions:
+    - Added downstream consumer inventory artifact:
+      - `docs/legacy-artifact-consumer-inventory.md`
+    - Mapped in-repo `client-build/`, `build:client`, `verify:legacy`, and `/client/index.html` consumers with blocker level and migration path.
+    - Recorded external consumer status as unknown-from-repo and explicitly requiring maintainer confirmation.
+    - Linked inventory from `README.md` and `docs/legacy-retirement-checklist.md`.
+  - Evidence:
+    - Inventory artifact checked in with owner/dependency/migration matrix.
+  - Next action:
+    - Start `T-195` legacy gate demotion rehearsal plan.
+
+- 2026-02-07 06:23:54Z
+  - Status: `in_progress` -> `done` (T-195)
+  - Actions:
+    - Added demotion rehearsal plan artifact:
+      - `docs/legacy-gate-demotion-rehearsal-plan.md`
+    - Documented preconditions, staged rollout, CI impact, command matrix, and rollback triggers/actions.
+    - Linked rehearsal plan from `README.md`.
+  - Evidence:
+    - Rehearsal artifact checked in with reversible branch-protection guidance.
+  - Next action:
+    - Start `T-196` post-containment queue refresh.
+
+- 2026-02-07 06:23:54Z
+  - Status: `in_progress` -> `done` (T-196)
+  - Actions:
+    - Refreshed queue after T-193/T-194/T-195 outcomes:
+      - `T-197` branch-protection change runbook and dry-run checklist.
+      - `T-198` advisory legacy gate telemetry/evidence template.
+      - `T-199` legacy retirement cutover PR checklist.
+      - `T-200` post-demotion queue refresh.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now includes execution-ready post-T195 successor queue.
+  - Next action:
+    - Start `T-197` branch-protection change runbook.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4292,19 +4331,43 @@ Only after Phase 2, introduce TS gradually:
 - Verification: new guard command + `verify:legacy:node22`.
 
 ### T-194: Legacy artifact consumer inventory
-- Status: `todo`
+- Status: `done`
 - Scope: identify all downstream consumers (if any) of `client-build/` artifacts and classify retirement blockers.
 - Acceptance criteria: inventory artifact exists with owner, dependency type, and migration path/risk per consumer.
 - Verification: inventory artifact is checked in and linked from modernization docs.
 
 ### T-195: Legacy gate demotion rehearsal plan
-- Status: `todo`
+- Status: `done`
 - Scope: design a reversible plan to demote legacy gate from required to advisory once T-194 blockers are cleared.
 - Acceptance criteria: demotion criteria, rollback trigger, and CI workflow impact are explicitly documented.
 - Verification: rehearsal plan artifact checked in with runnable command matrix.
 
 ### T-196: Post-containment queue refresh
-- Status: `todo`
+- Status: `done`
 - Scope: refresh queue after T-193/T-194/T-195 outcomes to schedule concrete implementation PR slices.
 - Acceptance criteria: successor queue is ordered, scoped, and evidence-driven.
 - Verification: `MODERNIZE.md` includes post-T195 successor queue with executable checks.
+
+### T-197: Branch-protection demotion runbook
+- Status: `todo`
+- Scope: define exact branch-protection changes and dry-run checklist for demoting `verify-legacy` to advisory status.
+- Acceptance criteria: runbook includes pre-change checks, change steps, verification, and rollback.
+- Verification: runbook artifact checked in and linked from modernization docs.
+
+### T-198: Advisory legacy gate evidence template
+- Status: `todo`
+- Scope: define standard evidence capture format for advisory `verify-legacy` failures during rehearsal window.
+- Acceptance criteria: template includes incident fields, reproduction commands, and risk classification.
+- Verification: template artifact checked in and referenced by demotion runbook.
+
+### T-199: Legacy retirement cutover PR checklist
+- Status: `todo`
+- Scope: prepare concrete PR checklist for eventual removal of `build:client` and required legacy gate enforcement.
+- Acceptance criteria: checklist includes code, docs, CI, and rollback-tag requirements.
+- Verification: checklist artifact checked in and linked from legacy retirement docs.
+
+### T-200: Post-demotion queue refresh
+- Status: `todo`
+- Scope: refresh queue after T-197/T-198/T-199 outcomes for execution-phase retirement slices.
+- Acceptance criteria: successor queue is ordered, scoped, and verification-backed.
+- Verification: `MODERNIZE.md` includes post-T199 successor queue with executable checks.

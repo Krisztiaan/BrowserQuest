@@ -81,6 +81,8 @@ Modernization snapshot
 - Runtime CJS boundary inventory: `docs/runtime-cjs-boundary-inventory.md`
 - Legacy optimizer containment assessment: `docs/legacy-optimizer-containment-assessment.md`
 - Legacy optimizer provenance + integrity baseline: `docs/legacy-optimizer-provenance.md`
+- Legacy artifact consumer inventory: `docs/legacy-artifact-consumer-inventory.md`
+- Legacy gate demotion rehearsal plan: `docs/legacy-gate-demotion-rehearsal-plan.md`
 - Package-mode trial runbook: `docs/package-mode-trial-runbook.md`
 - Legacy/package-mode compatibility matrix: `docs/legacy-package-mode-compat-matrix.md`
 - Package-mode trial decision log: `docs/package-mode-trial-decision.md`

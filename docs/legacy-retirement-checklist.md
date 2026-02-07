@@ -21,6 +21,7 @@ Retire the legacy AMD/RequireJS runtime (`client/index.html` + `build:client`) w
 4. Migration communication
 - Internal release notes include retirement date and rollback trigger conditions.
 - Any downstream consumers of `client-build/` artifacts are identified and migrated.
+  - Inventory source: `docs/legacy-artifact-consumer-inventory.md`
 
 ## Cutover steps
 
