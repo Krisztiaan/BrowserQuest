@@ -93,13 +93,18 @@ test('main runtime fatal reporter maps known and unknown fatal events', () => {
 
 test('main runtime fatal handler installer binds process events to reporter', () => {
     const handlers: Record<string, (value: unknown) => void> = {};
+    const removed: string[] = [];
     const calls: Array<{ label: string; value: unknown }> = [];
     const processObject = {
         on(eventName: string, handler: (value: unknown) => void) {
             handlers[eventName] = handler;
         },
+        off(eventName: string) {
+            removed.push(eventName);
+            delete handlers[eventName];
+        },
     };
-    MainRuntime.installFatalHandlers(processObject, (label: string, value: unknown) => {
+    const cleanup = MainRuntime.installFatalHandlers(processObject, (label: string, value: unknown) => {
         calls.push({ label, value });
     });
 
@@ -110,6 +115,11 @@ test('main runtime fatal handler installer binds process events to reporter', ()
         { label: 'uncaughtException', value: 'u' },
         { label: 'unhandledRejection', value: 'r' },
     ]);
+
+    cleanup();
+    expect(removed).toEqual(['uncaughtException', 'unhandledRejection']);
+    expect(handlers.uncaughtException).toBeUndefined();
+    expect(handlers.unhandledRejection).toBeUndefined();
 });
 
 test('main runtime fatal test trigger emits expected synthetic fatal labels', () => {
@@ -136,4 +146,25 @@ test('main runtime fatal test trigger emits expected synthetic fatal labels', ()
         { label: 'unhandledRejection', message: 'bq-fatal-test-unhandled-rejection' },
         { label: 'uncaughtException', message: 'bq-fatal-test-uncaught-exception' },
     ]);
+});
+
+test('main runtime population cleanup delegates to provided clearInterval seam', () => {
+    const cleared: unknown[] = [];
+    const cleanup = MainRuntime.createPopulationCheckCleanup({ token: 'timer' }, (timerHandle: unknown) => {
+        cleared.push(timerHandle);
+    });
+
+    cleanup();
+
+    expect(cleared).toEqual([{ token: 'timer' }]);
+});
+
+test('main runtime cleanup combiner runs handlers once', () => {
+    const calls: string[] = [];
+    const cleanup = MainRuntime.createRuntimeCleanup([() => calls.push('first'), () => calls.push('second')]);
+
+    cleanup();
+    cleanup();
+
+    expect(calls).toEqual(['first', 'second']);
 });

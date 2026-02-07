@@ -3916,6 +3916,47 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-249` server runtime lifecycle cleanup seam extraction (timer teardown + hook cleanup contract).
 
+- 2026-02-07 15:35:00Z
+  - Status: `in_progress` -> `done` (T-249)
+  - Actions:
+    - Added explicit lifecycle cleanup seams in `server/js/main-runtime.js`:
+      - `createPopulationCheckCleanup(timerHandle, clearIntervalFn)`,
+      - `createRuntimeCleanup(teardownHandlers)`.
+    - Updated `installFatalHandlers(...)` to return removable-hook teardown callbacks.
+    - Extended runtime dependency seam for cleanup support:
+      - added `clearIntervalFn` injection.
+    - Updated `main(config, options)` to:
+      - build cleanup contracts for timer + fatal hooks,
+      - expose lifecycle via return value `{ cleanup }`,
+      - support optional `onLifecycle({ cleanup })` callback in runtime options.
+    - Exposed cleanup helpers in `server/js/main.js` and `server/js/main-runtime-esm.mjs`.
+    - Added focused lifecycle/process unit coverage:
+      - `tests/unit/server-main-runtime-lifecycle.test.ts`,
+      - expanded `tests/unit/server-main-runtime-process.test.ts`.
+    - Updated startup parity tests for newly exported lifecycle helpers.
+  - Evidence:
+    - Focused lifecycle/process/startup tests passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-250` server runtime logging seam cleanup in tests (suppress startup side-effect logs in seam unit coverage).
+
+- 2026-02-07 15:55:00Z
+  - Status: `in_progress` -> `done` (T-250)
+  - Actions:
+    - Added explicit startup logger seam support in runtime dependency contract:
+      - `logger` injection in `createRuntimeDependencies(...)`.
+    - Routed startup logging paths in `main(config, options)` through injected logger seam while preserving default production logger behavior.
+    - Updated seam lifecycle unit test to use injected no-op logger and keep startup seam tests quiet.
+  - Evidence:
+    - Focused seam/startup tests passed without startup log noise in seam unit coverage.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-251` server runtime metrics seam extraction (population/update hooks).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5413,7 +5454,19 @@ Only after Phase 2, introduce TS gradually:
 - Verification: focused startup/runtime unit + fatal/log smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-249: Server runtime lifecycle cleanup seam extraction (timer/hook teardown)
-- Status: `todo`
+- Status: `done`
 - Scope: introduce explicit runtime lifecycle cleanup seams (population timer teardown and process fatal-hook teardown contracts) to make startup runtime deterministic for tests/future ESM-native server lifecycle management.
 - Acceptance criteria: cleanup contracts exist and can be invoked without changing live runtime behavior defaults.
 - Verification: focused startup/runtime unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-250: Server runtime seam-test log hygiene
+- Status: `done`
+- Scope: remove noisy startup log side effects from seam-focused unit tests by introducing explicit logger seam injection for startup path tests.
+- Acceptance criteria: seam unit tests remain deterministic and quiet without altering production log behavior.
+- Verification: focused unit suite + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-251: Server runtime metrics seam extraction (population/update hooks)
+- Status: `todo`
+- Scope: extract metrics population/update callback wiring from `main-runtime` into explicit seam helpers so metrics behavior can be tested/migrated independently of connection bootstrap.
+- Acceptance criteria: metrics hook wiring is isolated behind explicit helpers with unchanged runtime behavior.
+- Verification: focused runtime unit tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

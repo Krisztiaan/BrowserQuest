@@ -11,9 +11,11 @@ function createRuntimeDependencies(overrides) {
         WorldServer: injected.WorldServer || require("./worldserver"),
         Player: injected.Player || require("./player"),
         metricsRuntime: injected.metricsRuntime || MetricsRuntime,
+        logger: injected.logger || log,
         processObject: injected.processObject || process,
         setIntervalFn: injected.setIntervalFn || setInterval,
-        setTimeoutFn: injected.setTimeoutFn || setTimeout
+        setTimeoutFn: injected.setTimeoutFn || setTimeout,
+        clearIntervalFn: injected.clearIntervalFn || clearInterval
     };
 }
 
@@ -38,6 +40,12 @@ function createPopulationCheckTimer(metrics, getWorlds, setIntervalFn) {
             });
         }
     }, 1000);
+}
+
+function createPopulationCheckCleanup(timerHandle, clearIntervalFn) {
+    return function() {
+        clearIntervalFn(timerHandle);
+    };
 }
 
 function createServerAndMetrics(config, emitServerEvent, dependencies) {
@@ -89,13 +97,25 @@ function createFatalReporter(emitServerEvent, logger) {
 }
 
 function installFatalHandlers(processObject, reportFatal) {
-    processObject.on('uncaughtException', function (e) {
+    var uncaughtHandler = function (e) {
         reportFatal('uncaughtException', e);
-    });
-
-    processObject.on('unhandledRejection', function (reason) {
+    };
+    var rejectionHandler = function (reason) {
         reportFatal('unhandledRejection', reason);
-    });
+    };
+
+    processObject.on('uncaughtException', uncaughtHandler);
+    processObject.on('unhandledRejection', rejectionHandler);
+
+    return function() {
+        if(typeof processObject.off === "function") {
+            processObject.off('uncaughtException', uncaughtHandler);
+            processObject.off('unhandledRejection', rejectionHandler);
+        } else if(typeof processObject.removeListener === "function") {
+            processObject.removeListener('uncaughtException', uncaughtHandler);
+            processObject.removeListener('unhandledRejection', rejectionHandler);
+        }
+    };
 }
 
 function triggerFatalTestEvent(env, setTimeoutFn, reportFatal) {
@@ -112,17 +132,35 @@ function triggerFatalTestEvent(env, setTimeoutFn, reportFatal) {
     }
 }
 
+function createRuntimeCleanup(teardownHandlers) {
+    var handlers = Array.isArray(teardownHandlers) ? teardownHandlers : [];
+    var cleanedUp = false;
+
+    return function() {
+        if(cleanedUp) {
+            return;
+        }
+        cleanedUp = true;
+        handlers.forEach(function(handler) {
+            if(typeof handler === "function") {
+                handler();
+            }
+        });
+    };
+}
+
 function main(config, options) {
     var runtimeOptions = options || {};
-    var emitServerEvent = createServerEventEmitter(log),
-        validationResult = ConfigPreflight.validateConfig(config),
-        dependencies = createRuntimeDependencies(runtimeOptions.dependencies);
+    var validationResult = ConfigPreflight.validateConfig(config),
+        dependencies = createRuntimeDependencies(runtimeOptions.dependencies),
+        logger = dependencies.logger,
+        emitServerEvent = createServerEventEmitter(logger);
 
     if(!validationResult.isValid) {
         emitServerEvent("error", "server.config.invalid", {
             errors: validationResult.errors
         });
-        log.error("Invalid server configuration: " + JSON.stringify(validationResult.errors));
+        logger.error("Invalid server configuration: " + JSON.stringify(validationResult.errors));
         dependencies.processObject.exit(1);
         return;
     }
@@ -134,9 +172,10 @@ function main(config, options) {
         metrics = runtime.metrics,
         worlds = [];
 
-    createPopulationCheckTimer(metrics, function() {
+    var populationCheckTimer = createPopulationCheckTimer(metrics, function() {
         return worlds;
     }, dependencies.setIntervalFn);
+    var cleanupPopulationCheckTimer = createPopulationCheckCleanup(populationCheckTimer, dependencies.clearIntervalFn);
     
     switch(config.debug_level) {
         case "error":
@@ -149,7 +188,7 @@ function main(config, options) {
             Log.setLevel(Log.INFO); break;
     };
     
-    log.info("Starting BrowserQuest game server...");
+    logger.info("Starting BrowserQuest game server...");
     emitServerEvent("info", "server.start", {
         port: config.port,
         worlds: config.nb_worlds,
@@ -196,7 +235,7 @@ function main(config, options) {
     });
 
     server.onError(function() {
-        log.error(Array.prototype.join.call(arguments, ", "));
+        logger.error(Array.prototype.join.call(arguments, ", "));
         emitServerEvent("error", "server.error", {
             message: Array.prototype.join.call(arguments, ", ")
         });
@@ -223,9 +262,21 @@ function main(config, options) {
         });
     }
 
-    var reportFatal = createFatalReporter(emitServerEvent, log);
-    installFatalHandlers(dependencies.processObject, reportFatal);
+    var reportFatal = createFatalReporter(emitServerEvent, logger);
+    var cleanupFatalHandlers = installFatalHandlers(dependencies.processObject, reportFatal);
+    var cleanupRuntime = createRuntimeCleanup([cleanupPopulationCheckTimer, cleanupFatalHandlers]);
+
     triggerFatalTestEvent(dependencies.processObject.env, dependencies.setTimeoutFn, reportFatal);
+
+    if(typeof runtimeOptions.onLifecycle === "function") {
+        runtimeOptions.onLifecycle({
+            cleanup: cleanupRuntime
+        });
+    }
+
+    return {
+        cleanup: cleanupRuntime
+    };
 }
 
 function getWorldDistribution(worlds) {
@@ -242,7 +293,9 @@ module.exports = {
     createWorlds: createWorlds,
     createServerEventEmitter: createServerEventEmitter,
     createPopulationCheckTimer: createPopulationCheckTimer,
+    createPopulationCheckCleanup: createPopulationCheckCleanup,
     createFatalReporter: createFatalReporter,
     installFatalHandlers: installFatalHandlers,
-    triggerFatalTestEvent: triggerFatalTestEvent
+    triggerFatalTestEvent: triggerFatalTestEvent,
+    createRuntimeCleanup: createRuntimeCleanup
 };
