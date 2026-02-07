@@ -1,10 +1,9 @@
 import Storage from 'storage';
-import Class from 'compat/class';
 import log from 'compat/log';
 import { TRANSITIONEND } from 'compat/util';
 
-var App = Class.extend({
-    init: function() {
+class App {
+    constructor() {
         this.currentPage = 1;
         this.blinkInterval = null;
         this.isParchmentReady = true;
@@ -41,30 +40,30 @@ var App = Class.extend({
         if(localStorage && localStorage.data) {
             this.frontPage = 'loadcharacter';
         }
-    },
+    }
     
-    setGame: function(game) {
+    setGame(game) {
         this.game = game;
         this.isMobile = this.game.renderer.mobile;
         this.isTablet = this.game.renderer.tablet;
         this.isDesktop = !(this.isMobile || this.isTablet);
         this.supportsWorkers = !!window.Worker;
         this.ready = true;
-    },
+    }
 
-    center: function() {
+    center() {
         window.scrollTo(0, 1);
-    },
+    }
     
-    canStartGame: function() {
+    canStartGame() {
         if(this.isDesktop) {
             return (this.game && this.game.map && this.game.map.isLoaded);
         } else {
             return this.game;
         }
-    },
+    }
     
-    tryStartingGame: function(username, starting_callback) {
+    tryStartingGame(username, starting_callback) {
         var self = this,
             playButton = this.playButtonEl || document.querySelector('#createcharacter .play');
         
@@ -94,9 +93,9 @@ var App = Class.extend({
         } else {
             this.startGame(username, starting_callback);
         }
-    },
+    }
     
-    startGame: function(username, starting_callback) {
+    startGame(username, starting_callback) {
         var self = this;
         
         if(starting_callback) {
@@ -110,9 +109,9 @@ var App = Class.extend({
             }
             self.start(username);
         });
-    },
+    }
 
-    start: function(username) {
+    start(username) {
         var self = this,
             firstTimePlaying = !self.storage.hasAlreadyPlayed();
         
@@ -148,9 +147,9 @@ var App = Class.extend({
                 }
             });
         }
-    },
+    }
 
-    setMouseCoordinates: function(event) {
+    setMouseCoordinates(event) {
         var container = this.containerEl || document.getElementById('container');
         if(!container) {
             return;
@@ -175,9 +174,9 @@ var App = Class.extend({
         } else if(mouse.y >= height) {
             mouse.y = height - 1;
         }
-    },
+    }
 
-    initHealthBar: function() {
+    initHealthBar() {
         var scale = this.game.renderer.getScaleFactor(),
             healthbar = this.healthbarEl || document.getElementById('healthbar'),
             hitpoints = this.hitpointsEl || document.getElementById('hitpoints'),
@@ -191,9 +190,9 @@ var App = Class.extend({
         });
 
         this.game.onPlayerHurt(this.blinkHealthBar.bind(this));
-    },
+    }
 
-    blinkHealthBar: function() {
+    blinkHealthBar() {
         var hitpoints = this.hitpointsEl || document.getElementById('hitpoints');
         if(!hitpoints) {
             return;
@@ -203,9 +202,9 @@ var App = Class.extend({
         setTimeout(function() {
             hitpoints.classList.remove('white');
         }, 500)
-    },
+    }
 
-    toggleButton: function() {
+    toggleButton() {
         var nameInput = this.parchmentNameInputEl || document.querySelector('#parchment input'),
             playButton = this.playButtonEl || document.querySelector('#createcharacter .play'),
             character = this.characterEl || document.getElementById('character'),
@@ -226,18 +225,18 @@ var App = Class.extend({
                 character.classList.add('disabled');
             }
         }
-    },
+    }
 
-    hideIntro: function(hidden_callback) {
+    hideIntro(hidden_callback) {
         clearInterval(this.watchNameInputInterval);
         document.body.classList.remove('intro');
         setTimeout(function() {
             document.body.classList.add('game');
             hidden_callback();
         }, 1000);
-    },
+    }
 
-    showChat: function() {
+    showChat() {
         var chatbox = this.chatboxEl || document.getElementById('chatbox'),
             chatinput = this.chatinputEl || document.getElementById('chatinput'),
             chatbutton = this.chatbuttonEl || document.getElementById('chatbutton');
@@ -253,9 +252,9 @@ var App = Class.extend({
                 chatbutton.classList.add('active');
             }
         }
-    },
+    }
 
-    hideChat: function() {
+    hideChat() {
         var chatbox = this.chatboxEl || document.getElementById('chatbox'),
             chatinput = this.chatinputEl || document.getElementById('chatinput'),
             chatbutton = this.chatbuttonEl || document.getElementById('chatbutton');
@@ -271,9 +270,9 @@ var App = Class.extend({
                 chatbutton.classList.remove('active');
             }
         }
-    },
+    }
 
-    toggleInstructions: function() {
+    toggleInstructions() {
         var achievements = this.achievementsEl || document.getElementById('achievements'),
             achievementsButton = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
             instructions = this.instructionsEl || document.getElementById('instructions');
@@ -287,9 +286,9 @@ var App = Class.extend({
         if(instructions) {
             instructions.classList.toggle('active');
         }
-    },
+    }
 
-    toggleAchievements: function() {
+    toggleAchievements() {
         var instructions = this.instructionsEl || document.getElementById('instructions'),
             helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
             achievements = this.achievementsEl || document.getElementById('achievements');
@@ -304,9 +303,9 @@ var App = Class.extend({
         if(achievements) {
             achievements.classList.toggle('active');
         }
-    },
+    }
 
-    resetPage: function() {
+    resetPage() {
         var self = this,
             achievements = this.achievementsEl || document.getElementById('achievements');
 
@@ -319,9 +318,9 @@ var App = Class.extend({
             };
             achievements.addEventListener(TRANSITIONEND, onTransitionEnd);
         }
-    },
+    }
 
-    initEquipmentIcons: function() {
+    initEquipmentIcons() {
         var scale = this.game.renderer.getScaleFactor();
         var getIconPath = function(spriteName) {
                 return 'img/'+ scale +'/item-' + spriteName + '.png';
@@ -339,9 +338,9 @@ var App = Class.extend({
                 this.armorEl.style.backgroundImage = 'url("' + armorPath + '")';
             }
         }
-    },
+    }
 
-    hideWindows: function() {
+    hideWindows() {
         var achievements = this.achievementsEl || document.getElementById('achievements'),
             achievementsButton = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
             instructions = this.instructionsEl || document.getElementById('instructions'),
@@ -369,9 +368,9 @@ var App = Class.extend({
         if(body && body.classList.contains('about')) {
             this.closeInGameScroll('about');
         }
-    },
+    }
 
-    showAchievementNotification: function(id, name) {
+    showAchievementNotification(id, name) {
         var notif = this.achievementNotificationEl || document.getElementById('achievement-notification'),
             button = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
             nameEl = notif ? notif.querySelector('.name') : null;
@@ -397,9 +396,9 @@ var App = Class.extend({
                 button.classList.remove('blink');
             }
         }, 5000);
-    },
+    }
 
-    displayUnlockedAchievement: function(id) {
+    displayUnlockedAchievement(id) {
         var achievementEl = document.querySelector('#achievements li.achievement' + id);
 
         var achievement = this.game.getAchievementById(id);
@@ -416,9 +415,9 @@ var App = Class.extend({
         if(achievementEl) {
             achievementEl.classList.add('unlocked');
         }
-    },
+    }
 
-    unlockAchievement: function(id, name) {
+    unlockAchievement(id, name) {
         this.showAchievementNotification(id, name);
         this.displayUnlockedAchievement(id);
 
@@ -427,9 +426,9 @@ var App = Class.extend({
         if(unlockedAchievements) {
             unlockedAchievements.textContent = String(nb + 1);
         }
-    },
+    }
 
-    initAchievementList: function(achievements) {
+    initAchievementList(achievements) {
         var self = this,
             lists = document.getElementById('lists'),
             pageTemplate = document.getElementById('page-tmpl'),
@@ -482,9 +481,9 @@ var App = Class.extend({
         if(this.totalAchievementsEl) {
             this.totalAchievementsEl.textContent = String(document.querySelectorAll('#achievements li').length);
         }
-    },
+    }
 
-    initUnlockedAchievements: function(ids) {
+    initUnlockedAchievements(ids) {
         var self = this;
         
         ids.forEach(function(id) {
@@ -494,9 +493,9 @@ var App = Class.extend({
         if(unlockedAchievements) {
             unlockedAchievements.textContent = String(ids.length);
         }
-    },
+    }
 
-    setAchievementData: function(el, name, desc) {
+    setAchievementData(el, name, desc) {
         if(!el) {
             return;
         }
@@ -508,9 +507,9 @@ var App = Class.extend({
         if(descriptionEl) {
             descriptionEl.innerHTML = desc;
         }
-    },
+    }
 
-    toggleScrollContent: function(content) {
+    toggleScrollContent(content) {
         var parchment = this.parchmentEl || document.getElementById('parchment'),
             body = this.bodyEl || document.body,
             helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
@@ -545,9 +544,9 @@ var App = Class.extend({
                 }
             }
         }
-    },
+    }
 
-    closeInGameScroll: function(content) {
+    closeInGameScroll(content) {
         var body = this.bodyEl || document.body,
             parchment = this.parchmentEl || document.getElementById('parchment'),
             helpButton = this.helpButtonEl || document.getElementById('helpbutton');
@@ -568,16 +567,16 @@ var App = Class.extend({
                 helpButton.classList.remove('active');
             }
         }
-    },
+    }
     
-    togglePopulationInfo: function() {
+    togglePopulationInfo() {
         var population = this.populationEl || document.getElementById('population');
         if(population) {
             population.classList.toggle('visible');
         }
-    },
+    }
 
-    openPopup: function(type, url) {
+    openPopup(type, url) {
         var h = window.innerHeight,
             w = window.innerWidth,
             popupHeight,
@@ -603,9 +602,9 @@ var App = Class.extend({
         if(window.focus && newwindow) {
             newwindow.focus();
         }
-    },
+    }
 
-    animateParchment: function(origin, destination) {
+    animateParchment(origin, destination) {
         var self = this,
             parchment = this.parchmentEl || document.getElementById('parchment'),
             duration = 1;
@@ -637,16 +636,16 @@ var App = Class.extend({
                 }, duration * 1000);
             }
         }
-    },
+    }
 
-    animateMessages: function() {
+    animateMessages() {
         var messages = this.notificationWrapperEl || document.querySelector('#notifications div');
         if(messages) {
             messages.classList.add('top');
         }
-    },
+    }
 
-    resetMessagesPosition: function() {
+    resetMessagesPosition() {
         var wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
             message1 = this.message1El || document.getElementById('message1'),
             message2 = this.message2El || document.getElementById('message2'),
@@ -661,9 +660,9 @@ var App = Class.extend({
         if(message1) {
             message1.textContent = message || '';
         }
-    },
+    }
 
-    showMessage: function(message) {
+    showMessage(message) {
         var wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
             messageEl = this.message2El || document.getElementById('message2');
 
@@ -680,13 +679,13 @@ var App = Class.extend({
                     wrapper.classList.add('top');
                 }
         }, 5000);
-    },
+    }
 
-    resetMessageTimer: function() {
+    resetMessageTimer() {
         clearTimeout(this.messageTimer);
-    },
+    }
     
-    resizeUi: function() {
+    resizeUi() {
         if(this.game) {
             if(this.game.started) {
                 this.game.resize();
@@ -698,6 +697,6 @@ var App = Class.extend({
             }
         } 
     }
-});
+}
 
 export default App;

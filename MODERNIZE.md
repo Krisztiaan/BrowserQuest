@@ -4618,7 +4618,19 @@ Only after Phase 2, introduce TS gradually:
     - `bun run verify:modern:node22` passed.
     - `bun run verify:legacy:node22` passed.
   - Next action:
-    - Start `T-289` client ESM native-class migration wave 6 (renderer/app shell).
+    - Start `T-289` client ESM native-class migration wave 6 (app shell).
+
+- 2026-02-08 09:30:00Z
+  - Status: `in_progress` -> `done` (T-289)
+  - Actions:
+    - Migrated UI shell module from `Class.extend` to native class syntax:
+      - `client/js-esm/app.js`
+    - Preserved UI boot/state/callback behavior while removing `compat/class` import dependency.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-290` client ESM native-class migration wave 7 (renderer).
 
 ## Next roadmap slice (active queue)
 
@@ -6356,8 +6368,14 @@ Only after Phase 2, introduce TS gradually:
 - Acceptance criteria: `gameclient` no longer imports `compat/class` and modern/legacy verification parity is preserved.
 - Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
-### T-289: Client ESM native-class migration wave 6 (renderer/app shell)
+### T-289: Client ESM native-class migration wave 6 (app shell)
+- Status: `done`
+- Scope: migrate `client/js-esm/app.js` from `Class.extend` to native class syntax while preserving UI shell behavior.
+- Acceptance criteria: `app` no longer imports `compat/class` and modern/legacy verification parity is preserved.
+- Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-290: Client ESM native-class migration wave 7 (renderer)
 - Status: `todo`
-- Scope: continue conversion on remaining high-use but independent `Class.extend` modules (`renderer`, `app`) before touching inheritance chains (`entity`/`character`/`player`).
-- Acceptance criteria: wave-6 modules use native classes and keep protocol/runtime parity gates green.
+- Scope: migrate `client/js-esm/renderer.js` from `Class.extend` to native class syntax before touching inheritance chains (`entity`/`character`/`player`).
+- Acceptance criteria: `renderer` no longer imports `compat/class` and protocol/runtime parity gates stay green.
 - Verification: `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
