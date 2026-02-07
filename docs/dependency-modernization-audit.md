@@ -4,7 +4,7 @@
 
 - Node runtime policy target: `22.x` (pinned in `.nvmrc`, `package.json#engines`, and CI)
 - Bun runtime currently used locally: `1.3.3`
-- Project package mode: `"type": "commonjs"`
+- Project package mode: `"type": "module"` (guarded by `bun run check:package-mode-boundaries`)
 
 ## Direct dependency status
 

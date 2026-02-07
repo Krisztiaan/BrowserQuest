@@ -14,4 +14,4 @@ Date: 2026-02-07
 
 ## Rollback trigger
 
-Any failed matrix row during trial requires immediate package-mode rollback per `docs/package-mode-trial-runbook.md`.
+Any failed matrix row during boundary changes requires immediate rollback of the boundary slice and full rerun of mandatory gates in `docs/package-mode-trial-runbook.md`.

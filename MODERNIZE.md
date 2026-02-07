@@ -3057,6 +3057,26 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-190` package-mode CI drift hardening.
 
+- 2026-02-07 06:03:31Z
+  - Status: `in_progress` -> `done` (T-190)
+  - Actions:
+    - Added package-mode boundary guard command:
+      - `tools/check-package-mode-boundaries.cjs`
+      - `package.json` script `check:package-mode-boundaries`
+      - integrated guard into `verify:modern` and `verify:legacy`.
+    - Updated primary package-mode/docs coherence artifacts to reflect adopted ESM package mode:
+      - `docs/package-mode-trial-runbook.md`
+      - `docs/legacy-package-mode-compat-matrix.md`
+      - `docs/server-cjs-esm-readiness-inventory.md`
+      - `docs/dependency-modernization-audit.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+  - Evidence:
+    - `bun run check:package-mode-boundaries` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-191` legacy optimizer containment assessment.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4200,10 +4220,10 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes post-T188 successor queue with executable checks.
 
 ### T-190: Package-mode CI drift hardening
-- Status: `todo`
+- Status: `done`
 - Scope: harden docs/CI coherence now that package mode is ESM, ensuring workflows and runbooks do not assume CommonJS default semantics.
 - Acceptance criteria: no contradictory package-mode assumptions remain in primary docs/workflow notes.
-- Verification: docs/workflow scan + `verify:modern:node22` and `verify:legacy:node22`.
+- Verification: docs/workflow scan + `check:package-mode-boundaries` + `verify:modern:node22` and `verify:legacy:node22`.
 
 ### T-191: Legacy optimizer containment assessment
 - Status: `todo`

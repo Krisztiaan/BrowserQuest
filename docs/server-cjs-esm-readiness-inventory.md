@@ -2,11 +2,11 @@
 
 ## Goal
 
-Establish an executable migration baseline for moving server/runtime code from CommonJS to modern ESM without breaking legacy compatibility gates.
+Track post-adoption server/runtime ESM migration readiness without breaking legacy compatibility gates.
 
 ## Current boundary snapshot
 
-- Package mode is CommonJS (`package.json` has `"type": "commonjs"`).
+- Package mode is ESM (`package.json` has `"type": "module"`).
 - Server module graph is fully CJS:
   - `28 / 28` files in `server/js/*.js` and `server/js/**.js` use `require(...)` / `module.exports` / `exports.*`.
 - Shared runtime contract remains dual-environment CJS/global:
@@ -15,6 +15,7 @@ Establish an executable migration baseline for moving server/runtime code from C
   - `tools/check-runtime.cjs`
   - `tools/check-modern-jquery-free.cjs`
   - `tools/check-metrics-healthy-prereqs.cjs`
+  - `tools/check-package-mode-boundaries.cjs`
   - `tools/maps/processmap.js` (CJS).
 - Unit tests currently consume server modules via CJS `require(...)`:
   - `tests/unit/server-config-preflight.test.ts`
@@ -25,10 +26,10 @@ Establish an executable migration baseline for moving server/runtime code from C
 ## High-risk modules and blockers
 
 1. `server/js/worldserver.js` (869 lines), `server/js/player.js` (409), `server/js/ws.js` (243), `server/js/map.js` (228), and `server/js/main.js` (221) are dense, highly connected entry/core modules.
-2. `server/js/lib/class.js` relies on legacy inheritance patterns and `arguments.callee`, which should be retired before strict ESM rollout.
+2. Legacy CommonJS server modules still dominate runtime graph; conversion sequencing must preserve protocol and gameplay invariants.
 3. `shared/js/gametypes.js` is a cross-runtime contract for both server and browser; changing export shape can break protocol/runtime parity.
 4. `server/js/metrics.js` has optional runtime dependency loading (`require("memcache")`) that must stay lazy/fault-tolerant under ESM.
-5. Existing test/runtime launch paths execute `bun server/js/main.js`; entrypoint compatibility shims are required during migration.
+5. Existing test/runtime launch paths execute `bun server/js/main.js`; entrypoint compatibility must be preserved while reducing CJS runtime debt.
 
 ## Recommended migration sequence
 
@@ -58,18 +59,19 @@ Establish an executable migration baseline for moving server/runtime code from C
   - Convert `ws` and server boot wiring only after gameplay modules are stable.
 - Replace `server/js/lib/class.js` usage with native `class` syntax once dependent modules are converted.
 
-### Phase 3: Entrypoint and package flip
+### Phase 3: Runtime graph reduction after package adoption
 
 - Switch runtime launch commands to ESM entrypoint after parity evidence.
-- Then evaluate package-level `"type": "module"` transition and isolate remaining CJS scripts as `.cjs`.
+- Keep package-level `"type": "module"` and continue isolating intentional CJS scripts as `.cjs`.
 
 ## Verification gates for each phase
 
 - Runtime/build/test gates:
-  - `bun run verify:modern:node22`
-  - `bun run verify:legacy:node22`
-  - `bun run test:browser:protocol:node22`
-  - `bun run test:browser:legacy:node22`
+ - `bun run verify:modern:node22`
+ - `bun run verify:legacy:node22`
+ - `bun run test:browser:protocol:node22`
+ - `bun run test:browser:legacy:node22`
+  - `bun run check:package-mode-boundaries`
 - Dependency/runtime drift visibility:
   - `bun run check:deps:drift:node22`
   - `verify-dependency-drift` workflow artifact snapshot.
@@ -79,9 +81,9 @@ Establish an executable migration baseline for moving server/runtime code from C
 
 ## Immediate follow-up tickets
 
-1. Create a server ESM bridge ticket (entrypoint dual-mode proof) with explicit rollback.
-2. Create a `shared/js/gametypes` export-hardening ticket (CJS/global + ESM compatibility contract tests).
-3. Create a `class.js` retirement ticket with dependency fanout map and incremental replacement plan.
+1. Keep package-mode boundary checks active in local and CI verification paths.
+2. Convert additional server runtime modules from CJS exports/imports where risk is acceptable.
+3. Reassess `shared/js/gametypes` dual-export strategy before removing CJS/global compatibility.
 
 Reference artifact: `docs/server-classjs-fanout-map.md`
 Core execution plan: `docs/server-core-class-migration-plan.md`
