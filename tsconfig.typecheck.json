@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["bun-types", "node"],
+    "strict": false,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true
+  },
+  "include": [
+    "tests/support/protocol.ts",
+    "tests/browser/protocol-observer.ts",
+    "tools/static-server.ts",
+    "tools/dev.ts",
+    "tools/dev-vite.ts"
+  ]
+}

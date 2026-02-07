@@ -40,6 +40,7 @@ Build profiles (modern vs legacy):
 
 Verification gates:
 - `bun run verify:modern` runs lint + format check + tests + modern Vite build.
+- `bun run typecheck` runs incremental TypeScript checks for selected tests/tooling surface (`tsconfig.typecheck.json`).
 - `bun run check:deps:drift` reports direct dependency drift (`npm outdated --depth=0`).
   - Node22 policy variant: `bun run check:deps:drift:node22`.
 - `bun run check:class-fanout` guards accidental new `server/js/lib/class.js` dependencies during native-class migration.

@@ -24,3 +24,5 @@ try {
 }
 
 process.exit(typeof exitCode === "number" ? exitCode : 1);
+
+export {};

@@ -5,10 +5,16 @@ var url = require('url'),
     Utils = require('./utils'),
     WebSocket = require('ws'),
     WS = {},
-    useBison = false;
+    useBison = false,
+    CLOSE_CODES = {
+        NORMAL: 1000,
+        UNSUPPORTED_DATA: 1003,
+        INVALID_PAYLOAD: 1007
+    };
 var log = Log.getLogger();
 
 module.exports = WS;
+WS.CLOSE_CODES = CLOSE_CODES;
 
 var appendFields = function(baseFields, extraFields) {
     if(!extraFields) {
@@ -100,13 +106,18 @@ class Connection {
         throw new Error("Not implemented");
     }
     
-    close(logError) {
-        log.info("Closing connection to "+this.remoteAddress+". Error: "+logError);
+    close(logError, closeCode) {
+        var reason = String(logError || ""),
+            sanitizedReason = reason.length > 120 ? reason.slice(0, 117) + "..." : reason,
+            code = Number.isInteger(closeCode) ? closeCode : CLOSE_CODES.NORMAL;
+
+        log.info("Closing connection to "+this.remoteAddress+". Error: "+reason);
         logConnectionEvent("info", "ws.connection.close_request", this, {
-            reason: String(logError || "")
+            code: code,
+            reason: reason
         });
         try {
-            this._connection.close();
+            this._connection.close(code, sanitizedReason);
         } catch(_) {
             // ignore
         }
@@ -194,20 +205,20 @@ WS.wsWebSocketConnection = class wsWebSocketConnection extends Connection {
 
             var text = typeof data === "string" ? data : data.toString("utf8");
             if(useBison) {
-                self.close("BISON is not supported in modern mode.");
+                self.close("BISON is not supported in modern mode.", CLOSE_CODES.UNSUPPORTED_DATA);
                 return;
             }
 
             try {
                 var parsed = JSON.parse(text);
                 if(!Array.isArray(parsed)) {
-                    self.close("Invalid message: expected an Array.");
+                    self.close("Invalid message: expected an Array.", CLOSE_CODES.INVALID_PAYLOAD);
                     return;
                 }
                 self.listen_callback(parsed);
             } catch(e) {
                 if(e instanceof SyntaxError) {
-                    self.close("Received message was not valid JSON.");
+                    self.close("Received message was not valid JSON.", CLOSE_CODES.INVALID_PAYLOAD);
                 } else {
                     throw e;
                 }

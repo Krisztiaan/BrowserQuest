@@ -3324,6 +3324,26 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-209` external consumer confirmation execution.
 
+- 2026-02-07 07:03:12Z
+  - Status: `in_progress` -> `done` (T-212)
+  - Actions:
+    - Prioritized a parallel technical modernization queue for:
+      - TypeScript adoption,
+      - server CJS->ESM module migration,
+      - websocket stack modernization.
+    - Implemented initial TypeScript bootstrap:
+      - added `tsconfig.typecheck.json` (incremental checked surface),
+      - added `typecheck` and `typecheck:node22` scripts,
+      - fixed Bun tool scripts (`tools/dev.ts`, `tools/dev-vite.ts`) to be explicit TS modules.
+    - Started websocket modernization hardening:
+      - added close-code constants and close-reason sanitization in `server/js/ws.js`,
+      - use protocol-aware close codes for invalid payload/bison paths.
+  - Evidence:
+    - `bun run typecheck` passes on selected surface.
+    - `bun run test` and protocol/browser gates remain green after websocket hardening.
+  - Next action:
+    - Start `T-213` server runtime CJS->ESM wave-1 module conversion.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -4597,3 +4617,39 @@ Only after Phase 2, introduce TS gradually:
 - Scope: populate T-207 decision gate with real pass/fail evidence and maintainer signoff.
 - Acceptance criteria: go/no-go decision is recorded with timestamp and signoffs.
 - Verification: updated `docs/legacy-retirement-readiness-decision.md`.
+
+### T-212: TypeScript bootstrap (technical track)
+- Status: `done`
+- Scope: introduce incremental TS typecheck baseline for selected tests/tooling and wire repeatable commands.
+- Acceptance criteria: `typecheck` commands exist and pass on selected initial surface.
+- Verification: `bun run typecheck` and `bun run typecheck:node22`.
+
+### T-213: Server CJS->ESM wave 1 (priority P0)
+- Status: `todo`
+- Scope: convert low-risk server runtime modules from `require/module.exports` to ESM imports/exports with compatibility maintained.
+- Acceptance criteria: selected wave-1 modules run under existing server boot paths without protocol regressions.
+- Verification: `bun run verify:modern:node22`, `bun run verify:legacy:node22`, `bun run test:browser:protocol:node22`.
+
+### T-214: WebSocket module modernization (priority P0)
+- Status: `todo`
+- Scope: modernize websocket runtime boundaries (`server/js/ws.js` and related entry wiring) toward ESM-first and stronger protocol/error handling.
+- Acceptance criteria: websocket handling changes preserve gameplay/protocol invariants and improve close/error semantics.
+- Verification: `bun run test:browser:protocol:node22` + targeted websocket smoke coverage.
+
+### T-215: Shared protocol typing (priority P1)
+- Status: `todo`
+- Scope: establish shared typed protocol action contracts used by tests and server/client boundaries.
+- Acceptance criteria: protocol helper/types are single-source and referenced by both runtime-adjacent code and tests.
+- Verification: `bun run typecheck` + protocol browser suite.
+
+### T-216: TypeScript expansion wave 2 (priority P1)
+- Status: `todo`
+- Scope: expand TS checking surface from initial tools/helpers into smoke/unit test suites with explicit exclusions tracked.
+- Acceptance criteria: expanded `tsconfig` coverage lands with documented defer list for unresolved files.
+- Verification: `bun run typecheck` + `bun run test`.
+
+### T-217: Post-technical-wave queue refresh
+- Status: `todo`
+- Scope: refresh queue after T-213/T-214/T-215/T-216 to sequence deeper runtime migration slices.
+- Acceptance criteria: successor queue is ordered, scoped, and evidence-backed.
+- Verification: `MODERNIZE.md` includes post-T216 successor queue with executable checks.

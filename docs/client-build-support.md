@@ -37,6 +37,8 @@ This project currently ships two client build paths while modernization is in pr
   - Opt-in ESM bridge path: `bun run start:server:esm` (`server/js/main-esm.mjs`).
 - Modern gate: `bun run verify:modern`
   - Runs `check:package-mode-boundaries`, `check:modern-jquery-free` (all `client/js-esm/**/*.js`), `lint`, `format:check`, `test`, and `build:vite`
+- Incremental TypeScript gate: `bun run typecheck`
+  - Runs `tsconfig.typecheck.json` over the currently selected tests/tooling surface.
 - Dependency drift check: `bun run check:deps:drift`
   - Node22 policy variant: `bun run check:deps:drift:node22`
 - Class fanout guard: `bun run check:class-fanout`
