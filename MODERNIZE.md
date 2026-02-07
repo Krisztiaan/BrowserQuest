@@ -4014,6 +4014,22 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-254` websocket ESM runtime adoption in startup dependency seam (opt-in).
 
+- 2026-02-07 17:45:00Z
+  - Status: `in_progress` -> `done` (T-254)
+  - Actions:
+    - Added opt-in ESM websocket runtime startup path in `server/js/main-esm.mjs`:
+      - when `BQ_ESM_WS_RUNTIME=1`, startup injects `ws-esm` runtime through `createRuntimeDependencies(...)`.
+    - Added structured runtime mode signal:
+      - `server.esm.ws_runtime_mode` (mode=`esm`) for opt-in path observability.
+    - Added focused smoke coverage:
+      - `tests/smoke/server-handshake-esm-ws-runtime.test.ts`.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-255` websocket ESM runtime probe hardening (failure-path + mode contract assertions).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5541,7 +5557,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: websocket-focused unit/smoke coverage + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-254: WebSocket ESM runtime adoption in startup dependency seam (opt-in)
-- Status: `todo`
+- Status: `done`
 - Scope: add an opt-in startup path that injects ESM-native websocket runtime through `main-runtime` dependency seams, keeping CJS default unchanged.
 - Acceptance criteria: opt-in startup path exercises ESM-native websocket runtime in live server flow with explicit probe/smoke evidence and no protocol regressions.
 - Verification: websocket bridge/protocol smokes + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-255: WebSocket ESM runtime probe hardening (failure-path + mode contract)
+- Status: `todo`
+- Scope: extend ESM runtime-mode observability/probe checks to include explicit failure-path diagnostics and assertions that runtime mode signaling matches startup wiring.
+- Acceptance criteria: probe/failure contracts are explicit in smoke tests and runtime logs for both success and forced-failure paths.
+- Verification: websocket runtime/bridge smoke tests + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.

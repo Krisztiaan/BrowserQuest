@@ -1,18 +1,18 @@
 import fs from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { validateConfig } from './config-preflight-esm.mjs';
-import { main as startServer } from './main-runtime-esm.mjs';
+import { createRuntimeDependencies, main as startServer } from './main-runtime-esm.mjs';
 import Utils from './utils-esm.mjs';
 
 const require = createRequire(import.meta.url);
 const defaultConfigPath = './server/config.json';
 const customConfigPath = process.argv[2] || './server/config_local.json';
 
-function emitProbeEvent(level, fields) {
+function emitStructuredEvent(level, event, fields) {
     const payload = JSON.stringify({
         ts: new Date().toISOString(),
         level,
-        event: 'server.esm.ws_bridge_probe',
+        event,
         ...fields,
     });
 
@@ -21,6 +21,10 @@ function emitProbeEvent(level, fields) {
         return;
     }
     console.info(payload);
+}
+
+function emitProbeEvent(level, fields) {
+    emitStructuredEvent(level, 'server.esm.ws_bridge_probe', fields);
 }
 
 async function getConfigFile(configPath) {
@@ -82,5 +86,24 @@ async function runWebSocketBridgeProbeIfEnabled() {
 
 await runWebSocketBridgeProbeIfEnabled();
 
+async function createStartupRuntimeOptions() {
+    if (process.env.BQ_ESM_WS_RUNTIME !== '1') {
+        return undefined;
+    }
+
+    const wsEsm = await import('./ws-esm.mjs');
+    emitStructuredEvent('info', 'server.esm.ws_runtime_mode', {
+        mode: 'esm',
+    });
+
+    return {
+        dependencies: createRuntimeDependencies({
+            ws: wsEsm.default,
+        }),
+    };
+}
+
+const runtimeOptions = await createStartupRuntimeOptions();
+
 // Compatibility bridge: run the shared CJS startup path with validated config.
-startServer(activeConfig);
+startServer(activeConfig, runtimeOptions);
