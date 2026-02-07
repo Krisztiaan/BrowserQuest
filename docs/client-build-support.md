@@ -44,7 +44,7 @@ This project currently ships two client build paths while modernization is in pr
 - Legacy browser UI smoke: `bun run test:browser:legacy`
   - Targeted Playwright smoke for `client/index.html` intro/event wiring (name input keyup -> play enablement and chatbar active toggle) to guard legacy compatibility changes.
 - Protocol invariant replay guard: `bun run test:browser:protocol-invariant`
-  - Replays deterministic `go` -> `HELLO` -> `WELCOME` -> `CHAT` -> `MOVE` -> `ZONE` protocol path in both `client/modern.html` and `client/index.html` and asserts invariant parity.
+  - Replays deterministic `go` -> `HELLO` -> `WELCOME` -> `CHAT` -> `MOVE` -> `ZONE` protocol path plus invalid-`MOVE` rejection behavior in both `client/modern.html` and `client/index.html` and asserts invariant parity.
 - Structured server log smoke:
   - Lifecycle-only: `bun run test:logs:lifecycle`
   - Fatal taxonomy-only: `bun run test:logs:fatal`
@@ -66,6 +66,7 @@ This project currently ships two client build paths while modernization is in pr
 - `verify-protocol-invariant` workflow:
   - Runs `test:browser:protocol-invariant` on browser/runtime-sensitive path changes.
   - Supports manual execution via `workflow_dispatch` when validating suspected protocol regressions outside changed-path triggers.
+  - Uploads protocol diagnostics artifacts (`test-results/**`, `playwright-report/**`) for easier failure triage.
 - `verify-metrics-healthy` workflow:
   - Manual/optional (`workflow_dispatch`) job that provisions memcached and runs `test:metrics:healthy`.
   - Run/triage guide: `docs/metrics-health-smoke-plan.md`

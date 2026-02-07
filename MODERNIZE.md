@@ -2231,6 +2231,65 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-133` protocol invariant negative-path parity coverage.
 
+- 2026-02-07 04:34:47Z
+  - Status: `in_progress` -> `done` (T-133)
+  - Actions:
+    - Extended protocol invariant replay with deterministic negative-path coverage:
+      - `tests/browser/protocol-invariant.playwright.ts` now asserts malformed `MOVE` payload handling parity (connection close after invalid coordinates) for both modern and legacy entry paths.
+    - Updated protocol guard docs to reflect invalid-`MOVE` parity coverage:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run test:browser:protocol-invariant:node22` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-134` protocol replay transcript helper extraction.
+
+- 2026-02-07 04:36:32Z
+  - Status: `in_progress` -> `done` (T-134)
+  - Actions:
+    - Added shared browser protocol observer helper:
+      - `tests/browser/protocol-observer.ts`
+      - centralizes websocket frame capture (`sentTypes`, `receivedTypes`, `receivedChats`, `go` count) for browser protocol suites.
+    - Refactored browser protocol action suite to reuse shared observer:
+      - `tests/browser/modern-protocol-actions.playwright.ts`
+      - removed duplicated per-test websocket listener/parser boilerplate.
+  - Evidence:
+    - `bun run test:browser:modern:node22` passed.
+    - `bun run test:browser:protocol-invariant:node22` passed.
+  - Next action:
+    - Start `T-135` protocol workflow failure diagnostics.
+
+- 2026-02-07 04:37:22Z
+  - Status: `in_progress` -> `done` (T-135)
+  - Actions:
+    - Improved protocol workflow diagnostics:
+      - `.github/workflows/verify-protocol-invariant.yml` now runs Playwright with JUnit reporting (`--reporter=line,junit`, `PLAYWRIGHT_JUNIT_OUTPUT_NAME=protocol-invariant-junit.xml`).
+      - Added always-on artifact upload step for protocol diagnostics:
+        - `test-results/**`
+        - `playwright-report/**`
+    - Updated CI mapping docs:
+      - `docs/client-build-support.md`
+  - Evidence:
+    - Workflow includes diagnostics artifact upload configuration for both pass/fail executions.
+    - `bun run test:browser:protocol-invariant:node22` passed after workflow/doc updates.
+  - Next action:
+    - Define `T-136` post-diagnostics protocol/testing queue refresh.
+
+- 2026-02-07 04:37:35Z
+  - Status: `in_progress` -> `done` (T-136)
+  - Actions:
+    - Refreshed post-diagnostics queue with ordered successor protocol/testing tickets:
+      - `T-137` protocol invariant transcript fixture extraction for `page.evaluate` replay paths.
+      - `T-138` protocol browser suite segmentation (`test:browser:protocol`) for faster targeted runs.
+      - `T-139` protocol gate artifact retention/runbook alignment.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now contains an executable next queue beyond protocol diagnostics hardening.
+  - Next action:
+    - Start `T-137` protocol invariant transcript fixture extraction.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -3032,19 +3091,43 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` adds queued post-T131 tickets with concrete command-level checks.
 
 ### T-133: Protocol invariant negative-path parity
-- Status: `todo`
+- Status: `done`
 - Scope: extend protocol invariant replay to cover one invalid payload case (e.g., malformed `MOVE`) and assert modern/legacy parity in rejection/connection behavior.
 - Acceptance criteria: invariant suite detects divergence on invalid-payload handling while staying deterministic.
 - Verification: updated `tests/browser/protocol-invariant.playwright.ts` + `bun run test:browser:protocol-invariant:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-134: Protocol replay transcript helper extraction
-- Status: `todo`
+- Status: `done`
 - Scope: extract reusable transcript capture/assert helpers for browser protocol tests (`modern-protocol-actions` + `protocol-invariant`) to reduce repeated frame parsing/counting logic.
 - Acceptance criteria: both suites use shared helper module(s) with no behavior drift and improved readability.
 - Verification: `bun run test:browser:modern:node22` + `bun run test:browser:protocol-invariant:node22` pass after helper extraction.
 
 ### T-135: Protocol workflow failure diagnostics
-- Status: `todo`
+- Status: `done`
 - Scope: improve `verify-protocol-invariant` workflow failure triage by emitting concise artifact/log summaries from Playwright output when the gate fails.
 - Acceptance criteria: failing workflow run exposes actionable replay/test diagnostics without manual log spelunking.
 - Verification: workflow config update + docs note; local parity command remains green (`bun run test:browser:protocol-invariant:node22`).
+
+### T-136: Post-diagnostics protocol/testing queue refresh
+- Status: `done`
+- Scope: refresh next modernization candidates after protocol workflow diagnostics hardening, prioritizing signal quality and maintenance-cost reduction.
+- Acceptance criteria: roadmap includes ordered successor tickets with scope, acceptance criteria, and verification commands.
+- Verification: `MODERNIZE.md` adds queued post-T135 tickets with executable checks.
+
+### T-137: Protocol invariant transcript fixture extraction
+- Status: `todo`
+- Scope: extract shared in-page replay helpers for `tests/browser/protocol-invariant.playwright.ts` to reduce duplicated parse/timeout/socket-finalize logic between positive and negative paths.
+- Acceptance criteria: protocol invariant test keeps behavior parity while reducing repeated replay boilerplate.
+- Verification: `bun run test:browser:protocol-invariant:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-138: Protocol browser suite command segmentation
+- Status: `todo`
+- Scope: add a dedicated `test:browser:protocol` alias that targets protocol-focused browser tests (`modern-protocol-actions`, `protocol-invariant`) for quicker local/CI triage loops.
+- Acceptance criteria: command exists, is documented, and runs only protocol browser tests.
+- Verification: new script command passes locally (`node22` wrapper variant included) and docs reflect usage.
+
+### T-139: Protocol artifact/runbook retention alignment
+- Status: `todo`
+- Scope: document protocol diagnostics artifact expectations (names/paths/retention usage) and align workflow naming with runbook triage steps.
+- Acceptance criteria: contributors can locate and interpret protocol workflow artifacts without trial-and-error.
+- Verification: docs mention artifact names/paths + retrieval flow; workflow artifact naming remains stable and referenced.

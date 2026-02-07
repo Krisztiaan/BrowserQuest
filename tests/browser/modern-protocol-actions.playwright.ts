@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { attachProtocolObserver } from './protocol-observer';
 import {
     MSG_ATTACK,
     MSG_CHAT,
@@ -9,7 +10,6 @@ import {
     MSG_MOVE,
     MSG_WELCOME,
     MSG_ZONE,
-    parseProtocolActionBatch,
 } from '../support/protocol';
 
 type ZoneMoveResult = {
@@ -68,32 +68,8 @@ async function startModernSession(page: Page, name: string, options?: { testMode
 }
 
 test('modern browser emits HELLO and CHAT protocol actions over live websocket', async ({ page }) => {
-    const sentTypes: number[] = [];
-    const receivedTypes: number[] = [];
-    const receivedChats: string[] = [];
-
-    page.on('websocket', (ws) => {
-        if (!ws.url().includes(':8000')) {
-            return;
-        }
-
-        ws.on('framesent', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseProtocolActionBatch(text);
-            actions.forEach((action) => sentTypes.push(action[0]));
-        });
-
-        ws.on('framereceived', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseProtocolActionBatch(text);
-            actions.forEach((action) => {
-                receivedTypes.push(action[0]);
-                if (action[0] === MSG_CHAT && typeof action[2] === 'string') {
-                    receivedChats.push(action[2]);
-                }
-            });
-        });
-    });
+    const observer = attachProtocolObserver(page, { trackChats: true });
+    const { sentTypes, receivedTypes, receivedChats } = observer;
 
     await startModernSession(page, 'protocol-smoke');
     await expect.poll(() => sentTypes.includes(MSG_HELLO), { timeout: 20_000 }).toBe(true);
@@ -118,26 +94,8 @@ test('modern browser emits HELLO and CHAT protocol actions over live websocket',
 });
 
 test('modern browser emits MOVE and ZONE actions for deterministic cross-zone control', async ({ page }) => {
-    const sentTypes: number[] = [];
-    const receivedTypes: number[] = [];
-
-    page.on('websocket', (ws) => {
-        if (!ws.url().includes(':8000')) {
-            return;
-        }
-
-        ws.on('framesent', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseProtocolActionBatch(text);
-            actions.forEach((action) => sentTypes.push(action[0]));
-        });
-
-        ws.on('framereceived', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseProtocolActionBatch(text);
-            actions.forEach((action) => receivedTypes.push(action[0]));
-        });
-    });
+    const observer = attachProtocolObserver(page);
+    const { sentTypes, receivedTypes } = observer;
 
     await startModernSession(page, 'zone-smoke', { testMode: true });
     await expect.poll(() => sentTypes.includes(MSG_HELLO), { timeout: 20_000 }).toBe(true);
@@ -179,35 +137,11 @@ test('modern browser emits MOVE and ZONE actions for deterministic cross-zone co
 });
 
 test('modern browser reconnects and repeats go/HELLO/WELCOME after reload', async ({ page }) => {
-    const sentTypes: number[] = [];
-    const receivedTypes: number[] = [];
-    let goCount = 0;
-
-    page.on('websocket', (ws) => {
-        if (!ws.url().includes(':8000')) {
-            return;
-        }
-
-        ws.on('framesent', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseProtocolActionBatch(text);
-            actions.forEach((action) => sentTypes.push(action[0]));
-        });
-
-        ws.on('framereceived', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            if (text === 'go') {
-                goCount += 1;
-                return;
-            }
-
-            const actions = parseProtocolActionBatch(text);
-            actions.forEach((action) => receivedTypes.push(action[0]));
-        });
-    });
+    const observer = attachProtocolObserver(page);
+    const { sentTypes, receivedTypes } = observer;
 
     await startModernSession(page, 'reconnect-one');
-    await expect.poll(() => goCount, { timeout: 20_000 }).toBeGreaterThan(0);
+    await expect.poll(() => observer.getGoCount(), { timeout: 20_000 }).toBeGreaterThan(0);
     await expect
         .poll(() => sentTypes.filter((type) => type === MSG_HELLO).length, { timeout: 20_000 })
         .toBeGreaterThan(0);
@@ -215,12 +149,12 @@ test('modern browser reconnects and repeats go/HELLO/WELCOME after reload', asyn
         .poll(() => receivedTypes.filter((type) => type === MSG_WELCOME).length, { timeout: 20_000 })
         .toBeGreaterThan(0);
 
-    const beforeGo = goCount;
+    const beforeGo = observer.getGoCount();
     const beforeHello = sentTypes.filter((type) => type === MSG_HELLO).length;
     const beforeWelcome = receivedTypes.filter((type) => type === MSG_WELCOME).length;
 
     await startModernSession(page, 'reconnect-two');
-    await expect.poll(() => goCount, { timeout: 20_000 }).toBeGreaterThan(beforeGo);
+    await expect.poll(() => observer.getGoCount(), { timeout: 20_000 }).toBeGreaterThan(beforeGo);
     await expect
         .poll(() => sentTypes.filter((type) => type === MSG_HELLO).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeHello);
@@ -230,26 +164,8 @@ test('modern browser reconnects and repeats go/HELLO/WELCOME after reload', asyn
 });
 
 test('modern browser emits ATTACK/HIT/LOOTMOVE via deterministic combat-loot test controls', async ({ page }) => {
-    const sentTypes: number[] = [];
-    const receivedTypes: number[] = [];
-
-    page.on('websocket', (ws) => {
-        if (!ws.url().includes(':8000')) {
-            return;
-        }
-
-        ws.on('framesent', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseProtocolActionBatch(text);
-            actions.forEach((action) => sentTypes.push(action[0]));
-        });
-
-        ws.on('framereceived', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseProtocolActionBatch(text);
-            actions.forEach((action) => receivedTypes.push(action[0]));
-        });
-    });
+    const observer = attachProtocolObserver(page);
+    const { sentTypes, receivedTypes } = observer;
 
     await startModernSession(page, 'combat-loot-smoke', { testMode: true });
     await expect.poll(() => sentTypes.includes(MSG_HELLO), { timeout: 20_000 }).toBe(true);

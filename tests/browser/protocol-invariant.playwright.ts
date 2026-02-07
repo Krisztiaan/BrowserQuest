@@ -19,6 +19,22 @@ type ReplayResult = {
     transcript: ReplayTranscript;
 };
 
+type InvalidMoveTranscript = {
+    sent: number[];
+    received: Array<number | 'go'>;
+    sawGo: boolean;
+    sawWelcome: boolean;
+    sentInvalidMove: boolean;
+    closedAfterInvalidMove: boolean;
+    errors: string[];
+};
+
+type InvalidMoveResult = {
+    ok: boolean;
+    reason?: string;
+    transcript: InvalidMoveTranscript;
+};
+
 async function replayProtocolSequence(
     page: Page,
     entryPath: '/client/modern.html' | '/client/index.html',
@@ -158,15 +174,134 @@ async function replayProtocolSequence(
     return result;
 }
 
+async function replayInvalidMoveSequence(
+    page: Page,
+    entryPath: '/client/modern.html' | '/client/index.html',
+    suffix: string
+) {
+    await page.addInitScript(() => {
+        window.localStorage.clear();
+    });
+    await page.goto(entryPath, { waitUntil: 'domcontentloaded' });
+
+    const result = await page.evaluate(
+        async ({ wsUrl, helloName, types }) => {
+            const transcript: InvalidMoveTranscript = {
+                sent: [],
+                received: [],
+                sawGo: false,
+                sawWelcome: false,
+                sentInvalidMove: false,
+                closedAfterInvalidMove: false,
+                errors: [],
+            };
+
+            const parseActions = (raw: string): number[][] => {
+                try {
+                    const parsed = JSON.parse(raw);
+                    if (!Array.isArray(parsed)) return [];
+                    if (parsed.length > 0 && Array.isArray(parsed[0])) {
+                        return parsed.filter((entry) => Array.isArray(entry) && typeof entry[0] === 'number');
+                    }
+                    if (typeof parsed[0] === 'number') {
+                        return [parsed];
+                    }
+                    return [];
+                } catch (_) {
+                    return [];
+                }
+            };
+
+            return await new Promise<InvalidMoveResult>((resolve) => {
+                let sentHello = false;
+                let done = false;
+                const ws = new WebSocket(wsUrl);
+
+                const finalize = (payload: InvalidMoveResult) => {
+                    if (done) return;
+                    done = true;
+                    clearTimeout(timeout);
+                    try {
+                        ws.close();
+                    } catch (_) {
+                        // ignore
+                    }
+                    resolve(payload);
+                };
+
+                const timeout = window.setTimeout(() => {
+                    finalize({ ok: false, reason: 'timeout', transcript });
+                }, 15000);
+
+                ws.onmessage = (event) => {
+                    const text = typeof event.data === 'string' ? event.data : String(event.data);
+                    if (text === 'go') {
+                        transcript.received.push('go');
+                        transcript.sawGo = true;
+                        if (!sentHello) {
+                            ws.send(JSON.stringify([types.MSG_HELLO, helloName, 1, 1]));
+                            transcript.sent.push(types.MSG_HELLO);
+                            sentHello = true;
+                        }
+                        return;
+                    }
+
+                    const actions = parseActions(text);
+                    actions.forEach((action) => {
+                        const type = Number(action[0]);
+                        transcript.received.push(type);
+                        if (type === types.MSG_WELCOME && !transcript.sentInvalidMove) {
+                            transcript.sawWelcome = true;
+                            ws.send(JSON.stringify([types.MSG_MOVE, 10.5, 7]));
+                            transcript.sent.push(types.MSG_MOVE);
+                            transcript.sentInvalidMove = true;
+                        }
+                    });
+                };
+
+                ws.onclose = () => {
+                    transcript.closedAfterInvalidMove = transcript.sentInvalidMove;
+                    finalize({
+                        ok: transcript.sawGo && transcript.sawWelcome && transcript.closedAfterInvalidMove,
+                        transcript,
+                    });
+                };
+
+                ws.onerror = () => {
+                    transcript.errors.push('ws_error');
+                    if (!transcript.closedAfterInvalidMove) {
+                        finalize({ ok: false, reason: 'ws_error', transcript });
+                    }
+                };
+            });
+        },
+        {
+            wsUrl: 'ws://127.0.0.1:8000/',
+            helloName: `pi-invalid-${suffix}`,
+            types: {
+                MSG_HELLO,
+                MSG_WELCOME,
+                MSG_MOVE,
+            },
+        }
+    );
+
+    return result;
+}
+
 test('protocol replay invariants match between modern and legacy entry paths', async ({ page, context }) => {
     const modern = await replayProtocolSequence(page, '/client/modern.html', `modern-${Date.now()}`);
+    const modernInvalid = await replayInvalidMoveSequence(page, '/client/modern.html', `modern-${Date.now()}`);
 
     const legacyPage = await context.newPage();
     const legacy = await replayProtocolSequence(legacyPage, '/client/index.html', `legacy-${Date.now()}`);
+    const legacyInvalid = await replayInvalidMoveSequence(legacyPage, '/client/index.html', `legacy-${Date.now()}`);
     await legacyPage.close();
 
     expect(modern.ok).toBe(true);
     expect(legacy.ok).toBe(true);
+    expect(modernInvalid.ok).toBe(true);
+    expect(legacyInvalid.ok).toBe(true);
 
     const modernInvariant = {
         sentHello: modern.transcript.sent.includes(MSG_HELLO),
@@ -203,4 +338,31 @@ test('protocol replay invariants match between modern and legacy entry paths', a
         sawErrors: false,
     });
     expect(legacyInvariant).toEqual(modernInvariant);
+
+    const modernInvalidInvariant = {
+        sentHello: modernInvalid.transcript.sent.includes(MSG_HELLO),
+        sentInvalidMove: modernInvalid.transcript.sentInvalidMove,
+        sawGo: modernInvalid.transcript.sawGo,
+        sawWelcome: modernInvalid.transcript.sawWelcome,
+        closedAfterInvalidMove: modernInvalid.transcript.closedAfterInvalidMove,
+        sawErrors: modernInvalid.transcript.errors.length > 0,
+    };
+    const legacyInvalidInvariant = {
+        sentHello: legacyInvalid.transcript.sent.includes(MSG_HELLO),
+        sentInvalidMove: legacyInvalid.transcript.sentInvalidMove,
+        sawGo: legacyInvalid.transcript.sawGo,
+        sawWelcome: legacyInvalid.transcript.sawWelcome,
+        closedAfterInvalidMove: legacyInvalid.transcript.closedAfterInvalidMove,
+        sawErrors: legacyInvalid.transcript.errors.length > 0,
+    };
+
+    expect(modernInvalidInvariant).toEqual({
+        sentHello: true,
+        sentInvalidMove: true,
+        sawGo: true,
+        sawWelcome: true,
+        closedAfterInvalidMove: true,
+        sawErrors: false,
+    });
+    expect(legacyInvalidInvariant).toEqual(modernInvalidInvariant);
 });
