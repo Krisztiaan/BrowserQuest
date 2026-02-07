@@ -4429,6 +4429,23 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-277` websocket boundary drill CI/advisory wiring assessment.
 
+- 2026-02-08 04:25:00Z
+  - Status: `in_progress` -> `done` (T-277)
+  - Actions:
+    - Added advisory websocket boundary drill workflow:
+      - `.github/workflows/verify-ws-boundary-drill.yml`.
+      - Supports manual `workflow_dispatch` and websocket-boundary PR path triggers.
+    - Documented CI/advisory trigger policy + owner policy in websocket decision runbook:
+      - `docs/websocket-cjs-factory-migration-decision.md`.
+    - Updated support matrix CI mapping with websocket boundary drill workflow details:
+      - `docs/client-build-support.md`.
+  - Evidence:
+    - workflow/config diff review completed.
+    - docs read-through completed with command/policy references aligned.
+    - `bun run test:ws:runtime:drill` passed.
+  - Next action:
+    - Start `T-278` websocket boundary drill artifact/reporting ergonomics.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -6094,7 +6111,13 @@ Only after Phase 2, introduce TS gradually:
 - Verification: run new script + `bun run verify:modern:node22`.
 
 ### T-277: Websocket boundary drill CI/advisory wiring assessment
-- Status: `todo`
+- Status: `done`
 - Scope: assess whether websocket boundary drill should be wired into CI as advisory/manual workflow and define trigger/owner policy.
 - Acceptance criteria: documented CI/advisory decision with explicit trigger policy and command references.
 - Verification: docs read-through + workflow/config diff review.
+
+### T-278: Websocket boundary drill artifact/reporting ergonomics
+- Status: `todo`
+- Scope: improve websocket boundary drill reporting ergonomics (summary artifact/report metadata) for faster triage in CI/manual runs.
+- Acceptance criteria: drill workflow/runbook includes concise artifact/report path guidance tied to the scripted drill output.
+- Verification: workflow/config diff review + docs read-through + `bun run test:ws:runtime:drill`.

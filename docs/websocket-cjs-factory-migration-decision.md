@@ -57,6 +57,12 @@ Escalate to server-runtime maintainers when any of the following occurs:
 2. websocket handshake/protocol smokes fail in either modern or legacy verification tracks.
 3. ESM runtime signal events (`server.esm.ws_runtime_mode` / `server.esm.ws_bridge_probe`) are missing or inconsistent with requested startup mode.
 
+CI/advisory trigger policy:
+
+1. Run `.github/workflows/verify-ws-boundary-drill.yml` manually on demand (`workflow_dispatch`) after boundary-touching refactors.
+2. Let PR path triggers run automatically when websocket boundary files change.
+3. Owner group for interpreting/adopting outcomes: server-runtime maintainers.
+
 ## Rollback drill cadence
 
 - Execute rollback drill quarterly, and after any websocket boundary refactor touching `server/js/ws.js`, `server/js/ws-runtime-esm.mjs`, or `server/js/ws-runtime-class-factory.mjs`.

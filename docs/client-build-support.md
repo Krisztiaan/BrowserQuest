@@ -116,6 +116,12 @@ This project currently ships two client build paths while modernization is in pr
     - Open the workflow run -> `Artifacts` -> download `protocol-invariant-diagnostics-<run_id>`.
     - Check `test-results/protocol-invariant-junit.xml` first for failing test case and stack metadata.
     - Use `playwright-report/**` for detailed trace/report context when available.
+- `verify-ws-boundary-drill` workflow:
+  - Advisory websocket boundary drill workflow:
+    - manual trigger (`workflow_dispatch`) for post-refactor validation,
+    - automatic PR trigger on websocket boundary path changes.
+  - Runs `bun run test:ws:runtime:drill`.
+  - Decision/owner policy source: `docs/websocket-cjs-factory-migration-decision.md`.
 - `verify-dependency-drift` workflow:
   - Manual + weekly snapshot (`workflow_dispatch` and Monday cron) for direct dependency drift visibility.
   - Captures `npm outdated --depth=0` output as artifacts:
