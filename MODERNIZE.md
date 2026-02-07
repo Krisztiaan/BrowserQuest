@@ -3717,6 +3717,20 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-238` runtime CheckJs wave 8B (mobility runtime trio promotion).
 
+- 2026-02-07 12:05:00Z
+  - Status: `in_progress` -> `done` (T-238)
+  - Actions:
+    - Promoted mobility/runtime trio into runtime CheckJs scope in `tsconfig.typecheck-runtime.json`:
+      - `server/js/mob.js`,
+      - `server/js/mobarea.js`,
+      - `server/js/npc.js`.
+    - Refreshed runtime CheckJs defer artifact to remove promoted trio and re-baseline successor queue.
+  - Evidence:
+    - `bun run typecheck` passed with mobility trio included.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-239` runtime CheckJs wave 8C (zone/entity graph promotion).
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5148,7 +5162,7 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
 
 ### T-238: Runtime CheckJs wave 8B (mobility runtime trio promotion)
-- Status: `todo`
+- Status: `done`
 - Scope: promote `server/js/mob.js`, `server/js/mobarea.js`, and `server/js/npc.js` into runtime CheckJs scope with any required minimal property-shape cleanup.
 - Acceptance criteria: mobility trio is included in runtime CheckJs scope and gates remain green.
 - Verification: `bun run typecheck` + `bun run verify:legacy:node22`.
