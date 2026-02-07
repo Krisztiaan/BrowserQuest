@@ -2146,6 +2146,19 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Define `T-127` next modernization candidate refresh after CI/runtime reproducibility hardening.
 
+- 2026-02-07 04:24:20Z
+  - Status: `in_progress` -> `done` (T-127)
+  - Actions:
+    - Refreshed the next execution queue after reproducibility hardening with ordered successor tickets:
+      - `T-128` protocol invariant replay depth expansion.
+      - `T-129` protocol fixture/harness reuse between smoke suites.
+      - `T-130` protocol-gate CI runbook and trigger ergonomics.
+    - Added scope, acceptance criteria, and verification commands for each successor ticket.
+  - Evidence:
+    - `MODERNIZE.md` now contains a concrete post-T126 queue that can be executed sequentially without rediscovery.
+  - Next action:
+    - Start `T-128` protocol invariant replay depth expansion.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -2911,7 +2924,25 @@ Only after Phase 2, introduce TS gradually:
 - Verification: GitHub Actions run links for post-pin `verify-modern`, `verify-legacy`, and one browser/protocol workflow are logged in `MODERNIZE.md`.
 
 ### T-127: Post-reproducibility modernization queue refresh
-- Status: `todo`
+- Status: `done`
 - Scope: refresh the next modernization execution queue after CI/runtime reproducibility hardening, prioritizing highest-leverage runtime/library debt with clear acceptance checks.
 - Acceptance criteria: roadmap includes ordered successor tickets with scope, acceptance criteria, verification commands, and dependency notes.
 - Verification: `MODERNIZE.md` has new queued ticket entries beyond T-126 with executable command-level checks.
+
+### T-128: Protocol invariant replay depth expansion
+- Status: `todo`
+- Scope: extend `test:browser:protocol-invariant` beyond handshake/chat to include one deterministic movement/zone action invariant asserted across modern and legacy entry paths.
+- Acceptance criteria: replay guard fails when modern/legacy handling diverges on the expanded action sequence, while remaining deterministic in CI.
+- Verification: updated protocol invariant Playwright suite + `bun run test:browser:protocol-invariant:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-129: Protocol fixture/harness reuse across parity suites
+- Status: `todo`
+- Scope: extract shared protocol replay helpers/fixtures used by browser invariant and smoke parity suites to reduce duplicated websocket parsing/retry logic.
+- Acceptance criteria: helper reuse is explicit, targeted suites remain readable, and no behavior drift is introduced.
+- Verification: affected tests pass (`bun test --timeout 20000 tests/smoke/modern-gameplay-parity.test.ts`) + browser invariant command stays green.
+
+### T-130: Protocol gate CI runbook and trigger ergonomics
+- Status: `todo`
+- Scope: document when to use `verify-protocol-invariant`, add optional manual trigger support (`workflow_dispatch`), and align local parity commands in docs/runbooks.
+- Acceptance criteria: contributors can run/triage protocol gate from docs alone; workflow supports both path-triggered and manual runs.
+- Verification: workflow includes `workflow_dispatch`; docs mention trigger paths + manual trigger + local parity command.
