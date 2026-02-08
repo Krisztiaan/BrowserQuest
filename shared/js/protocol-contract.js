@@ -1,35 +1,29 @@
-var Types = require('./gametypes');
+// AUTO-GENERATED from shared/js/protocol-contract.cts via `bun run build:protocol-contract`.
+// Do not edit shared/js/protocol-contract.js directly.
 
-/** @typedef {import('./protocol-contract-types').ProtocolAction} ProtocolAction */
-
-/**
- * @param {unknown} value
- * @returns {value is ProtocolAction}
- */
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Types = require('./gametypes');
 function isProtocolAction(value) {
-    if(!Array.isArray(value) || value.length === 0) {
+    if (!Array.isArray(value) || value.length === 0) {
         return false;
     }
-
-    if(typeof value[0] !== 'number') {
+    if (typeof value[0] !== 'number') {
         return false;
     }
-
-    for(var i = 1; i < value.length; i += 1) {
-        var param = value[i];
-        var isAllowedPrimitive = typeof param === 'number'
+    for (let i = 1; i < value.length; i += 1) {
+        const param = value[i];
+        const isAllowedPrimitive = typeof param === 'number'
             || typeof param === 'string'
             || typeof param === 'boolean'
             || param === null;
-        if(!isAllowedPrimitive) {
+        if (!isAllowedPrimitive) {
             return false;
         }
     }
-
     return true;
 }
-
-var Protocol = {
+const Protocol = {
     MSG_HELLO: Types.Messages.HELLO,
     MSG_WELCOME: Types.Messages.WELCOME,
     MSG_SPAWN: Types.Messages.SPAWN,
@@ -44,35 +38,24 @@ var Protocol = {
     MSG_ZONE: Types.Messages.ZONE,
     ENTITY_CLOTH_ARMOR: Types.Entities.CLOTHARMOR,
     ENTITY_SWORD_1: Types.Entities.SWORD1,
-};
-
-/**
- * @param {string} payload
- * @returns {ProtocolAction[]}
- */
-Protocol.parseProtocolActionBatch = function (payload) {
-    var parsed;
-    try {
-        parsed = JSON.parse(payload);
-    } catch (_) {
+    parseProtocolActionBatch(payload) {
+        let parsed;
+        try {
+            parsed = JSON.parse(payload);
+        }
+        catch (_) {
+            return [];
+        }
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+        if (parsed.length > 0 && Array.isArray(parsed[0])) {
+            return parsed.filter((entry) => isProtocolAction(entry));
+        }
+        if (isProtocolAction(parsed)) {
+            return [parsed];
+        }
         return [];
-    }
-
-    if (!Array.isArray(parsed)) {
-        return [];
-    }
-
-    if (parsed.length > 0 && Array.isArray(parsed[0])) {
-        return parsed.filter(function (entry) {
-            return isProtocolAction(entry);
-        });
-    }
-
-    if (isProtocolAction(parsed)) {
-        return [parsed];
-    }
-
-    return [];
+    },
 };
-
 module.exports = Protocol;

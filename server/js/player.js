@@ -1,29 +1,29 @@
+// AUTO-GENERATED from server/js/player.cts via `bun run build:player`.
+// Do not edit server/js/player.js directly.
 
-var Character = require("./character"),
-    Chest = require("./chest"),
-    Log = require("./log"),
-    Messages = require("./message"),
-    Utils = require("./utils"),
-    Properties = require("./properties"),
-    Formulas = require("./formulas"),
-    check = require("./format").check,
-    Types = require("../../shared/js/gametypes");
-var log = Log.getLogger();
-
-var NAME_MAX_UTF8_BYTES = 64;
-var NAME_MAX_CODEPOINTS = 15;
-var CHAT_MAX_UTF8_BYTES = 512;
-var CHAT_MAX_CODEPOINTS = 60;
-var WHO_MAX_IDS = 1000;
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Character = require('./character');
+const Chest = require('./chest');
+const Log = require('./log');
+const Messages = require('./message');
+const Utils = require('./utils');
+const Properties = require('./properties');
+const Formulas = require('./formulas');
+const check = require('./format').check;
+const Types = require('../../shared/js/gametypes');
+const log = Log.getLogger();
+const NAME_MAX_UTF8_BYTES = 64;
+const NAME_MAX_CODEPOINTS = 15;
+const CHAT_MAX_UTF8_BYTES = 512;
+const CHAT_MAX_CODEPOINTS = 60;
+const WHO_MAX_IDS = 1000;
 class Player extends Character {
     constructor(connection, worldServer) {
-        super(connection.id, "player", Types.Entities.WARRIOR, 0, 0);
-
+        super(connection.id, 'player', Types.Entities.WARRIOR, 0, 0);
         var self = this;
         this.server = worldServer;
         this.connection = connection;
-
         this.name = '';
         this.hasEnteredGame = false;
         this.isDead = false;
@@ -31,386 +31,331 @@ class Player extends Character {
         this.lastCheckpoint = null;
         this.disconnectTimeout = null;
         this.firepotionTimeout = null;
-        var closeInvalidPayload = function(reason) {
-            if(self.connection && typeof self.connection.closeInvalidPayload === "function") {
+        var closeInvalidPayload = function (reason) {
+            if (self.connection && typeof self.connection.closeInvalidPayload === 'function') {
                 self.connection.closeInvalidPayload(reason);
-            } else {
+            }
+            else {
                 self.connection.close(reason);
             }
         };
-        
-        this.connection.listen(function(message) {
+        this.connection.listen(function (message) {
             var action = Number.parseInt(message[0], 10);
-            
-            log.debug("Received: "+message);
-            if(!check(message)) {
-                closeInvalidPayload("Invalid "+Types.getMessageTypeAsString(action)+" message format: "+message);
+            log.debug('Received: ' + message);
+            if (!check(message)) {
+                closeInvalidPayload('Invalid ' + Types.getMessageTypeAsString(action) + ' message format: ' + message);
                 return;
             }
-            
-            if(!self.hasEnteredGame && action !== Types.Messages.HELLO) { // HELLO must be the first message
-                closeInvalidPayload("Invalid handshake message: "+message);
+            if (!self.hasEnteredGame && action !== Types.Messages.HELLO) {
+                // HELLO must be the first message
+                closeInvalidPayload('Invalid handshake message: ' + message);
                 return;
             }
-            if(self.hasEnteredGame && !self.isDead && action === Types.Messages.HELLO) { // HELLO can be sent only once
-                closeInvalidPayload("Cannot initiate handshake twice: "+message);
+            if (self.hasEnteredGame && !self.isDead && action === Types.Messages.HELLO) {
+                // HELLO can be sent only once
+                closeInvalidPayload('Cannot initiate handshake twice: ' + message);
                 return;
             }
-            
             self.resetTimeout();
-            
-            if(action === Types.Messages.HELLO) {
-                if(!Utils.hasMaxUtf8Bytes(message[1], NAME_MAX_UTF8_BYTES)) {
-                    closeInvalidPayload("Name is too long.");
+            if (action === Types.Messages.HELLO) {
+                if (!Utils.hasMaxUtf8Bytes(message[1], NAME_MAX_UTF8_BYTES)) {
+                    closeInvalidPayload('Name is too long.');
                     return;
                 }
                 var name = Utils.sanitize(message[1]);
                 name = Utils.limitUtf8Bytes(name, NAME_MAX_UTF8_BYTES);
                 name = Utils.limitCodePoints(name, NAME_MAX_CODEPOINTS);
-                
                 // If name was cleared by the sanitizer, give a default name.
                 // Always ensure that the name is not longer than a maximum length.
                 // (also enforced by the maxlength attribute of the name input element).
-                self.name = (name === "") ? "lorem ipsum" : name;
-                
+                self.name = name === '' ? 'lorem ipsum' : name;
                 self.kind = Types.Entities.WARRIOR;
                 self.equipArmor(message[2]);
                 self.equipWeapon(message[3]);
                 self.orientation = Utils.randomOrientation();
                 self.updateHitPoints();
                 self.updatePosition();
-                
                 self.server.addPlayer(self);
                 self.server.enter_callback(self);
-
                 self.send([Types.Messages.WELCOME, self.id, self.name, self.x, self.y, self.hitPoints]);
                 self.hasEnteredGame = true;
                 self.isDead = false;
             }
-            else if(action === Types.Messages.WHO) {
-                if((message.length - 1) > WHO_MAX_IDS) {
-                    closeInvalidPayload("WHO message is too large.");
+            else if (action === Types.Messages.WHO) {
+                if (message.length - 1 > WHO_MAX_IDS) {
+                    closeInvalidPayload('WHO message is too large.');
                     return;
                 }
                 message.shift();
                 self.server.pushSpawnsToPlayer(self, message);
             }
-            else if(action === Types.Messages.ZONE) {
+            else if (action === Types.Messages.ZONE) {
                 self.zone_callback();
             }
-            else if(action === Types.Messages.CHAT) {
-                if(!Utils.hasMaxUtf8Bytes(message[1], CHAT_MAX_UTF8_BYTES)) {
-                    closeInvalidPayload("Chat message is too long.");
+            else if (action === Types.Messages.CHAT) {
+                if (!Utils.hasMaxUtf8Bytes(message[1], CHAT_MAX_UTF8_BYTES)) {
+                    closeInvalidPayload('Chat message is too long.');
                     return;
                 }
                 var msg = Utils.sanitize(message[1]);
                 msg = Utils.limitUtf8Bytes(msg, CHAT_MAX_UTF8_BYTES);
                 msg = Utils.limitCodePoints(msg, CHAT_MAX_CODEPOINTS);
-                
                 // Sanitized messages may become empty. No need to broadcast empty chat messages.
-                if(msg && msg !== "") {
+                if (msg && msg !== '') {
                     self.broadcastToZone(new Messages.Chat(self, msg), false);
                 }
             }
-            else if(action === Types.Messages.MOVE) {
-                if(self.move_callback) {
-                    var x = message[1],
-                        y = message[2];
-                    
-                    if(self.server.isValidPosition(x, y)) {
+            else if (action === Types.Messages.MOVE) {
+                if (self.move_callback) {
+                    var x = message[1], y = message[2];
+                    if (self.server.isValidPosition(x, y)) {
                         self.setPosition(x, y);
                         self.clearTarget();
-                        
                         self.broadcast(new Messages.Move(self));
                         self.move_callback(self.x, self.y);
                     }
                 }
             }
-            else if(action === Types.Messages.LOOTMOVE) {
-                if(self.lootmove_callback) {
+            else if (action === Types.Messages.LOOTMOVE) {
+                if (self.lootmove_callback) {
                     self.setPosition(message[1], message[2]);
-                    
                     var item = self.server.getEntityById(message[3]);
-                    if(item) {
+                    if (item) {
                         self.clearTarget();
-
                         self.broadcast(new Messages.LootMove(self, item));
                         self.lootmove_callback(self.x, self.y);
                     }
                 }
             }
-            else if(action === Types.Messages.AGGRO) {
-                if(self.move_callback) {
+            else if (action === Types.Messages.AGGRO) {
+                if (self.move_callback) {
                     self.server.handleMobHate(message[1], self.id, 5);
                 }
             }
-            else if(action === Types.Messages.ATTACK) {
+            else if (action === Types.Messages.ATTACK) {
                 var mob = self.server.getEntityById(message[1]);
-                
-                if(mob) {
+                if (mob) {
                     self.setTarget(mob);
                     self.server.broadcastAttacker(self);
                 }
             }
-            else if(action === Types.Messages.HIT) {
+            else if (action === Types.Messages.HIT) {
                 var mob = self.server.getEntityById(message[1]);
-                if(mob) {
+                if (mob) {
                     var dmg = Formulas.dmg(self.weaponLevel, mob.armorLevel);
-                    
-                    if(dmg > 0) {
+                    if (dmg > 0) {
                         mob.receiveDamage(dmg, self.id);
                         self.server.handleMobHate(mob.id, self.id, dmg);
                         self.server.handleHurtEntity(mob, self, dmg);
                     }
                 }
             }
-            else if(action === Types.Messages.HURT) {
+            else if (action === Types.Messages.HURT) {
                 var mob = self.server.getEntityById(message[1]);
-                if(mob && self.hitPoints > 0) {
+                if (mob && self.hitPoints > 0) {
                     self.hitPoints -= Formulas.dmg(mob.weaponLevel, self.armorLevel);
                     self.server.handleHurtEntity(self);
-                    
-                    if(self.hitPoints <= 0) {
+                    if (self.hitPoints <= 0) {
                         self.isDead = true;
-                        if(self.firepotionTimeout) {
+                        if (self.firepotionTimeout) {
                             clearTimeout(self.firepotionTimeout);
                         }
                     }
                 }
             }
-            else if(action === Types.Messages.LOOT) {
+            else if (action === Types.Messages.LOOT) {
                 var item = self.server.getEntityById(message[1]);
-                
-                if(item) {
+                if (item) {
                     var kind = item.kind;
-                    
-                    if(Types.isItem(kind)) {
+                    if (Types.isItem(kind)) {
                         self.broadcast(item.despawn());
                         self.server.removeEntity(item);
-                        
-                        if(kind === Types.Entities.FIREPOTION) {
+                        if (kind === Types.Entities.FIREPOTION) {
                             self.updateHitPoints();
                             self.broadcast(self.equip(Types.Entities.FIREFOX));
-                            self.firepotionTimeout = setTimeout(function() {
+                            self.firepotionTimeout = setTimeout(function () {
                                 self.broadcast(self.equip(self.armor)); // return to normal after 15 sec
                                 self.firepotionTimeout = null;
                             }, 15000);
                             self.send(new Messages.HitPoints(self.maxHitPoints).serialize());
-                        } else if(Types.isHealingItem(kind)) {
+                        }
+                        else if (Types.isHealingItem(kind)) {
                             var amount;
-                            
-                            switch(kind) {
-                                case Types.Entities.FLASK: 
+                            switch (kind) {
+                                case Types.Entities.FLASK:
                                     amount = 40;
                                     break;
-                                case Types.Entities.BURGER: 
+                                case Types.Entities.BURGER:
                                     amount = 100;
                                     break;
                             }
-                            
-                            if(!self.hasFullHealth()) {
+                            if (!self.hasFullHealth()) {
                                 self.regenHealthBy(amount);
                                 self.server.pushToPlayer(self, self.health());
                             }
-                        } else if(Types.isArmor(kind) || Types.isWeapon(kind)) {
+                        }
+                        else if (Types.isArmor(kind) || Types.isWeapon(kind)) {
                             self.equipItem(item);
                             self.broadcast(self.equip(kind));
                         }
                     }
                 }
             }
-            else if(action === Types.Messages.TELEPORT) {
-                var x = message[1],
-                    y = message[2];
-                
-                if(self.server.isValidPosition(x, y)) {
+            else if (action === Types.Messages.TELEPORT) {
+                var x = message[1], y = message[2];
+                if (self.server.isValidPosition(x, y)) {
                     self.setPosition(x, y);
                     self.clearTarget();
-                    
                     self.broadcast(new Messages.Teleport(self));
-                    
                     self.server.handlePlayerVanish(self);
                     self.server.pushRelevantEntityListTo(self);
                 }
             }
-            else if(action === Types.Messages.OPEN) {
+            else if (action === Types.Messages.OPEN) {
                 var chest = self.server.getEntityById(message[1]);
-                if(chest && chest instanceof Chest) {
+                if (chest && chest instanceof Chest) {
                     self.server.handleOpenedChest(chest, self);
                 }
             }
-            else if(action === Types.Messages.CHECK) {
+            else if (action === Types.Messages.CHECK) {
                 var checkpoint = self.server.map.getCheckpoint(message[1]);
-                if(checkpoint) {
+                if (checkpoint) {
                     self.lastCheckpoint = checkpoint;
                 }
             }
             else {
-                if(self.message_callback) {
+                if (self.message_callback) {
                     self.message_callback(message);
                 }
             }
         });
-        
-        this.connection.onClose(function() {
-            if(self.firepotionTimeout) {
+        this.connection.onClose(function () {
+            if (self.firepotionTimeout) {
                 clearTimeout(self.firepotionTimeout);
             }
             clearTimeout(self.disconnectTimeout);
-            if(self.exit_callback) {
+            if (self.exit_callback) {
                 self.exit_callback();
             }
         });
-        
-        this.connection.sendUTF8("go"); // Notify client that the HELLO/WELCOME handshake can start
+        this.connection.sendUTF8('go'); // Notify client that the HELLO/WELCOME handshake can start
     }
-    
     destroy() {
         var self = this;
-        
-        this.forEachAttacker(function(mob) {
+        this.forEachAttacker(function (mob) {
             mob.clearTarget();
         });
         this.attackers = {};
-        
-        this.forEachHater(function(mob) {
+        this.forEachHater(function (mob) {
             mob.forgetPlayer(self.id);
         });
         this.haters = {};
     }
-    
     getState() {
-        var basestate = this._getBaseState(),
-            state = [this.name, this.orientation, this.armor, this.weapon];
-
-        if(this.target) {
+        var basestate = this._getBaseState(), state = [this.name, this.orientation, this.armor, this.weapon];
+        if (this.target) {
             state.push(this.target);
         }
-        
         return basestate.concat(state);
     }
-    
     send(message) {
         this.connection.send(message);
     }
-    
-    broadcast(message, ignoreSelf) {
-        if(this.broadcast_callback) {
-            this.broadcast_callback(message, ignoreSelf === undefined ? true : ignoreSelf);
+    broadcast(message, ignoreSelf = true) {
+        if (this.broadcast_callback) {
+            this.broadcast_callback(message, ignoreSelf);
         }
     }
-    
-    broadcastToZone(message, ignoreSelf) {
-        if(this.broadcastzone_callback) {
-            this.broadcastzone_callback(message, ignoreSelf === undefined ? true : ignoreSelf);
+    broadcastToZone(message, ignoreSelf = true) {
+        if (this.broadcastzone_callback) {
+            this.broadcastzone_callback(message, ignoreSelf);
         }
     }
-    
     onExit(callback) {
         this.exit_callback = callback;
     }
-    
     onMove(callback) {
         this.move_callback = callback;
     }
-    
     onLootMove(callback) {
         this.lootmove_callback = callback;
     }
-    
     onZone(callback) {
         this.zone_callback = callback;
     }
-    
     onOrient(callback) {
         this.orient_callback = callback;
     }
-    
     onMessage(callback) {
         this.message_callback = callback;
     }
-    
     onBroadcast(callback) {
         this.broadcast_callback = callback;
     }
-    
     onBroadcastToZone(callback) {
         this.broadcastzone_callback = callback;
     }
-    
     equip(item) {
         return new Messages.EquipItem(this, item);
     }
-    
     addHater(mob) {
-        if(mob) {
-            if(!(mob.id in this.haters)) {
+        if (mob) {
+            if (!(mob.id in this.haters)) {
                 this.haters[mob.id] = mob;
             }
         }
     }
-    
     removeHater(mob) {
-        if(mob && mob.id in this.haters) {
+        if (mob && mob.id in this.haters) {
             delete this.haters[mob.id];
         }
     }
-    
     forEachHater(callback) {
-        Object.keys(this.haters).forEach(function(haterId) {
+        Object.keys(this.haters).forEach(function (haterId) {
             var mob = this.haters[haterId];
             callback(mob);
         }, this);
     }
-    
     equipArmor(kind) {
         this.armor = kind;
         this.armorLevel = Properties.getArmorLevel(kind);
     }
-    
     equipWeapon(kind) {
         this.weapon = kind;
         this.weaponLevel = Properties.getWeaponLevel(kind);
     }
-    
     equipItem(item) {
-        if(item) {
-            log.debug(this.name + " equips " + Types.getKindAsString(item.kind));
-            
-            if(Types.isArmor(item.kind)) {
+        if (item) {
+            log.debug(this.name + ' equips ' + Types.getKindAsString(item.kind));
+            if (Types.isArmor(item.kind)) {
                 this.equipArmor(item.kind);
                 this.updateHitPoints();
                 this.send(new Messages.HitPoints(this.maxHitPoints).serialize());
-            } else if(Types.isWeapon(item.kind)) {
+            }
+            else if (Types.isWeapon(item.kind)) {
                 this.equipWeapon(item.kind);
             }
         }
     }
-    
     updateHitPoints() {
         this.resetHitPoints(Formulas.hp(this.armorLevel));
     }
-    
     updatePosition() {
-        if(this.requestpos_callback) {
+        if (this.requestpos_callback) {
             var pos = this.requestpos_callback();
             this.setPosition(pos.x, pos.y);
         }
     }
-    
     onRequestPosition(callback) {
         this.requestpos_callback = callback;
     }
-    
     resetTimeout() {
         clearTimeout(this.disconnectTimeout);
         this.disconnectTimeout = setTimeout(this.timeout.bind(this), 1000 * 60 * 15); // 15 min.
     }
-    
     timeout() {
-        this.connection.sendUTF8("timeout");
-        this.connection.close("Player was idle for too long");
+        this.connection.sendUTF8('timeout');
+        this.connection.close('Player was idle for too long');
     }
 }
-
 module.exports = Player;

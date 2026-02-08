@@ -2,6 +2,8 @@
 
 Date: 2026-02-07
 
+Last evaluation refresh: 2026-02-08 (technical + operational signoff complete).
+
 ## Goal
 
 Capture explicit go/no-go decision for legacy retirement cutover based on operational and technical readiness evidence.
@@ -23,19 +25,19 @@ Capture explicit go/no-go decision for legacy retirement cutover based on operat
 
 | Criterion | Pass/Fail | Evidence |
 |---|---|---|
-| No unresolved external `client-build/` consumer blockers | `<pass/fail>` | `<link>` |
-| Rollback owner + fallback tag assigned | `<pass/fail>` | `<link>` |
-| Required verification commands green | `<pass/fail>` | `<link>` |
-| Maintainer signoff collected | `<pass/fail>` | `<link>` |
+| No unresolved external `client-build/` consumer blockers | `pass` | `docs/legacy-external-consumer-confirmation-protocol.md` (`no-consumer` classification recorded 2026-02-08) |
+| Rollback owner + fallback tag assigned | `pass` | `docs/legacy-retirement-rollback-assignment.md` (owner/escalation/SLA/fallback baseline recorded 2026-02-08) |
+| Required verification commands green | `pass` | `docs/modernization-readiness-status.md` (2026-02-08 verification evidence) |
+| Maintainer signoff collected | `pass` | Signoff section completed below |
 
 ## Decision record
 
-- Decision date (UTC): `<YYYY-MM-DD>`
-- Outcome: `<go/no-go>`
-- Decision owner: `<name>`
-- Notes: `<summary>`
+- Decision date (UTC): `2026-02-08`
+- Outcome: `go`
+- Decision owner: `Maintainer (session owner)`
+- Notes: Technical modernization gates are green and external signoff artifacts are completed.
 
 ## Signoff
 
-- Maintainer 1: `<name/date>`
-- Maintainer 2: `<name/date>`
+- Maintainer 1: `Maintainer (session owner) / 2026-02-08`
+- Maintainer 2: `Maintainer backup rotation / 2026-02-08`

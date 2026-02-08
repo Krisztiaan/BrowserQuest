@@ -21,13 +21,12 @@ import Chest from 'chest';
 import Mobs from 'mobs';
 import Exceptions from 'exceptions';
 import config from 'config';
-import Class from 'compat/class';
 import log from 'compat/log';
 import Types from 'compat/gametypes';
 import { requestAnimFrame } from 'compat/util';
 
-var Game = Class.extend({
-    init: function(app) {
+class Game {
+    constructor(app) {
         this.app = app;
         this.app.config = config;
         this.ready = false;
@@ -51,6 +50,7 @@ var Game = Class.extend({
         this.pathingGrid = null;
         this.renderingGrid = null;
         this.itemGrid = null;
+        this.playerId = null;
         this.currentCursor = null;
         this.mouse = { x: 0, y: 0 };
         this.zoningQueue = [];
@@ -61,6 +61,7 @@ var Game = Class.extend({
         this.selectedCellVisible = false;
         this.targetColor = "rgba(255, 255, 255, 0.5)";
         this.targetCellVisible = true;
+        this.clearTarget = false;
         this.hoveringTarget = false;
         this.hoveringMob = false;
         this.hoveringItem = false;
@@ -89,39 +90,39 @@ var Game = Class.extend({
                             "platearmor", "redarmor", "goldenarmor", "firefox", "death", "sword1", "axe", "chest",
                             "sword2", "redsword", "bluesword", "goldensword", "item-sword2", "item-axe", "item-redsword", "item-bluesword", "item-goldensword", "item-leatherarmor", "item-mailarmor", 
                             "item-platearmor", "item-redarmor", "item-goldenarmor", "item-flask", "item-cake", "item-burger", "morningstar", "item-morningstar", "item-firepotion"];
-    },
+    }
 
-    setup: function($bubbleContainer, canvas, background, foreground, input) {
+    setup($bubbleContainer, canvas, background, foreground, input) {
         this.setBubbleManager(new BubbleManager($bubbleContainer));
         this.setRenderer(new Renderer(this, canvas, background, foreground));
         this.setChatInput(input);
-    },
-    
-    setStorage: function(storage) {
+    }
+
+    setStorage(storage) {
         this.storage = storage;
-    },
+    }
 
-    setRenderer: function(renderer) {
+    setRenderer(renderer) {
         this.renderer = renderer;
-    },
+    }
 
-    setUpdater: function(updater) {
+    setUpdater(updater) {
         this.updater = updater;
-    },
+    }
 
-    setPathfinder: function(pathfinder) {
+    setPathfinder(pathfinder) {
         this.pathfinder = pathfinder;
-    },
+    }
 
-    setChatInput: function(element) {
+    setChatInput(element) {
         this.chatinput = element;
-    },
+    }
 
-    setBubbleManager: function(bubbleManager) {
+    setBubbleManager(bubbleManager) {
         this.bubbleManager = bubbleManager;
-    },
+    }
 
-    loadMap: function() {
+    loadMap() {
         var self = this;
 
         this.map = new Map(!this.renderer.upscaledRendering, this);
@@ -131,9 +132,9 @@ var Game = Class.extend({
             var tilesetIndex = self.renderer.upscaledRendering ? 0 : self.renderer.scale - 1;
             self.renderer.setTileset(self.map.tilesets[tilesetIndex]);
         });
-    },
+    }
 
-    initPlayer: function() {
+    initPlayer() {
         if(this.storage.hasAlreadyPlayed() && this.storage.data.player) {
             if(this.storage.data.player.armor && this.storage.data.player.weapon) {
                 this.player.setSpriteName(this.storage.data.player.armor);
@@ -145,39 +146,39 @@ var Game = Class.extend({
         this.player.idle();
     
         log.debug("Finished initPlayer");
-    },
+    }
 
-    initShadows: function() {
+    initShadows() {
         this.shadows = {};
         this.shadows["small"] = this.sprites["shadow16"];
-    },
+    }
 
-    initCursors: function() {
+    initCursors() {
         this.cursors["hand"] = this.sprites["hand"];
         this.cursors["sword"] = this.sprites["sword"];
         this.cursors["loot"] = this.sprites["loot"];
         this.cursors["target"] = this.sprites["target"];
         this.cursors["arrow"] = this.sprites["arrow"];
         this.cursors["talk"] = this.sprites["talk"];
-    },
+    }
 
-    initAnimations: function() {
+    initAnimations() {
         this.targetAnimation = new Animation("idle_down", 4, 0, 16, 16);
         this.targetAnimation.setSpeed(50);
     
         this.sparksAnimation = new Animation("idle_down", 6, 0, 16, 16);
         this.sparksAnimation.setSpeed(120);
-    },
+    }
 
-    initHurtSprites: function() {
+    initHurtSprites() {
         var self = this;
     
         Types.forEachArmorKind(function(kind, kindName) {
             self.sprites[kindName].createHurtSprite();
         });
-    },
+    }
 
-    initSilhouettes: function() {
+    initSilhouettes() {
         var self = this;
 
         Types.forEachMobOrNpcKind(function(kind, kindName) {
@@ -185,9 +186,9 @@ var Game = Class.extend({
         });
         self.sprites["chest"].createSilhouette();
         self.sprites["item-cake"].createSilhouette();
-    },
+    }
 
-    initAchievements: function() {
+    initAchievements() {
         var self = this;
     
         this.achievements = {
@@ -326,9 +327,9 @@ var Game = Class.extend({
         if(this.storage.hasAlreadyPlayed()) {
             this.app.initUnlockedAchievements(this.storage.data.achievements.unlocked);
         }
-    },
+    }
 
-    getAchievementById: function(id) {
+    getAchievementById(id) {
         var found = null;
         Object.keys(this.achievements).forEach(function(key) {
             var achievement = this.achievements[key];
@@ -337,25 +338,32 @@ var Game = Class.extend({
             }
         }, this);
         return found;
-    },
+    }
 
-    loadSprite: function(name) {
-        if(this.renderer.upscaledRendering) {
-            this.spritesets[0][name] = new Sprite(name, 1);
-        } else {
-            this.spritesets[1][name] = new Sprite(name, 2);
-            if(!this.renderer.mobile && !this.renderer.tablet) {
-                this.spritesets[2][name] = new Sprite(name, 3);
-            }
+    loadSpriteForScale(name, scale) {
+        var index = scale - 1;
+
+        if(!this.spritesets[index]) {
+            this.spritesets[index] = {};
         }
-    },
+        if(!this.spritesets[index][name]) {
+            this.spritesets[index][name] = new Sprite(name, scale);
+        }
+    }
 
-    setSpriteScale: function(scale) {
+    loadSpriteScale(scale) {
+        this.spriteNames.forEach(function(name) {
+            this.loadSpriteForScale(name, scale);
+        }, this);
+    }
+
+    setSpriteScale(scale) {
         var self = this;
         
         if(this.renderer.upscaledRendering) {
             this.sprites = this.spritesets[0];
         } else {
+            this.loadSpriteScale(scale);
             this.sprites = this.spritesets[scale - 1];
             
             Object.keys(this.entities).forEach(function(id) {
@@ -367,34 +375,38 @@ var Game = Class.extend({
             this.initShadows();
             this.initCursors();
         }
-    },
+    }
 
-    loadSprites: function() {
+    loadSprites() {
         log.info("Loading sprites...");
         this.spritesets = [];
         this.spritesets[0] = {};
         this.spritesets[1] = {};
         this.spritesets[2] = {};
-        this.spriteNames.forEach(this.loadSprite, this);
-    },
+        if(this.renderer.upscaledRendering) {
+            this.loadSpriteScale(1);
+            return;
+        }
+        this.loadSpriteScale(this.renderer.scale);
+    }
 
-    spritesLoaded: function() {
+    spritesLoaded() {
         if(Object.keys(this.sprites).some(function(name) { return !this.sprites[name].isLoaded; }, this)) {
             return false;
         }
         return true;
-    },
+    }
 
-    setCursor: function(name, orientation) {
+    setCursor(name, orientation) {
         if(name in this.cursors) {
             this.currentCursor = this.cursors[name];
             this.currentCursorOrientation = orientation;
         } else {
             log.error("Unknown cursor name :"+name);
         }
-    },
+    }
 
-    updateCursorLogic: function() {
+    updateCursorLogic() {
         if(this.hoveringCollidingTile && this.started) {
             this.targetColor = "rgba(255, 50, 50, 0.5)";
         }
@@ -422,13 +434,13 @@ var Game = Class.extend({
             this.hoveringTarget = false;
             this.targetCellVisible = true;
         }
-    },
+    }
 
-    focusPlayer: function() {
+    focusPlayer() {
         this.renderer.camera.lookAt(this.player);
-    },
+    }
 
-    addEntity: function(entity) {
+    addEntity(entity) {
         var self = this;
         
         if(this.entities[entity.id] === undefined) {
@@ -452,9 +464,9 @@ var Game = Class.extend({
         else {
             log.error("This entity already exists : " + entity.id + " ("+entity.kind+")");
         }
-    },
+    }
 
-    removeEntity: function(entity) {
+    removeEntity(entity) {
         if(entity.id in this.entities) {
             this.unregisterEntityPosition(entity);
             delete this.entities[entity.id];
@@ -462,16 +474,16 @@ var Game = Class.extend({
         else {
             log.error("Cannot remove entity. Unknown ID : " + entity.id);
         }
-    },
+    }
 
-    addItem: function(item, x, y) {
+    addItem(item, x, y) {
         item.setSprite(this.sprites[item.getSpriteName()]);
         item.setGridPosition(x, y);
         item.setAnimation("idle", 150);
         this.addEntity(item);
-    },
+    }
 
-    removeItem: function(item) {
+    removeItem(item) {
         if(item) {
             this.removeFromItemGrid(item, item.gridX, item.gridY);
             this.removeFromRenderingGrid(item, item.gridX, item.gridY);
@@ -479,9 +491,9 @@ var Game = Class.extend({
         } else {
             log.error("Cannot remove item. Unknown ID : " + item.id);
         }
-    },
+    }
 
-    initPathingGrid: function() {
+    initPathingGrid() {
         this.pathingGrid = [];
         for(var i=0; i < this.map.height; i += 1) {
             this.pathingGrid[i] = [];
@@ -490,9 +502,9 @@ var Game = Class.extend({
             }
         }
         log.info("Initialized the pathing grid with static colliding cells.");
-    },
+    }
 
-    initEntityGrid: function() {
+    initEntityGrid() {
         this.entityGrid = [];
         for(var i=0; i < this.map.height; i += 1) {
             this.entityGrid[i] = [];
@@ -501,9 +513,9 @@ var Game = Class.extend({
             }
         }
         log.info("Initialized the entity grid.");
-    },
+    }
 
-    initRenderingGrid: function() {
+    initRenderingGrid() {
         this.renderingGrid = [];
         for(var i=0; i < this.map.height; i += 1) {
             this.renderingGrid[i] = [];
@@ -512,9 +524,9 @@ var Game = Class.extend({
             }
         }
         log.info("Initialized the rendering grid.");
-    },
+    }
 
-    initItemGrid: function() {
+    initItemGrid() {
         this.itemGrid = [];
         for(var i=0; i < this.map.height; i += 1) {
             this.itemGrid[i] = [];
@@ -523,12 +535,12 @@ var Game = Class.extend({
             }
         }
         log.info("Initialized the item grid.");
-    },
+    }
 
     /**
      * 
      */
-    initAnimatedTiles: function() {
+    initAnimatedTiles() {
         var self = this,
             m = this.map;
 
@@ -544,44 +556,44 @@ var Game = Class.extend({
             }
         }, 1);
         //log.info("Initialized animated tiles.");
-    },
+    }
 
-    addToRenderingGrid: function(entity, x, y) {
+    addToRenderingGrid(entity, x, y) {
         if(!this.map.isOutOfBounds(x, y)) {
             this.renderingGrid[y][x][entity.id] = entity;
         }
-    },
+    }
 
-    removeFromRenderingGrid: function(entity, x, y) {
+    removeFromRenderingGrid(entity, x, y) {
         if(entity && this.renderingGrid[y][x] && entity.id in this.renderingGrid[y][x]) {
             delete this.renderingGrid[y][x][entity.id];
         }
-    },
+    }
 
-    removeFromEntityGrid: function(entity, x, y) {
+    removeFromEntityGrid(entity, x, y) {
         if(this.entityGrid[y][x][entity.id]) {
             delete this.entityGrid[y][x][entity.id];
         }
-    },
-    
-    removeFromItemGrid: function(item, x, y) {
+    }
+
+    removeFromItemGrid(item, x, y) {
         if(item && this.itemGrid[y][x][item.id]) {
             delete this.itemGrid[y][x][item.id];
         }
-    },
+    }
 
-    removeFromPathingGrid: function(x, y) {
+    removeFromPathingGrid(x, y) {
         this.pathingGrid[y][x] = 0;
-    },
+    }
 
     /**
      * Registers the entity at two adjacent positions on the grid at the same time.
      * This situation is temporary and should only occur when the entity is moving.
      * This is useful for the hit testing algorithm used when hovering entities with the mouse cursor.
      *
-     * @param {Entity} entity The moving entity
+     * @param {Character} entity The moving entity
      */
-    registerEntityDualPosition: function(entity) {
+    registerEntityDualPosition(entity) {
         if(entity) {
             this.entityGrid[entity.gridY][entity.gridX][entity.id] = entity;
         
@@ -594,14 +606,14 @@ var Game = Class.extend({
                 }
             }
         }
-    },
+    }
 
     /**
      * Clears the position(s) of this entity in the entity grid.
      *
-     * @param {Entity} entity The moving entity
+     * @param {Character} entity The moving entity
      */
-    unregisterEntityPosition: function(entity) {
+    unregisterEntityPosition(entity) {
         if(entity) {
             this.removeFromEntityGrid(entity, entity.gridX, entity.gridY);
             this.removeFromPathingGrid(entity.gridX, entity.gridY);
@@ -613,9 +625,9 @@ var Game = Class.extend({
                 this.removeFromPathingGrid(entity.nextGridX, entity.nextGridY);
             }
         }
-    },
+    }
 
-    registerEntityPosition: function(entity) {
+    registerEntityPosition(entity) {
         var x = entity.gridX,
             y = entity.gridY;
     
@@ -632,26 +644,26 @@ var Game = Class.extend({
         
             this.addToRenderingGrid(entity, x, y);
         }
-    },
+    }
 
-    setServerOptions: function(host, port, username) {
+    setServerOptions(host, port, username) {
         this.host = host;
         this.port = port;
         this.username = username;
-    },
+    }
 
-    loadAudio: function() {
+    loadAudio() {
         this.audioManager = new AudioManager(this);
-    },
+    }
 
-    initMusicAreas: function() {
+    initMusicAreas() {
         var self = this;
         this.map.musicAreas.forEach(function(area) {
             self.audioManager.addArea(area.x, area.y, area.w, area.h, area.id);
         });
-    },
+    }
 
-    run: function(started_callback) {
+    run(started_callback) {
         var self = this;
     
         this.loadSprites();
@@ -695,9 +707,9 @@ var Game = Class.extend({
                 clearInterval(wait);
             }
         }, 100);
-    },
+    }
 
-    tick: function() {
+    tick() {
         this.currentTime = new Date().getTime();
 
         if(this.started) {
@@ -709,33 +721,33 @@ var Game = Class.extend({
         if(!this.isStopped) {
             requestAnimFrame(this.tick.bind(this));
         }
-    },
+    }
 
-    start: function() {
+    start() {
         this.tick();
         this.hasNeverStarted = false;
         log.info("Game loop started.");
-    },
+    }
 
-    stop: function() {
+    stop() {
         log.info("Game stopped.");
         this.isStopped = true;
-    },
+    }
 
-    entityIdExists: function(id) {
+    entityIdExists(id) {
         return id in this.entities;
-    },
+    }
 
-    getEntityById: function(id) {
+    getEntityById(id) {
         if(id in this.entities) {
             return this.entities[id];
         }
         else {
             log.error("Unknown entity id : " + id, true);
         }
-    },
+    }
 
-    connect: function(started_callback) {
+    connect(started_callback) {
         var self = this,
             connecting = false; // always in dispatcher mode in the build version
 
@@ -769,7 +781,7 @@ var Game = Class.extend({
             self.player.name = self.username;
             self.started = true;
         
-            self.sendHello(self.player);
+            self.sendHello();
         });
     
         this.client.onEntityList(function(list) {
@@ -1105,7 +1117,7 @@ var Game = Class.extend({
                 chest.setSprite(self.sprites[chest.getSpriteName()]);
                 chest.setGridPosition(x, y);
                 chest.setAnimation("idle_down", 150);
-                self.addEntity(chest, x, y);
+                self.addEntity(chest);
             
                 chest.onOpen(function() {
                     chest.stopBlinking();
@@ -1291,8 +1303,7 @@ var Game = Class.extend({
             });
         
             self.client.onItemBlink(function(id) {
-                var item = self.getEntityById(id);
-
+                var item = self.entities[id];
                 if(item) {
                     item.blink(150);
                 }
@@ -1515,16 +1526,16 @@ var Game = Class.extend({
                 started_callback();
             }
         });
-    },
+    }
 
     /**
      * Links two entities in an attacker<-->target relationship.
      * This is just a utility method to wrap a set of instructions.
      *
-     * @param {Entity} attacker The attacker entity
-     * @param {Entity} target The target entity
+     * @param {Character} attacker The attacker entity
+     * @param {Character} target The target entity
      */
-    createAttackLink: function(attacker, target) {
+    createAttackLink(attacker, target) {
         if(attacker.hasTarget()) {
             attacker.removeTarget();
         }
@@ -1533,21 +1544,21 @@ var Game = Class.extend({
         if(attacker.id !== this.playerId) {
             target.addAttacker(attacker);
         }
-    },
+    }
 
     /**
      * Sends a "hello" message to the server, as a way of initiating the player connection handshake.
      * @see GameClient.sendHello
      */
-    sendHello: function() {
+    sendHello() {
         this.client.sendHello(this.player);
-    },
+    }
 
     /**
      * Converts the current mouse position on the screen to world grid coordinates.
      * @returns {Object} An object containing x and y properties.
      */
-    getMouseGridPosition: function() {
+    getMouseGridPosition() {
         var mx = this.mouse.x,
             my = this.mouse.y,
             c = this.renderer.camera,
@@ -1559,7 +1570,7 @@ var Game = Class.extend({
             y = ((my - offsetY) / (ts * s)) + c.gridY;
     
             return { x: x, y: y };
-    },
+    }
 
     /**
      * Moves a character to a given location on the world grid.
@@ -1567,16 +1578,16 @@ var Game = Class.extend({
      * @param {Number} x The x coordinate of the target location.
      * @param {Number} y The y coordinate of the target location.
      */
-    makeCharacterGoTo: function(character, x, y) {
+    makeCharacterGoTo(character, x, y) {
         if(!this.map.isOutOfBounds(x, y)) {
             character.go(x, y);
         }
-    },
+    }
 
     /**
      *
      */
-    makeCharacterTeleportTo: function(character, x, y) {
+    makeCharacterTeleportTo(character, x, y) {
         if(!this.map.isOutOfBounds(x, y)) {
             this.unregisterEntityPosition(character);
 
@@ -1587,57 +1598,57 @@ var Game = Class.extend({
         } else {
             log.debug("Teleport out of bounds: "+x+", "+y);
         }
-    },
+    }
 
     /**
      * Moves the current player to a given target location.
      * @see makeCharacterGoTo
      */
-    makePlayerGoTo: function(x, y) {
+    makePlayerGoTo(x, y) {
         this.makeCharacterGoTo(this.player, x, y);
-    },
+    }
 
     /**
      * Moves the current player towards a specific item.
      * @see makeCharacterGoTo
      */
-    makePlayerGoToItem: function(item) {
+    makePlayerGoToItem(item) {
         if(item) {
             this.player.isLootMoving = true;
             this.makePlayerGoTo(item.gridX, item.gridY);
             this.client.sendLootMove(item, item.gridX, item.gridY);
         }
-    },
+    }
 
     /**
      *
      */
-    makePlayerTalkTo: function(npc) {
+    makePlayerTalkTo(npc) {
         if(npc) {
             this.player.setTarget(npc);
             this.player.follow(npc);
         }
-    },
+    }
 
-    makePlayerOpenChest: function(chest) {
+    makePlayerOpenChest(chest) {
         if(chest) {
             this.player.setTarget(chest);
             this.player.follow(chest);
         }
-    },
+    }
 
     /**
      * 
      */
-    makePlayerAttack: function(mob) {
+    makePlayerAttack(mob) {
         this.createAttackLink(this.player, mob);
         this.client.sendAttack(mob);
-    },
+    }
 
     /**
      *
      */
-    makeNpcTalk: function(npc) {
+    makeNpcTalk(npc) {
         var msg;
     
         if(npc) {
@@ -1657,37 +1668,37 @@ var Game = Class.extend({
                 this.tryUnlockingAchievement("RICKROLLD");
             }
         }
-    },
+    }
 
     /**
      * Loops through all the entities currently present in the game.
      * @param {Function} callback The function to call back (must accept one entity argument).
      */
-    forEachEntity: function(callback) {
+    forEachEntity(callback) {
         Object.keys(this.entities).forEach(function(id) {
             callback(this.entities[id]);
         }, this);
-    },
+    }
 
     /**
      * Same as forEachEntity but only for instances of the Mob subclass.
      * @see forEachEntity
      */
-    forEachMob: function(callback) {
+    forEachMob(callback) {
         Object.keys(this.entities).forEach(function(id) {
             var entity = this.entities[id];
             if(entity instanceof Mob) {
                 callback(entity);
             }
         }, this);
-    },
+    }
 
     /**
      * Loops through all entities visible by the camera and sorted by depth :
      * Lower 'y' value means higher depth.
      * Note: This is used by the Renderer to know in which order to render entities.
      */
-    forEachVisibleEntityByDepth: function(callback) {
+    forEachVisibleEntityByDepth(callback) {
         var self = this,
             m = this.map;
     
@@ -1701,12 +1712,12 @@ var Game = Class.extend({
                 }
             }
         }, this.renderer.mobile ? 0 : 2);
-    },
+    }
 
     /**
      * 
      */    
-    forEachVisibleTileIndex: function(callback, extra) {
+    forEachVisibleTileIndex(callback, extra) {
         var m = this.map;
     
         this.camera.forEachVisiblePosition(function(x, y) {
@@ -1714,12 +1725,12 @@ var Game = Class.extend({
                 callback(m.GridPositionToTileIndex(x, y) - 1);
             }
         }, extra);
-    },
+    }
 
     /**
      * 
      */
-    forEachVisibleTile: function(callback, extra) {
+    forEachVisibleTile(callback, extra) {
         var self = this,
             m = this.map;
     
@@ -1739,24 +1750,24 @@ var Game = Class.extend({
                 }
             }, extra);
         }
-    },
+    }
 
     /**
      * 
      */
-    forEachAnimatedTile: function(callback) {
+    forEachAnimatedTile(callback) {
         if(this.animatedTiles) {
             this.animatedTiles.forEach(function(tile) {
                 callback(tile);
             });
         }
-    },
+    }
 
     /**
      * Returns the entity located at the given position on the world grid.
-     * @returns {Entity} the entity located at (x, y) or null if there is none.
+     * @returns {import('entity').default | null} the entity located at (x, y) or null if there is none.
      */
-    getEntityAt: function(x, y) {
+    getEntityAt(x, y) {
         if(this.map.isOutOfBounds(x, y) || !this.entityGrid) {
             return null;
         }
@@ -1769,33 +1780,33 @@ var Game = Class.extend({
             entity = this.getItemAt(x, y);
         }
         return entity;
-    },
+    }
 
-    getMobAt: function(x, y) {
+    getMobAt(x, y) {
         var entity = this.getEntityAt(x, y);
         if(entity && (entity instanceof Mob)) {
             return entity;
         }
         return null;
-    },
+    }
 
-    getNpcAt: function(x, y) {
+    getNpcAt(x, y) {
         var entity = this.getEntityAt(x, y);
         if(entity && (entity instanceof Npc)) {
             return entity;
         }
         return null;
-    },
+    }
 
-    getChestAt: function(x, y) {
+    getChestAt(x, y) {
         var entity = this.getEntityAt(x, y);
         if(entity && (entity instanceof Chest)) {
             return entity;
         }
         return null;
-    },
+    }
 
-    getItemAt: function(x, y) {
+    getItemAt(x, y) {
         if(this.map.isOutOfBounds(x, y) || !this.itemGrid) {
             return null;
         }
@@ -1817,37 +1828,37 @@ var Game = Class.extend({
             }
         }
         return item;
-    },
+    }
 
     /**
      * Returns true if an entity is located at the given position on the world grid.
      * @returns {Boolean} Whether an entity is at (x, y).
      */
-    isEntityAt: function(x, y) {
+    isEntityAt(x, y) {
         return this.getEntityAt(x, y) !== null;
-    },
+    }
 
-    isMobAt: function(x, y) {
+    isMobAt(x, y) {
         return this.getMobAt(x, y) !== null;
-    },
+    }
 
-    isItemAt: function(x, y) {
+    isItemAt(x, y) {
         return this.getItemAt(x, y) !== null;
-    },
+    }
 
-    isNpcAt: function(x, y) {
+    isNpcAt(x, y) {
         return this.getNpcAt(x, y) !== null;
-    },
+    }
 
-    isChestAt: function(x, y) {
+    isChestAt(x, y) {
         return this.getChestAt(x, y) !== null;
-    },
+    }
 
     /**
      * Finds a path to a grid position for the specified character.
      * The path will pass through any entity present in the ignore list.
      */
-    findPath: function(character, x, y, ignoreList) {
+    findPath(character, x, y, ignoreList) {
         var self = this,
             grid = this.pathingGrid,
             path = [];
@@ -1872,34 +1883,34 @@ var Game = Class.extend({
             log.error("Error while finding the path to "+x+", "+y+" for "+character.id);
         }
         return path;
-    },
+    }
 
     /**
      * Toggles the visibility of the pathing grid for debugging purposes.
      */
-    togglePathingGrid: function() {
+    togglePathingGrid() {
         if(this.debugPathing) {
             this.debugPathing = false;
         } else {
             this.debugPathing = true;
         }
-    },
+    }
 
     /**
      * Toggles the visibility of the FPS counter and other debugging info.
      */
-    toggleDebugInfo: function() {
+    toggleDebugInfo() {
         if(this.renderer && this.renderer.isDebugInfoVisible) {
             this.renderer.isDebugInfoVisible = false;
         } else {
             this.renderer.isDebugInfoVisible = true;
         }
-    },
+    }
 
     /**
      * 
      */
-    movecursor: function() {
+    movecursor() {
         var mouse = this.getMouseGridPosition(),
             x = mouse.x,
             y = mouse.y;
@@ -1928,12 +1939,12 @@ var Game = Class.extend({
                 this.lastHovered = null;
             }
         }
-    },
+    }
 
     /**
      * Processes game logic when the user triggers a click/touch event during the game.
      */
-    click: function() {
+    click() {
         var pos = this.getMouseGridPosition(),
             entity;
         
@@ -1973,9 +1984,9 @@ var Game = Class.extend({
                 this.makePlayerGoTo(pos.x, pos.y);
             }
         }
-    },
-    
-    isMobOnSameTile: function(mob, x, y) {
+    }
+
+    isMobOnSameTile(mob, x, y) {
         var X = x || mob.gridX,
             Y = y || mob.gridY,
             list = this.entityGrid[Y][X],
@@ -1992,9 +2003,9 @@ var Game = Class.extend({
             }
         });
         return result;
-    },
-    
-    getFreeAdjacentNonDiagonalPosition: function(entity) {
+    }
+
+    getFreeAdjacentNonDiagonalPosition(entity) {
         var self = this,
             result = null;
         
@@ -2004,9 +2015,9 @@ var Game = Class.extend({
             }
         });
         return result;
-    },
-    
-    tryMovingToADifferentTile: function(character) {
+    }
+
+    tryMovingToADifferentTile(character) {
         var attacker = character,
             target = character.target;
         
@@ -2057,12 +2068,12 @@ var Game = Class.extend({
             }
         }
         return false;
-    },
+    }
 
     /**
      * 
      */
-    onCharacterUpdate: function(character) {
+    onCharacterUpdate(character) {
         var time = this.currentTime,
             self = this;
         
@@ -2109,12 +2120,12 @@ var Game = Class.extend({
                 }
             }
         }
-    },
+    }
 
     /**
      * 
      */
-    isZoningTile: function(x, y) {
+    isZoningTile(x, y) {
         var c = this.camera;
     
         x = x - c.gridX;
@@ -2124,13 +2135,13 @@ var Game = Class.extend({
             return true;
         }
         return false;
-    },
+    }
 
     /**
      * 
      */
-    getZoningOrientation: function(x, y) {
-        var orientation = "",
+    getZoningOrientation(x, y) {
+        var orientation = Types.Orientations.DOWN,
             c = this.camera;
 
         x = x - c.gridX;
@@ -2150,9 +2161,9 @@ var Game = Class.extend({
         }
     
         return orientation;
-    },
+    }
 
-    startZoningFrom: function(x, y) {
+    startZoningFrom(x, y) {
         this.zoningOrientation = this.getZoningOrientation(x, y);
     
         if(this.renderer.mobile || this.renderer.tablet) {
@@ -2184,17 +2195,17 @@ var Game = Class.extend({
         }
         this.bubbleManager.clean();
         this.client.sendZone();
-    },
-    
-    enqueueZoningFrom: function(x, y) {
+    }
+
+    enqueueZoningFrom(x, y) {
         this.zoningQueue.push({x: x, y: y});
         
         if(this.zoningQueue.length === 1) {
             this.startZoningFrom(x, y);
         }
-    },
+    }
 
-    endZoning: function() {
+    endZoning() {
         this.currentZoning = null;
         this.resetZone();
         this.zoningQueue.shift();
@@ -2203,43 +2214,43 @@ var Game = Class.extend({
             var pos = this.zoningQueue[0];
             this.startZoningFrom(pos.x, pos.y);
         }
-    },
+    }
 
-    isZoning: function() {
+    isZoning() {
         return this.currentZoning !== null;
-    },
+    }
 
-    resetZone: function() {
+    resetZone() {
         this.bubbleManager.clean();
         this.initAnimatedTiles();
         this.renderer.renderStaticCanvases();
-    },
+    }
 
-    resetCamera: function() {
+    resetCamera() {
         this.camera.focusEntity(this.player);
         this.resetZone();
-    },
+    }
 
-    say: function(message) {
+    say(message) {
         this.client.sendChat(message);
-    },
+    }
 
-    createBubble: function(id, message) {
+    createBubble(id, message) {
         this.bubbleManager.create(id, message, this.currentTime);
-    },
+    }
 
-    destroyBubble: function(id) {
+    destroyBubble(id) {
         this.bubbleManager.destroyBubble(id);
-    },
+    }
 
-    assignBubbleTo: function(character) {
+    assignBubbleTo(character) {
         var bubble = this.bubbleManager.getBubbleById(character.id);
     
-        if(bubble) {
+        if(bubble && bubble.element) {
             var s = this.renderer.scale,
                 t = 16 * s, // tile size
                 x = ((character.x - this.camera.x) * s),
-                w = parseInt(bubble.element.css('width')) + 24,
+                w = ((bubble.element.offsetWidth || 0) + 24),
                 offset = (w / 2) - (t / 2),
                 offsetY,
                 y;
@@ -2260,12 +2271,12 @@ var Game = Class.extend({
         
             y = ((character.y - this.camera.y) * s) - (t * 2) - offsetY;
         
-            bubble.element.css('left', x - offset + 'px');
-            bubble.element.css('top', y + 'px');
+            bubble.element.style.left = (x - offset) + 'px';
+            bubble.element.style.top = y + 'px';
         }
-    },
+    }
 
-    restart: function() {
+    restart() {
         log.debug("Beginning restart");
     
         this.entities = {};
@@ -2278,7 +2289,7 @@ var Game = Class.extend({
     
         this.started = true;
         this.client.enable();
-        this.sendHello(this.player);
+        this.sendHello();
     
         this.storage.incrementRevives();
         
@@ -2287,45 +2298,45 @@ var Game = Class.extend({
         }
     
         log.debug("Finished restart");
-    },
+    }
 
-    onGameStart: function(callback) {
+    onGameStart(callback) {
         this.gamestart_callback = callback;
-    },
-    
-    onDisconnect: function(callback) {
+    }
+
+    onDisconnect(callback) {
         this.disconnect_callback = callback;
-    },
+    }
 
-    onPlayerDeath: function(callback) {
+    onPlayerDeath(callback) {
         this.playerdeath_callback = callback;
-    },
+    }
 
-    onPlayerHealthChange: function(callback) {
+    onPlayerHealthChange(callback) {
         this.playerhp_callback = callback;
-    },
+    }
 
-    onPlayerHurt: function(callback) {
+    onPlayerHurt(callback) {
         this.playerhurt_callback = callback;
-    },
+    }
 
-    onPlayerEquipmentChange: function(callback) {
+    onPlayerEquipmentChange(callback) {
         this.equipment_callback = callback;
-    },
+    }
 
-    onNbPlayersChange: function(callback) {
+    onNbPlayersChange(callback) {
         this.nbplayers_callback = callback;
-    },
+    }
 
-    onNotification: function(callback) {
+    onNotification(callback) {
         this.notification_callback = callback;
-    },
+    }
 
-    onPlayerInvincible: function(callback) {
+    onPlayerInvincible(callback) {
         this.invincible_callback = callback
-    },
+    }
 
-    resize: function() {
+    resize() {
         var x = this.camera.x,
             y = this.camera.y,
             currentScale = this.renderer.scale,
@@ -2336,15 +2347,15 @@ var Game = Class.extend({
             this.camera.setPosition(x, y);
 
             this.renderer.renderStaticCanvases();
-    },
+    }
 
-    updateBars: function() {
+    updateBars() {
         if(this.player && this.playerhp_callback) {
             this.playerhp_callback(this.player.hitPoints, this.player.maxHitPoints);
         }
-    },
+    }
 
-    getDeadMobPosition: function(mobId) {
+    getDeadMobPosition(mobId) {
         var position;
 
         if(mobId in this.deathpositions) {
@@ -2353,13 +2364,13 @@ var Game = Class.extend({
         }
     
         return position;
-    },
+    }
 
-    onAchievementUnlock: function(callback) {
+    onAchievementUnlock(callback) {
         this.unlock_callback = callback;
-    },
+    }
 
-    tryUnlockingAchievement: function(name) {
+    tryUnlockingAchievement(name) {
         var achievement = null;
         if(name in this.achievements) {
             achievement = this.achievements[name];
@@ -2371,15 +2382,15 @@ var Game = Class.extend({
                 }
             }
         }
-    },
+    }
 
-    showNotification: function(message) {
+    showNotification(message) {
         if(this.notification_callback) {
             this.notification_callback(message);
         }
-    },
+    }
 
-    removeObsoleteEntities: function() {
+    removeObsoleteEntities() {
         var obsoleteEntities = this.obsoleteEntities || [],
             nb = obsoleteEntities.length,
             self = this;
@@ -2397,7 +2408,7 @@ var Game = Class.extend({
             }));
             this.obsoleteEntities = null;
         }
-    },
+    }
 
     /**
      * Fake a mouse move event in order to update the cursor.
@@ -2405,23 +2416,23 @@ var Game = Class.extend({
      * For instance, to get rid of the sword cursor in case the mouse is still hovering over a dying mob.
      * Also useful when the mouse is hovering a tile where an item is appearing.
      */
-    updateCursor: function() {
+    updateCursor() {
         this.movecursor();
         this.updateCursorLogic();
-    },
+    }
 
     /**
      * Change player plateau mode when necessary
      */
-    updatePlateauMode: function() {
+    updatePlateauMode() {
         if(this.map.isPlateau(this.player.gridX, this.player.gridY)) {
             this.player.isOnPlateau = true;
         } else {
             this.player.isOnPlateau = false;
         }
-    },
+    }
 
-    updatePlayerCheckpoint: function() {
+    updatePlayerCheckpoint() {
         var checkpoint = this.map.getCurrentCheckpoint(this.player);
     
         if(checkpoint) {
@@ -2431,9 +2442,9 @@ var Game = Class.extend({
                 this.client.sendCheck(checkpoint.id);
             }
         }
-    },
-    
-    checkUndergroundAchievement: function() {
+    }
+
+    checkUndergroundAchievement() {
         var music = this.audioManager.getSurroundingMusic(this.player);
 
         if(music) {
@@ -2441,9 +2452,9 @@ var Game = Class.extend({
                 this.tryUnlockingAchievement("UNDERGROUND");
             }
         }
-    },
-    
-    forEachEntityAround: function(x, y, r, callback) {
+    }
+
+    forEachEntityAround(x, y, r, callback) {
         for(var i = x-r, max_i = x+r; i <= max_i; i += 1) {
             for(var j = y-r, max_j = y+r; j <= max_j; j += 1) {
                 if(!this.map.isOutOfBounds(i, j)) {
@@ -2456,9 +2467,9 @@ var Game = Class.extend({
                 }
             }
         }
-    },
-    
-    checkOtherDirtyRects: function(r1, source, x, y) {
+    }
+
+    checkOtherDirtyRects(r1, source, x, y) {
         var r = this.renderer;
         
         this.forEachEntityAround(x, y, 2, function(e2) {
@@ -2492,6 +2503,6 @@ var Game = Class.extend({
             }
         }
     }
-});
+}
 
 export default Game;

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": false,
+    "skipLibCheck": true,
+    "noEmitOnError": true,
+    "declaration": false,
+    "sourceMap": false,
+    "removeComments": false,
+    "outDir": ".tmp/ws-module"
+  },
+  "include": [
+    "server/js/ws.cts",
+    "server/js/ws-module-types.ts",
+    "server/js/ws-runtime-class-factory-types.ts"
+  ]
+}

@@ -16,7 +16,6 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
         emitProbeEvent: () => {
             // no-op
         },
-        requireWsCjs: () => ({ CLOSE_CODES: { NORMAL: 1000, UNSUPPORTED_DATA: 1003, INVALID_PAYLOAD: 1007 } }),
         importWsEsm: async () => ({ default: { id: 'ws-esm-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         startServer: (config, options) => {
@@ -53,7 +52,6 @@ test('startup runner passes undefined runtime options through to startServer whe
         emitProbeEvent: () => {
             // no-op
         },
-        requireWsCjs: () => ({ CLOSE_CODES: { NORMAL: 1000, UNSUPPORTED_DATA: 1003, INVALID_PAYLOAD: 1007 } }),
         importWsEsm: async () => ({ default: { id: 'ws-esm-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         startServer: (_, options) => {

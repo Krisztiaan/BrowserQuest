@@ -1,12 +1,16 @@
-var Log = require('./log'),
-    Types = require('../../shared/js/gametypes');
-var log = Log.getLogger();
+// AUTO-GENERATED from server/js/format.cts via bun run build:format.
+// Do not edit server/js/format.js directly.
 
-var isValidNumberParam = function (param) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Log = require('./log');
+const Types = require('../../shared/js/gametypes');
+const log = Log.getLogger();
+function isValidNumberParam(param) {
     return typeof param === 'number' && Number.isFinite(param) && Number.isSafeInteger(param);
-};
-
+}
 class FormatChecker {
+    formats;
     constructor() {
         this.formats = [];
         this.formats[Types.Messages.HELLO] = ['s', 'n', 'n'];
@@ -23,20 +27,16 @@ class FormatChecker {
         this.formats[Types.Messages.OPEN] = ['n'];
         this.formats[Types.Messages.CHECK] = ['n'];
     }
-
     check(msg) {
-        var message = msg.slice(0),
-            type = message[0],
-            format = this.formats[type];
-
+        const message = msg.slice(0);
+        const type = message[0];
+        const format = this.formats[type];
         message.shift();
-
         if (format) {
             if (message.length !== format.length) {
                 return false;
             }
-
-            for (var i = 0, n = message.length; i < n; i += 1) {
+            for (let i = 0; i < message.length; i += 1) {
                 if (format[i] === 'n' && !isValidNumberParam(message[i])) {
                     return false;
                 }
@@ -46,23 +46,13 @@ class FormatChecker {
             }
             return true;
         }
-
         if (type === Types.Messages.WHO) {
-            // WHO messages have a variable amount of params, all of which must be numbers.
-            return (
-                message.length > 0 &&
-                message.every(function (param) {
-                    return isValidNumberParam(param);
-                })
-            );
+            return message.length > 0 && message.every((param) => isValidNumberParam(param));
         }
-
         log.error('Unknown message type: ' + type);
         return false;
     }
 }
-
-var checker = new FormatChecker();
-
+const checker = new FormatChecker();
 exports.FormatChecker = FormatChecker;
 exports.check = checker.check.bind(checker);

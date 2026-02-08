@@ -3,8 +3,7 @@ import path from "node:path";
 const repoRoot = path.resolve(import.meta.dir, "..");
 const clientRoot = path.join(repoRoot, "client");
 const port = Number.parseInt(process.env.PORT ?? "3000", 10);
-const defaultEntry =
-  process.env.BQ_CLIENT_DEFAULT_ENTRY === "index.html" ? "index.html" : "modern.html";
+const defaultEntry = "modern.html";
 
 function safeJoin(root: string, urlPathname: string) {
   const decoded = decodeURIComponent(urlPathname);

@@ -82,7 +82,7 @@ Mozilla presents an HTML5 mini-MMORPG by Little Workshop http://www.littleworksh
                          <div id="character" class="disabled">
                              <div></div>
                          </div>
-                         <form action="none" method="get" accept-charset="utf-8">
+                         <form id="createcharacter-form" action="/" method="get" accept-charset="utf-8">
                              <label id="name-tooltip" for="player">Try to think of a cool nickname!</label>
                              <input type="text" id="nameinput" class="stroke" name="player-name" placeholder="Name your character" maxlength="15">
                          </form>
@@ -304,7 +304,7 @@ Mozilla presents an HTML5 mini-MMORPG by Little Workshop http://www.littleworksh
                     </div>
     			</div>
 				<div id="chatbox">
-				    <form action="none" method="get" accept-charset="utf-8">
+				    <form id="chat-form" action="/" method="get" accept-charset="utf-8">
 					    <input id="chatinput" class="gp placeholder" type="text" maxlength="60" placeholder="What do you want to say? (Remember to protect your privacy!)">
 				    </form>
 				</div>
@@ -351,9 +351,28 @@ Mozilla presents an HTML5 mini-MMORPG by Little Workshop http://www.littleworksh
         <img src="img/common/thingy.png" alt="" class="preload">
         
         <div id="resize-check"></div>
+        <script>
+          (function () {
+            if (window.BQ_LOCAL_CONFIG) return;
+
+            var host = window.location.hostname;
+            if (!host || host === "localhost" || host === "127.0.0.1") return;
+
+            var wsHost = host;
+            if (/^\d+\./.test(host)) {
+              wsHost = host.replace(/^\d+\./, "8000.");
+            }
+
+            window.BQ_LOCAL_CONFIG = {
+              host: wsHost,
+              port: window.location.protocol === "https:" ? 443 : 8000,
+              dispatcher: false
+            };
+          })();
+        </script>
         <script type="module" src="js-esm/preflight.js"></script>
         
         <!-- Modern ESM entry -->
-        <script type="module" src="js-esm/home.js"></script>
+        <script type="module" src="js-esm/home.ts"></script>
 	</body>
 </html>

@@ -26,7 +26,6 @@ class Logger {
 }
 
 const log = new Logger('debug');
-globalThis.log = log;
 
 export { Logger };
 export default log;

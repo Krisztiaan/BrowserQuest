@@ -1,7 +1,7 @@
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const MainRuntime = require('./main-runtime');
+import * as MainRuntimeModule from './main-runtime.js';
+const MainRuntime = /** @type {typeof import('./main-runtime')} */ (
+    'default' in MainRuntimeModule ? MainRuntimeModule.default : MainRuntimeModule
+);
 
 export const main = MainRuntime.main;
 export const getWorldDistribution = MainRuntime.getWorldDistribution;

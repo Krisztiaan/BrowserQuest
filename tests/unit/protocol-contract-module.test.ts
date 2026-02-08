@@ -7,7 +7,7 @@ import ProtocolEsm, {
 } from '../../shared/js/protocol-contract-esm.mjs';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const ProtocolCjs = require('../../shared/js/protocol-contract');
+const ProtocolCjs = require('../../shared/js/protocol-contract.js');
 
 test('shared protocol contract ESM bridge mirrors CJS exports', () => {
     expect(MSG_HELLO).toBe(ProtocolCjs.MSG_HELLO);

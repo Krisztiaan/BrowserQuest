@@ -1,6 +1,8 @@
 import Detect from 'compat/detect';
 import { supportsLocalStorage } from 'compat/features';
 
+const STORAGE_KEY = 'data';
+
 const canvas = document.querySelector('canvas');
 const parchment = document.getElementById('parchment');
 
@@ -10,7 +12,8 @@ if (!Detect.supportsWebSocket() && parchment) {
 
 if (canvas && canvas.getContext) {
     const ctx = canvas.getContext('2d');
-    if (ctx && ctx.mozImageSmoothingEnabled === undefined) {
+    const smoothingCtx = ctx;
+    if (smoothingCtx && smoothingCtx.mozImageSmoothingEnabled === undefined) {
         document.body.className += ' upscaled';
     }
 }
@@ -25,7 +28,7 @@ if (!supportsLocalStorage()) {
     if (target) {
         document.body.insertBefore(alert, target);
     }
-} else if (globalThis.localStorage && globalThis.localStorage.data) {
+} else if (globalThis.localStorage && globalThis.localStorage.getItem(STORAGE_KEY)) {
     document.body.className += ' returning';
     if (parchment) {
         parchment.className = 'loadcharacter';

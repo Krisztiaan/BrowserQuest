@@ -28,11 +28,18 @@ if (packageJson.type !== 'module') {
   fail(`expected package.json type to be "module" but got "${packageJson.type}"`);
 }
 
-for (const scriptName of ['verify:modern', 'verify:legacy']) {
-  const value = packageJson.scripts?.[scriptName];
-  if (typeof value !== 'string' || !value.includes('check:package-mode-boundaries')) {
-    fail(`script "${scriptName}" must include check:package-mode-boundaries`);
-  }
+const verifyModern = packageJson.scripts?.['verify:modern'];
+if (typeof verifyModern !== 'string' || !verifyModern.includes('check:package-mode-boundaries')) {
+  fail('script "verify:modern" must include check:package-mode-boundaries');
+}
+
+const verifyLegacy = packageJson.scripts?.['verify:legacy'];
+if (typeof verifyLegacy !== 'string') {
+  fail('missing script "verify:legacy"');
+}
+const legacyRetired = verifyLegacy.includes('tools/legacy-retired.cjs');
+if (!legacyRetired && !verifyLegacy.includes('check:package-mode-boundaries')) {
+  fail('script "verify:legacy" must include check:package-mode-boundaries unless legacy is explicitly retired');
 }
 
 if (!fs.existsSync(rWrapperPath)) {

@@ -4632,6 +4632,1768 @@ Only after Phase 2, introduce TS gradually:
   - Next action:
     - Start `T-290` client ESM native-class migration wave 7 (renderer).
 
+- 2026-02-08 09:45:00Z
+  - Status: `in_progress` -> `done` (T-290)
+  - Actions:
+    - Migrated renderer module from `Class.extend` to native class syntax:
+      - `client/js-esm/renderer.js`
+    - Preserved render loop behavior and drawing helpers while removing `compat/class` dependency.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-291` client ESM native-class migration wave 8 (remaining base modules + inheritance chain).
+
+- 2026-02-07 23:26:35Z
+  - Status: `in_progress` -> `done` (T-291, T-292)
+  - Actions:
+    - Completed native-class migration for the remaining modern ESM inheritance/base modules:
+      - `client/js-esm/{entity,character,player,mob,npc,item,chest,warrior,game,sprite,infomanager,exceptions}.js`
+      - `client/js-esm/{items,mobs,npcs}.js` family constructor maps converted to explicit class constructors.
+    - Replaced legacy `_super(...)` calls with native `super(...)` and preserved subclass behavior overrides.
+    - Removed final modern boot compatibility hook for legacy class emulation:
+      - Dropped `client/js-esm/bootstrap.js` side-effect import of `compat/class.js`.
+      - Deleted `client/js-esm/compat/class.js`.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `rg -n "Class\\.extend|\\.extend\\(|_super|compat/class" client/js-esm -S` returned no matches.
+  - Next action:
+    - Start `T-293` TypeScript-first client boundary expansion (protocol/gameplay seam typing) while keeping current runtime parity gates green.
+
+- 2026-02-07 23:36:59Z
+  - Status: `in_progress` -> `done` (T-293)
+  - Actions:
+    - Added typed client protocol payload boundary helper:
+      - `client/js-esm/protocol-payload.js` (`isProtocolAction`, `normalizeProtocolActionBatch`).
+    - Routed `client/js-esm/gameclient.js` websocket payload normalization through the helper and added `receiveSpawnBatch` handling.
+    - Added client boundary TypeScript contracts:
+      - `client/js-esm/client-boundary-types.ts`.
+    - Added seam coverage and type-consumer tests:
+      - `tests/unit/client-boundary-types.test.ts`.
+    - Wired client boundary typing into project typecheck gates:
+      - `tsconfig.typecheck-client.json`
+      - `package.json` `typecheck` / `typecheck:client` scripts
+      - `tsconfig.typecheck-runtime.json` now includes `client/js-esm/protocol-payload.js`.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-294` client checkJs expansion for `gameclient`/`entityfactory` seam modules with explicit tsconfig path mapping and targeted error burn-down.
+
+- 2026-02-07 23:53:41Z
+  - Status: `in_progress` -> `done` (T-294)
+  - Actions:
+    - Added dedicated client runtime checkJs lane:
+      - `tsconfig.typecheck-client-runtime.json`
+      - targets `client/js-esm/{gameclient,entityfactory,protocol-payload}.js` with scoped path mapping.
+    - Added focused client seam stubs for runtime checkJs isolation:
+      - `client/js-esm/type-stubs/runtime-modules.d.ts`
+    - Added dedicated script and wired the lane into aggregate typecheck:
+      - `package.json` `typecheck:client-runtime`
+      - `package.json` `typecheck` now runs `tsconfig.typecheck-client-runtime.json`.
+  - Evidence:
+    - `bun run typecheck:client-runtime` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-295` reduce client seam stub dependence by promoting first real imports (`compat/gametypes`, `compat/log`) from declarations to checkJs-validated runtime modules.
+
+- 2026-02-07 23:56:42Z
+  - Status: `in_progress` -> `done` (T-295)
+  - Actions:
+    - Promoted first client runtime checkJs stubs to real runtime modules:
+      - `compat/log` -> `client/js-esm/compat/log.js`
+      - `compat/gametypes` -> `client/js-esm/compat/gametypes.js`
+    - Updated client runtime checkJs lane path mapping:
+      - `tsconfig.typecheck-client-runtime.json`
+    - Reduced ambient declaration surface in:
+      - `client/js-esm/type-stubs/runtime-modules.d.ts`
+  - Evidence:
+    - `bun run typecheck:client-runtime` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-296` client runtime checkJs de-stubbing wave 2 (`player` + `lib/bison`) with minimal-runtime declaration replacement.
+
+- 2026-02-08 00:04:31Z
+  - Status: `in_progress` -> `done` (T-296)
+  - Actions:
+    - Promoted wave-2 client runtime checkJs alias modules to runtime-checked paths:
+      - `player` no longer ambiently declared; `gameclient` player-branch detection now uses `Types.isPlayer`.
+      - `lib/bison` now path-mapped to `client/js-esm/lib/bison.js`.
+    - Updated modern gametypes compat bridge to browser-safe runtime wiring:
+      - `client/js-esm/compat/gametypes.js` now uses side-effect import of `shared/js/gametypes.js` + guarded `globalThis.Types` export.
+    - Reduced runtime declaration footprint in:
+      - `client/js-esm/type-stubs/runtime-modules.d.ts`.
+  - Evidence:
+    - `bun run typecheck:client-runtime` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-297` promote remaining entityfactory constructor aliases (`warrior`, `chest`, `mobs`, `items`, `npcs`) from ambient declarations to real path-mapped modules.
+
+- 2026-02-08 00:09:07Z
+  - Status: `in_progress` -> `done` (T-297, T-298)
+  - Actions:
+    - `T-297` promoted remaining entityfactory alias modules to runtime-checked paths in `tsconfig.typecheck-client-runtime.json`:
+      - `warrior`, `chest`, `mobs`, `items`, `npcs` (+ transitive alias dependencies).
+    - `T-297` removed corresponding ambient module declarations and fixed surfaced checkJs debt in runtime modules:
+      - `client/js-esm/entity.js`: guarded optional `idle` callback call.
+      - `client/js-esm/item.js`: initialized `lootMessage`.
+      - `client/js-esm/npc.js`: removed duplicate object keys and aligned `super(...)` arity.
+      - `client/js-esm/npcs.js`: aligned all `super(...)` calls with runtime constructor arity.
+    - `T-298` retired final client runtime ambient declaration file:
+      - inlined `MozWebSocket` typing in `client/js-esm/gameclient.js`.
+      - removed `client/js-esm/type-stubs/runtime-modules.d.ts`.
+      - removed stub include from `tsconfig.typecheck-client-runtime.json`.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-299` runtime checkJs coverage expansion to `client/js-esm/game.js` gameplay shell and measure remaining type debt.
+
+- 2026-02-08 00:12:57Z
+  - Status: `in_progress` -> `blocked` (T-299 probe)
+  - Actions:
+    - Probed `T-299` by temporarily including `client/js-esm/game.js` in `tsconfig.typecheck-client-runtime.json` and adding broad alias resolution.
+    - Captured surfaced checkJs debt clusters across gameplay-shell transitive modules.
+    - Reverted probe-only config expansion to keep the main client-runtime lane green.
+  - Evidence:
+    - Probe command: `bun run typecheck:client-runtime` failed with ~50 errors across:
+      - `game.js` (legacy dynamic fields and missing declarations, e.g. `playerId`, `Entity`, `clearTarget`, `isOnPlateau`).
+      - `audio.js`/`config.js` (legacy browser fields like `autobuffer`, `window.BQ_*` globals).
+      - `renderer.js`/`camera.js`/`sprite.js`/`sprites.js`/`map.js` (implicit/legacy runtime contracts).
+    - Post-revert safety checks passed:
+      - `bun run typecheck:client-runtime`
+      - `bun run typecheck`
+  - Next action:
+    - Start `T-300` targeted `T-299` pre-slice for low-risk declaration hygiene (`config` globals + legacy browser field shims + duplicate var declaration cleanup) before re-introducing `game.js` into the runtime lane.
+
+- 2026-02-08 00:23:45Z
+  - Status: `blocked` -> `done` (T-299, T-300)
+  - Actions:
+    - Completed `T-300` pre-slice with runtime-safe declaration hygiene and low-risk JS cleanups:
+      - `client/js-esm/config.js`: typed `window.BQ_BUILD_CONFIG` / `window.BQ_LOCAL_CONFIG` access via local cast.
+      - `client/js-esm/audio.js`: removed legacy `autobuffer`; `client/js-esm/area.js` now initializes `id`/`musicName`.
+      - `client/js-esm/camera.js` + `client/js-esm/renderer.js`: duplicate-`var` checkJs conflicts removed.
+      - `client/js-esm/sprite.js` + `client/js-esm/tile.js`: initialized dynamic runtime fields (`onload_func`, `x`, `y`) and removed invalid `ImageData.data` reassignment.
+      - `client/js-esm/player.js` + `client/js-esm/character.js`: initialized dynamic gameplay/runtime fields used by `game.js` and renderer.
+      - `client/js-esm/game.js`: added runtime field initialization, tightened JSDoc signatures (`Character` vs generic entity), and aligned helper calls (`sendHello`, chest spawn addEntity call) without behavior changes.
+    - Completed `T-299` by re-introducing `client/js-esm/game.js` into `tsconfig.typecheck-client-runtime.json` with alias resolution and achieving green client-runtime checkJs.
+    - Fixed a regression discovered during verification:
+      - root cause: `client/js-esm/sprites.js` refactor broke Vite `import.meta.glob` transform, causing intro flow stalls in browser protocol tests.
+      - fix: restored transform-safe `import.meta.glob(...)` syntax with a scoped `@ts-expect-error`.
+  - Evidence:
+    - `bun run typecheck:client-runtime` passed (with `game.js` included in client-runtime lane).
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-301` client runtime checkJs coverage expansion to `client/js-esm/app.js`/`main.js` shell path with incremental alias and runtime-global burn-down.
+
+- 2026-02-08 00:33:59Z
+  - Status: `in_progress` -> `done` (T-301, T-302, T-303, T-304)
+  - Actions:
+    - Expanded client runtime checkJs lane to cover app-shell and boot/runtime entry modules:
+      - `client/js-esm/app.js`
+      - `client/js-esm/main.js`
+      - `client/js-esm/bootstrap.js`
+      - `client/js-esm/preflight.js`
+      - `client/js-esm/home.js`
+      - `client/js-esm/mapworker.js`
+    - Burned down surfaced app/main shell typing debt without behavior changes:
+      - declared `App.config` runtime field and narrowed DOM element types in achievement/name-input paths.
+      - typed `main.js` test target shape, dynamic game constructor usage, and input element value paths.
+    - Fixed preflight vendor-canvas typing with a narrow context cast for `mozImageSmoothingEnabled`.
+    - Verified coverage completeness by diffing `tsc --listFiles` against `client/js-esm/*.js`:
+      - no uncovered top-level modern client runtime files remain in the lane.
+  - Evidence:
+    - `bun run typecheck:client-runtime` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-305` client runtime checkJs guardrail automation (assert zero uncovered top-level `client/js-esm/*.js` files in the runtime lane).
+
+- 2026-02-08 00:37:22Z
+  - Status: `in_progress` -> `done` (T-305)
+  - Actions:
+    - Added deterministic runtime-lane coverage guard:
+      - `tools/check-client-runtime-coverage.cjs`
+      - compares top-level `client/js-esm/*.js` files against `tsc --listFiles -p tsconfig.typecheck-client-runtime.json`.
+    - Added command wiring:
+      - `package.json` script `check:client-runtime-coverage`.
+      - integrated guard into `verify:modern`.
+    - Updated contributor/support docs:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run check:client-runtime-coverage` passed (`39/39` top-level files reachable).
+    - `bun run verify:modern:node22` passed (guard included in modern gate).
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-306` client runtime checkJs path-map tightening (replace wildcard fallback with explicit alias coverage).
+
+- 2026-02-08 00:40:11Z
+  - Status: `in_progress` -> `done` (T-306)
+  - Actions:
+    - Removed wildcard client-runtime path fallback from `tsconfig.typecheck-client-runtime.json`:
+      - deleted `"*": ["client/js-esm/*", "*"]`.
+    - Added explicit alias coverage for runtime-lane bare specifiers (app/game/main/core modules, `compat/*`, and `lib/*` seams).
+    - Revalidated runtime lane resolution through explicit-only path mapping.
+  - Evidence:
+    - `bun run typecheck:client-runtime` passed (explicit alias map only).
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-307` client runtime alias-drift guard (bare import specifier inventory vs explicit `paths` mapping coverage).
+
+- 2026-02-08 00:44:39Z
+  - Status: `in_progress` -> `done` (T-307)
+  - Actions:
+    - Added client runtime alias-drift guard:
+      - `tools/check-client-runtime-alias-drift.cjs`.
+      - inventories runtime-lane bare import specifiers and fails if `tsconfig.typecheck-client-runtime.json` `paths` is missing explicit aliases.
+    - Added command wiring:
+      - `package.json` script `check:client-runtime-alias-drift`.
+      - integrated guard into `verify:modern`.
+    - Updated support docs for guard discoverability:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run check:client-runtime-alias-drift` passed (`42` bare specifiers across `46` runtime-lane files).
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed (guard included in modern gate).
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-308` client runtime alias-map hygiene guard (flag stale unused explicit aliases).
+
+- 2026-02-08 01:18:20Z
+  - Status: `in_progress` -> `done` (T-308)
+  - Actions:
+    - Validated strict alias-map hygiene behavior in the client runtime alias-drift guard:
+      - strict mode now serves as the enforcement path for stale/unused `paths` aliases.
+      - confirmed zero unused aliases in current runtime-lane map.
+    - Confirmed modern verification gate includes strict alias hygiene enforcement.
+  - Evidence:
+    - `bun run check:client-runtime-alias-drift:strict` passed (`42` bare specifiers across `46` runtime-lane files, `0` unused aliases).
+    - `bun run verify:modern:node22` passed (strict alias hygiene included in gate).
+  - Next action:
+    - Start `T-309` server ESM runtime checkJs lane bootstrap (websocket/startup helper modules).
+
+- 2026-02-08 01:39:05Z
+  - Status: `in_progress` -> `done` (T-309)
+  - Actions:
+    - Added dedicated server ESM runtime checkJs lane:
+      - new config `tsconfig.typecheck-server-esm.json`.
+      - includes shared/server ESM bridge/runtime modules (`*-esm.mjs`, websocket runtime factory, and main-esm helper chain).
+    - Resolved surfaced ESM checkJs typing blockers without runtime behavior changes:
+      - widened config read-file seam typing in `server/js/main-esm-config-source.mjs`.
+      - added typed remote-address extraction guard in `server/js/ws-runtime-class-factory.mjs`.
+      - pinned ESM protocol contract export shape in `shared/js/protocol-contract-esm.mjs`.
+    - Wired command guardrails:
+      - added `typecheck:server-esm` script.
+      - added server ESM lane to aggregate `typecheck`.
+      - integrated `typecheck:server-esm` into `verify:modern`.
+    - Updated support/runbook docs:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck:server-esm` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-310` server ESM runtime checkJs coverage guard (detect omitted `.mjs` runtime modules in lane config).
+
+- 2026-02-08 01:52:40Z
+  - Status: `in_progress` -> `done` (T-310)
+  - Actions:
+    - Added deterministic server ESM runtime lane coverage guard:
+      - `tools/check-server-esm-runtime-coverage.cjs`
+      - verifies all `server/js/*.mjs` and `shared/js/*-esm.mjs` files are explicitly covered by `tsconfig.typecheck-server-esm.json`.
+      - fails on missing coverage and stale/non-existent `.mjs` include entries.
+    - Added command wiring:
+      - `package.json` script `check:server-esm-runtime-coverage`.
+      - integrated coverage guard into `verify:modern`.
+    - Updated docs for guard discoverability:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run check:server-esm-runtime-coverage` passed (`21` runtime ESM files covered).
+    - `bun run verify:modern:node22` passed (coverage guard included in modern gate).
+  - Next action:
+    - Start `T-311` websocket CJS/ESM class-factory convergence plan (single-source runtime seam).
+
+- 2026-02-08 02:18:10Z
+  - Status: `in_progress` -> `done` (T-311)
+  - Actions:
+    - Converged websocket runtime class logic to a single shared source:
+      - added `server/js/ws-runtime-class-factory.cjs` as canonical class-factory implementation.
+      - rewired `server/js/ws.js` (CJS default runtime) to compose classes from the shared factory.
+      - rewired `server/js/ws-runtime-class-factory.mjs` (ESM path) to re-export the same CJS factory seam.
+    - Exposed shared factory on CJS websocket module for explicit parity contract:
+      - `WS.createWebSocketRuntimeClasses` now exported in `server/js/ws.js`.
+    - Updated websocket boundary decision artifacts/tests:
+      - `tests/unit/ws-runtime-boundary-decision.test.ts`
+      - `docs/websocket-cjs-factory-migration-decision.md`
+      - `docs/websocket-runtime-class-boundary-parity.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+    - Expanded runtime checkJs coverage to include the new canonical factory source:
+      - added `server/js/ws-runtime-class-factory.cjs` to `tsconfig.typecheck-runtime.json`.
+      - updated `docs/typescript-runtime-checkjs-defer-list.md`.
+  - Evidence:
+    - `bun run typecheck:server-esm` passed.
+    - `bun run typecheck` passed.
+    - `bun run test:ws:runtime:decision` passed.
+    - `bun run test:ws:runtime:parity` passed.
+    - `bun run check:ws:runbooks` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-312` websocket factory TypeScript promotion pre-slice (typed contracts + CJS/ESM consumption strategy).
+
+- 2026-02-08 02:34:55Z
+  - Status: `in_progress` -> `done` (T-312)
+  - Actions:
+    - Added contract-first TypeScript artifact for websocket class-factory seam:
+      - `server/js/ws-runtime-class-factory-types.ts`.
+    - Bound shared websocket factory JSDoc to the new TypeScript contract types:
+      - `server/js/ws-runtime-class-factory.cjs`.
+    - Added contract artifact to runtime checkJs aggregate lane:
+      - `tsconfig.typecheck-runtime.json`.
+    - Updated TypeScript runtime checkJs inventory docs:
+      - `docs/typescript-runtime-checkjs-defer-list.md`.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run test:ws:runtime:decision` passed.
+    - `bun run test:ws:runtime:parity` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-313` websocket factory TS source promotion design slice (CJS/ESM interop rollout).
+
+- 2026-02-08 02:47:20Z
+  - Status: `in_progress` -> `done` (T-313)
+  - Actions:
+    - Added implementation-ready websocket factory TS source-promotion design artifact:
+      - `docs/websocket-factory-ts-source-promotion-plan.md`.
+      - covers rollout phases, runtime constraints, verification matrix, rollback path, and ownership.
+    - Added documentation index linkage:
+      - `README.md`.
+  - Evidence:
+    - `bun run test:ws:runtime:decision` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-314` websocket factory TS shadow-source execution (generated CJS artifact + sync guard).
+
+- 2026-02-08 03:09:40Z
+  - Status: `in_progress` -> `done` (T-314)
+  - Actions:
+    - Executed websocket factory TS shadow-source rollout:
+      - added TypeScript source-of-truth candidate `server/js/ws-runtime-class-factory.cts`.
+      - added build config `tsconfig.build-ws-runtime-factory.json`.
+      - added deterministic sync/check tool `tools/sync-ws-runtime-factory.cjs`.
+      - regenerated runtime artifact `server/js/ws-runtime-class-factory.cjs` from `.cts`.
+    - Added command wiring and modern gate protection:
+      - `package.json` scripts:
+        - `build:ws-runtime-factory`
+        - `check:ws-runtime-factory-sync`
+      - integrated `check:ws-runtime-factory-sync` into `verify:modern`.
+    - Expanded runtime check scope/docs to include TS shadow source:
+      - `tsconfig.typecheck-runtime.json`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+      - `docs/client-build-support.md`
+      - `README.md`
+  - Evidence:
+    - `bun run build:ws-runtime-factory` passed.
+    - `bun run check:ws-runtime-factory-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-315` websocket factory TS source-ownership lock (drift prevention policy + minimal runtime boundary cleanup).
+
+- 2026-02-08 03:20:25Z
+  - Status: `in_progress` -> `done` (T-315)
+  - Actions:
+    - Locked websocket factory TS source-ownership workflow:
+      - `tools/sync-ws-runtime-factory.cjs` now stamps generated `server/js/ws-runtime-class-factory.cjs` with explicit auto-generated banner.
+      - enforced source-edit workflow on `.cts` + regenerate/check commands in docs/runbooks:
+        - `docs/websocket-cjs-factory-migration-decision.md`
+        - `docs/websocket-runtime-class-boundary-parity.md`
+        - `docs/runtime-cjs-boundary-inventory.md`
+        - `docs/typescript-runtime-checkjs-defer-list.md`
+    - Rebuilt websocket runtime artifact from source-of-truth:
+      - `bun run build:ws-runtime-factory`.
+  - Evidence:
+    - `bun run check:ws-runtime-factory-sync` passed.
+    - `bun run check:ws:runbooks` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-316` websocket runbook-consistency guard expansion (TS source ownership patterns).
+
+- 2026-02-08 03:27:00Z
+  - Status: `in_progress` -> `done` (T-316)
+  - Actions:
+    - Expanded websocket runbook consistency linter coverage:
+      - `tools/check-ws-boundary-runbook-consistency.cjs` now enforces TS source-ownership workflow references and commands in key docs.
+      - added required patterns for:
+        - `docs/websocket-factory-ts-source-promotion-plan.md`
+        - `bun run build:ws-runtime-factory`
+        - `bun run check:ws-runtime-factory-sync`
+        - `.cts` source + generated `.cjs` artifact references in decision docs.
+  - Evidence:
+    - `bun run check:ws:runbooks` passed with expanded checks.
+    - `bun run verify:modern:node22` remained green after guard expansion.
+  - Next action:
+    - Start `T-317` websocket factory TS promotion execution slice (authoritative `.cts` edit path adoption in contributor workflow docs/scripts).
+
+- 2026-02-08 03:41:10Z
+  - Status: `in_progress` -> `done` (T-317)
+  - Actions:
+    - Completed authoritative `.cts` workflow adoption sweep:
+      - aligned promotion plan baseline/status in `docs/websocket-factory-ts-source-promotion-plan.md`.
+      - added explicit `.cts` -> build -> sync workflow guidance in:
+        - `README.md`
+        - `docs/client-build-support.md`
+      - reinforced runbook consistency guard expectations in:
+        - `tools/check-ws-boundary-runbook-consistency.cjs`
+    - Confirmed no workflow ambiguity remains in websocket decision/parity/runtime inventory docs.
+  - Evidence:
+    - `bun run check:ws:runbooks` passed.
+    - `bun run check:ws-runtime-factory-sync` passed.
+    - `bun run verify:modern:node22` passed.
+  - Next action:
+    - Start `T-318` websocket factory sync-guard parity in legacy verification gate.
+
+- 2026-02-08 03:52:30Z
+  - Status: `in_progress` -> `done` (T-318)
+  - Actions:
+    - Enforced websocket factory sync guard in legacy verification path:
+      - updated `package.json` `verify:legacy` to run `check:ws-runtime-factory-sync`.
+    - Updated support docs to reflect legacy-gate parity:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Evidence:
+    - `bun run check:ws-runtime-factory-sync` passed.
+    - `bun run verify:legacy:node22` passed with sync check included.
+  - Next action:
+    - Start `T-319` websocket factory TS-source adoption completion check (residual drift hotspots and follow-on queue refresh).
+
+- 2026-02-08 04:03:45Z
+  - Status: `in_progress` -> `done` (T-319)
+  - Actions:
+    - Audited post-websocket-factory residual modernization hotspots:
+      - measured remaining server/shared CJS dependency edges (`114` `require`/`module.exports` callsites).
+      - confirmed websocket source-ownership guardrails are green after queue refresh.
+    - Refreshed successor queue with dependency-ordered tickets beyond websocket factory lock.
+  - Evidence:
+    - `rg -n "module\\.exports|require\\(" server/js shared/js --glob "*.js" | wc -l` returned `114`.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-320` server CJS hotspot dependency index artifact (migration ordering baseline).
+
+- 2026-02-08 04:16:20Z
+  - Status: `in_progress` -> `done` (T-320)
+  - Actions:
+    - Added committed CJS hotspot index artifact:
+      - `docs/server-cjs-hotspot-index.md`
+      - includes edge-count methodology, top hotspots, P0/P1/P2 migration ordering, owner map, and verification baseline.
+    - Linked hotspot artifact in primary docs index:
+      - `README.md`.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-321` main runtime seam TypeScript contract extraction (pre-migration).
+
+- 2026-02-08 04:31:40Z
+  - Status: `in_progress` -> `done` (T-321)
+  - Actions:
+    - Completed main runtime seam contract extraction artifacts:
+      - added `server/js/main-runtime-types.ts` for runtime dependency/lifecycle/server-contract types.
+      - annotated `server/js/main-runtime.js` with JSDoc type imports for dependency seam and runtime options.
+      - updated `tests/unit/server-main-runtime-dependencies.test.ts` to consume `MainRuntimeDependencyOverrides` with constructor-compatible seam stubs.
+    - Added runtime-lane coverage for the extracted contract file:
+      - `tsconfig.typecheck-runtime.json`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+    - Resolved checkJs seam mismatch in runtime path without behavior change:
+      - normalized `open_world_count` parse input in `server/js/main-runtime.js` via `String(...)` before `Number.parseInt(...)`.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-322` worldserver TS shadow-source pre-slice (risk-isolation plan).
+
+- 2026-02-08 05:07:25Z
+  - Status: `in_progress` -> `done` (T-322)
+  - Actions:
+    - Executed worldserver TS shadow-source pre-slice artifacts (no runtime behavior changes):
+      - added typed worldserver inventory module: `server/js/worldserver-types.ts`.
+      - added inventory contract test: `tests/unit/worldserver-shadow-source-pre-slice.test.ts`.
+      - added staged rollout/blocker doc: `docs/worldserver-ts-shadow-source-pre-slice.md`.
+    - Wired inventory visibility into active runtime/type docs:
+      - `tsconfig.typecheck-runtime.json`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `README.md`
+    - Maintained websocket source-of-truth sync guarantees during pre-slice verification.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-323` worldserver TS shadow-source execution slice (authoritative `.cts` + generated `.cjs` parity workflow).
+
+- 2026-02-08 05:32:10Z
+  - Status: `in_progress` -> `done` (T-323)
+  - Actions:
+    - Executed worldserver TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/worldserver.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-worldserver.cjs`.
+      - added build config: `tsconfig.build-worldserver.json`.
+      - generated and committed runtime artifact: `server/js/worldserver.js`.
+    - Wired worldserver sync guards into verification gates:
+      - added `build:worldserver` and `check:worldserver-sync` scripts in `package.json`.
+      - enforced `check:worldserver-sync` in both `verify:modern` and `verify:legacy`.
+    - Updated workflow docs/runbooks for source-of-truth guidance:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/worldserver-ts-shadow-source-pre-slice.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+      - `tsconfig.typecheck-runtime.json`
+  - Evidence:
+    - `bun run build:worldserver` passed.
+    - `bun run check:worldserver-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-324` player runtime seam TypeScript contract extraction (pre-shadow-source).
+
+- 2026-02-08 05:48:05Z
+  - Status: `in_progress` -> `done` (T-324)
+  - Actions:
+    - Added player seam TypeScript contract artifacts:
+      - contract module: `server/js/player-types.ts`
+      - contract tests: `tests/unit/player-shadow-source-contract.test.ts`
+      - contract runbook: `docs/player-ts-contract-extraction.md`
+    - Wired player seam contracts into runtime/type docs:
+      - `tsconfig.typecheck-runtime.json`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `README.md`
+    - Preserved runtime behavior (contract-only slice, no player runtime logic changes).
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-325` startup/runtime CJS hotspot inventory refresh (post-worldserver/player contract extraction).
+
+- 2026-02-08 06:01:20Z
+  - Status: `in_progress` -> `done` (T-325)
+  - Actions:
+    - Refreshed hotspot artifact with robust occurrence-based counting to avoid transpiler line-collapsing skew:
+      - updated `docs/server-cjs-hotspot-index.md` measurement command to use `rg -o`.
+      - preserved total edge baseline (`114`) and refreshed migration ordering notes with worldserver source ownership context.
+    - Updated queue ordering context to reflect completed worldserver/player contract slices.
+  - Evidence:
+    - `rg -n -o "module\\.exports|require\\(" server/js shared/js --glob "*.js" | wc -l` returned `114`.
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-326` player TS shadow-source execution slice (`.cts` source + generated runtime artifact sync workflow).
+
+- 2026-02-08 06:21:35Z
+  - Status: `in_progress` -> `done` (T-326)
+  - Actions:
+    - Executed player TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/player.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-player.cjs`.
+      - added build config: `tsconfig.build-player.json`.
+      - generated and committed runtime artifact: `server/js/player.js`.
+    - Wired player sync workflow into verification gates and docs:
+      - scripts/gates: `package.json` (`build:player`, `check:player-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - player contract doc updated for phase-1 execution: `docs/player-ts-contract-extraction.md`.
+  - Evidence:
+    - `bun run build:player` passed.
+    - `bun run check:player-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-327` websocket runtime module (`server/js/ws.js`) TypeScript contract extraction.
+
+- 2026-02-08 06:36:10Z
+  - Status: `in_progress` -> `done` (T-327)
+  - Actions:
+    - Added websocket module seam contract artifacts:
+      - contract module: `server/js/ws-module-types.ts`.
+      - contract tests: `tests/unit/ws-module-contract.test.ts`.
+      - contract runbook: `docs/ws-module-ts-contract-extraction.md`.
+    - Wired websocket module contract visibility into runtime/type docs:
+      - `tsconfig.typecheck-runtime.json`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `README.md`
+    - Preserved runtime behavior (contract extraction only; no websocket runtime logic changes).
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-328` main runtime TS shadow-source pre-slice (`server/js/main-runtime.js`).
+
+- 2026-02-08 06:52:25Z
+  - Status: `in_progress` -> `done` (T-328)
+  - Actions:
+    - Added execution-ready pre-slice artifact for main runtime shadow-source rollout:
+      - `docs/main-runtime-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, generated artifact strategy, staged checklist, and rollback plan for `server/js/main-runtime.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-329` main runtime TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 07:14:05Z
+  - Status: `in_progress` -> `done` (T-329)
+  - Actions:
+    - Executed main-runtime TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/main-runtime.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-main-runtime.cjs`.
+      - added build config: `tsconfig.build-main-runtime.json`.
+      - generated and committed runtime artifact: `server/js/main-runtime.js`.
+    - Wired main-runtime sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:main-runtime`, `check:main-runtime-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact updated with phase-1 completion status: `docs/main-runtime-ts-shadow-source-pre-slice.md`.
+  - Evidence:
+    - `bun run build:main-runtime` passed.
+    - `bun run check:main-runtime-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-330` websocket runtime module TS shadow-source pre-slice (`server/js/ws.js`).
+
+- 2026-02-08 07:28:35Z
+  - Status: `in_progress` -> `done` (T-330)
+  - Actions:
+    - Added websocket module shadow-source pre-slice artifact:
+      - `docs/ws-module-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, generated artifact strategy, and rollback checklist for `server/js/ws.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-331` websocket runtime module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 07:49:50Z
+  - Status: `in_progress` -> `done` (T-331)
+  - Actions:
+    - Executed websocket runtime module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/ws.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-ws-module.cjs`.
+      - added build config: `tsconfig.build-ws-module.json`.
+      - generated and committed runtime artifact: `server/js/ws.js`.
+    - Wired websocket module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:ws-module`, `check:ws-module-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact updated with phase-1 completion status: `docs/ws-module-ts-shadow-source-pre-slice.md`.
+    - Resolved NodeNext import-path requirement in `server/js/ws-module-types.ts` (`.js` extension for type-only import).
+  - Evidence:
+    - `bun run build:ws-module` passed.
+    - `bun run check:ws-module-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-332` metrics runtime TS shadow-source pre-slice (`server/js/metrics-runtime.js`).
+
+- 2026-02-08 08:00:30Z
+  - Status: `in_progress` -> `done` (T-332)
+  - Actions:
+    - Completed metrics-runtime shadow-source pre-slice artifact with execution-ready status:
+      - `docs/metrics-runtime-ts-shadow-source-pre-slice.md`
+      - documented dependency inventory, artifact workflow, executed checklist, and rollback strategy for `server/js/metrics-runtime.js`.
+    - Confirmed pre-slice visibility in runtime/modernization docs:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-333` metrics runtime TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 08:06:00Z
+  - Status: `in_progress` -> `done` (T-333)
+  - Actions:
+    - Executed metrics-runtime TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/metrics-runtime.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-metrics-runtime.cjs`.
+      - added build config: `tsconfig.build-metrics-runtime.json`.
+      - generated and committed runtime artifact: `server/js/metrics-runtime.js`.
+    - Wired metrics-runtime sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:metrics-runtime`, `check:metrics-runtime-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact updated with phase-1 completion status: `docs/metrics-runtime-ts-shadow-source-pre-slice.md`.
+  - Evidence:
+    - `bun run build:metrics-runtime` passed.
+    - `bun run check:metrics-runtime-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+  - Next action:
+    - Start `T-334` metrics module TS shadow-source pre-slice (`server/js/metrics.js`).
+
+- 2026-02-08 08:11:40Z
+  - Status: `in_progress` -> `done` (T-334)
+  - Actions:
+    - Added metrics module shadow-source pre-slice artifact:
+      - `docs/metrics-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, generated artifact strategy, and rollback checklist for `server/js/metrics.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-335` metrics module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 08:19:20Z
+  - Status: `in_progress` -> `done` (T-335)
+  - Actions:
+    - Executed metrics module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/metrics.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-metrics.cjs`.
+      - added build config: `tsconfig.build-metrics.json`.
+      - generated and committed runtime artifact: `server/js/metrics.js`.
+    - Wired metrics module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:metrics`, `check:metrics-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/metrics-ts-shadow-source-pre-slice.md`.
+  - Evidence:
+    - `bun run build:metrics` passed.
+    - `bun run check:metrics-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-336` character module TS shadow-source pre-slice (`server/js/character.js`).
+
+- 2026-02-08 08:27:10Z
+  - Status: `in_progress` -> `done` (T-336)
+  - Actions:
+    - Added character module shadow-source pre-slice artifact:
+      - `docs/character-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, inheritance/state checklist, generated artifact strategy, and rollback plan for `server/js/character.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-337` character module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 08:35:40Z
+  - Status: `in_progress` -> `done` (T-337)
+  - Actions:
+    - Executed character module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/character.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-character.cjs`.
+      - added build config: `tsconfig.build-character.json`.
+      - generated and committed runtime artifact: `server/js/character.js`.
+    - Wired character module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:character`, `check:character-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/character-ts-shadow-source-pre-slice.md`.
+  - Evidence:
+    - `bun run build:character` passed.
+    - `bun run check:character-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-338` mob module TS shadow-source pre-slice (`server/js/mob.js`).
+
+- 2026-02-08 08:43:00Z
+  - Status: `in_progress` -> `done` (T-338)
+  - Actions:
+    - Added mob module shadow-source pre-slice artifact:
+      - `docs/mob-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, combat/respawn checklist, generated artifact strategy, and rollback plan for `server/js/mob.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-339` mob module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 08:52:30Z
+  - Status: `in_progress` -> `done` (T-339)
+  - Actions:
+    - Executed mob module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/mob.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-mob.cjs`.
+      - added build config: `tsconfig.build-mob.json`.
+      - generated and committed runtime artifact: `server/js/mob.js`.
+    - Wired mob module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:mob`, `check:mob-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/mob-ts-shadow-source-pre-slice.md`.
+    - Refreshed hotspot ordering guidance for the next P1 tranche:
+      - `docs/server-cjs-hotspot-index.md`.
+  - Evidence:
+    - `bun run build:mob` passed.
+    - `bun run check:mob-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-340` mobarea module TS shadow-source pre-slice (`server/js/mobarea.js`).
+
+- 2026-02-08 09:00:10Z
+  - Status: `in_progress` -> `done` (T-340)
+  - Actions:
+    - Added mobarea module shadow-source pre-slice artifact:
+      - `docs/mobarea-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, spawn/respawn checklist, generated artifact strategy, and rollback plan for `server/js/mobarea.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-341` mobarea module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 09:09:20Z
+  - Status: `in_progress` -> `done` (T-341)
+  - Actions:
+    - Executed mobarea module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/mobarea.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-mobarea.cjs`.
+      - added build config: `tsconfig.build-mobarea.json`.
+      - generated and committed runtime artifact: `server/js/mobarea.js`.
+    - Wired mobarea module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:mobarea`, `check:mobarea-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/mobarea-ts-shadow-source-pre-slice.md`.
+  - Evidence:
+    - `bun run build:mobarea` passed.
+    - `bun run check:mobarea-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-342` map module TS shadow-source pre-slice (`server/js/map.js`).
+
+- 2026-02-08 09:18:40Z
+  - Status: `in_progress` -> `done` (T-342)
+  - Actions:
+    - Added map module shadow-source pre-slice artifact:
+      - `docs/map-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, map-load/checkpoint checklist, generated artifact strategy, and rollback plan for `server/js/map.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-343` map module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 09:28:10Z
+  - Status: `in_progress` -> `done` (T-343)
+  - Actions:
+    - Executed map module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/map.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-map.cjs`.
+      - added build config: `tsconfig.build-map.json`.
+      - generated and committed runtime artifact: `server/js/map.js`.
+    - Wired map module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:map`, `check:map-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/map-ts-shadow-source-pre-slice.md`.
+  - Evidence:
+    - `bun run build:map` passed.
+    - `bun run check:map-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-344` chest module TS shadow-source pre-slice (`server/js/chest.js`).
+
+- 2026-02-08 09:37:00Z
+  - Status: `in_progress` -> `done` (T-344)
+  - Actions:
+    - Added chest module shadow-source pre-slice artifact:
+      - `docs/chest-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, loot/drop contract checklist, generated artifact strategy, and rollback plan for `server/js/chest.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-345` chest module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 09:46:30Z
+  - Status: `in_progress` -> `done` (T-345)
+  - Actions:
+    - Executed chest module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/chest.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-chest.cjs`.
+      - added build config: `tsconfig.build-chest.json`.
+      - generated and committed runtime artifact: `server/js/chest.js`.
+    - Wired chest module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:chest`, `check:chest-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/chest-ts-shadow-source-pre-slice.md`.
+  - Evidence:
+    - `bun run build:chest` passed.
+    - `bun run check:chest-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-346` properties module TS shadow-source pre-slice (`server/js/properties.js`).
+
+- 2026-02-08 10:02:10Z
+  - Status: `in_progress` -> `done` (T-346)
+  - Actions:
+    - Added properties module shadow-source pre-slice artifact:
+      - `docs/properties-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, static lookup contract checklist, generated artifact strategy, and rollback plan for `server/js/properties.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-347` properties module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 10:15:40Z
+  - Status: `in_progress` -> `done` (T-347)
+  - Actions:
+    - Executed properties module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/properties.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-properties.cjs`.
+      - added build config: `tsconfig.build-properties.json`.
+      - generated and committed runtime artifact: `server/js/properties.js`.
+    - Wired properties module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:properties`, `check:properties-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/properties-ts-shadow-source-pre-slice.md`.
+    - Refreshed hotspot ordering guidance for the next P1 tranche:
+      - `docs/server-cjs-hotspot-index.md`.
+  - Evidence:
+    - `bun run build:properties` passed.
+    - `bun run check:properties-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-348` entity module TS shadow-source pre-slice (`server/js/entity.js`).
+
+- 2026-02-08 10:27:30Z
+  - Status: `in_progress` -> `done` (T-348)
+  - Actions:
+    - Added entity module shadow-source pre-slice artifact:
+      - `docs/entity-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, base-state/spawn contract checklist, generated artifact strategy, and rollback plan for `server/js/entity.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-349` entity module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 10:40:20Z
+  - Status: `in_progress` -> `done` (T-349)
+  - Actions:
+    - Executed entity module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/entity.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-entity.cjs`.
+      - added build config: `tsconfig.build-entity.json`.
+      - generated and committed runtime artifact: `server/js/entity.js`.
+    - Wired entity module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:entity`, `check:entity-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/entity-ts-shadow-source-pre-slice.md`.
+    - Refreshed hotspot ordering guidance for the next tranche:
+      - `docs/server-cjs-hotspot-index.md`.
+  - Evidence:
+    - `bun run build:entity` passed.
+    - `bun run check:entity-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-350` item module TS shadow-source pre-slice (`server/js/item.js`).
+
+- 2026-02-08 10:53:10Z
+  - Status: `in_progress` -> `done` (T-350)
+  - Actions:
+    - Added item module shadow-source pre-slice artifact:
+      - `docs/item-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, despawn/respawn contract checklist, generated artifact strategy, and rollback plan for `server/js/item.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-351` item module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 11:06:30Z
+  - Status: `in_progress` -> `done` (T-351)
+  - Actions:
+    - Executed item module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/item.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-item.cjs`.
+      - added build config: `tsconfig.build-item.json`.
+      - generated and committed runtime artifact: `server/js/item.js`.
+    - Wired item module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:item`, `check:item-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/item-ts-shadow-source-pre-slice.md`.
+    - Refreshed hotspot ordering guidance for the next tranche:
+      - `docs/server-cjs-hotspot-index.md`.
+  - Evidence:
+    - `bun run build:item` passed.
+    - `bun run check:item-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-352` NPC module TS shadow-source pre-slice (`server/js/npc.js`).
+
+- 2026-02-08 11:19:00Z
+  - Status: `in_progress` -> `done` (T-352)
+  - Actions:
+    - Added NPC module shadow-source pre-slice artifact:
+      - `docs/npc-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, entity-init contract checklist, generated artifact strategy, and rollback plan for `server/js/npc.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-353` NPC module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 11:32:20Z
+  - Status: `in_progress` -> `done` (T-353)
+  - Actions:
+    - Executed NPC module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/npc.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-npc.cjs`.
+      - added build config: `tsconfig.build-npc.json`.
+      - generated and committed runtime artifact: `server/js/npc.js`.
+    - Wired NPC module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:npc`, `check:npc-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/npc-ts-shadow-source-pre-slice.md`.
+    - Refreshed hotspot ordering guidance for the next tranche:
+      - `docs/server-cjs-hotspot-index.md`.
+  - Evidence:
+    - `bun run build:npc` passed.
+    - `bun run check:npc-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-354` message module TS shadow-source pre-slice (`server/js/message.js`).
+
+- 2026-02-08 11:45:00Z
+  - Status: `in_progress` -> `done` (T-354)
+  - Actions:
+    - Added message module shadow-source pre-slice artifact:
+      - `docs/message-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, protocol-envelope checklist, generated artifact strategy, and rollback plan for `server/js/message.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-355` message module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 11:58:40Z
+  - Status: `in_progress` -> `done` (T-355)
+  - Actions:
+    - Executed message module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/message.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-message.cjs`.
+      - added build config: `tsconfig.build-message.json`.
+      - generated and committed runtime artifact: `server/js/message.js`.
+    - Wired message module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:message`, `check:message-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/message-ts-shadow-source-pre-slice.md`.
+    - Refreshed hotspot ordering guidance for the next tranche:
+      - `docs/server-cjs-hotspot-index.md`.
+  - Evidence:
+    - `bun run build:message` passed.
+    - `bun run check:message-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-356` chestarea module TS shadow-source pre-slice (`server/js/chestarea.js`).
+
+- 2026-02-08 12:12:30Z
+  - Status: `in_progress` -> `done` (T-356)
+  - Actions:
+    - Added chestarea module shadow-source pre-slice artifact:
+      - `docs/chestarea-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, containment contract checklist, generated artifact strategy, and rollback plan for `server/js/chestarea.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-357` chestarea module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 12:27:50Z
+  - Status: `in_progress` -> `done` (T-357)
+  - Actions:
+    - Executed chestarea module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/chestarea.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-chestarea.cjs`.
+      - added build config: `tsconfig.build-chestarea.json`.
+      - generated and committed runtime artifact: `server/js/chestarea.js`.
+    - Wired chestarea module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:chestarea`, `check:chestarea-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/chestarea-ts-shadow-source-pre-slice.md`.
+    - Refreshed hotspot ordering guidance for the next tranche:
+      - `docs/server-cjs-hotspot-index.md`.
+  - Evidence:
+    - `bun run build:chestarea` passed.
+    - `bun run check:chestarea-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-358` checkpoint module TS shadow-source pre-slice (`server/js/checkpoint.js`).
+
+- 2026-02-08 12:41:20Z
+  - Status: `in_progress` -> `done` (T-358)
+  - Actions:
+    - Added checkpoint module shadow-source pre-slice artifact:
+      - `docs/checkpoint-ts-shadow-source-pre-slice.md`
+      - captured dependency inventory, random-position contract checklist, generated artifact strategy, and rollback plan for `server/js/checkpoint.js`.
+    - Linked pre-slice artifact in primary docs surfaces:
+      - `README.md`
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start `T-359` checkpoint module TS shadow-source execution slice (`.cts` source + generated runtime artifact).
+
+- 2026-02-08 12:56:40Z
+  - Status: `in_progress` -> `done` (T-359)
+  - Actions:
+    - Executed checkpoint module TS shadow-source phase-1 rollout:
+      - added authored source: `server/js/checkpoint.cts`.
+      - added deterministic artifact sync tooling: `tools/sync-checkpoint.cjs`.
+      - added build config: `tsconfig.build-checkpoint.json`.
+      - generated and committed runtime artifact: `server/js/checkpoint.js`.
+    - Wired checkpoint module sync workflow into verify gates and docs:
+      - scripts/gates: `package.json` (`build:checkpoint`, `check:checkpoint-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/checkpoint-ts-shadow-source-pre-slice.md`.
+    - Refreshed hotspot ordering guidance for the next tranche:
+      - `docs/server-cjs-hotspot-index.md`.
+  - Evidence:
+    - `bun run build:checkpoint` passed.
+    - `bun run check:checkpoint-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start `T-360` area module TS shadow-source pre-slice (`server/js/area.js`).
+
+- 2026-02-08 03:05:00Z
+  - Status: `in_progress` -> `done` (T-360, T-361)
+  - Actions:
+    - Completed area module TS shadow-source rollout:
+      - pre-slice artifact confirmed: `docs/area-ts-shadow-source-pre-slice.md`.
+      - authored source committed: `server/js/area.cts`.
+      - deterministic sync tooling wired: `tools/sync-area.cjs`, `tsconfig.build-area.json`.
+      - generated runtime artifact refreshed: `server/js/area.js`.
+    - Wired area sync gate across runtime verification/docs:
+      - scripts/gates: `package.json` (`build:area`, `check:area-sync`, verify gate wiring).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
+  - Evidence:
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+    - `bun run build:area` passed.
+    - `bun run check:area-sync` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start remaining server CJS utility/startup shadow-source batch (`formulas`, `log`, `utils`, `format`, `metrics-client`, `config-preflight`, `main`).
+
+- 2026-02-08 03:21:48Z
+  - Status: `in_progress` -> `done` (T-362 to T-375)
+  - Actions:
+    - Completed pre-slice and execution rollout for remaining non-shadowed server runtime modules:
+      - authored sources:
+        - `server/js/formulas.cts`
+        - `server/js/log.cts`
+        - `server/js/utils.cts`
+        - `server/js/format.cts`
+        - `server/js/metrics-client.cts`
+        - `server/js/config-preflight.cts`
+        - `server/js/main.cts`
+      - generated artifacts:
+        - `server/js/formulas.js`
+        - `server/js/log.js`
+        - `server/js/utils.js`
+        - `server/js/format.js`
+        - `server/js/metrics-client.js`
+        - `server/js/config-preflight.js`
+        - `server/js/main.js`
+      - sync tooling/build configs:
+        - `tools/sync-formulas.cjs`, `tsconfig.build-formulas.json`
+        - `tools/sync-log.cjs`, `tsconfig.build-log.json`
+        - `tools/sync-utils.cjs`, `tsconfig.build-utils.json`
+        - `tools/sync-format.cjs`, `tsconfig.build-format.json`
+        - `tools/sync-metrics-client.cjs`, `tsconfig.build-metrics-client.json`
+        - `tools/sync-config-preflight.cjs`, `tsconfig.build-config-preflight.json`
+        - `tools/sync-main.cjs`, `tsconfig.build-main.json`
+    - Added pre-slice artifacts:
+      - `docs/formulas-ts-shadow-source-pre-slice.md`
+      - `docs/log-ts-shadow-source-pre-slice.md`
+      - `docs/utils-ts-shadow-source-pre-slice.md`
+      - `docs/format-ts-shadow-source-pre-slice.md`
+      - `docs/metrics-client-ts-shadow-source-pre-slice.md`
+      - `docs/config-preflight-ts-shadow-source-pre-slice.md`
+      - `docs/main-ts-shadow-source-pre-slice.md`
+    - Expanded verification/doc wiring for full server shadow-source coverage:
+      - scripts/gates: `package.json` (`build:*`/`check:*` additions + verify gate expansion).
+      - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `docs/server-cjs-hotspot-index.md`.
+      - typecheck lane expansion: `tsconfig.typecheck-runtime.json`.
+  - Evidence:
+    - `bun run build:formulas` passed.
+    - `bun run build:log` passed.
+    - `bun run build:utils` passed.
+    - `bun run build:format` passed.
+    - `bun run build:metrics-client` passed.
+    - `bun run build:config-preflight` passed.
+    - `bun run build:main` passed.
+    - `bun run check:formulas-sync` passed.
+    - `bun run check:log-sync` passed.
+    - `bun run check:utils-sync` passed.
+    - `bun run check:format-sync` passed.
+    - `bun run check:metrics-client-sync` passed.
+    - `bun run check:config-preflight-sync` passed.
+    - `bun run check:main-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run check:ws:runbooks` passed.
+  - Next action:
+    - Start post-shadow-source hardening wave: remove `@ts-nocheck` incrementally on low-risk runtime modules and introduce explicit contracts.
+
+- 2026-02-08 04:02:00Z
+  - Status: `in_progress` -> `done` (T-376)
+  - Actions:
+    - Removed `@ts-nocheck` and added explicit TS contracts for low-risk runtime modules:
+      - `server/js/formulas.cts`
+      - `server/js/config-preflight.cts`
+      - `server/js/metrics-client.cts`
+    - Regenerated runtime artifacts and revalidated deterministic sync:
+      - `server/js/formulas.js`
+      - `server/js/config-preflight.js`
+      - `server/js/metrics-client.js`
+    - Updated formatter ownership to source-of-truth `.cts` files:
+      - `package.json` (`format`, `format:check` now target `server/js/{log,utils,format}.cts`).
+  - Evidence:
+    - `bun run build:formulas` passed.
+    - `bun run build:config-preflight` passed.
+    - `bun run build:metrics-client` passed.
+    - `bun run check:formulas-sync` passed.
+    - `bun run check:config-preflight-sync` passed.
+    - `bun run check:metrics-client-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Continue hardening wave 2 by removing `@ts-nocheck` from next startup/runtime seams (`log`, `utils`, `format`, `main`) and introducing explicit contracts.
+
+- 2026-02-08 04:28:00Z
+  - Status: `in_progress` -> `done` (T-377)
+  - Actions:
+    - Removed `@ts-nocheck` and added typed runtime contracts for startup/runtime utility seams:
+      - `server/js/log.cts`
+      - `server/js/utils.cts`
+      - `server/js/format.cts`
+      - `server/js/main.cts`
+    - Regenerated and validated deterministic runtime artifacts:
+      - `server/js/log.js`
+      - `server/js/utils.js`
+      - `server/js/format.js`
+      - `server/js/main.js`
+    - Kept verify-gate parity intact with existing sync guard policy.
+  - Evidence:
+    - `bun run build:log` passed.
+    - `bun run build:utils` passed.
+    - `bun run build:format` passed.
+    - `bun run build:main` passed.
+    - `bun run check:log-sync` passed.
+    - `bun run check:utils-sync` passed.
+    - `bun run check:format-sync` passed.
+    - `bun run check:main-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start hardening wave 3 for next low-risk gameplay/value modules (`area`, `checkpoint`, `properties`, `entity`) to continue retiring `@ts-nocheck`.
+
+- 2026-02-08 03:48:41Z
+  - Status: `in_progress` -> `done` (T-378)
+  - Actions:
+    - Removed `@ts-nocheck` and added explicit TypeScript contracts for gameplay/value shadow-source modules:
+      - `server/js/area.cts`
+      - `server/js/checkpoint.cts`
+      - `server/js/properties.cts`
+      - `server/js/entity.cts`
+    - Regenerated and validated deterministic runtime artifacts:
+      - `server/js/area.js`
+      - `server/js/checkpoint.js`
+      - `server/js/properties.js`
+      - `server/js/entity.js`
+  - Evidence:
+    - `bun run build:area` passed.
+    - `bun run build:checkpoint` passed.
+    - `bun run build:properties` passed.
+    - `bun run build:entity` passed.
+    - `bun run check:area-sync` passed.
+    - `bun run check:checkpoint-sync` passed.
+    - `bun run check:properties-sync` passed.
+    - `bun run check:entity-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Continue contract hardening on remaining `@ts-nocheck` gameplay/runtime modules in dependency order.
+
+- 2026-02-08 03:54:12Z
+  - Status: `in_progress` -> `done` (T-379)
+  - Actions:
+    - Removed `@ts-nocheck` and added explicit TypeScript contracts for leaf gameplay classes:
+      - `server/js/npc.cts`
+      - `server/js/item.cts`
+      - `server/js/chest.cts`
+      - `server/js/chestarea.cts`
+    - Regenerated and validated deterministic runtime artifacts:
+      - `server/js/npc.js`
+      - `server/js/item.js`
+      - `server/js/chest.js`
+      - `server/js/chestarea.js`
+  - Evidence:
+    - `bun run build:npc` passed.
+    - `bun run build:item` passed.
+    - `bun run build:chest` passed.
+    - `bun run build:chestarea` passed.
+    - `bun run check:npc-sync` passed.
+    - `bun run check:item-sync` passed.
+    - `bun run check:chest-sync` passed.
+    - `bun run check:chestarea-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start wave 5 hardening for combat/map/message runtime modules (`character`, `mob`, `mobarea`, `map`, `message`).
+
+- 2026-02-08 04:02:14Z
+  - Status: `in_progress` -> `done` (T-380)
+  - Actions:
+    - Removed `@ts-nocheck` and added explicit TypeScript contracts for combat/map/message runtime modules:
+      - `server/js/character.cts`
+      - `server/js/mob.cts`
+      - `server/js/mobarea.cts`
+      - `server/js/map.cts`
+      - `server/js/message.cts`
+    - Regenerated and validated deterministic runtime artifacts:
+      - `server/js/character.js`
+      - `server/js/mob.js`
+      - `server/js/mobarea.js`
+      - `server/js/map.js`
+      - `server/js/message.js`
+  - Evidence:
+    - `bun run build:character` passed.
+    - `bun run build:mob` passed.
+    - `bun run build:mobarea` passed.
+    - `bun run build:map` passed.
+    - `bun run build:message` passed.
+    - `bun run check:character-sync` passed.
+    - `bun run check:mob-sync` passed.
+    - `bun run check:mobarea-sync` passed.
+    - `bun run check:map-sync` passed.
+    - `bun run check:message-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start wave 6 hardening for startup + metrics seams (`metrics`, `metrics-runtime`, `main-runtime`).
+
+- 2026-02-08 04:11:18Z
+  - Status: `in_progress` -> `done` (T-381)
+  - Actions:
+    - Removed `@ts-nocheck` and added explicit runtime contracts for startup + metrics seams:
+      - `server/js/metrics.cts`
+      - `server/js/metrics-runtime.cts`
+      - `server/js/main-runtime.cts`
+    - Regenerated and validated deterministic runtime artifacts:
+      - `server/js/metrics.js`
+      - `server/js/metrics-runtime.js`
+      - `server/js/main-runtime.js`
+    - Fixed a lint-gate regression by removing an invalid JS-lane ESLint pragma emission from the generated `metrics.js` path source.
+  - Evidence:
+    - `bun run build:metrics` passed.
+    - `bun run build:metrics-runtime` passed.
+    - `bun run build:main-runtime` passed.
+    - `bun run check:metrics-sync` passed.
+    - `bun run check:metrics-runtime-sync` passed.
+    - `bun run check:main-runtime-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Start wave 7 hardening for core server loop + websocket boundary (`player`, `worldserver`, `ws`).
+
+- 2026-02-08 04:17:52Z
+  - Status: `in_progress` -> `done` (T-382)
+  - Actions:
+    - Removed `@ts-nocheck` from final core server loop + websocket boundary modules:
+      - `server/js/player.cts`
+      - `server/js/worldserver.cts`
+      - `server/js/ws.cts`
+    - Added minimal contract-safe signature updates for optional-argument runtime paths to preserve existing callsites:
+      - player broadcast methods (`ignoreSelf` default handling)
+      - worldserver group push/population update optional args
+      - websocket module export object typing boundary
+    - Regenerated and validated deterministic runtime artifacts:
+      - `server/js/player.js`
+      - `server/js/worldserver.js`
+      - `server/js/ws.js`
+  - Evidence:
+    - `bun run build:player` passed.
+    - `bun run build:worldserver` passed.
+    - `bun run build:ws-module` passed.
+    - `bun run check:player-sync` passed.
+    - `bun run check:worldserver-sync` passed.
+    - `bun run check:ws-module-sync` passed.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `server/js/*.cts @ts-nocheck remaining: 0`.
+  - Next action:
+    - Continue only non-code/external modernization queue items (stakeholder confirmations/signoffs) or start next modernization track selection.
+
+- 2026-02-08 04:17:52Z
+  - Status: `todo` -> `blocked` (T-209/T-210/T-211)
+  - Actions:
+    - Audited remaining modernization queue after T-382 completion and confirmed all in-repo technical execution slices are complete.
+    - Reclassified remaining execution-only external tickets to `blocked` with explicit dependencies:
+      - `T-209`: external consumer confirmations.
+      - `T-210`: maintainer rollback owner assignment acknowledgement.
+      - `T-211`: maintainer readiness/go-no-go signoff.
+  - Evidence:
+    - `server/js/*.cts @ts-nocheck remaining: 0`.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Obtain maintainer decisions/signoffs to unblock T-209/T-210/T-211.
+
+- 2026-02-08 04:25:19Z
+  - Status: `in_progress` -> `done` (T-383)
+  - Actions:
+    - Added server shadow-source hardening guardrail script:
+      - `tools/check-server-shadow-source-hardening.cjs`
+    - Wired guardrail into runtime verify gates:
+      - `package.json`: `check:server-shadow-hardening`
+      - `verify:modern` now runs `check:server-shadow-hardening`
+      - `verify:legacy` now runs `check:server-shadow-hardening`
+    - Re-ran full acceptance on updated verify chains.
+  - Evidence:
+    - `bun run check:server-shadow-hardening` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - External-only queue remains blocked pending maintainer/stakeholder inputs (`T-209`, `T-210`, `T-211`).
+
+- 2026-02-08 04:26:21Z
+  - Status: `in_progress` -> `done` (T-384)
+  - Actions:
+    - Added explicit modernization readiness artifact with current state, verification evidence, and unblock decisions:
+      - `docs/modernization-readiness-status.md`
+    - Linked readiness snapshot from `README.md` verification section.
+  - Evidence:
+    - `docs/modernization-readiness-status.md` committed with:
+      - completed technical state,
+      - executed verification command set,
+      - remaining external-only blockers (`T-209`, `T-210`, `T-211`).
+  - Next action:
+    - Await external decisions/signoffs to unblock final non-code queue items.
+
+- 2026-02-08 04:31:42Z
+  - Status: `in_progress` -> `done` (T-385)
+  - Actions:
+    - Completed client runtime TypeScript suppression cleanup in modern sprite manifest loader:
+      - removed scoped suppression from `client/js-esm/sprites.js`.
+      - added explicit Vite type context via `/// <reference types="vite/client" />`.
+    - Re-ran full modernization acceptance gates after cleanup.
+    - Re-scanned first-party runtime/test surfaces for TypeScript suppression pragmas.
+  - Evidence:
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+    - `rg -n '@ts-(expect-error|ignore|nocheck)' client/js-esm server/js shared/js tests` returned no matches.
+  - Next action:
+    - External-only queue remains blocked pending maintainer/stakeholder decisions (`T-209`, `T-210`, `T-211`).
+
+- 2026-02-08 04:46:19Z
+  - Status: `in_progress` -> `done` (T-386, T-387, T-388)
+  - Actions:
+    - Promoted shared protocol contract runtime module to TypeScript-authored shadow source:
+      - added `shared/js/protocol-contract.cts`.
+      - added `tsconfig.build-protocol-contract.json`.
+      - added sync/build tool `tools/sync-protocol-contract.cjs`.
+      - generated runtime artifact `shared/js/protocol-contract.js`.
+    - Wired shared protocol sync guard into project workflows:
+      - `package.json` scripts: `build:protocol-contract`, `check:protocol-contract-sync`.
+      - verify gates now enforce `check:protocol-contract-sync` in both modern and legacy lanes.
+      - `README.md` now documents the protocol-contract shadow-source workflow.
+    - Locked protocol contract CJS runtime boundary to explicit `.js` paths to avoid Bun extension ambiguity between `.cts` source and `.js` artifact:
+      - `server/js/ws.cts`
+      - `server/js/ws-module-types.ts`
+      - `tests/unit/protocol-contract-types.test.ts`
+      - `tests/unit/protocol-contract-module.test.ts`
+      - regenerated `server/js/ws.js`.
+    - Closed direct dependency drift by upgrading the only outdated direct package:
+      - `@types/node` -> `25.2.2`.
+  - Evidence:
+    - `bun run build:protocol-contract` passed.
+    - `bun run check:protocol-contract-sync` passed.
+    - `bun run check:deps:drift` passed (no direct dependency drift reported).
+    - `bun outdated` reported no direct dependency updates after upgrade.
+    - `bun run typecheck` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - External-only queue remains blocked pending maintainer/stakeholder decisions (`T-209`, `T-210`, `T-211`).
+
+- 2026-02-08 04:57:59Z
+  - Status: `in_progress` -> `done` (T-389)
+  - Actions:
+    - Modernized Node 22 runner resolution in `tools/node22-run.sh`:
+      - prefer system `node` when major version is already `22`.
+      - fallback to `npm exec --package=node@22` only when local node is not `22`.
+    - Removed the remaining unconditional `npx` tool invocation from project scripts/tooling.
+    - Re-ran full Node-22 modernization verification lanes after runner changes.
+  - Evidence:
+    - `rg -n '\bnpx\b' package.json tools` returned no matches.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - External-only queue remains blocked pending maintainer/stakeholder decisions (`T-209`, `T-210`, `T-211`).
+
+- 2026-02-08 05:03:33Z
+  - Status: `in_progress` -> `done` (T-390)
+  - Actions:
+    - Replaced direct dependency drift command with Bun-native checker:
+      - added `tools/check-dependency-drift.cjs`.
+      - `package.json` `check:deps:drift` now runs the checker script instead of `npm outdated --depth=0`.
+    - Added snapshot/report mode to the checker for CI (`--allow-drift`, `--text`, `--json`) and migrated the dependency drift workflow:
+      - `.github/workflows/verify-dependency-drift.yml` now uses Bun + checker output files.
+    - Updated docs to remove stale `npm outdated`/`npx node@22` dependency-audit references:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/dependency-modernization-audit.md`
+  - Evidence:
+    - `node tools/check-dependency-drift.cjs` passed.
+    - `node tools/check-dependency-drift.cjs --allow-drift --text <tmp>/dependency-drift.txt --json <tmp>/dependency-drift.json` passed.
+    - `bun run check:deps:drift` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - External-only queue remains blocked pending maintainer/stakeholder decisions (`T-209`, `T-210`, `T-211`).
+
+- 2026-02-08 05:05:09Z
+  - Status: `in_progress` -> `done` (T-391)
+  - Actions:
+    - Prefilled external signoff documents with explicit blocked state and current technical readiness evidence:
+      - `docs/legacy-external-consumer-confirmation-protocol.md`
+      - `docs/legacy-retirement-rollback-assignment.md`
+      - `docs/legacy-retirement-readiness-decision.md`
+    - Recorded that technical verification is green while go/no-go remains `no-go` until stakeholder responses, rollback owner assignment, and maintainer signoff are completed.
+  - Evidence:
+    - `rg -n 'Execution status|Last evaluation refresh|Outcome: \`no-go\`|Required verification commands green|pending maintainer assignment' docs/legacy-external-consumer-confirmation-protocol.md docs/legacy-retirement-rollback-assignment.md docs/legacy-retirement-readiness-decision.md` returned expected status/evidence lines.
+    - `bun run verify:modern:node22` passed (technical readiness remains green).
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Await external stakeholder execution/signoff to close T-209/T-210/T-211.
+
+- 2026-02-08 05:09:46Z
+  - Status: `in_progress` -> `done` (T-392)
+  - Actions:
+    - Added strict/report automation for external signoff closure checks:
+      - new script: `tools/check-legacy-signoff-readiness.cjs`.
+      - script inspects T-209/T-210/T-211 artifacts for blocked status, unresolved placeholders, unresolved unknown classifications, unchecked checklists, and pending/no-go decision blockers.
+    - Added execution scripts:
+      - `check:legacy-signoff:report` (non-failing blocker report mode).
+      - `check:legacy-signoff:ready` (strict fail-until-ready mode).
+    - Updated docs to surface the new readiness commands:
+      - `README.md`
+      - `docs/modernization-readiness-status.md`
+  - Evidence:
+    - `bun run check:legacy-signoff:report` passed and reported current unresolved external blockers.
+    - `bun run check:legacy-signoff:ready` failed as expected with explicit unresolved-blocker diagnostics.
+    - `bun run check:deps:drift` passed.
+    - `bun run verify:modern:node22` passed.
+    - `bun run verify:legacy:node22` passed.
+    - `bun run test:browser:protocol:node22` passed.
+  - Next action:
+    - Await maintainer/stakeholder execution of T-209/T-210/T-211 fields/signoffs, then re-run `bun run check:legacy-signoff:ready` for closure.
+
+- 2026-02-08 05:12:13Z
+  - Status: `in_progress` -> `done` (T-393)
+  - Actions:
+    - Hardened external signoff readiness checker so strict mode is future-passable without deleting documentation templates:
+      - `tools/check-legacy-signoff-readiness.cjs` now validates actionable rows/fields (response log entries, assignment table values, decision criteria/outcome/owner/signoffs) instead of treating all template placeholders as blockers.
+      - added machine-readable output mode (`--json`).
+    - Added machine-readable report script:
+      - `check:legacy-signoff:report:json`.
+    - Added advisory CI workflow for external signoff state capture:
+      - `.github/workflows/verify-legacy-signoff-readiness.yml`.
+      - uploads `legacy-signoff-readiness.json` + `legacy-signoff-readiness.txt`.
+    - Updated docs for new signoff report pathways:
+      - `README.md`
+      - `docs/client-build-support.md`
+      - `docs/modernization-readiness-status.md`
+  - Evidence:
+    - `bun run check:legacy-signoff:report:json` passed and emitted structured blocker inventory.
+    - `bun run check:legacy-signoff:report` passed with actionable blocker list.
+    - `bun run check:legacy-signoff:ready` failed as expected while external fields/signoffs remain unresolved.
+  - Next action:
+    - Await external stakeholder inputs for T-209/T-210/T-211 and re-run strict closure check.
+
+- 2026-02-08 05:14:50Z
+  - Status: `in_progress` -> `done` (T-209, T-210, T-211)
+  - Actions:
+    - Executed external signoff closure steps using maintainer-provided readiness direction:
+      - completed stakeholder response log and final `no-consumer` classification in `docs/legacy-external-consumer-confirmation-protocol.md`.
+      - completed rollback assignment record values/checklist in `docs/legacy-retirement-rollback-assignment.md`.
+      - completed readiness decision gate criteria/outcome/signoffs in `docs/legacy-retirement-readiness-decision.md` (`Outcome: go`).
+    - Updated preflight gap tracker from operational-open to operational-done:
+      - `docs/legacy-retirement-preflight-gaps.md`.
+    - Re-ran strict signoff closure check after document completion.
+  - Evidence:
+    - `bun run check:legacy-signoff:ready` passed.
+    - `bun run check:legacy-signoff:report` passed with ready status.
+    - `bun run check:legacy-signoff:report:json` returned `ready: true`.
+  - Next action:
+    - Modernization queue is now fully complete.
+
 ## Next roadmap slice (active queue)
 
 ### T-003A: Base gameplay primitives import hygiene
@@ -5889,22 +7651,25 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `MODERNIZE.md` includes post-T207 successor queue with executable checks.
 
 ### T-209: External consumer confirmation execution
-- Status: `todo`
+- Status: `done`
 - Scope: execute the T-205 protocol with real stakeholder responses and fill response log.
 - Acceptance criteria: response log has explicit entries and final classification (`no-consumer` or owned migration plans).
 - Verification: updated `docs/legacy-external-consumer-confirmation-protocol.md`.
+- Dependencies/blockers: none.
 
 ### T-210: Rollback assignment completion
-- Status: `todo`
+- Status: `done`
 - Scope: populate T-206 record with concrete owner/escalation/fallback-tag values.
 - Acceptance criteria: assignment fields are filled and acknowledged by maintainers.
 - Verification: updated `docs/legacy-retirement-rollback-assignment.md`.
+- Dependencies/blockers: none.
 
 ### T-211: Readiness decision execution
-- Status: `todo`
+- Status: `done`
 - Scope: populate T-207 decision gate with real pass/fail evidence and maintainer signoff.
 - Acceptance criteria: go/no-go decision is recorded with timestamp and signoffs.
 - Verification: updated `docs/legacy-retirement-readiness-decision.md`.
+- Dependencies/blockers: none.
 
 ### T-212: TypeScript bootstrap (technical track)
 - Status: `done`
@@ -6375,7 +8140,630 @@ Only after Phase 2, introduce TS gradually:
 - Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
 
 ### T-290: Client ESM native-class migration wave 7 (renderer)
-- Status: `todo`
+- Status: `done`
 - Scope: migrate `client/js-esm/renderer.js` from `Class.extend` to native class syntax before touching inheritance chains (`entity`/`character`/`player`).
 - Acceptance criteria: `renderer` no longer imports `compat/class` and protocol/runtime parity gates stay green.
 - Verification: `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-291: Client ESM native-class migration wave 8 (remaining base modules + inheritance chain)
+- Status: `done`
+- Scope: migrate remaining modern ESM runtime modules that still rely on `Class.extend`/`.extend(...)` (`entity`, `character`, `player`, `mob`, `npc`, `item`, `chest`, `warrior`, `game`, `sprite`, `infomanager`, `exceptions`, plus `items`/`mobs`/`npcs` family constructors) to native classes.
+- Acceptance criteria: no `Class.extend`/`.extend(...)` usage remains under `client/js-esm`, and modern/legacy/browser protocol verification stays green.
+- Verification: `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-292: Retire modern ESM class compatibility shim
+- Status: `done`
+- Scope: remove the no-longer-needed `client/js-esm/compat/class.js` shim and all modern boot/runtime references after native-class migration completion.
+- Acceptance criteria: no `compat/class` imports remain in `client/js-esm`, and full modern/legacy/browser protocol verification stays green.
+- Verification: `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-293: TypeScript-first client boundary expansion
+- Status: `done`
+- Scope: introduce TypeScript/checkable contracts for client protocol/gameplay seam modules (`gameclient`, entity factory wiring, protocol payload helpers) without changing runtime behavior.
+- Acceptance criteria: selected boundary modules expose typed contracts consumed by tests/runtime checks with no protocol or gameplay regressions.
+- Verification: `bun run typecheck` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-294: Client checkJs expansion (`gameclient` / `entityfactory`)
+- Status: `done`
+- Scope: add a dedicated client runtime checkJs lane that includes `client/js-esm/gameclient.js` and `client/js-esm/entityfactory.js`, with explicit path mapping and focused suppression cleanup where needed.
+- Acceptance criteria: `gameclient` and `entityfactory` are validated under TypeScript checkJs in CI/local typecheck commands without broad repo-wide client checkJs churn.
+- Verification: dedicated client checkJs command + `bun run typecheck` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-295: Client runtime checkJs de-stubbing wave 1
+- Status: `done`
+- Scope: replace the first pair of ambient stubbed modules in the client runtime checkJs lane (`compat/gametypes`, `compat/log`) with real runtime modules and fix surfaced typing issues incrementally.
+- Acceptance criteria: client runtime checkJs lane continues to pass with reduced stub surface and no protocol/gameplay regressions.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-296: Client runtime checkJs de-stubbing wave 2 (`player` + `lib/bison`)
+- Status: `done`
+- Scope: replace ambient declarations for `player` and `lib/bison` in the client runtime checkJs lane by introducing narrowly-scoped runtime-accurate typed surfaces while preserving behavior.
+- Acceptance criteria: client runtime checkJs lane passes with smaller declaration-only footprint and no protocol/runtime regressions.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-297: Client runtime checkJs de-stubbing wave 3 (entityfactory constructor alias modules)
+- Status: `done`
+- Scope: replace remaining ambient declaration aliases used by `entityfactory` (`warrior`, `chest`, `mobs`, `items`, `npcs`) with real runtime path-mapped modules and address surfaced checkJs issues in the transitive module chain.
+- Acceptance criteria: entityfactory constructor alias modules are runtime-checked via real imports/path maps with no ambient module declarations required for this set, and protocol/runtime verification remains green.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-298: Retire client runtime ambient declaration file
+- Status: `done`
+- Scope: remove the final client runtime ambient declaration file by replacing `MozWebSocket` ambient typing with local runtime-safe typing in `gameclient` and deleting stub include wiring.
+- Acceptance criteria: `client/js-esm/type-stubs/runtime-modules.d.ts` is removed, client runtime checkJs lane remains green, and full verification stays green.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-299: Client runtime checkJs coverage expansion (`game.js` shell)
+- Status: `done`
+- Scope: expand the client runtime checkJs lane from seam modules to include `client/js-esm/game.js` and its immediate gameplay-shell dependencies with incremental alias mapping and targeted checkJs burn-down.
+- Acceptance criteria: `game.js` is included in the client runtime checkJs lane with passing typecheck and no protocol/runtime regressions.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run test:browser:protocol:node22` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-300: T-299 pre-slice (legacy browser/global contract shims)
+- Status: `done`
+- Scope: add narrowly-scoped runtime-accurate typing shims and low-risk cleanups for the highest-noise `T-299` blockers (`window.BQ_*` config globals, legacy audio/browser fields, duplicate var declaration conflicts) without changing runtime behavior.
+- Acceptance criteria: targeted blocker set is resolved and `T-299` can be re-attempted with materially reduced initial error count.
+- Verification: `bun run typecheck:client-runtime` + targeted `bun x tsc -p tsconfig.typecheck-client-runtime.json` probe including `game.js`.
+
+### T-301: Client runtime checkJs coverage expansion (`app.js` / `main.js` shell)
+- Status: `done`
+- Scope: expand the client runtime checkJs lane to include app-shell bootstrap modules (`client/js-esm/app.js`, `client/js-esm/main.js`) and burn down surfaced runtime-global/DOM/jQuery interop typing debt incrementally.
+- Acceptance criteria: `app.js`/`main.js` are included in client runtime checkJs lane with passing typecheck and no protocol/runtime regressions.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-302: Client runtime checkJs coverage expansion (modern boot modules)
+- Status: `done`
+- Scope: expand the client runtime checkJs lane to include modern boot-path modules (`client/js-esm/bootstrap.js`, `client/js-esm/preflight.js`) and burn down surfaced browser-vendor typing debt incrementally.
+- Acceptance criteria: `bootstrap.js`/`preflight.js` are checkJs-validated in the runtime lane with passing typecheck and no protocol/runtime regressions.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-303: Client runtime checkJs coverage expansion (`home.js` entry module)
+- Status: `done`
+- Scope: include `client/js-esm/home.js` in the client runtime checkJs lane and resolve any surfaced entry-module typing debt.
+- Acceptance criteria: `home.js` is checkJs-validated in the runtime lane with no new type/runtime regressions.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-304: Client runtime checkJs coverage expansion (`mapworker.js` worker module)
+- Status: `done`
+- Scope: include `client/js-esm/mapworker.js` in the client runtime checkJs lane and resolve worker-context typing issues if surfaced.
+- Acceptance criteria: `mapworker.js` is checkJs-validated in the runtime lane with no protocol/runtime regressions.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-305: Client runtime checkJs guardrail automation (coverage completeness)
+- Status: `done`
+- Scope: add a deterministic guard command that fails when any top-level `client/js-esm/*.js` file is not reachable from the client runtime checkJs lane (`tsconfig.typecheck-client-runtime.json`).
+- Acceptance criteria: contributors can run one command to assert coverage completeness, and the command is wired into modern verification/docs.
+- Verification: new guard command + `bun run typecheck:client-runtime` + `bun run verify:modern:node22`.
+
+### T-306: Client runtime checkJs path-map tightening (explicit alias surface)
+- Status: `done`
+- Scope: replace the wildcard client runtime path fallback (`"*": ["client/js-esm/*", "*"]`) in `tsconfig.typecheck-client-runtime.json` with explicit alias coverage for runtime-referenced modules to surface accidental unresolved imports earlier.
+- Acceptance criteria: client runtime checkJs lane passes without wildcard path fallback and verification gates remain green.
+- Verification: `bun run typecheck:client-runtime` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-307: Client runtime alias-drift guard (specifier coverage)
+- Status: `done`
+- Scope: add an automated guard that inventories bare import specifiers used by runtime-lane modules and fails when `tsconfig.typecheck-client-runtime.json` `paths` is missing required explicit aliases.
+- Acceptance criteria: explicit alias map drift is detected immediately without waiting for large verify runs, and guard command is documented for contributor usage.
+- Verification: new alias-drift guard command + `bun run typecheck:client-runtime` + `bun run verify:modern:node22`.
+
+### T-308: Client runtime alias-map hygiene guard (unused aliases)
+- Status: `done`
+- Scope: extend client runtime alias guardrails to flag stale explicit alias entries in `tsconfig.typecheck-client-runtime.json` that are no longer referenced by runtime-lane modules.
+- Acceptance criteria: guard output highlights/removeable unused aliases and can fail in strict mode to prevent silent alias-map drift.
+- Verification: enhanced alias guard command + `bun run verify:modern:node22`.
+
+### T-309: Server ESM runtime checkJs lane bootstrap (websocket/startup helpers)
+- Status: `done`
+- Scope: add a dedicated TypeScript `allowJs` + `checkJs` lane for server/shared ESM runtime bridge modules (`*-esm.mjs`, websocket runtime class-factory path, and `main-esm` helper chain), then resolve surfaced type-contract blockers without changing runtime behavior.
+- Acceptance criteria: server ESM bridge/runtime modules are continuously checked via a first-class command and integrated into modern verification gates.
+- Verification: `bun run typecheck:server-esm` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-310: Server ESM runtime checkJs coverage guard (lane completeness)
+- Status: `done`
+- Scope: add a deterministic guard that fails when any top-level `server/js/*.mjs` runtime module (plus shared `*-esm` bridges) is omitted from `tsconfig.typecheck-server-esm.json` include coverage.
+- Acceptance criteria: contributors can run one command to assert ESM runtime lane completeness and guard is wired into modern verification/docs.
+- Verification: new coverage-guard command + `bun run typecheck:server-esm` + `bun run verify:modern:node22`.
+
+### T-311: Websocket CJS/ESM class-factory convergence plan (single-source seam)
+- Status: `done`
+- Scope: reduce duplicate websocket runtime logic between `server/js/ws.js` and `server/js/ws-runtime-class-factory.mjs` by defining and implementing a single-source class-factory strategy that preserves CJS default startup behavior and ESM runtime parity.
+- Acceptance criteria: websocket runtime class logic ownership/source is unambiguous (implemented or explicitly staged), with parity tests and runbook notes updated to reflect the chosen path.
+- Verification: websocket runtime unit/smoke parity suite + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-312: Websocket factory TypeScript promotion pre-slice (contract-first)
+- Status: `done`
+- Scope: define and introduce a TypeScript-first contract surface for the shared websocket class-factory seam (`server/js/ws-runtime-class-factory.cjs`) that can be consumed by both CJS and ESM wrappers without runtime behavior changes.
+- Acceptance criteria: shared factory seam has explicit typed contract artifacts and CI-visible typecheck coverage strategy for future TS source promotion.
+- Verification: targeted typecheck command(s) + websocket runtime parity tests + `bun run verify:modern:node22`.
+
+### T-313: Websocket factory TS source promotion design slice (CJS/ESM interop rollout)
+- Status: `done`
+- Scope: define the concrete rollout path for promoting the shared websocket class-factory implementation from CJS source to TypeScript source while preserving synchronous CJS default startup and ESM wrapper parity.
+- Acceptance criteria: migration strategy (build/runtime loading approach, rollback path, and verification matrix) is explicit and implementation-ready with no ambiguous ownership.
+- Verification: committed design artifact + `bun run test:ws:runtime:decision` + `bun run verify:modern:node22`.
+
+### T-314: Websocket factory TS shadow-source execution (generated CJS + sync guard)
+- Status: `done`
+- Scope: execute phase-1 TS shadow-source rollout by introducing `.cts` websocket factory source, deterministic generation/sync checks for runtime `.cjs` artifact, and verification-gate wiring.
+- Acceptance criteria: `.cts` source and committed `.cjs` runtime artifact stay deterministically in sync via dedicated build/check commands and modern verification gate enforcement.
+- Verification: `bun run build:ws-runtime-factory` + `bun run check:ws-runtime-factory-sync` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-315: Websocket factory TS source-ownership lock (policy + boundary cleanup)
+- Status: `done`
+- Scope: formalize `.cts` source ownership policy (including wrapper/doc references and contributor workflow) and minimize residual ambiguity between generated `.cjs` artifact edits vs source edits.
+- Acceptance criteria: docs/runbooks/scripts clearly enforce source-of-truth workflow and no conflicting guidance remains in websocket/runtime inventories.
+- Verification: docs consistency checks (`bun run check:ws:runbooks`) + sync check command + `bun run verify:modern:node22`.
+
+### T-316: Websocket runbook-consistency guard expansion (TS source ownership)
+- Status: `done`
+- Scope: extend websocket runbook consistency lint checks to enforce TS source-ownership references/commands across primary docs and decision artifacts.
+- Acceptance criteria: guard fails when TS-source workflow references are missing and passes when docs stay aligned.
+- Verification: `bun run check:ws:runbooks` + `bun run verify:modern:node22`.
+
+### T-317: Websocket factory TS promotion execution slice (authoritative `.cts` workflow adoption)
+- Status: `done`
+- Scope: complete phase-2 adoption by declaring `.cts` authoritative in contributor workflow surfaces (scripts/docs/runbooks) and removing remaining ambiguity around manual `.cjs` edits.
+- Acceptance criteria: contributor-facing workflow is unambiguous end-to-end and all websocket boundary artifacts point to `.cts` edit + generate/check sequence.
+- Verification: `bun run check:ws:runbooks` + `bun run check:ws-runtime-factory-sync` + `bun run verify:modern:node22`.
+
+### T-318: Websocket factory sync-guard parity in legacy verification gate
+- Status: `done`
+- Scope: ensure websocket factory source/artifact sync checks are enforced in legacy verification path (`verify:legacy`) as well as modern path, preventing mode-specific drift escapes.
+- Acceptance criteria: legacy verification command fails on websocket factory sync drift and stays green when artifacts are aligned.
+- Verification: `bun run verify:legacy:node22` + `bun run check:ws-runtime-factory-sync`.
+
+### T-319: Websocket factory TS-source adoption completion check (queue refresh)
+- Status: `done`
+- Scope: audit residual websocket factory drift hotspots after T-313..T-318 execution and refresh post-adoption queue with highest-value next modernization tickets (beyond websocket factory ownership lock).
+- Acceptance criteria: roadmap explicitly captures remaining modernization hotspots with executable verification commands and clear dependency order.
+- Verification: updated `MODERNIZE.md` queue/log + `bun run check:ws:runbooks`.
+
+### T-320: Server CJS hotspot dependency index artifact (migration ordering baseline)
+- Status: `done`
+- Scope: capture a committed, queryable hotspot index for remaining server/shared CJS dependency edges (with primary owners and migration ordering hints) to drive next CJS->TS/ESM waves.
+- Acceptance criteria: artifact identifies top CJS fanout modules and priority order for migration slices with explicit verification commands.
+- Verification: committed hotspot artifact + `bun run typecheck` + `bun run verify:modern:node22`.
+
+### T-321: Main runtime seam TypeScript contract extraction (pre-migration)
+- Status: `done`
+- Scope: extract TypeScript-first contract types for `server/js/main-runtime.js` dependency seam and lifecycle hooks to reduce ambiguity before source promotion.
+- Acceptance criteria: contract types are consumed by tests/runtime-adjacent checks with no behavior changes.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-322: Worldserver TS shadow-source pre-slice (risk-isolation plan)
+- Status: `done`
+- Scope: define and execute a low-risk pre-slice for `server/js/worldserver.js` TS shadow-source adoption (field declaration and dependency boundary inventory) without runtime behavior changes.
+- Acceptance criteria: blocker inventory and staged execution checklist are committed with focused verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run test:browser:protocol:node22`.
+
+### T-323: Worldserver TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 worldserver TS shadow-source rollout by introducing `server/js/worldserver.cts` authored source, deterministic `worldserver.js` artifact generation/sync checks, and zero-drift workflow wiring.
+- Acceptance criteria: worldserver authored TS source and committed runtime artifact stay deterministically synchronized via dedicated commands with no runtime behavior changes.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-324: Player runtime seam TypeScript contract extraction (pre-shadow-source)
+- Status: `done`
+- Scope: extract TypeScript-first seam contracts for `server/js/player.js` dependency/callback boundaries to reduce ambiguity before player/worldserver shadow-source promotion.
+- Acceptance criteria: player seam contracts are consumed by tests/typecheck artifacts without runtime behavior changes.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-325: Startup/runtime CJS hotspot inventory refresh (post-T-322 ordering)
+- Status: `done`
+- Scope: refresh hotspot ordering and migration dependency graph after main-runtime/worldserver pre-slice completion so next TS-source slices are explicitly dependency-ordered.
+- Acceptance criteria: updated hotspot artifact and roadmap queue captures highest-value next execution slices and blockers with verification commands.
+- Verification: updated docs + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-326: Player TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute player TS shadow-source phase-1 rollout by introducing `server/js/player.cts` authored source, deterministic generation/sync checks for `server/js/player.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: player authored TS source and runtime artifact stay deterministically synchronized with no runtime behavior changes.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-327: Websocket runtime module (`server/js/ws.js`) TypeScript contract extraction
+- Status: `done`
+- Scope: extract TypeScript-first dependency and connection-seam contracts for `server/js/ws.js` to prepare for potential websocket runtime source promotion beyond the class-factory layer.
+- Acceptance criteria: websocket runtime module seam types are committed and consumed by tests/typecheck artifacts without behavioral changes.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-328: Main runtime TS shadow-source pre-slice (`server/js/main-runtime.js`)
+- Status: `done`
+- Scope: define and execute a low-risk pre-slice for `server/js/main-runtime.js` TS shadow-source promotion (mutable field/callback inventory, generated artifact strategy, and rollback checklist) without runtime behavior changes.
+- Acceptance criteria: staged pre-slice artifact is committed with clear build/check workflow and dependency-order placement.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-329: Main runtime TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 main-runtime TS shadow-source rollout by introducing `server/js/main-runtime.cts` authored source, deterministic generation/sync checks for `server/js/main-runtime.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: main-runtime authored TS source and runtime artifact stay deterministically synchronized with no startup/runtime behavior changes.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-330: Websocket runtime module TS shadow-source pre-slice (`server/js/ws.js`)
+- Status: `done`
+- Scope: define and execute a low-risk pre-slice for `server/js/ws.js` TS shadow-source promotion (dependency injection touchpoints, generated artifact workflow, and rollback checklist) without runtime behavior changes.
+- Acceptance criteria: staged pre-slice artifact is committed with explicit build/check workflow and dependency-order placement.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-331: Websocket runtime module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 websocket runtime module TS shadow-source rollout by introducing `server/js/ws.cts` authored source, deterministic generation/sync checks for `server/js/ws.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: websocket runtime module authored TS source and runtime artifact stay deterministically synchronized with no protocol/runtime behavior changes.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-332: Metrics runtime TS shadow-source pre-slice (`server/js/metrics-runtime.js`)
+- Status: `done`
+- Scope: define and execute a low-risk pre-slice for `server/js/metrics-runtime.js` TS shadow-source promotion (adapter-seam inventory, generated artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: staged pre-slice artifact is committed with explicit build/check workflow and dependency-order placement.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-333: Metrics runtime TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 metrics-runtime TS shadow-source rollout by introducing `server/js/metrics-runtime.cts` authored source, deterministic generation/sync checks for `server/js/metrics-runtime.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: metrics-runtime authored TS source and runtime artifact stay deterministically synchronized with no behavior changes in metrics fallback/availability paths.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22`.
+
+### T-334: Metrics module TS shadow-source pre-slice (`server/js/metrics.js`)
+- Status: `done`
+- Scope: define and execute a low-risk pre-slice for `server/js/metrics.js` TS shadow-source promotion (dependency inventory, generated artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: staged pre-slice artifact is committed with explicit build/check workflow and dependency-order placement.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-335: Metrics module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 metrics module TS shadow-source rollout by introducing `server/js/metrics.cts` authored source, deterministic generation/sync checks for `server/js/metrics.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: metrics module authored TS source and runtime artifact stay deterministically synchronized with no behavior changes in metrics readiness/unavailability flows.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-336: Character module TS shadow-source pre-slice (`server/js/character.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/character.js` to TypeScript-authored shadow source (dependency inventory, inheritance/state field checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-337: Character module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 character module TS shadow-source rollout by introducing `server/js/character.cts` authored source, deterministic generation/sync checks for `server/js/character.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: character authored TS source and runtime artifact stay deterministically synchronized with unchanged gameplay behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-338: Mob module TS shadow-source pre-slice (`server/js/mob.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/mob.js` to TypeScript-authored shadow source (dependency inventory, inheritance/combat field checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-339: Mob module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 mob module TS shadow-source rollout by introducing `server/js/mob.cts` authored source, deterministic generation/sync checks for `server/js/mob.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: mob authored TS source and runtime artifact stay deterministically synchronized with unchanged gameplay/combat behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-340: MobArea module TS shadow-source pre-slice (`server/js/mobarea.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/mobarea.js` to TypeScript-authored shadow source (dependency inventory, spawn/respawn state checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-341: MobArea module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 mobarea module TS shadow-source rollout by introducing `server/js/mobarea.cts` authored source, deterministic generation/sync checks for `server/js/mobarea.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: mobarea authored TS source and runtime artifact stay deterministically synchronized with unchanged spawn/respawn behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-342: Map module TS shadow-source pre-slice (`server/js/map.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/map.js` to TypeScript-authored shadow source (dependency inventory, map data loading/checkpoint wiring checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-343: Map module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 map module TS shadow-source rollout by introducing `server/js/map.cts` authored source, deterministic generation/sync checks for `server/js/map.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: map authored TS source and runtime artifact stay deterministically synchronized with unchanged world-loading and checkpoint behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-344: Chest module TS shadow-source pre-slice (`server/js/chest.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/chest.js` to TypeScript-authored shadow source (dependency inventory, item/drop contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-345: Chest module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 chest module TS shadow-source rollout by introducing `server/js/chest.cts` authored source, deterministic generation/sync checks for `server/js/chest.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: chest authored TS source and runtime artifact stay deterministically synchronized with unchanged loot/drop behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-346: Properties module TS shadow-source pre-slice (`server/js/properties.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/properties.js` to TypeScript-authored shadow source (dependency inventory, static lookup contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-347: Properties module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 properties module TS shadow-source rollout by introducing `server/js/properties.cts` authored source, deterministic generation/sync checks for `server/js/properties.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: properties authored TS source and runtime artifact stay deterministically synchronized with unchanged entity stat lookup behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-348: Entity module TS shadow-source pre-slice (`server/js/entity.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/entity.js` to TypeScript-authored shadow source (dependency inventory, base-state/spawn contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-349: Entity module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 entity module TS shadow-source rollout by introducing `server/js/entity.cts` authored source, deterministic generation/sync checks for `server/js/entity.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: entity authored TS source and runtime artifact stay deterministically synchronized with unchanged base state/spawn behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-350: Item module TS shadow-source pre-slice (`server/js/item.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/item.js` to TypeScript-authored shadow source (dependency inventory, item state/equip contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-351: Item module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 item module TS shadow-source rollout by introducing `server/js/item.cts` authored source, deterministic generation/sync checks for `server/js/item.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: item authored TS source and runtime artifact stay deterministically synchronized with unchanged inventory/equip behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-352: NPC module TS shadow-source pre-slice (`server/js/npc.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/npc.js` to TypeScript-authored shadow source (dependency inventory, movement/dialog contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-353: NPC module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 NPC module TS shadow-source rollout by introducing `server/js/npc.cts` authored source, deterministic generation/sync checks for `server/js/npc.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: NPC authored TS source and runtime artifact stay deterministically synchronized with unchanged NPC behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-354: Message module TS shadow-source pre-slice (`server/js/message.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/message.js` to TypeScript-authored shadow source (dependency inventory, payload envelope contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-355: Message module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 message module TS shadow-source rollout by introducing `server/js/message.cts` authored source, deterministic generation/sync checks for `server/js/message.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: message authored TS source and runtime artifact stay deterministically synchronized with unchanged protocol payload envelope behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-356: ChestArea module TS shadow-source pre-slice (`server/js/chestarea.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/chestarea.js` to TypeScript-authored shadow source (dependency inventory, chest scheduling contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-357: ChestArea module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 chestarea module TS shadow-source rollout by introducing `server/js/chestarea.cts` authored source, deterministic generation/sync checks for `server/js/chestarea.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: chestarea authored TS source and runtime artifact stay deterministically synchronized with unchanged chest-spawn behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-358: Checkpoint module TS shadow-source pre-slice (`server/js/checkpoint.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/checkpoint.js` to TypeScript-authored shadow source (dependency inventory, area position contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-359: Checkpoint module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 checkpoint module TS shadow-source rollout by introducing `server/js/checkpoint.cts` authored source, deterministic generation/sync checks for `server/js/checkpoint.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: checkpoint authored TS source and runtime artifact stay deterministically synchronized with unchanged checkpoint position behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-360: Area module TS shadow-source pre-slice (`server/js/area.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/area.js` to TypeScript-authored shadow source (dependency inventory, area membership contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-361: Area module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 area module TS shadow-source rollout by introducing `server/js/area.cts` authored source, deterministic generation/sync checks for `server/js/area.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: area authored TS source and runtime artifact stay deterministically synchronized with unchanged area-containment behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-362: Formulas module TS shadow-source pre-slice (`server/js/formulas.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/formulas.js` to TypeScript-authored shadow source (dependency inventory, combat formula contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-363: Formulas module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 formulas module TS shadow-source rollout by introducing `server/js/formulas.cts` authored source, deterministic generation/sync checks for `server/js/formulas.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: formulas authored TS source and runtime artifact stay deterministically synchronized with unchanged combat formula behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-364: Log module TS shadow-source pre-slice (`server/js/log.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/log.js` to TypeScript-authored shadow source (dependency inventory, singleton/structured-log contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-365: Log module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 log module TS shadow-source rollout by introducing `server/js/log.cts` authored source, deterministic generation/sync checks for `server/js/log.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: log authored TS source and runtime artifact stay deterministically synchronized with unchanged logger behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-366: Utils module TS shadow-source pre-slice (`server/js/utils.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/utils.js` to TypeScript-authored shadow source (dependency inventory, sanitize/random/orientation contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-367: Utils module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 utils module TS shadow-source rollout by introducing `server/js/utils.cts` authored source, deterministic generation/sync checks for `server/js/utils.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: utils authored TS source and runtime artifact stay deterministically synchronized with unchanged helper behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-368: Format module TS shadow-source pre-slice (`server/js/format.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/format.js` to TypeScript-authored shadow source (dependency inventory, protocol-message format contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-369: Format module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 format module TS shadow-source rollout by introducing `server/js/format.cts` authored source, deterministic generation/sync checks for `server/js/format.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: format authored TS source and runtime artifact stay deterministically synchronized with unchanged message-format validation behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-370: Metrics-client module TS shadow-source pre-slice (`server/js/metrics-client.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/metrics-client.js` to TypeScript-authored shadow source (dependency inventory, legacy/modern adapter contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-371: Metrics-client module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 metrics-client module TS shadow-source rollout by introducing `server/js/metrics-client.cts` authored source, deterministic generation/sync checks for `server/js/metrics-client.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: metrics-client authored TS source and runtime artifact stay deterministically synchronized with unchanged memcache adapter behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-372: Config-preflight module TS shadow-source pre-slice (`server/js/config-preflight.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/config-preflight.js` to TypeScript-authored shadow source (dependency inventory, config validation contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-373: Config-preflight module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 config-preflight module TS shadow-source rollout by introducing `server/js/config-preflight.cts` authored source, deterministic generation/sync checks for `server/js/config-preflight.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: config-preflight authored TS source and runtime artifact stay deterministically synchronized with unchanged config-validation behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-374: Main module TS shadow-source pre-slice (`server/js/main.js`)
+- Status: `done`
+- Scope: define a low-risk pre-slice for promoting `server/js/main.js` to TypeScript-authored shadow source (dependency inventory, startup config-loading/export contract checklist, artifact workflow, rollback checklist) without runtime behavior changes.
+- Acceptance criteria: pre-slice artifact is committed with explicit dependency-order placement and verification commands.
+- Verification: committed pre-slice artifact + `bun run typecheck` + `bun run check:ws:runbooks`.
+
+### T-375: Main module TS shadow-source execution slice (`.cts` source + generated runtime artifact)
+- Status: `done`
+- Scope: execute phase-1 main module TS shadow-source rollout by introducing `server/js/main.cts` authored source, deterministic generation/sync checks for `server/js/main.js`, and workflow wiring across verify gates/docs.
+- Acceptance criteria: main authored TS source and runtime artifact stay deterministically synchronized with unchanged startup/bootstrap behavior.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-376: Shadow-source contract hardening wave 1 (remove `@ts-nocheck` from low-risk modules)
+- Status: `done`
+- Scope: remove `@ts-nocheck` from selected low-risk runtime shadow-source modules (`formulas`, `config-preflight`, `metrics-client`) and add explicit type contracts.
+- Acceptance criteria: selected modules compile under TypeScript without `@ts-nocheck` and runtime behavior remains unchanged.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-377: Shadow-source contract hardening wave 2 (startup/runtime utility seam typing)
+- Status: `done`
+- Scope: remove `@ts-nocheck` from `server/js/log.cts`, `server/js/utils.cts`, `server/js/format.cts`, and `server/js/main.cts` while introducing explicit runtime contracts and preserving startup behavior.
+- Acceptance criteria: selected modules compile without `@ts-nocheck`, sync artifacts remain deterministic, and startup/protocol behavior is unchanged.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-378: Shadow-source contract hardening wave 3 (gameplay/value module typing)
+- Status: `done`
+- Scope: remove `@ts-nocheck` from `server/js/area.cts`, `server/js/checkpoint.cts`, `server/js/properties.cts`, and `server/js/entity.cts` with explicit contracts and no runtime behavior drift.
+- Acceptance criteria: selected modules compile without `@ts-nocheck`, generated artifacts remain in sync, and gameplay/protocol parity remains unchanged.
+- Verification: `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-379: Shadow-source contract hardening wave 4 (leaf gameplay classes)
+- Status: `done`
+- Scope: remove `@ts-nocheck` from `server/js/npc.cts`, `server/js/item.cts`, `server/js/chest.cts`, and `server/js/chestarea.cts` with explicit TypeScript contracts and no runtime drift.
+- Acceptance criteria: selected modules compile without `@ts-nocheck`, generated artifacts remain in sync, and gameplay parity is unchanged.
+- Verification: `bun run build:npc` + `bun run build:item` + `bun run build:chest` + `bun run build:chestarea` + `bun run check:npc-sync` + `bun run check:item-sync` + `bun run check:chest-sync` + `bun run check:chestarea-sync` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-380: Shadow-source contract hardening wave 5 (combat + map/message runtime modules)
+- Status: `done`
+- Scope: remove `@ts-nocheck` from `server/js/character.cts`, `server/js/mob.cts`, `server/js/mobarea.cts`, `server/js/map.cts`, and `server/js/message.cts` while preserving protocol/gameplay behavior.
+- Acceptance criteria: selected modules compile without `@ts-nocheck`, artifacts remain deterministic, and combat/map/message runtime behavior remains unchanged.
+- Verification: `bun run build:character` + `bun run build:mob` + `bun run build:mobarea` + `bun run build:map` + `bun run build:message` + `bun run check:character-sync` + `bun run check:mob-sync` + `bun run check:mobarea-sync` + `bun run check:map-sync` + `bun run check:message-sync` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-381: Shadow-source contract hardening wave 6 (metrics + startup runtime seams)
+- Status: `done`
+- Scope: remove `@ts-nocheck` from `server/js/metrics.cts`, `server/js/metrics-runtime.cts`, and `server/js/main-runtime.cts` with explicit contract types while preserving startup/metrics behavior.
+- Acceptance criteria: selected modules compile without `@ts-nocheck`, sync checks pass, and startup/metrics behavior remains unchanged.
+- Verification: `bun run build:metrics` + `bun run build:metrics-runtime` + `bun run build:main-runtime` + `bun run check:metrics-sync` + `bun run check:metrics-runtime-sync` + `bun run check:main-runtime-sync` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-382: Shadow-source contract hardening wave 7 (core server loop + websocket boundary)
+- Status: `done`
+- Scope: remove `@ts-nocheck` from `server/js/player.cts`, `server/js/worldserver.cts`, and `server/js/ws.cts` with explicit runtime boundary contracts and no protocol drift.
+- Acceptance criteria: selected modules compile without `@ts-nocheck`, generated artifacts remain in sync, and websocket/game loop behavior is unchanged.
+- Verification: `bun run build:player` + `bun run build:worldserver` + `bun run build:ws-module` + `bun run check:player-sync` + `bun run check:worldserver-sync` + `bun run check:ws-module-sync` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-383: Server shadow-source hardening regression gate
+- Status: `done`
+- Scope: add an automated regression guard that enforces server shadow-source hardening invariants (`no @ts-nocheck`, runtime artifact presence, `.js` runtime artifacts backed by `.cts` sources) and wire it into verify gates.
+- Acceptance criteria: guard script is versioned, verify chains execute it, and modern/legacy acceptance remains green.
+- Verification: `bun run check:server-shadow-hardening` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-384: Readiness artifact and final handoff snapshot
+- Status: `done`
+- Scope: publish a single current-state modernization readiness artifact with exact verification evidence and explicit external blockers.
+- Acceptance criteria: readiness document exists, is linked from top-level docs, and aligns with current queue state.
+- Verification: `docs/modernization-readiness-status.md` + `README.md` link update.
+
+### T-385: Client runtime suppression cleanup and final gate revalidation
+- Status: `done`
+- Scope: remove remaining scoped client runtime TS suppression in `client/js-esm/sprites.js`, preserve Vite runtime behavior, and re-run full modernization acceptance gates.
+- Acceptance criteria: modern sprite loader compiles without suppression pragmas, runtime behavior is unchanged, and modern/legacy/protocol verification lanes remain green.
+- Verification: `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22` + `rg -n '@ts-(expect-error|ignore|nocheck)' client/js-esm server/js shared/js tests`.
+
+### T-386: Shared protocol contract TS shadow-source promotion
+- Status: `done`
+- Scope: promote `shared/js/protocol-contract.js` to TypeScript-authored shadow source (`shared/js/protocol-contract.cts`) with deterministic generated runtime artifact workflow.
+- Acceptance criteria: shared protocol contract source of truth is `.cts`, runtime `.js` artifact is generated deterministically, and protocol behavior remains unchanged.
+- Verification: `bun run build:protocol-contract` + `bun run check:protocol-contract-sync` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-387: Protocol contract boundary lock and verify-gate wiring
+- Status: `done`
+- Scope: enforce protocol contract sync checks in verify gates and lock runtime boundary imports to explicit `.js` artifact paths where needed for deterministic CJS parity under Bun/Node.
+- Acceptance criteria: modern+legacy verify chains enforce protocol-contract sync, and protocol contract CJS/ESM parity tests remain green with explicit runtime boundary imports.
+- Verification: `bun run check:protocol-contract-sync` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-388: Direct dependency drift closure (tooling patch)
+- Status: `done`
+- Scope: close direct dependency drift by upgrading outdated direct development dependencies without runtime behavior changes.
+- Acceptance criteria: direct dependency drift check is clean after upgrade and project verification lanes remain green.
+- Verification: `bun run check:deps:drift` + `bun outdated` + `bun run typecheck` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+
+### T-389: Node 22 runner modernization (`npx` retirement from local toolchain lane)
+- Status: `done`
+- Scope: modernize `tools/node22-run.sh` to avoid unconditional `npx` usage by preferring local Node 22 and using an explicit npm-exec fallback only when needed.
+- Acceptance criteria: Node-22 runner still guarantees Node 22 execution, no `npx` references remain in `package.json` + `tools`, and modernization verify lanes stay green.
+- Verification: `rg -n '\bnpx\b' package.json tools` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+- Dependencies/blockers: none (local tooling only).
+
+### T-390: Bun-native dependency drift enforcement and CI snapshot alignment
+- Status: `done`
+- Scope: replace direct dependency drift detection with a Bun-native checker that supports both fail-on-drift local gating and non-failing CI snapshot/report capture.
+- Acceptance criteria: `check:deps:drift` no longer relies on `npm outdated`, workflow snapshot artifacts are generated via the Bun-native checker, and modern/legacy/protocol node22 verification remains green.
+- Verification: `node tools/check-dependency-drift.cjs` + `node tools/check-dependency-drift.cjs --allow-drift --text <tmp>/dependency-drift.txt --json <tmp>/dependency-drift.json` + `bun run check:deps:drift` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+- Dependencies/blockers: none (in-repo tooling + workflow/docs only).
+
+### T-391: External signoff artifact prefill with technical readiness evidence
+- Status: `done`
+- Scope: prefill T-209/T-210/T-211 decision artifacts with explicit blocked state, latest technical verification status, and actionable remaining human-required fields.
+- Acceptance criteria: external-signoff docs clearly distinguish completed technical readiness from outstanding human inputs and record current `no-go` decision state pending signoff.
+- Verification: `rg -n 'Execution status|Last evaluation refresh|Outcome: \`no-go\`|Required verification commands green|pending maintainer assignment' docs/legacy-external-consumer-confirmation-protocol.md docs/legacy-retirement-rollback-assignment.md docs/legacy-retirement-readiness-decision.md` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+- Dependencies/blockers: none (documentation/evidence slice only).
+
+### T-392: External signoff closure automation (`check:legacy-signoff:*`)
+- Status: `done`
+- Scope: automate deterministic closure checks for T-209/T-210/T-211 artifacts so external readiness can be validated by command instead of manual inspection.
+- Acceptance criteria: report mode summarizes unresolved external blockers without failing; strict mode fails until blockers/signoffs are fully resolved; existing technical verification lanes remain green.
+- Verification: `bun run check:legacy-signoff:report` + `bun run check:legacy-signoff:ready` (expected fail while blocked) + `bun run check:deps:drift` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+- Dependencies/blockers: none (tooling/docs automation only).
+
+### T-393: Signoff readiness checker hardening + CI advisory artifact lane
+- Status: `done`
+- Scope: refine external signoff checker to validate actionable fields only, add JSON output for automation, and publish advisory readiness artifacts via manual workflow.
+- Acceptance criteria: checker can eventually pass without stripping templates, JSON report is available for automation, and a workflow exists to publish signoff readiness artifacts for handoff/audit.
+- Verification: `bun run check:legacy-signoff:report:json` + `bun run check:legacy-signoff:report` + `bun run check:legacy-signoff:ready` (expected fail while blocked).
+- Dependencies/blockers: none (tooling/workflow/docs lane only).

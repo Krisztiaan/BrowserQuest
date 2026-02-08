@@ -26,16 +26,16 @@
   - `bun run verify:modern` passed.
   - `bun run verify:legacy` passed.
   - `bun run lint` passed with upgraded lint toolchain.
-  - `npm outdated --depth=0` returns no direct dependency drift.
+  - `bun run check:deps:drift` returns no direct dependency drift.
 
 ## Node 22 baseline outcome
 
-- Node 22 verification runtime used: `v22.22.0` (via `npx node@22`).
+- Node 22 verification runtime used: `v22.22.0` (via `tools/node22-run.sh` shim resolution).
 - Verification evidence:
   - `PATH=<node22-shim> bun run verify:modern` passed.
   - `PATH=<node22-shim> bun run verify:legacy` passed.
   - `PATH=<node22-shim> bun run test:modern-browser` passed.
-  - `timeout 6s npx -y node@22 --trace-warnings server/js/main.js server/config.json` showed clean startup with no runtime warnings before timeout shutdown.
+  - `timeout 6s bash tools/node22-run.sh node --trace-warnings server/js/main.js server/config.json` showed clean startup with no runtime warnings before timeout shutdown.
 
 ## CI baseline enforcement
 

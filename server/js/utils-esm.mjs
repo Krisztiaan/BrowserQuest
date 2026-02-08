@@ -1,7 +1,4 @@
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const Types = require('../../shared/js/gametypes');
+import Types from '../../shared/js/gametypes-esm.mjs';
 
 const Utils = {
     sanitize(string) {

@@ -4,14 +4,13 @@ import Item from 'item';
 import Character from 'character';
 import Player from 'player';
 import Timer from 'timer';
-import Class from 'compat/class';
 import Detect from 'compat/detect';
 import Types from 'compat/gametypes';
 import log from 'compat/log';
 import { getBase64Image } from 'compat/util';
 
-var Renderer = Class.extend({
-    init: function(game, canvas, background, foreground) {
+class Renderer {
+    constructor(game, canvas, background, foreground) {
         this.game = game;
         this.context = (canvas && canvas.getContext) ? canvas.getContext("2d") : null;
         this.background = (background && background.getContext) ? background.getContext("2d") : null;
@@ -41,21 +40,21 @@ var Renderer = Class.extend({
         this.tablet = Detect.isTablet(window.innerWidth);
         
         this.fixFlickeringTimer = new Timer(100);
-    },
+    }
 
-    getWidth: function() {
+    getWidth() {
         return this.canvas.width;
-    },
+    }
 
-    getHeight: function() {
+    getHeight() {
         return this.canvas.height;
-    },
+    }
 
-    setTileset: function(tileset) {
+    setTileset(tileset) {
         this.tileset = tileset;
-    },
+    }
 
-    getScaleFactor: function() {
+    getScaleFactor() {
         var w = window.innerWidth,
             h = window.innerHeight,
             scale;
@@ -74,9 +73,9 @@ var Renderer = Class.extend({
         }
     
         return scale;
-    },
+    }
 
-    rescale: function(factor) {
+    rescale(factor) {
         this.scale = this.getScaleFactor();
     
         this.createCamera();
@@ -94,9 +93,9 @@ var Renderer = Class.extend({
         if(this.game.renderer) {
             this.game.setSpriteScale(this.scale);
         }
-    },
+    }
 
-    createCamera: function() {
+    createCamera() {
         this.camera = new Camera(this);
         this.camera.rescale();
     
@@ -111,13 +110,13 @@ var Renderer = Class.extend({
         this.forecanvas.width = this.canvas.width;
         this.forecanvas.height = this.canvas.height;
         log.debug("#foreground set to "+this.forecanvas.width+" x "+this.forecanvas.height);
-    },
+    }
 
-    initFPS: function() {
+    initFPS() {
         this.FPS = this.mobile ? 50 : 50;
-    },
+    }
 
-    initFont: function() {
+    initFont() {
         var fontsize;
     
         switch(this.scale) {
@@ -129,16 +128,16 @@ var Renderer = Class.extend({
                 fontsize = 20;
         }
         this.setFontSize(fontsize);
-    },
+    }
 
-    setFontSize: function(size) {
+    setFontSize(size) {
         var font = size+"px GraphicPixel";
     
         this.context.font = font;
         this.background.font = font;
-    },
+    }
 
-    drawText: function(text, x, y, centered, color, strokeColor) {
+    drawText(text, x, y, centered, color, strokeColor) {
         var ctx = this.context;
         
         var strokeSize;
@@ -164,35 +163,35 @@ var Renderer = Class.extend({
             ctx.fillText(text, x, y);
             ctx.restore();
         }
-    },
+    }
 
-    drawCellRect: function(x, y, color) {
+    drawCellRect(x, y, color) {
         this.context.save();
         this.context.lineWidth = 2*this.scale;
         this.context.strokeStyle = color;
         this.context.translate(x+2, y+2);
         this.context.strokeRect(0, 0, (this.tilesize * this.scale) - 4, (this.tilesize * this.scale) - 4);
         this.context.restore();
-    },
+    }
 
-    drawCellHighlight: function(x, y, color) {
+    drawCellHighlight(x, y, color) {
         var s = this.scale,
             ts = this.tilesize,
             tx = x * ts * s,
             ty = y * ts * s;
     
         this.drawCellRect(tx, ty, color);
-    },
+    }
 
-    drawTargetCell: function() {
+    drawTargetCell() {
         var mouse = this.game.getMouseGridPosition();
     
         if(this.game.targetCellVisible && !(mouse.x === this.game.selectedX && mouse.y === this.game.selectedY)) {
             this.drawCellHighlight(mouse.x, mouse.y, this.game.targetColor);
         }
-    },
+    }
 
-    drawAttackTargetCell: function() {
+    drawAttackTargetCell() {
         var mouse = this.game.getMouseGridPosition(),
             entity = this.game.getEntityAt(mouse.x, mouse.y),
             s = this.scale;
@@ -200,9 +199,9 @@ var Renderer = Class.extend({
         if(entity) {
             this.drawCellRect(entity.x * s, entity.y * s, "rgba(255, 0, 0, 0.5)");
         }
-    },
+    }
 
-    drawOccupiedCells: function() {
+    drawOccupiedCells() {
         var positions = this.game.entityGrid;
     
         if(positions) {
@@ -214,9 +213,9 @@ var Renderer = Class.extend({
                 }
             }
         }
-    },
+    }
 
-    drawPathingCells: function() {
+    drawPathingCells() {
         var grid = this.game.pathingGrid;
     
         if(grid && this.game.debugPathing) {
@@ -228,9 +227,9 @@ var Renderer = Class.extend({
                 }
             }
         }
-    },
+    }
 
-    drawSelectedCell: function() {
+    drawSelectedCell() {
         var sprite = this.game.cursors["target"],
             anim = this.game.targetAnimation,
             os = this.upscaledRendering ? 1 : this.scale,
@@ -251,8 +250,8 @@ var Renderer = Class.extend({
                 if(sprite && anim) {
                     var	frame = anim.currentFrame,
                         s = this.scale,
-                        x = frame.x * os,
-                        y = frame.y * os,
+                        frameX = frame.x * os,
+                        frameY = frame.y * os,
                         w = sprite.width * os,
                         h = sprite.height * os,
                         ts = 16,
@@ -263,20 +262,20 @@ var Renderer = Class.extend({
 
                     this.context.save();
                     this.context.translate(dx, dy);
-                    this.context.drawImage(sprite.image, x, y, w, h, 0, 0, dw, dh);
+                    this.context.drawImage(sprite.image, frameX, frameY, w, h, 0, 0, dw, dh);
                     this.context.restore();
                 }
             }
         }
-    },
+    }
 
-    clearScaledRect: function(ctx, x, y, w, h) {
+    clearScaledRect(ctx, x, y, w, h) {
         var s = this.scale;
     
         ctx.clearRect(x * s, y * s, w * s, h * s);
-    },
+    }
 
-    drawCursor: function() {
+    drawCursor() {
         var mx = this.game.mouse.x,
             my = this.game.mouse.y,
             s = this.scale,
@@ -287,9 +286,9 @@ var Renderer = Class.extend({
             this.context.drawImage(this.game.currentCursor.image, 0, 0, 14 * os, 14 * os, mx, my, 14*s, 14*s);
         }
         this.context.restore();
-    },
+    }
 
-    drawScaledImage: function(ctx, image, x, y, w, h, dx, dy) {
+    drawScaledImage(ctx, image, x, y, w, h, dx, dy) {
         var s = this.upscaledRendering ? 1 : this.scale;
         Array.prototype.forEach.call(arguments, function(arg) {
             if(arg === undefined || Number.isNaN(arg) || arg === null || arg < 0) {
@@ -307,9 +306,9 @@ var Renderer = Class.extend({
                       dy * this.scale,
                       w * this.scale,
                       h * this.scale);
-    },
+    }
 
-    drawTile: function(ctx, tileid, tileset, setW, gridW, cellid) {
+    drawTile(ctx, tileid, tileset, setW, gridW, cellid) {
         var s = this.upscaledRendering ? 1 : this.scale;
         if(tileid !== -1) { // -1 when tile is empty in Tiled. Don't attempt to draw it.
             this.drawScaledImage(ctx,
@@ -321,9 +320,9 @@ var Renderer = Class.extend({
                                  getX(cellid + 1, gridW) * this.tilesize,
                                  Math.floor(cellid / gridW) * this.tilesize);
         }
-    },
+    }
 
-    clearTile: function(ctx, gridW, cellid) {
+    clearTile(ctx, gridW, cellid) {
         var s = this.scale,
             ts = this.tilesize,
             x = getX(cellid + 1, gridW) * ts * s,
@@ -332,9 +331,9 @@ var Renderer = Class.extend({
             h = w;
     
         ctx.clearRect(x, y, h, w);
-    },
+    }
 
-    drawEntity: function(entity) {
+    drawEntity(entity) {
         var sprite = entity.sprite,
             shadow = this.game.shadows["small"],
             anim = entity.currentAnimation,
@@ -427,9 +426,9 @@ var Renderer = Class.extend({
                 this.context.restore();
             }
         }
-    },
+    }
 
-    drawEntities: function(dirtyOnly) {
+    drawEntities(dirtyOnly) {
         var self = this;
     
         this.game.forEachVisibleEntityByDepth(function(entity) {
@@ -447,17 +446,17 @@ var Renderer = Class.extend({
                 }
             }
         });
-    },
+    }
     
-    drawDirtyEntities: function() {
+    drawDirtyEntities() {
         this.drawEntities(true);
-    },
+    }
     
-    clearDirtyRect: function(r) {
+    clearDirtyRect(r) {
         this.context.clearRect(r.x, r.y, r.w, r.h);
-    },
+    }
 
-    clearDirtyRects: function() {
+    clearDirtyRects() {
         var self = this,
             count = 0;
         
@@ -487,9 +486,9 @@ var Renderer = Class.extend({
         if(count > 0) {
             //log.debug("count:"+count);
         }
-    },
+    }
     
-    getEntityBoundingRect: function(entity) {
+    getEntityBoundingRect(entity) {
         var rect = {},
             s = this.scale,
             spr;
@@ -512,9 +511,9 @@ var Renderer = Class.extend({
             rect.bottom = rect.y + rect.h;
         }
         return rect;
-    },
+    }
     
-    getTileBoundingRect: function(tile) {
+    getTileBoundingRect(tile) {
         var rect = {},
             gridW = this.game.map.width,
             s = this.scale,
@@ -531,9 +530,9 @@ var Renderer = Class.extend({
         rect.bottom = rect.y + rect.h;
         
         return rect;
-    },
+    }
     
-    getTargetBoundingRect: function(x, y) {
+    getTargetBoundingRect(x, y) {
         var rect = {},
             s = this.scale,
             ts = this.tilesize,
@@ -550,16 +549,16 @@ var Renderer = Class.extend({
         rect.bottom = rect.y + rect.h;
         
         return rect;
-    },
+    }
     
-    isIntersecting: function(rect1, rect2) {
+    isIntersecting(rect1, rect2) {
         return !((rect2.left > rect1.right) ||
                  (rect2.right < rect1.left) ||
                  (rect2.top > rect1.bottom) ||
                  (rect2.bottom < rect1.top));
-    },
+    }
     
-    drawEntityName: function(entity) {
+    drawEntityName(entity) {
         this.context.save();
         if(entity.name && entity instanceof Player) {
             var color = (entity.id === this.game.playerId) ? "#fcda5c" : "white";
@@ -570,9 +569,9 @@ var Renderer = Class.extend({
                           color);
         }
         this.context.restore();
-    },
+    }
 
-    drawTerrain: function() {
+    drawTerrain() {
         var self = this,
             m = this.game.map,
             tilesetwidth = this.tileset.width / m.tilesize;
@@ -582,9 +581,9 @@ var Renderer = Class.extend({
                 self.drawTile(self.background, id, self.tileset, tilesetwidth, m.width, index);
             }
         }, 1);
-    },
+    }
 
-    drawAnimatedTiles: function(dirtyOnly) {
+    drawAnimatedTiles(dirtyOnly) {
         var self = this,
             m = this.game.map,
             tilesetwidth = this.tileset.width / m.tilesize;
@@ -601,13 +600,13 @@ var Renderer = Class.extend({
                 self.animatedTileCount += 1;
             }
         });
-    },
+    }
     
-    drawDirtyAnimatedTiles: function() {
+    drawDirtyAnimatedTiles() {
         this.drawAnimatedTiles(true);
-    },
+    }
 
-    drawHighTiles: function(ctx) {
+    drawHighTiles(ctx) {
         var self = this,
             m = this.game.map,
             tilesetwidth = this.tileset.width / m.tilesize;
@@ -619,14 +618,14 @@ var Renderer = Class.extend({
                 self.highTileCount += 1;
             }
         }, 1);
-    },
+    }
 
-    drawBackground: function(ctx, color) {
+    drawBackground(ctx, color) {
         ctx.fillStyle = color;
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    },
+    }
 
-    drawFPS: function() {
+    drawFPS() {
         var nowTime = new Date(),
             diffTime = nowTime.getTime() - this.lastTime.getTime();
 
@@ -639,17 +638,17 @@ var Renderer = Class.extend({
     
         //this.drawText("FPS: " + this.realFPS + " / " + this.maxFPS, 30, 30, false);
         this.drawText("FPS: " + this.realFPS, 30, 30, false);
-    },
+    }
 
-    drawDebugInfo: function() {
+    drawDebugInfo() {
         if(this.isDebugInfoVisible) {
             this.drawFPS();
             this.drawText("A: " + this.animatedTileCount, 100, 30, false);
             this.drawText("H: " + this.highTileCount, 140, 30, false);
         }
-    },
+    }
 
-    drawCombatInfo: function() {
+    drawCombatInfo() {
         var self = this;
     
         switch(this.scale) {
@@ -663,17 +662,17 @@ var Renderer = Class.extend({
             self.context.restore();
         });
         this.initFont();
-    },
+    }
 
-    setCameraView: function(ctx) {
+    setCameraView(ctx) {
         ctx.translate(-this.camera.x * this.scale, -this.camera.y * this.scale);
-    },
+    }
 
-    clearScreen: function(ctx) {
+    clearScreen(ctx) {
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    },
+    }
     
-    getPlayerImage: function(callback) {
+    getPlayerImage(callback) {
         var canvas = document.createElement('canvas'),
             ctx = canvas.getContext('2d'),
             os = this.upscaledRendering ? 1 : this.scale,
@@ -746,9 +745,9 @@ var Renderer = Class.extend({
                 callback(canvas.toDataURL("image/png"));
             } 
         }
-    },
+    }
 
-    renderStaticCanvases: function() {
+    renderStaticCanvases() {
         this.background.save();
             this.setCameraView(this.background);
             this.drawTerrain();
@@ -761,18 +760,18 @@ var Renderer = Class.extend({
                 this.drawHighTiles(this.foreground);
             this.foreground.restore();
         }
-    },
+    }
 
-    renderFrame: function() {
+    renderFrame() {
         if(this.mobile || this.tablet) {
             this.renderFrameMobile();
         }
         else {
             this.renderFrameDesktop();
         }
-    },
+    }
 
-    renderFrameDesktop: function() {
+    renderFrameDesktop() {
         this.clearScreen(this.context);
     
         this.context.save();
@@ -794,9 +793,9 @@ var Renderer = Class.extend({
         // Overlay UI elements
         this.drawCursor();
         this.drawDebugInfo();
-    },
+    }
 
-    renderFrameMobile: function() {
+    renderFrameMobile() {
         this.clearDirtyRects();
         this.preventFlickeringBug();
 
@@ -807,16 +806,16 @@ var Renderer = Class.extend({
             this.drawSelectedCell();
             this.drawDirtyEntities();
         this.context.restore();
-    },
+    }
     
-    preventFlickeringBug: function() {
+    preventFlickeringBug() {
         if(this.fixFlickeringTimer.isOver(this.game.currentTime)) {
             this.background.fillRect(0, 0, 0, 0);
             this.context.fillRect(0, 0, 0, 0);
             this.foreground.fillRect(0, 0, 0, 0);
         }
     }
-});
+}
 
 var getX = function(id, w) {
     if(id == 0) {

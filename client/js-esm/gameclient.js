@@ -1,8 +1,11 @@
-import Player from 'player';
 import EntityFactory from 'entityfactory';
 import BISON from 'lib/bison';
 import log from 'compat/log';
 import Types from 'compat/gametypes';
+import { normalizeProtocolActionBatch } from 'protocol-payload';
+
+/** @typedef {import('./client-boundary-types').ClientProtocolAction} ClientProtocolAction */
+/** @typedef {import('./client-boundary-types').ClientProtocolBatch} ClientProtocolBatch */
 
 class GameClient {
     constructor(host, port) {
@@ -13,6 +16,7 @@ class GameClient {
         this.connected_callback = null;
         this.spawn_callback = null;
         this.movement_callback = null;
+        this.isTimeout = false;
     
         this.handlers = [];
         this.handlers[Types.Messages.WELCOME] = this.receiveWelcome;
@@ -54,11 +58,7 @@ class GameClient {
         
         log.info("Trying to connect to server : "+url);
 
-        if(window.MozWebSocket) {
-            this.connection = new window.MozWebSocket(url);
-        } else {
-            this.connection = new WebSocket(url);
-        }
+        this.connection = new WebSocket(url);
         
         if(dispatcherMode) {
             this.connection.onmessage = function(e) {
@@ -127,7 +127,7 @@ class GameClient {
     }
 
     receiveMessage(message) {
-        var data, action;
+        var data, actions;
     
         if(this.isListening) {
             if(this.useBison) {
@@ -137,19 +137,18 @@ class GameClient {
             }
 
             log.debug("data: " + message);
-
-            if(data instanceof Array) {
-                if(data[0] instanceof Array) {
-                    // Multiple actions received
-                    this.receiveActionBatch(data);
-                } else {
-                    // Only one action received
-                    this.receiveAction(data);
-                }
+            actions = normalizeProtocolActionBatch(data);
+            if(actions.length === 1) {
+                this.receiveAction(actions[0]);
+            } else if(actions.length > 1) {
+                this.receiveActionBatch(actions);
             }
         }
     }
 
+    /**
+     * @param {ClientProtocolAction} data
+     */
     receiveAction(data) {
         var action = data[0];
         if(this.handlers[action] && typeof this.handlers[action] === "function") {
@@ -160,6 +159,9 @@ class GameClient {
         }
     }
 
+    /**
+     * @param {ClientProtocolBatch} actions
+     */
     receiveActionBatch(actions) {
         var self = this;
 
@@ -247,7 +249,7 @@ class GameClient {
 
             var character = EntityFactory.createEntity(kind, id, name);
         
-            if(character instanceof Player) {
+            if(Types.isPlayer(kind) && character) {
                 character.weaponName = Types.getKindAsString(weapon);
                 character.spriteName = Types.getKindAsString(armor);
             }
@@ -256,6 +258,14 @@ class GameClient {
                 this.spawn_character_callback(character, x, y, orientation, target);
             }
         }
+    }
+
+    receiveSpawnBatch(data) {
+        data.slice(1).forEach(function(spawn) {
+            if(spawn instanceof Array) {
+                this.receiveSpawn(spawn);
+            }
+        }, this);
     }
 
     receiveDespawn(data) {

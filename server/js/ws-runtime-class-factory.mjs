@@ -1,15 +1,6 @@
 /**
- * @param {object} deps
- * @param {{ info: (message: string) => void, error: (message: string) => void, event: (level: string, event: string, fields: Record<string, unknown>) => void }} deps.log
- * @param {{ random: (max: number) => number }} deps.Utils
- * @param {{ parseProtocolActionBatch: (payload: string) => unknown[] }} deps.Protocol
- * @param {{ NORMAL: number, UNSUPPORTED_DATA: number, INVALID_PAYLOAD: number }} deps.CLOSE_CODES
- * @param {{ WebSocketServer: new (options: object) => { on: (event: string, handler: (...args: unknown[]) => void) => void } }} deps.WebSocket
- * @param {(handler: (request: { url?: string }, response: { writeHead: (code: number) => void, write: (text: string) => void, end: () => void }) => void) => { listen: (port: number, callback: () => void) => void }} deps.createHttpServer
- * @param {(requestUrl: string | undefined) => string | null | undefined} deps.parseUrlPathname
- * @param {(level: string, eventName: string, connection: { id: string, remoteAddress: string }, extraFields?: Record<string, unknown>) => void} deps.logConnectionEvent
- * @param {boolean} [deps.useBison]
- * @returns {{ MultiVersionWebsocketServer: new (port: number) => unknown, wsWebSocketConnection: new (id: string, connection: unknown, server: unknown, remoteAddress: string) => unknown }}
+ * @param {import('./ws-runtime-class-factory-types').WebSocketRuntimeFactoryDeps} deps
+ * @returns {import('./ws-runtime-class-factory-types').WebSocketRuntimeClasses}
  */
 export function createWebSocketRuntimeClasses({
     log,
@@ -22,7 +13,31 @@ export function createWebSocketRuntimeClasses({
     logConnectionEvent,
     useBison = false,
 }) {
+    /**
+     * @param {unknown} request
+     * @returns {string}
+     */
+    function resolveRemoteAddress(request) {
+        if (!request || typeof request !== 'object' || !('socket' in request)) {
+            return 'unknown';
+        }
+        const socket = request.socket;
+        if (!socket || typeof socket !== 'object' || !('remoteAddress' in socket)) {
+            return 'unknown';
+        }
+        return typeof socket.remoteAddress === 'string' ? socket.remoteAddress : 'unknown';
+    }
+
     class Server {
+        port;
+        _connections;
+        _counter;
+        connection_callback;
+        error_callback;
+        status_callback;
+        _httpServer;
+        _wss;
+
         constructor(port) {
             this.port = port;
             this._connections = {};
@@ -37,7 +52,7 @@ export function createWebSocketRuntimeClasses({
             this.error_callback = callback;
         }
 
-        broadcast(message) {
+        broadcast(_message) {
             throw new Error('Not implemented');
         }
 
@@ -61,6 +76,13 @@ export function createWebSocketRuntimeClasses({
     }
 
     class Connection {
+        _connection;
+        _server;
+        id;
+        remoteAddress;
+        close_callback;
+        listen_callback;
+
         constructor(id, connection, server, remoteAddress) {
             this._connection = connection;
             this._server = server;
@@ -76,15 +98,15 @@ export function createWebSocketRuntimeClasses({
             this.listen_callback = callback;
         }
 
-        broadcast(message) {
+        broadcast(_message) {
             throw new Error('Not implemented');
         }
 
-        send(message) {
+        send(_message) {
             throw new Error('Not implemented');
         }
 
-        sendUTF8(data) {
+        sendUTF8(_data) {
             throw new Error('Not implemented');
         }
 
@@ -92,12 +114,12 @@ export function createWebSocketRuntimeClasses({
             const reason = String(logError || '');
             const sanitizedReason = reason.length > 120 ? reason.slice(0, 117) + '...' : reason;
             const code = Number.isInteger(closeCode) ? closeCode : CLOSE_CODES.NORMAL;
-
             log.info('Closing connection to ' + this.remoteAddress + '. Error: ' + reason);
             logConnectionEvent('info', 'ws.connection.close_request', this, {
                 code,
                 reason,
             });
+
             try {
                 this._connection.close(code, sanitizedReason);
             } catch (_) {
@@ -122,12 +144,15 @@ export function createWebSocketRuntimeClasses({
                 if (!this.listen_callback) {
                     return;
                 }
+
                 if (isBinary) {
                     this.closeUnsupportedData('Binary websocket frames are not supported.');
                     return;
                 }
 
-                const text = typeof data === 'string' ? data : data.toString('utf8');
+                const text =
+                    typeof data === 'string' ? data : Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+
                 if (useBison) {
                     this.closeUnsupportedData('BISON is not supported in modern mode.');
                     return;
@@ -173,6 +198,7 @@ export function createWebSocketRuntimeClasses({
 
             this._httpServer = createHttpServer((request, response) => {
                 const requestPath = parseUrlPathname(request.url);
+
                 if (requestPath === '/status' && this.status_callback) {
                     response.writeHead(200);
                     response.write(this.status_callback());
@@ -183,6 +209,7 @@ export function createWebSocketRuntimeClasses({
                 response.writeHead(404);
                 response.end();
             });
+
             this._httpServer.listen(port, () => {
                 log.info('Server is listening on port ' + port);
                 log.event('info', 'ws.server.listen', { port });
@@ -193,12 +220,14 @@ export function createWebSocketRuntimeClasses({
                 maxPayload: 64 * 1024,
                 perMessageDeflate: false,
             });
+
             this._wss.on('error', (err) => {
                 log.error('WebSocket server error: ' + err);
                 log.event('error', 'ws.server.error', { error: String(err) });
             });
+
             this._wss.on('connection', (connection, req) => {
-                const remoteAddress = req && req.socket ? req.socket.remoteAddress : 'unknown';
+                const remoteAddress = resolveRemoteAddress(req);
                 const wsConnection = new wsWebSocketConnection(this._createId(), connection, this, remoteAddress);
 
                 if (this.connection_callback) {

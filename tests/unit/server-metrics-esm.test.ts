@@ -8,11 +8,14 @@ const MetricsCjs = require('../../server/js/metrics');
 const MetricsRuntimeCjs = require('../../server/js/metrics-runtime');
 
 test('metrics esm mirror exports cjs metrics class contract', () => {
-    expect(MetricsEsm).toBe(MetricsCjs);
-    expect(MetricsNamedEsm).toBe(MetricsCjs);
+    expect(typeof MetricsEsm).toBe('function');
+    expect(MetricsEsm.name).toBe(MetricsCjs.name);
+    expect(MetricsNamedEsm).toBe(MetricsEsm);
 });
 
 test('metrics runtime esm mirror exports cjs runtime contract', () => {
-    expect(MetricsRuntimeEsm).toBe(MetricsRuntimeCjs);
-    expect(createMetricsEsm).toBe(MetricsRuntimeCjs.createMetrics);
+    expect(Object.keys(MetricsRuntimeEsm).sort()).toEqual(Object.keys(MetricsRuntimeCjs).sort());
+    expect(typeof createMetricsEsm).toBe('function');
+    expect(createMetricsEsm.name).toBe(MetricsRuntimeCjs.createMetrics.name);
+    expect(createMetricsEsm).toBe(MetricsRuntimeEsm.createMetrics);
 });

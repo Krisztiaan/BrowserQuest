@@ -10,7 +10,8 @@ test('ws close code contract keeps shared CJS/ESM parity', () => {
     expect(NORMAL).toBe(CloseCodesCjs.NORMAL);
     expect(UNSUPPORTED_DATA).toBe(CloseCodesCjs.UNSUPPORTED_DATA);
     expect(INVALID_PAYLOAD).toBe(CloseCodesCjs.INVALID_PAYLOAD);
-    expect(CloseCodesEsm).toBe(CloseCodesCjs);
+    expect(CloseCodesEsm).toEqual(CloseCodesCjs);
+    expect(CloseCodesEsm).not.toBe(CloseCodesCjs);
 });
 
 test('server websocket transport exposes shared close code contract', () => {

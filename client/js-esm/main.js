@@ -4,6 +4,23 @@ import log from 'compat/log';
 import Types from 'compat/gametypes';
 import { TRANSITIONEND } from 'compat/util';
 
+/**
+ * @typedef {{
+ *   setup: (...args: unknown[]) => void,
+ *   setStorage: (storage: unknown) => void,
+ *   loadMap: () => void,
+ *   onGameStart: (callback: () => void) => void,
+ *   onDisconnect: (callback: (message: string) => void) => void,
+ *   onPlayerDeath: (callback: () => void) => void,
+ *   onPlayerEquipmentChange: (callback: () => void) => void,
+ *   onPlayerInvincible: (callback: (invincible: boolean) => void) => void,
+ *   onNbPlayersChange: (callback: (worldPlayers: number, totalPlayers: number) => void) => void,
+ *   onAchievementUnlock: (callback: (achievementId: string) => void) => void,
+ *   onNotification: (callback: (message: string) => void) => void,
+ *   renderer: { mobile: boolean, tablet: boolean },
+ * }} GameRuntime
+ */
+
 var app, game;
 var TEST_ZONE_WIDTH = 28;
 var TEST_ZONE_HEIGHT = 12;
@@ -64,6 +81,7 @@ var installTestApi = function() {
                 height = game.map.height,
                 offsets = [28, -28, 56, -56, 84, -84, 112, -112],
                 yOffsets = [0, 12, -12, 24, -24, 36, -36],
+                /** @type {{ x: number, y: number, group: string } | null} */
                 target = null;
 
             offsets.some(function(xOffset) {
@@ -414,9 +432,7 @@ var initApp = function() {
         document.addEventListener("touchstart", function() {},false);
         
         if(resizeCheck) {
-            resizeCheck.addEventListener("transitionend", app.resizeUi.bind(app));
-            resizeCheck.addEventListener("webkitTransitionEnd", app.resizeUi.bind(app));
-            resizeCheck.addEventListener("oTransitionEnd", app.resizeUi.bind(app));
+            resizeCheck.addEventListener(TRANSITIONEND, app.resizeUi.bind(app));
         }
     
         log.info("App initialized.");
@@ -433,7 +449,7 @@ var initApp = function() {
 
 var initGame = function() {
     import('game').then(function(mod) {
-        var Game = mod && mod.default ? mod.default : mod;
+        var Game = /** @type {new (...args: unknown[]) => GameRuntime} */ (mod && mod.default ? mod.default : mod);
         
         var canvas = document.getElementById("entities"),
             background = document.getElementById("background"),
@@ -521,9 +537,11 @@ var initGame = function() {
 
         app.initHealthBar();
 
-        var nameInput = document.getElementById('nameinput'),
+        var nameInput = /** @type {HTMLInputElement | null} */ (document.getElementById('nameinput')),
             chatBox = document.getElementById('chatbox'),
-            chatInput = document.getElementById('chatinput'),
+            chatInput = /** @type {HTMLInputElement | null} */ (document.getElementById('chatinput')),
+            createCharacterForm = document.getElementById('createcharacter-form'),
+            chatForm = document.getElementById('chat-form'),
             foregroundEl = document.getElementById('foreground'),
             parchmentEl = document.getElementById('parchment'),
             nameTooltip = document.getElementById('name-tooltip'),
@@ -624,6 +642,13 @@ var initGame = function() {
         });
         
         if(chatInput) {
+            if(chatForm) {
+                chatForm.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    return false;
+                });
+            }
+
             chatInput.addEventListener('keydown', function(e) {
                 var key = e.which,
                     placeholder = chatInput.getAttribute("placeholder");
@@ -676,6 +701,19 @@ var initGame = function() {
         }
         
         if(nameInput) {
+            if(createCharacterForm) {
+                createCharacterForm.addEventListener('submit', function(event) {
+                    var name = nameInput.value;
+                    event.preventDefault();
+                    if(name !== '') {
+                        app.tryStartingGame(name, function() {
+                            nameInput.blur(); // exit keyboard on mobile
+                        });
+                    }
+                    return false;
+                });
+            }
+
             nameInput.addEventListener('focusin', function() {
                 if(nameTooltip) {
                     nameTooltip.classList.add('visible');

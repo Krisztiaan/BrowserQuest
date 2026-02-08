@@ -1,7 +1,9 @@
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const CLOSE_CODES = require('./ws-close-codes.js');
+/** @type {typeof import('./ws-close-codes')} */
+const CLOSE_CODES = {
+    NORMAL: 1000,
+    UNSUPPORTED_DATA: 1003,
+    INVALID_PAYLOAD: 1007,
+};
 
 export const NORMAL = CLOSE_CODES.NORMAL;
 export const UNSUPPORTED_DATA = CLOSE_CODES.UNSUPPORTED_DATA;

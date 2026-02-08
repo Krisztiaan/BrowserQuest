@@ -8,8 +8,11 @@ const checks = [
         patterns: [
             'docs/websocket-runtime-class-boundary-parity.md',
             'docs/websocket-cjs-factory-migration-decision.md',
+            'docs/websocket-factory-ts-source-promotion-plan.md',
             'docs/websocket-boundary-escalation-template.md',
             'bun run test:ws:runtime:drill',
+            'bun run build:ws-runtime-factory',
+            'bun run check:ws-runtime-factory-sync',
         ],
     },
     {
@@ -19,6 +22,9 @@ const checks = [
             'docs/websocket-cjs-factory-migration-decision.md',
             'docs/websocket-boundary-escalation-template.md',
             'bun run test:ws:runtime:drill',
+            'server/js/ws-runtime-class-factory.cts',
+            'bun run build:ws-runtime-factory',
+            'bun run check:ws-runtime-factory-sync',
         ],
     },
     {
@@ -29,6 +35,8 @@ const checks = [
             'docs/websocket-boundary-escalation-template.md',
             'bun run test:ws:runtime:drill',
             'bun run test:ws:runtime:decision',
+            'bun run build:ws-runtime-factory',
+            'bun run check:ws-runtime-factory-sync',
         ],
     },
     {
@@ -39,13 +47,22 @@ const checks = [
         file: 'docs/websocket-cjs-factory-migration-decision.md',
         patterns: [
             'docs/websocket-boundary-escalation-template.md',
+            'server/js/ws-runtime-class-factory.cts',
+            'server/js/ws-runtime-class-factory.cjs',
+            'bun run build:ws-runtime-factory',
+            'bun run check:ws-runtime-factory-sync',
             'bun run test:ws:runtime:drill',
             'ws-boundary-drill-summary-<run_id>',
         ],
     },
     {
         file: 'docs/websocket-runtime-class-boundary-parity.md',
-        patterns: ['docs/websocket-boundary-escalation-template.md', 'bun run test:ws:runtime:drill'],
+        patterns: [
+            'docs/websocket-boundary-escalation-template.md',
+            'bun run test:ws:runtime:drill',
+            'bun run build:ws-runtime-factory',
+            'bun run check:ws-runtime-factory-sync',
+        ],
     },
     {
         file: '.github/workflows/verify-ws-boundary-drill.yml',

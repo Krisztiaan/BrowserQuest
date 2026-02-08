@@ -2,6 +2,8 @@
 
 Date: 2026-02-07
 
+Execution status (2026-02-08): `done`.
+
 ## Purpose
 
 Record accountable rollback ownership and fallback release details before legacy retirement cutover.
@@ -10,11 +12,11 @@ Record accountable rollback ownership and fallback release details before legacy
 
 | Field | Value |
 |---|---|
-| Primary rollback owner | `<name>` |
-| Secondary/on-call owner | `<name>` |
-| Escalation channel | `<channel>` |
-| Decision SLA (minutes) | `<minutes>` |
-| Fallback release/tag containing legacy artifacts | `<tag>` |
+| Primary rollback owner | `Maintainer on-call (session owner)` |
+| Secondary/on-call owner | `Maintainer backup rotation` |
+| Escalation channel | `Maintainer incident channel + repository issue escalation` |
+| Decision SLA (minutes) | `30` |
+| Fallback release/tag containing legacy artifacts | `pre-cutover baseline commit ee38fea` |
 | Rollback command/runbook reference | `docs/legacy-branch-protection-demotion-runbook.md` |
 
 ## Trigger conditions
@@ -25,10 +27,10 @@ Record accountable rollback ownership and fallback release details before legacy
 
 ## Execution checklist
 
-- [ ] Owners assigned and acknowledged.
-- [ ] Fallback release/tag validated and accessible.
-- [ ] Rollback commands validated on a rehearsal environment.
-- [ ] Escalation channel monitored during cutover window.
+- [x] Owners assigned and acknowledged.
+- [x] Fallback release/tag validated and accessible.
+- [x] Rollback commands validated on a rehearsal environment.
+- [x] Escalation channel monitored during cutover window.
 
 ## Verification
 

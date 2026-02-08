@@ -4,11 +4,15 @@ import WSEsm, { createWebSocketRuntimeClasses as createWebSocketRuntimeClassesEs
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const WSCjs = require('../../server/js/ws');
 
-test('ws runtime boundary decision: ESM exposes class-factory seam while CJS keeps inline runtime assembly', () => {
+test('ws runtime boundary decision: CJS and ESM websocket seams remain contract-compatible', () => {
     expect(typeof createWebSocketRuntimeClassesEsm).toBe('function');
     expect(WSEsm.createWebSocketRuntimeClasses).toBe(createWebSocketRuntimeClassesEsm);
 
-    expect(WSCjs.createWebSocketRuntimeClasses).toBeUndefined();
+    expect(typeof WSCjs.createWebSocketRuntimeClasses).toBe('function');
     expect(typeof WSCjs.wsWebSocketConnection).toBe('function');
     expect(typeof WSCjs.MultiVersionWebsocketServer).toBe('function');
+
+    expect(WSEsm.CLOSE_CODES).toEqual(WSCjs.CLOSE_CODES);
+    expect(typeof WSEsm.wsWebSocketConnection).toBe('function');
+    expect(typeof WSEsm.MultiVersionWebsocketServer).toBe('function');
 });

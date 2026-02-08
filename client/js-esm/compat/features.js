@@ -33,7 +33,5 @@ const Modernizr = {
     localstorage: supportsLocalStorage(),
 };
 
-globalThis.Modernizr = Modernizr;
-
 export { Modernizr, canPlayMP3, supportsLocalStorage };
 export default Modernizr;

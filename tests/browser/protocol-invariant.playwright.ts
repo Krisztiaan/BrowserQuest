@@ -26,12 +26,7 @@ type ReplayResult = {
 type ReplayActionValue = number | string | boolean | null;
 type ReplayAction = [number, ...ReplayActionValue[]];
 
-async function replaySequence(
-    page: Page,
-    entryPath: '/client/modern.html' | '/client/index.html',
-    suffix: string,
-    mode: ReplayMode
-) {
+async function replaySequence(page: Page, entryPath: '/client/modern.html', suffix: string, mode: ReplayMode) {
     await page.addInitScript(() => {
         window.localStorage.clear();
     });
@@ -207,24 +202,12 @@ async function replaySequence(
     return result;
 }
 
-test('protocol replay invariants match between modern and legacy entry paths', async ({ page, context }) => {
+test('protocol replay invariants hold on modern entry path', async ({ page }) => {
     const modern = await replaySequence(page, '/client/modern.html', `modern-${Date.now()}`, 'positive');
     const modernInvalid = await replaySequence(page, '/client/modern.html', `modern-${Date.now()}`, 'invalid_move');
 
-    const legacyPage = await context.newPage();
-    const legacy = await replaySequence(legacyPage, '/client/index.html', `legacy-${Date.now()}`, 'positive');
-    const legacyInvalid = await replaySequence(
-        legacyPage,
-        '/client/index.html',
-        `legacy-${Date.now()}`,
-        'invalid_move'
-    );
-    await legacyPage.close();
-
     expect(modern.ok).toBe(true);
-    expect(legacy.ok).toBe(true);
     expect(modernInvalid.ok).toBe(true);
-    expect(legacyInvalid.ok).toBe(true);
 
     const modernInvariant = {
         sentHello: modern.transcript.sent.includes(MSG_HELLO),
@@ -237,18 +220,6 @@ test('protocol replay invariants match between modern and legacy entry paths', a
         stayedOpenAfterMoveZone: modern.transcript.stayedOpenAfterMoveZone,
         sawErrors: modern.transcript.errors.length > 0,
     };
-    const legacyInvariant = {
-        sentHello: legacy.transcript.sent.includes(MSG_HELLO),
-        sentChat: legacy.transcript.sent.includes(MSG_CHAT),
-        sentMove: legacy.transcript.sent.includes(MSG_MOVE),
-        sentZone: legacy.transcript.sent.includes(MSG_ZONE),
-        sawGo: legacy.transcript.goCount > 0,
-        sawWelcome: legacy.transcript.welcomeCount > 0,
-        sawEchoedChat: legacy.transcript.echoedChatCount > 0,
-        stayedOpenAfterMoveZone: legacy.transcript.stayedOpenAfterMoveZone,
-        sawErrors: legacy.transcript.errors.length > 0,
-    };
-
     expect(modernInvariant).toEqual({
         sentHello: true,
         sentChat: true,
@@ -260,7 +231,6 @@ test('protocol replay invariants match between modern and legacy entry paths', a
         stayedOpenAfterMoveZone: true,
         sawErrors: false,
     });
-    expect(legacyInvariant).toEqual(modernInvariant);
 
     const modernInvalidInvariant = {
         sentHello: modernInvalid.transcript.sent.includes(MSG_HELLO),
@@ -270,15 +240,6 @@ test('protocol replay invariants match between modern and legacy entry paths', a
         closedAfterInvalidMove: modernInvalid.transcript.closedAfterInvalidMove,
         sawErrors: modernInvalid.transcript.errors.length > 0,
     };
-    const legacyInvalidInvariant = {
-        sentHello: legacyInvalid.transcript.sent.includes(MSG_HELLO),
-        sentInvalidMove: legacyInvalid.transcript.sentInvalidMove,
-        sawGo: legacyInvalid.transcript.goCount > 0,
-        sawWelcome: legacyInvalid.transcript.welcomeCount > 0,
-        closedAfterInvalidMove: legacyInvalid.transcript.closedAfterInvalidMove,
-        sawErrors: legacyInvalid.transcript.errors.length > 0,
-    };
-
     expect(modernInvalidInvariant).toEqual({
         sentHello: true,
         sentInvalidMove: true,
@@ -287,5 +248,4 @@ test('protocol replay invariants match between modern and legacy entry paths', a
         closedAfterInvalidMove: true,
         sawErrors: false,
     });
-    expect(legacyInvalidInvariant).toEqual(modernInvalidInvariant);
 });

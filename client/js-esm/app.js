@@ -2,12 +2,22 @@ import Storage from 'storage';
 import log from 'compat/log';
 import { TRANSITIONEND } from 'compat/util';
 
+/**
+ * @typedef {{
+ *   dev: { host: string, port: number, dispatcher: boolean },
+ *   build: { host: string, port: number, dispatcher: boolean },
+ *   local: { host: string, port: number, dispatcher: boolean } | null
+ * }} RuntimeConfig
+ */
+
 class App {
     constructor() {
         this.currentPage = 1;
         this.blinkInterval = null;
         this.isParchmentReady = true;
         this.ready = false;
+        /** @type {RuntimeConfig | null} */
+        this.config = null;
         this.storage = new Storage();
         this.watchNameInputInterval = setInterval(this.toggleButton.bind(this), 100);
         this.isStarting = false;
@@ -205,7 +215,7 @@ class App {
     }
 
     toggleButton() {
-        var nameInput = this.parchmentNameInputEl || document.querySelector('#parchment input'),
+        var nameInput = /** @type {HTMLInputElement | null} */ (this.parchmentNameInputEl || document.querySelector('#parchment input')),
             playButton = this.playButtonEl || document.querySelector('#createcharacter .play'),
             character = this.characterEl || document.getElementById('character'),
             name = nameInput ? nameInput.value : '';
@@ -435,6 +445,7 @@ class App {
             achievementTemplate = document.getElementById('achievement-tmpl'),
             page = 0,
             count = 0,
+            /** @type {HTMLElement | null} */
             pageNode = null;
 
         if(!lists || !pageTemplate || !achievementTemplate) {
@@ -445,7 +456,7 @@ class App {
             var achievement = achievements[key];
             count++;
 
-            var achievementNode = achievementTemplate.cloneNode(true);
+            var achievementNode = /** @type {HTMLElement} */ (achievementTemplate.cloneNode(true));
             achievementNode.removeAttribute('id');
             achievementNode.classList.add('achievement'+count);
             achievementNode.style.display = '';
@@ -468,7 +479,7 @@ class App {
 
             if((count - 1) % 4 === 0) {
                 page++;
-                pageNode = pageTemplate.cloneNode(true);
+                pageNode = /** @type {HTMLElement} */ (pageTemplate.cloneNode(true));
                 pageNode.setAttribute('id', 'page'+page);
                 pageNode.style.display = '';
                 lists.appendChild(pageNode);

@@ -2,13 +2,17 @@
 
 ## Current runtime boundary state
 
-- `server/js/ws.js` (CJS runtime): inline class assembly is kept for synchronous CommonJS startup compatibility.
-- `server/js/ws-runtime-esm.mjs` (ESM runtime): class assembly is delegated to `createWebSocketRuntimeClasses(...)` in `server/js/ws-runtime-class-factory.mjs`.
+- `server/js/ws.js` (CJS runtime): class assembly is delegated to shared `createWebSocketRuntimeClasses(...)`.
+- `server/js/ws-runtime-esm.mjs` (ESM runtime): class assembly is delegated to the same shared factory seam.
+- Canonical authored source: `server/js/ws-runtime-class-factory.cts`.
+- Generated runtime artifact: `server/js/ws-runtime-class-factory.cjs`.
+- ESM bridge export: `server/js/ws-runtime-class-factory.mjs`.
 
-## Intentional divergence
+## Single-source seam policy
 
-The CJS path remains inline until CJS runtime retirement or a dedicated CJS class-factory migration slice lands.  
-The ESM path now uses an explicit class-factory seam for dependency injection and future migration flexibility.
+Both CJS and ESM runtime paths must use the same class-factory source to prevent protocol/close-code drift.
+Wrapper modules should remain dependency-wiring layers only.
+Use `bun run build:ws-runtime-factory` + `bun run check:ws-runtime-factory-sync` for source/artifact workflow enforcement.
 
 Decision record: `docs/websocket-cjs-factory-migration-decision.md`
 Escalation template: `docs/websocket-boundary-escalation-template.md`

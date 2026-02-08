@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import { runWebSocketBridgeProbeIfEnabled } from './main-esm-bridge-probe.mjs';
 import { runMainEsmBootEnvelope } from './main-esm-boot-envelope.mjs';
 import { createProbeEventEmitter, createStructuredEventEmitter } from './main-esm-structured-event.mjs';
@@ -7,7 +6,6 @@ import { createRuntimeDependencies, main as startServer } from './main-runtime-e
 import { resolveStartupRuntimeOptions } from './main-esm-runtime-options.mjs';
 import Utils from './utils-esm.mjs';
 
-const require = createRequire(import.meta.url);
 const defaultConfigPath = './server/config.json';
 const customConfigPath = process.argv[2] || './server/config_local.json';
 
@@ -25,7 +23,6 @@ await runMainEsmBootEnvelope({
         env: process.env,
         emitStructuredEvent,
         emitProbeEvent,
-        requireWsCjs: () => require('./ws'),
         importWsEsm: () => import('./ws-esm.mjs'),
         createRuntimeDependencies,
         startServer,

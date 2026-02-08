@@ -2,13 +2,14 @@ import fs from 'node:fs/promises';
 
 /**
  * @param {string} configPath
- * @param {(path: string, encoding: string) => Promise<string>} [readFileFn]
+ * @param {(path: string, options?: BufferEncoding | { encoding?: BufferEncoding | null }) => Promise<string | Buffer>} [readFileFn]
  * @returns {Promise<object|null>}
  */
 export async function loadConfigFile(configPath, readFileFn = fs.readFile) {
     try {
         const raw = await readFileFn(configPath, 'utf8');
-        return JSON.parse(raw);
+        const rawText = typeof raw === 'string' ? raw : raw.toString('utf8');
+        return JSON.parse(rawText);
     } catch (_) {
         return null;
     }

@@ -21,9 +21,6 @@ function createMatchingBridgeContracts() {
     };
 
     return {
-        wsCjs: {
-            CLOSE_CODES: closeCodes,
-        },
         wsEsm: {
             default: {
                 CLOSE_CODES: closeCodes,
@@ -45,9 +42,6 @@ test('bridge probe does nothing when probe mode is disabled', async () => {
         env: {},
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
-        },
-        requireWsCjs: () => {
-            throw new Error('should_not_require');
         },
         importWsEsm: async () => {
             throw new Error('should_not_import');
@@ -73,7 +67,6 @@ test('bridge probe emits success when bridge contract matches', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        requireWsCjs: () => contracts.wsCjs,
         importWsEsm: async () => contracts.wsEsm,
         fail: (code) => {
             failCode = code;
@@ -102,7 +95,6 @@ test('bridge probe emits forced-failure diagnostics and exits', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        requireWsCjs: () => contracts.wsCjs,
         importWsEsm: async () => contracts.wsEsm,
         fail: (code) => {
             failCode = code;
@@ -139,7 +131,6 @@ test('bridge probe emits contract mismatch diagnostics and exits', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        requireWsCjs: () => contracts.wsCjs,
         importWsEsm: async () => mismatchedEsm,
         fail: (code) => {
             failCode = code;

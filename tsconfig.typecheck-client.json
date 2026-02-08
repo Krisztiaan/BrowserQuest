@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.typecheck.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true
+  },
+  "include": [
+    "client/js-esm/client-boundary-types.ts",
+    "client/js-esm/protocol-payload.ts",
+    "tests/unit/client-boundary-types.test.ts"
+  ]
+}

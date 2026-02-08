@@ -1,7 +1,4 @@
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const Types = require('./gametypes.js');
+import Types from './gametypes-browser.mjs';
 
 export { Types };
 export default Types;

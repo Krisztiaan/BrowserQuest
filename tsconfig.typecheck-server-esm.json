@@ -1,0 +1,33 @@
+{
+  "extends": "./tsconfig.typecheck.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "lib": ["ES2022"],
+    "types": ["node"]
+  },
+  "include": [
+    "shared/js/protocol-contract-types.ts",
+    "shared/js/gametypes-esm.mjs",
+    "shared/js/protocol-contract-esm.mjs",
+    "shared/js/ws-close-codes-esm.mjs",
+    "server/js/utils-esm.mjs",
+    "server/js/log-esm.mjs",
+    "server/js/format-esm.mjs",
+    "server/js/config-preflight-esm.mjs",
+    "server/js/metrics-esm.mjs",
+    "server/js/metrics-runtime-esm.mjs",
+    "server/js/main-runtime-esm.mjs",
+    "server/js/ws-runtime-class-factory.mjs",
+    "server/js/ws-runtime-esm.mjs",
+    "server/js/ws-esm.mjs",
+    "server/js/main-esm-bridge-probe.mjs",
+    "server/js/main-esm-runtime-options.mjs",
+    "server/js/main-esm-config-source.mjs",
+    "server/js/main-esm-preflight-failures.mjs",
+    "server/js/main-esm-startup-runner.mjs",
+    "server/js/main-esm-structured-event.mjs",
+    "server/js/main-esm-boot-envelope.mjs",
+    "server/js/main-esm.mjs"
+  ]
+}

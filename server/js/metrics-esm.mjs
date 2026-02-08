@@ -1,7 +1,7 @@
-import { createRequire } from 'node:module';
-
-const require = createRequire(import.meta.url);
-const Metrics = require('./metrics');
+import * as MetricsModule from './metrics.js';
+const Metrics = /** @type {typeof import('./metrics')} */ (
+    'default' in MetricsModule ? MetricsModule.default : MetricsModule
+);
 
 export { Metrics };
 export default Metrics;

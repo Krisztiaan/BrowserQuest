@@ -1,39 +1,48 @@
+// AUTO-GENERATED from server/js/main-runtime.cts via `bun run build:main-runtime`.
+// Do not edit server/js/main-runtime.js directly.
 
-var ConfigPreflight = require('./config-preflight'),
-    MetricsRuntime = require('./metrics-runtime'),
-    Log = require('./log');
-var log = Log.getLogger();
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const ConfigPreflight = require('./config-preflight');
+const MetricsRuntime = require('./metrics-runtime');
+const Log = require('./log');
+const log = Log.getLogger();
 function createRuntimeDependencies(overrides) {
-    var injected = overrides || {};
+    const injected = overrides || {};
     return {
-        ws: injected.ws || require("./ws"),
-        WorldServer: injected.WorldServer || require("./worldserver"),
-        Player: injected.Player || require("./player"),
+        ws: injected.ws || require('./ws'),
+        WorldServer: injected.WorldServer || require('./worldserver'),
+        Player: injected.Player || require('./player'),
         metricsRuntime: injected.metricsRuntime || MetricsRuntime,
         logger: injected.logger || log,
         processObject: injected.processObject || process,
-        setIntervalFn: injected.setIntervalFn || setInterval,
-        setTimeoutFn: injected.setTimeoutFn || setTimeout,
-        clearIntervalFn: injected.clearIntervalFn || clearInterval
+        setIntervalFn: injected.setIntervalFn ||
+            function (handler, timeoutMs) {
+                return setInterval(handler, timeoutMs);
+            },
+        setTimeoutFn: injected.setTimeoutFn ||
+            function (handler, timeoutMs) {
+                return setTimeout(handler, timeoutMs);
+            },
+        clearIntervalFn: injected.clearIntervalFn ||
+            function (timerHandle) {
+                clearInterval(timerHandle);
+            },
     };
 }
-
 function createServerEventEmitter(logger) {
-    return function(level, eventName, fields) {
+    return function (level, eventName, fields) {
         logger.event(level, eventName, fields);
     };
 }
-
 function createPopulationCheckTimer(metrics, getWorlds, setIntervalFn) {
-    var lastTotalPlayers = 0;
-
-    return setIntervalFn(function() {
-        if(metrics.isEnabled && metrics.isReady) {
-            metrics.getTotalPlayers(function(totalPlayers) {
-                if(totalPlayers !== lastTotalPlayers) {
+    let lastTotalPlayers = 0;
+    return setIntervalFn(function () {
+        if (metrics.isEnabled && metrics.isReady) {
+            metrics.getTotalPlayers(function (totalPlayers) {
+                if (totalPlayers !== lastTotalPlayers) {
                     lastTotalPlayers = totalPlayers;
-                    getWorlds().forEach(function(world) {
+                    getWorlds().forEach(function (world) {
                         world.updatePopulation(totalPlayers);
                     });
                 }
@@ -41,271 +50,245 @@ function createPopulationCheckTimer(metrics, getWorlds, setIntervalFn) {
         }
     }, 1000);
 }
-
 function createPopulationCheckCleanup(timerHandle, clearIntervalFn) {
-    return function() {
+    return function () {
         clearIntervalFn(timerHandle);
     };
 }
-
 function createServerAndMetrics(config, emitServerEvent, dependencies) {
     return {
         server: new dependencies.ws.MultiVersionWebsocketServer(config.port),
-        metrics: dependencies.metricsRuntime.createMetrics(config, emitServerEvent)
+        metrics: dependencies.metricsRuntime.createMetrics(config, emitServerEvent),
     };
 }
-
 function createWorlds(config, server, dependencies) {
-    var worlds = [];
-
-    for(var i = 0; i < config.nb_worlds; i += 1) {
-        var world = new dependencies.WorldServer('world'+ (i+1), config.nb_players_per_world, server);
+    const worlds = [];
+    for (let i = 0; i < config.nb_worlds; i += 1) {
+        const world = new dependencies.WorldServer('world' + (i + 1), config.nb_players_per_world, server);
         world.run(config.map_filepath);
         worlds.push(world);
     }
-
     return worlds;
 }
-
 function createPopulationChangeHandler(metrics, getWorlds, getWorldDistributionFn) {
-    return function() {
-        var worlds = getWorlds();
-
-        metrics.updatePlayerCounters(worlds, function(totalPlayers) {
-            worlds.forEach(function(world) {
+    return function () {
+        const worlds = getWorlds();
+        metrics.updatePlayerCounters(worlds, function (totalPlayers) {
+            worlds.forEach(function (world) {
                 world.updatePopulation(totalPlayers);
             });
         });
         metrics.updateWorldDistribution(getWorldDistributionFn(worlds));
     };
 }
-
 function installWorldPopulationHooks(worlds, metrics, onPopulationChange) {
-    if(!metrics.isEnabled) {
+    if (!metrics.isEnabled) {
         return;
     }
-
-    worlds.forEach(function(world) {
+    worlds.forEach(function (world) {
         world.onPlayerAdded(onPopulationChange);
         world.onPlayerRemoved(onPopulationChange);
     });
 }
-
 function initializeMetricsPopulation(metrics, onPopulationChange) {
-    if(!metrics.isEnabled) {
+    if (!metrics.isEnabled) {
         return;
     }
-
-    metrics.ready(function() {
+    metrics.ready(function () {
         onPopulationChange(); // initialize all counters to 0 when the server starts
     });
 }
-
 function createFatalReporter(emitServerEvent, logger) {
-    var fatalEvents = {
-        uncaughtException: "server.fatal.uncaught_exception",
-        unhandledRejection: "server.fatal.unhandled_rejection"
+    const fatalEvents = {
+        uncaughtException: 'server.fatal.uncaught_exception',
+        unhandledRejection: 'server.fatal.unhandled_rejection',
     };
-
-    return function(label, err) {
-        var eventName = fatalEvents[label] || "server.fatal.unknown";
-        if(err && err.stack) {
-            logger.error(label + ": " + err.stack);
-            emitServerEvent("error", eventName, {
+    return function (label, err) {
+        const eventName = fatalEvents[label] || 'server.fatal.unknown';
+        if (typeof err === 'object' && err !== null && 'stack' in err) {
+            const stack = String(err.stack);
+            logger.error(label + ': ' + stack);
+            emitServerEvent('error', eventName, {
                 source: label,
                 message: String(err.message || err),
-                stack: String(err.stack)
+                stack: stack,
             });
-        } else {
-            logger.error(label + ": " + err);
-            emitServerEvent("error", eventName, {
+        }
+        else {
+            logger.error(label + ': ' + err);
+            emitServerEvent('error', eventName, {
                 source: label,
-                message: String(err)
+                message: String(err),
             });
         }
     };
 }
-
 function installFatalHandlers(processObject, reportFatal) {
-    var uncaughtHandler = function (e) {
+    const uncaughtHandler = function (e) {
         reportFatal('uncaughtException', e);
     };
-    var rejectionHandler = function (reason) {
+    const rejectionHandler = function (reason) {
         reportFatal('unhandledRejection', reason);
     };
-
     processObject.on('uncaughtException', uncaughtHandler);
     processObject.on('unhandledRejection', rejectionHandler);
-
-    return function() {
-        if(typeof processObject.off === "function") {
+    return function () {
+        if (typeof processObject.off === 'function') {
             processObject.off('uncaughtException', uncaughtHandler);
             processObject.off('unhandledRejection', rejectionHandler);
-        } else if(typeof processObject.removeListener === "function") {
+        }
+        else if (typeof processObject.removeListener === 'function') {
             processObject.removeListener('uncaughtException', uncaughtHandler);
             processObject.removeListener('unhandledRejection', rejectionHandler);
         }
     };
 }
-
 function triggerFatalTestEvent(env, setTimeoutFn, reportFatal) {
-    var runtimeEnv = env || {};
-    var fatalTestTrigger = runtimeEnv.BQ_TEST_TRIGGER_FATAL_EVENT;
-    if(fatalTestTrigger === "unhandled_rejection") {
-        setTimeoutFn(function() {
-            reportFatal('unhandledRejection', new Error("bq-fatal-test-unhandled-rejection"));
+    const runtimeEnv = env || {};
+    const fatalTestTrigger = runtimeEnv.BQ_TEST_TRIGGER_FATAL_EVENT;
+    if (fatalTestTrigger === 'unhandled_rejection') {
+        setTimeoutFn(function () {
+            reportFatal('unhandledRejection', new Error('bq-fatal-test-unhandled-rejection'));
         }, 10);
-    } else if(fatalTestTrigger === "uncaught_exception") {
-        setTimeoutFn(function() {
-            reportFatal('uncaughtException', new Error("bq-fatal-test-uncaught-exception"));
+    }
+    else if (fatalTestTrigger === 'uncaught_exception') {
+        setTimeoutFn(function () {
+            reportFatal('uncaughtException', new Error('bq-fatal-test-uncaught-exception'));
         }, 10);
     }
 }
-
 function createRuntimeCleanup(teardownHandlers) {
-    var handlers = Array.isArray(teardownHandlers) ? teardownHandlers : [];
-    var cleanedUp = false;
-
-    return function() {
-        if(cleanedUp) {
+    const handlers = Array.isArray(teardownHandlers) ? teardownHandlers : [];
+    let cleanedUp = false;
+    return function () {
+        if (cleanedUp) {
             return;
         }
         cleanedUp = true;
-        handlers.forEach(function(handler) {
-            if(typeof handler === "function") {
+        handlers.forEach(function (handler) {
+            if (typeof handler === 'function') {
                 handler();
             }
         });
     };
 }
-
 function main(config, options) {
-    var runtimeOptions = options || {};
-    var validationResult = ConfigPreflight.validateConfig(config),
-        dependencies = createRuntimeDependencies(runtimeOptions.dependencies),
-        logger = dependencies.logger,
-        emitServerEvent = createServerEventEmitter(logger);
-
-    if(!validationResult.isValid) {
-        emitServerEvent("error", "server.config.invalid", {
-            errors: validationResult.errors
+    const runtimeOptions = options || {};
+    const validationResult = ConfigPreflight.validateConfig(config);
+    const dependencies = createRuntimeDependencies(runtimeOptions.dependencies);
+    const logger = dependencies.logger;
+    const emitServerEvent = createServerEventEmitter(logger);
+    if (!validationResult.isValid) {
+        emitServerEvent('error', 'server.config.invalid', {
+            errors: validationResult.errors,
         });
-        logger.error("Invalid server configuration: " + JSON.stringify(validationResult.errors));
+        logger.error('Invalid server configuration: ' + JSON.stringify(validationResult.errors));
         dependencies.processObject.exit(1);
         return;
     }
-
-    var ws = dependencies.ws,
-        Player = dependencies.Player,
-        runtime = createServerAndMetrics(config, emitServerEvent, dependencies),
-        server = runtime.server,
-        metrics = runtime.metrics,
-        worlds = [];
-
-    var populationCheckTimer = createPopulationCheckTimer(metrics, function() {
+    const ws = dependencies.ws;
+    const Player = dependencies.Player;
+    const runtime = createServerAndMetrics(config, emitServerEvent, dependencies);
+    const server = runtime.server;
+    const metrics = runtime.metrics;
+    let worlds = [];
+    const populationCheckTimer = createPopulationCheckTimer(metrics, function () {
         return worlds;
     }, dependencies.setIntervalFn);
-    var cleanupPopulationCheckTimer = createPopulationCheckCleanup(populationCheckTimer, dependencies.clearIntervalFn);
-    
-    switch(config.debug_level) {
-        case "error":
-            Log.setLevel(Log.ERROR); break;
-        case "debug":
-            Log.setLevel(Log.DEBUG); break;
-        case "info":
-            Log.setLevel(Log.INFO); break;
+    const cleanupPopulationCheckTimer = createPopulationCheckCleanup(populationCheckTimer, dependencies.clearIntervalFn);
+    switch (config.debug_level) {
+        case 'error':
+            Log.setLevel(Log.ERROR);
+            break;
+        case 'debug':
+            Log.setLevel(Log.DEBUG);
+            break;
+        case 'info':
+            Log.setLevel(Log.INFO);
+            break;
         default:
-            Log.setLevel(Log.INFO); break;
-    };
-    
-    logger.info("Starting BrowserQuest game server...");
-    emitServerEvent("info", "server.start", {
+            Log.setLevel(Log.INFO);
+            break;
+    }
+    logger.info('Starting BrowserQuest game server...');
+    emitServerEvent('info', 'server.start', {
         port: config.port,
         worlds: config.nb_worlds,
         worldCapacity: config.nb_players_per_world,
-        metricsEnabled: !!config.metrics_enabled
+        metricsEnabled: !!config.metrics_enabled,
     });
-    
-    server.onConnect(function(connection) {
-        var connect = function(world) {
-                if(world) {
-                    world.connect_callback(new Player(connection, world));
-                    return;
-                }
-                connection.close("Server is full.");
-                emitServerEvent("info", "server.connect.rejected", {
-                    reason: "world_capacity_reached"
-                });
-            };
-        
-        if(metrics.isEnabled) {
-            metrics.getOpenWorldCount(function(open_world_count) {
-                var openWorldCount = Number.parseInt(open_world_count, 10);
-                if(!Number.isFinite(openWorldCount) || openWorldCount < 0) {
+    server.onConnect(function (connection) {
+        const connect = function (world) {
+            if (world) {
+                world.connect_callback(new Player(connection, world));
+                return;
+            }
+            connection.close('Server is full.');
+            emitServerEvent('info', 'server.connect.rejected', {
+                reason: 'world_capacity_reached',
+            });
+        };
+        if (metrics.isEnabled) {
+            metrics.getOpenWorldCount(function (open_world_count) {
+                let openWorldCount = Number.parseInt(String(open_world_count), 10);
+                if (!Number.isFinite(openWorldCount) || openWorldCount < 0) {
                     openWorldCount = worlds.length;
                 }
                 // choose the least populated world among open worlds
-                var openWorlds = worlds.slice(0, openWorldCount);
-                var world = openWorlds.length === 0 ? null : openWorlds.reduce(function(minWorld, candidate) {
-                    return candidate.playerCount < minWorld.playerCount ? candidate : minWorld;
-                });
+                const openWorlds = worlds.slice(0, openWorldCount);
+                const world = openWorlds.length === 0
+                    ? null
+                    : openWorlds.reduce(function (minWorld, candidate) {
+                        return candidate.playerCount < minWorld.playerCount ? candidate : minWorld;
+                    });
                 connect(world);
             });
         }
         else {
             // simply fill each world sequentially until they are full
-            var world = worlds.find(function(world) {
-                return world.playerCount < config.nb_players_per_world;
+            const world = worlds.find(function (candidateWorld) {
+                return candidateWorld.playerCount < config.nb_players_per_world;
             });
-            if(world) {
+            if (world) {
                 world.updatePopulation();
             }
             connect(world);
         }
     });
-
-    server.onError(function() {
-        logger.error(Array.prototype.join.call(arguments, ", "));
-        emitServerEvent("error", "server.error", {
-            message: Array.prototype.join.call(arguments, ", ")
+    server.onError(function (...args) {
+        const message = args.map(String).join(', ');
+        logger.error(message);
+        emitServerEvent('error', 'server.error', {
+            message: message,
         });
     });
-    
-    var onPopulationChange = createPopulationChangeHandler(metrics, function() {
+    const onPopulationChange = createPopulationChangeHandler(metrics, function () {
         return worlds;
     }, getWorldDistribution);
     worlds = createWorlds(config, server, dependencies);
     installWorldPopulationHooks(worlds, metrics, onPopulationChange);
-    
-    server.onRequestStatus(function() {
+    server.onRequestStatus(function () {
         return JSON.stringify(getWorldDistribution(worlds));
     });
-    
     initializeMetricsPopulation(metrics, onPopulationChange);
-
-    var reportFatal = createFatalReporter(emitServerEvent, logger);
-    var cleanupFatalHandlers = installFatalHandlers(dependencies.processObject, reportFatal);
-    var cleanupRuntime = createRuntimeCleanup([cleanupPopulationCheckTimer, cleanupFatalHandlers]);
-
+    const reportFatal = createFatalReporter(emitServerEvent, logger);
+    const cleanupFatalHandlers = installFatalHandlers(dependencies.processObject, reportFatal);
+    const cleanupRuntime = createRuntimeCleanup([cleanupPopulationCheckTimer, cleanupFatalHandlers]);
     triggerFatalTestEvent(dependencies.processObject.env, dependencies.setTimeoutFn, reportFatal);
-
-    if(typeof runtimeOptions.onLifecycle === "function") {
+    if (typeof runtimeOptions.onLifecycle === 'function') {
         runtimeOptions.onLifecycle({
-            cleanup: cleanupRuntime
+            cleanup: cleanupRuntime,
         });
     }
-
     return {
-        cleanup: cleanupRuntime
+        cleanup: cleanupRuntime,
     };
 }
-
 function getWorldDistribution(worlds) {
-    return worlds.map(function(world) {
+    return worlds.map(function (world) {
         return world.playerCount;
     });
 }
-
 module.exports = {
     main: main,
     getWorldDistribution: getWorldDistribution,
@@ -321,5 +304,5 @@ module.exports = {
     createFatalReporter: createFatalReporter,
     installFatalHandlers: installFatalHandlers,
     triggerFatalTestEvent: triggerFatalTestEvent,
-    createRuntimeCleanup: createRuntimeCleanup
+    createRuntimeCleanup: createRuntimeCleanup,
 };

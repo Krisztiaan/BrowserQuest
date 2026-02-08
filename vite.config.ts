@@ -2,11 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vite";
 
-const includeLegacyInput = process.env.BQ_VITE_INCLUDE_LEGACY === "1";
-const viteDefaultEntry =
-  process.env.BQ_VITE_DEFAULT_ENTRY === "legacy"
-    ? "/client/index.html"
-    : "/client/modern.html";
+const viteDefaultEntry = "/client/modern.html";
 
 export default defineConfig({
   root: ".",
@@ -20,14 +16,9 @@ export default defineConfig({
     outDir: "dist/vite",
     emptyOutDir: true,
     rollupOptions: {
-      input: includeLegacyInput
-        ? {
-            legacy: "client/index.html",
-            modern: "client/modern.html",
-          }
-        : {
-            modern: "client/modern.html",
-          },
+      input: {
+        modern: "client/modern.html",
+      },
     },
   },
   plugins: [
@@ -62,35 +53,16 @@ export default defineConfig({
         const withJs = direct + ".js";
         if (fs.existsSync(withJs) && fs.statSync(withJs).isFile()) return withJs;
 
+        const withTs = direct + ".ts";
+        if (fs.existsSync(withTs) && fs.statSync(withTs).isFile()) return withTs;
+
         const indexJs = path.join(direct, "index.js");
         if (fs.existsSync(indexJs) && fs.statSync(indexJs).isFile()) return indexJs;
 
-        return null;
-      },
-    },
-    {
-      name: "browserquest-copy-legacy-runtime-assets",
-      apply: "build",
-      closeBundle() {
-        const outRoot = path.resolve("dist/vite");
-        const copies: Array<[string, string]> = [
-          ["client/js", "client/js"],
-          ["client/maps", "client/maps"],
-          ["client/audio", "client/audio"],
-          ["client/img/1", "client/img/1"],
-          ["client/img/2", "client/img/2"],
-          ["client/img/3", "client/img/3"],
-          ["client/img/common", "client/img/common"],
-          ["shared/js/gametypes.js", "shared/js/gametypes.js"],
-        ];
+        const indexTs = path.join(direct, "index.ts");
+        if (fs.existsSync(indexTs) && fs.statSync(indexTs).isFile()) return indexTs;
 
-        for (const [srcRel, dstRel] of copies) {
-          const src = path.resolve(srcRel);
-          const dst = path.join(outRoot, dstRel);
-          if (!fs.existsSync(src)) continue;
-          fs.mkdirSync(path.dirname(dst), { recursive: true });
-          fs.cpSync(src, dst, { recursive: true, force: true });
-        }
+        return null;
       },
     },
   ],

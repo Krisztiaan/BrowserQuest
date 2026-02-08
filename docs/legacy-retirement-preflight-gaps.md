@@ -20,13 +20,13 @@ Primary references:
 
 | Item | Status | Owner | Exit criteria | Notes |
 |---|---|---|---|---|
-| External `client-build/` consumer confirmation | Open | Maintainers | Explicit confirmation in inventory artifact | Repository-only scan cannot prove absence of external consumers |
+| External `client-build/` consumer confirmation | Done | Maintainers | Explicit confirmation in inventory artifact | Completed in `docs/legacy-external-consumer-confirmation-protocol.md` (2026-02-08 `no-consumer`). |
 | Advisory demotion dry-run execution evidence | Done | Repo/Maintainers | Dry-run PR and run URLs captured per T-202 | See `docs/legacy-branch-protection-dry-run-evidence.md` |
-| Rollback owner + rollback release/tag assignment | Open | Maintainers | Owner and release/tag recorded in cutover PR prep notes | Operational governance step |
+| Rollback owner + rollback release/tag assignment | Done | Maintainers | Owner and release/tag recorded in cutover PR prep notes | Completed in `docs/legacy-retirement-rollback-assignment.md` (2026-02-08). |
 | Legacy gate advisory incident process ready | Done | Repo | Incident template + log bootstrap checked in | See `docs/legacy-advisory-gate-incident-template.md` and `docs/legacy-advisory-incident-log.md` |
 | Cutover PR execution checklist availability | Done | Repo | Checklist checked in and linked from retirement checklist | See `docs/legacy-retirement-cutover-pr-checklist.md` |
 
 ## Readiness summary
 
-- Preflight is **not yet ready** for retirement cutover execution.
-- Blocking gaps are operational (external consumer confirmation + rollback owner assignment), not code-level.
+- Preflight is **ready** for retirement cutover execution.
+- Previously open operational gaps are now recorded as completed.

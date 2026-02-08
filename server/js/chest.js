@@ -1,26 +1,27 @@
+// AUTO-GENERATED from server/js/chest.cts via `bun run build:chest`.
+// Do not edit server/js/chest.js directly.
 
-var Utils = require('./utils'),
-    Item = require('./item'),
-    Types = require("../../shared/js/gametypes");
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const Utils = require('./utils');
+const Item = require('./item');
+const Types = require('../../shared/js/gametypes');
 class Chest extends Item {
+    items;
     constructor(id, x, y) {
         super(id, Types.Entities.CHEST, x, y);
+        this.items = [];
     }
-    
     setItems(items) {
         this.items = items;
     }
-    
     getRandomItem() {
-        var nbItems = this.items.length,
-            item = null;
-
-        if(nbItems > 0) {
+        const nbItems = this.items.length;
+        let item = null;
+        if (nbItems > 0) {
             item = this.items[Utils.random(nbItems)];
         }
         return item;
     }
 }
-
 module.exports = Chest;

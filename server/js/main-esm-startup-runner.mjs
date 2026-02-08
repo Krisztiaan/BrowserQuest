@@ -7,7 +7,6 @@ import { resolveStartupRuntimeOptions } from './main-esm-runtime-options.mjs';
  * @param {NodeJS.ProcessEnv} params.env
  * @param {(level: string, event: string, fields: Record<string, unknown>) => void} params.emitStructuredEvent
  * @param {(level: string, fields: Record<string, unknown>) => void} params.emitProbeEvent
- * @param {() => unknown} params.requireWsCjs
  * @param {() => Promise<{ default: unknown }>} params.importWsEsm
  * @param {(overrides: object) => unknown} params.createRuntimeDependencies
  * @param {(config: object, runtimeOptions?: unknown) => void} params.startServer
@@ -21,7 +20,6 @@ export async function runStartupWithConfig({
     env,
     emitStructuredEvent,
     emitProbeEvent,
-    requireWsCjs,
     importWsEsm,
     createRuntimeDependencies,
     startServer,
@@ -32,7 +30,6 @@ export async function runStartupWithConfig({
     await runBridgeProbeFn({
         env,
         emitProbeEvent,
-        requireWsCjs,
         importWsEsm,
         fail,
     });

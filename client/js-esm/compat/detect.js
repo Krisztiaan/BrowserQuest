@@ -2,7 +2,7 @@ import { canPlayMP3 } from 'compat/features';
 
 const Detect = {
     supportsWebSocket: function () {
-        return !!(globalThis.WebSocket || globalThis.MozWebSocket);
+        return typeof globalThis.WebSocket === 'function';
     },
 
     userAgentContains: function (string) {
@@ -48,7 +48,5 @@ const Detect = {
         return this.userAgentContains('Android') && this.userAgentContains('Firefox');
     },
 };
-
-globalThis.Detect = Detect;
 
 export default Detect;

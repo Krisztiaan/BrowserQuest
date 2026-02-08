@@ -1,38 +1,51 @@
-# Websocket CJS Class-Factory Migration Decision (T-274)
+# Websocket CJS Class-Factory Migration Decision (T-311)
 
 Date: 2026-02-08
 
 ## Decision
 
-Do **not** migrate `server/js/ws.js` (CJS runtime) to the ESM class-factory seam yet.  
-Keep CJS websocket runtime class assembly inline, and keep ESM websocket runtime on `createWebSocketRuntimeClasses(...)`.
+Adopt a **single-source websocket class-factory seam** for both runtime modes.
+
+- Source of truth: `server/js/ws-runtime-class-factory.cts`
+- Generated runtime artifact: `server/js/ws-runtime-class-factory.cjs` (via `bun run build:ws-runtime-factory`)
+- CJS runtime path (`server/js/ws.js`) now composes classes from this shared factory.
+- ESM runtime path (`server/js/ws-runtime-class-factory.mjs` / `server/js/ws-esm.mjs`) now re-exports the same factory seam.
 
 ## Why this decision
 
-1. The default production/server boot path is still CJS-first (`server/js/main.js` -> `server/js/main-runtime.js` -> `server/js/ws.js`).
-2. Current parity coverage already protects behavior-critical connection contracts across CJS and ESM runtimes.
-3. Forcing CJS factory adoption now increases regression surface in the default path without unlocking immediate user-facing modernization value.
+1. `ws.js` and ESM runtime had near-duplicate class logic, increasing drift risk and review cost.
+2. Shared factory ownership reduces parity break risk across close/error/payload paths.
+3. Existing websocket parity tests already provide strong safety coverage for a convergence slice.
 
-## Owner criteria to revisit this decision
+## Contract and ownership
 
-The CJS class-factory migration should be re-opened only when at least one of the following is true:
-
-1. Default server startup no longer depends on CJS `ws.js`.
-2. Legacy runtime retirement gate has moved `verify:legacy` from required to advisory.
-3. A dedicated CJS websocket migration slice is approved with explicit rollback owner and release window.
+- Canonical authored implementation: `server/js/ws-runtime-class-factory.cts`.
+- Canonical runtime artifact: `server/js/ws-runtime-class-factory.cjs` (generated; do not edit directly).
+- Runtime wrappers (`ws.js`, `ws-runtime-class-factory.mjs`, `ws-esm.mjs`) must stay thin dependency/wiring layers.
+- Any websocket class-behavior change must land in the shared factory and pass parity gates.
 
 Owner group: server-runtime maintainers.
 
+## Source ownership workflow
+
+1. Edit `server/js/ws-runtime-class-factory.cts`.
+2. Regenerate runtime artifact:
+   - `bun run build:ws-runtime-factory`
+3. Validate artifact sync:
+   - `bun run check:ws-runtime-factory-sync`
+4. Run websocket parity checks and full modern gate before merge.
+
 ## Rollback notes
 
-If any websocket runtime boundary changes regress handshake/protocol behavior:
+If websocket boundary changes regress handshake/protocol behavior:
 
-1. Revert only the websocket boundary decision slice commit(s).
+1. Revert only websocket class-factory convergence commit(s).
 2. Re-run:
    - `bun run test:ws:runtime:decision`
+   - `bun run test:ws:runtime:parity`
    - `bun run verify:modern:node22`
    - `bun run verify:legacy:node22`
-3. Keep CJS inline runtime as the immediate fallback baseline.
+3. Restore previous wrapper wiring while keeping protocol close-code/event contracts unchanged.
 
 ## Operator checklist
 
@@ -49,6 +62,7 @@ Run this checklist for websocket boundary-touching changes:
 3. Run full gate checks:
    - `bun run verify:modern:node22`
    - `bun run verify:legacy:node22`
+   - `bun run test:browser:protocol:node22`
 
 ## Owner handoff trigger
 
@@ -69,17 +83,3 @@ CI/advisory trigger policy:
      - `artifacts/ws-boundary-drill-summary.md`
 5. Escalation template:
    - `docs/websocket-boundary-escalation-template.md`.
-
-## Rollback drill cadence
-
-- Execute rollback drill quarterly, and after any websocket boundary refactor touching `server/js/ws.js`, `server/js/ws-runtime-esm.mjs`, or `server/js/ws-runtime-class-factory.mjs`.
-- Drill command baseline:
-  - `bun run test:ws:runtime:drill`
-  - `bun run test:ws:runtime:decision`
-  - `bun run verify:modern:node22`
-  - `bun run verify:legacy:node22`
-- Optional local summary file:
-  - `BQ_WS_DRILL_SUMMARY_PATH=artifacts/ws-boundary-drill-summary.json BQ_WS_DRILL_MARKDOWN_PATH=artifacts/ws-boundary-drill-summary.md bun run test:ws:runtime:drill`
-- Optional forced-failure simulation:
-  - `BQ_WS_DRILL_FORCE_FAIL_CHECK=parity BQ_WS_DRILL_SUMMARY_PATH=artifacts/ws-boundary-drill-summary.json BQ_WS_DRILL_MARKDOWN_PATH=artifacts/ws-boundary-drill-summary.md bun run test:ws:runtime:drill || true`
-  - inspect `failureSnapshot.failedChecks[*].{exitCode,logTailHint}` for escalation-ready handoff data.
