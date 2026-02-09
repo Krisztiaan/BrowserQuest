@@ -1,5 +1,40 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 Vite build-time map sync automation)
+
+### Ticket status
+
+- `T-332.1` Add build-time runtime map sync hook in Vite pipeline: `done`
+- `T-332.2` Keep dev map-sync-on-change behavior intact with deterministic serve/build plugin separation: `done`
+- `T-332.3` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T23:30Z` `in_progress` Started Vite build-flow automation follow-up so runtime map artifacts are refreshed by Vite itself before production builds.
+  - Scope:
+    - run runtime map sync automatically in `vite build`
+    - preserve existing Vite serve-side startup/change sync behavior
+    - avoid duplicate hook execution by separating serve/build plugin responsibilities
+  - Out of scope:
+    - map runtime schema changes
+  - Acceptance criteria:
+    - `vite build` logs build-start map sync
+    - Vite dev map-sync plugin behavior remains active
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run build:vite`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:31Z` `done` Completed Vite build-time map sync automation and re-verified full modern lane.
+  - Evidence:
+    - `vite.config.ts`:
+      - added build-only plugin `browserquest-map-runtime-sync-build` (`buildStart`) calling `syncRuntimeMaps`
+      - retained serve-only plugin `browserquest-map-runtime-sync` for startup + source-change sync
+    - build output confirms automation:
+      - `[plugin browserquest-map-runtime-sync-build] [map-sync] updated runtime maps (vite-build-start)`
+  - Verification:
+    - `bun run build:vite` -> pass
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 modern jQuery guard moved to ESLint built-ins)
 
 ### Ticket status

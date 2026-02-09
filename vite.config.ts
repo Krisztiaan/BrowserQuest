@@ -67,6 +67,14 @@ export default defineConfig({
       },
     },
     {
+      name: "browserquest-map-runtime-sync-build",
+      apply: "build",
+      async buildStart() {
+        await syncRuntimeMaps({ quiet: true });
+        this.info("[map-sync] updated runtime maps (vite-build-start)");
+      },
+    },
+    {
       name: "browserquest-map-runtime-sync",
       apply: "serve",
       configureServer(server) {
