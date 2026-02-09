@@ -1,5 +1,6 @@
 import { watch } from "node:fs";
 import { exportMapFile } from "./exportmap";
+import { syncWangsetArtifacts } from "./wangset";
 
 const sourcePath = Bun.argv[2] || "tiled/world.json";
 const clientDestination = "../../client/maps/world_client.json";
@@ -16,6 +17,7 @@ async function exportBoth(): Promise<void> {
 
     exportInFlight = true;
     try {
+        await syncWangsetArtifacts({ quiet: true });
         await exportMapFile({
             source: sourcePath,
             destination: clientDestination,

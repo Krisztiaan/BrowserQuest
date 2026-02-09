@@ -1,0 +1,5 @@
+# BrowserQuest Tiled Automapping rules
+#
+# This file is intentionally scaffold-only for now.
+# Add one rule map path per line (relative to this file), e.g.:
+# rules/terrain-forest.tmj

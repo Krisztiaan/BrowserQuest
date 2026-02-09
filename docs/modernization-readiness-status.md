@@ -1,5 +1,59 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 Tiled terrain/Wang metadata + automapping scaffold lane)
+
+### Ticket status
+
+- `T-327.3.1` Add deterministic terrain->Wang metadata derivation from canonical map source: `done`
+- `T-327.3.2` Wire Wang sync into map export/watch flows: `done`
+- `T-327.3.3` Enforce Wang artifact sync in modern verify lane and document workflow: `done`
+
+### Live progress log
+
+- `2026-02-09T22:52Z` `in_progress` Started `T-327.3` implementation (`3go`) with constraint that headless Tiled scripting cannot run `autoMap()` on detached maps and `tiled.open(...)` is unavailable in CLI evaluate mode.
+  - Scope:
+    - generate idiomatic Tiled Wang metadata artifacts directly from canonical source usage
+    - integrate sync into active map export/watch/dev/verify workflows
+    - provide automapping rules scaffold in canonical Tiled source tree
+  - Out of scope:
+    - full authored Automapping rule maps for each biome transition (requires dedicated art/design pass)
+    - direct in-place mutation of `world.json` via headless Tiled writer (path rewrite side effects observed)
+  - Acceptance criteria:
+    - deterministic Wang metadata artifacts are generated from `tools/maps/tiled/world.json`
+    - `map:export` and `map:watch` keep Wang artifacts in sync automatically
+    - verify lane enforces Wang sync (`check:map-wang-sync`)
+    - modern verification lane passes
+  - Verification plan:
+    - `bun run map:wang:sync`
+    - `bun run check:map-wang-sync`
+    - `bun run map:export`
+    - `bun run check:map-runtime-sync`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:00Z` `done` Completed Tiled terrain/Wang metadata lane and integrated it into modern workflow.
+  - Evidence:
+    - added deterministic Wang sync tooling:
+      - `tools/maps/wangset.ts`
+        - derives terrain ownership from terrain-focused tile layers
+        - emits `tools/maps/tiled/tilesheet.wang.tsj` (Tiled-compatible tileset + `wangsets`)
+        - emits `tools/maps/tiled/automapping.rules` scaffold
+        - supports `--check` mode for verify enforcement
+    - flow integration:
+      - `tools/maps/export.ts` runs Wang sync before runtime map export
+      - `tools/maps/watch.ts` runs Wang sync on map-change export loop
+    - script/check integration:
+      - `package.json`:
+        - added `map:wang:sync`
+        - added `check:map-wang-sync`
+        - added `check:map-wang-sync` into `verify:modern`
+    - docs update:
+      - `tools/maps/README.md` now documents Wang sync and generated artifacts
+  - Verification:
+    - `bun run map:wang:sync` -> pass (`updated`, `759 wang tiles`, `8 terrain colors`)
+    - `bun run check:map-wang-sync` -> pass
+    - `bun run map:export` -> pass
+    - `bun run check:map-runtime-sync` -> pass
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 canonical Tiled source/assets + runtime sync enforcement)
 
 ### Ticket status

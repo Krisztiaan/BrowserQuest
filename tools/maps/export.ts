@@ -1,5 +1,6 @@
 import fs from "node:fs/promises";
 import { exportMapFile } from "./exportmap";
+import { syncWangsetArtifacts } from "./wangset";
 
 type ExportTarget = "client" | "server" | "both";
 
@@ -31,6 +32,7 @@ async function main(): Promise<void> {
     }
 
     await fs.access(sourcePath);
+    await syncWangsetArtifacts({ quiet: true });
 
     if (target === "both" || target === "client") {
         await exportMapFile({

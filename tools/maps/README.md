@@ -41,6 +41,10 @@ For live updates while editing in Tiled:
 
 - `bun run map:watch` (from repo root)
 
+Terrain/Wang metadata artifacts can be refreshed explicitly:
+
+- `bun run map:wang:sync` (from repo root)
+
 **Warning:** depending on the `map JSON` filesize, the exporting process can take up to several minutes.
 
 
@@ -57,8 +61,11 @@ Depending on what you want to change, it's therefore not always needed to export
 **How the exporting process works:**
 
 1. `tiled/world.json` is the canonical map source (plus map-local asset `tiled/mobset.png`).
-2. `processmap.ts` converts that JSON into BrowserQuest runtime map JSON (client or server mode).
-3. The processed map JSON is written to the appropriate output file.
+2. `wangset.ts` derives terrain/wang metadata sidecars from terrain layer usage:
+   - `tiled/tilesheet.wang.tsj`
+   - `tiled/automapping.rules`
+3. `processmap.ts` converts map JSON into BrowserQuest runtime map JSON (client or server mode).
+4. The processed map JSON is written to the appropriate output file.
 
 
 **Known bugs:**
