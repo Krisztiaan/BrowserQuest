@@ -1,24 +1,23 @@
-// @ts-nocheck
 import { SERVER_EVENT_NAMES } from './server-event-names';
 
-/**
- * Resolve opt-in startup runtime options for ESM entry.
- *
- * @param {object} params
- * @param {NodeJS.ProcessEnv} params.env
- * @param {(level: string, event: string, fields: Record<string, unknown>) => void} params.emitStructuredEvent
- * @param {() => Promise<{ default: unknown }>} params.importWsEsm
- * @param {(overrides: object) => unknown} params.createRuntimeDependencies
- * @param {(code: number) => void} params.fail
- * @returns {Promise<{ dependencies: unknown } | undefined>}
- */
 export async function resolveStartupRuntimeOptions({
     env,
     emitStructuredEvent,
     importWsEsm,
     createRuntimeDependencies,
     fail,
-}) {
+}: {
+    env: NodeJS.ProcessEnv;
+    emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
+    importWsEsm: () => Promise<{
+        default: unknown;
+        CLOSE_CODES?: unknown;
+        MultiVersionWebsocketServer?: unknown;
+        wsWebSocketConnection?: unknown;
+    }>;
+    createRuntimeDependencies: (overrides: object) => unknown;
+    fail: (code: number) => void;
+}): Promise<{ dependencies: unknown } | undefined> {
     void env;
 
     try {

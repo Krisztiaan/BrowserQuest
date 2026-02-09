@@ -1,18 +1,22 @@
-// @ts-nocheck
-function isPlainObject(value) {
+type ConfigValidationError = {
+    field: string;
+    reason: string;
+};
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
     return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
-function isNonEmptyString(value) {
+function isNonEmptyString(value: unknown): value is string {
     return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isPositiveInteger(value) {
-    return Number.isInteger(value) && value > 0;
+function isPositiveInteger(value: unknown): value is number {
+    return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
-export function validateConfig(config) {
-    const errors = [];
+export function validateConfig(config: unknown): { isValid: boolean; errors: ConfigValidationError[] } {
+    const errors: ConfigValidationError[] = [];
 
     if (!isPlainObject(config)) {
         return {
@@ -24,7 +28,7 @@ export function validateConfig(config) {
     if (!isPositiveInteger(config.port)) {
         errors.push({ field: 'port', reason: 'must_be_positive_integer' });
     }
-    if (!['error', 'info', 'debug'].includes(config.debug_level)) {
+    if (!['error', 'info', 'debug'].includes(String(config.debug_level))) {
         errors.push({ field: 'debug_level', reason: 'must_be_error_info_or_debug' });
     }
     if (!isPositiveInteger(config.nb_players_per_world)) {

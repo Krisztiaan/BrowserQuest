@@ -1,4 +1,3 @@
-// @ts-nocheck
 class Log {
     static ERROR = 0;
     static INFO = 1;
@@ -17,8 +16,9 @@ class Log {
     };
 
     static #singletonLogger = new Log(Log.INFO);
+    level: number;
 
-    constructor(level) {
+    constructor(level: number) {
         this.level = level;
     }
 
@@ -26,7 +26,7 @@ class Log {
         return this.#singletonLogger;
     }
 
-    static setLevel(level) {
+    static setLevel(level: number) {
         if (level !== Log.ERROR && level !== Log.INFO && level !== Log.DEBUG) {
             this.#singletonLogger.level = Log.INFO;
             return this.#singletonLogger;
@@ -35,43 +35,43 @@ class Log {
         return this.#singletonLogger;
     }
 
-    #isEnabled(level) {
+    #isEnabled(level: number): boolean {
         return this.level >= level;
     }
 
-    #write(method, args) {
-        if (typeof console === 'undefined' || !console[method]) {
+    #write(method: 'error' | 'info' | 'log', args: unknown[]): void {
+        if (typeof console === 'undefined' || typeof console[method] !== 'function') {
             return;
         }
         console[method].apply(console, args);
     }
 
-    info(...args) {
+    info(...args: unknown[]): void {
         if (this.#isEnabled(Log.INFO)) {
             this.#write('info', args);
         }
     }
 
-    debug(...args) {
+    debug(...args: unknown[]): void {
         if (this.#isEnabled(Log.DEBUG)) {
             this.#write('log', args);
         }
     }
 
-    error(...args) {
+    error(...args: unknown[]): void {
         if (this.#isEnabled(Log.ERROR)) {
             this.#write('error', args);
         }
     }
 
-    event(levelName, eventName, fields) {
+    event(levelName: string, eventName: string, fields: unknown): void {
         const level = Log.#LEVELS[levelName] !== undefined ? Log.#LEVELS[levelName] : Log.INFO;
         if (!this.#isEnabled(level)) {
             return;
         }
 
         const method = Log.#METHODS[levelName] || 'info';
-        const payload = {
+        const payload: Record<string, unknown> = {
             ts: new Date().toISOString(),
             level: levelName || 'info',
             event: eventName,

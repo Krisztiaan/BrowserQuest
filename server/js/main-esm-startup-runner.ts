@@ -1,21 +1,9 @@
-// @ts-nocheck
 import { runWebSocketBridgeProbeIfEnabled } from './main-esm-bridge-probe';
 import { resolveStartupRuntimeOptions } from './main-esm-runtime-options';
 
-/**
- * @param {object} params
- * @param {object} params.activeConfig
- * @param {NodeJS.ProcessEnv} params.env
- * @param {(level: string, event: string, fields: Record<string, unknown>) => void} params.emitStructuredEvent
- * @param {(level: string, fields: Record<string, unknown>) => void} params.emitProbeEvent
- * @param {() => Promise<{ default: unknown }>} params.importWsEsm
- * @param {(overrides: object) => unknown} params.createRuntimeDependencies
- * @param {(config: object, runtimeOptions?: unknown) => void} params.startServer
- * @param {(code: number) => void} params.fail
- * @param {(params: object) => Promise<void>} [params.runBridgeProbeFn]
- * @param {(params: object) => Promise<unknown>} [params.resolveRuntimeOptionsFn]
- * @returns {Promise<{ runtimeOptions: unknown }>}
- */
+type BridgeProbeParams = Parameters<typeof runWebSocketBridgeProbeIfEnabled>[0];
+type StartupWsImport = () => Promise<{ default: unknown; [key: string]: unknown }>;
+
 export async function runStartupWithConfig({
     activeConfig,
     env,
@@ -27,11 +15,28 @@ export async function runStartupWithConfig({
     fail,
     runBridgeProbeFn = runWebSocketBridgeProbeIfEnabled,
     resolveRuntimeOptionsFn = resolveStartupRuntimeOptions,
-}) {
+}: {
+    activeConfig: object;
+    env: NodeJS.ProcessEnv;
+    emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
+    emitProbeEvent: (level: string, fields: Record<string, unknown>) => void;
+    importWsEsm: StartupWsImport;
+    createRuntimeDependencies: (overrides: object) => unknown;
+    startServer: (config: object, runtimeOptions?: unknown) => void;
+    fail: (code: number) => void;
+    runBridgeProbeFn?: (params: BridgeProbeParams) => Promise<void>;
+    resolveRuntimeOptionsFn?: (params: {
+        env: NodeJS.ProcessEnv;
+        emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
+        importWsEsm: StartupWsImport;
+        createRuntimeDependencies: (overrides: object) => unknown;
+        fail: (code: number) => void;
+    }) => Promise<unknown>;
+}): Promise<{ runtimeOptions: unknown }> {
     await runBridgeProbeFn({
         env,
         emitProbeEvent,
-        importWsEsm,
+        importWsEsm: importWsEsm as BridgeProbeParams['importWsEsm'],
         fail,
     });
 

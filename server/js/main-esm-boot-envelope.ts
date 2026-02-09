@@ -1,23 +1,7 @@
-// @ts-nocheck
 import { resolveActiveConfig } from './main-esm-config-source';
 import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './main-esm-preflight-failures';
 import { runStartupWithConfig } from './main-esm-startup-runner';
 
-/**
- * @param {object} params
- * @param {string} params.defaultConfigPath
- * @param {string} params.customConfigPath
- * @param {(config: object) => { isValid: boolean, errors: unknown[] }} params.validateConfig
- * @param {(text: string, maxBytes: number) => string} params.limitUtf8Bytes
- * @param {(message: string) => void} params.emitError
- * @param {(code: number) => void} params.fail
- * @param {object} params.startupParams
- * @param {(params: object) => Promise<{ activeConfig: object | null }>} [params.resolveActiveConfigFn]
- * @param {(params: object) => boolean} [params.ensureConfigSourcePresentFn]
- * @param {(params: object) => boolean} [params.ensureConfigPreflightValidFn]
- * @param {(params: object) => Promise<unknown>} [params.runStartupWithConfigFn]
- * @returns {Promise<{ activeConfig: object | null, started: boolean }>}
- */
 export async function runMainEsmBootEnvelope({
     defaultConfigPath,
     customConfigPath,
@@ -30,7 +14,32 @@ export async function runMainEsmBootEnvelope({
     ensureConfigSourcePresentFn = ensureConfigSourcePresent,
     ensureConfigPreflightValidFn = ensureConfigPreflightValid,
     runStartupWithConfigFn = runStartupWithConfig,
-}) {
+}: {
+    defaultConfigPath: string;
+    customConfigPath: string;
+    validateConfig: (config: object) => { isValid: boolean; errors: unknown[] };
+    limitUtf8Bytes: (text: string, maxBytes: number) => string;
+    emitError: (message: string) => void;
+    fail: (code: number) => void;
+    startupParams: Record<string, unknown>;
+    resolveActiveConfigFn?: (params: {
+        defaultConfigPath: string;
+        customConfigPath: string;
+    }) => Promise<{ activeConfig: object | null }>;
+    ensureConfigSourcePresentFn?: (params: {
+        activeConfig: object | null;
+        emitError: (message: string) => void;
+        fail: (code: number) => void;
+    }) => boolean;
+    ensureConfigPreflightValidFn?: (params: {
+        activeConfig: object;
+        validateConfig: (config: object) => { isValid: boolean; errors: unknown[] };
+        limitUtf8Bytes: (text: string, maxBytes: number) => string;
+        emitError: (message: string) => void;
+        fail: (code: number) => void;
+    }) => boolean;
+    runStartupWithConfigFn?: (params: Record<string, unknown>) => Promise<unknown>;
+}): Promise<{ activeConfig: object | null; started: boolean }> {
     const configSource = await resolveActiveConfigFn({
         defaultConfigPath,
         customConfigPath,

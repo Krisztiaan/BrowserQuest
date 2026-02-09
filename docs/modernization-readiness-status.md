@@ -2324,3 +2324,44 @@ Executed successfully on 2026-02-08:
   - Verification evidence:
     - `bun run lint` -> pass
     - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 runtime ESM `@ts-nocheck` reduction)
+
+### Ticket status
+
+- `T-320.1` Remove `@ts-nocheck` from low-risk converted shared/server ESM TS files: `done`
+- `T-320.2` Remove `@ts-nocheck` from low-risk affected unit tests: `done`
+- `T-320.3` Re-verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T13:24Z` `in_progress` Started post-conversion runtime ESM type-safety cleanup.
+  - Scope:
+    - remove `@ts-nocheck` from low-risk converted `.ts` runtime/shared files
+    - add explicit lightweight typing where needed to keep behavior unchanged
+    - keep verification lane green after each batch
+  - Dependencies/blockers:
+    - none
+
+- `2026-02-09T13:29Z` `done` Completed `T-320.1` through `T-320.3` and re-verified full modern lane.
+  - Key actions:
+    - removed `@ts-nocheck` from low-risk shared/server converted ESM TS modules and added explicit TS signatures:
+      - `shared/js/ws-close-codes-esm.ts`
+      - `shared/js/gametypes-esm.ts`
+      - `server/js/config-preflight-esm.ts`
+      - `server/js/main-esm-config-source.ts`
+      - `server/js/main-esm-preflight-failures.ts`
+      - `server/js/main-esm-runtime-options.ts`
+      - `server/js/main-esm-startup-runner.ts`
+      - `server/js/main-esm-boot-envelope.ts`
+      - `server/js/main-esm-structured-event.ts`
+      - `server/js/main-esm-bridge-probe.ts`
+      - `server/js/log-esm.ts`
+    - removed `@ts-nocheck` from stabilized unit tests:
+      - `tests/unit/server-main-esm-config-source.test.ts`
+      - `tests/unit/server-main-esm-boot-envelope.test.ts`
+      - `tests/unit/server-log-esm.test.ts`
+    - preserved runtime behavior while tightening typing contracts (startup helper seams, config read/preflight helpers, structured event emitter, logger).
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)

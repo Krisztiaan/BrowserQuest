@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { expect, test } from 'bun:test';
 import { loadConfigFile, resolveActiveConfig } from '../../server/js/main-esm-config-source';
 

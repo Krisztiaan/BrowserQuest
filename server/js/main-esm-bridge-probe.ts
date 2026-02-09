@@ -1,32 +1,44 @@
-// @ts-nocheck
 import CLOSE_CODES from '../../shared/js/ws-close-codes-esm';
 
-/**
- * Run optional websocket bridge probe in ESM entry mode.
- *
- * @param {object} params
- * @param {NodeJS.ProcessEnv} params.env
- * @param {(level: string, fields: Record<string, unknown>) => void} params.emitProbeEvent
- * @param {() => Promise<{ default: { CLOSE_CODES: object, MultiVersionWebsocketServer: unknown, wsWebSocketConnection: unknown }, CLOSE_CODES: { NORMAL: number, UNSUPPORTED_DATA: number, INVALID_PAYLOAD: number }, MultiVersionWebsocketServer: unknown, wsWebSocketConnection: unknown }>} params.importWsEsm
- * @param {(code: number) => void} params.fail
- * @returns {Promise<void>}
- */
+type CloseCodesContract = {
+    NORMAL: number;
+    UNSUPPORTED_DATA: number;
+    INVALID_PAYLOAD: number;
+};
+
+type WebSocketRuntimeModule = {
+    default?: {
+        CLOSE_CODES?: CloseCodesContract;
+        MultiVersionWebsocketServer?: unknown;
+        wsWebSocketConnection?: unknown;
+    };
+    CLOSE_CODES: CloseCodesContract;
+    MultiVersionWebsocketServer: unknown;
+    wsWebSocketConnection: unknown;
+};
+
 export async function runWebSocketBridgeProbeIfEnabled({
     env,
     emitProbeEvent,
     importWsEsm,
     fail,
-}) {
+}: {
+    env: NodeJS.ProcessEnv;
+    emitProbeEvent: (level: string, fields: Record<string, unknown>) => void;
+    importWsEsm: () => Promise<WebSocketRuntimeModule>;
+    fail: (code: number) => void;
+}): Promise<void> {
     if (env.BQ_ESM_WS_BRIDGE_PROBE !== '1') {
         return;
     }
 
     const wsEsm = await importWsEsm();
+    const wsDefault = wsEsm.default;
     const contractMatches =
-        wsEsm.default &&
-        wsEsm.default.CLOSE_CODES === wsEsm.CLOSE_CODES &&
-        wsEsm.default.MultiVersionWebsocketServer === wsEsm.MultiVersionWebsocketServer &&
-        wsEsm.default.wsWebSocketConnection === wsEsm.wsWebSocketConnection &&
+        wsDefault &&
+        wsDefault.CLOSE_CODES === wsEsm.CLOSE_CODES &&
+        wsDefault.MultiVersionWebsocketServer === wsEsm.MultiVersionWebsocketServer &&
+        wsDefault.wsWebSocketConnection === wsEsm.wsWebSocketConnection &&
         typeof wsEsm.MultiVersionWebsocketServer === 'function' &&
         typeof wsEsm.wsWebSocketConnection === 'function' &&
         wsEsm.CLOSE_CODES.NORMAL === CLOSE_CODES.NORMAL &&
