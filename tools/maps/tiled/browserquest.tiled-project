@@ -1,0 +1,21 @@
+{
+  "automappingRulesFile": "automapping.rules",
+  "commands": [
+    {
+      "arguments": "run map:export",
+      "command": "bun",
+      "enabled": true,
+      "name": "BrowserQuest: Export Runtime Map JSON",
+      "saveBeforeExecute": false,
+      "showOutput": true,
+      "workingDirectory": "%projectpath/../../.."
+    }
+  ],
+  "extensionsPath": "extensions",
+  "folders": [
+    ".",
+    "../../../client/img/1"
+  ],
+  "properties": [],
+  "propertyTypes": []
+}

@@ -1,5 +1,71 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 Tiled hybrid path: project + editor automap action + runtime export)
+
+### Ticket status
+
+- `T-327.4.1` Align implementation with upstream Tiled project/command/scripting model using `../tiled` source: `done`
+- `T-327.4.2` Add editor-native Tiled project config with automapping + project command wiring: `done`
+- `T-327.4.3` Add first working Automapping rule map and generated rules integration: `done`
+- `T-327.4.4` Add one-click in-editor action (AutoMap + Save + Export) through project extension: `done`
+- `T-327.4.5` Verify modern lane and document hybrid workflow: `done`
+
+### Live progress log
+
+- `2026-02-09T23:06Z` `in_progress` Started hybrid-path implementation based on user direction and explicit use of local Tiled source tree (`../tiled`) for accurate behavior/format decisions.
+  - Scope:
+    - use upstream project schema keys (`automappingRulesFile`, `extensionsPath`, `commands`, `folders`)
+    - add project-local extension action for non-detached editor automapping + save + export flow
+    - introduce a real rule map and generated rules-file inclusion
+  - Out of scope:
+    - headless detached-map automapping (still unsupported by Tiled, verified against upstream behavior)
+  - Acceptance criteria:
+    - `browserquest.tiled-project` includes project command + extension path + automapping rules file
+    - `tiled/rules/*.tmj` contains at least one working rule map and `automapping.rules` references it
+    - project extension provides one-click AutoMap + Save + Export action from *Map* menu
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run map:wang:sync`
+    - `bun run check:map-wang-sync`
+    - `bun run map:export`
+    - `bun run check:map-runtime-sync`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:16Z` `done` Completed hybrid path implementation with upstream-aligned project/command schema and editor-native automap/export action.
+  - Evidence:
+    - upstream-aligned project setup:
+      - `tools/maps/tiled/browserquest.tiled-project`
+        - uses canonical keys/shape validated against `../tiled/src/tiled/project.cpp`:
+          - `automappingRulesFile`
+          - `extensionsPath`
+          - `commands`
+          - `folders`
+        - includes project command:
+          - `BrowserQuest: Export Runtime Map JSON` (`bun run map:export` in repo root)
+    - real rule map lane:
+      - added `tools/maps/tiled/rules/sand-detail.tmj` (working Automapping rule map)
+      - `tools/maps/wangset.ts` now:
+        - generates map-filtered rules file (`[world*]`)
+        - includes discovered `rules/*.tmj`
+        - fails sync/check when no rule maps exist
+      - generated `tools/maps/tiled/automapping.rules` now references:
+        - `rules/sand-detail.tmj`
+    - editor-native one-click action:
+      - added `tools/maps/tiled/extensions/browserquest-automap-export.mjs`
+      - registers `Map` menu action:
+        - `BrowserQuest: AutoMap + Save + Export`
+      - action flow:
+        - `autoMap()` on active map (editor-bound, non-detached)
+        - `save()`
+        - runtime export via project command, with `Process.exec` fallback
+    - docs:
+      - updated `tools/maps/README.md` with project-open flow, extension enablement, and action usage
+  - Verification:
+    - `bun run map:wang:sync` -> pass (`updated`, `759 wang tiles`, `8 terrain colors`, `1 rule maps`)
+    - `bun run check:map-wang-sync` -> pass
+    - `bun run map:export` -> pass
+    - `bun run check:map-runtime-sync` -> pass
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 Tiled terrain/Wang metadata + automapping scaffold lane)
 
 ### Ticket status

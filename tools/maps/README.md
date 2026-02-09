@@ -9,9 +9,10 @@ Editing the map
 
 Install the Tiled editor: http://www.mapeditor.org/
 
-Open the canonical Tiled JSON source file `tiled/world.json` in Tiled and start editing.
+Open the project file `tiled/browserquest.tiled-project`, then open `tiled/world.json` and start editing.
 
 **Note:** there currently is no documentation on how to edit BrowserQuest-specific objects/layers in Tiled. Please refer to `tiled/world.json` as an example if you want to create your own map.
+Project extensions are used for one-click map automation. If Tiled asks whether to enable project extensions, allow it for this project.
 
 
 Using the exporter
@@ -45,6 +46,14 @@ Terrain/Wang metadata artifacts can be refreshed explicitly:
 
 - `bun run map:wang:sync` (from repo root)
 
+For editor-native automapping + export in one step:
+
+- Use *Map > BrowserQuest: AutoMap + Save + Export* (shortcut: `Ctrl+Shift+M`).
+- This action runs:
+  1. `autoMap()` on the active map in editor context (non-detached).
+  2. Save on the active map.
+  3. Runtime export (`bun run map:export`) via project command/fallback process.
+
 **Warning:** depending on the `map JSON` filesize, the exporting process can take up to several minutes.
 
 
@@ -64,6 +73,7 @@ Depending on what you want to change, it's therefore not always needed to export
 2. `wangset.ts` derives terrain/wang metadata sidecars from terrain layer usage:
    - `tiled/tilesheet.wang.tsj`
    - `tiled/automapping.rules`
+   - `tiled/rules/*.tmj` contains rule maps referenced by `automapping.rules`
 3. `processmap.ts` converts map JSON into BrowserQuest runtime map JSON (client or server mode).
 4. The processed map JSON is written to the appropriate output file.
 
