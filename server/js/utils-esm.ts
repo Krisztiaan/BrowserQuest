@@ -1,4 +1,3 @@
-// @ts-nocheck
 import Types from '../../shared/js/gametypes-esm';
 
 const Utils = {

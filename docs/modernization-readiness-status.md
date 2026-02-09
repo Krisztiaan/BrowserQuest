@@ -2365,3 +2365,36 @@ Executed successfully on 2026-02-08:
   - Verification evidence:
     - `bun run typecheck` -> pass
     - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 runtime ESM `@ts-nocheck` reduction batch 2)
+
+### Ticket status
+
+- `T-321.1` Remove `@ts-nocheck` from selected medium-risk runtime/shared ESM files: `done`
+- `T-321.2` Re-verify modern lane and typecheck after batch: `done`
+- `T-321.3` Record evidence and finalize batch: `done`
+- `T-321.4` Remove `@ts-nocheck` from `server/js/main-esm.ts` after resolving `.cts` boundary typing/include constraints: `todo`
+
+### Live progress log
+
+- `2026-02-09T13:30Z` `in_progress` Started second no-check reduction batch on non-websocket runtime modules.
+  - Scope:
+    - remove `@ts-nocheck` from:
+      - `shared/js/protocol-contract-esm.ts`
+      - `server/js/main-esm.ts`
+      - `server/js/utils-esm.ts`
+      - `server/js/format-esm.ts`
+    - add explicit typing while preserving behavior
+  - Dependencies/blockers:
+    - websocket runtime modules intentionally deferred to separate deeper pass
+
+- `2026-02-09T13:32Z` `done` Completed `T-321.1` through `T-321.3` and re-verified full modern lane.
+  - Key actions:
+    - removed `@ts-nocheck` and tightened typings in:
+      - `shared/js/protocol-contract-esm.ts`
+      - `server/js/utils-esm.ts`
+      - `server/js/format-esm.ts`
+    - retained `@ts-nocheck` in `server/js/main-esm.ts` and split follow-up ticket `T-321.4` after encountering direct `.cts` seam typing/include constraints when `main-esm.ts` is fully checked under current project boundaries.
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)

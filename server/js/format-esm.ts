@@ -1,14 +1,16 @@
-// @ts-nocheck
 import Log from './log-esm';
 import Types from '../../shared/js/gametypes-esm';
 
 const log = Log.getLogger();
+type MessageParamType = 'n' | 's';
 
-function isValidNumberParam(param) {
+function isValidNumberParam(param: unknown): param is number {
     return typeof param === 'number' && Number.isFinite(param) && Number.isSafeInteger(param);
 }
 
 export class FormatChecker {
+    formats: Array<MessageParamType[] | undefined>;
+
     constructor() {
         this.formats = [];
         this.formats[Types.Messages.HELLO] = ['s', 'n', 'n'];
@@ -26,10 +28,10 @@ export class FormatChecker {
         this.formats[Types.Messages.CHECK] = ['n'];
     }
 
-    check(msg) {
-        const message = msg.slice(0);
+    check(msg: unknown[]): boolean {
+        const message = msg.slice(0) as unknown[];
         const type = message[0];
-        const format = this.formats[type];
+        const format = typeof type === 'number' ? this.formats[type] : undefined;
 
         message.shift();
 
@@ -60,7 +62,7 @@ export class FormatChecker {
 
 const checker = new FormatChecker();
 
-export function check(msg) {
+export function check(msg: unknown[]): boolean {
     return checker.check(msg);
 }
 
