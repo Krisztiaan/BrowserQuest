@@ -2295,3 +2295,32 @@ Executed successfully on 2026-02-08:
   - Verification evidence:
     - `bun run typecheck` -> pass
     - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 eslint config ESM migration)
+
+### Ticket status
+
+- `T-319.1` Migrate ESLint config from CommonJS to ESM: `done`
+- `T-319.2` Update modernization readiness log for config-module migration: `done`
+- `T-319.3` Re-verify modern lane after config migration: `done`
+
+### Live progress log
+
+- `2026-02-09T13:22Z` `in_progress` Started lint-config module modernization slice.
+  - Scope:
+    - replace `eslint.config.cjs` with ESM `eslint.config.js`
+    - preserve rule behavior and active lint invocation semantics
+  - Dependencies/blockers:
+    - none
+
+- `2026-02-09T13:23Z` `done` Completed eslint-config ESM migration and re-verified full modern lane.
+  - Key actions:
+    - renamed lint config entry:
+      - `eslint.config.cjs` -> `eslint.config.js`
+    - converted config module syntax:
+      - `require(...)` -> `import ...`
+      - `module.exports = [...]` -> `export default [...]`
+    - kept rules/ignores/file-target behavior intact.
+  - Verification evidence:
+    - `bun run lint` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
