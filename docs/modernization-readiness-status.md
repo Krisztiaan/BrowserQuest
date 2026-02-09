@@ -2398,3 +2398,34 @@ Executed successfully on 2026-02-08:
   - Verification evidence:
     - `bun run typecheck` -> pass
     - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 websocket class-factory no-check reduction)
+
+### Ticket status
+
+- `T-322.1` Remove `@ts-nocheck` from `server/js/ws-runtime-class-factory.ts`: `done`
+- `T-322.2` Remove `@ts-nocheck` from directly impacted websocket unit tests where possible: `done`
+- `T-322.3` Re-verify and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T13:33Z` `in_progress` Started websocket class-factory typing cleanup slice.
+  - Scope:
+    - remove `@ts-nocheck` from `server/js/ws-runtime-class-factory.ts`
+    - repair local type issues without behavior changes
+    - opportunistically remove no-check from closely coupled ws tests if type-stable
+  - Dependencies/blockers:
+    - heavier websocket runtime and entrypoint holdouts remain separate follow-up
+
+- `2026-02-09T13:34Z` `done` Completed websocket class-factory no-check cleanup and re-verified full modern lane.
+  - Key actions:
+    - removed `@ts-nocheck` from:
+      - `server/js/ws-runtime-class-factory.ts`
+      - `tests/unit/ws-connection.test.ts`
+      - `tests/unit/ws-runtime-parity.test.ts`
+    - updated websocket connection close signature typing to match existing call patterns:
+      - `close(logError, closeCode?)` in `server/js/ws-runtime-class-factory.ts`
+    - preserved runtime behavior while keeping test/runtime callsites unchanged.
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)

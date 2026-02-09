@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { WS_EVENT_NAMES } from './server-event-names';
 
 /**
@@ -113,7 +112,7 @@ export function createWebSocketRuntimeClasses({
             throw new Error('Not implemented');
         }
 
-        close(logError, closeCode) {
+        close(logError: unknown, closeCode?: number) {
             const reason = String(logError || '');
             const sanitizedReason = reason.length > 120 ? reason.slice(0, 117) + '...' : reason;
             const code = Number.isInteger(closeCode) ? closeCode : CLOSE_CODES.NORMAL;
