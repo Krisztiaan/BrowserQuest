@@ -1,0 +1,32 @@
+# Legacy Retirement Preflight Gaps (T-203)
+
+Date: 2026-02-07
+
+## Purpose
+
+Track open gaps against retirement cutover checklist readiness.
+
+Primary references:
+
+- `docs/archive/legacy/legacy-retirement-cutover-pr-checklist.md`
+- `docs/archive/legacy/legacy-artifact-consumer-inventory.md`
+- `docs/archive/legacy/legacy-gate-demotion-rehearsal-plan.md`
+- `docs/archive/legacy/legacy-branch-protection-demotion-runbook.md`
+- `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md`
+- `docs/archive/legacy/legacy-retirement-rollback-assignment.md`
+- `docs/archive/legacy/legacy-retirement-readiness-decision.md`
+
+## Gap matrix
+
+| Item | Status | Owner | Exit criteria | Notes |
+|---|---|---|---|---|
+| External `client-build/` consumer confirmation | Done | Maintainers | Explicit confirmation in inventory artifact | Completed in `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md` (2026-02-08 `no-consumer`). |
+| Advisory demotion dry-run execution evidence | Done | Repo/Maintainers | Dry-run PR and run URLs captured per T-202 | See `docs/archive/legacy/legacy-branch-protection-dry-run-evidence.md` |
+| Rollback owner + rollback release/tag assignment | Done | Maintainers | Owner and release/tag recorded in cutover PR prep notes | Completed in `docs/archive/legacy/legacy-retirement-rollback-assignment.md` (2026-02-08). |
+| Legacy gate advisory incident process ready | Done | Repo | Incident template + log bootstrap checked in | See `docs/archive/legacy/legacy-advisory-gate-incident-template.md` and `docs/archive/legacy/legacy-advisory-incident-log.md` |
+| Cutover PR execution checklist availability | Done | Repo | Checklist checked in and linked from retirement checklist | See `docs/archive/legacy/legacy-retirement-cutover-pr-checklist.md` |
+
+## Readiness summary
+
+- Preflight is **ready** for retirement cutover execution.
+- Previously open operational gaps are now recorded as completed.

@@ -60,6 +60,7 @@ Documentation
 -------------
 
 Documentation is in `client/`, `server/`, and `docs/`.
+Historical migration/runbook docs are archived under `docs/archive/`.
 
 License
 -------

@@ -22,7 +22,7 @@ Inventory downstream consumers of legacy `client-build/` artifacts and related `
 | `bin/build.sh` + `client/js/build.js` | Legacy artifact generation pipeline (`client-build/`) | High | Remove after gate demotion and rollback release tag is prepared | Maintainers |
 | Browser tests targeting `/client/index.html` (`tests/browser/*legacy*`, `tests/browser/protocol-invariant.playwright.ts`) | Compatibility runtime coverage | Medium | Keep until cutover; then archive or replace with modern-only smoke | Maintainers |
 | Static entry smoke (`tests/smoke/static-server-entry-default.test.ts`) | Ensures `/index.html` compatibility routing | Medium | Narrow to modern default-only assertions at retirement cutover | Maintainers |
-| Docs/runbooks (`README.md`, `docs/client-build-support.md`, `docs/legacy-retirement-checklist.md`) | Operational guidance for legacy artifacts | Medium | Update docs in same PR that demotes/removes legacy pipeline | Maintainers |
+| Docs/runbooks (`README.md`, `docs/client-build-support.md`, `docs/archive/legacy/legacy-retirement-checklist.md`) | Operational guidance for legacy artifacts | Medium | Update docs in same PR that demotes/removes legacy pipeline | Maintainers |
 | `client/README.md` legacy deployment notes | Claims `client-build/` can be deployed independently | Medium | Replace with retirement notice + migration instructions | Maintainers |
 
 ## External consumer status

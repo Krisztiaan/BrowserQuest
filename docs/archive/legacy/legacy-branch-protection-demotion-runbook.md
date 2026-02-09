@@ -10,8 +10,8 @@ Provide exact steps to demote `verify-legacy` from required to advisory status i
 
 ## Preconditions
 
-1. `docs/legacy-artifact-consumer-inventory.md` is complete and external consumer status is confirmed by maintainers.
-2. `docs/legacy-gate-demotion-rehearsal-plan.md` has been reviewed and approved.
+1. `docs/archive/legacy/legacy-artifact-consumer-inventory.md` is complete and external consumer status is confirmed by maintainers.
+2. `docs/archive/legacy/legacy-gate-demotion-rehearsal-plan.md` has been reviewed and approved.
 3. Baseline commands are green:
    - `bun run verify:modern:node22`
    - `bun run verify:legacy:node22`
@@ -52,4 +52,4 @@ Rollback steps:
 
 Rehearsal evidence reference:
 
-- `docs/legacy-branch-protection-dry-run-evidence.md`
+- `docs/archive/legacy/legacy-branch-protection-dry-run-evidence.md`

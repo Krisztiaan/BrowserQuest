@@ -88,7 +88,7 @@ Metrics dependency policy and troubleshooting:
       - inspect `operation` and `key` fields for failing metric path.
       - verify memcached health/capacity and network stability under load.
 4. Optional healthy-path smoke strategy:
-   - `docs/metrics-health-smoke-plan.md`
+   - `docs/archive/legacy/metrics-health-smoke-plan.md`
    - command: `bun run test:metrics:healthy` (runs prerequisites preflight + healthy smoke)
    - preflight only: `bun run check:metrics:healthy-prereqs`
 

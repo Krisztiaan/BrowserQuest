@@ -1,5 +1,43 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 archive separation for historical legacy docs)
+
+### Ticket status
+
+- `T-335.1` Inventory legacy historical docs and define archive move scope: `done`
+- `T-335.2` Move archived historical docs out of active `docs/` root into `docs/archive/legacy/`: `done`
+- `T-335.3` Rewrite references to archived paths and add archive index docs: `done`
+- `T-335.4` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T23:40Z` `in_progress` Started active-doc surface cleanup by separating legacy historical runbooks/notes from the active `docs/` root.
+  - Scope:
+    - move docs explicitly marked with `Archived historical note` into archive lane
+    - keep links valid by rewriting in-repo references from `docs/<file>` to `docs/archive/legacy/<file>`
+    - add archive index documentation
+  - Out of scope:
+    - deletion of archived docs
+    - behavior/runtime code changes
+  - Acceptance criteria:
+    - archived historical docs are no longer in active `docs/` root
+    - references resolve to `docs/archive/legacy/**`
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:52Z` `done` Completed archive separation for historical legacy docs and re-verified modern lane.
+  - Evidence:
+    - moved historical docs to archive lane:
+      - `docs/archive/legacy/**` (50 files moved from active `docs/` root, including remaining `legacy-*.md` holdouts)
+    - added archive indexes:
+      - `docs/archive/README.md`
+      - `docs/archive/legacy/README.md`
+    - reference rewrites:
+      - in-repo references updated from `docs/<archived-file>.md` to `docs/archive/legacy/<archived-file>.md`
+      - no stale `docs/<archived-file>.md` references remained after rewrite
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 closeout of planned AMD/RequireJS retirement epic)
 
 ### Ticket status

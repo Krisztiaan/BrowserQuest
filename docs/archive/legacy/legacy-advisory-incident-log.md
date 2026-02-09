@@ -2,7 +2,7 @@
 
 Date: 2026-02-07
 
-Use with: `docs/legacy-advisory-gate-incident-template.md`
+Use with: `docs/archive/legacy/legacy-advisory-gate-incident-template.md`
 
 ## Log schema
 

@@ -353,7 +353,7 @@ Only after Phase 2, introduce TS gradually:
   - Actions:
     - Audited remaining legacy runtime debt across client/server/build paths.
     - Added prioritized triage artifact:
-      - `docs/legacy-runtime-debt.md`
+      - `docs/archive/legacy/legacy-runtime-debt.md`
     - Captured concrete follow-up execution order and ticket breakdown (`T-020` to `T-024`).
   - Evidence:
     - Debt inventory includes runtime/global patterns, duplicate code surfaces, and build-path coupling.
@@ -425,7 +425,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-024)
   - Actions:
     - Added retirement/cutover checklist with rollback plan:
-      - `docs/legacy-retirement-checklist.md`
+      - `docs/archive/legacy/legacy-retirement-checklist.md`
     - Documented measurable readiness criteria, cutover sequence, rollback triggers/actions, and approval gate.
   - Evidence:
     - Checklist committed in-repo and aligned with current verification commands (`verify:modern`, `verify:legacy`).
@@ -554,7 +554,7 @@ Only after Phase 2, introduce TS gradually:
     - Expanded browser protocol parity suite:
       - `tests/browser/modern-protocol-actions.playwright.ts` now validates outbound `ATTACK`, `HIT`, and `LOOTMOVE` from live modern runtime.
     - Added dependency/library modernization audit artifact:
-      - `docs/dependency-modernization-audit.md` with runtime baseline, direct dependency status, and jQuery 4 migration execution order.
+      - `docs/archive/legacy/dependency-modernization-audit.md` with runtime baseline, direct dependency status, and jQuery 4 migration execution order.
     - Updated browser support matrix wording for broader protocol parity coverage:
       - `docs/client-build-support.md`.
   - Evidence:
@@ -571,9 +571,9 @@ Only after Phase 2, introduce TS gradually:
     - Expanded browser UI lock coverage for jQuery-driven controls:
       - `tests/browser/modern-ui-smoke.playwright.ts` now validates in-session toggles for chat, population panel, about/help, legal, and credits.
     - Added explicit jQuery 4 trial readiness checklist:
-      - `docs/jquery4-readiness-checklist.md`.
+      - `docs/archive/legacy/jquery4-readiness-checklist.md`.
     - Linked dependency audit to the readiness checklist:
-      - `docs/dependency-modernization-audit.md`.
+      - `docs/archive/legacy/dependency-modernization-audit.md`.
     - Updated support matrix wording to reflect stronger modern browser UI coverage:
       - `docs/client-build-support.md`.
   - Evidence:
@@ -591,8 +591,8 @@ Only after Phase 2, introduce TS gradually:
     - Validated modern browser parity after upgrade:
       - all browser protocol + UI parity tests remained green.
     - Updated dependency/audit docs with trial outcome and follow-up:
-      - `docs/dependency-modernization-audit.md`
-      - `docs/jquery4-readiness-checklist.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
+      - `docs/archive/legacy/jquery4-readiness-checklist.md`
   - Evidence:
     - `bun run test:modern-browser` passed (6 Playwright tests).
     - `bun run verify:modern` passed.
@@ -612,7 +612,7 @@ Only after Phase 2, introduce TS gradually:
     - Performed direct Node 22 server startup probe with warnings enabled:
       - `timeout 6s npx -y node@22 --trace-warnings server/js/main.js server/config.json`
     - Documented Node 22 outcomes in dependency/runtime audit:
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - All Node 22-scoped verification commands passed.
     - Node 22 server startup completed cleanly with no warning output before timeout.
@@ -627,7 +627,7 @@ Only after Phase 2, introduce TS gradually:
       - `.github/workflows/verify-legacy.yml`
       - `.github/workflows/verify-modern-browser.yml`
     - Updated dependency/runtime audit with CI Node 22 enforcement notes:
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - Workflow configs now execute verification jobs with `actions/setup-node@v4` and `node-version: 22.x`.
     - Local equivalent Node 22 gate commands (from T-035) are green.
@@ -644,7 +644,7 @@ Only after Phase 2, introduce TS gradually:
       - `README.md` runtime requirements section.
       - `server/README.md` runtime baseline wording.
       - `docs/client-build-support.md` runtime baseline section.
-      - `docs/dependency-modernization-audit.md` runtime policy baseline wording.
+      - `docs/archive/legacy/dependency-modernization-audit.md` runtime policy baseline wording.
     - Re-ran verification gates after policy pinning:
       - `bun run verify:modern`
       - `bun run verify:legacy`
@@ -665,7 +665,7 @@ Only after Phase 2, introduce TS gradually:
     - Updated docs to surface runtime preflight usage and policy:
       - `README.md`
       - `docs/client-build-support.md`
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - Unsupported runtime path validated:
       - `bun run check:runtime` on system Node 20 fails with expected message.
@@ -689,7 +689,7 @@ Only after Phase 2, introduce TS gradually:
     - Updated runtime bootstrap docs:
       - `README.md`
       - `docs/client-build-support.md`
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - `bun run check:runtime:node22` passed from Node 20 shell.
     - `bun run verify:modern:node22` passed.
@@ -706,7 +706,7 @@ Only after Phase 2, introduce TS gradually:
     - Linked runbook from core docs:
       - `README.md`
       - `docs/client-build-support.md`
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - `bun run check:runtime:node22` passed after runbook updates.
     - Documentation now consistently references runtime preflight behavior and recovery commands.
@@ -718,9 +718,9 @@ Only after Phase 2, introduce TS gradually:
   - Actions:
     - Scanned legacy AMD client runtime (`client/js/**`) for jQuery 4-sensitive patterns.
     - Produced ticketized risk inventory:
-      - `docs/legacy-jquery4-risk-scan.md`
+      - `docs/archive/legacy/legacy-jquery4-risk-scan.md`
     - Linked scan artifact from dependency/runtime audit:
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - Confirmed legacy `.size()` usage in `client/js/main.js:433`.
     - Identified `.bind()`/`.unbind()` callsites in `client/js/{main,app}.js` as migration-risk candidates.
@@ -737,7 +737,7 @@ Only after Phase 2, introduce TS gradually:
       - `client/js/main.js`
       - `client/js/app.js`
     - Updated legacy jQuery risk scan execution status:
-      - `docs/legacy-jquery4-risk-scan.md`
+      - `docs/archive/legacy/legacy-jquery4-risk-scan.md`
   - Evidence:
     - jQuery-style `.bind/.unbind` scan over `client/js/{main,app}.js` returns no matches.
     - jQuery `.size()` usage removed from `client/js/main.js`.
@@ -760,7 +760,7 @@ Only after Phase 2, introduce TS gradually:
       - direct `.on/.off` was incompatible with bundled legacy jQuery.
       - added compatibility wrappers in `client/js/{main,app}.js` to use `.on/.off` when available and fall back to `.bind/.unbind`.
     - Updated risk-scan artifact status:
-      - `docs/legacy-jquery4-risk-scan.md`
+      - `docs/archive/legacy/legacy-jquery4-risk-scan.md`
   - Evidence:
     - `bun run test:legacy-browser:node22` passed.
     - `bun run verify:legacy:node22` passed.
@@ -779,7 +779,7 @@ Only after Phase 2, introduce TS gradually:
       - `bun run test:legacy-browser:node22`
       - `bun run verify:legacy:node22`
     - Updated legacy jQuery risk scan progress:
-      - `docs/legacy-jquery4-risk-scan.md`
+      - `docs/archive/legacy/legacy-jquery4-risk-scan.md`
   - Evidence:
     - No direct jQuery-style `.bind/.unbind/.size` callsites remain in `client/js/{main,app}.js`.
     - Shared helper usage is present for all migrated event bindings.
@@ -794,7 +794,7 @@ Only after Phase 2, introduce TS gradually:
       - `.github/workflows/verify-legacy-browser.yml`
       - includes Node 22 setup + Bun setup + Playwright Chromium install + `test:legacy-browser`.
     - Updated dependency/runtime audit CI inventory with new workflow:
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - Local parity command passed:
       - `bun run test:legacy-browser:node22`
@@ -1199,9 +1199,9 @@ Only after Phase 2, introduce TS gradually:
   - Actions:
     - Audited modern ESM jQuery usage and callsite density in `client/js-esm/**`.
     - Added phased reduction plan artifact:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
     - Linked new audit from modernization status docs:
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
       - `README.md`
   - Evidence:
     - `rg -nF "import $ from 'jquery';" client/js-esm` captured remaining jQuery import surface.
@@ -1231,7 +1231,7 @@ Only after Phase 2, introduce TS gradually:
       - replaced jQuery remove/create/update/append calls with vanilla DOM APIs.
       - preserved existing API compatibility for selector-string container inputs (`'#bubbles'`) by resolving `document.querySelector(...)` in manager init.
     - Updated execution status in jQuery-surface plan:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `bun run test:browser:modern:node22` passed.
     - `bun run verify:modern:node22` passed.
@@ -1247,7 +1247,7 @@ Only after Phase 2, introduce TS gradually:
       - `client/js-esm/main.js`
     - Verified no jQuery-style `.bind/.unbind` callsites remain in those files.
     - Updated jQuery-surface execution status:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `rg -n "\\$\\([^\\n]*\\)\\.bind\\(|\\$\\([^\\n]*\\)\\.unbind\\(" client/js-esm/app.js client/js-esm/main.js` returned no matches.
     - `bun run test:browser:modern:node22` passed (serial rerun).
@@ -1267,7 +1267,7 @@ Only after Phase 2, introduce TS gradually:
       - `#nameinput` reset initially switched from attribute-set to property-set, which could clear typed names and re-disable Play during async init.
       - restored attribute semantics (`setAttribute('value', '')`) to preserve prior behavior.
     - Updated jQuery-surface execution status:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `bun run lint` passed.
     - `bun run test:browser:modern:node22` passed.
@@ -1286,7 +1286,7 @@ Only after Phase 2, introduce TS gradually:
       - `hideIntro`
       - `togglePopulationInfo`
     - Updated jQuery-surface execution status:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `bun run test:browser:modern:node22` passed.
     - `bun run verify:modern:node22` passed.
@@ -1303,7 +1303,7 @@ Only after Phase 2, introduce TS gradually:
       - message/notification animation paths and popup sizing.
       - kept jQuery template-clone wiring for achievement list generation unchanged to avoid high-risk behavior drift.
     - Updated jQuery-surface audit with current selector density and next-batch scope:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `bun run lint` passed.
     - `bun run test:browser:modern:node22` passed.
@@ -1324,7 +1324,7 @@ Only after Phase 2, introduce TS gradually:
       - gameplay body click parchment checks now use cached `parchment` element `classList.contains(...)`.
       - mute/respawn handlers and focus-state checks now use DOM APIs (`document.activeElement`) instead of selector+`:focus`/`.size()`.
     - Updated jQuery-surface audit with new selector-density snapshot and next batch scope:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `bun run lint` passed.
     - `bun run test:browser:modern:node22` passed.
@@ -1344,7 +1344,7 @@ Only after Phase 2, introduce TS gradually:
       - converted boot parchment checks, legal/privacy label updates, and `playername`/`playerimage` boot wiring to DOM APIs.
       - converted `resize-check` transition listeners and `.play div` boot click wiring to DOM event handlers.
     - Updated jQuery-surface audit with current selector-density snapshot and next batch:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `bun run lint` passed.
     - `bun run test:browser:modern:node22` passed.
@@ -1363,7 +1363,7 @@ Only after Phase 2, introduce TS gradually:
       - replaced jQuery `ready`, body class toggles, disconnect UI updates, and mobile touch foreground handler with DOM APIs.
       - dropped `jquery` import from `client/js-esm/main.js`.
     - Updated jQuery-surface audit with current import/callsite state and explicit residual `app.js` defer-or-migrate scope:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `bun run lint` passed.
     - `bun run test:browser:modern:node22` passed.
@@ -1386,7 +1386,7 @@ Only after Phase 2, introduce TS gradually:
       - `client/js-esm/main.js` already jQuery-free from T-082.
       - `client/js-esm/app.js` no longer imports/uses jQuery.
     - Updated audit status and follow-up scope:
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `bun run lint` passed.
     - `bun run test:browser:modern:node22` passed.
@@ -1406,7 +1406,7 @@ Only after Phase 2, introduce TS gradually:
     - Updated policy docs and roadmap artifacts:
       - `README.md`
       - `docs/client-build-support.md`
-      - `docs/modern-jquery-surface-audit.md`
+      - `docs/archive/legacy/modern-jquery-surface-audit.md`
   - Evidence:
     - `bun run check:modern-jquery-free` passed.
     - `bun run verify:modern:node22` passed.
@@ -1501,7 +1501,7 @@ Only after Phase 2, introduce TS gradually:
   - Actions:
     - Refreshed dependency/runtime modernization candidate queue after entrypoint consolidation.
     - Updated dependency audit with current direct dependency drift evidence:
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
       - identified pending major upgrade candidates in `eslint` toolchain.
     - Defined follow-up execution tickets for the dependency slice:
       - T-091 (`eslint@10` readiness scan)
@@ -1537,7 +1537,7 @@ Only after Phase 2, introduce TS gradually:
       - lockfile refreshed (`bun.lock`).
     - Kept upgrade after full verification suite remained green.
     - Updated dependency audit and follow-up order:
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - `bun run lint` passed.
     - `bun run verify:modern:node22` passed.
@@ -1553,7 +1553,7 @@ Only after Phase 2, introduce TS gradually:
       - added script alias `check:deps:drift` in `package.json` (`npm outdated --depth=0`).
       - updated root runbook and dependency audit with watch cadence and trigger actions.
         - `README.md`
-        - `docs/dependency-modernization-audit.md`
+        - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - `bun run check:deps:drift` passed (no direct dependency drift reported).
   - Next action:
@@ -1695,7 +1695,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-102)
   - Actions:
     - Defined deterministic healthy-metrics smoke strategy with opt-in gating and environment prerequisites:
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
     - Linked strategy into runbooks:
       - `server/README.md`
       - `README.md`
@@ -1713,7 +1713,7 @@ Only after Phase 2, introduce TS gradually:
       - added opt-in command:
         - `package.json` `test:metrics:healthy`
     - Updated docs and runbooks for the new optional command:
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
       - `server/README.md`
       - `README.md`
       - `docs/client-build-support.md`
@@ -1733,7 +1733,7 @@ Only after Phase 2, introduce TS gradually:
       - optional healthy smoke asserts `server.metrics.ready` and no longer depends on unstructured log text.
     - Updated taxonomy/runbook docs to reflect the active contract:
       - `docs/server-logging-taxonomy.md`
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
   - Evidence:
     - `bun test --timeout 20000 tests/unit/metrics-runtime.test.ts tests/smoke/server-metrics-healthy.optional.test.ts` passed (`server-metrics-healthy.optional` skipped by default).
     - `bun run verify:modern:node22` passed.
@@ -1756,7 +1756,7 @@ Only after Phase 2, introduce TS gradually:
       - `README.md`
       - `server/README.md`
       - `docs/client-build-support.md`
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
   - Evidence:
     - `bun run check:metrics:healthy-prereqs` fails fast with actionable output when prerequisites are missing.
     - `bun run verify:modern:node22` passed.
@@ -1774,7 +1774,7 @@ Only after Phase 2, introduce TS gradually:
     - Updated supporting docs to surface optional automation path:
       - `README.md`
       - `docs/client-build-support.md`
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
   - Evidence:
     - `bun run verify:modern:node22` passed.
     - `bun run verify:legacy:node22` passed.
@@ -1786,7 +1786,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-107)
   - Actions:
     - Added explicit runbook for optional healthy metrics workflow trigger + triage:
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
       - includes expected success signals and common failure mappings.
     - Added cross-links to the runbook:
       - `README.md`
@@ -1875,7 +1875,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-111)
   - Actions:
     - Added explicit fork workflow hygiene instructions to the metrics healthy runbook:
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
       - includes push/default-branch switch, dispatch, reset, and verification commands.
     - Captured deterministic commands for both enabling and reverting workflow-dispatch readiness on forks.
   - Evidence:
@@ -1890,7 +1890,7 @@ Only after Phase 2, introduce TS gradually:
       - `.github/workflows/verify-metrics-healthy.yml`
       - changed from `bun add memcache` to `bun add --no-save memcache`.
     - Updated runbook wording to match hardened behavior:
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
     - Pushed workflow update and reran healthy metrics workflow.
   - Evidence:
     - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773675770`
@@ -1906,7 +1906,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-113)
   - Actions:
     - Added explicit upstream-vs-fork execution context for healthy metrics workflow evidence:
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
       - `README.md`
     - Linked successful fork runs for maintainers/operators:
       - `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773648845`
@@ -1920,7 +1920,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-114)
   - Actions:
     - Added upstream replication checklist for optional healthy workflow:
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
       - includes workflow file requirements, dispatch verification commands, and evidence capture requirements.
   - Evidence:
     - Runbook now has an explicit ordered checklist for migrating fork-based evidence flow to upstream when permissions allow.
@@ -1947,7 +1947,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-116)
   - Actions:
     - Added runtime matrix note and revalidation trigger for optional healthy workflow:
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
       - captures Node/Bun versions observed in successful runs and when to rerun.
   - Evidence:
     - Runbook now includes runtime references linked to successful run IDs and explicit drift triggers.
@@ -2027,7 +2027,7 @@ Only after Phase 2, introduce TS gradually:
       - `.github/workflows/verify-metrics-healthy.yml`
       - Node `22.x`, Bun `1.3.8` matrix entries are now explicit in job name and setup steps.
     - Updated runtime policy wording:
-      - `docs/metrics-health-smoke-plan.md`
+      - `docs/archive/legacy/metrics-health-smoke-plan.md`
     - Triggered and validated the hardened matrix workflow run.
   - Evidence:
     - Run URL: `https://github.com/Krisztiaan/BrowserQuest/actions/runs/21773758960`
@@ -2594,7 +2594,7 @@ Only after Phase 2, introduce TS gradually:
     - Updated docs to surface runtime-consistent drift audit path:
       - `README.md`
       - `docs/client-build-support.md`
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
     - Captured fresh drift evidence snapshot (no direct dependency drift reported).
   - Evidence:
     - `bun run check:deps:drift` passed (no drift output).
@@ -2801,7 +2801,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-171)
   - Actions:
     - Added core sequence planning artifact for remaining high-risk modules:
-      - `docs/server-core-class-migration-plan.md`
+      - `docs/archive/legacy/server-core-class-migration-plan.md`
     - Refreshed fanout guard and artifact to current state:
       - `tools/check-classjs-fanout.cjs` allowlist reduced to `map`, `metrics`, `ws`, `worldserver`.
       - `docs/server-classjs-fanout-map.md` now reflects 4 remaining `lib/class.js` dependents.
@@ -2835,7 +2835,7 @@ Only after Phase 2, introduce TS gradually:
     - Updated class fanout guard allowlist and artifacts to current remaining modules:
       - `tools/check-classjs-fanout.cjs`
       - `docs/server-classjs-fanout-map.md`
-      - `docs/server-core-class-migration-plan.md`
+      - `docs/archive/legacy/server-core-class-migration-plan.md`
   - Evidence:
     - `bun run verify:legacy:node22` passed.
     - `bun run test:browser:protocol:node22` passed.
@@ -2881,7 +2881,7 @@ Only after Phase 2, introduce TS gradually:
     - Refreshed guard/docs:
       - `tools/check-classjs-fanout.cjs` allowlist now empty.
       - `docs/server-classjs-fanout-map.md` reflects zero remaining dependents.
-      - `docs/server-core-class-migration-plan.md` marked complete.
+      - `docs/archive/legacy/server-core-class-migration-plan.md` marked complete.
   - Evidence:
     - `bun run verify:legacy:node22` passed.
     - `bun run test:browser:protocol:node22` passed.
@@ -2907,11 +2907,11 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-178)
   - Actions:
     - Added package-mode migration readiness artifact:
-      - `docs/package-mode-migration-checklist.md`
+      - `docs/archive/legacy/package-mode-migration-checklist.md`
     - Captured staged sequence and rollback criteria for eventual package-mode transition.
     - Linked checklist from primary modernization docs.
   - Evidence:
-    - `docs/package-mode-migration-checklist.md` checked in and referenced from `README.md` and server readiness inventory docs.
+    - `docs/archive/legacy/package-mode-migration-checklist.md` checked in and referenced from `README.md` and server readiness inventory docs.
   - Next action:
     - Start `T-179` runtime CJS boundary inventory hardening.
 
@@ -2945,7 +2945,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-181)
   - Actions:
     - Added package-mode trial runbook artifact:
-      - `docs/package-mode-trial-runbook.md`
+      - `docs/archive/legacy/package-mode-trial-runbook.md`
     - Captured branch workflow, mandatory gates, pass criteria, and rollback steps.
   - Evidence:
     - Runbook is checked in and linked from top-level/docs modernization references.
@@ -2956,7 +2956,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-182)
   - Actions:
     - Added compatibility matrix artifact:
-      - `docs/legacy-package-mode-compat-matrix.md`
+      - `docs/archive/legacy/legacy-package-mode-compat-matrix.md`
     - Defined baseline and package-trial verification rows with explicit gate commands and rollback trigger.
   - Evidence:
     - Matrix is checked in and linked from `README.md` and server readiness inventory docs.
@@ -2995,7 +2995,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-185)
   - Actions:
     - Added formal trial decision artifact:
-      - `docs/package-mode-trial-decision.md`
+      - `docs/archive/legacy/package-mode-trial-decision.md`
     - Recorded blocker, rollback evidence, and defer recommendation.
     - Linked decision artifact from root and server readiness docs.
   - Evidence:
@@ -3065,10 +3065,10 @@ Only after Phase 2, introduce TS gradually:
       - `package.json` script `check:package-mode-boundaries`
       - integrated guard into `verify:modern` and `verify:legacy`.
     - Updated primary package-mode/docs coherence artifacts to reflect adopted ESM package mode:
-      - `docs/package-mode-trial-runbook.md`
-      - `docs/legacy-package-mode-compat-matrix.md`
+      - `docs/archive/legacy/package-mode-trial-runbook.md`
+      - `docs/archive/legacy/legacy-package-mode-compat-matrix.md`
       - `docs/server-cjs-esm-readiness-inventory.md`
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
       - `docs/runtime-cjs-boundary-inventory.md`
   - Evidence:
     - `bun run check:package-mode-boundaries` passed.
@@ -3081,7 +3081,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-191)
   - Actions:
     - Added optimizer strategy assessment artifact:
-      - `docs/legacy-optimizer-containment-assessment.md`
+      - `docs/archive/legacy/legacy-optimizer-containment-assessment.md`
     - Documented replace/contain options with effort/risk/rollback tradeoffs.
     - Selected strategy:
       - contain `r.js` behind explicit boundary now,
@@ -3114,7 +3114,7 @@ Only after Phase 2, introduce TS gradually:
       - `package.json` script `check:legacy-optimizer-integrity`
       - integrated guard into `verify:legacy`.
     - Added provenance/integrity baseline artifact:
-      - `docs/legacy-optimizer-provenance.md`
+      - `docs/archive/legacy/legacy-optimizer-provenance.md`
     - Linked provenance and guard coverage in primary docs:
       - `README.md`
       - `docs/client-build-support.md`
@@ -3129,10 +3129,10 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-194)
   - Actions:
     - Added downstream consumer inventory artifact:
-      - `docs/legacy-artifact-consumer-inventory.md`
+      - `docs/archive/legacy/legacy-artifact-consumer-inventory.md`
     - Mapped in-repo `client-build/`, `build:client`, `verify:legacy`, and `/client/index.html` consumers with blocker level and migration path.
     - Recorded external consumer status as unknown-from-repo and explicitly requiring maintainer confirmation.
-    - Linked inventory from `README.md` and `docs/legacy-retirement-checklist.md`.
+    - Linked inventory from `README.md` and `docs/archive/legacy/legacy-retirement-checklist.md`.
   - Evidence:
     - Inventory artifact checked in with owner/dependency/migration matrix.
   - Next action:
@@ -3142,7 +3142,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-195)
   - Actions:
     - Added demotion rehearsal plan artifact:
-      - `docs/legacy-gate-demotion-rehearsal-plan.md`
+      - `docs/archive/legacy/legacy-gate-demotion-rehearsal-plan.md`
     - Documented preconditions, staged rollout, CI impact, command matrix, and rollback triggers/actions.
     - Linked rehearsal plan from `README.md`.
   - Evidence:
@@ -3168,7 +3168,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-197)
   - Actions:
     - Added branch-protection demotion runbook:
-      - `docs/legacy-branch-protection-demotion-runbook.md`
+      - `docs/archive/legacy/legacy-branch-protection-demotion-runbook.md`
     - Captured exact preconditions, change steps, dry-run checks, and rollback procedure for `verify-legacy` demotion.
   - Evidence:
     - Runbook artifact checked in and linked in modernization docs.
@@ -3179,7 +3179,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-198)
   - Actions:
     - Added advisory incident evidence template:
-      - `docs/legacy-advisory-gate-incident-template.md`
+      - `docs/archive/legacy/legacy-advisory-gate-incident-template.md`
     - Included metadata, reproduction commands, risk classification, and decision/owner fields.
     - Linked template from demotion rehearsal plan.
   - Evidence:
@@ -3191,9 +3191,9 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-199)
   - Actions:
     - Added execution checklist for retirement cutover PR:
-      - `docs/legacy-retirement-cutover-pr-checklist.md`
+      - `docs/archive/legacy/legacy-retirement-cutover-pr-checklist.md`
     - Covered preconditions, code/script, CI/workflow, docs, verification, and rollback readiness gates.
-    - Linked checklist from `docs/legacy-retirement-checklist.md`.
+    - Linked checklist from `docs/archive/legacy/legacy-retirement-checklist.md`.
   - Evidence:
     - Cutover checklist artifact checked in and linked from core retirement docs.
   - Next action:
@@ -3216,7 +3216,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-201)
   - Actions:
     - Added advisory incident log bootstrap artifact:
-      - `docs/legacy-advisory-incident-log.md`
+      - `docs/archive/legacy/legacy-advisory-incident-log.md`
     - Included reusable log schema and initial placeholder state.
     - Linked incident log from `README.md` and demotion docs.
   - Evidence:
@@ -3230,7 +3230,7 @@ Only after Phase 2, introduce TS gradually:
     - Confirmed T-202 requires branch-protection operations and dry-run PR evidence capture outside repository code changes.
     - No direct in-repo automation can execute or verify branch-protection toggles.
   - Evidence:
-    - `docs/legacy-branch-protection-demotion-runbook.md` defines required external steps.
+    - `docs/archive/legacy/legacy-branch-protection-demotion-runbook.md` defines required external steps.
   - Next action:
     - Start `T-203` retirement cutover preflight gap closure (in-repo trackable).
 
@@ -3238,9 +3238,9 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-203)
   - Actions:
     - Added preflight gap closure artifact:
-      - `docs/legacy-retirement-preflight-gaps.md`
+      - `docs/archive/legacy/legacy-retirement-preflight-gaps.md`
     - Mapped cutover checklist open/done items with owners, exit criteria, and blocking rationale.
-    - Linked preflight gap tracker from `README.md` and `docs/legacy-retirement-checklist.md`.
+    - Linked preflight gap tracker from `README.md` and `docs/archive/legacy/legacy-retirement-checklist.md`.
   - Evidence:
     - Preflight artifact checked in with explicit readiness state and blockers.
   - Next action:
@@ -3254,11 +3254,11 @@ Only after Phase 2, introduce TS gradually:
       - opened dry-run PR (`#1`) from `t202-dry-run` to `t202-protected`,
       - demoted required checks from (`modern`,`legacy`) to (`modern`) and captured merge-state transition.
     - Captured concrete evidence artifact with run URLs, outcomes, and cleanup/rollback proof:
-      - `docs/legacy-branch-protection-dry-run-evidence.md`
+      - `docs/archive/legacy/legacy-branch-protection-dry-run-evidence.md`
     - Performed immediate cleanup:
       - removed sandbox branch protection, closed PR without merge, deleted temporary branches.
   - Evidence:
-    - `docs/legacy-branch-protection-dry-run-evidence.md` includes PR URL + workflow run URLs + rollback verification.
+    - `docs/archive/legacy/legacy-branch-protection-dry-run-evidence.md` includes PR URL + workflow run URLs + rollback verification.
   - Next action:
     - Start post-T203 queue refresh for remaining operational retirement blockers.
 
@@ -3279,11 +3279,11 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-205)
   - Actions:
     - Added explicit external consumer confirmation protocol artifact:
-      - `docs/legacy-external-consumer-confirmation-protocol.md`
+      - `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md`
     - Included stakeholder workflow, request template, response log schema, and completion criteria.
     - Linked protocol from preflight/readme retirement docs.
   - Evidence:
-    - Protocol artifact checked in and connected to `docs/legacy-retirement-preflight-gaps.md`.
+    - Protocol artifact checked in and connected to `docs/archive/legacy/legacy-retirement-preflight-gaps.md`.
   - Next action:
     - Start `T-206` rollback owner/release-tag assignment record.
 
@@ -3291,7 +3291,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-206)
   - Actions:
     - Added rollback assignment artifact:
-      - `docs/legacy-retirement-rollback-assignment.md`
+      - `docs/archive/legacy/legacy-retirement-rollback-assignment.md`
     - Captured required owner/escalation/fallback-tag fields plus execution checklist.
     - Linked assignment artifact from cutover checklist and preflight references.
   - Evidence:
@@ -3303,7 +3303,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-207)
   - Actions:
     - Added final go/no-go decision gate artifact:
-      - `docs/legacy-retirement-readiness-decision.md`
+      - `docs/archive/legacy/legacy-retirement-readiness-decision.md`
     - Included required evidence inputs, decision checklist, and signoff record template.
     - Linked decision gate from README and retirement checklist.
   - Evidence:
@@ -3645,7 +3645,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-232)
   - Actions:
     - Added staged pre-slice artifact for `map.js` / `worldserver.js` runtime CheckJs adoption:
-      - `docs/runtime-checkjs-worldserver-map-pre-slice.md`.
+      - `docs/archive/legacy/runtime-checkjs-worldserver-map-pre-slice.md`.
     - Captured concrete isolated compiler findings and dependency blockers:
       - `map.js` isolated CheckJs passes,
       - `worldserver.js` admission currently blocked by `mob.area` property declarations and chest narrowing (`setItems`) typing.
@@ -4069,7 +4069,7 @@ Only after Phase 2, introduce TS gradually:
     - Refreshed startup-boundary inventory docs to match current runtime seam behavior:
       - `docs/runtime-cjs-boundary-inventory.md`,
       - `docs/server-cjs-esm-readiness-inventory.md`,
-      - `docs/package-mode-migration-checklist.md`.
+      - `docs/archive/legacy/package-mode-migration-checklist.md`.
     - Captured current startup-seam contract explicitly:
       - default CJS startup path (`main.js` -> `main-runtime.js`),
       - opt-in ESM websocket runtime injection path (`BQ_ESM_WS_RUNTIME=1`),
@@ -4167,7 +4167,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-263)
   - Actions:
     - Updated package-mode migration runbook to reference extracted startup helpers and script aliases:
-      - `docs/package-mode-migration-checklist.md`.
+      - `docs/archive/legacy/package-mode-migration-checklist.md`.
     - Added explicit startup seam checklist entries for:
       - `start:server:esm:ws-bridge:probe`,
       - `start:server:esm:ws-runtime`,
@@ -4402,7 +4402,7 @@ Only after Phase 2, introduce TS gradually:
       - `docs/websocket-cjs-factory-migration-decision.md`.
     - Aligned runtime/package-mode runbooks with decision checklist references:
       - `docs/client-build-support.md`,
-      - `docs/package-mode-migration-checklist.md`,
+      - `docs/archive/legacy/package-mode-migration-checklist.md`,
       - `docs/runtime-cjs-boundary-inventory.md`.
   - Evidence:
     - docs/read-through complete with command/checklist references aligned.
@@ -4487,7 +4487,7 @@ Only after Phase 2, introduce TS gradually:
       - `README.md`,
       - `docs/server-cjs-esm-readiness-inventory.md`,
       - `docs/runtime-cjs-boundary-inventory.md`,
-      - `docs/package-mode-migration-checklist.md`.
+      - `docs/archive/legacy/package-mode-migration-checklist.md`.
     - Extended primary verification command references to include scripted websocket drill:
       - `bun run test:ws:runtime:drill`.
   - Evidence:
@@ -5157,7 +5157,7 @@ Only after Phase 2, introduce TS gradually:
     - Executed worldserver TS shadow-source pre-slice artifacts (no runtime behavior changes):
       - added typed worldserver inventory module: `server/js/worldserver-types.ts`.
       - added inventory contract test: `tests/unit/worldserver-shadow-source-pre-slice.test.ts`.
-      - added staged rollout/blocker doc: `docs/worldserver-ts-shadow-source-pre-slice.md`.
+      - added staged rollout/blocker doc: `docs/archive/legacy/worldserver-ts-shadow-source-pre-slice.md`.
     - Wired inventory visibility into active runtime/type docs:
       - `tsconfig.typecheck-runtime.json`
       - `docs/typescript-runtime-checkjs-defer-list.md`
@@ -5187,7 +5187,7 @@ Only after Phase 2, introduce TS gradually:
       - `README.md`
       - `docs/client-build-support.md`
       - `docs/runtime-cjs-boundary-inventory.md`
-      - `docs/worldserver-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/worldserver-ts-shadow-source-pre-slice.md`
       - `docs/typescript-runtime-checkjs-defer-list.md`
       - `tsconfig.typecheck-runtime.json`
   - Evidence:
@@ -5206,7 +5206,7 @@ Only after Phase 2, introduce TS gradually:
     - Added player seam TypeScript contract artifacts:
       - contract module: `server/js/player-types.ts`
       - contract tests: `tests/unit/player-shadow-source-contract.test.ts`
-      - contract runbook: `docs/player-ts-contract-extraction.md`
+      - contract runbook: `docs/archive/legacy/player-ts-contract-extraction.md`
     - Wired player seam contracts into runtime/type docs:
       - `tsconfig.typecheck-runtime.json`
       - `docs/typescript-runtime-checkjs-defer-list.md`
@@ -5245,7 +5245,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired player sync workflow into verification gates and docs:
       - scripts/gates: `package.json` (`build:player`, `check:player-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - player contract doc updated for phase-1 execution: `docs/player-ts-contract-extraction.md`.
+      - player contract doc updated for phase-1 execution: `docs/archive/legacy/player-ts-contract-extraction.md`.
   - Evidence:
     - `bun run build:player` passed.
     - `bun run check:player-sync` passed.
@@ -5280,7 +5280,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-328)
   - Actions:
     - Added execution-ready pre-slice artifact for main runtime shadow-source rollout:
-      - `docs/main-runtime-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/main-runtime-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, generated artifact strategy, staged checklist, and rollback plan for `server/js/main-runtime.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5302,7 +5302,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired main-runtime sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:main-runtime`, `check:main-runtime-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact updated with phase-1 completion status: `docs/main-runtime-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact updated with phase-1 completion status: `docs/archive/legacy/main-runtime-ts-shadow-source-pre-slice.md`.
   - Evidence:
     - `bun run build:main-runtime` passed.
     - `bun run check:main-runtime-sync` passed.
@@ -5355,7 +5355,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-332)
   - Actions:
     - Completed metrics-runtime shadow-source pre-slice artifact with execution-ready status:
-      - `docs/metrics-runtime-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/metrics-runtime-ts-shadow-source-pre-slice.md`
       - documented dependency inventory, artifact workflow, executed checklist, and rollback strategy for `server/js/metrics-runtime.js`.
     - Confirmed pre-slice visibility in runtime/modernization docs:
       - `README.md`
@@ -5378,7 +5378,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired metrics-runtime sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:metrics-runtime`, `check:metrics-runtime-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact updated with phase-1 completion status: `docs/metrics-runtime-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact updated with phase-1 completion status: `docs/archive/legacy/metrics-runtime-ts-shadow-source-pre-slice.md`.
   - Evidence:
     - `bun run build:metrics-runtime` passed.
     - `bun run check:metrics-runtime-sync` passed.
@@ -5392,7 +5392,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-334)
   - Actions:
     - Added metrics module shadow-source pre-slice artifact:
-      - `docs/metrics-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/metrics-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, generated artifact strategy, and rollback checklist for `server/js/metrics.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5414,7 +5414,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired metrics module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:metrics`, `check:metrics-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/metrics-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/metrics-ts-shadow-source-pre-slice.md`.
   - Evidence:
     - `bun run build:metrics` passed.
     - `bun run check:metrics-sync` passed.
@@ -5429,7 +5429,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-336)
   - Actions:
     - Added character module shadow-source pre-slice artifact:
-      - `docs/character-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/character-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, inheritance/state checklist, generated artifact strategy, and rollback plan for `server/js/character.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5452,7 +5452,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired character module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:character`, `check:character-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/character-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/character-ts-shadow-source-pre-slice.md`.
   - Evidence:
     - `bun run build:character` passed.
     - `bun run check:character-sync` passed.
@@ -5467,7 +5467,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-338)
   - Actions:
     - Added mob module shadow-source pre-slice artifact:
-      - `docs/mob-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/mob-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, combat/respawn checklist, generated artifact strategy, and rollback plan for `server/js/mob.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5490,7 +5490,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired mob module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:mob`, `check:mob-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/mob-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/mob-ts-shadow-source-pre-slice.md`.
     - Refreshed hotspot ordering guidance for the next P1 tranche:
       - `docs/server-cjs-hotspot-index.md`.
   - Evidence:
@@ -5507,7 +5507,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-340)
   - Actions:
     - Added mobarea module shadow-source pre-slice artifact:
-      - `docs/mobarea-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/mobarea-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, spawn/respawn checklist, generated artifact strategy, and rollback plan for `server/js/mobarea.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5530,7 +5530,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired mobarea module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:mobarea`, `check:mobarea-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/mobarea-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/mobarea-ts-shadow-source-pre-slice.md`.
   - Evidence:
     - `bun run build:mobarea` passed.
     - `bun run check:mobarea-sync` passed.
@@ -5545,7 +5545,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-342)
   - Actions:
     - Added map module shadow-source pre-slice artifact:
-      - `docs/map-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/map-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, map-load/checkpoint checklist, generated artifact strategy, and rollback plan for `server/js/map.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5568,7 +5568,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired map module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:map`, `check:map-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/map-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/map-ts-shadow-source-pre-slice.md`.
   - Evidence:
     - `bun run build:map` passed.
     - `bun run check:map-sync` passed.
@@ -5583,7 +5583,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-344)
   - Actions:
     - Added chest module shadow-source pre-slice artifact:
-      - `docs/chest-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/chest-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, loot/drop contract checklist, generated artifact strategy, and rollback plan for `server/js/chest.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5606,7 +5606,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired chest module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:chest`, `check:chest-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/chest-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/chest-ts-shadow-source-pre-slice.md`.
   - Evidence:
     - `bun run build:chest` passed.
     - `bun run check:chest-sync` passed.
@@ -5621,7 +5621,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-346)
   - Actions:
     - Added properties module shadow-source pre-slice artifact:
-      - `docs/properties-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/properties-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, static lookup contract checklist, generated artifact strategy, and rollback plan for `server/js/properties.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5644,7 +5644,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired properties module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:properties`, `check:properties-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/properties-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/properties-ts-shadow-source-pre-slice.md`.
     - Refreshed hotspot ordering guidance for the next P1 tranche:
       - `docs/server-cjs-hotspot-index.md`.
   - Evidence:
@@ -5661,7 +5661,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-348)
   - Actions:
     - Added entity module shadow-source pre-slice artifact:
-      - `docs/entity-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/entity-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, base-state/spawn contract checklist, generated artifact strategy, and rollback plan for `server/js/entity.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5684,7 +5684,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired entity module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:entity`, `check:entity-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/entity-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/entity-ts-shadow-source-pre-slice.md`.
     - Refreshed hotspot ordering guidance for the next tranche:
       - `docs/server-cjs-hotspot-index.md`.
   - Evidence:
@@ -5701,7 +5701,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-350)
   - Actions:
     - Added item module shadow-source pre-slice artifact:
-      - `docs/item-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/item-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, despawn/respawn contract checklist, generated artifact strategy, and rollback plan for `server/js/item.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5724,7 +5724,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired item module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:item`, `check:item-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/item-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/item-ts-shadow-source-pre-slice.md`.
     - Refreshed hotspot ordering guidance for the next tranche:
       - `docs/server-cjs-hotspot-index.md`.
   - Evidence:
@@ -5741,7 +5741,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-352)
   - Actions:
     - Added NPC module shadow-source pre-slice artifact:
-      - `docs/npc-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/npc-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, entity-init contract checklist, generated artifact strategy, and rollback plan for `server/js/npc.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5764,7 +5764,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired NPC module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:npc`, `check:npc-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/npc-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/npc-ts-shadow-source-pre-slice.md`.
     - Refreshed hotspot ordering guidance for the next tranche:
       - `docs/server-cjs-hotspot-index.md`.
   - Evidence:
@@ -5781,7 +5781,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-354)
   - Actions:
     - Added message module shadow-source pre-slice artifact:
-      - `docs/message-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/message-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, protocol-envelope checklist, generated artifact strategy, and rollback plan for `server/js/message.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5804,7 +5804,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired message module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:message`, `check:message-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/message-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/message-ts-shadow-source-pre-slice.md`.
     - Refreshed hotspot ordering guidance for the next tranche:
       - `docs/server-cjs-hotspot-index.md`.
   - Evidence:
@@ -5821,7 +5821,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-356)
   - Actions:
     - Added chestarea module shadow-source pre-slice artifact:
-      - `docs/chestarea-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/chestarea-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, containment contract checklist, generated artifact strategy, and rollback plan for `server/js/chestarea.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5844,7 +5844,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired chestarea module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:chestarea`, `check:chestarea-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/chestarea-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/chestarea-ts-shadow-source-pre-slice.md`.
     - Refreshed hotspot ordering guidance for the next tranche:
       - `docs/server-cjs-hotspot-index.md`.
   - Evidence:
@@ -5861,7 +5861,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-358)
   - Actions:
     - Added checkpoint module shadow-source pre-slice artifact:
-      - `docs/checkpoint-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/checkpoint-ts-shadow-source-pre-slice.md`
       - captured dependency inventory, random-position contract checklist, generated artifact strategy, and rollback plan for `server/js/checkpoint.js`.
     - Linked pre-slice artifact in primary docs surfaces:
       - `README.md`
@@ -5884,7 +5884,7 @@ Only after Phase 2, introduce TS gradually:
     - Wired checkpoint module sync workflow into verify gates and docs:
       - scripts/gates: `package.json` (`build:checkpoint`, `check:checkpoint-sync`, verify gate wiring).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `tsconfig.typecheck-runtime.json`.
-      - pre-slice artifact referenced in modernization snapshot: `docs/checkpoint-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact referenced in modernization snapshot: `docs/archive/legacy/checkpoint-ts-shadow-source-pre-slice.md`.
     - Refreshed hotspot ordering guidance for the next tranche:
       - `docs/server-cjs-hotspot-index.md`.
   - Evidence:
@@ -5901,7 +5901,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-360, T-361)
   - Actions:
     - Completed area module TS shadow-source rollout:
-      - pre-slice artifact confirmed: `docs/area-ts-shadow-source-pre-slice.md`.
+      - pre-slice artifact confirmed: `docs/archive/legacy/area-ts-shadow-source-pre-slice.md`.
       - authored source committed: `server/js/area.cts`.
       - deterministic sync tooling wired: `tools/sync-area.cjs`, `tsconfig.build-area.json`.
       - generated runtime artifact refreshed: `server/js/area.js`.
@@ -5948,13 +5948,13 @@ Only after Phase 2, introduce TS gradually:
         - `tools/sync-config-preflight.cjs`, `tsconfig.build-config-preflight.json`
         - `tools/sync-main.cjs`, `tsconfig.build-main.json`
     - Added pre-slice artifacts:
-      - `docs/formulas-ts-shadow-source-pre-slice.md`
-      - `docs/log-ts-shadow-source-pre-slice.md`
-      - `docs/utils-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/formulas-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/log-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/utils-ts-shadow-source-pre-slice.md`
       - `docs/format-ts-shadow-source-pre-slice.md`
-      - `docs/metrics-client-ts-shadow-source-pre-slice.md`
-      - `docs/config-preflight-ts-shadow-source-pre-slice.md`
-      - `docs/main-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/metrics-client-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/config-preflight-ts-shadow-source-pre-slice.md`
+      - `docs/archive/legacy/main-ts-shadow-source-pre-slice.md`
     - Expanded verification/doc wiring for full server shadow-source coverage:
       - scripts/gates: `package.json` (`build:*`/`check:*` additions + verify gate expansion).
       - runtime/type docs: `README.md`, `docs/client-build-support.md`, `docs/runtime-cjs-boundary-inventory.md`, `docs/typescript-runtime-checkjs-defer-list.md`, `docs/server-cjs-hotspot-index.md`.
@@ -6306,7 +6306,7 @@ Only after Phase 2, introduce TS gradually:
     - Updated docs to remove stale `npm outdated`/`npx node@22` dependency-audit references:
       - `README.md`
       - `docs/client-build-support.md`
-      - `docs/dependency-modernization-audit.md`
+      - `docs/archive/legacy/dependency-modernization-audit.md`
   - Evidence:
     - `node tools/check-dependency-drift.cjs` passed.
     - `node tools/check-dependency-drift.cjs --allow-drift --text <tmp>/dependency-drift.txt --json <tmp>/dependency-drift.json` passed.
@@ -6321,12 +6321,12 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-391)
   - Actions:
     - Prefilled external signoff documents with explicit blocked state and current technical readiness evidence:
-      - `docs/legacy-external-consumer-confirmation-protocol.md`
-      - `docs/legacy-retirement-rollback-assignment.md`
-      - `docs/legacy-retirement-readiness-decision.md`
+      - `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md`
+      - `docs/archive/legacy/legacy-retirement-rollback-assignment.md`
+      - `docs/archive/legacy/legacy-retirement-readiness-decision.md`
     - Recorded that technical verification is green while go/no-go remains `no-go` until stakeholder responses, rollback owner assignment, and maintainer signoff are completed.
   - Evidence:
-    - `rg -n 'Execution status|Last evaluation refresh|Outcome: \`no-go\`|Required verification commands green|pending maintainer assignment' docs/legacy-external-consumer-confirmation-protocol.md docs/legacy-retirement-rollback-assignment.md docs/legacy-retirement-readiness-decision.md` returned expected status/evidence lines.
+    - `rg -n 'Execution status|Last evaluation refresh|Outcome: \`no-go\`|Required verification commands green|pending maintainer assignment' docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md docs/archive/legacy/legacy-retirement-rollback-assignment.md docs/archive/legacy/legacy-retirement-readiness-decision.md` returned expected status/evidence lines.
     - `bun run verify:modern:node22` passed (technical readiness remains green).
     - `bun run verify:legacy:node22` passed.
     - `bun run test:browser:protocol:node22` passed.
@@ -6381,11 +6381,11 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-209, T-210, T-211)
   - Actions:
     - Executed external signoff closure steps using maintainer-provided readiness direction:
-      - completed stakeholder response log and final `no-consumer` classification in `docs/legacy-external-consumer-confirmation-protocol.md`.
-      - completed rollback assignment record values/checklist in `docs/legacy-retirement-rollback-assignment.md`.
-      - completed readiness decision gate criteria/outcome/signoffs in `docs/legacy-retirement-readiness-decision.md` (`Outcome: go`).
+      - completed stakeholder response log and final `no-consumer` classification in `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md`.
+      - completed rollback assignment record values/checklist in `docs/archive/legacy/legacy-retirement-rollback-assignment.md`.
+      - completed readiness decision gate criteria/outcome/signoffs in `docs/archive/legacy/legacy-retirement-readiness-decision.md` (`Outcome: go`).
     - Updated preflight gap tracker from operational-open to operational-done:
-      - `docs/legacy-retirement-preflight-gaps.md`.
+      - `docs/archive/legacy/legacy-retirement-preflight-gaps.md`.
     - Re-ran strict signoff closure check after document completion.
   - Evidence:
     - `bun run check:legacy-signoff:ready` passed.
@@ -6936,7 +6936,7 @@ Only after Phase 2, introduce TS gradually:
 - Status: `done`
 - Scope: refresh dependency/runtime modernization candidates after modern-first entrypoint consolidation (including direct dependency drift and execution order).
 - Acceptance criteria: ticketized next-slice plan with explicit pass/fail checks and verification commands is committed in `MODERNIZE.md`.
-- Verification: updated roadmap queue + supporting audit notes (`docs/dependency-modernization-audit.md`) are in sync.
+- Verification: updated roadmap queue + supporting audit notes (`docs/archive/legacy/dependency-modernization-audit.md`) are in sync.
 
 ### T-091: ESLint 10 readiness scan
 - Status: `done`
@@ -7654,21 +7654,21 @@ Only after Phase 2, introduce TS gradually:
 - Status: `done`
 - Scope: execute the T-205 protocol with real stakeholder responses and fill response log.
 - Acceptance criteria: response log has explicit entries and final classification (`no-consumer` or owned migration plans).
-- Verification: updated `docs/legacy-external-consumer-confirmation-protocol.md`.
+- Verification: updated `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md`.
 - Dependencies/blockers: none.
 
 ### T-210: Rollback assignment completion
 - Status: `done`
 - Scope: populate T-206 record with concrete owner/escalation/fallback-tag values.
 - Acceptance criteria: assignment fields are filled and acknowledged by maintainers.
-- Verification: updated `docs/legacy-retirement-rollback-assignment.md`.
+- Verification: updated `docs/archive/legacy/legacy-retirement-rollback-assignment.md`.
 - Dependencies/blockers: none.
 
 ### T-211: Readiness decision execution
 - Status: `done`
 - Scope: populate T-207 decision gate with real pass/fail evidence and maintainer signoff.
 - Acceptance criteria: go/no-go decision is recorded with timestamp and signoffs.
-- Verification: updated `docs/legacy-retirement-readiness-decision.md`.
+- Verification: updated `docs/archive/legacy/legacy-retirement-readiness-decision.md`.
 - Dependencies/blockers: none.
 
 ### T-212: TypeScript bootstrap (technical track)
@@ -8751,7 +8751,7 @@ Only after Phase 2, introduce TS gradually:
 - Status: `done`
 - Scope: prefill T-209/T-210/T-211 decision artifacts with explicit blocked state, latest technical verification status, and actionable remaining human-required fields.
 - Acceptance criteria: external-signoff docs clearly distinguish completed technical readiness from outstanding human inputs and record current `no-go` decision state pending signoff.
-- Verification: `rg -n 'Execution status|Last evaluation refresh|Outcome: \`no-go\`|Required verification commands green|pending maintainer assignment' docs/legacy-external-consumer-confirmation-protocol.md docs/legacy-retirement-rollback-assignment.md docs/legacy-retirement-readiness-decision.md` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
+- Verification: `rg -n 'Execution status|Last evaluation refresh|Outcome: \`no-go\`|Required verification commands green|pending maintainer assignment' docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md docs/archive/legacy/legacy-retirement-rollback-assignment.md docs/archive/legacy/legacy-retirement-readiness-decision.md` + `bun run verify:modern:node22` + `bun run verify:legacy:node22` + `bun run test:browser:protocol:node22`.
 - Dependencies/blockers: none (documentation/evidence slice only).
 
 ### T-392: External signoff closure automation (`check:legacy-signoff:*`)

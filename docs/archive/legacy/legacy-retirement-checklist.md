@@ -8,7 +8,7 @@ Retire the legacy AMD/RequireJS runtime (`client/index.html` + `build:client`) w
 
 ## Readiness criteria (must all be true)
 
-Preflight tracker: `docs/legacy-retirement-preflight-gaps.md`
+Preflight tracker: `docs/archive/legacy/legacy-retirement-preflight-gaps.md`
 
 1. Modern runtime parity
 - Core flows validated on `client/modern.html`: login, move, combat, loot, zone transitions, chat, disconnect/reconnect.
@@ -25,8 +25,8 @@ Preflight tracker: `docs/legacy-retirement-preflight-gaps.md`
 4. Migration communication
 - Internal release notes include retirement date and rollback trigger conditions.
 - Any downstream consumers of `client-build/` artifacts are identified and migrated.
-  - Inventory source: `docs/legacy-artifact-consumer-inventory.md`
-  - Confirmation protocol: `docs/legacy-external-consumer-confirmation-protocol.md`
+  - Inventory source: `docs/archive/legacy/legacy-artifact-consumer-inventory.md`
+  - Confirmation protocol: `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md`
 
 ## Cutover steps
 
@@ -40,7 +40,7 @@ Preflight tracker: `docs/legacy-retirement-preflight-gaps.md`
 3. Remove legacy build pipeline
 - Remove `build:client` and `verify:legacy` from required release gates.
 - Keep one tagged release containing legacy artifacts for emergency rollback.
-  - Execution checklist: `docs/legacy-retirement-cutover-pr-checklist.md`
+  - Execution checklist: `docs/archive/legacy/legacy-retirement-cutover-pr-checklist.md`
 
 4. Cleanup code/assets
 - Remove obsolete legacy-only scripts/assets and docs once rollback window expires.
@@ -65,4 +65,4 @@ Exit rollback mode only after:
 Legacy runtime may be retired only when:
 - All readiness criteria are met.
 - Cutover/rollback steps are reviewed and explicitly approved by maintainers.
-- Final decision record is captured in `docs/legacy-retirement-readiness-decision.md`.
+- Final decision record is captured in `docs/archive/legacy/legacy-retirement-readiness-decision.md`.

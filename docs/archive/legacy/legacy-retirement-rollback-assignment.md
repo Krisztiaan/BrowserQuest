@@ -17,7 +17,7 @@ Record accountable rollback ownership and fallback release details before legacy
 | Escalation channel | `Maintainer incident channel + repository issue escalation` |
 | Decision SLA (minutes) | `30` |
 | Fallback release/tag containing legacy artifacts | `pre-cutover baseline commit ee38fea` |
-| Rollback command/runbook reference | `docs/legacy-branch-protection-demotion-runbook.md` |
+| Rollback command/runbook reference | `docs/archive/legacy/legacy-branch-protection-demotion-runbook.md` |
 
 ## Trigger conditions
 
@@ -35,5 +35,5 @@ Record accountable rollback ownership and fallback release details before legacy
 ## Verification
 
 - Record linked in:
-  - `docs/legacy-retirement-cutover-pr-checklist.md`
-  - `docs/legacy-retirement-preflight-gaps.md`
+  - `docs/archive/legacy/legacy-retirement-cutover-pr-checklist.md`
+  - `docs/archive/legacy/legacy-retirement-preflight-gaps.md`

@@ -45,7 +45,7 @@ Reasoning:
    - `bin/r.cjs` remains the only supported runtime wrapper.
    - `bun run check:package-mode-boundaries` remains in `verify:modern` and `verify:legacy`.
 2. Avoid Option B unless Option C is blocked long-term by external consumers.
-3. Drive toward Option C via explicit readiness checkpoints in `docs/legacy-retirement-checklist.md`.
+3. Drive toward Option C via explicit readiness checkpoints in `docs/archive/legacy/legacy-retirement-checklist.md`.
 
 ## Revisit triggers
 

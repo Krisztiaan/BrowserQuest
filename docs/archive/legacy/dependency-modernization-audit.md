@@ -47,8 +47,8 @@
   - `.github/workflows/verify-modern-browser.yml`
   - `.github/workflows/verify-legacy-browser.yml`
 - Runtime preflight runbook: `docs/runtime-preflight.md`
-- Legacy jQuery migration risk scan: `docs/legacy-jquery4-risk-scan.md`
-- Modern ESM jQuery surface audit: `docs/modern-jquery-surface-audit.md`
+- Legacy jQuery migration risk scan: `docs/archive/legacy/legacy-jquery4-risk-scan.md`
+- Modern ESM jQuery surface audit: `docs/archive/legacy/modern-jquery-surface-audit.md`
 
 ## Follow-up execution order
 
@@ -65,4 +65,4 @@
   - create/refresh upgrade trial tickets in `MODERNIZE.md` with explicit verification gates.
   - run `bun run verify:modern:node22` and `bun run verify:legacy:node22` before keeping any upgrade.
 
-Reference checklist: `docs/jquery4-readiness-checklist.md`
+Reference checklist: `docs/archive/legacy/jquery4-readiness-checklist.md`

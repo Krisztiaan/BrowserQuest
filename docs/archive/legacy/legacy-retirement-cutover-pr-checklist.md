@@ -8,10 +8,10 @@ Use this checklist when preparing the PR that removes legacy `build:client` pipe
 
 ## Preconditions
 
-- [ ] `docs/legacy-external-consumer-confirmation-protocol.md` confirms no unresolved blocking external `client-build/` consumers.
-- [ ] Advisory rehearsal completed per `docs/legacy-gate-demotion-rehearsal-plan.md`.
-- [ ] Rollback owner and rollback release/tag are confirmed in `docs/legacy-retirement-rollback-assignment.md`.
-- [ ] Go/no-go is captured in `docs/legacy-retirement-readiness-decision.md`.
+- [ ] `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md` confirms no unresolved blocking external `client-build/` consumers.
+- [ ] Advisory rehearsal completed per `docs/archive/legacy/legacy-gate-demotion-rehearsal-plan.md`.
+- [ ] Rollback owner and rollback release/tag are confirmed in `docs/archive/legacy/legacy-retirement-rollback-assignment.md`.
+- [ ] Go/no-go is captured in `docs/archive/legacy/legacy-retirement-readiness-decision.md`.
 
 ## Code and scripts
 
@@ -29,8 +29,8 @@ Use this checklist when preparing the PR that removes legacy `build:client` pipe
 
 - [ ] Update `README.md` support policy and verification sections.
 - [ ] Update `docs/client-build-support.md` support tiers and gate descriptions.
-- [ ] Update `docs/legacy-retirement-checklist.md` with cutover completion evidence.
-- [ ] Link incident template `docs/legacy-advisory-gate-incident-template.md` if advisory period remains active.
+- [ ] Update `docs/archive/legacy/legacy-retirement-checklist.md` with cutover completion evidence.
+- [ ] Link incident template `docs/archive/legacy/legacy-advisory-gate-incident-template.md` if advisory period remains active.
 
 ## Verification
 
@@ -43,4 +43,4 @@ Use this checklist when preparing the PR that removes legacy `build:client` pipe
 
 - [ ] Rollback commands documented in PR description.
 - [ ] Last known-good release containing legacy artifacts is referenced.
-- [ ] Branch-protection rollback steps are linked (`docs/legacy-branch-protection-demotion-runbook.md`).
+- [ ] Branch-protection rollback steps are linked (`docs/archive/legacy/legacy-branch-protection-demotion-runbook.md`).

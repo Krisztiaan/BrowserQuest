@@ -13,11 +13,11 @@ Capture explicit go/no-go decision for legacy retirement cutover based on operat
 ## Required evidence
 
 1. External consumer confirmation:
-   - `docs/legacy-external-consumer-confirmation-protocol.md`
+   - `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md`
 2. Rollback ownership and fallback release:
-   - `docs/legacy-retirement-rollback-assignment.md`
+   - `docs/archive/legacy/legacy-retirement-rollback-assignment.md`
 3. Preflight gap tracker:
-   - `docs/legacy-retirement-preflight-gaps.md`
+   - `docs/archive/legacy/legacy-retirement-preflight-gaps.md`
 4. Verification commands:
    - `bun run verify:modern:node22`
    - `bun run test:browser:protocol:node22`
@@ -27,8 +27,8 @@ Capture explicit go/no-go decision for legacy retirement cutover based on operat
 
 | Criterion | Pass/Fail | Evidence |
 |---|---|---|
-| No unresolved external `client-build/` consumer blockers | `pass` | `docs/legacy-external-consumer-confirmation-protocol.md` (`no-consumer` classification recorded 2026-02-08) |
-| Rollback owner + fallback tag assigned | `pass` | `docs/legacy-retirement-rollback-assignment.md` (owner/escalation/SLA/fallback baseline recorded 2026-02-08) |
+| No unresolved external `client-build/` consumer blockers | `pass` | `docs/archive/legacy/legacy-external-consumer-confirmation-protocol.md` (`no-consumer` classification recorded 2026-02-08) |
+| Rollback owner + fallback tag assigned | `pass` | `docs/archive/legacy/legacy-retirement-rollback-assignment.md` (owner/escalation/SLA/fallback baseline recorded 2026-02-08) |
 | Required verification commands green | `pass` | `docs/modernization-readiness-status.md` (2026-02-08 verification evidence) |
 | Maintainer signoff collected | `pass` | Signoff section completed below |
 

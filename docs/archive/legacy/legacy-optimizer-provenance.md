@@ -44,7 +44,7 @@ If updating legacy optimizer files intentionally:
    - `sha256sum bin/r.js bin/r.cjs bin/build.sh client/js/build.js`
 3. Update both:
    - `tools/check-legacy-optimizer-integrity.cjs`
-   - `docs/legacy-optimizer-provenance.md`
+   - `docs/archive/legacy/legacy-optimizer-provenance.md`
 4. Run:
    - `bun run check:legacy-optimizer-integrity`
    - `bun run verify:legacy:node22`

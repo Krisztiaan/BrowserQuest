@@ -10,8 +10,8 @@ Confirm whether any downstream users still rely on `client-build/` artifacts bef
 
 ## Inputs
 
-- Consumer inventory baseline: `docs/legacy-artifact-consumer-inventory.md`
-- Preflight tracker: `docs/legacy-retirement-preflight-gaps.md`
+- Consumer inventory baseline: `docs/archive/legacy/legacy-artifact-consumer-inventory.md`
+- Preflight tracker: `docs/archive/legacy/legacy-retirement-preflight-gaps.md`
 
 ## Confirmation workflow
 
