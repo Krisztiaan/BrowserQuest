@@ -6,9 +6,19 @@ const roots = [path.join(repoRoot, 'server', 'js'), path.join(repoRoot, 'shared'
 
 function listRuntimeEsmFiles(rootDir) {
   if (!fs.existsSync(rootDir)) return [];
-  return fs
-    .readdirSync(rootDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.ts'))
+  return fs.readdirSync(rootDir, { withFileTypes: true })
+    .filter((entry) => {
+      if (!entry.isFile()) return false;
+      if (rootDir.endsWith(path.join('server', 'js'))) {
+        return (
+          entry.name.endsWith('-esm.ts') ||
+          entry.name === 'main-esm.ts' ||
+          entry.name.startsWith('main-esm-') ||
+          entry.name === 'ws-runtime-class-factory.ts'
+        );
+      }
+      return entry.name.endsWith('-esm.ts');
+    })
     .map((entry) => path.join(rootDir, entry.name));
 }
 

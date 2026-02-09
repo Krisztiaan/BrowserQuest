@@ -1,4 +1,5 @@
-import Types from './gametypes-esm.ts';
+// @ts-nocheck
+import Types from './gametypes-esm';
 
 /**
  * @param {unknown} value

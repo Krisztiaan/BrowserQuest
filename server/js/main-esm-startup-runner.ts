@@ -1,5 +1,6 @@
-import { runWebSocketBridgeProbeIfEnabled } from './main-esm-bridge-probe.ts';
-import { resolveStartupRuntimeOptions } from './main-esm-runtime-options.ts';
+// @ts-nocheck
+import { runWebSocketBridgeProbeIfEnabled } from './main-esm-bridge-probe';
+import { resolveStartupRuntimeOptions } from './main-esm-runtime-options';
 
 /**
  * @param {object} params

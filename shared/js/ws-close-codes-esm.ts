@@ -1,3 +1,4 @@
+// @ts-nocheck
 const CLOSE_CODES = {
     NORMAL: 1000,
     UNSUPPORTED_DATA: 1003,

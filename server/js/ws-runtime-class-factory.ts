@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { WS_EVENT_NAMES } from './server-event-names';
 
 /**

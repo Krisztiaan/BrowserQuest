@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { runWebSocketBridgeProbeIfEnabled } from '../../server/js/main-esm-bridge-probe.ts';
+import { runWebSocketBridgeProbeIfEnabled } from '../../server/js/main-esm-bridge-probe';
 
 type ProbeEvent = {
     level: string;

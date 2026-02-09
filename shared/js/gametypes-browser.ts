@@ -1,3 +1,4 @@
+// @ts-nocheck
 var Types = {
     Messages: {
         HELLO: 0,

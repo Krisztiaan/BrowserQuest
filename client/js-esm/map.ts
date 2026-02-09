@@ -35,7 +35,7 @@ class Map {
         
         if(useWorker) {
             log.info("Loading map with web worker.");
-            var worker = new Worker(new URL("./mapworker.ts", import.meta.url), { type: "module" });
+            var worker = new Worker(new URL("./mapworker", import.meta.url), { type: "module" });
             worker.postMessage(1);
         
             worker.onmessage = function(event) {

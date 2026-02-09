@@ -11,7 +11,7 @@ test('shared gametypes keeps CJS export and global contract', () => {
 });
 
 test('shared gametypes ESM bridge exports equivalent contract values', async () => {
-    const esmModule = (await import('../../shared/js/gametypes-esm.ts')) as {
+    const esmModule = (await import('../../shared/js/gametypes-esm')) as {
         default: typeof Types;
         Types: typeof Types;
     };
@@ -27,7 +27,7 @@ test('shared gametypes ESM bridge exports equivalent contract values', async () 
 });
 
 test('shared browser gametypes module matches CJS contract values', async () => {
-    const browserModule = (await import('../../shared/js/gametypes-browser.ts')) as {
+    const browserModule = (await import('../../shared/js/gametypes-browser')) as {
         default: typeof Types;
         Types: typeof Types;
     };

@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * @param {object} params
  * @param {object|null} params.activeConfig

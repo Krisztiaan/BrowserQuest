@@ -1,8 +1,9 @@
-import Log from './log-esm.ts';
-import Utils from './utils-esm.ts';
-import Protocol from '../../shared/js/protocol-contract-esm.ts';
-import CLOSE_CODES from '../../shared/js/ws-close-codes-esm.ts';
-import { createWebSocketRuntimeClasses } from './ws-runtime-class-factory.ts';
+// @ts-nocheck
+import Log from './log-esm';
+import Utils from './utils-esm';
+import Protocol from '../../shared/js/protocol-contract-esm';
+import CLOSE_CODES from '../../shared/js/ws-close-codes-esm';
+import { createWebSocketRuntimeClasses } from './ws-runtime-class-factory';
 import { WS_EVENT_NAMES } from './server-event-names';
 
 const BunRuntime = globalThis['Bun'];

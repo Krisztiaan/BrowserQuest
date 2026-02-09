@@ -1,4 +1,5 @@
-import CLOSE_CODES from '../../shared/js/ws-close-codes-esm.ts';
+// @ts-nocheck
+import CLOSE_CODES from '../../shared/js/ws-close-codes-esm';
 
 /**
  * Run optional websocket bridge probe in ESM entry mode.

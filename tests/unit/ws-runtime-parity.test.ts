@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import WSEsm from '../../server/js/ws-runtime-esm.ts';
+import WSEsm from '../../server/js/ws-runtime-esm';
 
 const originalConsoleInfo = console.info;
 

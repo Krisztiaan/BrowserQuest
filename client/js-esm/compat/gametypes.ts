@@ -1,4 +1,4 @@
-import Types from '../../../shared/js/gametypes-browser.ts';
+import Types from '../../../shared/js/gametypes-browser';
 import type { EntityCategory, EntityKind, EntityKindId, EntityKindName } from '../../../shared/js/entity-kind-domain';
 
 interface GametypesContract {

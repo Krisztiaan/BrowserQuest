@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { runStartupWithConfig } from '../../server/js/main-esm-startup-runner.ts';
+import { runStartupWithConfig } from '../../server/js/main-esm-startup-runner';
 
 test('startup runner executes bridge probe, runtime-option resolution, and startServer in order', async () => {
     const activeConfig = { port: 8000 };

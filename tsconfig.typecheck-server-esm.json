@@ -13,6 +13,7 @@
     "shared/js/connection-status.ts",
     "shared/js/entity-kind-domain.ts",
     "shared/js/protocol-contract-types.ts",
+    "shared/js/gametypes-browser.ts",
     "shared/js/gametypes-esm.ts",
     "shared/js/protocol-contract-esm.ts",
     "shared/js/ws-close-codes-esm.ts",

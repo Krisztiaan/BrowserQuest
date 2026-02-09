@@ -1,6 +1,6 @@
 // @ts-nocheck
 
-import Types from "../../shared/js/gametypes-esm.ts";
+import Types from "../../shared/js/gametypes-esm";
 
 const log = {
     info: (...args) => console.log(...args),

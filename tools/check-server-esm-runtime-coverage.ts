@@ -14,7 +14,15 @@ function listExpectedRuntimeEsmFiles() {
 
     const serverDir = path.join(repoRoot, 'server', 'js');
     for (const entry of fs.readdirSync(serverDir, { withFileTypes: true })) {
-        if (!entry.isFile() || !entry.name.endsWith('.ts')) {
+        if (!entry.isFile()) {
+            continue;
+        }
+        const isRuntimeEsmTs =
+            entry.name.endsWith('-esm.ts') ||
+            entry.name === 'main-esm.ts' ||
+            entry.name.startsWith('main-esm-') ||
+            entry.name === 'ws-runtime-class-factory.ts';
+        if (!isRuntimeEsmTs) {
             continue;
         }
         expected.add(`server/js/${entry.name}`);

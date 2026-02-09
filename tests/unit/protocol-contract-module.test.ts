@@ -4,7 +4,7 @@ import ProtocolEsm, {
     MSG_HELLO,
     MSG_MOVE,
     parseProtocolActionBatch as parseProtocolActionBatchEsm,
-} from '../../shared/js/protocol-contract-esm.ts';
+} from '../../shared/js/protocol-contract-esm';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ProtocolCjs = require('../../shared/js/protocol-contract');

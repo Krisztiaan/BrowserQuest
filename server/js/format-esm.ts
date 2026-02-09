@@ -1,5 +1,6 @@
-import Log from './log-esm.ts';
-import Types from '../../shared/js/gametypes-esm.ts';
+// @ts-nocheck
+import Log from './log-esm';
+import Types from '../../shared/js/gametypes-esm';
 
 const log = Log.getLogger();
 

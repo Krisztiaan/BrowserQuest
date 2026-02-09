@@ -1,4 +1,4 @@
-import SharedProtocol from '../../shared/js/protocol-contract-esm.ts';
+import SharedProtocol from '../../shared/js/protocol-contract-esm';
 import type {
     ClientToServerProtocolAction,
     ProtocolAction,

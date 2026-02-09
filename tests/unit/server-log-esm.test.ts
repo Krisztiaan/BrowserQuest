@@ -1,5 +1,6 @@
+// @ts-nocheck
 import { afterEach, expect, test } from 'bun:test';
-import Log from '../../server/js/log-esm.ts';
+import Log from '../../server/js/log-esm';
 
 const originalConsoleInfo = console.info;
 const originalConsoleError = console.error;

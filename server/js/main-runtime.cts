@@ -30,7 +30,7 @@ const Log = require('./log') as {
     INFO: number;
     DEBUG: number;
 };
-const WsRuntime = require('./ws-runtime-esm.ts') as MainRuntimeDependencies['ws'];
+const WsRuntime = require('./ws-runtime-esm') as MainRuntimeDependencies['ws'];
 const RuntimeEventNames = require('./server-event-names') as {
     SERVER_EVENT_NAMES: {
         START: RuntimeEventName;

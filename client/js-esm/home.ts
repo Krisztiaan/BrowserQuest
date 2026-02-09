@@ -1,2 +1,2 @@
-import "./bootstrap.ts";
+import "./bootstrap";
 import "main";

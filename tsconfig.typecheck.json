@@ -16,6 +16,11 @@
   "include": [
     "tests/**/*.ts",
     "tools/**/*.ts",
+    "server/js/*-esm.ts",
+    "server/js/main-esm*.ts",
+    "server/js/ws-runtime-*.ts",
+    "shared/js/*-esm.ts",
+    "shared/js/gametypes-browser.ts",
     "server/js/server-event-names.ts",
     "client/js-esm/achievement-domain.ts",
     "client/js-esm/asset-key-domain.ts",

@@ -2242,10 +2242,11 @@ Executed successfully on 2026-02-08:
 
 ### Ticket status
 
-- `T-318.1` Convert runtime/shared ESM `.mjs` source files to TypeScript sources: `in_progress`
-- `T-318.2` Rewire scripts/checkers/config includes to TS runtime sources: `todo`
-- `T-318.3` Update active tests/docs references for renamed runtime sources: `todo`
-- `T-318.4` Re-verify modern lane and log evidence: `todo`
+- `T-318.1` Convert runtime/shared ESM `.mjs` source files to TypeScript sources: `done`
+- `T-318.2` Rewire scripts/checkers/config includes to TS runtime sources: `done`
+- `T-318.3` Update active tests/docs references for renamed runtime sources: `done`
+- `T-318.4` Re-verify modern lane and log evidence: `done`
+- `T-318.5` Normalize runtime/test/tool local TS imports to extensionless specifiers: `done`
 
 ### Live progress log
 
@@ -2256,3 +2257,41 @@ Executed successfully on 2026-02-08:
     - keep behavior unchanged, no CJS `.cts` conversion in this pass
   - Dependencies/blockers:
     - none
+
+- `2026-02-09T13:18Z` `done` Completed `T-318.1` through `T-318.4` and re-verified full modern lane.
+  - Key actions:
+    - converted active runtime/shared ESM source modules from `.mjs` to `.ts`:
+      - `server/js/{config-preflight-esm,format-esm,log-esm,main-esm,main-esm-*,utils-esm,ws-runtime-class-factory,ws-runtime-esm}.ts`
+      - `shared/js/{gametypes-browser,gametypes-esm,protocol-contract-esm,ws-close-codes-esm}.ts`
+    - rewired runtime startup and test/tooling references to `.ts` runtime source paths:
+      - `package.json`
+      - `tools/dev-vite.ts`
+      - `tools/check-protocol-contract-esm-parity.ts`
+      - `tools/check-server-esm-runtime-coverage.ts`
+      - `tools/check-runtime-esm-require-free.ts`
+      - `tests/**/*.ts` runtime import/cmd callsites
+      - active websocket/runtime runbooks
+    - aligned typecheck project settings for TS-extension runtime imports and renamed files:
+      - `tsconfig.typecheck.json` (`allowImportingTsExtensions` + include updates)
+      - `tsconfig.typecheck-server-esm.json`
+      - `tsconfig.typecheck-client-runtime.json`
+    - preserved previous runtime-checking behavior for newly converted runtime ESM TS sources by adding file-level `@ts-nocheck` pragmas to this slice.
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+- `2026-02-09T13:20Z` `done` Completed `T-318.5` import-specifier normalization and re-verified full modern lane.
+  - Key actions:
+    - rewrote local runtime/test/tool import specifiers from `*.ts` to extensionless paths across:
+      - `server/js/**/*.ts`
+      - `shared/js/**/*.ts`
+      - `client/js-esm/**/*.ts`
+      - `tests/**/*.ts`
+      - `tools/**/*.ts`
+    - updated CJS seam require path to extensionless runtime ESM TS module:
+      - `server/js/main-runtime.cts`
+    - removed temporary TypeScript compiler override no longer needed:
+      - `tsconfig.typecheck.json` (`allowImportingTsExtensions` removed)
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)

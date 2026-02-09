@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import ProtocolEsm from '../../shared/js/protocol-contract-esm.ts';
+import ProtocolEsm from '../../shared/js/protocol-contract-esm';
 import {
     PROTOCOL_CONTRACT_FUNCTION_KEYS,
     PROTOCOL_CONTRACT_KEYS,

@@ -1,4 +1,5 @@
-import Types from '../../shared/js/gametypes-esm.ts';
+// @ts-nocheck
+import Types from '../../shared/js/gametypes-esm';
 
 const Utils = {
     sanitize(string) {

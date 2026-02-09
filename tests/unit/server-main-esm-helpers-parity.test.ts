@@ -1,17 +1,17 @@
 import { expect, test } from 'bun:test';
-import BridgeProbeModule, { runWebSocketBridgeProbeIfEnabled } from '../../server/js/main-esm-bridge-probe.ts';
-import BootEnvelopeModule, { runMainEsmBootEnvelope } from '../../server/js/main-esm-boot-envelope.ts';
-import ConfigSourceModule, { loadConfigFile, resolveActiveConfig } from '../../server/js/main-esm-config-source.ts';
+import BridgeProbeModule, { runWebSocketBridgeProbeIfEnabled } from '../../server/js/main-esm-bridge-probe';
+import BootEnvelopeModule, { runMainEsmBootEnvelope } from '../../server/js/main-esm-boot-envelope';
+import ConfigSourceModule, { loadConfigFile, resolveActiveConfig } from '../../server/js/main-esm-config-source';
 import PreflightFailuresModule, {
     ensureConfigPreflightValid,
     ensureConfigSourcePresent,
-} from '../../server/js/main-esm-preflight-failures.ts';
-import StartupRunnerModule, { runStartupWithConfig } from '../../server/js/main-esm-startup-runner.ts';
+} from '../../server/js/main-esm-preflight-failures';
+import StartupRunnerModule, { runStartupWithConfig } from '../../server/js/main-esm-startup-runner';
 import StructuredEventModule, {
     createProbeEventEmitter,
     createStructuredEventEmitter,
-} from '../../server/js/main-esm-structured-event.ts';
-import RuntimeOptionsModule, { resolveStartupRuntimeOptions } from '../../server/js/main-esm-runtime-options.ts';
+} from '../../server/js/main-esm-structured-event';
+import RuntimeOptionsModule, { resolveStartupRuntimeOptions } from '../../server/js/main-esm-runtime-options';
 
 test('main-esm bridge probe helper exports stable named/default contract', () => {
     expect(typeof runWebSocketBridgeProbeIfEnabled).toBe('function');

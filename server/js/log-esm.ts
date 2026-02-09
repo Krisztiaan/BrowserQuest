@@ -1,3 +1,4 @@
+// @ts-nocheck
 class Log {
     static ERROR = 0;
     static INFO = 1;

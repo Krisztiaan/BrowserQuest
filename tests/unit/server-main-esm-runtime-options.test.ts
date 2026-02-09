@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { resolveStartupRuntimeOptions } from '../../server/js/main-esm-runtime-options.ts';
+import { resolveStartupRuntimeOptions } from '../../server/js/main-esm-runtime-options';
 
 test('startup runtime options always inject esm websocket runtime through dependency seam', async () => {
     const events: Array<Record<string, unknown>> = [];

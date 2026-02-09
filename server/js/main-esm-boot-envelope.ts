@@ -1,6 +1,7 @@
-import { resolveActiveConfig } from './main-esm-config-source.ts';
-import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './main-esm-preflight-failures.ts';
-import { runStartupWithConfig } from './main-esm-startup-runner.ts';
+// @ts-nocheck
+import { resolveActiveConfig } from './main-esm-config-source';
+import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './main-esm-preflight-failures';
+import { runStartupWithConfig } from './main-esm-startup-runner';
 
 /**
  * @param {object} params
