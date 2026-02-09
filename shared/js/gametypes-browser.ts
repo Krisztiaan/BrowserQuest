@@ -1,5 +1,39 @@
-// @ts-nocheck
-var Types = {
+import type { EntityCategory, EntityKind, EntityKindId, EntityKindName } from './entity-kind-domain';
+
+type KindType = EntityCategory;
+type KindEntry = [EntityKindId, KindType];
+
+interface TypesContract {
+    Messages: Record<string, number>;
+    Entities: Record<string, EntityKindId>;
+    Orientations: Record<string, number>;
+    rankedWeapons: EntityKindId[];
+    rankedArmors: EntityKindId[];
+    getWeaponRank(weaponKind: EntityKind): number;
+    getArmorRank(armorKind: EntityKind): number;
+    isPlayer(kind: EntityKind): boolean;
+    isMob(kind: EntityKind): boolean;
+    isNpc(kind: EntityKind): boolean;
+    isCharacter(kind: EntityKind): boolean;
+    isArmor(kind: EntityKind): boolean;
+    isWeapon(kind: EntityKind): boolean;
+    isObject(kind: EntityKind): boolean;
+    isChest(kind: EntityKind): boolean;
+    isItem(kind: EntityKind): boolean;
+    isHealingItem(kind: EntityKind): boolean;
+    isExpendableItem(kind: EntityKind): boolean;
+    getKindFromString(kind: string): EntityKindId | undefined;
+    getKindAsString(kind: EntityKind): string | undefined;
+    forEachKind(callback: (kind: EntityKindId, kindName: string) => void): void;
+    forEachArmor(callback: (kind: EntityKindId, kindName: string) => void): void;
+    forEachMobOrNpcKind(callback: (kind: EntityKindId, kindName: string) => void): void;
+    forEachArmorKind(callback: (kind: EntityKindId, kindName: string) => void): void;
+    getOrientationAsString(orientation: number): string | undefined;
+    getRandomItemKind(item: unknown): number | undefined;
+    getMessageTypeAsString(type: number): string;
+}
+
+const Types = {
     Messages: {
         HELLO: 0,
         WELCOME: 1,
@@ -98,9 +132,9 @@ var Types = {
         LEFT: 3,
         RIGHT: 4,
     },
-};
+} as unknown as TypesContract;
 
-var kinds = {
+const kinds: Record<EntityKindName, KindEntry> = {
     warrior: [Types.Entities.WARRIOR, 'player'],
 
     rat: [Types.Entities.RAT, 'mob'],
@@ -155,11 +189,15 @@ var kinds = {
     forestnpc: [Types.Entities.FORESTNPC, 'npc'],
     desertnpc: [Types.Entities.DESERTNPC, 'npc'],
     lavanpc: [Types.Entities.LAVANPC, 'npc'],
-
-    getType: function (kind) {
-        return kinds[Types.getKindAsString(kind)][1];
-    },
 };
+
+function getType(kind: EntityKind): KindType {
+    const kindName = Types.getKindAsString(kind);
+    if (!kindName || !(kindName in kinds)) {
+        throw new Error('Unknown kind: ' + String(kind));
+    }
+    return kinds[kindName][1];
+}
 
 Types.rankedWeapons = [
     Types.Entities.SWORD1,
@@ -181,23 +219,23 @@ Types.rankedArmors = [
 ];
 
 Types.getWeaponRank = function (weaponKind) {
-    return Types.rankedWeapons.indexOf(weaponKind);
+    return Types.rankedWeapons.indexOf(weaponKind as EntityKindId);
 };
 
 Types.getArmorRank = function (armorKind) {
-    return Types.rankedArmors.indexOf(armorKind);
+    return Types.rankedArmors.indexOf(armorKind as EntityKindId);
 };
 
 Types.isPlayer = function (kind) {
-    return kinds.getType(kind) === 'player';
+    return getType(kind) === 'player';
 };
 
 Types.isMob = function (kind) {
-    return kinds.getType(kind) === 'mob';
+    return getType(kind) === 'mob';
 };
 
 Types.isNpc = function (kind) {
-    return kinds.getType(kind) === 'npc';
+    return getType(kind) === 'npc';
 };
 
 Types.isCharacter = function (kind) {
@@ -205,15 +243,15 @@ Types.isCharacter = function (kind) {
 };
 
 Types.isArmor = function (kind) {
-    return kinds.getType(kind) === 'armor';
+    return getType(kind) === 'armor';
 };
 
 Types.isWeapon = function (kind) {
-    return kinds.getType(kind) === 'weapon';
+    return getType(kind) === 'weapon';
 };
 
 Types.isObject = function (kind) {
-    return kinds.getType(kind) === 'object';
+    return getType(kind) === 'object';
 };
 
 Types.isChest = function (kind) {
@@ -234,14 +272,14 @@ Types.isExpendableItem = function (kind) {
 
 Types.getKindFromString = function (kind) {
     if (kind in kinds) {
-        return kinds[kind][0];
+        return kinds[kind as EntityKindName][0];
     }
 };
 
 Types.getKindAsString = function (kind) {
     for (var k in kinds) {
         if (kinds[k][0] === kind) {
-            return k;
+            return k as EntityKindName;
         }
     }
 };
@@ -318,6 +356,9 @@ Types.getMessageTypeAsString = function (type) {
     return typeName;
 };
 
+if (typeof globalThis !== 'undefined') {
+    (globalThis as unknown as { Types?: TypesContract }).Types = Types;
+}
 
 export { Types };
 export default Types;

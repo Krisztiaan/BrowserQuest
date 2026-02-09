@@ -2429,3 +2429,24 @@ Executed successfully on 2026-02-08:
   - Verification evidence:
     - `bun run typecheck` -> pass
     - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 gametypes browser contract typing cleanup)
+
+### Ticket status
+
+- `T-323.1` Remove `@ts-nocheck` from `shared/js/gametypes-browser.ts`: `done`
+- `T-323.2` Remove `@ts-nocheck` from `tests/unit/client-gametypes-compat.test.ts`: `done`
+- `T-323.3` Re-verify and capture remaining holdouts: `done`
+
+### Live progress log
+
+- `2026-02-09T13:36Z` `done` Completed gametypes browser contract cleanup and re-verified modern lane.
+  - Key actions:
+    - replaced `shared/js/gametypes-browser.ts` no-check variant with a typed ESM contract implementation aligned with `shared/js/gametypes.cts` behavior and exports.
+    - removed `@ts-nocheck` from `tests/unit/client-gametypes-compat.test.ts` and tightened assertion typing via explicit compat cast.
+    - reduced remaining `@ts-nocheck` holdouts to:
+      - `server/js/main-esm.ts`
+      - `server/js/ws-runtime-esm.ts`
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
