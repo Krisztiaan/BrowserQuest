@@ -1,5 +1,46 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 final `main-esm` TypeScript holdout closeout)
+
+### Ticket status
+
+- `T-324.4.1` Diagnose remaining `@ts-nocheck` holdout in `server/js/main-esm.ts`: `done`
+- `T-324.4.2` Remove suppression and keep runtime behavior intact via typed ESM/CJS interop: `done`
+- `T-324.4.3` Re-run modernization verification lane: `done`
+- `T-324.4.4` Record outcome and evidence in readiness log: `done`
+
+### Live progress log
+
+- `2026-02-09T13:36Z` `in_progress` Started final holdout closeout for `server/js/main-esm.ts`.
+  - Scope:
+    - remove last runtime-lane `@ts-nocheck` usage in `server/js/main-esm.ts`
+    - preserve startup behavior and runtime contract wiring (`createRuntimeDependencies` + `main`)
+    - keep runtime ESM guard checks green (`check:runtime-esm-require-free`)
+  - Out of scope:
+    - broad conversion/removal of remaining `.cts` runtime modules
+  - Acceptance criteria:
+    - `server/js/main-esm.ts` has no `@ts-nocheck`
+    - `bun run typecheck` passes
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun run verify:modern:node22`
+- `2026-02-09T13:44Z` `done` Completed final `main-esm` holdout removal and verification.
+  - Evidence:
+    - runtime entrypoint typing/interoperability:
+      - `server/js/main-esm.ts`
+        - removed `@ts-nocheck`
+        - replaced runtime loading path with typed ESM import interop from `./main-runtime.cts`
+    - typecheck project alignment for `.cts` interop:
+      - `tsconfig.typecheck.json`
+        - enabled `allowImportingTsExtensions`
+        - added `server/js/main-runtime.cts` to project include inventory
+  - Verification:
+    - `bun run typecheck` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+  - Notable blocker resolved:
+    - temporary attempt using `createRequire(import.meta.url)` in `server/js/main-esm.ts` was rejected by `check:runtime-esm-require-free`; resolved by switching to ESM import interop without `createRequire`.
+
 ## Delta Update (2026-02-08 modern built-in replacement sweep)
 
 ### Ticket status
