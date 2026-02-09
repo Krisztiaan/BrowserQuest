@@ -30,8 +30,7 @@ class Map {
     }
 
     _loadMap(useWorker) {
-        var self = this,
-            filepath = "maps/world_client.json";
+        var self = this;
         
         if(useWorker) {
             log.info("Loading map with web worker.");
@@ -47,20 +46,17 @@ class Map {
                 self._checkReady();
             };
         } else {
-            log.info("Loading map via Ajax.");
-            fetch(filepath)
-                .then(function(response) {
-                    if(!response.ok) {
-                        throw new Error("Map request failed with status " + response.status);
-                    }
-                    return response.json();
+            log.info("Loading map via module import.");
+            import("../../generated/maps/world_client.json")
+                .then(function(module) {
+                    return module.default;
                 })
                 .then(function(data) {
-                self._initMap(data);
-                self._generateCollisionGrid();
-                self._generatePlateauGrid();
-                self.mapLoaded = true;
-                self._checkReady();
+                    self._initMap(data);
+                    self._generateCollisionGrid();
+                    self._generatePlateauGrid();
+                    self.mapLoaded = true;
+                    self._checkReady();
                 })
                 .catch(function(error) {
                     log.error("Failed to load map JSON: " + error.message);

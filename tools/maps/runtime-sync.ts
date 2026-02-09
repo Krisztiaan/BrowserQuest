@@ -10,8 +10,8 @@ export const DEFAULT_TILED_SOURCE_PATH = "tiled/world.json";
 const mapsRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const runtimeDestinationRelative: Record<Exclude<RuntimeMapTarget, "both">, string> = {
-    client: "../../client/maps/world_client.json",
-    server: "../../server/maps/world_server.json",
+    client: "../../generated/maps/world_client.json",
+    server: "../../generated/maps/world_server.json",
 };
 
 const runtimeDestinations: Record<Exclude<RuntimeMapTarget, "both">, string> = {

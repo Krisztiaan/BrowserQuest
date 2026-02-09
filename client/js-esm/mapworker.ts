@@ -1,4 +1,4 @@
-import mapData from "../maps/world_client.json";
+import mapData from "../../generated/maps/world_client.json";
 
 type WorkerMap = {
   width: number;

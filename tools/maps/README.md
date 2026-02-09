@@ -57,12 +57,12 @@ For editor-native automapping + export in one step:
 Things to know
 --------------
 
-The client map export creates `world_client.json`.
+The client map export creates `generated/maps/world_client.json`.
 
 The client map file contains data about terrain tile layers, collision cells, doors, music areas, etc.
 The server map file contains data about static entity spawning points, spawning areas, collision cells, etc.
 
-Depending on what you want to change, it's therefore not always needed to export both maps. Also, each `world_server.json` file change requires a server restart.
+Depending on what you want to change, it's therefore not always needed to export both maps. Also, each `generated/maps/world_server.json` file change requires a server restart.
 
 **How the exporting process works:**
 

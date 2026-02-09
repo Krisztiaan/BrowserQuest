@@ -182,7 +182,7 @@ async function startServer(): Promise<RunningServer> {
             debug_level: 'error',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './server/maps/world_server.json',
+            map_filepath: './generated/maps/world_server.json',
             metrics_enabled: false,
         })
     );

@@ -1,5 +1,57 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 generated runtime map artifact lane)
+
+### Ticket status
+
+- `T-334.1` Move generated runtime map artifacts from source trees to dedicated `generated/maps/**`: `done`
+- `T-334.2` Rewire runtime/tooling consumers to `generated/maps/**` paths (client, server, exporter, checks): `done`
+- `T-334.3` Update test fixtures/docs and re-verify modern lane: `done`
+
+### Live progress log
+
+- `2026-02-09T23:33Z` `in_progress` Started generated-artifact lane migration so map export outputs are separated from authored source trees.
+  - Scope:
+    - move runtime outputs to `generated/maps/world_{client,server}.json`
+    - rewire map exporter/check tooling, server config/readme, and client runtime map loading paths
+    - keep modern verify lane green
+  - Out of scope:
+    - map schema/runtime contract changes
+  - Acceptance criteria:
+    - runtime map outputs are generated under `generated/maps/**`
+    - client/server runtime paths consume generated artifacts
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:34Z` `blocked` Initial verify run failed in smoke tests after path migration due stale test fixtures still pinning removed `./server/maps/world_server.json` path.
+  - Exact failure evidence:
+    - `tests/smoke/modern-gameplay-parity.test.ts` timed out waiting for `WELCOME`
+    - `tests/smoke/server-payload-guards.test.ts` timed out waiting for JSON message
+  - Workaround applied:
+    - migrated smoke/unit fixture map paths from `./server/maps/world_server.json` to `./generated/maps/world_server.json`
+    - re-ran targeted failing smoke tests before full-lane rerun
+- `2026-02-09T23:36Z` `done` Completed generated runtime map artifact lane migration and re-verified modern lane.
+  - Evidence:
+    - artifact relocation:
+      - `client/maps/world_client.json` -> `generated/maps/world_client.json`
+      - `server/maps/world_server.json` -> `generated/maps/world_server.json`
+    - runtime/tooling rewiring:
+      - `tools/maps/runtime-sync.ts`
+      - `tools/check-map-runtime-sync.ts`
+      - `server/config.json`
+      - `server/README.md`
+      - `client/js-esm/mapworker.ts`
+      - `client/js-esm/map.ts` (non-worker path now loads generated map module directly)
+    - fixture/doc updates:
+      - smoke + unit tests updated to new server map filepath under `generated/maps/**`
+      - `tools/maps/README.md`
+      - `docs/client-build-support.md`
+  - Verification:
+    - targeted rerun:
+      - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/smoke/server-payload-guards.test.ts --timeout 30000` -> pass
+    - full lane:
+      - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 active modern docs accuracy cleanup)
 
 ### Ticket status

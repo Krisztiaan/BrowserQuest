@@ -4,8 +4,8 @@ import path from "node:path";
 import { exportMapFile } from "./maps/exportmap";
 
 const sourcePath = "tools/maps/tiled/world.json";
-const runtimeClientPath = "client/maps/world_client.json";
-const runtimeServerPath = "server/maps/world_server.json";
+const runtimeClientPath = "generated/maps/world_client.json";
+const runtimeServerPath = "generated/maps/world_server.json";
 
 async function run(): Promise<void> {
   const tmpRoot = await fs.mkdtemp(path.join(os.tmpdir(), "bq-map-sync-"));

@@ -7,7 +7,8 @@ Modern-only mode is active.
 - No legacy client/runtime support.
 - No rollback CJS server entry support.
 - Runtime map artifacts are synced by active modern lanes (Vite serve/build hooks + map export tooling).
-- Runtime/build outputs are under `dist/**`.
+- Vite build outputs are under `dist/**`.
+- Generated runtime map artifacts are under `generated/maps/**` and are auto-synced in modern lanes.
 
 ## Runtime Baseline
 
