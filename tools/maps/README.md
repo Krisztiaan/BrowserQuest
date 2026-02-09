@@ -9,9 +9,9 @@ Editing the map
 
 Install the Tiled editor: http://www.mapeditor.org/
 
-Open the `tmx/map.tmx` file in Tiled and start editing.
+Open the canonical Tiled JSON source file `tiled/world.json` in Tiled and start editing.
 
-**Note:** there currently is no documentation on how to edit BrowserQuest-specific objects/layers in Tiled. Please refer to `tmx/map.tmx` as an example if you want to create your own map.
+**Note:** there currently is no documentation on how to edit BrowserQuest-specific objects/layers in Tiled. Please refer to `tiled/world.json` as an example if you want to create your own map.
 
 
 Using the exporter
@@ -23,8 +23,8 @@ Note: This tool was written with OSX in mind. If you are using a different OS (e
 
 **Prerequisites:**
 
-- You need Tiled and Bun installed.
-- `tiled` must be available on your `PATH`.
+- You need Bun installed.
+- Tiled is required for interactive map editing, but not for conversion from source to runtime JSON.
 
 **Usage:**
 
@@ -36,6 +36,10 @@ You can also export a single target:
 
 - `bun ./export.ts client`
 - `bun ./export.ts server`
+
+For live updates while editing in Tiled:
+
+- `bun run map:watch` (from repo root)
 
 **Warning:** depending on the `.tmx` filesize, the exporting process can take up to several minutes.
 
@@ -52,10 +56,9 @@ Depending on what you want to change, it's therefore not always needed to export
 
 **How the exporting process works:**
 
-1. Tiled exports `tmx/map.tmx` to a temporary canonical Tiled JSON file using `tiled --export-map`.
+1. `tiled/world.json` is the canonical map source (plus map-local asset `tiled/mobset.png`).
 2. `processmap.ts` converts that JSON into BrowserQuest runtime map JSON (client or server mode).
 3. The processed map JSON is written to the appropriate output file.
-4. The temporary exported Tiled JSON file is deleted.
 
 
 **Known bugs:**

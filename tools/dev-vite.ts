@@ -1,3 +1,9 @@
+const mapWatchProc = Bun.spawn({
+  cmd: ["bun", "run", "map:watch"],
+  stdout: "inherit",
+  stderr: "inherit",
+});
+
 const serverProc = Bun.spawn({
   cmd: ["bun", "server/js/main-esm.ts"],
   stdout: "inherit",
@@ -10,8 +16,13 @@ const clientProc = Bun.spawn({
   stderr: "inherit",
 });
 
-const exitCode = await Promise.race([serverProc.exited, clientProc.exited]);
+const exitCode = await Promise.race([mapWatchProc.exited, serverProc.exited, clientProc.exited]);
 
+try {
+  mapWatchProc.kill();
+} catch (_) {
+  // ignore
+}
 try {
   serverProc.kill();
 } catch (_) {

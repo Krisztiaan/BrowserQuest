@@ -1,5 +1,59 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 canonical Tiled source/assets + runtime sync enforcement)
+
+### Ticket status
+
+- `T-326.1` Promote canonical map source + map-local assets to native Tiled structure: `done`
+- `T-326.2` Remove legacy TMX source dependency from active export flow: `done`
+- `T-326.3` Enforce source->runtime map sync in modern verify lane: `done`
+- `T-326.4` Wire live map export into Vite full-stack dev flow: `done`
+- `T-326.5` Verify modern lane and record readiness evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T22:42Z` `in_progress` Started follow-up requested by user to include map assets in the canonical Tiled-native structure and ensure runtime artifacts stay synced without extra manual steps.
+  - Scope:
+    - make `tools/maps/tiled/world.json` the canonical editable map source
+    - colocate map-local assets in canonical Tiled structure (`tools/maps/tiled/mobset.png`)
+    - retire legacy TMX source artifacts from active map pipeline
+    - add runtime sync guard + live watch lane so edits are reflected quickly in runtime JSON outputs
+  - Out of scope:
+    - runtime map loader schema redesign to consume raw Tiled JSON directly
+  - Acceptance criteria:
+    - export scripts consume canonical `tools/maps/tiled/world.json` by default
+    - runtime artifacts (`client/maps/world_client.json`, `server/maps/world_server.json`) are sync-checked in `verify:modern`
+    - Vite full-stack dev flow runs map watch alongside server/client
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run map:export`
+    - `bun run check:map-runtime-sync`
+    - `bun run verify:modern:node22`
+- `2026-02-09T22:49Z` `done` Completed canonical map source/assets consolidation and modern sync enforcement.
+  - Evidence:
+    - canonical source/assets:
+      - added `tools/maps/tiled/world.json`
+      - moved map-local asset to `tools/maps/tiled/mobset.png`
+      - retired legacy source artifacts:
+        - deleted `tools/maps/tmx/map.tmx`
+        - deleted `tools/maps/tmx/mobset.png`
+    - exporter/runtime sync modernization:
+      - `tools/maps/export.ts` now defaults to canonical `tiled/world.json` (no active TMX export dependency)
+      - `tools/maps/exportmap.ts` supports quiet export mode for automation/watch
+      - `tools/maps/processmap.ts` supports quiet logging for non-interactive lanes
+      - added `tools/maps/watch.ts` for auto-regeneration on source edits
+      - added `tools/check-map-runtime-sync.ts` and wired `check:map-runtime-sync` into `verify:modern`
+      - updated `tools/dev-vite.ts` to run `map:watch` in full dev flow
+      - updated map tooling docs in `tools/maps/README.md`
+      - updated scripts in `package.json`:
+        - `map:watch`
+        - `check:map-runtime-sync`
+        - `verify:modern` includes `check:map-runtime-sync`
+  - Verification:
+    - `bun run map:export` -> pass
+    - `bun run check:map-runtime-sync` -> pass
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 map exporter modernization to canonical Tiled JSON)
 
 ### Ticket status

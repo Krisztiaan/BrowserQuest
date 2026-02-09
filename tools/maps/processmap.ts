@@ -88,11 +88,6 @@ type ExportedMap = {
     staticEntities?: Record<number, string>;
 };
 
-const log = {
-    info: (...args: unknown[]) => console.log(...args),
-    error: (...args: unknown[]) => console.error(...args),
-};
-
 const GLOBAL_TILE_ID_MASK = 0x1fffffff;
 
 function normalizeGid(value: unknown): number {
@@ -155,8 +150,21 @@ function toMode(value: unknown): ExportMode {
     return value === "client" ? "client" : "server";
 }
 
-export default function processMap(json: TiledMapJson, options: { mode?: string }): ExportedMap {
+export default function processMap(
+    json: TiledMapJson,
+    options: { mode?: string; quiet?: boolean }
+): ExportedMap {
     const mode = toMode(options.mode);
+    const quiet = options.quiet === true || process.env.BQ_MAP_EXPORT_QUIET === "1";
+    const log = {
+        info: (...args: unknown[]) => {
+            if (!quiet) {
+                console.log(...args);
+            }
+        },
+        error: (...args: unknown[]) => console.error(...args),
+    };
+
     const tiledLayers = Array.isArray(json.layers) ? json.layers : [];
     const tiledTilesets = Array.isArray(json.tilesets) ? json.tilesets : [];
     const tileSize = Number.isFinite(json.tilewidth) ? json.tilewidth : 16;

@@ -26,9 +26,13 @@ export async function exportMapFile(params: {
     source: string;
     destination: string;
     mode: ExportMode;
+    quiet?: boolean;
 }): Promise<void> {
     const json = await getTiledJSONMap(params.source);
-    const map = processMap(json as Parameters<typeof processMap>[0], { mode: params.mode });
+    const map = processMap(json as Parameters<typeof processMap>[0], {
+        mode: params.mode,
+        quiet: params.quiet,
+    });
     await fs.writeFile(params.destination, JSON.stringify(map), "utf8");
 }
 

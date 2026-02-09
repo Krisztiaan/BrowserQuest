@@ -4,8 +4,7 @@ import { exportMapFile } from "./exportmap";
 type ExportTarget = "client" | "server" | "both";
 
 const modeArg = (Bun.argv[2] || "both").toLowerCase();
-const sourcePath = Bun.argv[3] || "tmx/map.tmx";
-const tempPath = Bun.argv[4] || ".tmp/tmx-map-export.json";
+const sourcePath = Bun.argv[3] || "tiled/world.json";
 
 const destFiles: Record<Exclude<ExportTarget, "both">, string> = {
     client: "../../client/maps/world_client.json",
@@ -13,8 +12,8 @@ const destFiles: Record<Exclude<ExportTarget, "both">, string> = {
 };
 
 function printUsage(): void {
-    console.log("Usage : bun ./export.ts [client|server|both] [source_tmx_path] [temp_json_path]");
-    console.log("Defaults: mode=both, source=tmx/map.tmx, temp=.tmp/tmx-map-export.json");
+    console.log("Usage : bun ./export.ts [client|server|both] [source_tiled_json_path]");
+    console.log("Defaults: mode=both, source=tiled/world.json");
 }
 
 function parseTarget(value: string): ExportTarget | null {
@@ -24,24 +23,6 @@ function parseTarget(value: string): ExportTarget | null {
     return null;
 }
 
-async function runCommand(command: string[]): Promise<void> {
-    const proc = Bun.spawn(command, { stdout: "pipe", stderr: "pipe" });
-    const [stdout, stderr] = await Promise.all([
-        new Response(proc.stdout).text(),
-        new Response(proc.stderr).text(),
-    ]);
-    const exitCode = await proc.exited;
-
-    const output = `${stdout}${stderr}`.trim();
-    if (output) {
-        console.log(output);
-    }
-
-    if (exitCode !== 0) {
-        throw new Error(`Command failed (${exitCode}): ${command.join(" ")}`);
-    }
-}
-
 async function main(): Promise<void> {
     const target = parseTarget(modeArg);
     if (!target) {
@@ -49,29 +30,24 @@ async function main(): Promise<void> {
         process.exit(1);
     }
 
-    await fs.mkdir(".tmp", { recursive: true });
-    await runCommand(["tiled", "--export-map", sourcePath, tempPath]);
+    await fs.access(sourcePath);
 
-    try {
-        if (target === "both" || target === "client") {
-            await exportMapFile({
-                source: tempPath,
-                destination: destFiles.client,
-                mode: "client",
-            });
-            console.log(`Finished processing map file: ${destFiles.client} was saved.`);
-        }
+    if (target === "both" || target === "client") {
+        await exportMapFile({
+            source: sourcePath,
+            destination: destFiles.client,
+            mode: "client",
+        });
+        console.log(`Finished processing map file: ${destFiles.client} was saved.`);
+    }
 
-        if (target === "both" || target === "server") {
-            await exportMapFile({
-                source: tempPath,
-                destination: destFiles.server,
-                mode: "server",
-            });
-            console.log(`Finished processing map file: ${destFiles.server} was saved.`);
-        }
-    } finally {
-        await fs.rm(tempPath, { force: true });
+    if (target === "both" || target === "server") {
+        await exportMapFile({
+            source: sourcePath,
+            destination: destFiles.server,
+            mode: "server",
+        });
+        console.log(`Finished processing map file: ${destFiles.server} was saved.`);
     }
 }
 
