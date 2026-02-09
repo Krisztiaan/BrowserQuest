@@ -1,5 +1,26 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 closeout of planned AMD/RequireJS retirement epic)
+
+### Ticket status
+
+- `T-313.1` Full AMD/jQuery client runtime retirement (`client/js/**`, RequireJS, and legacy runtime-only docs/checks removal): `done`
+
+### Live progress log
+
+- `2026-02-09T23:36Z` `done` Closed previously planned `T-313.1` as complete based on current repository state and active-lane verification.
+  - Evidence:
+    - legacy client tree removed:
+      - `client/js/**` no longer exists
+    - legacy scripts removed from active package lanes:
+      - `verify:legacy` absent from `package.json`
+      - `build:client` absent from `package.json`
+      - `jquery` dependency absent from `package.json`
+    - active boundary guard enforces modern-only script posture:
+      - `tools/check-package-mode-boundaries.ts`
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 generated runtime map artifact lane)
 
 ### Ticket status
@@ -633,7 +654,7 @@
     - initial test failures in wrapper-retirement slice due strict function identity assertions; converted to contract-level function signature/name checks in:
       - `tests/unit/server-main-runtime-esm.test.ts`
       - `tests/unit/server-metrics-esm.test.ts`
-  - Planned follow-up ticket (`T-313.1`):
+  - Planned follow-up ticket (`T-313.1`) (later completed on 2026-02-09; see closeout delta above):
     - Scope:
       - retire legacy AMD/jQuery client runtime tree (`client/js/**`) and RequireJS entry usage.
       - align docs/check scripts/workflows to modern-only client runtime coverage.
