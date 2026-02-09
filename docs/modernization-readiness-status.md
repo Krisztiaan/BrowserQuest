@@ -1,5 +1,40 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 root-invoked map script entrypoints)
+
+### Ticket status
+
+- `T-338.1` Replace `cd tools/maps` wrapper scripts with direct root-invoked Bun map entrypoints: `done`
+- `T-338.2` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T23:57Z` `in_progress` Started map script ergonomics cleanup to remove remaining shell-cwd wrappers and keep map scripts root-invoked.
+  - Scope:
+    - rewire `map:export*` scripts to run `bun tools/maps/export.ts ...` directly from repo root
+  - Out of scope:
+    - map export behavior changes
+  - Acceptance criteria:
+    - map export scripts run successfully from root without `cd tools/maps`
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run map:export`
+    - `bun run map:export:client`
+    - `bun run map:export:server`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:58Z` `done` Completed root-invoked map script entrypoint cleanup and re-verified modern lane.
+  - Evidence:
+    - updated `package.json` scripts:
+      - `map:export`
+      - `map:export:client`
+      - `map:export:server`
+      now invoke `bun tools/maps/export.ts ...` directly (no cwd wrapper)
+  - Verification:
+    - `bun run map:export` -> pass
+    - `bun run map:export:client` -> pass
+    - `bun run map:export:server` -> pass
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 client map payload URL-asset loading)
 
 ### Ticket status
