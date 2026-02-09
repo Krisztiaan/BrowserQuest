@@ -41,7 +41,7 @@ For live updates while editing in Tiled:
 
 - `bun run map:watch` (from repo root)
 
-**Warning:** depending on the `.tmx` filesize, the exporting process can take up to several minutes.
+**Warning:** depending on the `map JSON` filesize, the exporting process can take up to several minutes.
 
 
 Things to know

@@ -34,6 +34,7 @@
     - canonical source/assets:
       - added `tools/maps/tiled/world.json`
       - moved map-local asset to `tools/maps/tiled/mobset.png`
+      - updated tileset image linkage in canonical source to `image: "mobset.png"` for direct Tiled editing
       - retired legacy source artifacts:
         - deleted `tools/maps/tmx/map.tmx`
         - deleted `tools/maps/tmx/mobset.png`
