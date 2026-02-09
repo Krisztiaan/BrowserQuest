@@ -9,6 +9,7 @@
   },
   "include": [
     "server/js/main-runtime-types.ts",
+    "server/js/main-runtime.cts",
     "server/js/server-event-names.ts",
     "shared/js/connection-status.ts",
     "shared/js/entity-kind-domain.ts",

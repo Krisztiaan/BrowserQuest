@@ -2450,3 +2450,34 @@ Executed successfully on 2026-02-08:
   - Verification evidence:
     - `bun run typecheck` -> pass
     - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 final runtime no-check holdout pass)
+
+### Ticket status
+
+- `T-324.1` Remove `@ts-nocheck` from `server/js/main-esm.ts`: `blocked`
+- `T-324.2` Remove `@ts-nocheck` from `server/js/ws-runtime-esm.ts`: `done`
+- `T-324.3` Re-verify and record final holdout status: `done`
+- `T-324.4` Resolve `.cts` seam typing/include boundary so `main-esm.ts` can be fully checked without extension-import workaround: `todo`
+
+### Live progress log
+
+- `2026-02-09T13:37Z` `in_progress` Started final no-check elimination pass on remaining runtime holdouts.
+  - Scope:
+    - remove `@ts-nocheck` from `main-esm` and `ws-runtime-esm`
+    - resolve type/include issues without changing runtime behavior
+  - Dependencies/blockers:
+    - none yet (to be recorded if encountered)
+
+- `2026-02-09T13:39Z` `done` Completed `ws-runtime-esm` holdout cleanup and re-verified full modern lane; `main-esm` remains blocked follow-up.
+  - Key actions:
+    - removed `@ts-nocheck` from `server/js/ws-runtime-esm.ts` and added explicit class fields/handler typing casts to preserve runtime behavior.
+    - reworked browser gametypes module into a typed ESM contract implementation and removed no-check from client compat test:
+      - `shared/js/gametypes-browser.ts`
+      - `tests/unit/client-gametypes-compat.test.ts`
+    - attempted to remove no-check from `server/js/main-esm.ts`, but this remains blocked by direct `.cts` seam typing/include constraints around `main-runtime` import resolution under the current TS project configuration.
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+  - Remaining no-check holdouts:
+    - `server/js/main-esm.ts`

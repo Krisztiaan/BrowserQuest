@@ -1,4 +1,3 @@
-// @ts-nocheck
 import Log from './log-esm';
 import Utils from './utils-esm';
 import Protocol from '../../shared/js/protocol-contract-esm';
@@ -67,15 +66,15 @@ const runtimeClasses = createWebSocketRuntimeClasses({
 const wsWebSocketConnection = runtimeClasses.wsWebSocketConnection;
 
 class BunSocketAdapter {
-    #socket;
-    #handlers;
+    #socket: { send(data: unknown): void; close(code?: number, reason?: string): void };
+    #handlers: Record<string, (...args: unknown[]) => void>;
 
-    constructor(socket) {
+    constructor(socket: { send(data: unknown): void; close(code?: number, reason?: string): void }) {
         this.#socket = socket;
         this.#handlers = {};
     }
 
-    on(event, handler) {
+    on(event: string, handler: (...args: unknown[]) => void) {
         this.#handlers[event] = handler;
     }
 
@@ -85,17 +84,26 @@ class BunSocketAdapter {
         }
     }
 
-    send(data) {
+    send(data: unknown) {
         this.#socket.send(data);
     }
 
-    close(code, reason) {
+    close(code?: number, reason?: string) {
         this.#socket.close(code, reason);
     }
 }
 
 class MultiVersionWebsocketServer {
-    constructor(port) {
+    port: number;
+    _connections: Record<string, { id: string; send(message: unknown): void }>;
+    _counter: number;
+    _socketAdapters: WeakMap<object, BunSocketAdapter>;
+    _server: unknown;
+    connection_callback?: (connection: InstanceType<typeof wsWebSocketConnection>) => void;
+    error_callback?: (error: unknown) => void;
+    status_callback?: () => string;
+
+    constructor(port: number) {
         this.port = port;
         this._connections = {};
         this._counter = 0;
@@ -108,16 +116,18 @@ class MultiVersionWebsocketServer {
                 if (requestPath === '/status' && this.status_callback) {
                     return new Response(this.status_callback(), { status: 200 });
                 }
-                if (server.upgrade(request, { data: { remoteAddress: this.#resolveRemoteAddress(server, request) } })) {
+                if ((server as { upgrade: (request: Request, options?: unknown) => boolean }).upgrade(request, {
+                    data: { remoteAddress: this.#resolveRemoteAddress(server, request) },
+                })) {
                     return undefined;
                 }
                 return new Response('Not Found', { status: 404 });
             },
             websocket: {
-                open: (socket) => {
+                open: (socket: { data?: { remoteAddress?: unknown }; send(data: unknown): void; close(code?: number, reason?: string): void }) => {
                     const adapter = new BunSocketAdapter(socket);
-                    this._socketAdapters.set(socket, adapter);
-                    const remoteAddress = socket?.data?.remoteAddress
+                    this._socketAdapters.set(socket as unknown as object, adapter);
+                    const remoteAddress = socket.data?.remoteAddress
                         ? String(socket.data.remoteAddress)
                         : 'unknown';
                     const connection = new wsWebSocketConnection(this.#createId(), adapter, this, remoteAddress);
@@ -127,14 +137,14 @@ class MultiVersionWebsocketServer {
                     }
                     logConnectionEvent('info', WS_EVENT_NAMES.CONNECTION_OPEN, connection, undefined);
                 },
-                message: (socket, message) => {
+                message: (socket: object, message: unknown) => {
                     const adapter = this._socketAdapters.get(socket);
                     if (!adapter) {
                         return;
                     }
                     adapter.emit('message', message, typeof message !== 'string');
                 },
-                close: (socket) => {
+                close: (socket: object) => {
                     const adapter = this._socketAdapters.get(socket);
                     if (!adapter) {
                         return;
@@ -149,10 +159,12 @@ class MultiVersionWebsocketServer {
         log.event('info', WS_EVENT_NAMES.SERVER_LISTEN, { port });
     }
 
-    #resolveRemoteAddress(server, request) {
+    #resolveRemoteAddress(server: unknown, request: Request): string {
         try {
-            if (typeof server?.requestIP === 'function') {
-                const ip = server.requestIP(request);
+            if (
+                typeof (server as { requestIP?: (request: Request) => { address?: unknown } }).requestIP === 'function'
+            ) {
+                const ip = (server as { requestIP: (request: Request) => { address?: unknown } }).requestIP(request);
                 if (typeof ip?.address === 'string') {
                     return ip.address;
                 }
@@ -167,33 +179,33 @@ class MultiVersionWebsocketServer {
         return '5' + Utils.random(99) + '' + this._counter++;
     }
 
-    onConnect(callback) {
+    onConnect(callback: (connection: InstanceType<typeof wsWebSocketConnection>) => void) {
         this.connection_callback = callback;
     }
 
-    onError(callback) {
+    onError(callback: (error: unknown) => void) {
         this.error_callback = callback;
     }
 
-    onRequestStatus(status_callback) {
+    onRequestStatus(status_callback: () => string) {
         this.status_callback = status_callback;
     }
 
-    forEachConnection(callback) {
+    forEachConnection(callback: (connection: { id: string; send(message: unknown): void }, connectionId: string) => void) {
         Object.keys(this._connections).forEach((connectionId) => {
             callback(this._connections[connectionId], connectionId);
         });
     }
 
-    addConnection(connection) {
+    addConnection(connection: { id: string; send(message: unknown): void }) {
         this._connections[connection.id] = connection;
     }
 
-    removeConnection(id) {
+    removeConnection(id: string) {
         delete this._connections[id];
     }
 
-    broadcast(message) {
+    broadcast(message: unknown) {
         this.forEachConnection((connection) => {
             connection.send(message);
         });
