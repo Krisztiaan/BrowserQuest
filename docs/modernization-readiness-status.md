@@ -1,5 +1,62 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 map exporter modernization to canonical Tiled JSON)
+
+### Ticket status
+
+- `T-325.1` Audit `../tiled` JSON shape and map-pipeline assumptions: `done`
+- `T-325.2` Replace legacy TMX->custom-JSON conversion path with native Tiled JSON export path: `done`
+- `T-325.3` Modernize map tooling scripts and retire Python converter artifacts: `done`
+- `T-325.4` Verify no data-loss conversion and run full modern verification lane: `done`
+
+### Live progress log
+
+- `2026-02-09T13:46Z` `in_progress` Started map export pipeline modernization based on user direction to one-off convert via modern Tiled JSON shape without data loss.
+  - Scope:
+    - consume canonical Tiled JSON (`tiled --export-map`) directly in map pipeline
+    - remove legacy `tmx2json.py` conversion dependency and Python exporter wrapper
+    - keep BrowserQuest runtime output contracts (`world_client.json`, `world_server.json`) behavior-equivalent
+    - remove remaining map-tooling `@ts-nocheck` usage
+  - Out of scope:
+    - runtime consumer schema changes in client/server map loaders
+    - large map-authoring workflow redesign beyond exporter path modernization
+  - Acceptance criteria:
+    - map tooling uses native Tiled JSON export path only
+    - legacy converter files are retired
+    - generated map outputs are semantically equivalent to current runtime artifacts
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run typecheck`
+    - semantic equivalence comparison between current and newly generated map outputs
+    - `bun run verify:modern:node22`
+- `2026-02-09T13:57Z` `done` Completed canonical Tiled JSON pipeline migration and validated no-loss export behavior.
+  - Evidence:
+    - canonical Tiled JSON processing rewrite:
+      - `tools/maps/processmap.ts`
+        - now consumes native Tiled JSON (`layers`, `tilesets`, `objects`, `properties`) directly
+        - retains BrowserQuest runtime output structure for client/server map JSON
+        - normalizes global tile IDs via flag-mask handling and normalizes scalar property values
+    - modern map export tooling:
+      - added `tools/maps/export.ts` (Bun/TypeScript orchestration over `tiled --export-map`)
+      - updated `tools/maps/exportmap.ts` to export callable `exportMapFile` API + proper CLI guard
+      - added scripts in `package.json`:
+        - `map:export`
+        - `map:export:client`
+        - `map:export:server`
+    - retired legacy map conversion artifacts:
+      - deleted `tools/maps/export.py`
+      - deleted `tools/maps/tmx2json.py`
+    - docs modernization:
+      - updated `tools/maps/README.md` for modern Tiled JSON + Bun export workflow
+    - no-loss conversion evidence:
+      - one-off semantic comparison between current `client/maps/world_client.json` and `server/maps/world_server.json` vs outputs generated from `tiled --export-map` + new pipeline returned:
+        - `client semantic-equal true`
+        - `server semantic-equal true`
+      - note: serialization key order differs (`tilesize` placement), but map data contract/content is unchanged.
+  - Verification:
+    - `bun run typecheck` -> pass
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
 ## Delta Update (2026-02-09 final `main-esm` TypeScript holdout closeout)
 
 ### Ticket status

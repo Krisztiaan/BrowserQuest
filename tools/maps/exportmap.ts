@@ -1,17 +1,18 @@
-// @ts-nocheck
 import fs from "node:fs/promises";
 import processMap from "./processmap";
 
-const source = Bun.argv[2];
-const destination = Bun.argv[3];
-const mode = Bun.argv[4] || "server";
+type ExportMode = "server" | "client";
 
-function printUsage() {
+function printUsage(): void {
     console.log("Usage : bun ./exportmap.ts map_file json_file [mode]");
     console.log('Optional parameter : mode. Values: "server" (default) or "client".');
 }
 
-async function getTiledJSONMap(filename: string) {
+function toMode(value: string | undefined): ExportMode {
+    return value === "client" ? "client" : "server";
+}
+
+async function getTiledJSONMap(filename: string): Promise<unknown> {
     try {
         const payload = await fs.readFile(filename, "utf8");
         return JSON.parse(payload);
@@ -21,21 +22,34 @@ async function getTiledJSONMap(filename: string) {
     }
 }
 
+export async function exportMapFile(params: {
+    source: string;
+    destination: string;
+    mode: ExportMode;
+}): Promise<void> {
+    const json = await getTiledJSONMap(params.source);
+    const map = processMap(json as Parameters<typeof processMap>[0], { mode: params.mode });
+    await fs.writeFile(params.destination, JSON.stringify(map), "utf8");
+}
+
 async function main() {
+    const source = Bun.argv[2];
+    const destination = Bun.argv[3];
+    const mode = toMode(Bun.argv[4]);
+
     if (!source || !destination) {
         printUsage();
         process.exit(0);
     }
 
-    const json = await getTiledJSONMap(source);
-    const map = processMap(json, { mode });
-
-    await fs.writeFile(destination, JSON.stringify(map), "utf8");
+    await exportMapFile({ source, destination, mode });
     console.log(`Finished processing map file: ${destination} was saved.`);
 }
 
-main().catch((error) => {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(message);
-    process.exit(1);
-});
+if (import.meta.main) {
+    main().catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(message);
+        process.exit(1);
+    });
+}

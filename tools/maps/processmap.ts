@@ -1,31 +1,180 @@
-// @ts-nocheck
-
 import Types from "../../shared/js/gametypes-esm";
 
-const log = {
-    info: (...args) => console.log(...args),
-    error: (...args) => console.error(...args),
+type ExportMode = "client" | "server";
+
+type TiledProperty = {
+    name: string;
+    value: unknown;
 };
 
-var map,
-    mode,
-    collidingTiles = {},
-    staticEntities = {},
-    mobsFirstgid;
+type TiledTile = {
+    id: number;
+    properties?: TiledProperty[];
+};
 
-export default function processMap(json, options) {
-    var Tiled = json.map;
-	
-    map = {
-            width: 0,
-            height: 0,
-            collisions: [],
-            doors: [],
-            checkpoints: []
-        };
-    mode = options.mode;
-    
-    if(mode === "client") {
+type TiledTileset = {
+    name: string;
+    firstgid?: number;
+    tiles?: TiledTile[];
+};
+
+type TiledObject = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    type?: string;
+    properties?: TiledProperty[];
+};
+
+type TiledLayerBase = {
+    name: string;
+    type: string;
+    visible?: boolean | number;
+};
+
+type TiledTileLayer = TiledLayerBase & {
+    type: "tilelayer";
+    data?: number[];
+};
+
+type TiledObjectLayer = TiledLayerBase & {
+    type: "objectgroup";
+    objects?: TiledObject[];
+};
+
+type TiledLayer = TiledTileLayer | TiledObjectLayer | (TiledLayerBase & Record<string, unknown>);
+
+type TiledMapJson = {
+    width: number;
+    height: number;
+    tilewidth: number;
+    tilesets?: TiledTileset[];
+    layers?: TiledLayer[];
+};
+
+type ExportedDoor = {
+    x: number;
+    y: number;
+    p: number;
+    [key: string]: unknown;
+};
+
+type ExportedCheckpoint = {
+    id: number;
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    s?: number;
+};
+
+type ExportedMap = {
+    width: number;
+    height: number;
+    tilesize: number;
+    collisions: number[];
+    doors: ExportedDoor[];
+    checkpoints: ExportedCheckpoint[];
+    data?: Array<number | number[]>;
+    high?: number[];
+    animated?: Record<number, { l?: number; d?: number }>;
+    blocking?: number[];
+    plateau?: number[];
+    musicAreas?: Array<{ x: number; y: number; w: number; h: number; id: unknown }>;
+    roamingAreas?: Array<Record<string, unknown>>;
+    chestAreas?: Array<Record<string, unknown>>;
+    staticChests?: Array<{ x: number; y: number; i: number[] }>;
+    staticEntities?: Record<number, string>;
+};
+
+const log = {
+    info: (...args: unknown[]) => console.log(...args),
+    error: (...args: unknown[]) => console.error(...args),
+};
+
+const GLOBAL_TILE_ID_MASK = 0x1fffffff;
+
+function normalizeGid(value: unknown): number {
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+        return 0;
+    }
+    return value & GLOBAL_TILE_ID_MASK;
+}
+
+function normalizeScalar(value: unknown): unknown {
+    if (typeof value !== "string") {
+        return value;
+    }
+
+    const text = value.trim();
+    if (/^-?\d+$/.test(text)) {
+        return Number.parseInt(text, 10);
+    }
+    if (/^-?\d+\.\d+$/.test(text)) {
+        return Number.parseFloat(text);
+    }
+
+    return value;
+}
+
+function getProperties(value: { properties?: TiledProperty[] }): TiledProperty[] {
+    return Array.isArray(value.properties) ? value.properties : [];
+}
+
+function getPropertyValue(value: { properties?: TiledProperty[] }, name: string): unknown {
+    const property = getProperties(value).find((entry) => entry.name === name);
+    return property ? normalizeScalar(property.value) : undefined;
+}
+
+function getFirstPropertyValue(value: { properties?: TiledProperty[] }): unknown {
+    const property = getProperties(value)[0];
+    return property ? normalizeScalar(property.value) : undefined;
+}
+
+function isTileLayer(layer: TiledLayer): layer is TiledTileLayer {
+    return layer.type === "tilelayer";
+}
+
+function isObjectLayer(layer: TiledLayer): layer is TiledObjectLayer {
+    return layer.type === "objectgroup";
+}
+
+function isLayerVisible(layer: TiledLayerBase): boolean {
+    return layer.visible !== false && layer.visible !== 0;
+}
+
+function toLayerTileData(layer: TiledTileLayer): number[] {
+    if (!Array.isArray(layer.data)) {
+        return [];
+    }
+    return layer.data.map(normalizeGid);
+}
+
+function toMode(value: unknown): ExportMode {
+    return value === "client" ? "client" : "server";
+}
+
+export default function processMap(json: TiledMapJson, options: { mode?: string }): ExportedMap {
+    const mode = toMode(options.mode);
+    const tiledLayers = Array.isArray(json.layers) ? json.layers : [];
+    const tiledTilesets = Array.isArray(json.tilesets) ? json.tilesets : [];
+    const tileSize = Number.isFinite(json.tilewidth) ? json.tilewidth : 16;
+
+    const collidingTiles: Record<number, true> = {};
+    const staticEntityKindsByTileId: Record<number, string> = {};
+    let mobsFirstgid = 0;
+
+    const map: ExportedMap = {
+        width: Number.isFinite(json.width) ? json.width : 0,
+        height: Number.isFinite(json.height) ? json.height : 0,
+        tilesize: tileSize,
+        collisions: [],
+        doors: [],
+        checkpoints: [],
+    };
+
+    if (mode === "client") {
         map.data = [];
         map.high = [];
         map.animated = {};
@@ -33,269 +182,256 @@ export default function processMap(json, options) {
         map.plateau = [];
         map.musicAreas = [];
     }
-    if(mode === "server") {
+
+    if (mode === "server") {
         map.roamingAreas = [];
         map.chestAreas = [];
         map.staticChests = [];
         map.staticEntities = {};
     }
-    
-    log.info("Processing map info...");
-    map.width = Tiled.width;
-    map.height = Tiled.height;
-    map.tilesize = Tiled.tilewidth;
 
-    // Tile properties (collision, z-index, animation length...)
-    var tileProperties;
-    var handleProp = function(property, id) {
-        if(property.name === "c") {
-            collidingTiles[id] = true;
+    log.info("Processing map info...");
+
+    for (const tileset of tiledTilesets) {
+        if (tileset.name === "tilesheet") {
+            log.info("Processing terrain properties...");
+            for (const tile of Array.isArray(tileset.tiles) ? tileset.tiles : []) {
+                const tilePropertyId = tile.id + 1;
+                for (const property of getProperties(tile)) {
+                    const name = property.name;
+                    const value = normalizeScalar(property.value);
+
+                    if (name === "c") {
+                        collidingTiles[tilePropertyId] = true;
+                    }
+
+                    if (mode === "client") {
+                        if (name === "v") {
+                            map.high?.push(tilePropertyId);
+                        }
+                        if (name === "length") {
+                            map.animated![tilePropertyId] = map.animated![tilePropertyId] || {};
+                            map.animated![tilePropertyId].l = typeof value === "number" ? value : undefined;
+                        }
+                        if (name === "delay") {
+                            map.animated![tilePropertyId] = map.animated![tilePropertyId] || {};
+                            map.animated![tilePropertyId].d = typeof value === "number" ? value : undefined;
+                        }
+                    }
+                }
+            }
+            continue;
         }
-        
-        if(mode === "client") {
-            if(property.name === "v") {
-                map.high.push(id);
-            }
-            if(property.name === "length") {
-                if(!map.animated[id]) {
-                    map.animated[id] = {};
+
+        if (tileset.name === "Mobs" && mode === "server") {
+            log.info("Processing static entity properties...");
+            mobsFirstgid = Number.isFinite(tileset.firstgid) ? (tileset.firstgid as number) : 0;
+            for (const tile of Array.isArray(tileset.tiles) ? tileset.tiles : []) {
+                const entityType = getPropertyValue(tile, "type");
+                if (typeof entityType === "string" && entityType.length > 0) {
+                    staticEntityKindsByTileId[tile.id + 1] = entityType;
                 }
-                map.animated[id].l = property.value;
-            }
-            if(property.name === "delay") {
-                if(!map.animated[id]) {
-                    map.animated[id] = {};
-                }
-                map.animated[id].d = property.value;
             }
         }
     }
-    
-    if(Tiled.tileset instanceof Array) {
-        Tiled.tileset.forEach(function(tileset) {
-            if(tileset.name === "tilesheet") {
-                log.info("Processing terrain properties...");
-                tileProperties = tileset.tile;
-                for(var i=0; i < tileProperties.length; i += 1) {
-                    var property = tileProperties[i].properties.property;
-                    var tilePropertyId = tileProperties[i].id + 1;
-                    if(property instanceof Array) {
-                        for(var pi=0; pi < property.length; pi += 1) {
-                            handleProp(property[pi], tilePropertyId);
-                        }
-                    } else {
-                        handleProp(property, tilePropertyId);
-                    }
-                }
-            }
-            else if(tileset.name === "Mobs" && mode === "server") {
-                log.info("Processing static entity properties...");
-                mobsFirstgid = tileset.firstgid;
-                tileset.tile.forEach(function(p) {
-                    var property = p.properties.property,
-                        id = p.id + 1;
 
-                    if(property.name === "type") {
-                        staticEntities[id] = property.value;
-                    }
-                });
-            }
-        });
-    } else {
+    if (tiledTilesets.length === 0) {
         log.error("A tileset is missing");
     }
-    
-    
-    for(var i=0; i < Tiled.objectgroup.length; i += 1) {
-        var group = Tiled.objectgroup[i];
-        if(group.name === 'doors') {
-            var doors = group.object;
-            log.info("Processing doors...");
-            for(var j=0; j < doors.length; j += 1) {
-                map.doors[j] = {
-                    x: doors[j].x / map.tilesize,
-                    y: doors[j].y / map.tilesize,
-                    p: (doors[j].type === 'portal') ? 1 : 0,
-                }
-                var doorprops = doors[j].properties.property;
-                for(var k=0; k < doorprops.length; k += 1) {
-                    map.doors[j]['t'+doorprops[k].name] = doorprops[k].value;
-                }
+
+    const doorsLayer = tiledLayers.filter(isObjectLayer).find((layer) => layer.name === "doors");
+    if (doorsLayer && Array.isArray(doorsLayer.objects)) {
+        log.info("Processing doors...");
+        for (const door of doorsLayer.objects) {
+            const exportedDoor: ExportedDoor = {
+                x: door.x / map.tilesize,
+                y: door.y / map.tilesize,
+                p: door.type === "portal" ? 1 : 0,
+            };
+
+            for (const property of getProperties(door)) {
+                exportedDoor[`t${property.name}`] = normalizeScalar(property.value);
             }
+
+            map.doors.push(exportedDoor);
         }
     }
 
-    // Object layers
-    Tiled.objectgroup.forEach(function(objectlayer) {
-        if(objectlayer.name === "roaming" && mode === "server") {
+    for (const objectLayer of tiledLayers.filter(isObjectLayer)) {
+        if (objectLayer.name === "roaming" && mode === "server") {
             log.info("Processing roaming areas...");
-            var areas = objectlayer.object;
-    
-            for(var i=0; i < areas.length; i += 1) {
-                if(areas[i].properties) {
-                    var nb = areas[i].properties.property.value;
-                }
-        
-                map.roamingAreas[i] = {  id: i,
-                                         x: areas[i].x / 16,
-                                         y: areas[i].y / 16,
-                                         width: areas[i].width / 16,
-                                         height: areas[i].height / 16,
-                                         type: areas[i].type,
-                                         nb: nb
-                                       };
+            const roamingAreas = map.roamingAreas!;
+            for (let i = 0; i < (objectLayer.objects || []).length; i += 1) {
+                const area = objectLayer.objects![i];
+                const nb = getPropertyValue(area, "nb") ?? getFirstPropertyValue(area);
+                roamingAreas[i] = {
+                    id: i,
+                    x: area.x / map.tilesize,
+                    y: area.y / map.tilesize,
+                    width: area.width / map.tilesize,
+                    height: area.height / map.tilesize,
+                    type: area.type,
+                    nb,
+                };
             }
+            continue;
         }
-        else if(objectlayer.name === "chestareas" && mode === "server") {
+
+        if (objectLayer.name === "chestareas" && mode === "server") {
             log.info("Processing chest areas...");
-            objectlayer.object.forEach(function(area) {
-                var chestArea = {
+            const chestAreas = map.chestAreas!;
+            for (const area of objectLayer.objects || []) {
+                const chestArea: Record<string, unknown> = {
                     x: area.x / map.tilesize,
                     y: area.y / map.tilesize,
                     w: area.width / map.tilesize,
-                    h: area.height / map.tilesize
+                    h: area.height / map.tilesize,
                 };
-                area.properties.property.forEach(function(prop) {
-                    if(prop.name === 'items') {
-                        chestArea['i'] = prop.value.split(',').map(function(name) {
-                            return Types.getKindFromString(name);
-                        });
+
+                for (const property of getProperties(area)) {
+                    if (property.name === "items") {
+                        chestArea.i = String(property.value)
+                            .split(",")
+                            .map((name) => name.trim())
+                            .filter(Boolean)
+                            .map((name) => Types.getKindFromString(name));
                     } else {
-                        chestArea['t'+prop.name] = prop.value;
+                        chestArea[`t${property.name}`] = normalizeScalar(property.value);
                     }
-                });
-                map.chestAreas.push(chestArea);
-            });
+                }
+
+                chestAreas.push(chestArea);
+            }
+            continue;
         }
-        else if(objectlayer.name === "chests" && mode === "server") {
+
+        if (objectLayer.name === "chests" && mode === "server") {
             log.info("Processing static chests...");
-            objectlayer.object.forEach(function(chest) {
-                var items = chest.properties.property.value;
-                var newChest = {
+            const staticChests = map.staticChests!;
+            for (const chest of objectLayer.objects || []) {
+                const items = getPropertyValue(chest, "items") ?? getFirstPropertyValue(chest) ?? "";
+                staticChests.push({
                     x: chest.x / map.tilesize,
                     y: chest.y / map.tilesize,
-                    i: items.split(',').map(function(name) {
-                        return Types.getKindFromString(name);
-                    })
-                };
-                map.staticChests.push(newChest);
-            });
+                    i: String(items)
+                        .split(",")
+                        .map((name) => name.trim())
+                        .filter(Boolean)
+                        .map((name) => Types.getKindFromString(name)),
+                });
+            }
+            continue;
         }
-        else if(objectlayer.name === "music" && mode === "client") {
+
+        if (objectLayer.name === "music" && mode === "client") {
             log.info("Processing music areas...");
-            objectlayer.object.forEach(function(music) {
-                var musicArea = {
+            const musicAreas = map.musicAreas!;
+            for (const music of objectLayer.objects || []) {
+                const musicId = getPropertyValue(music, "id") ?? getFirstPropertyValue(music);
+                musicAreas.push({
                     x: music.x / map.tilesize,
                     y: music.y / map.tilesize,
                     w: music.width / map.tilesize,
                     h: music.height / map.tilesize,
-                    id: music.properties.property.value
-                };
-                map.musicAreas.push(musicArea);
-            });
+                    id: musicId,
+                });
+            }
+            continue;
         }
-        else if(objectlayer.name === "checkpoints") {
+
+        if (objectLayer.name === "checkpoints") {
             log.info("Processing check points...");
-            var count = 0;
-            objectlayer.object.forEach(function(checkpoint) {
-                var cp = {
+            let count = 0;
+            for (const checkpoint of objectLayer.objects || []) {
+                const cp: ExportedCheckpoint = {
                     id: ++count,
                     x: checkpoint.x / map.tilesize,
                     y: checkpoint.y / map.tilesize,
                     w: checkpoint.width / map.tilesize,
-                    h: checkpoint.height / map.tilesize
+                    h: checkpoint.height / map.tilesize,
                 };
-                if(mode === "server") {
+
+                if (mode === "server") {
                     cp.s = checkpoint.type ? 1 : 0;
                 }
+
                 map.checkpoints.push(cp);
-            });
-        }
-    });
-
-    // Layers
-    if(Tiled.layer instanceof Array) {
-        for(var i=Tiled.layer.length - 1; i > 0; i -= 1) {
-            processLayer(Tiled.layer[i]);
-        }
-    } else {
-        processLayer(Tiled.layer);
-    }
-    
-    if(mode === "client") {
-        // Set all undefined tiles to 0
-        for(var i=0, max=map.data.length; i < max; i+=1) {
-            if(!map.data[i]) {
-                map.data[i] = 0;
             }
         }
     }
-      
+
+    const tileLayers = tiledLayers.filter(isTileLayer);
+    for (let i = tileLayers.length - 1; i >= 0; i -= 1) {
+        processLayer(tileLayers[i]);
+    }
+
+    if (mode === "client") {
+        const data = map.data!;
+        for (let i = 0; i < data.length; i += 1) {
+            if (!data[i]) {
+                data[i] = 0;
+            }
+        }
+    }
+
     return map;
-}
 
-var processLayer = function processLayer(layer) {
-    if(mode === "server") {
-        // Mobs
-        if(layer.name === "entities") {
+    function processLayer(layer: TiledTileLayer): void {
+        const tiles = toLayerTileData(layer);
+
+        if (mode === "server" && layer.name === "entities") {
             log.info("Processing positions of static entities ...");
-            var tiles = layer.data.tile;
-            
-            for(var j=0; j < tiles.length; j += 1) {
-                var gid = tiles[j].gid - mobsFirstgid + 1;
-                if(gid && gid > 0) {
-                    map.staticEntities[j] = staticEntities[gid];
+            for (let i = 0; i < tiles.length; i += 1) {
+                const gid = tiles[i] - mobsFirstgid + 1;
+                if (gid > 0) {
+                    map.staticEntities![i] = staticEntityKindsByTileId[gid];
                 }
             }
+            return;
         }
-    }
-    
-    var tiles = layer.data.tile;
-    
-    if(mode === "client" && layer.name === "blocking") {
-        log.info("Processing blocking tiles...");
-        for(var i=0; i < tiles.length; i += 1) {
-            var gid = tiles[i].gid;
-            
-            if(gid && gid > 0) {
-                map.blocking.push(i);
-            }
-        }
-    }
-    else if(mode === "client" && layer.name === "plateau") {
-        log.info("Processing plateau tiles...");
-        for(var i=0; i < tiles.length; i += 1) {
-            var gid = tiles[i].gid;
-            
-            if(gid && gid > 0) {
-                map.plateau.push(i);
-            }
-        }
-    }
-    else if(layer.visible !== 0 && layer.name !== "entities") {
-        log.info("Processing layer: "+ layer.name);
-        
-        for(var j=0; j < tiles.length; j += 1) {
-            var gid = tiles[j].gid;
 
-            if(mode === "client") {
-                // Set tile gid in the tilesheet
-                if(gid > 0) {
-                    if(map.data[j] === undefined) {
-                        map.data[j] = gid;
-                    }
-                    else if(map.data[j] instanceof Array) {
-                        map.data[j].unshift(gid);
-                    }
-                    else {
-                        map.data[j] = [gid, map.data[j]];
-                    }
+        if (mode === "client" && layer.name === "blocking") {
+            log.info("Processing blocking tiles...");
+            for (let i = 0; i < tiles.length; i += 1) {
+                if (tiles[i] > 0) {
+                    map.blocking!.push(i);
                 }
             }
-            
-            // Colliding tiles
-            if(gid in collidingTiles) {
-                map.collisions.push(j);
+            return;
+        }
+
+        if (mode === "client" && layer.name === "plateau") {
+            log.info("Processing plateau tiles...");
+            for (let i = 0; i < tiles.length; i += 1) {
+                if (tiles[i] > 0) {
+                    map.plateau!.push(i);
+                }
+            }
+            return;
+        }
+
+        if (!isLayerVisible(layer) || layer.name === "entities") {
+            return;
+        }
+
+        log.info("Processing layer: " + layer.name);
+
+        for (let i = 0; i < tiles.length; i += 1) {
+            const gid = tiles[i];
+
+            if (mode === "client" && gid > 0) {
+                const data = map.data!;
+                if (data[i] === undefined) {
+                    data[i] = gid;
+                } else if (Array.isArray(data[i])) {
+                    (data[i] as number[]).unshift(gid);
+                } else {
+                    data[i] = [gid, data[i] as number];
+                }
+            }
+
+            if (gid in collidingTiles) {
+                map.collisions.push(i);
             }
         }
     }

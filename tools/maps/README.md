@@ -23,18 +23,19 @@ Note: This tool was written with OSX in mind. If you are using a different OS (e
 
 **Prerequisites:**
 
-- You need python3 and Bun installed.
-- Install pip: http://www.pip-installer.org/en/latest/installing.html
-- Install lxml: `pip install lxml` (preferably within a virtualenv)
-- Optional: Install Growl + growlnotify if you are on OSX.
+- You need Tiled and Bun installed.
+- `tiled` must be available on your `PATH`.
 
 **Usage:**
 
 1. `cd tools/maps/`
 
-2. `./export.py client` or `./export.py server`
+2. `bun ./export.ts both`
 
-You must run both commands in order to export the client and server map files. There is no one-step export command for both map types yet.
+You can also export a single target:
+
+- `bun ./export.ts client`
+- `bun ./export.ts server`
 
 **Warning:** depending on the `.tmx` filesize, the exporting process can take up to several minutes.
 
@@ -51,16 +52,14 @@ Depending on what you want to change, it's therefore not always needed to export
 
 **How the exporting process works:**
 
-1. The Tiled map TMX file is converted to a temporary JSON file by `tmx2json.py`.
-2. This file is processed by `processmap.ts` and returned as an object. This object will have different properties depending on whether we are exporting the client or the server map.
-3. The processed map object is saved as the final world map JSON file in the appropriate directory.
-4. The temporary file from step 1. is deleted.
+1. Tiled exports `tmx/map.tmx` to a temporary canonical Tiled JSON file using `tiled --export-map`.
+2. `processmap.ts` converts that JSON into BrowserQuest runtime map JSON (client or server mode).
+3. The processed map JSON is written to the appropriate output file.
+4. The temporary exported Tiled JSON file is deleted.
 
 
 **Known bugs:**
- 
-    * There currently needs to be an empty layer at the bottom of the Tiled layer stack or else the first terrain layer will be missing.
-      (ie. if you remove the "don't remove this layer" layer from the `map.tmx` file, the 'sand' tiles will be missing on the beach.)
+- No known map-exporter bugs are currently tracked in this README.
     
 
 Contributing / Ideas for improvement
@@ -68,17 +67,13 @@ Contributing / Ideas for improvement
 
 Here are a few ideas for anyone who might want to help make this tool better:
 
-- Remove hard-coded filenames from export.py (eg. `map.tmx`, `world_client.json`) in order to allow easier switching to different map files.
-
-- Fix known bugs (see section above)
-
 - Write documentation on how to use the exporter on Windows.
 
 - Write documentation about map editing in the Tiled editor (ie. editing BrowserQuest-specific properties of doors, chests, spawning areas, etc.)
 
 - Write documentation about the BrowserQuest map JSON format, both for client and server map types.
 
-- Get rid of the `tmx2json.py` step which can currently take up to several minutes. Note: There is a JSON exporter built in Tiled since version 0.8.0 which could be useful. We didn't use it because our tool was written before the 0.8.0 release.
+- Remove hard-coded default filenames from `export.ts` in order to allow easier switching to different map files.
 
 - A complete rewrite of this tool using a custom Tiled plugin would surely be a better approach than the current one. Being able to export directly from Tiled would be much easier to use. Also, the export process is currently too slow.
 
