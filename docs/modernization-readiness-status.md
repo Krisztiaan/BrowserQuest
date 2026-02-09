@@ -1,5 +1,37 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 boundary guard for archived legacy docs location)
+
+### Ticket status
+
+- `T-336.1` Enforce no `legacy-*.md` files in active `docs/` root: `done`
+- `T-336.2` Enforce archived-note docs live only under `docs/archive/**`: `done`
+- `T-336.3` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T23:53Z` `in_progress` Started post-archive guardrail pass so historical docs cannot drift back into active doc surfaces.
+  - Scope:
+    - extend package boundary check to fail when root `docs/legacy-*.md` files exist
+    - extend package boundary check to fail when docs containing archived-note marker are outside `docs/archive/**`
+  - Out of scope:
+    - additional doc content migration
+  - Acceptance criteria:
+    - `check:package-mode-boundaries` enforces archived doc location policy
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run check:package-mode-boundaries`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:54Z` `done` Completed archived-doc location guardrail enforcement and re-verified modern lane.
+  - Evidence:
+    - updated `tools/check-package-mode-boundaries.ts`:
+      - fails if `docs/legacy-*.md` files exist in root docs directory
+      - fails if any markdown file outside `docs/archive/**` contains archived-note marker
+      - success message now includes root-legacy-doc retirement policy
+  - Verification:
+    - `bun run check:package-mode-boundaries` -> pass
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 archive separation for historical legacy docs)
 
 ### Ticket status

@@ -4,6 +4,8 @@ import * as path from 'node:path';
 const repoRoot = path.resolve(import.meta.dir, '..');
 const packageJsonPath = path.join(repoRoot, 'package.json');
 const retiredMapWatchPath = path.join(repoRoot, 'tools', 'maps', 'watch.ts');
+const docsRoot = path.join(repoRoot, 'docs');
+const docsArchiveRoot = path.join(docsRoot, 'archive');
 
 function readUtf8(filePath) {
   return fs.readFileSync(filePath, 'utf8');
@@ -12,6 +14,29 @@ function readUtf8(filePath) {
 function fail(message) {
   process.stderr.write(`package-mode-boundary-check: ${message}\n`);
   process.exit(1);
+}
+
+function listMarkdownFiles(rootDir) {
+  if (!fs.existsSync(rootDir)) return [];
+
+  const results = [];
+  const stack = [rootDir];
+  while (stack.length > 0) {
+    const current = stack.pop();
+    if (!current) continue;
+    const entries = fs.readdirSync(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(fullPath);
+        continue;
+      }
+      if (entry.isFile() && entry.name.endsWith('.md')) {
+        results.push(fullPath);
+      }
+    }
+  }
+  return results;
 }
 
 let packageJson;
@@ -42,6 +67,28 @@ if (fs.existsSync(retiredMapWatchPath)) {
   fail('tools/maps/watch.ts must not exist after Vite-native map sync cutover');
 }
 
+const docsRootEntries = fs.existsSync(docsRoot) ? fs.readdirSync(docsRoot, { withFileTypes: true }) : [];
+const legacyRootDocs = docsRootEntries
+  .filter((entry) => entry.isFile() && /^legacy-.*\.md$/.test(entry.name))
+  .map((entry) => `docs/${entry.name}`);
+
+if (legacyRootDocs.length > 0) {
+  fail(
+    `legacy historical docs must live under docs/archive/legacy (found: ${legacyRootDocs.join(', ')})`,
+  );
+}
+
+const activeDocs = listMarkdownFiles(docsRoot).filter((filePath) => !filePath.startsWith(docsArchiveRoot + path.sep));
+const archivedNoteOffenders = activeDocs
+  .filter((filePath) => fs.readFileSync(filePath, 'utf8').includes('> Archived historical note'))
+  .map((filePath) => path.relative(repoRoot, filePath));
+
+if (archivedNoteOffenders.length > 0) {
+  fail(
+    `archived-note docs must be moved under docs/archive (found: ${archivedNoteOffenders.join(', ')})`,
+  );
+}
+
 process.stdout.write(
-  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane retired)\n',
+  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane and root legacy docs retired)\n',
 );
