@@ -1,4 +1,4 @@
-import mapData from "../../generated/maps/world_client.json";
+const generatedMapUrl = new URL("../../generated/maps/world_client.json", import.meta.url).href;
 
 type WorkerMap = {
   width: number;
@@ -66,8 +66,20 @@ function generatePlateauGrid(map: WorkerMap): void {
 }
 
 self.onmessage = function onmessage(): void {
-  const map = JSON.parse(JSON.stringify(mapData)) as WorkerMap;
-  generateCollisionGrid(map);
-  generatePlateauGrid(map);
-  self.postMessage(map);
+  void fetch(generatedMapUrl)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Map request failed with status ${response.status}`);
+      }
+      return response.json() as Promise<WorkerMap>;
+    })
+    .then((map) => {
+      generateCollisionGrid(map);
+      generatePlateauGrid(map);
+      self.postMessage(map);
+    })
+    .catch((error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to load generated map JSON: ${message}`);
+    });
 };

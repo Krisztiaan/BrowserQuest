@@ -1,5 +1,43 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 client map payload URL-asset loading)
+
+### Ticket status
+
+- `T-337.1` Replace generated map module-import loading path with URL-asset fetch in client map runtime: `done`
+- `T-337.2` Apply URL-asset fetch path in map worker while preserving collision/plateau generation behavior: `done`
+- `T-337.3` Verify modern lane and confirm bundle no longer emits large `world_client-*.js` chunk: `done`
+- `T-337.4` Record evidence in readiness log: `done`
+
+### Live progress log
+
+- `2026-02-09T23:55Z` `in_progress` Started map payload loading optimization to avoid bundling generated map JSON into JS module chunks.
+  - Scope:
+    - switch client map runtime and worker from JSON module import to URL-asset fetch (`new URL(..., import.meta.url)`)
+    - keep generated artifact path and map processing behavior unchanged
+  - Out of scope:
+    - map schema changes
+  - Acceptance criteria:
+    - modern lane passes
+    - Vite build outputs `world_client-*.json` asset and no large `world_client-*.js` payload module
+  - Verification plan:
+    - `bun run build:vite`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:56Z` `done` Completed map payload URL-asset loading migration and re-verified modern lane.
+  - Evidence:
+    - client runtime map loading:
+      - `client/js-esm/map.ts`
+        - now uses `generatedMapUrl` via `new URL(..., import.meta.url).href` + `fetch`
+    - worker map loading:
+      - `client/js-esm/mapworker.ts`
+        - now loads generated map via URL-asset fetch before collision/plateau generation
+    - build artifact shape:
+      - `dist/vite/assets/world_client-*.json` present
+      - no `dist/vite/assets/world_client-*.js` payload module after build
+  - Verification:
+    - `bun run build:vite` -> pass
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 boundary guard for archived legacy docs location)
 
 ### Ticket status

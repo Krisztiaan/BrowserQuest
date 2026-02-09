@@ -3,6 +3,8 @@ import log from 'compat/log';
 import Types from 'compat/gametypes';
 import { isInt } from 'compat/util';
 
+const generatedMapUrl = new URL("../../generated/maps/world_client.json", import.meta.url).href;
+
 class Map {
     [key: string]: any;
 
@@ -46,10 +48,13 @@ class Map {
                 self._checkReady();
             };
         } else {
-            log.info("Loading map via module import.");
-            import("../../generated/maps/world_client.json")
-                .then(function(module) {
-                    return module.default;
+            log.info("Loading map via generated map asset URL.");
+            fetch(generatedMapUrl)
+                .then(function(response) {
+                    if(!response.ok) {
+                        throw new Error("Map request failed with status " + response.status);
+                    }
+                    return response.json();
                 })
                 .then(function(data) {
                     self._initMap(data);
