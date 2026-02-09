@@ -22,7 +22,7 @@ If your shell Node is not `22.x`, use wrapper commands, e.g. `bun run verify:mod
 Active Scripts
 --------------
 
-- `bun run dev`: full-stack dev (`server/js/main-esm.mjs` + Vite)
+- `bun run dev`: full-stack dev (`server/js/main-esm.ts` + Vite)
 - `bun run dev:client`: Vite-only dev server
 - `bun run dev:server`: server-only runtime
 - `bun run start:server`: production-style server entry
@@ -41,6 +41,11 @@ Verification
 - lint + format check
 - test suite
 - Vite production build
+
+Map artifacts are synced automatically:
+
+- at dev startup and on `tools/maps/tiled/world.json` changes (Vite serve plugin)
+- at build start (`vite build` hook)
 
 There is no legacy/rollback support path in active scripts.
 

@@ -1,5 +1,38 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 active modern docs accuracy cleanup)
+
+### Ticket status
+
+- `T-333.1` Align top-level README runtime/script references with current TS server entry and map-sync automation: `done`
+- `T-333.2` Align client build support matrix with current runtime map sync lane and entrypoint paths: `done`
+- `T-333.3` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T23:31Z` `in_progress` Started active-doc consistency cleanup for current modern-only behavior after recent runtime/map-sync changes.
+  - Scope:
+    - fix stale `.mjs` entrypoint references in active docs
+    - reflect automatic runtime map sync in dev/build flows
+  - Out of scope:
+    - archival historical migration docs
+  - Acceptance criteria:
+    - active docs reference `server/js/main-esm.ts` for server entry
+    - active docs describe automatic runtime map sync behavior in modern lanes
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:32Z` `done` Completed active-doc modern-behavior cleanup and re-verified full modern lane.
+  - Evidence:
+    - updated `README.md`:
+      - active scripts now reference `server/js/main-esm.ts`
+      - verification section documents automatic map sync hooks in Vite dev/build flows
+    - updated `docs/client-build-support.md`:
+      - server entry path updated to `server/js/main-esm.ts`
+      - runtime map-sync lane statement updated to reflect active automation
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 Vite build-time map sync automation)
 
 ### Ticket status

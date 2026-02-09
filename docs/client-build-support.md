@@ -6,7 +6,7 @@ Modern-only mode is active.
 
 - No legacy client/runtime support.
 - No rollback CJS server entry support.
-- No generated runtime artifact sync lane.
+- Runtime map artifacts are synced by active modern lanes (Vite serve/build hooks + map export tooling).
 - Runtime/build outputs are under `dist/**`.
 
 ## Runtime Baseline
@@ -18,7 +18,7 @@ Modern-only mode is active.
 ## Supported Entrypoints
 
 - Client: `client/modern.html`
-- Server: `bun run start:server` (`server/js/main-esm.mjs`)
+- Server: `bun run start:server` (`server/js/main-esm.ts`)
 - Dev (full stack): `bun run dev`
 
 `client/index.html` redirects to `client/modern.html`.
