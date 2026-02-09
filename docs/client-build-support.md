@@ -1,257 +1,44 @@
 # Client Build Support Matrix
 
-This project currently ships two client build paths while modernization is in progress.
+## Status (2026-02-08)
 
-## Status note (2026-02-08)
+Modern-only mode is active.
 
-- Legacy command lanes are retired and intentionally fail with guidance:
-  - `build:client`
-  - `build:vite:legacy`
-  - `verify:legacy`
-  - `test:legacy-browser` / `test:browser:legacy`
-- Modern verification and release readiness should use `verify` / `verify:modern`.
+- No legacy client/runtime support.
+- No rollback CJS server entry support.
+- No generated runtime artifact sync lane.
+- Runtime/build outputs are under `dist/**`.
 
-## Runtime baseline
+## Runtime Baseline
 
-- Node.js `22.x` (policy target; CI-enforced)
-- Bun `>= 1.3.0`
-- Package mode: `"type": "module"` (with explicit CJS boundary scripts where required)
-- CI verify workflows pin Bun `1.3.8` for reproducibility.
-- Runtime preflight command: `bun run check:runtime`
-- Node 22 wrapper for mismatched shells: `bash tools/node22-run.sh <command ...>`
-- Runbook: `docs/runtime-preflight.md`
+- Node.js: `22.x`
+- Bun: `>= 1.3.0`
+- Package mode: `"type": "module"`
 
-## Support tiers
+## Supported Entrypoints
 
-1. Primary (`Tier 1`): Modern ESM client
-- Entry page: `client/modern.html`
-- Build command: `bun run build:vite`
-- Dev command: `bun run dev:vite:full` then open `/` (modern redirect) or `/client/modern.html`
-- Local static dev (`bun run dev`): `/` resolves to modern entry by default.
-- Target: current browsers with native ESM support
+- Client: `client/modern.html`
+- Server: `bun run start:server` (`server/js/main-esm.mjs`)
+- Dev (full stack): `bun run dev`
 
-2. Compatibility (`Tier 2`): Legacy AMD/RequireJS client
-- Entry page: `client/index.html`
-- Build commands are retired:
-  - `bun run build:client` (retired; exits via `tools/legacy-retired.cjs`)
-  - `bun run build:vite:legacy` (retired; exits via `tools/legacy-retired.cjs`)
-- Local static dev legacy entry remains reachable at `/index.html` for rollback diagnostics.
-- Target: migration fallback only; no new feature work should start here unless required for parity/bugfixes
+`client/index.html` redirects to `client/modern.html`.
 
-## Build/verification gates
+## Build and Verify
 
-- Server entrypoint options:
-  - Default compatibility path: `bun run start:server` (`server/js/main.js`).
-  - Opt-in ESM bridge path: `bun run start:server:esm` (`server/js/main-esm.mjs`).
-  - Extracted ESM startup helper contracts:
-    - `server/js/main-esm-bridge-probe.mjs` (bridge-probe decision contract)
-    - `server/js/main-esm-runtime-options.mjs` (runtime-option decision contract)
-  - Optional websocket startup-mode flags for ESM entry:
-    - Bridge parity probe: `bun run start:server:esm:ws-bridge:probe` (emits `server.esm.ws_bridge_probe`).
-    - ESM websocket runtime mode: `bun run start:server:esm:ws-runtime` (emits `server.esm.ws_runtime_mode`, `status=ok`).
-    - Forced-failure diagnostics: `bun run start:server:esm:ws-runtime:fail` (emits `server.esm.ws_runtime_mode`, `status=failed`, then exits non-zero).
-  - Helper-to-command mapping:
-    - Bridge probe helper -> `start:server:esm:ws-bridge:probe`.
-    - Runtime-options helper -> `start:server:esm:ws-runtime` and `start:server:esm:ws-runtime:fail`.
-- Modern gate: `bun run verify:modern`
-  - Runs `check:runtime`, `check:package-mode-boundaries`, `check:modern-jquery-free` (all `client/js-esm/**/*.js`), `check:client-runtime-coverage` (all top-level `client/js-esm/*.js` reachable via runtime checkJs lane), `check:client-runtime-alias-drift:strict` (runtime-lane bare import specifiers explicitly mapped in `paths` and no stale aliases), `check:server-esm-runtime-coverage` (all runtime ESM bridge modules are explicitly included in server ESM checkJs lane), `check:ws-runtime-factory-sync` (runtime CJS websocket factory artifact is in sync with `.cts` source), `check:worldserver-sync` (runtime worldserver artifact is in sync with `.cts` source), `check:player-sync` (runtime player artifact is in sync with `.cts` source), `check:character-sync` (runtime character artifact is in sync with `.cts` source), `check:mob-sync` (runtime mob artifact is in sync with `.cts` source), `check:mobarea-sync` (runtime mobarea artifact is in sync with `.cts` source), `check:map-sync` (runtime map artifact is in sync with `.cts` source), `check:chest-sync` (runtime chest artifact is in sync with `.cts` source), `check:properties-sync` (runtime properties artifact is in sync with `.cts` source), `check:entity-sync` (runtime entity artifact is in sync with `.cts` source), `check:item-sync` (runtime item artifact is in sync with `.cts` source), `check:npc-sync` (runtime NPC artifact is in sync with `.cts` source), `check:message-sync` (runtime message artifact is in sync with `.cts` source), `check:chestarea-sync` (runtime chestarea artifact is in sync with `.cts` source), `check:checkpoint-sync` (runtime checkpoint artifact is in sync with `.cts` source), `check:area-sync` (runtime area artifact is in sync with `.cts` source), `check:formulas-sync` (runtime formulas artifact is in sync with `.cts` source), `check:log-sync` (runtime log artifact is in sync with `.cts` source), `check:utils-sync` (runtime utils artifact is in sync with `.cts` source), `check:format-sync` (runtime format artifact is in sync with `.cts` source), `check:metrics-client-sync` (runtime metrics-client artifact is in sync with `.cts` source), `check:config-preflight-sync` (runtime config-preflight artifact is in sync with `.cts` source), `check:main-sync` (runtime main artifact is in sync with `.cts` source), `check:main-runtime-sync` (runtime main-runtime artifact is in sync with `.cts` source), `check:ws-module-sync` (runtime websocket module artifact is in sync with `.cts` source), `check:metrics-sync` (runtime metrics artifact is in sync with `.cts` source), `check:metrics-runtime-sync` (runtime metrics-runtime artifact is in sync with `.cts` source), `typecheck:server-esm` (ESM startup/websocket helper checkJs lane), `lint`, `format:check`, `test`, and `build:vite`
-  - Websocket factory source workflow:
-    - edit `server/js/ws-runtime-class-factory.cts`
-    - run `bun run build:ws-runtime-factory`
-    - run `bun run check:ws-runtime-factory-sync`
-  - Worldserver source workflow:
-    - edit `server/js/worldserver.cts`
-    - run `bun run build:worldserver`
-    - run `bun run check:worldserver-sync`
-  - Player source workflow:
-    - edit `server/js/player.cts`
-    - run `bun run build:player`
-    - run `bun run check:player-sync`
-  - Character source workflow:
-    - edit `server/js/character.cts`
-    - run `bun run build:character`
-    - run `bun run check:character-sync`
-  - Mob source workflow:
-    - edit `server/js/mob.cts`
-    - run `bun run build:mob`
-    - run `bun run check:mob-sync`
-  - MobArea source workflow:
-    - edit `server/js/mobarea.cts`
-    - run `bun run build:mobarea`
-    - run `bun run check:mobarea-sync`
-  - Map source workflow:
-    - edit `server/js/map.cts`
-    - run `bun run build:map`
-    - run `bun run check:map-sync`
-  - Chest source workflow:
-    - edit `server/js/chest.cts`
-    - run `bun run build:chest`
-    - run `bun run check:chest-sync`
-  - Properties source workflow:
-    - edit `server/js/properties.cts`
-    - run `bun run build:properties`
-    - run `bun run check:properties-sync`
-  - Entity source workflow:
-    - edit `server/js/entity.cts`
-    - run `bun run build:entity`
-    - run `bun run check:entity-sync`
-  - Item source workflow:
-    - edit `server/js/item.cts`
-    - run `bun run build:item`
-    - run `bun run check:item-sync`
-  - NPC source workflow:
-    - edit `server/js/npc.cts`
-    - run `bun run build:npc`
-    - run `bun run check:npc-sync`
-  - Message source workflow:
-    - edit `server/js/message.cts`
-    - run `bun run build:message`
-    - run `bun run check:message-sync`
-  - ChestArea source workflow:
-    - edit `server/js/chestarea.cts`
-    - run `bun run build:chestarea`
-    - run `bun run check:chestarea-sync`
-  - Checkpoint source workflow:
-    - edit `server/js/checkpoint.cts`
-    - run `bun run build:checkpoint`
-    - run `bun run check:checkpoint-sync`
-  - Area source workflow:
-    - edit `server/js/area.cts`
-    - run `bun run build:area`
-    - run `bun run check:area-sync`
-  - Formulas source workflow:
-    - edit `server/js/formulas.cts`
-    - run `bun run build:formulas`
-    - run `bun run check:formulas-sync`
-  - Log source workflow:
-    - edit `server/js/log.cts`
-    - run `bun run build:log`
-    - run `bun run check:log-sync`
-  - Utils source workflow:
-    - edit `server/js/utils.cts`
-    - run `bun run build:utils`
-    - run `bun run check:utils-sync`
-  - Format source workflow:
-    - edit `server/js/format.cts`
-    - run `bun run build:format`
-    - run `bun run check:format-sync`
-  - Metrics-client source workflow:
-    - edit `server/js/metrics-client.cts`
-    - run `bun run build:metrics-client`
-    - run `bun run check:metrics-client-sync`
-  - Config-preflight source workflow:
-    - edit `server/js/config-preflight.cts`
-    - run `bun run build:config-preflight`
-    - run `bun run check:config-preflight-sync`
-  - Main source workflow:
-    - edit `server/js/main.cts`
-    - run `bun run build:main`
-    - run `bun run check:main-sync`
-  - Main-runtime source workflow:
-    - edit `server/js/main-runtime.cts`
-    - run `bun run build:main-runtime`
-    - run `bun run check:main-runtime-sync`
-  - Websocket module source workflow:
-    - edit `server/js/ws.cts`
-    - run `bun run build:ws-module`
-    - run `bun run check:ws-module-sync`
-  - Metrics-runtime source workflow:
-    - edit `server/js/metrics-runtime.cts`
-    - run `bun run build:metrics-runtime`
-    - run `bun run check:metrics-runtime-sync`
-- Metrics source workflow:
-  - edit `server/js/metrics.cts`
-  - run `bun run build:metrics`
-  - run `bun run check:metrics-sync`
-- Incremental TypeScript gate: `bun run typecheck`
-  - Runs `tsconfig.typecheck.json` (tests/tooling surface), `tsconfig.typecheck-runtime.json` (selected CJS runtime-adjacent JS modules), `tsconfig.typecheck-server-esm.json` (server/shared ESM startup + websocket bridge modules), plus client runtime/client boundary lanes.
-- Legacy gate: `bun run verify:legacy` is retired and intentionally exits with guidance.
-- Dependency drift check: `bun run check:deps:drift`
-  - Node22 policy variant: `bun run check:deps:drift:node22`
-- Class fanout guard: `bun run check:class-fanout`
-  - Fails only on newly introduced `server/js/lib/class.js` imports outside tracked allowlist.
-- Legacy optimizer integrity guard: `bun run check:legacy-optimizer-integrity`
-  - Verifies vendored optimizer/wrapper/config hashes and expected `bin/r.js` version header.
-- Modern gameplay parity smoke: `bun run test:modern-parity`
-  - Covers login, move, chat, zone, combat-path signaling, lootmove, and reconnect against a live server.
-- Static dev entry smoke: `bun run test:static-entry`
-  - Asserts `bun run dev` serves modern entry at `/` by default while keeping `/index.html` reachable for fallback diagnostics.
-- Modern browser UI smoke: `bun run test:browser:modern`
-  - Headless Playwright smoke for `client/modern.html` that validates UI boot, websocket handshake, first playable session, in-game UI controls, and live protocol actions (`HELLO`/`CHAT`).
-  - Browser protocol parity includes deterministic `MOVE`/`ZONE`, `ATTACK`/`HIT`/`LOOTMOVE`, plus reconnect (`go` + second `HELLO`/`WELCOME`) checks.
-  - First-time local setup: `bun run test:modern-browser:install`
-- Protocol invariant replay guard: `bun run test:browser:protocol-invariant`
-  - Replays deterministic `go` -> `HELLO` -> `WELCOME` -> `CHAT` -> `MOVE` -> `ZONE` protocol path plus invalid-`MOVE` rejection behavior on modern entry path.
-- Protocol-focused browser suite: `bun run test:browser:protocol`
-  - Runs `tests/browser/modern-protocol-actions.playwright.ts` and `tests/browser/protocol-invariant.playwright.ts` without full browser-smoke breadth for faster protocol triage.
-  - CI variant: `bun run test:browser:protocol:ci` (adds JUnit reporter output for artifact capture).
-- Structured server log smoke:
-  - Lifecycle-only: `bun run test:logs:lifecycle`
-  - Fatal taxonomy-only: `bun run test:logs:fatal`
-  - Optional healthy metrics path: `bun run test:metrics:healthy` (runs `check:metrics:healthy-prereqs` before executing the env-gated smoke)
-  - Shared harness: `tests/smoke/server-structured-logs.harness.ts`
-  - ESM websocket runtime mode smoke:
-    - `bun run test:smoke:esm:ws-runtime`
-    - Covers success-mode handshake and forced-failure diagnostics for `BQ_ESM_WS_RUNTIME` flags.
-  - Websocket boundary decision/parity checks:
-    - `bun run test:ws:runtime:drill` (scripted summary runner)
-    - `bun run test:ws:runtime:decision`
-    - `bun run test:ws:runtime:parity`
-    - `bun run check:ws:runbooks` (runbook backlink consistency check)
-    - Decision record: `docs/websocket-cjs-factory-migration-decision.md`
-- Legacy gate: `bun run verify:legacy` is retired and intentionally exits with guidance.
+- Build client bundle: `bun run build:vite`
+- TypeScript solution build: `bun run typecheck`
+- Verify (canonical): `bun run verify:modern`
+- Verify with Node22 policy wrapper: `bun run verify:modern:node22`
 
-## CI mapping
+`verify:modern` runs:
 
-- `verify-modern` workflow:
-  - Runs `verify:modern` on all push/PR events.
-- `verify-modern-browser` workflow:
-  - Runs `test:browser:modern` on browser/runtime-sensitive path changes.
-- `verify-protocol-invariant` workflow:
-  - Runs `test:browser:protocol:ci` on browser/runtime-sensitive path changes.
-  - Supports manual execution via `workflow_dispatch` when validating suspected protocol regressions outside changed-path triggers.
-  - Uploads protocol diagnostics artifacts (`test-results/**`, `playwright-report/**`) for easier failure triage.
-  - Artifact naming pattern: `protocol-invariant-diagnostics-<run_id>`.
-  - Triage path:
-    - Open the workflow run -> `Artifacts` -> download `protocol-invariant-diagnostics-<run_id>`.
-    - Check `test-results/protocol-invariant-junit.xml` first for failing test case and stack metadata.
-    - Use `playwright-report/**` for detailed trace/report context when available.
-- `verify-ws-boundary-drill` workflow:
-  - Advisory websocket boundary drill workflow:
-    - manual trigger (`workflow_dispatch`) for post-refactor validation,
-    - automatic PR trigger on websocket boundary path changes.
-  - Runs `bun run test:ws:runtime:drill`.
-  - Uploads summary artifact:
-    - `ws-boundary-drill-summary-<run_id>/artifacts/ws-boundary-drill-summary.json`
-    - `ws-boundary-drill-summary-<run_id>/artifacts/ws-boundary-drill-summary.md`
-  - Triage path:
-    - Open workflow run -> `Artifacts` -> download `ws-boundary-drill-summary-<run_id>`.
-    - Quick scan `artifacts/ws-boundary-drill-summary.md`, then use `artifacts/ws-boundary-drill-summary.json` for per-check detail.
-    - On failures, read `failureSnapshot.failedCheckKeys` and `failureSnapshot.failedChecks[*].{exitCode,logTailHint}` first for escalation handoff.
-    - If escalation is required, use `docs/websocket-boundary-escalation-template.md`.
-  - Decision/owner policy source: `docs/websocket-cjs-factory-migration-decision.md`.
-- `verify-dependency-drift` workflow:
-  - Manual + weekly snapshot (`workflow_dispatch` and Monday cron) for direct dependency drift visibility.
-  - Captures Bun-native dependency drift snapshot output as artifacts:
-    - `dependency-drift-<run_id>/dependency-drift.txt`
-    - `dependency-drift-<run_id>/dependency-drift.json`
-  - Workflow always publishes the snapshot; dependency drift itself is reported in summary/artifacts, not treated as infra failure.
-- `verify-metrics-healthy` workflow:
-  - Manual/optional (`workflow_dispatch`) job that provisions memcached and runs `test:metrics:healthy`.
-  - Run/triage guide: `docs/metrics-health-smoke-plan.md`
-- `verify-legacy-signoff-readiness` workflow:
-  - Manual (`workflow_dispatch`) advisory workflow for external signoff closure state (T-209/T-210/T-211).
-  - Captures machine-readable readiness artifact and text diagnostics:
-    - `legacy-signoff-readiness-<run_id>/legacy-signoff-readiness.json`
-    - `legacy-signoff-readiness-<run_id>/legacy-signoff-readiness.txt`
-  - Local parity commands:
-    - `bun run check:legacy-signoff:report`
-    - `bun run check:legacy-signoff:report:json`
-    - `bun run check:legacy-signoff:ready` (strict; fails until signoff is fully complete)
-- Legacy verification workflows `verify-legacy` and `verify-legacy-browser` are retired.
+- runtime/tooling guard checks (`check:*` modern lane)
+- TypeScript solution build (`tsc -b tsconfig.projects.json`)
+- lint/format/test
+- Vite production build
 
-## Change policy
+## Notes
 
-- New features and refactors must target the modern ESM path first.
-- Legacy path changes should be minimal, behavior-preserving, and motivated by compatibility.
-- Any change touching client boot/build behavior should run `verify:modern` and protocol browser coverage before merge.
+- Browser smoke and protocol tests remain modern-entry focused.
+- Optional CI advisory workflow for websocket runtime seams: `verify-ws-runtime-drill`.
+- Legacy verification/build commands are removed from active scripts.

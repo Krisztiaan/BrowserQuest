@@ -1,3 +1,5 @@
+> Archived historical note: this document is retained for migration history. Legacy command references (for example, `verify:legacy` or `build:client`) are non-active and may be retired.
+
 # Legacy Runtime Retirement Checklist (T-024)
 
 ## Objective

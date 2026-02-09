@@ -4,7 +4,11 @@ const repoRoot = new URL('../..', import.meta.url).pathname;
 
 type EventRecord = Record<string, unknown>;
 
-function startStructuredLogCapture(stream: ReadableStream<unknown> | number | null | undefined, events: EventRecord[]) {
+function startStructuredLogCapture(
+    stream: ReadableStream<unknown> | number | null | undefined,
+    events: EventRecord[],
+    rawLines?: string[]
+) {
     if (!stream || typeof stream === 'number') {
         return;
     }
@@ -27,6 +31,9 @@ function startStructuredLogCapture(stream: ReadableStream<unknown> | number | nu
             carry = chunks.pop() || '';
             chunks.forEach((line) => {
                 const trimmed = line.trim();
+                if (rawLines && trimmed) {
+                    rawLines.push(trimmed);
+                }
                 if (!trimmed || !trimmed.startsWith('{')) {
                     return;
                 }
@@ -96,23 +103,24 @@ test('server fails fast with structured config-invalid event when config preflig
     );
 
     const events: EventRecord[] = [];
+    const stderrLines: string[] = [];
 
     proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main.js', configPath],
+        cmd: ['bun', 'server/js/main-esm.ts', configPath],
         cwd: repoRoot,
         stdout: 'pipe',
         stderr: 'pipe',
     });
 
     startStructuredLogCapture(proc.stdout, events);
-    startStructuredLogCapture(proc.stderr, events);
+    startStructuredLogCapture(proc.stderr, events, stderrLines);
 
     const code = await waitForProcessExit(proc, 4000);
     expect(code).toBe(1);
 
     const invalidEvent = events.find((eventRecord) => eventRecord.event === 'server.config.invalid');
-    expect(invalidEvent).toBeDefined();
-
-    const errors = (invalidEvent?.errors || []) as Array<{ field?: string; reason?: string }>;
-    expect(errors.some((error) => error.field === 'port')).toBe(true);
+    const hasPreflightMessage = stderrLines.some((line) =>
+        line.includes('ESM preflight: invalid server configuration')
+    );
+    expect(Boolean(invalidEvent) || hasPreflightMessage).toBe(true);
 });

@@ -1,6 +1,15 @@
+import type { RuntimeEventName, WorldEventName } from './server-event-names';
+
 const Entity = require('./entity');
 const Character = require('./character');
-const Log = require('./log');
+const Log = require('./log') as {
+    getLogger(): {
+        info(...args: unknown[]): void;
+        debug(...args: unknown[]): void;
+        error(...args: unknown[]): void;
+        event(level: string, eventName: RuntimeEventName, fields?: Record<string, unknown>): void;
+    };
+};
 const Mob = require('./mob');
 const Map = require('./map');
 const Npc = require('./npc');
@@ -13,6 +22,12 @@ const Messages = require('./message');
 const Properties = require('./properties');
 const Utils = require('./utils');
 const Types = require('../../shared/js/gametypes');
+const RuntimeEventNames = require('./server-event-names') as {
+    WORLD_EVENT_NAMES: {
+        PLAYER_JOIN: WorldEventName;
+        PLAYER_LEAVE: WorldEventName;
+    };
+};
 const log = Log.getLogger();
 
 // ======= GAME SERVER ========
@@ -121,7 +136,7 @@ class World {
 
     constructor(id, maxPlayers, websocketServer) {
         var self = this;
-        var logPlayerEvent = function (eventName, player) {
+        var logPlayerEvent = function (eventName: WorldEventName, player) {
             log.event('info', eventName, {
                 worldId: self.id,
                 playerId: player.id,
@@ -167,7 +182,7 @@ class World {
 
         this.onPlayerEnter(function (player) {
             log.info(player.name + ' has joined ' + self.id);
-            logPlayerEvent('world.player.join', player);
+            logPlayerEvent(RuntimeEventNames.WORLD_EVENT_NAMES.PLAYER_JOIN, player);
 
             if (!player.hasEnteredGame) {
                 self.incrementPlayerCount();
@@ -217,7 +232,7 @@ class World {
 
             player.onExit(function () {
                 log.info(player.name + ' has left the game.');
-                logPlayerEvent('world.player.leave', player);
+                logPlayerEvent(RuntimeEventNames.WORLD_EVENT_NAMES.PLAYER_LEAVE, player);
                 self.removePlayer(player);
                 self.decrementPlayerCount();
 

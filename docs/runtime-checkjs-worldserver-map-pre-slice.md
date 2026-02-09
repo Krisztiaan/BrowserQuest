@@ -1,3 +1,5 @@
+> Archived historical note: this document is retained for migration history. Legacy command references (for example, `verify:legacy` or `build:client`) are non-active and may be retired.
+
 # Runtime CheckJs Wave 7 Pre-Slice (`worldserver.js` / `map.js`)
 
 Status: executed via `T-233` to `T-235` on 2026-02-07; this document is retained as the pre-slice planning artifact.

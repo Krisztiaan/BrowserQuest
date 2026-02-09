@@ -1,8 +1,8 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
-import WebSocket from 'ws';
+import WebSocket from '../support/ws-client';
 import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol';
-import WsCloseCodes from '../../shared/js/ws-close-codes-esm.mjs';
+import WsCloseCodes from '../../shared/js/ws-close-codes-esm.ts';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 const CLOSE_INVALID_PAYLOAD = WsCloseCodes.INVALID_PAYLOAD;
@@ -83,16 +83,20 @@ async function waitForAnyJsonMessage(ws: WebSocket, timeoutMs = 3000) {
 }
 
 async function waitForClose(ws: WebSocket, timeoutMs = 3000) {
-    return await new Promise<{ code: number; reason: Buffer }>((resolve, reject) => {
+    return await new Promise<{ code: number; reason: string }>((resolve, reject) => {
         if (ws.readyState === WebSocket.CLOSED) {
-            resolve({ code: WebSocket.CLOSED, reason: Buffer.alloc(0) });
+            resolve({ code: WebSocket.CLOSED, reason: '' });
             return;
         }
 
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for close')), timeoutMs);
-        ws.once('close', (code, reason) => {
+        ws.once('close', (closeEvent) => {
             clearTimeout(timeout);
-            resolve({ code, reason });
+            const eventRecord = closeEvent as { code?: unknown; reason?: unknown };
+            resolve({
+                code: typeof eventRecord.code === 'number' ? eventRecord.code : WebSocket.CLOSED,
+                reason: typeof eventRecord.reason === 'string' ? eventRecord.reason : '',
+            });
         });
         ws.once('error', () => {
             // close is expected shortly after protocol rejection
@@ -123,7 +127,7 @@ async function startServer(): Promise<RunningServer> {
     );
 
     const proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main.js', configPath],
+        cmd: ['bun', 'server/js/main-esm.ts', configPath],
         cwd: repoRoot,
         stdout: 'ignore',
         stderr: 'pipe',

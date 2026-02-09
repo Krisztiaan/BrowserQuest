@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import { createWebSocketRuntimeClasses } from '../../server/js/ws-runtime-class-factory.mjs';
+import { createWebSocketRuntimeClasses } from '../../server/js/ws-runtime-class-factory.ts';
+import type { ProtocolParsedAction } from '../../shared/js/protocol-contract-types';
 
 type Handler = (...args: unknown[]) => void;
 
@@ -30,7 +31,7 @@ function createSocketMock() {
     };
 }
 
-function createFactoryDeps(overrideProtocolParser?: (payload: string) => unknown[]) {
+function createFactoryDeps(overrideProtocolParser?: (payload: string) => ProtocolParsedAction[]) {
     return {
         log: {
             info: () => {

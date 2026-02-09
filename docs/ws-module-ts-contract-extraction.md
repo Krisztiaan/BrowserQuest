@@ -1,38 +1,13 @@
-# Websocket Module TS Contract Extraction (T-327)
+# WebSocket Module TS Contract Extraction (Archived)
 
-Date: 2026-02-08
+Original extraction date: 2026-02-08  
+Superseded state date: 2026-02-09
 
-## Objective
+This artifact documented an intermediate websocket-module contract during migration.
 
-Extract TypeScript-first contracts for `server/js/ws.js` module boundaries and exported runtime seam without runtime behavior changes.
+Current runtime is ESM-only and no active websocket module shadow-source contract lane is maintained.
 
-## Extracted artifacts
+Use these current references instead:
 
-- Contract module: `server/js/ws-module-types.ts`
-- Contract test: `tests/unit/ws-module-contract.test.ts`
-
-## Captured boundaries
-
-### Runtime dependencies
-
-- `url`
-- `http`
-- `./log`
-- `./utils`
-- `../../shared/js/protocol-contract`
-- `../../shared/js/ws-close-codes`
-- `ws`
-- `./ws-runtime-class-factory.cjs`
-
-### Export seam keys
-
-- `CLOSE_CODES`
-- `createWebSocketRuntimeClasses`
-- `MultiVersionWebsocketServer`
-- `wsWebSocketConnection`
-
-## Verification
-
-1. `bun run typecheck`
-2. `bun run verify:modern:node22`
-3. `bun run verify:legacy:node22`
+- `docs/websocket-runtime-class-boundary-parity.md`
+- `docs/websocket-boundary-escalation-template.md`

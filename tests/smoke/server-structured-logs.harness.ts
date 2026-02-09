@@ -1,5 +1,5 @@
 import net from 'node:net';
-import WebSocket from 'ws';
+import WebSocket from '../support/ws-client';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
@@ -179,7 +179,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
         const events: EventRecord[] = [];
         recentStructuredLines.length = 0;
         proc = Bun.spawn({
-            cmd: ['bun', 'server/js/main.js', configPath],
+            cmd: ['bun', 'server/js/main-esm.ts', configPath],
             cwd: repoRoot,
             env: options?.fatalTrigger
                 ? {

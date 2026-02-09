@@ -1,6 +1,7 @@
 
 import Entity from 'entity';
 import Types from 'compat/gametypes';
+import type { EntityKind } from 'compat/gametypes';
 
 type ItemType = 'weapon' | 'armor' | 'object';
 
@@ -11,12 +12,12 @@ export type LootPlayer = {
 };
 
 class Item extends Entity {
-    itemKind: string;
+    itemKind: string | undefined;
     type: ItemType;
     wasDropped: boolean;
     lootMessage: string;
 
-    constructor(id: string | number, kind: number, type: ItemType) {
+    constructor(id: string | number, kind: EntityKind, type: ItemType) {
         super(id, kind);
 
         this.itemKind = Types.getKindAsString(kind);
@@ -31,9 +32,9 @@ class Item extends Entity {
 
     onLoot(player: LootPlayer): void {
         if (this.type === "weapon") {
-            player.switchWeapon(this.itemKind);
+            player.switchWeapon(this.itemKind as string);
         } else if (this.type === "armor") {
-            player.armorloot_callback(this.itemKind);
+            player.armorloot_callback(this.itemKind as string);
         }
     }
 

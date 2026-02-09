@@ -1,8 +1,7 @@
-const fs = require('node:fs');
+const fs = require('node:fs/promises');
 
 type RuntimeConfig = Record<string, unknown>;
 type NullableRuntimeConfig = RuntimeConfig | null;
-type ReadConfigCallback = (config: NullableRuntimeConfig) => void;
 
 interface MainRuntimeContract {
     main(config: RuntimeConfig): void;
@@ -24,22 +23,19 @@ interface MainRuntimeContract {
 
 const MainRuntime = require('./main-runtime') as MainRuntimeContract;
 
-function getConfigFile(path: string, callback: ReadConfigCallback): void {
-    fs.readFile(path, 'utf8', (err: NodeJS.ErrnoException | null, jsonString: string) => {
-        if (err) {
-            console.error('Could not open config file:', err.path);
-            callback(null);
-            return;
+async function getConfigFile(path: string): Promise<NullableRuntimeConfig> {
+    try {
+        const jsonString = await fs.readFile(path, 'utf8');
+        return JSON.parse(jsonString) as RuntimeConfig;
+    } catch (err) {
+        if (err && typeof err === 'object' && 'code' in err && (err as { code?: string }).code === 'ENOENT') {
+            console.error('Could not open config file:', path);
+            return null;
         }
-
-        try {
-            callback(JSON.parse(jsonString) as RuntimeConfig);
-        } catch (parseErr) {
-            const message = parseErr instanceof Error ? parseErr.message : String(parseErr);
-            console.error('Could not parse config file:', path, message);
-            callback(null);
-        }
-    });
+        const message = err instanceof Error ? err.message : String(err);
+        console.error('Could not parse config file:', path, message);
+        return null;
+    }
 }
 
 if (require.main === module) {
@@ -52,18 +48,21 @@ if (require.main === module) {
         }
     });
 
-    getConfigFile(defaultConfigPath, (defaultConfig) => {
-        getConfigFile(customConfigPath, (localConfig) => {
-            if (localConfig) {
-                MainRuntime.main(localConfig);
-            } else if (defaultConfig) {
-                MainRuntime.main(defaultConfig);
-            } else {
-                console.error('Server cannot start without any configuration file.');
-                process.exit(1);
-            }
-        });
-    });
+    void (async () => {
+        const defaultConfig = await getConfigFile(defaultConfigPath);
+        const localConfig = await getConfigFile(customConfigPath);
+
+        if (localConfig) {
+            MainRuntime.main(localConfig);
+            return;
+        }
+        if (defaultConfig) {
+            MainRuntime.main(defaultConfig);
+            return;
+        }
+        console.error('Server cannot start without any configuration file.');
+        process.exit(1);
+    })();
 }
 
 module.exports = {

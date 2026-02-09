@@ -1,7 +1,9 @@
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
+
 const Entity = require('./entity') as new (
     id: number | string,
     type: string,
-    kind: number | string,
+    kind: EntityKind,
     x: number,
     y: number
 ) => {
@@ -38,7 +40,7 @@ class Character extends Entity {
     maxHitPoints: number;
     hitPoints: number;
 
-    constructor(id: number | string, type: string, kind: number | string, x: number, y: number) {
+    constructor(id: number | string, type: string, kind: EntityKind, x: number, y: number) {
         super(id, type, kind, x, y);
 
         this.orientation = Utils.randomOrientation();

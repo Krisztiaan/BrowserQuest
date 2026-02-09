@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { runStartupWithConfig } from '../../server/js/main-esm-startup-runner.mjs';
+import { runStartupWithConfig } from '../../server/js/main-esm-startup-runner.ts';
 
 test('startup runner executes bridge probe, runtime-option resolution, and startServer in order', async () => {
     const activeConfig = { port: 8000 };
@@ -9,7 +9,7 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
 
     const result = await runStartupWithConfig({
         activeConfig,
-        env: { BQ_ESM_WS_RUNTIME: '1' },
+        env: {},
         emitStructuredEvent: () => {
             // no-op
         },

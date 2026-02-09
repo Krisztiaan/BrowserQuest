@@ -1,10 +1,12 @@
+import type { RuntimeEventName } from './server-event-names';
+
 type LogLevelName = 'error' | 'info' | 'debug';
 type ConsoleMethod = 'error' | 'info' | 'log';
 
 interface EventPayload {
     ts: string;
     level: string;
-    event: string;
+    event: RuntimeEventName;
     [key: string]: unknown;
 }
 
@@ -61,7 +63,7 @@ class Log {
         }
     }
 
-    event(levelName: string, eventName: string, fields?: unknown): void {
+    event(levelName: string, eventName: RuntimeEventName, fields?: unknown): void {
         const resolvedLevelName = normalizeLevelName(levelName);
         const level = LEVELS[resolvedLevelName] !== undefined ? LEVELS[resolvedLevelName] : Log.INFO;
 

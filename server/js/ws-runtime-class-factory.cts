@@ -1,3 +1,14 @@
+const RuntimeEventNames = require('./server-event-names') as {
+    WS_EVENT_NAMES: {
+        CONNECTION_CLOSE_REQUEST: string;
+        CONNECTION_CLOSED: string;
+        CONNECTION_ERROR: string;
+        CONNECTION_OPEN: string;
+        SERVER_LISTEN: string;
+        SERVER_ERROR: string;
+    };
+};
+
 /**
  * @param {import('./ws-runtime-class-factory-types').WebSocketRuntimeFactoryDeps} deps
  * @returns {import('./ws-runtime-class-factory-types').WebSocketRuntimeClasses}
@@ -120,7 +131,7 @@ function createWebSocketRuntimeClasses({
             const code = Number.isInteger(closeCode) ? closeCode : CLOSE_CODES.NORMAL;
 
             log.info('Closing connection to ' + this.remoteAddress + '. Error: ' + reason);
-            logConnectionEvent('info', 'ws.connection.close_request', this, {
+            logConnectionEvent('info', RuntimeEventNames.WS_EVENT_NAMES.CONNECTION_CLOSE_REQUEST, this, {
                 code,
                 reason,
             });
@@ -174,7 +185,7 @@ function createWebSocketRuntimeClasses({
             });
 
             this._connection.on('close', () => {
-                logConnectionEvent('info', 'ws.connection.closed', this);
+                logConnectionEvent('info', RuntimeEventNames.WS_EVENT_NAMES.CONNECTION_CLOSED, this);
                 if (this.close_callback) {
                     this.close_callback();
                 }
@@ -183,7 +194,7 @@ function createWebSocketRuntimeClasses({
 
             this._connection.on('error', (err) => {
                 log.error('WebSocket connection error: ' + err);
-                logConnectionEvent('error', 'ws.connection.error', this, {
+                logConnectionEvent('error', RuntimeEventNames.WS_EVENT_NAMES.CONNECTION_ERROR, this, {
                     error: String(err),
                 });
             });
@@ -216,7 +227,7 @@ function createWebSocketRuntimeClasses({
             });
             this._httpServer.listen(port, () => {
                 log.info('Server is listening on port ' + port);
-                log.event('info', 'ws.server.listen', { port });
+                log.event('info', RuntimeEventNames.WS_EVENT_NAMES.SERVER_LISTEN, { port });
             });
 
             this._wss = new WebSocket.WebSocketServer({
@@ -226,7 +237,7 @@ function createWebSocketRuntimeClasses({
             });
             this._wss.on('error', (err) => {
                 log.error('WebSocket server error: ' + err);
-                log.event('error', 'ws.server.error', { error: String(err) });
+                log.event('error', RuntimeEventNames.WS_EVENT_NAMES.SERVER_ERROR, { error: String(err) });
             });
             this._wss.on('connection', (connection, req) => {
                 const remoteAddress = resolveRemoteAddress(req);
@@ -236,7 +247,7 @@ function createWebSocketRuntimeClasses({
                     this.connection_callback(wsConnection);
                 }
                 this.addConnection(wsConnection);
-                logConnectionEvent('info', 'ws.connection.open', wsConnection);
+                logConnectionEvent('info', RuntimeEventNames.WS_EVENT_NAMES.CONNECTION_OPEN, wsConnection);
             });
         }
 

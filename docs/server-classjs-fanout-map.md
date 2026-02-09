@@ -1,47 +1,14 @@
-# `server/js/lib/class.js` Fanout Map (2026-02-07)
+# server/js/lib/class.js Fanout Map (Archived)
 
-## Snapshot
+Original snapshot date: 2026-02-07  
+Superseded state date: 2026-02-09
 
-- Initial fanout before pilot: `12` server modules imported `./lib/class`.
-- After tiered migrations (`server/js/format.js`, `server/js/checkpoint.js`, `server/js/area.js`, `server/js/message.js`, `server/js/mobarea.js`, `server/js/chestarea.js`, `server/js/entity.js`, `server/js/character.js`, `server/js/item.js`, `server/js/npc.js`, `server/js/chest.js`, `server/js/mob.js`, `server/js/player.js`, `server/js/map.js`, `server/js/metrics.js`, `server/js/ws.js`, `server/js/worldserver.js`): `0` remaining imports.
+This fanout map tracked class-helper migration during earlier modernization phases.
 
-## Remaining direct dependents
+It is retained for historical context only and is no longer part of active runtime decision-making.
 
-- none
+Current runtime references:
 
-## Pilot completed
-
-- Migrated off `Class.extend` to native class:
-  - `server/js/format.js`
-  - `server/js/checkpoint.js`
-  - `server/js/area.js`
-  - `server/js/message.js`
-  - `server/js/mobarea.js`
-  - `server/js/chestarea.js`
-  - `server/js/entity.js`
-  - `server/js/character.js`
-  - `server/js/item.js`
-  - `server/js/npc.js`
-  - `server/js/chest.js`
-  - `server/js/mob.js`
-  - `server/js/player.js`
-  - `server/js/map.js`
-  - `server/js/metrics.js`
-  - `server/js/ws.js`
-  - `server/js/worldserver.js`
-- Export contract preserved:
-  - `exports.FormatChecker`
-  - `exports.check`
-
-## Suggested next migration order
-
-1. Low-risk leafs:
-   - complete
-2. High-risk core:
-   - complete
-
-## Verification guardrails per module migration
-
-- `bun run test`
-- `bun run verify:legacy:node22`
-- `bun run test:browser:protocol:node22`
+- `docs/runtime-cjs-boundary-inventory.md`
+- `docs/client-build-support.md`
+- `docs/modernization-readiness-status.md`

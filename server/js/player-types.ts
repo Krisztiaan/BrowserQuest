@@ -1,3 +1,6 @@
+import type { ClientToServerProtocolAction, ServerToClientProtocolAction } from '../../shared/js/protocol-contract-types';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
+
 export const PLAYER_RUNTIME_DEPENDENCY_BOUNDARIES = [
     './character',
     './chest',
@@ -43,29 +46,42 @@ export type PlayerCallbackField = (typeof PLAYER_CALLBACK_FIELDS)[number];
 
 export interface PlayerRuntimeConnection {
     id: string;
-    listen(callback: (message: unknown[]) => void): void;
+    listen(callback: (message: ClientToServerProtocolAction) => void): void;
     onClose(callback: () => void): void;
-    send(message: unknown): void;
+    send(message: ServerToClientProtocolAction): void;
     sendUTF8(message: string): void;
     close(reason: string): void;
     closeInvalidPayload?(reason: string): void;
 }
 
+export interface PlayerRuntimeEntity {
+    id: string | number;
+    kind?: EntityKind;
+}
+
+export interface PlayerRuntimeMessage {
+    serialize(): ServerToClientProtocolAction;
+}
+
+export interface PlayerRuntime {
+    id: string | number;
+}
+
 export interface PlayerRuntimeWorldServer {
-    addPlayer(player: unknown): void;
-    enter_callback(player: unknown): void;
+    addPlayer(player: PlayerRuntime): void;
+    enter_callback(player: PlayerRuntime): void;
     isValidPosition(x: number, y: number): boolean;
-    getEntityById(id: string | number): unknown;
+    getEntityById(id: string | number): PlayerRuntimeEntity | undefined;
     handleMobHate(mobId: string | number, playerId: string | number, hatePoints: number): void;
-    broadcastAttacker(player: unknown): void;
-    handleHurtEntity(entity: unknown, attacker?: unknown, damage?: number): void;
-    removeEntity(entity: unknown): void;
-    handleOpenedChest(chest: unknown, player: unknown): void;
-    handlePlayerVanish(player: unknown): void;
-    pushRelevantEntityListTo(player: unknown): void;
-    pushToPlayer(player: unknown, message: unknown): void;
+    broadcastAttacker(player: PlayerRuntime): void;
+    handleHurtEntity(entity: PlayerRuntimeEntity, attacker?: PlayerRuntimeEntity, damage?: number): void;
+    removeEntity(entity: PlayerRuntimeEntity): void;
+    handleOpenedChest(chest: PlayerRuntimeEntity, player: PlayerRuntime): void;
+    handlePlayerVanish(player: PlayerRuntime): void;
+    pushRelevantEntityListTo(player: PlayerRuntime): void;
+    pushToPlayer(player: PlayerRuntime, message: PlayerRuntimeMessage | ServerToClientProtocolAction): void;
     map: {
-        getCheckpoint(id: string | number): unknown;
+        getCheckpoint(id: string | number): { id?: string | number } | null | undefined;
     };
 }
 

@@ -1,12 +1,14 @@
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
+
 const Character = require('./character') as new (
     id: number | string,
     type: string,
-    kind: number | string,
+    kind: EntityKind,
     x: number,
     y: number
 ) => {
     id: number;
-    kind: number | string;
+    kind: EntityKind;
     x: number;
     y: number;
     hitPoints: number;
@@ -21,9 +23,9 @@ const Messages = require('./message') as {
 };
 
 const Properties = require('./properties') as {
-    getArmorLevel(kind: number | string): number;
-    getWeaponLevel(kind: number | string): number;
-    getHitPoints(kind: number | string): number;
+    getArmorLevel(kind: EntityKind): number;
+    getWeaponLevel(kind: EntityKind): number;
+    getHitPoints(kind: EntityKind): number;
 };
 
 const Utils = require('./utils') as {
@@ -39,7 +41,7 @@ interface HateEntry {
 
 interface DropItemLike {
     id: number;
-    kind: number | string;
+    kind: EntityKind;
 }
 
 interface MobAreaRespawnContract {
@@ -60,7 +62,7 @@ class Mob extends Character {
     respawn_callback: (() => void) | null;
     move_callback: ((mob: Mob) => void) | null;
 
-    constructor(id: number | string, kind: number | string, x: number, y: number) {
+    constructor(id: number | string, kind: EntityKind, x: number, y: number) {
         super(id, 'mob', kind, x, y);
 
         this.updateHitPoints();

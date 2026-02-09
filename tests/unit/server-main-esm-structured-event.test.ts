@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { createProbeEventEmitter, createStructuredEventEmitter } from '../../server/js/main-esm-structured-event.mjs';
+import { createProbeEventEmitter, createStructuredEventEmitter } from '../../server/js/main-esm-structured-event.ts';
 
 test('structured-event emitter writes non-error events to info channel with stable payload shape', () => {
     const infoLogs: string[] = [];

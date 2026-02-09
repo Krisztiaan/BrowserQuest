@@ -10,6 +10,7 @@ import type {
     RuntimeWorld,
     ServerConfig,
 } from './main-runtime-types';
+import type { RuntimeEventName } from './server-event-names';
 
 interface ConfigValidationResult {
     isValid: boolean;
@@ -29,13 +30,25 @@ const Log = require('./log') as {
     INFO: number;
     DEBUG: number;
 };
+const WsRuntime = require('./ws-runtime-esm.ts') as MainRuntimeDependencies['ws'];
+const RuntimeEventNames = require('./server-event-names') as {
+    SERVER_EVENT_NAMES: {
+        START: RuntimeEventName;
+        CONNECT_REJECTED: RuntimeEventName;
+        ERROR: RuntimeEventName;
+        CONFIG_INVALID: RuntimeEventName;
+        FATAL_UNCAUGHT_EXCEPTION: RuntimeEventName;
+        FATAL_UNHANDLED_REJECTION: RuntimeEventName;
+        FATAL_UNKNOWN: RuntimeEventName;
+    };
+};
 
 const log = Log.getLogger();
 
 function createRuntimeDependencies(overrides?: MainRuntimeDependencyOverrides): MainRuntimeDependencies {
     const injected = overrides || {};
     return {
-        ws: injected.ws || (require('./ws') as MainRuntimeDependencies['ws']),
+        ws: injected.ws || WsRuntime,
         WorldServer: injected.WorldServer || (require('./worldserver') as MainRuntimeDependencies['WorldServer']),
         Player: injected.Player || (require('./player') as MainRuntimeDependencies['Player']),
         metricsRuntime: injected.metricsRuntime || MetricsRuntime,
@@ -168,13 +181,13 @@ function createFatalReporter(
     emitServerEvent: RuntimeServerEventEmitter,
     logger: RuntimeLogger
 ): (label: string, err: unknown) => void {
-    const fatalEvents: Record<string, string> = {
-        uncaughtException: 'server.fatal.uncaught_exception',
-        unhandledRejection: 'server.fatal.unhandled_rejection',
+    const fatalEvents: Record<string, RuntimeEventName> = {
+        uncaughtException: RuntimeEventNames.SERVER_EVENT_NAMES.FATAL_UNCAUGHT_EXCEPTION,
+        unhandledRejection: RuntimeEventNames.SERVER_EVENT_NAMES.FATAL_UNHANDLED_REJECTION,
     };
 
     return function (label, err) {
-        const eventName = fatalEvents[label] || 'server.fatal.unknown';
+        const eventName = fatalEvents[label] || RuntimeEventNames.SERVER_EVENT_NAMES.FATAL_UNKNOWN;
         if (typeof err === 'object' && err !== null && 'stack' in err) {
             const stack = String((err as { stack?: unknown }).stack);
             logger.error(label + ': ' + stack);
@@ -261,7 +274,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     const emitServerEvent = createServerEventEmitter(logger);
 
     if (!validationResult.isValid) {
-        emitServerEvent('error', 'server.config.invalid', {
+        emitServerEvent('error', RuntimeEventNames.SERVER_EVENT_NAMES.CONFIG_INVALID, {
             errors: validationResult.errors,
         });
         logger.error('Invalid server configuration: ' + JSON.stringify(validationResult.errors));
@@ -304,7 +317,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     }
 
     logger.info('Starting BrowserQuest game server...');
-    emitServerEvent('info', 'server.start', {
+    emitServerEvent('info', RuntimeEventNames.SERVER_EVENT_NAMES.START, {
         port: config.port,
         worlds: config.nb_worlds,
         worldCapacity: config.nb_players_per_world,
@@ -318,7 +331,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
                 return;
             }
             connection.close('Server is full.');
-            emitServerEvent('info', 'server.connect.rejected', {
+            emitServerEvent('info', RuntimeEventNames.SERVER_EVENT_NAMES.CONNECT_REJECTED, {
                 reason: 'world_capacity_reached',
             });
         };
@@ -354,7 +367,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     server.onError(function (...args: unknown[]) {
         const message = args.map(String).join(', ');
         logger.error(message);
-        emitServerEvent('error', 'server.error', {
+        emitServerEvent('error', RuntimeEventNames.SERVER_EVENT_NAMES.ERROR, {
             message: message,
         });
     });

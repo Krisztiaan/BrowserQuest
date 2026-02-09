@@ -74,7 +74,7 @@ test('esm server entry fails fast with esm preflight error for invalid config', 
     );
 
     proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main-esm.mjs', configPath],
+        cmd: ['bun', 'server/js/main-esm.ts', configPath],
         cwd: repoRoot,
         stdout: 'pipe',
         stderr: 'pipe',

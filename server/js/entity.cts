@@ -1,3 +1,5 @@
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
+
 const Messages = require('./message') as {
     Spawn: new (entity: Entity) => unknown;
     Despawn: new (id: number) => unknown;
@@ -15,11 +17,11 @@ interface PositionLike {
 class Entity {
     id: number;
     type: string;
-    kind: number | string;
+    kind: EntityKind;
     x: number;
     y: number;
 
-    constructor(id: number | string, type: string, kind: number | string, x: number, y: number) {
+    constructor(id: number | string, type: string, kind: EntityKind, x: number, y: number) {
         this.id = Number.parseInt(String(id), 10);
         this.type = type;
         this.kind = kind;

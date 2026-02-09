@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import WS from '../../server/js/ws-esm.mjs';
+import WS from '../../server/js/ws-runtime-esm.ts';
 
 const originalConsoleInfo = console.info;
 

@@ -1,6 +1,6 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
-import WebSocket from 'ws';
+import WebSocket from '../support/ws-client';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 type EventRecord = Record<string, unknown>;
@@ -148,7 +148,7 @@ test("esm server entry with websocket bridge probe sends initial 'go' handshake"
 
     const events: EventRecord[] = [];
     proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main-esm.mjs', configPath],
+        cmd: ['bun', 'server/js/main-esm.ts', configPath],
         cwd: repoRoot,
         env: {
             ...process.env,
@@ -207,7 +207,7 @@ test('esm server entry websocket bridge probe fails fast with structured failure
     );
 
     proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main-esm.mjs', configPath],
+        cmd: ['bun', 'server/js/main-esm.ts', configPath],
         cwd: repoRoot,
         env: {
             ...process.env,

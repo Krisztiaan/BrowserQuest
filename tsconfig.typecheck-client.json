@@ -2,9 +2,13 @@
   "extends": "./tsconfig.typecheck.json",
   "compilerOptions": {
     "allowJs": true,
-    "checkJs": true
+    "checkJs": true,
+    "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-client.tsbuildinfo"
   },
   "include": [
+    "shared/js/connection-status.ts",
+    "shared/js/entity-kind-domain.ts",
+    "shared/js/protocol-contract-types.ts",
     "client/js-esm/client-boundary-types.ts",
     "client/js-esm/protocol-payload.ts",
     "tests/unit/client-boundary-types.test.ts"

@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.typecheck.json" },
+    { "path": "./tsconfig.typecheck-runtime.json" },
+    { "path": "./tsconfig.typecheck-server-esm.json" },
+    { "path": "./tsconfig.typecheck-client.json" },
+    { "path": "./tsconfig.typecheck-client-runtime.json" }
+  ]
+}

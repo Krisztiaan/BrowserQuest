@@ -47,3 +47,12 @@ test('main runtime dependency helper uses injected boundaries when provided', ()
     expect(dependencies.WorldServer).toBe(WorldServer);
     expect(dependencies.Player).toBe(Player);
 });
+
+test('main runtime dependency helper defaults ws boundary to modern ESM runtime module', () => {
+    const dependencies = MainRuntime.createRuntimeDependencies({
+        WorldServer: function WorldServer() {},
+        Player: function Player() {},
+    });
+
+    expect(typeof dependencies.ws.MultiVersionWebsocketServer).toBe('function');
+});

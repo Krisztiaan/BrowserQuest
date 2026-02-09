@@ -15,7 +15,7 @@ import {
     MSG_WHO,
     MSG_ZONE,
 } from '../support/protocol';
-import SharedTypes from '../../shared/js/gametypes-esm.mjs';
+import SharedTypes from '../../shared/js/gametypes-esm.ts';
 
 const Types = SharedTypes as {
     Messages: Record<string, number>;

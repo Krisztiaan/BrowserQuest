@@ -1,5 +1,5 @@
-import "./compat/detect.js";
-import "./compat/features.js";
-import "./compat/log.js";
-import "./compat/util.js";
-import "./compat/gametypes.js";
+import "./compat/detect.ts";
+import "./compat/features.ts";
+import "./compat/log.ts";
+import "./compat/util.ts";
+import "./compat/gametypes.ts";

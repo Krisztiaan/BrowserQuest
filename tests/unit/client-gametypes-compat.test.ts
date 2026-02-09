@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import TypesCompat from '../../client/js-esm/compat/gametypes.js';
-import TypesShared from '../../shared/js/gametypes-browser.mjs';
+import TypesCompat from '../../client/js-esm/compat/gametypes';
+import TypesShared from '../../shared/js/gametypes-browser.ts';
 
 test('client gametypes compat re-exports shared ESM gametypes contract', () => {
     expect(TypesCompat).toBe(TypesShared);

@@ -1,8 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import WSEsm from '../../server/js/ws-esm.mjs';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const WSCjs = require('../../server/js/ws');
+import WSEsm from '../../server/js/ws-runtime-esm.ts';
 
 const originalConsoleInfo = console.info;
 
@@ -45,10 +42,7 @@ function createSocketMock() {
     };
 }
 
-const runtimes = [
-    { label: 'cjs', ws: WSCjs },
-    { label: 'esm', ws: WSEsm },
-] as const;
+const runtimes = [{ label: 'esm', ws: WSEsm }] as const;
 
 for (const runtime of runtimes) {
     test(`ws runtime parity (${runtime.label}): malformed JSON closes with INVALID_PAYLOAD`, () => {

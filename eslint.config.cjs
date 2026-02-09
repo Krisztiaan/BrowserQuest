@@ -27,9 +27,6 @@ module.exports = [
     ignores: [
       "node_modules/**",
       "dist/**",
-      "client-build/**",
-      "bin/r.js",
-      "client/js/**",
       "client/js-esm/lib/**",
       "server/js/lib/**",
     ],

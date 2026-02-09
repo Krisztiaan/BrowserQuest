@@ -1,5 +1,6 @@
 import log from 'compat/log';
 import Types from 'compat/gametypes';
+import type { EntityKind } from 'compat/gametypes';
 
 type AnimationLike = {
     name: string;
@@ -22,7 +23,7 @@ type GridEntityLike = {
 
 class Entity {
     id: string | number;
-    kind: number;
+    kind: EntityKind;
 
     sprite: SpriteLike | null;
     normalSprite: SpriteLike | null;
@@ -50,7 +51,7 @@ class Entity {
     dirty_callback: ((entity: Entity) => void) | null;
     name: string;
 
-    constructor(id: string | number, kind: number) {
+    constructor(id: string | number, kind: EntityKind) {
         this.id = id;
         this.kind = kind;
 

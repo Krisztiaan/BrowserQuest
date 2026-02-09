@@ -1,3 +1,5 @@
+import type { RuntimeEventName } from './server-event-names';
+
 const NoopAdapter = require('./metrics-adapters/noop') as {
     createNoopMetricsAdapter(meta: Record<string, unknown>): unknown;
 };
@@ -14,6 +16,12 @@ const MemcacheAdapter = require('./metrics-adapters/memcache') as {
 
 const Log = require('./log') as {
     getLogger(): { error(...args: unknown[]): void };
+};
+const RuntimeEventNames = require('./server-event-names') as {
+    SERVER_EVENT_NAMES: {
+        METRICS_UNAVAILABLE: RuntimeEventName;
+        METRICS_READY: RuntimeEventName;
+    };
 };
 
 const log = Log.getLogger();
@@ -41,7 +49,7 @@ interface RuntimeOptions {
     adapters?: RuntimeAdapters;
 }
 
-type EmitServerEvent = (level: string, eventName: string, fields: Record<string, unknown>) => void;
+type EmitServerEvent = (level: string, eventName: RuntimeEventName, fields: Record<string, unknown>) => void;
 
 function isNonEmptyString(value: unknown): value is string {
     return typeof value === 'string' && value.trim().length > 0;
@@ -100,7 +108,7 @@ function createMetrics(
                 payload[key] = fields[key];
             });
         }
-        emitEvent('error', 'server.metrics.unavailable', payload);
+        emitEvent('error', RuntimeEventNames.SERVER_EVENT_NAMES.METRICS_UNAVAILABLE, payload);
     };
 
     if (!config.metrics_enabled) {
@@ -122,7 +130,7 @@ function createMetrics(
     try {
         return adapters.createMemcacheMetricsAdapter(config, {
             onReady: function () {
-                emitEvent('info', 'server.metrics.ready', {
+                emitEvent('info', RuntimeEventNames.SERVER_EVENT_NAMES.METRICS_READY, {
                     memcachedHost: config.memcached_host,
                     memcachedPort: config.memcached_port,
                     serverName: config.server_name,

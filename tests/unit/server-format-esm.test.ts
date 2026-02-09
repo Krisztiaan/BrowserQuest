@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, expect, test } from 'bun:test';
-import { check as checkEsm, FormatChecker as FormatCheckerEsm } from '../../server/js/format-esm.mjs';
+import { check as checkEsm, FormatChecker as FormatCheckerEsm } from '../../server/js/format-esm.ts';
 import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_CHAT, MSG_HELLO, MSG_MOVE, MSG_WHO } from '../support/protocol';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports

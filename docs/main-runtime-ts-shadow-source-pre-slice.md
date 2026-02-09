@@ -1,3 +1,5 @@
+> Archived historical note: this document is retained for migration history. Legacy command references (for example, `verify:legacy` or `build:client`) are non-active and may be retired.
+
 # Main Runtime TS Shadow-Source Pre-Slice (T-328/T-329)
 
 Date: 2026-02-08

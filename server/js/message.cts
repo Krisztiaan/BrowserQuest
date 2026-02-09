@@ -1,3 +1,5 @@
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
+
 const Types = require('../../shared/js/gametypes') as {
     Messages: Record<string, number>;
 };
@@ -9,7 +11,7 @@ interface StatefulEntity {
     id: number;
     x: number;
     y: number;
-    kind: number | string;
+    kind: EntityKind;
     getState(): Array<number | string>;
 }
 
@@ -18,7 +20,7 @@ interface IdentifiedEntity {
 }
 
 interface ItemLike extends IdentifiedEntity {
-    kind: number | string;
+    kind: EntityKind;
 }
 
 interface HateEntry {
@@ -26,7 +28,7 @@ interface HateEntry {
 }
 
 interface MobLike extends IdentifiedEntity {
-    kind: number | string;
+    kind: EntityKind;
     hatelist: HateEntry[];
 }
 
@@ -145,9 +147,9 @@ Messages.HitPoints = class HitPoints extends Message {
 
 Messages.EquipItem = class EquipItem extends Message {
     playerId: number;
-    itemKind: number | string;
+    itemKind: EntityKind;
 
-    constructor(player: IdentifiedEntity, itemKind: number | string) {
+    constructor(player: IdentifiedEntity, itemKind: EntityKind) {
         super();
         this.playerId = player.id;
         this.itemKind = itemKind;

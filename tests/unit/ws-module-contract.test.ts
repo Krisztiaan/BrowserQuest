@@ -1,30 +1,17 @@
 import { expect, test } from 'bun:test';
-import type { WsModuleContract } from '../../server/js/ws-module-types';
-import {
-    WS_MODULE_EXPORT_KEYS,
-    WS_MODULE_SHADOW_SOURCE_CONTRACT,
-    WS_RUNTIME_DEPENDENCY_BOUNDARIES,
-} from '../../server/js/ws-module-types';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const WsModule = require('../../server/js/ws') as WsModuleContract;
+import WsModule from '../../server/js/ws-runtime-esm.ts';
 
 function hasDuplicates(values: readonly string[]): boolean {
     return new Set(values).size !== values.length;
 }
 
-test('ws module contract inventory is deterministic', () => {
-    expect(WS_RUNTIME_DEPENDENCY_BOUNDARIES.length).toBe(8);
-    expect(hasDuplicates(WS_RUNTIME_DEPENDENCY_BOUNDARIES)).toBe(false);
-    expect(WS_RUNTIME_DEPENDENCY_BOUNDARIES).toContain('./ws-runtime-class-factory.cjs');
-
-    expect(WS_MODULE_EXPORT_KEYS.length).toBe(4);
-    expect(hasDuplicates(WS_MODULE_EXPORT_KEYS)).toBe(false);
-    expect(WS_MODULE_EXPORT_KEYS).toContain('MultiVersionWebsocketServer');
-    expect(WS_MODULE_EXPORT_KEYS).toContain('wsWebSocketConnection');
-
-    expect(WS_MODULE_SHADOW_SOURCE_CONTRACT.dependencyBoundaries).toEqual(WS_RUNTIME_DEPENDENCY_BOUNDARIES);
-    expect(WS_MODULE_SHADOW_SOURCE_CONTRACT.exportKeys).toEqual(WS_MODULE_EXPORT_KEYS);
+test('ws runtime export key inventory is deterministic', () => {
+    const exportKeys = Object.keys(WsModule).sort();
+    expect(hasDuplicates(exportKeys)).toBe(false);
+    expect(exportKeys).toContain('CLOSE_CODES');
+    expect(exportKeys).toContain('createWebSocketRuntimeClasses');
+    expect(exportKeys).toContain('MultiVersionWebsocketServer');
+    expect(exportKeys).toContain('wsWebSocketConnection');
 });
 
 test('ws module exports seam-compatible runtime contract', () => {

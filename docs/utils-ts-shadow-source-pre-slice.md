@@ -1,3 +1,5 @@
+> Archived historical note: this document is retained for migration history. Legacy command references (for example, `verify:legacy` or `build:client`) are non-active and may be retired.
+
 # Utils Module TS Shadow-Source Pre-Slice
 
 Date: 2026-02-08

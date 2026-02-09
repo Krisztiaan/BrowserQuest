@@ -1,6 +1,6 @@
 # Server Logging Taxonomy
 
-This document defines the structured event names and payload fields emitted by the server logger (`server/js/log.js`).
+This document defines the structured event names and payload fields emitted by the server logger (`server/js/log.cts` / `server/js/log-esm.mjs`).
 
 ## Record envelope
 
@@ -12,7 +12,7 @@ All structured records include:
 
 ## Event names and fields
 
-### Server lifecycle (`server/js/main.js`)
+### Server lifecycle (`server/js/main-runtime.cts` via `server/js/main-esm.mjs`)
 
 - `server.start`
   - `port`
@@ -44,7 +44,7 @@ All structured records include:
   - `message`
   - `stack` (when available)
 
-### WebSocket lifecycle (`server/js/ws.js`)
+### WebSocket lifecycle (`server/js/ws-runtime-esm.mjs`)
 
 - `ws.server.listen`
   - `port`
@@ -65,7 +65,7 @@ All structured records include:
   - `remoteAddress`
   - `error`
 
-### World/player lifecycle (`server/js/worldserver.js`)
+### World/player lifecycle (`server/js/worldserver.cts`)
 
 - `world.player.join`
   - `worldId`

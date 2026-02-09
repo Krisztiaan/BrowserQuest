@@ -1,7 +1,0 @@
-var CLOSE_CODES = {
-    NORMAL: 1000,
-    UNSUPPORTED_DATA: 1003,
-    INVALID_PAYLOAD: 1007,
-};
-
-module.exports = CLOSE_CODES;

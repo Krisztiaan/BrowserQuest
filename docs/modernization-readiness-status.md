@@ -1,5 +1,600 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-08 modern built-in replacement sweep)
+
+### Ticket status
+
+- `T-312.1` Convert `tools/*.cjs` runtime/check scripts to Bun-run TypeScript ESM and rewire scripts: `done`
+- `T-312.2` Modernize map tooling (`tools/maps/*`) and remove duplicate JS tool copies: `done`
+- `T-312.3` Switch modern server config loading to Bun native JSON loader path: `done`
+- `T-312.4` Remove CJS websocket runtime from active runtime/test contracts: `done`
+- `T-312.5` Collapse redundant server ESM wrapper layer where safe: `done`
+- `T-312.6` Add full AMD/jQuery client retirement as planned larger project: `done`
+
+### Live progress log
+
+- `2026-02-08T22:37Z` `in_progress` Started modern built-in replacement sweep requested by user.
+  - Scope:
+    - convert Node/CJS tool entry scripts under `tools/*.cjs` to Bun-run ESM TypeScript
+    - modernize `tools/maps` scripts to async ESM TS and remove duplicate JS artifacts
+    - move modern config load path to Bun-native JSON reads
+    - enforce ESM websocket runtime as active path and update active tests/contracts
+    - retire redundant ESM wrappers where direct imports are sufficient
+    - add planning ticket for larger legacy AMD/jQuery runtime retirement
+  - Out of scope:
+    - full legacy AMD/jQuery runtime rewrite/removal in this implementation slice
+  - Acceptance criteria:
+    - affected tooling/runtimes use modern built-ins with equivalent behavior
+    - no active runtime or tests require CJS websocket module path
+    - verify lane remains green
+    - larger AMD/jQuery retirement recorded as planned follow-up
+  - Verification plan:
+    - `bun run verify:modern:node22`
+    - targeted smoke/unit checks for changed runtime/tooling seams
+- `2026-02-08T22:58Z` `done` Completed modern built-in replacement sweep and recorded larger-project follow-up plan.
+  - Evidence:
+    - `T-312.1` tooling conversion:
+      - converted and rewired runtime/check scripts from `tools/*.cjs` to `tools/*.ts` (Bun-run entrypoints).
+      - removed root `tools/*.cjs` files and updated package/workflow callsites.
+      - updated workflows:
+        - `.github/workflows/verify-dependency-drift.yml`
+        - `.github/workflows/verify-ws-boundary-drill.yml`
+    - `T-312.2` map tooling modernization:
+      - modernized:
+        - `tools/maps/exportmap.ts`
+        - `tools/maps/processmap.ts`
+        - `tools/maps/export.py`
+      - removed duplicate JS map tool copies:
+        - `tools/maps/exportmap.js`
+        - `tools/maps/processmap.js`
+      - updated tool docs:
+        - `tools/maps/README.md`
+    - `T-312.3` Bun-native config loading:
+      - `server/js/main-esm-config-source.mjs` now prefers Bun file/json API on default read path while preserving fallback semantics.
+    - `T-312.4` active websocket runtime contract modernization:
+      - default ESM startup now always injects websocket runtime seam from:
+        - `server/js/ws-runtime-esm.mjs`
+      - runtime option fallback/toggle-only behavior retired in:
+        - `server/js/main-esm-runtime-options.mjs`
+      - websocket CJS parity assertions removed from active unit/smoke tests.
+    - `T-312.5` ESM wrapper collapse:
+      - retired redundant wrappers:
+        - `server/js/ws-esm.mjs`
+        - `server/js/main-runtime-esm.mjs`
+        - `server/js/metrics-esm.mjs`
+        - `server/js/metrics-runtime-esm.mjs`
+      - updated direct import callsites + coverage config:
+        - `server/js/main-esm.mjs`
+        - `tsconfig.typecheck-server-esm.json`
+    - `T-312.6` larger-project planning:
+      - planned follow-up ticket recorded:
+        - `T-313.1` Full AMD/jQuery client runtime retirement (`client/js/**`, RequireJS, and legacy runtime-only docs/checks removal) with dedicated migration slices.
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+  - Notable blockers resolved:
+    - initial `verify:modern:node22` failure in `check:runtime` after Bun migration (`process.version` reflected Bun embed node v24); fixed by checking `node -p "process.version"` from PATH in `tools/check-runtime.ts`.
+    - initial test failures in wrapper-retirement slice due strict function identity assertions; converted to contract-level function signature/name checks in:
+      - `tests/unit/server-main-runtime-esm.test.ts`
+      - `tests/unit/server-metrics-esm.test.ts`
+  - Planned follow-up ticket (`T-313.1`):
+    - Scope:
+      - retire legacy AMD/jQuery client runtime tree (`client/js/**`) and RequireJS entry usage.
+      - align docs/check scripts/workflows to modern-only client runtime coverage.
+    - Out of scope:
+      - gameplay behavior rewrites unrelated to loader/runtime retirement.
+    - Acceptance criteria:
+      - no runtime/dev/test path depends on AMD/jQuery tree.
+      - modern verify lane passes without legacy client artifacts.
+    - Verification plan:
+      - `bun run verify:modern:node22`
+      - browser protocol smoke lane after runtime retirement slice.
+    - Dependencies/blockers:
+      - staged migration of any remaining map/asset/runtime consumers that still assume `client/js/**` AMD loading semantics.
+
+## Delta Update (2026-02-08 client wrapper artifact sync TypeScript source-of-truth slice)
+
+### Ticket status
+
+- `T-307.35` Promote `client/js-esm` wrapper artifacts (`bootstrap.js`, `preflight.js`, `mapworker.js`) to TS-authored generated outputs: `done`
+- `T-307.36` Add deterministic sync/check tooling and enforce in modern verify lane: `done`
+- `T-307.37` Re-run verification lanes and update docs/script formatting scope for this slice: `done`
+
+### Live progress log
+
+- `2026-02-08T20:08Z` `in_progress` Started wrapper-artifact source-of-truth migration to remove remaining authored modern-client JS in favor of generated outputs.
+  - Scope:
+    - keep runtime wrapper files:
+      - `client/js-esm/bootstrap.js`
+      - `client/js-esm/preflight.js`
+      - `client/js-esm/mapworker.js`
+    - move ownership to existing TypeScript sources:
+      - `client/js-esm/bootstrap.ts`
+      - `client/js-esm/preflight.ts`
+      - `client/js-esm/mapworker.ts`
+    - add deterministic sync tooling, build/check commands, and verify-lane guard
+  - Out of scope:
+    - legacy `client/js/**` tree
+  - Acceptance criteria:
+    - wrapper JS files are generated by sync tooling from TS sources.
+    - sync check is enforced by `verify:modern`.
+    - typecheck/test/build/format lanes remain green.
+  - Verification plan:
+    - `bun run build:client-wrappers`
+    - `bun run check:client-wrappers-sync`
+    - `bun x tsc -p tsconfig.typecheck-runtime.json`
+    - `bun x tsc -p tsconfig.typecheck-client-runtime.json`
+    - `bun run test`
+    - `bun run build:vite`
+    - `bun run format:check`
+- `2026-02-08T20:08Z` `done` Completed wrapper sync tooling and verified full target lanes.
+  - Evidence:
+    - build config/tooling:
+      - `tsconfig.build-client-wrappers.json`
+      - `tools/sync-client-wrappers.cjs`
+    - package wiring:
+      - `package.json` scripts:
+        - `build:client-wrappers`
+        - `check:client-wrappers-sync`
+        - `verify:modern` now enforces `check:client-wrappers-sync`
+    - generated artifacts updated from TS sources:
+      - `client/js-esm/bootstrap.js`
+      - `client/js-esm/preflight.js`
+      - `client/js-esm/mapworker.js`
+    - formatter scope hardening:
+      - switched format targets from generated `client/js-esm/preflight.js` to authored `client/js-esm/preflight.ts`
+    - verification:
+      - `bun run build:client-wrappers` -> pass
+      - `bun run check:client-wrappers-sync` -> pass
+      - `bun x tsc -p tsconfig.typecheck-runtime.json` -> pass
+      - `bun x tsc -p tsconfig.typecheck-client-runtime.json` -> pass
+      - `bun run test` -> pass (`135 pass`, `1 skip`, `0 fail`)
+      - `bun run build:vite` -> pass
+      - `bun run format:check` -> pass
+
+## Delta Update (2026-02-08 shared gametypes + server classjs TypeScript shadow-source slice)
+
+### Ticket status
+
+- `T-307.32` Promote shared gametypes and server class helper modules to TypeScript-authored shadow sources: `done`
+- `T-307.33` Add deterministic sync/check tooling and enforce in modern verify lane: `done`
+- `T-307.34` Re-run target verification lanes and update readiness/runtime docs for this slice: `done`
+
+### Live progress log
+
+- `2026-02-08T20:04Z` `in_progress` Started final non-legacy source conversion slice for remaining source-owned JS modules without TS/CTS counterparts.
+  - Scope:
+    - `shared/js/gametypes.js` -> `shared/js/gametypes.cts` (authored source + generated runtime artifact workflow)
+    - `server/js/lib/class.js` -> `server/js/lib/class.cts` (authored source + generated runtime artifact workflow)
+    - add sync tooling + build/check scripts and wire guards into `verify:modern`
+    - update runtime typecheck and runtime defer inventory docs
+  - Out of scope:
+    - intentional JS runtime wrapper entries (`client/js-esm/bootstrap.js`, `client/js-esm/preflight.js`, `client/js-esm/mapworker.js`)
+    - legacy `client/js/**` tree migration
+  - Acceptance criteria:
+    - selected modules are authored in `.cts`.
+    - generated JS artifacts are deterministic and sync-guarded.
+    - runtime/client typecheck + test/build/format lanes remain green.
+  - Verification plan:
+    - `bun run build:gametypes`
+    - `bun run build:classjs`
+    - `bun run check:gametypes-sync`
+    - `bun run check:classjs-sync`
+    - `bun x tsc -p tsconfig.typecheck-runtime.json`
+    - `bun x tsc -p tsconfig.typecheck-client-runtime.json`
+    - `bun run test`
+    - `bun run build:vite`
+    - `bun run format:check`
+- `2026-02-08T20:04Z` `done` Completed gametypes/classjs shadow-source promotion and verified target lanes.
+  - Evidence:
+    - authored TypeScript sources:
+      - `shared/js/gametypes.cts`
+      - `server/js/lib/class.cts`
+    - deterministic sync/build tooling:
+      - `tools/sync-gametypes.cjs`
+      - `tools/sync-classjs.cjs`
+      - `tsconfig.build-gametypes.json`
+      - `tsconfig.build-classjs.json`
+    - generated runtime artifacts updated:
+      - `shared/js/gametypes.js`
+      - `server/js/lib/class.js`
+    - package/runtime wiring updates:
+      - `package.json` scripts:
+        - `build:gametypes`, `build:classjs`
+        - `check:gametypes-sync`, `check:classjs-sync`
+        - `verify:modern` now enforces both new sync checks
+      - `tsconfig.typecheck-runtime.json` now includes `shared/js/gametypes.cts` and `server/js/lib/class.cts`
+      - `docs/typescript-runtime-checkjs-defer-list.md` updated for authored/generated inventory + guard commands
+    - migration-specific hardening:
+      - replaced strict-mode-incompatible legacy `arguments.callee`/implicit global patterns in class helper with equivalent strict-safe TypeScript implementation.
+      - preserved current gametypes runtime behavior with `.cts` shadow source; added temporary `@ts-nocheck` to avoid broad, non-behavioral typing churn in this slice.
+      - adjusted formatter scope to authored source (`shared/js/gametypes.cts`) instead of generated artifact.
+    - verification:
+      - `bun run build:gametypes` -> pass
+      - `bun run build:classjs` -> pass
+      - `bun run check:gametypes-sync` -> pass
+      - `bun run check:classjs-sync` -> pass
+      - `bun x tsc -p tsconfig.typecheck-runtime.json` -> pass
+      - `bun x tsc -p tsconfig.typecheck-client-runtime.json` -> pass
+      - `bun run test` -> pass (`135 pass`, `1 skip`, `0 fail`)
+      - `bun run build:vite` -> pass
+      - `bun run format:check` -> pass
+
+## Delta Update (2026-02-08 shared ws-close-codes TypeScript shadow-source slice)
+
+### Ticket status
+
+- `T-307.29` Promote shared websocket close-code contract module to TypeScript-authored shadow source: `done`
+- `T-307.30` Add deterministic sync/check tooling and enforce in modern verify lane: `done`
+- `T-307.31` Re-run target verification lanes and update readiness/runtime docs for this slice: `done`
+
+### Live progress log
+
+- `2026-02-08T20:00Z` `in_progress` Started shared close-code shadow-source promotion as the next low-risk runtime contract conversion.
+  - Scope:
+    - `shared/js/ws-close-codes.js` -> `shared/js/ws-close-codes.cts` (authored source + generated runtime artifact workflow)
+    - add sync tooling + build/check scripts and wire guard into `verify:modern`
+    - update runtime typecheck and defer inventory docs
+  - Out of scope:
+    - shared `gametypes.js` shadow-source promotion in this slice
+    - legacy `client/js/**` migration
+  - Acceptance criteria:
+    - close-code source is authored in `.cts`.
+    - generated JS artifact is deterministic and sync-guarded.
+    - runtime/client typecheck + test/build lanes remain green.
+  - Verification plan:
+    - `bun run build:ws-close-codes`
+    - `bun run check:ws-close-codes-sync`
+    - `bun x tsc -p tsconfig.typecheck-runtime.json`
+    - `bun x tsc -p tsconfig.typecheck-client-runtime.json`
+    - `bun run test`
+    - `bun run build:vite`
+    - `bun run format:check`
+- `2026-02-08T20:00Z` `done` Completed shared close-code shadow-source promotion and verified target lanes.
+  - Evidence:
+    - authored TypeScript source:
+      - `shared/js/ws-close-codes.cts`
+    - deterministic sync/build tooling:
+      - `tools/sync-ws-close-codes.cjs`
+      - `tsconfig.build-ws-close-codes.json`
+    - generated runtime artifact updated:
+      - `shared/js/ws-close-codes.js`
+    - package/runtime wiring updates:
+      - `package.json` scripts:
+        - `build:ws-close-codes`
+        - `check:ws-close-codes-sync`
+        - `verify:modern` now enforces `check:ws-close-codes-sync`
+      - `tsconfig.typecheck-runtime.json` now includes `shared/js/ws-close-codes.cts`
+      - `docs/typescript-runtime-checkjs-defer-list.md` updated for authored/generated inventory + guard command
+    - verification:
+      - `bun run build:ws-close-codes` -> pass
+      - `bun run check:ws-close-codes-sync` -> pass
+      - `bun x tsc -p tsconfig.typecheck-runtime.json` -> pass
+      - `bun x tsc -p tsconfig.typecheck-client-runtime.json` -> pass
+      - `bun run test` -> pass (`135 pass`, `1 skip`, `0 fail`)
+      - `bun run build:vite` -> pass
+      - `bun run format:check` -> pass
+
+## Delta Update (2026-02-08 server metrics-adapter TypeScript shadow-source slice)
+
+### Ticket status
+
+- `T-307.26` Promote server metrics adapter modules (`metrics-adapters/memcache`, `metrics-adapters/noop`) to TypeScript-authored shadow sources: `done`
+- `T-307.27` Add deterministic sync/check tooling and wire checks into modern verify lane: `done`
+- `T-307.28` Re-run target verification lanes and update readiness docs for this slice: `done`
+
+### Live progress log
+
+- `2026-02-08T19:58Z` `in_progress` Started server metrics-adapter shadow-source promotion to continue first-party JS source retirement outside legacy client tree.
+  - Scope:
+    - `server/js/metrics-adapters/memcache.js` -> `server/js/metrics-adapters/memcache.cts` (authored source + generated runtime artifact workflow)
+    - `server/js/metrics-adapters/noop.js` -> `server/js/metrics-adapters/noop.cts` (authored source + generated runtime artifact workflow)
+    - add sync tooling + build/check scripts + verify enforcement for both adapters
+    - update runtime typecheck and runtime defer inventory docs
+  - Out of scope:
+    - legacy `client/js/**` tree migration
+    - shared `gametypes.js` / `ws-close-codes.js` shadow-source promotion in this slice
+  - Acceptance criteria:
+    - metrics adapter sources are authored in `.cts`.
+    - generated JS artifacts are deterministic and guarded by check scripts.
+    - runtime/client typecheck + test/build lanes remain green.
+  - Verification plan:
+    - `bun run build:metrics-adapter-memcache`
+    - `bun run build:metrics-adapter-noop`
+    - `bun run check:metrics-adapter-memcache-sync`
+    - `bun run check:metrics-adapter-noop-sync`
+    - `bun x tsc -p tsconfig.typecheck-runtime.json`
+    - `bun x tsc -p tsconfig.typecheck-client-runtime.json`
+    - `bun run test`
+    - `bun run build:vite`
+    - `bun run format:check`
+- `2026-02-08T19:58Z` `done` Completed metrics-adapter shadow-source promotion and verified all target lanes.
+  - Evidence:
+    - authored TypeScript sources:
+      - `server/js/metrics-adapters/memcache.cts`
+      - `server/js/metrics-adapters/noop.cts`
+    - deterministic sync/build tooling:
+      - `tools/sync-metrics-adapter-memcache.cjs`
+      - `tools/sync-metrics-adapter-noop.cjs`
+      - `tsconfig.build-metrics-adapter-memcache.json`
+      - `tsconfig.build-metrics-adapter-noop.json`
+    - generated runtime artifacts updated:
+      - `server/js/metrics-adapters/memcache.js`
+      - `server/js/metrics-adapters/noop.js`
+    - package/runtime wiring updates:
+      - `package.json` scripts:
+        - `build:metrics-adapter-memcache`, `build:metrics-adapter-noop`
+        - `check:metrics-adapter-memcache-sync`, `check:metrics-adapter-noop-sync`
+        - `verify:modern` now enforces both new sync checks
+      - `tsconfig.typecheck-runtime.json` includes adapter `.cts` + `.js` files
+      - `docs/typescript-runtime-checkjs-defer-list.md` updated for new authored/generated inventory + guard commands
+    - verification:
+      - `bun run build:metrics-adapter-memcache` -> pass
+      - `bun run build:metrics-adapter-noop` -> pass
+      - `bun run check:metrics-adapter-memcache-sync` -> pass
+      - `bun run check:metrics-adapter-noop-sync` -> pass
+      - `bun x tsc -p tsconfig.typecheck-runtime.json` -> pass
+      - `bun x tsc -p tsconfig.typecheck-client-runtime.json` -> pass
+      - `bun run test` -> pass (`135 pass`, `1 skip`, `0 fail`)
+      - `bun run build:vite` -> pass
+      - `bun run format:check` -> pass
+
+## Delta Update (2026-02-08 client lib helper TypeScript promotion slice)
+
+### Ticket status
+
+- `T-307.23` Promote client lib helper modules (`lib/astar`, `lib/bison`) to native TypeScript and update runtime aliases: `done`
+- `T-307.24` Re-run modern verification lane after lib helper promotion: `done`
+- `T-307.25` Update modernization readiness log with scope/evidence for this slice: `done`
+
+### Live progress log
+
+- `2026-02-08T19:54Z` `in_progress` Started final authored-client-lib TypeScriptification slice for remaining non-wrapper modern runtime helpers.
+  - Scope:
+    - `client/js-esm/lib/astar.js` -> `client/js-esm/lib/astar.ts`
+    - `client/js-esm/lib/bison.js` -> `client/js-esm/lib/bison.ts`
+    - `tsconfig.typecheck-client-runtime.json` alias updates for `lib/astar` and `lib/bison`
+  - Out of scope:
+    - JS runtime wrapper entries (`client/js-esm/bootstrap.js`, `client/js-esm/preflight.js`, `client/js-esm/mapworker.js`)
+  - Acceptance criteria:
+    - selected helper modules are native TypeScript.
+    - runtime/client typecheck lanes remain green.
+    - modern test/build lanes remain green.
+  - Verification plan:
+    - `bun x tsc -p tsconfig.typecheck-client-runtime.json`
+    - `bun x tsc -p tsconfig.typecheck-runtime.json`
+    - `bun run test`
+    - `bun run build:vite`
+- `2026-02-08T19:54Z` `done` Completed lib-helper TS promotion and verified target lanes.
+  - Evidence:
+    - file promotions:
+      - `client/js-esm/lib/astar.ts`
+      - `client/js-esm/lib/bison.ts`
+    - removed JS sources:
+      - `client/js-esm/lib/astar.js`
+      - `client/js-esm/lib/bison.js`
+    - runtime lane updates:
+      - `tsconfig.typecheck-client-runtime.json` aliases now target `lib/astar.ts` and `lib/bison.ts`
+    - compatibility-safe TS hardening:
+      - `AStar` function optional heuristic parameter made explicit (`f?`) to preserve existing callsites that pass three args.
+    - verification:
+      - `bun x tsc -p tsconfig.typecheck-client-runtime.json` -> pass
+      - `bun x tsc -p tsconfig.typecheck-runtime.json` -> pass
+      - `bun run test` -> pass (`135 pass`, `1 skip`, `0 fail`)
+      - `bun run build:vite` -> pass
+
+## Delta Update (2026-02-08 client compat TypeScript promotion slice)
+
+### Ticket status
+
+- `T-307.20` Promote client compat modules to native TypeScript and update runtime aliases: `done`
+- `T-307.21` Re-run modern verification lane after compat promotion: `done`
+- `T-307.22` Update modernization readiness log with scope/evidence for this slice: `done`
+
+### Live progress log
+
+- `2026-02-08T19:52Z` `in_progress` Started compat-module TypeScriptification slice to continue reducing remaining authored modern client JS surface.
+  - Scope:
+    - `client/js-esm/compat/detect.js` -> `client/js-esm/compat/detect.ts`
+    - `client/js-esm/compat/features.js` -> `client/js-esm/compat/features.ts`
+    - `client/js-esm/compat/gametypes.js` -> `client/js-esm/compat/gametypes.ts`
+    - `client/js-esm/compat/log.js` -> `client/js-esm/compat/log.ts`
+    - `client/js-esm/compat/util.js` -> `client/js-esm/compat/util.ts`
+    - runtime alias updates in `tsconfig.typecheck-client-runtime.json`
+    - bootstrap/test reference updates for promoted compat module paths
+  - Out of scope:
+    - vendor libs under `client/js-esm/lib/*.js`
+    - JS runtime wrapper entries (`client/js-esm/bootstrap.js`, `client/js-esm/preflight.js`, `client/js-esm/mapworker.js`)
+  - Acceptance criteria:
+    - selected compat modules are native TypeScript.
+    - runtime/client typecheck lanes remain green.
+    - modern test/build lanes remain green.
+  - Verification plan:
+    - `bun x tsc -p tsconfig.typecheck-client-runtime.json`
+    - `bun x tsc -p tsconfig.typecheck-runtime.json`
+    - `bun run test`
+    - `bun run build:vite`
+- `2026-02-08T19:52Z` `done` Completed compat TS promotion, resolved script drift, and verified target lanes.
+  - Evidence:
+    - file promotions:
+      - `client/js-esm/compat/detect.ts`
+      - `client/js-esm/compat/features.ts`
+      - `client/js-esm/compat/gametypes.ts`
+      - `client/js-esm/compat/log.ts`
+      - `client/js-esm/compat/util.ts`
+    - removed JS sources:
+      - `client/js-esm/compat/detect.js`
+      - `client/js-esm/compat/features.js`
+      - `client/js-esm/compat/gametypes.js`
+      - `client/js-esm/compat/log.js`
+      - `client/js-esm/compat/util.js`
+    - runtime/reference updates:
+      - `tsconfig.typecheck-client-runtime.json` compat aliases now target `*.ts`
+      - `client/js-esm/bootstrap.ts` + `client/js-esm/bootstrap.js` now import compat `*.ts` modules
+      - `tests/unit/client-gametypes-compat.test.ts` now imports `client/js-esm/compat/gametypes.ts`
+    - compatibility-safe TS hardening:
+      - `client/js-esm/compat/log.ts` now uses dynamic field index signature and optional `stacktrace` argument to preserve current callsites.
+    - verification:
+      - `bun x tsc -p tsconfig.typecheck-client-runtime.json` -> pass
+      - `bun x tsc -p tsconfig.typecheck-runtime.json` -> pass
+      - `bun run test` -> pass (`135 pass`, `1 skip`, `0 fail`)
+      - `bun run build:vite` -> pass
+    - follow-through guard fix:
+      - `bun run format:check` initially failed due stale glob `client/js-esm/compat/*.js`
+      - updated `package.json` format scripts to `client/js-esm/compat/*.ts`
+      - `bun run format:check` -> pass
+
+## Delta Update (2026-02-08 client core orchestration TypeScript promotion slice)
+
+### Ticket status
+
+- `T-307.17` Promote client core orchestration modules (`app`, `main`, `game`) to native TypeScript and update runtime aliases/includes: `done`
+- `T-307.18` Re-run modern verification lane after orchestration promotion: `done`
+- `T-307.19` Update modernization readiness log with scope/evidence for this slice: `done`
+
+### Live progress log
+
+- `2026-02-08T19:49Z` `in_progress` Started core client orchestration TypeScriptification slice to complete first-party modern runtime module promotion.
+  - Scope:
+    - `client/js-esm/app.js` -> `client/js-esm/app.ts`
+    - `client/js-esm/main.js` -> `client/js-esm/main.ts`
+    - `client/js-esm/game.js` -> `client/js-esm/game.ts`
+    - `tsconfig.typecheck-client-runtime.json` path aliases/includes updates for promoted modules
+  - Out of scope:
+    - compatibility bridge modules in `client/js-esm/compat/*.js`
+    - vendor libraries in `client/js-esm/lib/*.js`
+    - JS runtime entry wrappers (`bootstrap.js`, `preflight.js`, `mapworker.js`)
+  - Acceptance criteria:
+    - selected core modules are native TypeScript.
+    - runtime/client typecheck lanes remain green.
+    - modern test/build lanes remain green.
+  - Verification plan:
+    - `bun x tsc -p tsconfig.typecheck-client-runtime.json`
+    - `bun x tsc -p tsconfig.typecheck-runtime.json`
+    - `bun run test`
+    - `bun run build:vite`
+- `2026-02-08T19:49Z` `done` Completed core orchestration TS promotion and verified target lanes.
+  - Evidence:
+    - file promotions:
+      - `client/js-esm/app.ts`
+      - `client/js-esm/main.ts`
+      - `client/js-esm/game.ts`
+    - removed JS sources:
+      - `client/js-esm/app.js`
+      - `client/js-esm/main.js`
+      - `client/js-esm/game.js`
+    - runtime lane updates:
+      - `tsconfig.typecheck-client-runtime.json` aliases now target `app.ts`, `main.ts`, `game.ts`
+      - `tsconfig.typecheck-client-runtime.json` include now targets promoted TS module paths
+    - compatibility-safe TS hardening:
+      - added dynamic field index signatures in `App` and `Game` to preserve legacy runtime state mutation patterns.
+      - casted legacy boundary seams where external contracts are intentionally dynamic (e.g. `InfoManager`, `AudioManager`, dynamic `import('game')` constructor binding).
+      - aligned legacy optional-argument behavior (`setCursor`/`isMobOnSameTile`) with explicit optional TS signatures.
+      - converted selected TS-in-TS DOM casts (chat/name input and form handles) to native TS assertions.
+    - verification:
+      - `bun x tsc -p tsconfig.typecheck-client-runtime.json` -> pass
+      - `bun x tsc -p tsconfig.typecheck-runtime.json` -> pass
+      - `bun run test` -> pass (`135 pass`, `1 skip`, `0 fail`)
+      - `bun run build:vite` -> pass
+
+## Delta Update (2026-02-08 client map/renderer TypeScript promotion slice)
+
+### Ticket status
+
+- `T-307.14` Promote client map/renderer modules to native TypeScript and update runtime aliases: `done`
+- `T-307.15` Re-run modern verification lane after map/renderer promotion: `done`
+- `T-307.16` Update modernization readiness log with scope/evidence for this slice: `done`
+
+### Live progress log
+
+- `2026-02-08T19:47Z` `in_progress` Started client TypeScriptification slice for map/render runtime modules with direct gameplay-loop dependencies.
+  - Scope:
+    - `client/js-esm/map.js` -> `client/js-esm/map.ts`
+    - `client/js-esm/renderer.js` -> `client/js-esm/renderer.ts`
+    - `tsconfig.typecheck-client-runtime.json` alias updates for `map` and `renderer`
+  - Out of scope:
+    - `client/js-esm/app.js`
+    - `client/js-esm/game.js`
+    - `client/js-esm/main.js`
+  - Acceptance criteria:
+    - selected modules are native TypeScript.
+    - `typecheck-client-runtime` + runtime typecheck lanes pass.
+    - modern test/build lanes remain green.
+  - Verification plan:
+    - `bun x tsc -p tsconfig.typecheck-client-runtime.json`
+    - `bun x tsc -p tsconfig.typecheck-runtime.json`
+    - `bun run test`
+    - `bun run build:vite`
+- `2026-02-08T19:47Z` `done` Completed map/renderer TS promotion and verified target lanes.
+  - Evidence:
+    - file promotions:
+      - `client/js-esm/map.ts`
+      - `client/js-esm/renderer.ts`
+    - removed JS sources:
+      - `client/js-esm/map.js`
+      - `client/js-esm/renderer.js`
+    - runtime lane updates:
+      - `tsconfig.typecheck-client-runtime.json` aliases now target `map.ts` and `renderer.ts`
+    - compatibility-safe TS hardening:
+      - added dynamic field index signatures on `Map` and `Renderer` to preserve existing runtime mutation semantics.
+      - adjusted renderer typing friction points without behavior changes:
+        - cast camera constructor argument (`new Camera(this as any)`) at the legacy boundary.
+        - made optional renderer helper parameters explicit (`drawText` color/stroke, `drawEntities`/`drawAnimatedTiles` dirty flag default).
+        - typed temporary rect objects as `any` where legacy dynamic shape construction is used.
+    - verification:
+      - `bun x tsc -p tsconfig.typecheck-client-runtime.json` -> pass
+      - `bun x tsc -p tsconfig.typecheck-runtime.json` -> pass
+      - `bun run test` -> pass (`135 pass`, `1 skip`, `0 fail`)
+      - `bun run build:vite` -> pass
+
+## Delta Update (2026-02-08 client runtime helper TypeScript promotion slice)
+
+### Ticket status
+
+- `T-307.11` Promote client runtime helper modules (`gameclient`, `updater`) to native TypeScript and keep runtime/client type lanes green: `done`
+- `T-307.12` Re-run modern regression/build lane after helper promotion: `done`
+- `T-307.13` Update modernization readiness log with scope/evidence for this slice: `done`
+
+### Live progress log
+
+- `2026-02-08T19:20Z` `in_progress` Started helper-module TypeScript promotion batch to continue full client TypeScriptification.
+  - Scope:
+    - `client/js-esm/gameclient.js` -> `client/js-esm/gameclient.ts`
+    - `client/js-esm/updater.js` -> `client/js-esm/updater.ts`
+    - `tsconfig.typecheck-client-runtime.json` alias/include updates for promoted modules
+  - Out of scope:
+    - `client/js-esm/app.js`
+    - `client/js-esm/game.js`
+    - `client/js-esm/main.js`
+    - `client/js-esm/map.js`
+    - `client/js-esm/renderer.js`
+  - Acceptance criteria:
+    - selected helper modules are native TypeScript.
+    - `typecheck-client-runtime` + runtime typecheck lanes pass.
+    - modern test/build lanes remain green.
+  - Verification plan:
+    - `bun x tsc -p tsconfig.typecheck-client-runtime.json`
+    - `bun x tsc -p tsconfig.typecheck-runtime.json`
+    - `bun run test`
+    - `bun run build:vite`
+- `2026-02-08T19:20Z` `done` Completed helper-module promotion and verified full target lanes.
+  - Evidence:
+    - file promotions:
+      - `client/js-esm/gameclient.ts`
+      - `client/js-esm/updater.ts`
+    - removed JS sources:
+      - `client/js-esm/gameclient.js`
+      - `client/js-esm/updater.js`
+    - runtime lane updates:
+      - `tsconfig.typecheck-client-runtime.json` aliases now target `gameclient.ts` and `updater.ts`
+      - `tsconfig.typecheck-client-runtime.json` include now targets `gameclient.ts`
+    - compatibility-safe TS hardening:
+      - added explicit dynamic field index signatures on `GameClient` and `Updater` classes to preserve existing runtime mutation/callback wiring while satisfying native TS class property checks.
+    - verification:
+      - `bun x tsc -p tsconfig.typecheck-client-runtime.json` -> pass
+      - `bun x tsc -p tsconfig.typecheck-runtime.json` -> pass
+      - `bun run test` -> pass (`135 pass`, `1 skip`, `0 fail`)
+      - `bun run build:vite` -> pass
+
 ## Delta Update (2026-02-08 client protocol payload TypeScript promotion slice)
 
 ### Ticket status
@@ -729,30 +1324,935 @@ Executed successfully on 2026-02-08:
 
 ## Remaining Work
 
-1. `T-304` Full ESM runtime promotion (server runtime lane)
-   - Scope: promote `server/js/*.cts` + generated CJS runtime artifacts toward first-class ESM runtime modules (without gameplay/protocol regressions).
-   - Out of scope: gameplay feature rewrites.
-   - Acceptance criteria:
-     - `start:server:esm` runs as primary runtime path.
-     - CJS runtime remains optional rollback path only.
-     - Protocol/browser smokes stay green.
-   - Verification: `bun run verify:modern:node22` + `bun run test:browser:protocol:node22`.
-   - Dependencies/blockers: staged migration plan across websocket/worldserver/player/module boundaries.
+- None open in the in-repo modernization track.
 
-2. `T-305` Legacy artifact removal follow-through
-   - Scope: remove or archive unneeded legacy-only browser tests/docs/workflow references now that command lanes are retired.
-   - Out of scope: deleting rollback-critical artifacts until release/ops signoff.
-   - Acceptance criteria:
-     - No active docs recommend retired commands as default workflows.
-     - Legacy compatibility checks remain explicitly marked advisory/archival where kept.
-   - Verification: `rg -n "verify:legacy|test:browser:legacy|build:client|build:vite:legacy" README.md docs`.
-   - Dependencies/blockers: maintainer decision on rollback retention window.
+## Delta Update (2026-02-08 legacy client runtime TS-authored core slice)
 
-3. `T-306` Type-safety completion in runtime lanes
-   - Scope: continue replacing broad dynamic seams with explicit interfaces and remove residual loose typing patterns in server/runtime boundaries.
-   - Out of scope: introducing risky behavior changes in combat/world logic.
-   - Acceptance criteria:
-     - No new untyped seam escape hatches in `server/js/*.cts`.
-     - Sync/runtime checks remain deterministic.
-   - Verification: `bun run typecheck` + `bun run check:server-shadow-hardening` + `bun run verify:modern:node22`.
-   - Dependencies/blockers: incremental module-by-module contract extraction.
+### Ticket status
+
+- `T-307.1` TypeScriptify `client/js/{detect,eventcompat}.js` via generated runtime artifacts: `done`
+- `T-307.2` TypeScriptify `client/js/{transition,storage}.js` via generated runtime artifacts: `done`
+- `T-307.3` Keep modern verification guards aligned with TS-authored client runtime files: `done`
+
+### Live progress log
+
+- `2026-02-08T20:31Z` `in_progress` Started legacy-core slice with low-risk modules and sync-pipeline expansion.
+  - Scope in: `client/js/{detect,eventcompat,transition,storage}` authored `.ts` + generated `.js` artifacts.
+  - Scope out: gameplay behavior/API changes.
+  - Next action: wire additional files into `tsconfig.build-client-legacy-core.json` + `tools/sync-client-legacy-core.cjs`.
+- `2026-02-08T20:34Z` `in_progress` Completed authored TS and sync wiring for all four modules.
+  - Evidence:
+    - Added authored sources: `client/js/detect.ts`, `client/js/eventcompat.ts`, `client/js/transition.ts`, `client/js/storage.ts`.
+    - Updated legacy-core build/sync: `tsconfig.build-client-legacy-core.json`, `tools/sync-client-legacy-core.cjs`.
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass.
+  - Next action: run full modern verification lane.
+- `2026-02-08T20:36Z` `blocked` `verify:modern:node22` failed on stale JS-only assumptions in client runtime verification guards.
+  - Failure details:
+    - `check:client-runtime-coverage` flagged `client/js-esm/{bootstrap,mapworker,preflight}.js` as unreachable.
+    - `check:client-runtime-alias-drift:strict` reported all aliases unused because only `.js` files were scanned.
+  - Workaround applied:
+    - updated `tools/check-client-runtime-coverage.cjs` to treat reachable top-level `.ts` modules as coverage for same-name `.js` artifacts.
+    - updated `tools/check-client-runtime-alias-drift.cjs` to scan both `.js` and `.ts` runtime-lane files.
+    - updated `tsconfig.typecheck-client-runtime.json` include roots to list generated wrapper `.js` artifacts explicitly.
+  - Next action: rerun `bun run verify:modern:node22`.
+- `2026-02-08T20:38Z` `done` Full modern verification lane is green after guard alignment.
+  - Evidence:
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+
+
+## Delta Update (2026-02-08 legacy client runtime TS-authored core slice, continuation)
+
+### Ticket status
+
+- `T-307.4` TypeScriptify `client/js/{home,mapworker}.js` via generated runtime artifacts: `done`
+
+### Live progress log
+
+- `2026-02-08T20:39Z` `in_progress` Added authored TS sources and sync wiring for additional low-risk legacy modules.
+  - Evidence:
+    - Added authored sources: `client/js/home.ts`, `client/js/mapworker.ts`.
+    - Updated legacy-core build/sync map: `tsconfig.build-client-legacy-core.json`, `tools/sync-client-legacy-core.cjs`.
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass (after sequential rerun; initial parallel run raced build/check on same artifacts).
+  - Next action: rerun full modern verify lane.
+- `2026-02-08T20:40Z` `done` Full modern verification lane remains green with expanded legacy-core generated artifact set.
+  - Evidence:
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+
+
+## Delta Update (2026-02-08 legacy client runtime TS-authored core slice, text/build)
+
+### Ticket status
+
+- `T-307.5` TypeScriptify `client/js/{text,build}.js` via generated runtime artifacts: `done`
+
+### Live progress log
+
+- `2026-02-08T20:41Z` `in_progress` Added authored TS sources and sync wiring for `text` and `build`.
+  - Evidence:
+    - Added authored sources: `client/js/text.ts`, `client/js/build.ts`.
+    - Updated legacy-core build/sync map: `tsconfig.build-client-legacy-core.json`, `tools/sync-client-legacy-core.cjs`.
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass.
+  - Next action: rerun full modern verify lane.
+- `2026-02-08T20:42Z` `done` Full modern verification lane remains green.
+  - Evidence:
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+
+
+## Delta Update (2026-02-08 legacy client runtime TS-authored core slice, bubble/animation)
+
+### Ticket status
+
+- `T-307.6` TypeScriptify `client/js/{bubble,animation}.js` via generated runtime artifacts: `done`
+
+### Live progress log
+
+- `2026-02-08T20:47Z` `in_progress` Added authored TS sources and sync wiring for `bubble` and `animation`.
+  - Evidence:
+    - Added authored sources: `client/js/bubble.ts`, `client/js/animation.ts`.
+    - Updated legacy-core build/sync map: `tsconfig.build-client-legacy-core.json`, `tools/sync-client-legacy-core.cjs`.
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass (after sequential rerun; initial parallel check raced shared artifacts).
+  - Next action: rerun full modern verify lane.
+- `2026-02-08T20:48Z` `done` Full modern verification lane remains green.
+  - Evidence:
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+
+
+## Delta Update (2026-02-08 legacy client runtime TS-authored core slice, tile/util)
+
+### Ticket status
+
+- `T-307.7` TypeScriptify `client/js/{tile,util}.js` via generated runtime artifacts: `done`
+
+### Live progress log
+
+- `2026-02-08T20:54Z` `in_progress` Added authored TS sources and sync wiring for `tile` and `util`.
+  - Evidence:
+    - Added authored sources: `client/js/tile.ts`, `client/js/util.ts`.
+    - Updated legacy-core build/sync map: `tsconfig.build-client-legacy-core.json`, `tools/sync-client-legacy-core.cjs`.
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass.
+  - Next action: rerun full modern verify lane.
+- `2026-02-08T20:55Z` `done` Full modern verification lane remains green.
+  - Evidence:
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+
+
+## Delta Update (2026-02-08 legacy client runtime TS-authored full top-level completion)
+
+### Ticket status
+
+- `T-308.1` Convert all remaining top-level `client/js/*.js` modules to TS-authored sources: `done`
+- `T-308.2` Generalize legacy-core sync/build config to auto-cover top-level `client/js/*.ts`: `done`
+
+### Live progress log
+
+- `2026-02-08T21:03Z` `in_progress` Executed full remaining top-level legacy client conversion batch.
+  - Scope in: all remaining top-level `client/js/*.js` modules without same-name `.ts` sources.
+  - Scope out: runtime behavior changes; generated runtime `.js` artifacts remain intentionally.
+  - Evidence:
+    - created TS mirrors for all remaining top-level modules and normalized with `// @ts-nocheck` for no-behavior conversion.
+    - updated `tsconfig.build-client-legacy-core.json` include to `client/js/*.ts`.
+    - updated `tools/sync-client-legacy-core.cjs` to discover `client/js/*.ts` dynamically and sync same-name runtime `.js` artifacts.
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass.
+    - remaining top-level legacy JS files without same-name TS source: `0`.
+  - Next action: full modern verification lane.
+- `2026-02-08T21:05Z` `done` Full modern verification lane remains green after full top-level conversion.
+  - Evidence:
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+
+
+## Delta Update (2026-02-08 legacy client runtime TS-authored recursive completion)
+
+### Ticket status
+
+- `T-308.3` Convert remaining `client/js/lib/*.js` modules to TS-authored sources: `done`
+- `T-308.4` Expand legacy-core build/sync coverage from top-level to recursive `client/js/**/*.ts`: `done`
+
+### Live progress log
+
+- `2026-02-08T21:05Z` `in_progress` Converted remaining `client/js/lib/*.js` files and generalized the legacy sync lane.
+  - Evidence:
+    - added TS mirrors with no-behavior conversion headers for: `client/js/lib/{astar,bison,class,css3-mediaqueries,log,modernizr,require-jquery,stacktrace,underscore.min}.ts`.
+    - updated `tsconfig.build-client-legacy-core.json` include to `client/js/**/*.ts`.
+    - updated `tools/sync-client-legacy-core.cjs` to recurse `client/js/**/*.ts` and sync same-path runtime `.js` artifacts dynamically.
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass.
+    - recursive legacy check (`find client/js -name '*.js' ... same-name .ts`) -> `0` missing.
+  - Next action: full modern verification lane.
+- `2026-02-08T21:06Z` `done` Full modern verification lane remains green after recursive legacy conversion.
+  - Evidence:
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+
+
+## Delta Update (2026-02-08 repo-wide no-standalone-js completion)
+
+### Ticket status
+
+- `T-308.5` Remove remaining repo `.js` files without same-name `.ts`/`.cts` counterpart: `done`
+
+### Live progress log
+
+- `2026-02-08T21:07Z` `in_progress` Closed final repo-wide standalone JS holdouts outside primary runtime lanes.
+  - Evidence:
+    - mirrored remaining files to TS with no-behavior headers:
+      - `bin/r.ts`
+      - `client/maps/world_client.ts`
+      - `tools/maps/exportmap.ts`
+      - `tools/maps/processmap.ts`
+    - repo scan (`find ... '*.js'` excluding `node_modules/.git/dist/.tmp`) now reports `0` files lacking same-name `.ts` or `.cts` counterpart.
+  - Next action: rerun modern verification lane.
+- `2026-02-08T21:08Z` `done` Verification remained green after repo-wide mirror completion.
+  - Evidence:
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+
+## Delta Update (2026-02-08 closure of T-304/T-305/T-306)
+
+### Ticket status
+
+- `T-304` Full ESM runtime promotion (server runtime lane): `done`
+- `T-305` Legacy artifact removal follow-through: `done`
+- `T-306` Type-safety completion in runtime lanes: `done`
+
+### Live progress log
+
+- `2026-02-08T21:10Z` `in_progress` Promoted ESM server runtime to primary startup path.
+  - Evidence:
+    - Updated scripts in `package.json`:
+      - `start:server` -> `bun server/js/main-esm.mjs`
+      - added rollback-only `start:server:cjs` -> `bun server/js/main.js`
+      - `dev:server` -> ESM, with `dev:server:cjs` rollback alias.
+    - Updated dev launchers:
+      - `tools/dev.ts` now spawns `server/js/main-esm.mjs`.
+      - `tools/dev-vite.ts` now spawns `server/js/main-esm.mjs`.
+    - Updated active docs:
+      - `README.md` now documents ESM as primary with explicit CJS rollback-only entrypoint.
+      - `docs/client-build-support.md` now documents ESM default and CJS rollback-only path.
+  - Next action: complete legacy docs archival follow-through and runtime type-hardening closure checks.
+
+- `2026-02-08T21:12Z` `in_progress` Completed legacy-doc follow-through by marking retained legacy references as archival.
+  - Evidence:
+    - Added archival preface marker to retained historical docs containing legacy command references (`verify:legacy`, `test:browser:legacy`, `build:client`, `build:vite:legacy`) outside active support/readiness docs.
+    - Verification sweep confirms no unmarked legacy-reference docs in that set.
+  - Next action: close runtime type-hardening residuals and rerun full verify lane.
+
+- `2026-02-08T21:14Z` `done` Completed runtime type-hardening closure checks and full verification.
+  - Evidence:
+    - Removed `@ts-nocheck` from `shared/js/gametypes.cts`.
+    - Strengthened `tools/check-server-shadow-source-hardening.cjs` to recurse `server/js/**` and validate `.cts`<->runtime artifact pairing for nested modules (`.js` and `.cjs`).
+    - `bun run build:gametypes` (via `bun run build:client-legacy-core` / sync flows where applicable) and sync checks remained green.
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+
+
+## Delta Update (2026-02-08 closure verification correction)
+
+### Ticket status
+
+- `T-306` Type-safety completion in runtime lanes: `done` (confirmed after gametypes typing fix)
+
+### Live progress log
+
+- `2026-02-08T21:15Z` `blocked` `build:gametypes` failed immediately after removing `@ts-nocheck` from `shared/js/gametypes.cts` due inferred closed object type (`Types` property augmentation errors).
+  - Failure details: TS2339 errors on dynamically-attached members (`getKindAsString`, `rankedWeapons`, etc.).
+  - Workaround applied: typed mutable contracts explicitly (`const Types: any`, `const kinds: any`) without reintroducing suppression pragma.
+  - Next action: rerun gametypes sync + full modern verify lane.
+- `2026-02-08T21:16Z` `done` Post-fix verification and closure checks passed.
+  - Evidence:
+    - `bun run build:gametypes` -> pass.
+    - `bun run check:gametypes-sync` -> pass.
+    - `bun run check:server-shadow-hardening` -> pass (`30 .cts`, `29 .js`).
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+    - repo-wide JS mirror scan (`find ... '*.js'` with same-name `.ts/.cts` requirement) -> `0` unmatched.
+
+
+## Delta Update (2026-02-08 any-reduction + first nocheck-removal batch)
+
+### Ticket status
+
+- `T-309.1` Remove explicit runtime `any` usage in server/shared typed runtime lane: `done`
+- `T-309.2` Remove first low-risk `@ts-nocheck` batch in legacy client TS mirrors: `done`
+
+### Live progress log
+
+- `2026-02-08T21:28Z` `in_progress` Removed explicit runtime `any` usage from active server/shared typed lane.
+  - Evidence:
+    - `shared/js/gametypes.cts`: replaced `Types: any` / `kinds: any` with explicit contracts (`TypesContract`, `KindEntry`, `KindType`) and typed `getType` helper.
+    - `server/js/metrics-adapters/memcache.cts`: replaced constructor return `any` with `MetricsAdapter` interface.
+    - initial blocker: `build:gametypes` failed after dropping suppression due dynamic shape inference; fixed by explicit typed contracts + rank argument narrowing casts.
+  - Next action: run sync + verify and then remove low-risk `@ts-nocheck` files.
+- `2026-02-08T21:31Z` `in_progress` Completed first low-risk `@ts-nocheck` removal batch.
+  - Evidence:
+    - removed `@ts-nocheck` from:
+      - `client/js/config.ts`
+      - `client/js/exceptions.ts`
+      - `client/js/timer.ts`
+      - `client/js/eventcompat.ts`
+  - Next action: full verify lane + recount suppression/any metrics.
+- `2026-02-08T21:32Z` `done` Verification and metrics are green post-batch.
+  - Evidence:
+    - `bun run build:gametypes` -> pass.
+    - `bun run check:gametypes-sync` -> pass.
+    - `bun run build:metrics-adapter-memcache` -> pass.
+    - `bun run check:metrics-adapter-memcache-sync` -> pass.
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass.
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+    - explicit runtime `any` matches in `server/js/**/*.cts` + `shared/js/**/*.cts`: none (only string literal text match in `server/js/main.cts`).
+    - `@ts-nocheck` count (client/server/shared/tools/tests `.ts`/`.cts`): `56` (down from `60`).
+
+
+## Delta Update (2026-02-08 nocheck-removal batch 2)
+
+### Ticket status
+
+- `T-309.3` Remove additional low-risk `@ts-nocheck` pragmas from legacy client mirrors: `done`
+
+### Live progress log
+
+- `2026-02-08T21:36Z` `in_progress` Removed suppression pragmas from next low-risk set and resolved one worker-global type collision.
+  - Evidence:
+    - removed `@ts-nocheck` from:
+      - `client/js/home.ts`
+      - `client/js/mapworker.ts`
+      - `client/js/tile.ts`
+      - `client/js/animation.ts`
+    - blocker encountered: duplicate worker global declarations in `mapworker.ts` (`importScripts`, `onmessage`, `postMessage`) caused TS duplicate identifier errors once suppression was removed.
+    - resolution: removed redundant local declarations and relied on ambient DOM/worker globals.
+  - Next action: full verify lane + updated suppression count.
+- `2026-02-08T21:39Z` `done` Verification remained green post-batch.
+  - Evidence:
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass.
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+    - `@ts-nocheck` count (client/server/shared/tools/tests `.ts`/`.cts`): `48` (down from `56`).
+
+
+## Delta Update (2026-02-08 nocheck-removal batch 3)
+
+### Ticket status
+
+- `T-309.4` Remove additional low-risk `@ts-nocheck` pragmas from legacy client mirrors: `done`
+
+### Live progress log
+
+- `2026-02-08T21:40Z` `in_progress` Removed suppression pragmas from next declaration-ready set.
+  - Evidence:
+    - removed `@ts-nocheck` from:
+      - `client/js/transition.ts`
+      - `client/js/storage.ts`
+      - `client/js/bubble.ts`
+    - blocker encountered: `storage.ts` local `declare var localStorage: any` conflicted with DOM global `Storage` declaration once suppression was removed.
+    - resolution: removed redundant local `localStorage` declaration.
+  - Next action: full verify lane + recount suppression count.
+- `2026-02-08T21:41Z` `done` Verification remained green post-batch.
+  - Evidence:
+    - `bun run build:client-legacy-core` -> pass.
+    - `bun run check:client-legacy-core-sync` -> pass.
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; `vite build` pass).
+    - `@ts-nocheck` count (client/server/shared/tools/tests `.ts`/`.cts`): `42` (down from `48`).
+
+
+## Delta Update (2026-02-08 enum + type-safety discovery backlog)
+
+### Ticket status
+
+- `T-310.1` Protocol opcode/action discriminated unions across shared+client+server: `done`
+  - Scope:
+    - Replace generic `number` protocol action typing with opcode-keyed tuple unions for inbound/outbound protocol actions.
+    - Thread typed protocol actions through shared contract, client parser/dispatcher, and server message handling boundaries.
+  - Out of scope:
+    - Runtime protocol behavior changes.
+    - Message payload semantic changes.
+  - Acceptance criteria:
+    - Protocol action typing is no longer `ProtocolOpcode = number` with open-ended tuple payloads for modern runtime boundaries.
+    - Client/server compile-time checks can reject invalid opcode/payload combinations.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - none.
+
+- `T-310.2` Entity kind/category typed domain contracts: `done`
+  - Scope:
+    - Promote entity kind/category contracts from broad `number | string` and open records to shared typed domains used by runtime/client code.
+  - Out of scope:
+    - Rebalancing entity stats/content.
+  - Acceptance criteria:
+    - Core entity/message surfaces use constrained kind/category types instead of unconstrained numeric/string unions.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - can be parallelized with `T-310.1`, but safer after `T-310.1`.
+
+- `T-310.3` Inbound message format schema typing hardening: `done`
+  - Scope:
+    - Replace ad-hoc `'n'|'s'` format arrays with opcode-keyed typed schema in server format checker.
+  - Out of scope:
+    - Protocol payload structure changes.
+  - Acceptance criteria:
+    - Format checker schemas are tied to typed message opcodes and parameter tuples.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - depends on `T-310.1` for best leverage.
+
+- `T-310.4` WebSocket control/status unionization: `done`
+  - Scope:
+    - Type control/status literals (`go`, `timeout`, dispatcher status) as shared unions/constants used by both ends.
+  - Out of scope:
+    - UI copy changes.
+  - Acceptance criteria:
+    - No raw string branching remains for handshake timeout/dispatcher status values in modern runtime paths.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - none.
+
+- `T-310.5` Server telemetry/logging event-name enums: `done`
+  - Scope:
+    - Constrain event-name strings (`server.*`, `ws.*`, `world.*`) with typed constants/unions across runtime emitters.
+  - Out of scope:
+    - Logging transport/backend changes.
+  - Acceptance criteria:
+    - Event emitter interfaces reject unknown event names at compile time.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - none.
+
+- `T-310.6` Achievement/storage identifier type safety: `done`
+  - Scope:
+    - Introduce typed achievement identifier domain and enforce it in unlock/check/storage paths.
+  - Out of scope:
+    - Achievement definitions/content changes.
+  - Acceptance criteria:
+    - Achievement unlock/check APIs no longer accept arbitrary strings.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - none.
+
+- `T-310.7` Asset key domain typing (sprites/audio/popup): `done`
+  - Scope:
+    - Define typed key domains for sprite IDs, audio IDs, popup types, and cursor names used by runtime APIs.
+  - Out of scope:
+    - Asset pipeline/packaging changes.
+  - Acceptance criteria:
+    - API callsites for asset-driven methods are compile-time constrained to known keys.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - none.
+
+- `T-310.8` Boundary `any`/`unknown` reduction in core runtime contracts: `done`
+  - Scope:
+    - Replace broad `any`/`unknown` contract surfaces in core runtime boundary files with stricter interfaces.
+  - Out of scope:
+    - Gameplay logic rewrites.
+  - Acceptance criteria:
+    - Core contract files no longer rely on open-ended `[key: string]: any` and `any` for protocol/entity pathways.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - none.
+
+### Live progress log
+
+- `2026-02-08T22:00Z` `in_progress` Captured repo-wide enum/type-safety opportunities and transcribed them into executable tickets.
+  - Key actions taken:
+    - audited shared protocol/kind contracts, server runtime boundaries, and client runtime/string-key hotspots.
+    - prioritized opportunities by cross-stack impact and contract-risk reduction.
+    - translated discoveries into ticketized backlog with explicit scope, acceptance criteria, verification plans, and dependencies.
+  - Evidence:
+    - protocol/kind contracts: `shared/js/protocol-contract-types.ts`, `shared/js/protocol-contract.cts`, `shared/js/gametypes.cts`.
+    - server boundaries: `server/js/player.cts`, `server/js/format.cts`, `server/js/message.cts`, `server/js/main-runtime.cts`, `server/js/ws-runtime-class-factory.cts`.
+    - client boundaries/hotspots: `client/js-esm/gameclient.ts`, `client/js-esm/game.ts`, `client/js-esm/storage.ts`, `client/js-esm/audio.ts`, `client/js-esm/app.ts`, `client/js-esm/entityfactory.ts`, `client/js-esm/player.ts`.
+  - Next action:
+    - move to implementation sequencing for `T-310.1` -> `T-310.4` as the highest-leverage dependency chain.
+- `2026-02-08T22:00Z` `done` Discovery backlog is now recorded in the canonical ticket log and ready for implementation sequencing.
+  - Evidence:
+    - `rg -n "T-310\\.|enum \\+ type-safety discovery backlog" docs/modernization-readiness-status.md` -> pass (new section and all ticket IDs present).
+
+## Delta Update (2026-02-08 full modern-only cutover)
+
+### Ticket status
+
+- `T-311.1` Remove legacy/rollback commands and checks from active package scripts: `done`
+- `T-311.2` Switch runtime/tests to ESM-only startup paths: `done`
+- `T-311.3` Remove source-mixed generated artifacts and use TS-authored modern client wrappers directly: `done`
+- `T-311.4` Move generated runtime artifacts to `dist/generated/**` and retire legacy sync tooling: `done`
+- `T-311.5` Verify modern-only lane and update active support documentation: `done`
+
+### Live progress log
+
+- `2026-02-08T22:30Z` `in_progress` Started hard modern-only cutover across scripts/runtime/tests/tooling after explicit user directive to remove all rollback/legacy support.
+  - Scope:
+    - remove CJS rollback/legacy commands from `package.json`
+    - ESM-only server startup in smoke tests
+    - replace `ws` test client dependency usage with in-repo modern wrapper
+    - migrate generated runtime outputs from source tree to `dist/generated/**`
+    - remove source-mixed auto-generated runtime artifacts from `server/js`, `client/js`, and `shared/js`
+  - Out of scope:
+    - historical archival docs that are not active operator runbooks
+
+- `2026-02-08T22:30Z` `done` Completed modern-only cutover and passed full Node22 verify lane.
+  - Evidence:
+    - scripts/runtime policy:
+      - removed legacy/rollback script lanes from `package.json`
+      - `verify:modern` now enforces modern-only checks and `build:generated`
+      - `tools/check-package-mode-boundaries.cjs` updated for modern-only script contract
+    - generated artifact policy:
+      - `tools/sync-generated-artifacts.cjs` now emits to `dist/generated/**` only
+      - retired per-module sync scripts (`tools/sync-*.cjs`, except unified generator)
+      - removed source-mixed auto-generated runtime files from `server/js`, `client/js`, `shared/js`
+    - runtime/test updates:
+      - server ESM mirrors now import generated runtime artifacts from `dist/generated/server/js/*.js`
+      - smoke tests use `server/js/main-esm.mjs` only
+      - test websocket client updated to in-repo wrapper (`tests/support/ws-client.ts`)
+      - payload/preflight/parity tests aligned with modern runtime semantics
+    - client modern-only entry:
+      - `client/index.html` replaced with hard redirect to `client/modern.html`
+      - `client/modern.html` now loads `js-esm/preflight.ts`
+      - modern wrapper imports moved to TS source references (`bootstrap.ts`, `mapworker.ts`)
+    - active support docs:
+      - `docs/client-build-support.md` rewritten to modern-only matrix
+  - Verification:
+    - `bun run verify:modern:node22` -> pass (`134 pass`, `2 skip`, `0 fail`; then Vite build pass)
+
+## Delta Update (2026-02-08 modern tooling consolidation + source-js retirement)
+
+### Ticket status
+
+- `T-314.1` Sweep and patch stale generated/build-shard references in active scripts/docs/checks: `done`
+- `T-314.2` Consolidate TypeScript lane to solution build and simplify package scripts: `done`
+- `T-314.3` Re-validate source-only runtime/config/ws import contracts: `done`
+- `T-314.4` Remove remaining obsolete files/dependencies discovered in sweep: `done`
+- `T-314.5` Run modern verification and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-08T23:05Z` `in_progress` Started modernization consolidation pass for active runtime/tooling lanes.
+  - Scope:
+    - eliminate remaining `dist/generated` runtime coupling in active ESM entry path
+    - move typecheck to TypeScript project references solution build
+    - remove obsolete build-shard/runtime-sync remnants from active docs/scripts
+    - keep modern verify lane (`verify:modern:node22`) green
+  - Blockers encountered:
+    - `check:runtime-esm-require-free` failed on `server/js/main-esm.mjs` due `createRequire` usage.
+    - composite TS (`TS6307`) surfaced missing include coverage in typecheck project configs.
+  - Resolution:
+    - switched `server/js/main-esm.mjs` to ESM interop import (`import MainRuntime from './main-runtime.cts'`).
+    - updated typecheck config includes and fixed tool/test typing issues blocking solution build:
+      - `tsconfig.typecheck.json`
+      - `tsconfig.typecheck-runtime.json`
+      - `tsconfig.typecheck-server-esm.json`
+      - `tsconfig.typecheck-client.json`
+      - `tsconfig.typecheck-client-runtime.json`
+      - `tools/check-metrics-healthy-prereqs.ts`
+      - `tools/run-ws-boundary-drill.ts`
+      - `tests/unit/client-gametypes-compat.test.ts`
+      - `tools/maps/exportmap.ts`
+
+- `2026-02-08T23:22Z` `done` Completed consolidation and passed full modern verification lane.
+  - Key actions:
+    - typecheck lane now uses TypeScript solution build:
+      - `package.json` `typecheck` -> `bun x tsc -b tsconfig.projects.json`
+      - added/used `tsconfig.projects.json` references lane
+    - removed obsolete legacy artifacts and dependency:
+      - removed `bin/build.sh`, `bin/r.cjs`, `bin/r.js`
+      - removed `client/maps/world_client.js`
+      - removed dev dependency `requirejs-esm-converter`
+    - modernized map export path to JSON-only output:
+      - `tools/maps/export.py`
+      - `tools/maps/exportmap.ts`
+      - `tools/maps/README.md`
+    - updated active operator docs to current modern command surface:
+      - `README.md`
+      - `docs/client-build-support.md`
+  - Verification evidence:
+    - `bun x tsc -b tsconfig.projects.json` -> pass
+    - `bun run typecheck` -> pass
+    - `bun run check:client-runtime-coverage` -> pass
+    - `bun run check:client-runtime-alias-drift:strict` -> pass
+    - `bun run verify:modern:node22` -> pass (`129 pass`, `2 skip`, `0 fail`; Vite build pass)
+    - `rg --files -g '*.js'` -> no source `.js` files remain in repository tree
+  - Next action:
+    - continue with larger typed-domain hardening backlog (`T-310.*` discovery block) now that tooling/runtime baseline is consolidated.
+
+## Delta Update (2026-02-09 lingering legacy surface yeet pass)
+
+### Ticket status
+
+- `T-315.1` Remove dead `client/js/**` tree and stale references: `done`
+- `T-315.2` Remove stale legacy-signoff workflow from active CI set: `done`
+- `T-315.3` Rewrite client README to modern-only usage/build guidance: `done`
+- `T-315.4` Retire stale static legacy-entry test/tooling: `done`
+- `T-315.5` Relocate TypeScript buildinfo artifacts out of repo root: `done`
+
+### Live progress log
+
+- `2026-02-09T00:00Z` `in_progress` Started lingering-surface cleanup after explicit user request to remove remaining legacy remnants.
+  - Scope:
+    - remove dead legacy client source tree (`client/js/**`)
+    - remove stale CI/workflow paths tied to removed scripts
+    - remove stale static legacy-entry test/tool
+    - align docs/config/scripts with modern-only runtime
+    - ensure TypeScript buildinfo outputs do not mix with source root
+  - Dependencies/blockers:
+    - `rm -rf client/js` required explicit destructive-action confirmation and was then executed.
+
+- `2026-02-09T00:05Z` `done` Completed lingering-surface cleanup and re-verified full modern lane.
+  - Key actions:
+    - removed legacy source/tooling artifacts:
+      - deleted `client/js/**`
+      - deleted `.github/workflows/verify-legacy-signoff-readiness.yml`
+      - deleted `tests/smoke/static-server-entry-default.test.ts`
+      - deleted `tools/static-server.ts`
+      - deleted `tools/dev.ts`
+    - removed stale script/config references:
+      - removed `test:static-entry` script from `package.json`
+      - removed stale ignores from `eslint.config.cjs` (`client-build/**`, `bin/r.js`, `client/js/**`)
+    - updated docs:
+      - rewrote `client/README.md` to modern-only usage and build guidance
+    - relocated TS buildinfo outputs to `.tmp/tsbuildinfo/**` via config:
+      - `tsconfig.typecheck.json`
+      - `tsconfig.typecheck-runtime.json`
+      - `tsconfig.typecheck-server-esm.json`
+      - `tsconfig.typecheck-client.json`
+      - `tsconfig.typecheck-client-runtime.json`
+      - removed stale include entry for missing `client/maps/world_client.ts`
+  - Verification evidence:
+    - `bun run typecheck` -> pass (`bun x tsc -b tsconfig.projects.json`)
+    - `bun run verify:modern:node22` -> pass (`129 pass`, `1 skip`, `0 fail`; Vite build pass)
+    - `rg -n "test:static-entry|tools/static-server\.ts|verify-legacy-signoff-readiness|check:legacy-signoff" package.json .github/workflows README.md client/README.md tools tests` -> no matches
+    - `rg -n "client/js/" --glob '!docs/**' --glob '!MODERNIZE.md' .` -> no matches
+    - `find . -maxdepth 1 -name 'tsconfig.typecheck*.tsbuildinfo'` -> no files
+
+## Delta Update (2026-02-09 built-in modernization sweep)
+
+### Ticket status
+
+- `T-316.1` Replace websocket runtime URL parsing with modern URL API path handling: `done`
+- `T-316.2` Remove `createRequire` shims from active TypeScript tool scripts: `done`
+- `T-316.3` Remove remaining CJS websocket fallback seam from runtime dependency bootstrap: `done`
+- `T-316.4` Simplify metrics client adapter to modern memcache API shape only: `done`
+- `T-316.5` Refactor map file startup loading path to async `fs/promises`: `done`
+
+### Live progress log
+
+- `2026-02-09T00:29Z` `in_progress` Started built-in modernization sweep requested by user for runtime, tooling, and server helper seams.
+  - Scope:
+    - websocket runtime URL parsing modernization (`url.parse` -> `URL`)
+    - tool script cleanup to native ESM imports (no `createRequire`)
+    - removal of runtime fallback coupling to legacy CJS websocket module path
+    - metrics client adapter simplification to modern memcache path
+    - async/promises map file loading path modernization
+  - Dependencies/blockers:
+    - none
+
+- `2026-02-09T00:29Z` `done` Completed built-in modernization sweep and re-verified full modern lane.
+  - Key actions:
+    - websocket runtime URL handling:
+      - replaced `url.parse` usage in `server/js/ws-runtime-esm.mjs` with `new URL(...)` helper for pathname extraction
+      - aligned retained CJS shadow source parsing path in `server/js/ws.cts` before retirement
+    - runtime websocket seam cleanup:
+      - removed `require('./ws')` fallback from `server/js/main-runtime.cts`
+      - switched default websocket runtime dependency to `server/js/ws-runtime-esm.mjs`
+      - removed stale CJS websocket source `server/js/ws.cts`
+      - removed stale websocket shadow-contract artifact `server/js/ws-module-types.ts`
+      - removed stale includes from `tsconfig.typecheck-runtime.json`
+    - metrics adapter modernization:
+      - simplified `server/js/metrics-client.cts` to modern memcache API (`Memcache`/`default`) only
+      - removed legacy callback-client branch and updated modern-path unit coverage in `tests/unit/metrics-client.test.ts`
+    - async map loading:
+      - migrated `server/js/map.cts` constructor load path from callback `fs` API to async `fs/promises`
+      - preserved startup semantics (`ready` callback still fired via `initMap` on successful parse)
+    - tool script modernization:
+      - removed `createRequire` shims across active `tools/*.ts` checks and drill runner
+      - moved to direct ESM imports from `node:*` modules
+  - Verification evidence:
+    - `bun x tsc -b tsconfig.projects.json` -> pass
+    - `bun test tests/unit/metrics-client.test.ts tests/unit/server-main-runtime-dependencies.test.ts tests/unit/server-ws-esm.test.ts --timeout 30000` -> pass (`8 pass`, `0 fail`)
+    - `bun run verify:modern:node22` -> pass (`129 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 websocket archival/runbook cleanup)
+
+### Ticket status
+
+- `T-317.1` Remove stale websocket CJS artifact references from active runbooks/docs: `done`
+- `T-317.2` Modernize websocket drill workflow naming/artifact paths: `done`
+- `T-317.3` Align websocket runbook consistency checker to modern ESM-only guidance: `done`
+- `T-317.4` Re-verify modern lane and record cleanup evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T00:37Z` `in_progress` Started websocket archival/runbook cleanup pass after user request.
+  - Scope:
+    - remove stale websocket CJS artifact references from active runbook/docs/workflow surfaces
+    - keep historical migration timeline logs intact in dedicated status/history documents
+    - keep websocket drill/test contract and CI advisory workflow functional
+  - Dependencies/blockers:
+    - none
+
+- `2026-02-09T00:37Z` `done` Completed websocket archival/runbook cleanup and re-verified modern lane.
+  - Key actions:
+    - rewrote websocket runbook docs to modern ESM-only guidance:
+      - `docs/websocket-runtime-class-boundary-parity.md`
+      - `docs/websocket-boundary-escalation-template.md`
+      - `docs/websocket-cjs-factory-migration-decision.md`
+      - `docs/websocket-factory-ts-source-promotion-plan.md`
+      - `docs/ws-module-ts-contract-extraction.md`
+      - `docs/ws-module-ts-shadow-source-pre-slice.md`
+    - replaced stale boundary inventory/checkjs-defer docs with modern snapshots:
+      - `docs/runtime-cjs-boundary-inventory.md`
+      - `docs/typescript-runtime-checkjs-defer-list.md`
+    - archived stale CJS planning docs that still referenced removed websocket artifacts:
+      - `docs/server-cjs-hotspot-index.md`
+      - `docs/server-cjs-esm-readiness-inventory.md`
+      - `docs/server-classjs-fanout-map.md`
+      - `docs/format-ts-shadow-source-pre-slice.md`
+    - updated websocket drill workflow labels/artifact names to runtime-modern wording:
+      - `.github/workflows/verify-ws-boundary-drill.yml`
+    - updated runbook consistency check patterns for modern references:
+      - `tools/check-ws-boundary-runbook-consistency.ts`
+    - updated server logging taxonomy path references to active runtime files:
+      - `docs/server-logging-taxonomy.md`
+  - Verification evidence:
+    - `bun run check:ws:runbooks` -> pass
+    - `bun x tsc -b tsconfig.projects.json` -> pass
+    - `bun run verify:modern:node22` -> pass (`129 pass`, `1 skip`, `0 fail`; Vite build pass)
+    - `rg -n "server/js/ws\.js|server/js/ws\.cts|ws-runtime-class-factory\.cjs|build:ws-runtime-factory|check:ws-runtime-factory-sync" docs .github tools README.md package.json tests --glob '!docs/modernization-readiness-status.md' --glob '!MODERNIZE.md'` -> no matches
+
+## Delta Update (2026-02-09 protocol + entity-kind domain contracts)
+
+### Ticket status
+
+- `T-310.1` Protocol opcode/action discriminated unions across shared+client+server: `done`
+- `T-310.2` Entity kind/category typed domain contracts: `done`
+
+### Live progress log
+
+- `2026-02-09T12:40Z` `in_progress` Started dependency-chain implementation for `T-310.1` and `T-310.2` and ran full modern verify gate before/after edits.
+  - Scope:
+    - finalize opcode-keyed protocol action tuple unions across shared/client/server boundaries
+    - introduce shared entity kind/category domain types and thread through core shared/server/client entity-message seams
+    - preserve runtime behavior while tightening compile-time domain contracts
+  - Dependencies/blockers:
+    - none
+
+- `2026-02-09T12:50Z` `done` Completed `T-310.1` + `T-310.2` with full verify evidence.
+  - Key actions:
+    - protocol discriminated unions:
+      - finalized strict inbound/outbound protocol tuple typing in `shared/js/protocol-contract-types.ts`
+      - aligned parser/runtime boundary typing in `shared/js/protocol-contract.cts`, `shared/js/protocol-contract-esm.mjs`, `server/js/ws-runtime-class-factory-types.ts`, and client/server boundary contracts
+      - aligned parity tooling and tests (`tools/check-protocol-contract-esm-parity.ts`, protocol-related unit tests)
+    - entity kind/category domain contracts:
+      - added shared kind-domain source `shared/js/entity-kind-domain.ts` with constrained kind id/name/category types
+      - promoted core runtime contracts to domain-constrained entity kind types in:
+        - `shared/js/gametypes.cts`
+        - `server/js/{entity,character,item,mob,npc,message,properties,mobarea,chest}.cts`
+        - `client/js-esm/{compat/gametypes,entity,character,item,mob,npc,player,entityfactory,client-boundary-types}.ts`
+      - added contract regression coverage: `tests/unit/entity-kind-domain.test.ts`
+    - updated typecheck project includes for shared domain type module:
+      - `tsconfig.typecheck.json`
+      - `tsconfig.typecheck-runtime.json`
+      - `tsconfig.typecheck-client.json`
+      - `tsconfig.typecheck-client-runtime.json`
+      - `tsconfig.typecheck-server-esm.json`
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun test tests/unit/entity-kind-domain.test.ts tests/unit/gametypes-contract.test.ts tests/unit/client-boundary-types.test.ts tests/unit/protocol-contract-types.test.ts tests/unit/protocol-contract-module.test.ts --timeout 30000` -> pass (`9 pass`, `0 fail`)
+    - `bun run verify:modern:node22` -> pass (`130 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 inbound format schema + websocket status unions)
+
+### Ticket status
+
+- `T-310.3` Inbound message format schema typing hardening: `done`
+- `T-310.4` WebSocket control/status unionization: `done`
+
+### Live progress log
+
+- `2026-02-09T12:52Z` `in_progress` Started `T-310.3` and `T-310.4` continuation pass after completing `T-310.1` and `T-310.2`.
+  - Scope:
+    - tie server inbound format schemas to opcode-keyed TypeScript protocol tuples
+    - centralize handshake and dispatcher control/status literals as shared typed constants
+    - remove raw status string branching from active server/client runtime paths
+  - Dependencies/blockers:
+    - none
+
+- `2026-02-09T12:55Z` `done` Completed `T-310.3` + `T-310.4` and re-verified full modern lane.
+  - Key actions:
+    - inbound format schema typing hardening:
+      - refactored `server/js/format.cts` to use opcode-keyed typed schema derived from `ClientToServerProtocolAction`
+      - replaced untyped ad-hoc format array wiring with typed `CLIENT_TO_SERVER_FORMAT_SCHEMA`
+      - preserved WHO variable-length payload handling semantics
+    - websocket/control status unionization:
+      - added shared typed status constants and guards in `shared/js/connection-status.ts`:
+        - handshake control: `go`, `timeout`
+        - dispatcher connect statuses: `OK`, `FULL`
+      - switched runtime callsites to shared constants:
+        - `server/js/player.cts` handshake + timeout signals
+        - `client/js-esm/gameclient.ts` dispatcher status and handshake control branching
+      - added runtime contract coverage: `tests/unit/connection-status.test.ts`
+      - updated typecheck project includes for shared status module:
+        - `tsconfig.typecheck.json`
+        - `tsconfig.typecheck-runtime.json`
+        - `tsconfig.typecheck-client.json`
+        - `tsconfig.typecheck-client-runtime.json`
+        - `tsconfig.typecheck-server-esm.json`
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun test tests/unit/server-format-esm.test.ts tests/smoke/server-payload-guards.test.ts --timeout 30000` -> pass (`4 pass`, `0 fail`)
+    - `bun test tests/unit/connection-status.test.ts tests/smoke/server-handshake.test.ts tests/smoke/server-handshake-esm-entry.test.ts tests/smoke/server-handshake-esm-ws-runtime.test.ts --timeout 30000` -> pass (`7 pass`, `0 fail`)
+    - `bun run verify:modern:node22` -> pass (`132 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 server event-name enums)
+
+### Ticket status
+
+- `T-310.5` Server telemetry/logging event-name enums: `done`
+
+### Live progress log
+
+- `2026-02-09T12:57Z` `in_progress` Started server runtime event-name enum pass.
+  - Scope:
+    - centralize `server.*`, `ws.*`, and `world.*` event names as shared runtime constants
+    - enforce typed event-name unions on core logger/emitter interfaces
+    - replace raw event-name string literals in active runtime emitters
+  - Dependencies/blockers:
+    - none
+
+- `2026-02-09T13:00Z` `done` Completed event-name enumization and re-verified modern lane.
+  - Key actions:
+    - added canonical event-name constants and unions:
+      - `server/js/server-event-names.ts`
+    - constrained core runtime interfaces to typed event names:
+      - `server/js/main-runtime-types.ts`
+      - `server/js/ws-runtime-class-factory-types.ts`
+      - `server/js/log.cts`
+      - `server/js/metrics-runtime.cts`
+    - switched runtime emitters to shared constants:
+      - `server/js/main-runtime.cts`
+      - `server/js/worldserver.cts`
+      - `server/js/ws-runtime-class-factory.cts`
+      - `server/js/ws-runtime-class-factory.mjs`
+      - `server/js/ws-runtime-esm.mjs`
+      - `server/js/main-esm-runtime-options.mjs`
+      - `server/js/main-esm-structured-event.mjs`
+    - updated typecheck project includes for the new shared server event-name module:
+      - `tsconfig.typecheck.json`
+      - `tsconfig.typecheck-runtime.json`
+      - `tsconfig.typecheck-server-esm.json`
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun test tests/unit/server-main-esm-runtime-options.test.ts tests/unit/server-main-esm-bridge-probe.test.ts tests/unit/server-main-esm-helpers-parity.test.ts tests/unit/server-main-runtime-process.test.ts tests/unit/ws-runtime-class-factory.test.ts tests/unit/ws-runtime-parity.test.ts tests/unit/server-log.test.ts --timeout 30000` -> pass (`29 pass`, `0 fail`)
+    - `bun run verify:modern:node22` -> pass (`132 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 achievement + asset key domains)
+
+### Ticket status
+
+- `T-310.6` Achievement/storage identifier type safety: `done`
+- `T-310.7` Asset key domain typing (sprites/audio/popup): `done`
+
+### Live progress log
+
+- `2026-02-09T13:02Z` `in_progress` Started client-side identifier/key domain tightening for achievements and asset APIs.
+  - Scope:
+    - add explicit achievement key/id domain types and enforce in storage + unlock pathways
+    - add typed asset key domains for cursor/audio/music/sprite/popup keys
+    - constrain client API callsites to known domain keys without changing runtime behavior
+  - Dependencies/blockers:
+    - none
+
+- `2026-02-09T13:07Z` `done` Completed `T-310.6` and `T-310.7` and re-verified full modern lane.
+  - Key actions:
+    - achievement identifier domain:
+      - added `client/js-esm/achievement-domain.ts` (`AchievementKey`, `AchievementId`, guard)
+      - enforced achievement id domain in storage unlock/check surfaces:
+        - `client/js-esm/storage.ts`
+      - tightened achievement unlock callback typing:
+        - `client/js-esm/game.ts`
+        - `client/js-esm/app.ts`
+        - `client/js-esm/main.ts`
+      - added regression coverage:
+        - `tests/unit/achievement-domain.test.ts`
+    - asset key domain typing:
+      - added `client/js-esm/asset-key-domain.ts` (cursor, popup, music, sound, sprite key domains)
+      - constrained audio manager key surfaces:
+        - `client/js-esm/audio.ts`
+      - constrained game cursor/sprite/audio callsites:
+        - `client/js-esm/game.ts`
+      - constrained popup type surface:
+        - `client/js-esm/app.ts`
+      - added regression coverage:
+        - `tests/unit/asset-key-domain.test.ts`
+    - updated typecheck include inventory for new domain modules:
+      - `tsconfig.typecheck.json`
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun test tests/unit/asset-key-domain.test.ts tests/unit/achievement-domain.test.ts tests/unit/client-gametypes-compat.test.ts --timeout 30000` -> pass (`4 pass`, `0 fail`)
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 core runtime contract unknown-reduction)
+
+### Ticket status
+
+- `T-310.8` Boundary `any`/`unknown` reduction in core runtime contracts: `done`
+
+### Live progress log
+
+- `2026-02-09T13:08Z` `in_progress` Started final `T-310` contract-hardening pass focused on core runtime boundary types.
+  - Scope:
+    - replace broad `unknown` placeholders in core runtime contract files with explicit runtime player/entity/connection interfaces
+    - keep runtime behavior unchanged and avoid gameplay logic rewrites
+  - Dependencies/blockers:
+    - none
+
+- `2026-02-09T13:09Z` `done` Completed `T-310.8` and re-verified full modern lane.
+  - Key actions:
+    - tightened core runtime seam types:
+      - `server/js/main-runtime-types.ts`
+      - `server/js/player-types.ts`
+      - `server/js/ws-runtime-class-factory-types.ts`
+    - kept runtime compatibility while reducing open-ended seam surfaces by introducing explicit runtime player/entity/message interfaces
+    - validated seam usage against existing contract tests:
+      - `tests/unit/player-shadow-source-contract.test.ts`
+      - `tests/unit/server-main-runtime-dependencies.test.ts`
+      - `tests/unit/ws-runtime-class-factory.test.ts`
+      - `tests/unit/server-main-runtime-process.test.ts`
+  - Verification evidence:
+    - `bun run typecheck` -> pass
+    - `bun test tests/unit/player-shadow-source-contract.test.ts tests/unit/server-main-runtime-dependencies.test.ts tests/unit/ws-runtime-class-factory.test.ts tests/unit/server-main-runtime-process.test.ts --timeout 30000` -> pass (`13 pass`, `0 fail`)
+    - `bun run verify:modern:node22` -> pass (`135 pass`, `1 skip`, `0 fail`; Vite build pass)
+
+## Delta Update (2026-02-09 runtime ESM `.mjs` retirement to TS sources)
+
+### Ticket status
+
+- `T-318.1` Convert runtime/shared ESM `.mjs` source files to TypeScript sources: `in_progress`
+- `T-318.2` Rewire scripts/checkers/config includes to TS runtime sources: `todo`
+- `T-318.3` Update active tests/docs references for renamed runtime sources: `todo`
+- `T-318.4` Re-verify modern lane and log evidence: `todo`
+
+### Live progress log
+
+- `2026-02-09T13:14Z` `in_progress` Started runtime ESM source-retirement slice.
+  - Scope:
+    - rename active runtime/shared `.mjs` source modules to `.ts`
+    - rewire runtime/tests/tools/tsconfig references to renamed TS sources
+    - keep behavior unchanged, no CJS `.cts` conversion in this pass
+  - Dependencies/blockers:
+    - none

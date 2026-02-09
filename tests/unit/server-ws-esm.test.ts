@@ -4,12 +4,9 @@ import WSEsm, {
     createWebSocketRuntimeClasses as createWebSocketRuntimeClassesEsm,
     MultiVersionWebsocketServer as MultiVersionWebsocketServerESM,
     wsWebSocketConnection as WsWebSocketConnectionESM,
-} from '../../server/js/ws-esm.mjs';
+} from '../../server/js/ws-runtime-esm.ts';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const WSCjs = require('../../server/js/ws');
-
-test('ws esm mirror exports cjs websocket contract', () => {
+test('ws runtime esm exports websocket contract', () => {
     expect(typeof WSEsm).toBe('object');
     expect(WSEsm.CLOSE_CODES).toBe(CLOSE_CODES_ESM);
     expect(WSEsm.MultiVersionWebsocketServer).toBe(MultiVersionWebsocketServerESM);
@@ -17,8 +14,6 @@ test('ws esm mirror exports cjs websocket contract', () => {
     expect(WSEsm.createWebSocketRuntimeClasses).toBe(createWebSocketRuntimeClassesEsm);
     expect(CLOSE_CODES_ESM.INVALID_PAYLOAD).toBe(1007);
     expect(CLOSE_CODES_ESM.UNSUPPORTED_DATA).toBe(1003);
-    expect(CLOSE_CODES_ESM.INVALID_PAYLOAD).toBe(WSCjs.CLOSE_CODES.INVALID_PAYLOAD);
-    expect(CLOSE_CODES_ESM.UNSUPPORTED_DATA).toBe(WSCjs.CLOSE_CODES.UNSUPPORTED_DATA);
     expect(typeof createWebSocketRuntimeClassesEsm).toBe('function');
     expect(typeof MultiVersionWebsocketServerESM).toBe('function');
     expect(typeof WsWebSocketConnectionESM).toBe('function');

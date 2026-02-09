@@ -1,7 +1,10 @@
+import type { ProtocolParsedAction } from '../../shared/js/protocol-contract-types';
+import type { RuntimeEventName } from './server-event-names';
+
 export interface WebSocketRuntimeLogger {
     info(message: string): void;
     error(message: string): void;
-    event(level: string, event: string, fields: Record<string, unknown>): void;
+    event(level: string, event: RuntimeEventName, fields: Record<string, unknown>): void;
 }
 
 export interface WebSocketRuntimeUtils {
@@ -9,7 +12,7 @@ export interface WebSocketRuntimeUtils {
 }
 
 export interface WebSocketRuntimeProtocol {
-    parseProtocolActionBatch(payload: string): unknown[];
+    parseProtocolActionBatch(payload: string): ProtocolParsedAction[];
 }
 
 export interface WebSocketRuntimeCloseCodes {
@@ -49,7 +52,7 @@ export interface WebSocketRuntimeConnectionRef {
 
 export type LogConnectionEvent = (
     level: string,
-    eventName: string,
+    eventName: RuntimeEventName,
     connection: WebSocketRuntimeConnectionRef,
     extraFields?: Record<string, unknown>
 ) => void;
@@ -66,14 +69,33 @@ export interface WebSocketRuntimeFactoryDeps {
     useBison?: boolean;
 }
 
+export interface WebSocketRuntimeConnection {
+    id: string;
+    remoteAddress: string;
+    onClose(callback: () => void): void;
+    listen(callback: (action: ProtocolParsedAction) => void): void;
+    send(message: unknown): void;
+    sendUTF8(data: string): void;
+    close(logError: string, closeCode?: number): void;
+    closeInvalidPayload(logError: string): void;
+    closeUnsupportedData(logError: string): void;
+}
+
+export interface WebSocketRuntimeServer {
+    onConnect(callback: (connection: WebSocketRuntimeConnection) => void): void;
+    onError(callback: (...args: unknown[]) => void): void;
+    onRequestStatus(callback: () => string): void;
+    broadcast(message: unknown): void;
+}
+
 export interface WebSocketRuntimeClasses {
-    MultiVersionWebsocketServer: new (port: number) => unknown;
+    MultiVersionWebsocketServer: new (port: number) => WebSocketRuntimeServer;
     wsWebSocketConnection: new (
         id: string,
         connection: unknown,
-        server: unknown,
+        server: { removeConnection(id: string): void },
         remoteAddress: string
-    ) => unknown;
+    ) => WebSocketRuntimeConnection;
 }
 
 export type CreateWebSocketRuntimeClasses = (deps: WebSocketRuntimeFactoryDeps) => WebSocketRuntimeClasses;

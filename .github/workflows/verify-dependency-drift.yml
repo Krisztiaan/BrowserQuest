@@ -30,7 +30,7 @@ jobs:
         id: drift
         shell: bash
         run: |
-          node tools/check-dependency-drift.cjs --allow-drift --text dependency-drift.txt --json dependency-drift.json
+          bun tools/check-dependency-drift.ts --allow-drift --text dependency-drift.txt --json dependency-drift.json
           drift_detected="$(node -e "const fs=require('fs'); const report=JSON.parse(fs.readFileSync('dependency-drift.json','utf8')); process.stdout.write(report.driftDetected ? 'true' : 'false');")"
           echo "drift_detected=${drift_detected}" >> "$GITHUB_OUTPUT"
 

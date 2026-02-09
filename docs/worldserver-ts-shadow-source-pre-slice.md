@@ -1,3 +1,5 @@
+> Archived historical note: this document is retained for migration history. Legacy command references (for example, `verify:legacy` or `build:client`) are non-active and may be retired.
+
 # Worldserver TS Shadow-Source Pre-Slice (T-322/T-323)
 
 Date: 2026-02-08

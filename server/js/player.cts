@@ -7,6 +7,13 @@ const Properties = require('./properties');
 const Formulas = require('./formulas');
 const check = require('./format').check;
 const Types = require('../../shared/js/gametypes');
+import type { ClientToServerProtocolAction } from '../../shared/js/protocol-contract-types';
+const ConnectionStatus = require('../../shared/js/connection-status') as {
+    HANDSHAKE_CONTROL: {
+        GO: string;
+        TIMEOUT: string;
+    };
+};
 
 const log = Log.getLogger();
 
@@ -39,8 +46,8 @@ class Player extends Character {
             }
         };
 
-        this.connection.listen(function (message) {
-            var action = Number.parseInt(message[0], 10);
+        this.connection.listen(function (message: ClientToServerProtocolAction) {
+            var action = message[0];
 
             log.debug('Received: ' + message);
             if (!check(message)) {
@@ -250,7 +257,7 @@ class Player extends Character {
             }
         });
 
-        this.connection.sendUTF8('go'); // Notify client that the HELLO/WELCOME handshake can start
+        this.connection.sendUTF8(ConnectionStatus.HANDSHAKE_CONTROL.GO); // Notify client that the HELLO/WELCOME handshake can start
     }
 
     destroy() {
@@ -396,7 +403,7 @@ class Player extends Character {
     }
 
     timeout() {
-        this.connection.sendUTF8('timeout');
+        this.connection.sendUTF8(ConnectionStatus.HANDSHAKE_CONTROL.TIMEOUT);
         this.connection.close('Player was idle for too long');
     }
 }

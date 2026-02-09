@@ -2,6 +2,7 @@ import Character from 'character';
 import Exceptions from 'exceptions';
 import log from 'compat/log';
 import Types from 'compat/gametypes';
+import type { EntityKind } from 'compat/gametypes';
 
 type PlayerSprite = {
     id: string;
@@ -10,7 +11,7 @@ type PlayerSprite = {
 
 type LootItem = {
     id: string | number;
-    kind: number;
+    kind: EntityKind;
     type: 'armor' | 'weapon' | 'object' | string;
     onLoot: (player: Player) => void;
 };
@@ -39,7 +40,7 @@ class Player extends Character {
     switch_callback: (() => void) | null;
     invincible_callback: (() => void) | null;
 
-    constructor(id: string | number, name: string, kind: number) {
+    constructor(id: string | number, name: string, kind: EntityKind) {
         super(id, kind);
 
         this.name = name;

@@ -23,7 +23,7 @@ Note: This tool was written with OSX in mind. If you are using a different OS (e
 
 **Prerequisites:**
 
-- You need python and nodejs installed.
+- You need python3 and Bun installed.
 - Install pip: http://www.pip-installer.org/en/latest/installing.html
 - Install lxml: `pip install lxml` (preferably within a virtualenv)
 - Optional: Install Growl + growlnotify if you are on OSX.
@@ -42,8 +42,7 @@ You must run both commands in order to export the client and server map files. T
 Things to know
 --------------
 
-The client map export will create two almost identical files: `world_client.js` and `world_client.json`
-These are both required because, depending on the browser, the game will load the map either by using a web worker (loading `world_client.js`), or via Ajax (loading `world_client.json`).
+The client map export creates `world_client.json`.
 
 The client map file contains data about terrain tile layers, collision cells, doors, music areas, etc.
 The server map file contains data about static entity spawning points, spawning areas, collision cells, etc.
@@ -53,8 +52,8 @@ Depending on what you want to change, it's therefore not always needed to export
 **How the exporting process works:**
 
 1. The Tiled map TMX file is converted to a temporary JSON file by `tmx2json.py`.
-2. This file is be processed by `processmap.js` and returned as an object. This object will have different properties depending on whether we are exporting the client or the server map.
-3. The processed map object is saved as the final world map JSON file(s) in the appropriate directories.
+2. This file is processed by `processmap.ts` and returned as an object. This object will have different properties depending on whether we are exporting the client or the server map.
+3. The processed map object is saved as the final world map JSON file in the appropriate directory.
 4. The temporary file from step 1. is deleted.
 
 
@@ -88,4 +87,3 @@ Here are a few ideas for anyone who might want to help make this tool better:
 
 - Tiled editor wiki: https://github.com/bjorn/tiled/wiki
 - TMX map format documentation: https://github.com/bjorn/tiled/wiki/TMX-Map-Format
-

@@ -1,12 +1,14 @@
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
+
 const Log = require('./log') as {
     getLogger(): { error(...args: unknown[]): void };
 };
 
 const Types = require('../../shared/js/gametypes') as {
-    isMob(kind: number | string): boolean;
-    getKindAsString(kind: number | string): string;
-    getArmorRank(kind: number | string): number;
-    getWeaponRank(kind: number | string): number;
+    isMob(kind: EntityKind): boolean;
+    getKindAsString(kind: EntityKind): string;
+    getArmorRank(kind: EntityKind): number;
+    getWeaponRank(kind: EntityKind): number;
 };
 
 const log = Log.getLogger();
@@ -19,9 +21,9 @@ interface MobProperty {
 }
 
 interface PropertiesContract extends Record<string, unknown> {
-    getArmorLevel(kind: number | string): number | undefined;
-    getWeaponLevel(kind: number | string): number | undefined;
-    getHitPoints(kind: number | string): number;
+    getArmorLevel(kind: EntityKind): number | undefined;
+    getWeaponLevel(kind: EntityKind): number | undefined;
+    getHitPoints(kind: EntityKind): number;
 }
 
 const PropertiesData: Record<string, MobProperty> = {
@@ -177,7 +179,7 @@ const PropertiesData: Record<string, MobProperty> = {
 
 const Properties = PropertiesData as PropertiesContract;
 
-Properties.getArmorLevel = function (kind: number | string): number | undefined {
+Properties.getArmorLevel = function (kind: EntityKind): number | undefined {
     try {
         if (Types.isMob(kind)) {
             const mob = Properties[Types.getKindAsString(kind)] as MobProperty;
@@ -191,7 +193,7 @@ Properties.getArmorLevel = function (kind: number | string): number | undefined 
     }
 };
 
-Properties.getWeaponLevel = function (kind: number | string): number | undefined {
+Properties.getWeaponLevel = function (kind: EntityKind): number | undefined {
     try {
         if (Types.isMob(kind)) {
             const mob = Properties[Types.getKindAsString(kind)] as MobProperty;
@@ -205,7 +207,7 @@ Properties.getWeaponLevel = function (kind: number | string): number | undefined
     }
 };
 
-Properties.getHitPoints = function (kind: number | string): number {
+Properties.getHitPoints = function (kind: EntityKind): number {
     const mob = Properties[Types.getKindAsString(kind)] as MobProperty;
     return mob.hp;
 };

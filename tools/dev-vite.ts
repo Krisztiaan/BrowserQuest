@@ -1,5 +1,5 @@
 const serverProc = Bun.spawn({
-  cmd: ["bun", "server/js/main.js"],
+  cmd: ["bun", "server/js/main-esm.ts"],
   stdout: "inherit",
   stderr: "inherit",
 });

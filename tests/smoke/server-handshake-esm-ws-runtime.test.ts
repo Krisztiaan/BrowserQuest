@@ -1,6 +1,6 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
-import WebSocket from 'ws';
+import WebSocket from '../support/ws-client';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 type EventRecord = Record<string, unknown>;
@@ -51,40 +51,6 @@ async function waitForCondition(check: () => boolean, timeoutMs: number, label: 
     }
 }
 
-async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs = 4000) {
-    return await new Promise<number>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timed out waiting for server exit')), timeoutMs);
-        proc.exited
-            .then((code) => {
-                clearTimeout(timeout);
-                resolve(code);
-            })
-            .catch((error) => {
-                clearTimeout(timeout);
-                reject(error);
-            });
-    });
-}
-
-async function readStreamText(stream: ReadableStream<unknown> | number | null | undefined) {
-    if (!stream || typeof stream === 'number') {
-        return '';
-    }
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let output = '';
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (!(value instanceof Uint8Array)) {
-            continue;
-        }
-        output += decoder.decode(value);
-    }
-    return output;
-}
-
 function startStructuredCapture(stream: ReadableStream<unknown> | number | null | undefined, events: EventRecord[]) {
     if (!stream || typeof stream === 'number') {
         return;
@@ -131,7 +97,7 @@ afterEach(async () => {
     }
 });
 
-test("esm server entry can use opt-in ESM websocket runtime and still send 'go' handshake", async () => {
+test("esm server entry uses default ESM websocket runtime and sends 'go' handshake", async () => {
     const port = await getFreePort();
     const configPath = `${repoRoot}/server/.tmp-config.test-esm-ws-runtime-${port}.json`;
     await Bun.write(
@@ -148,12 +114,8 @@ test("esm server entry can use opt-in ESM websocket runtime and still send 'go' 
 
     const events: EventRecord[] = [];
     proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main-esm.mjs', configPath],
+        cmd: ['bun', 'server/js/main-esm.ts', configPath],
         cwd: repoRoot,
-        env: {
-            ...process.env,
-            BQ_ESM_WS_RUNTIME: '1',
-        },
         stdout: 'pipe',
         stderr: 'pipe',
     });
@@ -191,45 +153,5 @@ test("esm server entry can use opt-in ESM websocket runtime and still send 'go' 
     });
 
     expect(message).toBe('go');
-    await Bun.file(configPath).delete();
-});
-
-test('esm websocket runtime mode supports explicit forced-failure diagnostics', async () => {
-    const port = await getFreePort();
-    const configPath = `${repoRoot}/server/.tmp-config.test-esm-ws-runtime-fail-${port}.json`;
-    await Bun.write(
-        configPath,
-        JSON.stringify({
-            port,
-            debug_level: 'error',
-            nb_players_per_world: 5,
-            nb_worlds: 1,
-            map_filepath: './server/maps/world_server.json',
-            metrics_enabled: false,
-        })
-    );
-
-    proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main-esm.mjs', configPath],
-        cwd: repoRoot,
-        env: {
-            ...process.env,
-            BQ_ESM_WS_RUNTIME: '1',
-            BQ_ESM_WS_RUNTIME_FORCE_FAIL: '1',
-        },
-        stdout: 'pipe',
-        stderr: 'pipe',
-    });
-
-    const code = await waitForProcessExit(proc, 4000);
-    expect(code).toBe(1);
-
-    const [stdoutText, stderrText] = await Promise.all([readStreamText(proc.stdout), readStreamText(proc.stderr)]);
-    const merged = `${stdoutText}\n${stderrText}`;
-    expect(merged).toContain('"event":"server.esm.ws_runtime_mode"');
-    expect(merged).toContain('"mode":"esm"');
-    expect(merged).toContain('"status":"failed"');
-    expect(merged).toContain('"reason":"forced_failure"');
-
     await Bun.file(configPath).delete();
 });

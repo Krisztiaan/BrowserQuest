@@ -5,6 +5,7 @@ import Warrior from 'warrior';
 import Chest from 'chest';
 import log from 'compat/log';
 import Types from 'compat/gametypes';
+import type { EntityKind } from 'compat/gametypes';
 
 /** @typedef {import('./client-boundary-types').EntityFactoryBuilder} EntityFactoryBuilder */
 /** @typedef {import('./client-boundary-types').EntityFactoryContract} EntityFactoryContract */
@@ -13,12 +14,12 @@ type EntityFactoryBuilder = (id: string | number, name?: string) => any;
 
 type EntityFactoryContract = {
     builders: Array<EntityFactoryBuilder | undefined>;
-    createEntity: (kind: number, id: string | number, name?: string) => any;
+    createEntity: (kind: EntityKind, id: string | number, name?: string) => any;
 };
 
 const EntityFactory: EntityFactoryContract = {
     builders: [],
-    createEntity(kind: number, id: string | number, name?: string): any {
+    createEntity(kind: EntityKind, id: string | number, name?: string): any {
         if (!kind) {
             log.error('kind is undefined', true);
             return;

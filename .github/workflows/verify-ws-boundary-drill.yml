@@ -1,16 +1,14 @@
-name: verify-ws-boundary-drill
+name: verify-ws-runtime-drill
 
 on:
   workflow_dispatch:
   pull_request:
     paths:
-      - "server/js/ws.js"
-      - "server/js/ws-esm.mjs"
       - "server/js/ws-runtime-esm.mjs"
       - "server/js/ws-runtime-class-factory.mjs"
       - "tests/unit/ws-runtime-*.test.ts"
       - "tests/unit/server-ws-esm.test.ts"
-      - "tools/run-ws-boundary-drill.cjs"
+      - "tools/run-ws-boundary-drill.ts"
       - "package.json"
       - "docs/websocket-*.md"
       - ".github/workflows/verify-ws-boundary-drill.yml"
@@ -21,7 +19,7 @@ jobs:
       matrix:
         node-version: ["22.x"]
     runs-on: ubuntu-latest
-    name: ws-boundary-drill (node ${{ matrix.node-version }})
+    name: ws-runtime-drill (node ${{ matrix.node-version }})
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,14 +39,14 @@ jobs:
 
       - name: Run websocket boundary drill
         env:
-          BQ_WS_DRILL_SUMMARY_PATH: artifacts/ws-boundary-drill-summary.json
-          BQ_WS_DRILL_MARKDOWN_PATH: artifacts/ws-boundary-drill-summary.md
+          BQ_WS_DRILL_SUMMARY_PATH: artifacts/ws-runtime-drill-summary.json
+          BQ_WS_DRILL_MARKDOWN_PATH: artifacts/ws-runtime-drill-summary.md
         run: bun run test:ws:runtime:drill
 
-      - name: Upload websocket boundary drill summary
+      - name: Upload websocket runtime drill summary
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ws-boundary-drill-summary-${{ github.run_id }}
-          path: artifacts/ws-boundary-drill-summary.*
+          name: ws-runtime-drill-summary-${{ github.run_id }}
+          path: artifacts/ws-runtime-drill-summary.*
           if-no-files-found: warn

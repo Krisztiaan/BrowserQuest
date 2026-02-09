@@ -1,12 +1,14 @@
+import type { EntityKindId } from '../../shared/js/entity-kind-domain';
+
 const Utils = require('./utils') as {
     random(range: number): number;
 };
 
-const Item = require('./item') as new (id: number | string, kind: number | string, x: number, y: number) => object;
+const Item = require('./item') as new (id: number | string, kind: EntityKindId, x: number, y: number) => object;
 
 const Types = require('../../shared/js/gametypes') as {
     Entities: {
-        CHEST: number | string;
+        CHEST: EntityKindId;
     };
 };
 

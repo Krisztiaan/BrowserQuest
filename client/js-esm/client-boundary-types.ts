@@ -1,11 +1,14 @@
-import type { ProtocolAction } from '../../shared/js/protocol-contract-types';
+import type { ClientToServerProtocolAction, ServerToClientProtocolAction } from '../../shared/js/protocol-contract-types';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
-export type ClientProtocolAction = ProtocolAction;
+export type ClientInboundProtocolAction = ServerToClientProtocolAction;
+export type ClientOutboundProtocolAction = ClientToServerProtocolAction;
+export type ClientProtocolAction = ClientInboundProtocolAction;
 export type ClientProtocolBatch = ClientProtocolAction[];
 
 export interface RuntimeEntity {
     id?: string | number;
-    kind?: number;
+    kind?: EntityKind;
     weaponName?: string;
     spriteName?: string;
     wasDropped?: boolean;
@@ -16,11 +19,11 @@ export type EntityFactoryBuilder = (id: string | number, name?: string) => Runti
 
 export interface EntityFactoryContract {
     builders: Array<EntityFactoryBuilder | undefined>;
-    createEntity(kind: number, id: string | number, name?: string): RuntimeEntity | undefined;
+    createEntity(kind: EntityKind, id: string | number, name?: string): RuntimeEntity | undefined;
 }
 
 export interface GameClientProtocolBoundary {
-    receiveAction(data: ClientProtocolAction): void;
+    receiveAction(data: ClientInboundProtocolAction): void;
     receiveActionBatch(actions: ClientProtocolBatch): void;
-    sendMessage(payload: ClientProtocolAction): void;
+    sendMessage(payload: ClientOutboundProtocolAction): void;
 }

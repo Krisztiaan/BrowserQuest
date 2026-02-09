@@ -1,5 +1,7 @@
 import { expect, test } from 'bun:test';
 import type {
+    ClientInboundProtocolAction,
+    ClientOutboundProtocolAction,
     ClientProtocolAction,
     ClientProtocolBatch,
     EntityFactoryContract,
@@ -8,11 +10,11 @@ import type {
 import { isProtocolAction, normalizeProtocolActionBatch } from '../../client/js-esm/protocol-payload';
 
 test('client protocol payload helper normalizes protocol action batches', () => {
-    const singleAction: ClientProtocolAction = [1, 'hello', true, null, 42];
-    const batchAction: unknown = [[1, 'hello'], [2, 99], ['oops']];
+    const singleAction: ClientProtocolAction = [1, 7, 'hello', 10, 20, 100];
+    const batchAction: unknown = [[3, 42], [22, 99], ['oops']];
     const expectedBatch: ClientProtocolBatch = [
-        [1, 'hello'],
-        [2, 99],
+        [3, 42],
+        [22, 99],
     ];
 
     expect(isProtocolAction(singleAction)).toBe(true);
@@ -23,8 +25,9 @@ test('client protocol payload helper normalizes protocol action batches', () => 
 });
 
 test('client boundary TypeScript contracts accept seam-compliant shapes', () => {
-    const protocolAction: ClientProtocolAction = [3, 'payload'];
-    const protocolBatch: ClientProtocolBatch = [protocolAction];
+    const inboundAction: ClientInboundProtocolAction = [3, 42];
+    const outboundAction: ClientOutboundProtocolAction = [4, 12, 34];
+    const protocolBatch: ClientProtocolBatch = [inboundAction];
 
     const boundary: GameClientProtocolBoundary = {
         receiveAction(data) {
@@ -45,8 +48,8 @@ test('client boundary TypeScript contracts accept seam-compliant shapes', () => 
         },
     };
 
-    boundary.receiveAction(protocolAction);
+    boundary.receiveAction(inboundAction);
     boundary.receiveActionBatch(protocolBatch);
-    boundary.sendMessage(protocolAction);
+    boundary.sendMessage(outboundAction);
     expect(entityFactory.createEntity(1, 'abc')).toEqual({ id: 'entity' });
 });

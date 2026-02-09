@@ -1,25 +1,47 @@
-#!/usr/bin/env python
-import commands
+#!/usr/bin/env python3
+from pathlib import Path
+import subprocess
 import sys
 
-SRC_FILE = 'tmx/map.tmx'
+SRC_FILE = Path("tmx/map.tmx")
+TEMP_FILE = Path(f"{SRC_FILE}.json")
 
-TEMP_FILE = SRC_FILE+'.json'
-
-mode = sys.argv[1] if len(sys.argv) > 1 else 'client'
-if mode == 'client':
-    DEST_FILE = '../../client/maps/world_client' # This will save two files (See exportmap.js)
+mode = sys.argv[1] if len(sys.argv) > 1 else "client"
+if mode == "client":
+    dest_file = Path("../../client/maps/world_client.json")
 else:
-    DEST_FILE = '../../server/maps/world_server.json'
+    dest_file = Path("../../server/maps/world_server.json")
+
+
+def run(cmd):
+    result = subprocess.run(cmd, check=False, text=True, capture_output=True)
+    output = (result.stdout or "") + (result.stderr or "")
+    if output:
+        print(output.strip())
+    if result.returncode != 0:
+        raise SystemExit(result.returncode)
+
 
 # Convert the Tiled TMX file to a temporary JSON file
-print commands.getoutput('./tmx2json.py '+SRC_FILE+' '+TEMP_FILE)
+run(["./tmx2json.py", str(SRC_FILE), str(TEMP_FILE)])
 
 # Map exporting
-print commands.getoutput('./exportmap.js '+TEMP_FILE+' '+DEST_FILE+' '+mode)
+run(["bun", "./exportmap.ts", str(TEMP_FILE), str(dest_file), mode])
 
 # Remove temporary JSON file
-print commands.getoutput('rm '+TEMP_FILE)
+if TEMP_FILE.exists():
+    TEMP_FILE.unlink()
 
-# Send a Growl notification when the export process is complete
-print commands.getoutput('growlnotify --appIcon Tiled -name "Map export complete" -m "'+DEST_FILE+' was saved"')
+# Send a Growl notification when the export process is complete (best-effort)
+subprocess.run(
+    [
+        "growlnotify",
+        "--appIcon",
+        "Tiled",
+        "-name",
+        "Map export complete",
+        "-m",
+        f"{dest_file} was saved",
+    ],
+    check=False,
+)

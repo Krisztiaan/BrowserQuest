@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import UtilsEsm from '../../server/js/utils-esm.mjs';
+import UtilsEsm from '../../server/js/utils-esm.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const Types = require('../../shared/js/gametypes');

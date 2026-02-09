@@ -1,12 +1,14 @@
+import type { RuntimeEventName } from './server-event-names';
+
 export interface RuntimeLogger {
     info(message: string): void;
     error(message: string): void;
-    event(level: string, eventName: string, fields: Record<string, unknown>): void;
+    event(level: string, eventName: RuntimeEventName, fields: Record<string, unknown>): void;
 }
 
 export interface RuntimeWorld {
     playerCount: number;
-    connect_callback(player: unknown): void;
+    connect_callback(player: RuntimePlayer): void;
     run(mapFilePath: string): void;
     updatePopulation(totalPlayers?: number): void;
     onPlayerAdded(callback: () => void): void;
@@ -32,7 +34,11 @@ export interface RuntimeWorldServerConstructor {
 }
 
 export interface RuntimePlayerConstructor {
-    new (connection: RuntimeConnection, world: RuntimeWorld): unknown;
+    new (connection: RuntimeConnection, world: RuntimeWorld): RuntimePlayer;
+}
+
+export interface RuntimePlayer {
+    id?: string | number;
 }
 
 export interface RuntimeMetrics {
@@ -59,7 +65,7 @@ export interface RuntimeProcessLike {
 
 export type RuntimeServerEventEmitter = (
     level: string,
-    eventName: string,
+    eventName: RuntimeEventName,
     fields: Record<string, unknown>
 ) => void;
 

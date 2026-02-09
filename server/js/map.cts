@@ -1,4 +1,4 @@
-const fs = require('node:fs') as typeof import('node:fs');
+const fs = require('node:fs/promises') as typeof import('node:fs/promises');
 
 const Log = require('./log') as {
     getLogger(): { error(...args: unknown[]): void };
@@ -76,8 +76,6 @@ class Map {
     ready_func: (() => void) | null;
 
     constructor(filepath: string) {
-        const self = this;
-
         this.isLoaded = false;
         this.width = 0;
         this.height = 0;
@@ -96,27 +94,32 @@ class Map {
         this.startingAreas = [];
         this.ready_func = null;
 
-        fs.access(filepath, fs.constants.F_OK, function (err) {
-            if (err) {
-                log.error(filepath + " doesn't exist.");
-                return;
-            }
+        void this.loadMap(filepath);
+    }
 
-            fs.readFile(filepath, function (readErr, file) {
-                if (readErr) {
-                    log.error('Could not read map file: ' + filepath);
-                    return;
-                }
+    async loadMap(filepath: string): Promise<void> {
+        try {
+            await fs.access(filepath);
+        } catch (_) {
+            log.error(filepath + " doesn't exist.");
+            return;
+        }
 
-                try {
-                    const json = JSON.parse(file.toString()) as MapDefinition;
-                    self.initMap(json);
-                } catch (parseErr: unknown) {
-                    const parseMessage = parseErr instanceof Error ? parseErr.message : String(parseErr);
-                    log.error('Invalid map JSON: ' + filepath + ' (' + parseMessage + ')');
-                }
-            });
-        });
+        let file: string;
+        try {
+            file = await fs.readFile(filepath, 'utf8');
+        } catch (_) {
+            log.error('Could not read map file: ' + filepath);
+            return;
+        }
+
+        try {
+            const json = JSON.parse(file) as MapDefinition;
+            this.initMap(json);
+        } catch (parseErr: unknown) {
+            const parseMessage = parseErr instanceof Error ? parseErr.message : String(parseErr);
+            log.error('Invalid map JSON: ' + filepath + ' (' + parseMessage + ')');
+        }
     }
 
     initMap(map: MapDefinition): void {

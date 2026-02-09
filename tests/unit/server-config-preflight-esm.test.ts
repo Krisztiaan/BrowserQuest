@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import ConfigPreflightEsm, { validateConfig } from '../../server/js/config-preflight-esm.mjs';
+import ConfigPreflightEsm, { validateConfig } from '../../server/js/config-preflight-esm.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const ConfigPreflightCjs = require('../../server/js/config-preflight');

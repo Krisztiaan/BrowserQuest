@@ -1,6 +1,6 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
-import WebSocket from 'ws';
+import WebSocket from '../support/ws-client';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
@@ -66,7 +66,7 @@ test("esm server entry sends initial 'go' handshake", async () => {
     );
 
     proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main-esm.mjs', configPath],
+        cmd: ['bun', 'server/js/main-esm.ts', configPath],
         cwd: repoRoot,
         stdout: 'ignore',
         stderr: 'pipe',

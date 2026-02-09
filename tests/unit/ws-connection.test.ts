@@ -1,7 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const WS = require('../../server/js/ws');
+import WS from '../../server/js/ws-runtime-esm.ts';
 const originalConsoleInfo = console.info;
 
 type Handler = (...args: unknown[]) => void;

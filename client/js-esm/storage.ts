@@ -1,4 +1,6 @@
 import { supportsLocalStorage } from 'compat/features';
+import type { AchievementId } from './achievement-domain';
+import { isAchievementId } from './achievement-domain';
 
 const STORAGE_KEY = 'data';
 
@@ -10,7 +12,7 @@ type PlayerStorage = {
 };
 
 type AchievementStorage = {
-    unlocked: string[];
+    unlocked: AchievementId[];
     ratCount: number;
     skeletonCount: number;
     totalKills: number;
@@ -41,6 +43,13 @@ class Storage {
 
         try {
             this.data = JSON.parse(rawData) as StorageData;
+            if (!this.data?.achievements || !Array.isArray(this.data.achievements.unlocked)) {
+                this.resetData();
+                return;
+            }
+            this.data.achievements.unlocked = this.data.achievements.unlocked.filter((id): id is AchievementId =>
+                isAchievementId(id)
+            );
         } catch (_error) {
             this.resetData();
         }
@@ -122,11 +131,11 @@ class Storage {
 
     // Achievements
 
-    hasUnlockedAchievement(id: string): boolean {
+    hasUnlockedAchievement(id: AchievementId): boolean {
         return this.data.achievements.unlocked.includes(id);
     }
 
-    unlockAchievement(id: string): boolean {
+    unlockAchievement(id: AchievementId): boolean {
         if (!this.hasUnlockedAchievement(id)) {
             this.data.achievements.unlocked.push(id);
             this.save();

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { ensureConfigPreflightValid, ensureConfigSourcePresent } from '../../server/js/main-esm-preflight-failures.mjs';
+import { ensureConfigPreflightValid, ensureConfigSourcePresent } from '../../server/js/main-esm-preflight-failures.ts';
 
 test('preflight helper emits and fails when no active config is present', () => {
     const errors: string[] = [];

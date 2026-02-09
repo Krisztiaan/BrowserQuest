@@ -1,6 +1,9 @@
 export type {
     ProtocolOpcode,
     ProtocolActionValue,
+    ProtocolParsedAction,
+    ClientToServerProtocolAction,
+    ServerToClientProtocolAction,
     ProtocolAction,
     ProtocolContractNumericKey,
     ProtocolContractFunctionKey,

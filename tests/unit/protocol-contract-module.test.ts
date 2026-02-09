@@ -4,10 +4,10 @@ import ProtocolEsm, {
     MSG_HELLO,
     MSG_MOVE,
     parseProtocolActionBatch as parseProtocolActionBatchEsm,
-} from '../../shared/js/protocol-contract-esm.mjs';
+} from '../../shared/js/protocol-contract-esm.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const ProtocolCjs = require('../../shared/js/protocol-contract.js');
+const ProtocolCjs = require('../../shared/js/protocol-contract');
 
 test('shared protocol contract ESM bridge mirrors CJS exports', () => {
     expect(MSG_HELLO).toBe(ProtocolCjs.MSG_HELLO);

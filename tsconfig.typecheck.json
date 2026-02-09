@@ -7,12 +7,26 @@
     "types": ["bun-types", "node"],
     "strict": false,
     "noEmit": true,
+    "composite": true,
+    "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck.tsbuildinfo",
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "verbatimModuleSyntax": true
   },
   "include": [
     "tests/**/*.ts",
-    "tools/*.ts"
+    "tools/**/*.ts",
+    "server/js/server-event-names.ts",
+    "client/js-esm/achievement-domain.ts",
+    "client/js-esm/asset-key-domain.ts",
+    "shared/js/connection-status.ts",
+    "shared/js/entity-kind-domain.ts",
+    "client/js-esm/client-boundary-types.ts",
+    "client/js-esm/protocol-payload.ts",
+    "client/js-esm/compat/gametypes.ts",
+    "server/js/player-types.ts",
+    "server/js/main-runtime-types.ts",
+    "server/js/worldserver-types.ts",
+    "shared/js/protocol-contract-types.ts"
   ]
 }

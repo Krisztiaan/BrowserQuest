@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import ProtocolEsm from '../../shared/js/protocol-contract-esm.mjs';
+import ProtocolEsm from '../../shared/js/protocol-contract-esm.ts';
 import {
     PROTOCOL_CONTRACT_FUNCTION_KEYS,
     PROTOCOL_CONTRACT_KEYS,
@@ -7,7 +7,7 @@ import {
 } from '../../shared/js/protocol-contract-types';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const ProtocolCjs = require('../../shared/js/protocol-contract.js');
+const ProtocolCjs = require('../../shared/js/protocol-contract');
 
 test('protocol TS key inventory aligns with runtime CJS/ESM protocol contract exports', () => {
     for (const key of PROTOCOL_CONTRACT_NUMERIC_KEYS) {

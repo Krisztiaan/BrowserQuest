@@ -1,6 +1,6 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
-import WebSocket from 'ws';
+import WebSocket from '../support/ws-client';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 const runHealthySmoke = process.env.BQ_TEST_METRICS_HEALTH === '1';
@@ -153,7 +153,7 @@ maybeTest('optional: healthy metrics path starts with memcache backend and no fa
     const events: EventRecord[] = [];
 
     proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main.js', configPath],
+        cmd: ['bun', 'server/js/main-esm.ts', configPath],
         cwd: repoRoot,
         stdout: 'pipe',
         stderr: 'pipe',

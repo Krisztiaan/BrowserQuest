@@ -1,6 +1,8 @@
 import Area from 'area';
 import Detect from 'compat/detect';
 import log from 'compat/log';
+import { AUDIO_SOUND_KEYS, MUSIC_KEYS } from './asset-key-domain';
+import type { AudioSoundKey, MusicKey } from './asset-key-domain';
 
 type ManagedAudio = HTMLAudioElement & {
     fadingOut?: ReturnType<typeof setInterval> | null;
@@ -9,7 +11,7 @@ type ManagedAudio = HTMLAudioElement & {
 
 type AreaMusic = {
     sound: ManagedAudio | null;
-    name: string;
+    name: MusicKey;
 };
 
 type AudioGame = {
@@ -22,12 +24,12 @@ type AudioGame = {
 class AudioManager {
     enabled: boolean;
     extension: string;
-    sounds: Record<string, ManagedAudio[]>;
+    sounds: Partial<Record<MusicKey | AudioSoundKey, ManagedAudio[]>>;
     game: AudioGame;
     currentMusic: AreaMusic | null;
-    areas: Array<Area & { musicName?: string }>;
-    musicNames: string[];
-    soundNames: string[];
+    areas: Array<Area & { musicName?: MusicKey }>;
+    musicNames: MusicKey[];
+    soundNames: AudioSoundKey[];
 
     constructor(game: AudioGame) {
         this.enabled = true;
@@ -36,8 +38,8 @@ class AudioManager {
         this.game = game;
         this.currentMusic = null;
         this.areas = [];
-        this.musicNames = ['village', 'beach', 'forest', 'cave', 'desert', 'lavaland', 'boss'];
-        this.soundNames = ['loot', 'hit1', 'hit2', 'hurt', 'heal', 'chat', 'revive', 'death', 'firefox', 'achievement', 'kill1', 'kill2', 'noloot', 'teleport', 'chest', 'npc', 'npc-end'];
+        this.musicNames = [...MUSIC_KEYS];
+        this.soundNames = [...AUDIO_SOUND_KEYS];
 
         const loadMusicFiles = () => {
             // disable music on mobile devices
@@ -96,7 +98,12 @@ class AudioManager {
         }
     }
 
-    load(basePath: string, name: string, loaded_callback?: (() => void) | null, channels = 1): void {
+    load(
+        basePath: string,
+        name: MusicKey | AudioSoundKey,
+        loaded_callback?: (() => void) | null,
+        channels = 1
+    ): void {
         const path = basePath + name + '.' + this.extension;
         const sound = document.createElement('audio') as ManagedAudio;
 
@@ -123,11 +130,11 @@ class AudioManager {
         }
     }
 
-    loadSound(name: string, handleLoaded?: (() => void) | null): void {
+    loadSound(name: AudioSoundKey, handleLoaded?: (() => void) | null): void {
         this.load('audio/sounds/', name, handleLoaded, 4);
     }
 
-    loadMusic(name: string, handleLoaded?: (() => void) | null): void {
+    loadMusic(name: MusicKey, handleLoaded?: (() => void) | null): void {
         this.load('audio/music/', name, handleLoaded, 1);
         const music = this.sounds[name]?.[0];
         if (music) {
@@ -136,7 +143,7 @@ class AudioManager {
         }
     }
 
-    getSound(name: string): ManagedAudio | null {
+    getSound(name: MusicKey | AudioSoundKey): ManagedAudio | null {
         if (!this.sounds[name] || this.sounds[name].length === 0) {
             return null;
         }
@@ -149,15 +156,15 @@ class AudioManager {
         return sound;
     }
 
-    playSound(name: string): void {
+    playSound(name: AudioSoundKey): void {
         const sound = this.enabled && this.getSound(name);
         if (sound) {
             sound.play();
         }
     }
 
-    addArea(x: number, y: number, width: number, height: number, musicName: string): void {
-        const area = new Area(x, y, width, height) as Area & { musicName?: string };
+    addArea(x: number, y: number, width: number, height: number, musicName: MusicKey): void {
+        const area = new Area(x, y, width, height) as Area & { musicName?: MusicKey };
         area.musicName = musicName;
         this.areas.push(area);
     }

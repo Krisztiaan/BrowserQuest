@@ -1,66 +1,7 @@
 import { expect, test } from 'bun:test';
-import { resolveStartupRuntimeOptions } from '../../server/js/main-esm-runtime-options.mjs';
+import { resolveStartupRuntimeOptions } from '../../server/js/main-esm-runtime-options.ts';
 
-test('startup runtime options return undefined when esm runtime mode is disabled', async () => {
-    const events: Array<Record<string, unknown>> = [];
-    let dependencyFactoryCalls = 0;
-    let failCode: number | null = null;
-
-    const runtimeOptions = await resolveStartupRuntimeOptions({
-        env: {},
-        emitStructuredEvent: (level, event, fields) => {
-            events.push({ level, event, ...fields });
-        },
-        importWsEsm: async () => {
-            throw new Error('should_not_import');
-        },
-        createRuntimeDependencies: () => {
-            dependencyFactoryCalls += 1;
-            return {};
-        },
-        fail: (code) => {
-            failCode = code;
-        },
-    });
-
-    expect(runtimeOptions).toBeUndefined();
-    expect(events).toEqual([]);
-    expect(dependencyFactoryCalls).toBe(0);
-    expect(failCode).toBeNull();
-});
-
-test('startup runtime options emit forced failure diagnostics and fail fast', async () => {
-    const events: Array<Record<string, unknown>> = [];
-    let failCode: number | null = null;
-
-    const runtimeOptions = await resolveStartupRuntimeOptions({
-        env: {
-            BQ_ESM_WS_RUNTIME: '1',
-            BQ_ESM_WS_RUNTIME_FORCE_FAIL: '1',
-        },
-        emitStructuredEvent: (level, event, fields) => {
-            events.push({ level, event, ...fields });
-        },
-        importWsEsm: async () => ({ default: {} }),
-        createRuntimeDependencies: () => ({}),
-        fail: (code) => {
-            failCode = code;
-        },
-    });
-
-    expect(runtimeOptions).toBeUndefined();
-    expect(failCode).toBe(1);
-    expect(events.length).toBe(1);
-    expect(events[0]).toMatchObject({
-        level: 'error',
-        event: 'server.esm.ws_runtime_mode',
-        mode: 'esm',
-        status: 'failed',
-        reason: 'forced_failure',
-    });
-});
-
-test('startup runtime options inject esm websocket runtime through dependency seam', async () => {
+test('startup runtime options always inject esm websocket runtime through dependency seam', async () => {
     const events: Array<Record<string, unknown>> = [];
     const wsDefault = { id: 'ws-esm-default' };
     const runtimeDependencies = { id: 'runtime-dependencies' };
@@ -68,9 +9,7 @@ test('startup runtime options inject esm websocket runtime through dependency se
     let failCode: number | null = null;
 
     const runtimeOptions = await resolveStartupRuntimeOptions({
-        env: {
-            BQ_ESM_WS_RUNTIME: '1',
-        },
+        env: {},
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
         },
@@ -96,14 +35,40 @@ test('startup runtime options inject esm websocket runtime through dependency se
     });
 });
 
+test('startup runtime options ignore removed runtime-mode env toggles', async () => {
+    const events: Array<Record<string, unknown>> = [];
+
+    const runtimeOptions = await resolveStartupRuntimeOptions({
+        env: {
+            BQ_ESM_WS_RUNTIME: '0',
+            BQ_ESM_WS_RUNTIME_FORCE_FAIL: '1',
+        },
+        emitStructuredEvent: (level, event, fields) => {
+            events.push({ level, event, ...fields });
+        },
+        importWsEsm: async () => ({ default: { id: 'ws-esm-default' } }),
+        createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
+        fail: () => {
+            // no-op
+        },
+    });
+
+    expect(runtimeOptions).toEqual({ dependencies: { id: 'runtime-deps' } });
+    expect(events.length).toBe(1);
+    expect(events[0]).toMatchObject({
+        level: 'info',
+        event: 'server.esm.ws_runtime_mode',
+        mode: 'esm',
+        status: 'ok',
+    });
+});
+
 test('startup runtime options emit load-error diagnostics when esm websocket runtime import fails', async () => {
     const events: Array<Record<string, unknown>> = [];
     let failCode: number | null = null;
 
     const runtimeOptions = await resolveStartupRuntimeOptions({
-        env: {
-            BQ_ESM_WS_RUNTIME: '1',
-        },
+        env: {},
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
         },

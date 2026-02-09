@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { runMainEsmBootEnvelope } from '../../server/js/main-esm-boot-envelope.mjs';
+import { runMainEsmBootEnvelope } from '../../server/js/main-esm-boot-envelope.ts';
 
 test('boot envelope resolves config and starts runtime when preflight succeeds', async () => {
     const activeConfig = { port: 8000 };
@@ -16,7 +16,7 @@ test('boot envelope resolves config and starts runtime when preflight succeeds',
         fail: () => {
             // no-op
         },
-        startupParams: { env: { BQ_ESM_WS_RUNTIME: '1' } },
+        startupParams: { env: {} },
         resolveActiveConfigFn: async () => ({ activeConfig }),
         ensureConfigSourcePresentFn: ({ activeConfig: resolvedConfig }) => {
             calls.push('source');

@@ -1,9 +1,12 @@
-import SharedProtocol from '../../shared/js/protocol-contract-esm.mjs';
+import SharedProtocol from '../../shared/js/protocol-contract-esm.ts';
 import type {
+    ClientToServerProtocolAction,
     ProtocolAction,
     ProtocolActionValue,
     ProtocolContract,
     ProtocolOpcode,
+    ProtocolParsedAction,
+    ServerToClientProtocolAction,
 } from '../../shared/js/protocol-contract-types';
 
 const Protocol = SharedProtocol as ProtocolContract;
@@ -24,5 +27,12 @@ export const MSG_ZONE = Protocol.MSG_ZONE;
 export const ENTITY_CLOTH_ARMOR = Protocol.ENTITY_CLOTH_ARMOR;
 export const ENTITY_SWORD_1 = Protocol.ENTITY_SWORD_1;
 
-export type { ProtocolOpcode, ProtocolActionValue, ProtocolAction };
+export type {
+    ProtocolOpcode,
+    ProtocolActionValue,
+    ProtocolParsedAction,
+    ClientToServerProtocolAction,
+    ServerToClientProtocolAction,
+    ProtocolAction,
+};
 export const parseProtocolActionBatch = Protocol.parseProtocolActionBatch;

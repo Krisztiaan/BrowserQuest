@@ -3,6 +3,7 @@ import Transition from 'transition';
 import Timer from 'timer';
 import log from 'compat/log';
 import Types from 'compat/gametypes';
+import type { EntityKind } from 'compat/gametypes';
 
 type GridPoint = [number, number];
 type Path = GridPoint[];
@@ -60,7 +61,7 @@ class Character extends Entity {
     death_callback: (() => void) | null;
     hasmoved_callback: ((character: Character) => void) | null;
 
-    constructor(id: string | number, kind: number) {
+    constructor(id: string | number, kind: EntityKind) {
         super(id, kind);
 
         // Position and orientation

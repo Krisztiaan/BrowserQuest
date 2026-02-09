@@ -1,6 +1,7 @@
 
 import Character from 'character';
 import Types from 'compat/gametypes';
+import type { EntityKind } from 'compat/gametypes';
 
 const NpcTalk = {
     "guard": [
@@ -147,7 +148,7 @@ class Npc extends Character {
     talkCount: number;
     talkIndex: number;
 
-    constructor(id: string | number, kind: number) {
+    constructor(id: string | number, kind: EntityKind) {
         super(id, kind);
         this.itemKind = Types.getKindAsString(this.kind);
         this.talkCount = this.getTalkList().length;

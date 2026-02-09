@@ -1,6 +1,6 @@
-# Websocket Boundary Escalation Template
+# WebSocket Runtime Escalation Template
 
-Use this template when websocket boundary drill checks fail or runtime-mode signals are inconsistent.
+Use this template when websocket drill checks fail or runtime-mode signals are inconsistent.
 
 ## 1) Incident header
 
@@ -22,8 +22,8 @@ Use this template when websocket boundary drill checks fail or runtime-mode sign
 
 - `server.esm.ws_runtime_mode` status/event payload:
 - `server.esm.ws_bridge_probe` status/event payload:
-- Boundary drill summary artifact path:
-  - `ws-boundary-drill-summary-<run_id>/artifacts/ws-boundary-drill-summary.json`
+- Drill summary artifact path:
+  - `ws-runtime-drill-summary-<run_id>/artifacts/ws-runtime-drill-summary.json`
   - failure snapshot fields:
     - `failureSnapshot.failedCheckKeys`
     - `failureSnapshot.failedChecks[*].exitCode`
@@ -35,12 +35,13 @@ Use this template when websocket boundary drill checks fail or runtime-mode sign
 - Exit code(s):
 - Last relevant log lines:
 
-## 5) Rollback command block
+## 5) Recovery command block
 
 ```bash
 bun run test:ws:runtime:drill
+bun run test:ws:runtime:decision
+bun run test:ws:runtime:parity
 bun run verify:modern:node22
-bun run verify:legacy:node22
 ```
 
 ## 6) Resolution notes

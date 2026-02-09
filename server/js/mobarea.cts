@@ -1,3 +1,5 @@
+import type { EntityKind, EntityKindId, EntityKindName } from '../../shared/js/entity-kind-domain';
+
 interface Position {
     x: number;
     y: number;
@@ -37,7 +39,7 @@ const Area = require('./area') as new (
 
 const Mob = require('./mob') as new (
     id: number | string,
-    kind: number | string,
+    kind: EntityKind,
     x: number,
     y: number
 ) => MobAreaMobContract;
@@ -47,21 +49,21 @@ const Utils = require('./utils') as {
 };
 
 const Types = require('../../shared/js/gametypes') as {
-    getKindFromString(kind: string): number;
+    getKindFromString(kind: string): EntityKindId | undefined;
     Entities: {
-        CHEST: number | string;
+        CHEST: EntityKindId;
     };
 };
 
 class MobArea extends Area {
     nb: number;
-    kind: string;
+    kind: EntityKindName;
     respawns: unknown[];
 
     constructor(
         id: number | string,
         nb: number,
-        kind: string,
+        kind: EntityKindName,
         x: number,
         y: number,
         width: number,
@@ -84,7 +86,7 @@ class MobArea extends Area {
     }
 
     _createMobInsideArea(): MobAreaMobContract {
-        const k = Types.getKindFromString(this.kind);
+        const k = Types.getKindFromString(this.kind) as EntityKindId;
         const pos = this._getRandomPositionInsideArea();
         const mob = new Mob('1' + this.id + '' + k + '' + this.entities.length, k, pos.x, pos.y);
 
@@ -127,7 +129,7 @@ class MobArea extends Area {
         }, 500);
     }
 
-    createReward(): { x: number; y: number; kind: number | string } {
+    createReward(): { x: number; y: number; kind: EntityKind } {
         const pos = this._getRandomPositionInsideArea();
 
         return { x: pos.x, y: pos.y, kind: Types.Entities.CHEST };
