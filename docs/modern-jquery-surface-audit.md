@@ -41,7 +41,7 @@ Date: 2026-02-06
 - Modern ESM runtime jQuery imports: none (`rg -n "import \\$ from 'jquery';" client/js-esm` has no matches).
 - Modern ESM runtime direct jQuery selector calls in `client/js-esm/**/*.js`: none (`rg -nF '$(' client/js-esm` has no matches).
 - Legacy AMD runtime remains jQuery-dependent by design and is tracked in `docs/legacy-jquery4-risk-scan.md`.
-- Policy guard command: `bun run check:modern-jquery-free` (scans all `client/js-esm/**/*.js`).
+- Policy guard: ESLint runtime-client rules (`no-restricted-imports` for `jquery` and restricted global `$`) enforced by `bun run lint`.
 
 ## Reduction order and status
 

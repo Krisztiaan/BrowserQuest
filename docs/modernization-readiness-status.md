@@ -1,5 +1,169 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-09 modern jQuery guard moved to ESLint built-ins)
+
+### Ticket status
+
+- `T-331.1` Replace bespoke modern jQuery check script with ESLint-native rules: `done`
+- `T-331.2` Remove `check:modern-jquery-free` script usage from active verify lane: `done`
+- `T-331.3` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T23:27Z` `in_progress` Started built-in tooling replacement pass to move the modern jQuery-free policy from a bespoke scanner script into ESLint-native restrictions.
+  - Scope:
+    - enforce no `jquery` imports and no global `$` usage for modern client runtime TS files
+    - remove standalone `tools/check-modern-jquery-free.ts` script and its verify dependency
+  - Out of scope:
+    - gameplay/runtime logic changes
+  - Acceptance criteria:
+    - `eslint` fails on `jquery` imports or global `$` usage in `client/js-esm/**/*.ts`
+    - `check:modern-jquery-free` script and tool file are removed
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run lint`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:28Z` `done` Completed ESLint-native modern jQuery guard migration and re-verified modern lane.
+  - Evidence:
+    - ESLint config update:
+      - `eslint.config.js`
+        - added TS-runtime client rule set with:
+          - `no-restricted-imports` (`jquery`)
+          - `no-restricted-globals` (`$`)
+    - script/runtime lane updates:
+      - `package.json`
+        - removed `check:modern-jquery-free`
+        - removed `check:modern-jquery-free` from `verify:modern`
+        - expanded `lint` scope to include `client/js-esm/**/*.ts`
+    - retired bespoke checker:
+      - deleted `tools/check-modern-jquery-free.ts`
+  - Verification:
+    - `bun run lint` -> pass
+    - `bun run verify:modern:node22` -> pass
+
+## Delta Update (2026-02-09 boundary guard for retired map watch lane)
+
+### Ticket status
+
+- `T-330.1` Enforce retired `map:watch` script boundary in modern package-mode checks: `done`
+- `T-330.2` Enforce retired `tools/maps/watch.ts` file boundary in modern package-mode checks: `done`
+- `T-330.3` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T23:26Z` `in_progress` Started policy-guard follow-up so the retired standalone map watch lane cannot be reintroduced silently.
+  - Scope:
+    - extend `check:package-mode-boundaries` to reject `map:watch` script presence
+    - extend `check:package-mode-boundaries` to reject `tools/maps/watch.ts` file presence
+  - Out of scope:
+    - additional map workflow behavior changes
+  - Acceptance criteria:
+    - boundary check fails if `map:watch` is reintroduced
+    - boundary check fails if `tools/maps/watch.ts` is reintroduced
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run check:package-mode-boundaries`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:26Z` `done` Completed retired map watch lane guardrail enforcement and re-verified modern lane.
+  - Evidence:
+    - updated boundary check:
+      - `tools/check-package-mode-boundaries.ts`
+        - rejects `package.json` script `map:watch`
+        - rejects presence of `tools/maps/watch.ts`
+    - check output now explicitly reports map-watch retirement policy
+  - Verification:
+    - `bun run check:package-mode-boundaries` -> pass
+    - `bun run verify:modern:node22` -> pass
+
+## Delta Update (2026-02-09 map watch lane retirement after Vite integration)
+
+### Ticket status
+
+- `T-329.1` Confirm standalone map watcher is no longer required by active dev/test/build flows: `done`
+- `T-329.2` Remove standalone `map:watch` script and map watch tool entrypoint: `done`
+- `T-329.3` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T23:24Z` `in_progress` Started follow-up modernization pass to retire the now-redundant standalone map watch lane after Vite-native map sync integration.
+  - Scope:
+    - remove `map:watch` script entry and `tools/maps/watch.ts`
+    - keep explicit map generation through `map:export` and Vite-integrated runtime sync behavior
+  - Out of scope:
+    - runtime map schema/output contract changes
+    - Tiled automapping workflow changes
+  - Acceptance criteria:
+    - no active script path references `map:watch`
+    - `bun run dev` still keeps runtime map outputs synced through Vite integration
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run map:export`
+    - `bun run check:map-wang-sync`
+    - `bun run check:map-runtime-sync`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:25Z` `done` Completed standalone map watch lane retirement and re-verified modern lane.
+  - Evidence:
+    - removed script:
+      - `package.json` (`map:watch`)
+    - removed tool entrypoint:
+      - deleted `tools/maps/watch.ts`
+    - updated map tooling docs to remove optional watcher path:
+      - `tools/maps/README.md`
+  - Verification:
+    - `bun run map:export` -> pass
+    - `bun run check:map-wang-sync` -> pass
+    - `bun run check:map-runtime-sync` -> pass
+    - `bun run verify:modern:node22` -> pass
+
+## Delta Update (2026-02-09 Vite-native runtime map sync integration)
+
+### Ticket status
+
+- `T-328.1` Define Vite-native map sync scope and acceptance around active map tooling: `done`
+- `T-328.2` Extract shared runtime map sync API and remove export/watch duplication: `done`
+- `T-328.3` Remove standalone map watch process from full-stack dev default path: `done`
+- `T-328.4` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-09T23:18Z` `in_progress` Started Vite-native runtime map sync consolidation to align map export behavior with modern dev defaults and reduce extra watcher-process plumbing.
+  - Scope:
+    - extract shared runtime map sync orchestration used by CLI and watch flows
+    - run map sync at `dev:vite:full` startup and on Vite map-file change events
+    - keep explicit standalone `map:watch` command available as optional non-Vite path
+  - Out of scope:
+    - map schema/runtime contract changes
+    - automapping rule authoring changes
+  - Acceptance criteria:
+    - one shared sync implementation owns Wang sync + runtime export writes
+    - `bun run dev` no longer spawns standalone `map:watch` process
+    - Vite dev server performs runtime map sync on startup and on canonical map edits
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run map:export`
+    - `bun run check:map-wang-sync`
+    - `bun run check:map-runtime-sync`
+    - `bun run verify:modern:node22`
+- `2026-02-09T23:22Z` `done` Completed Vite-native runtime map sync consolidation and re-verified full modern lane.
+  - Evidence:
+    - shared sync API:
+      - added `tools/maps/runtime-sync.ts` to centralize Wang sync + client/server runtime map export writes
+      - rewired `tools/maps/export.ts` and `tools/maps/watch.ts` to use shared sync API
+    - Vite-native dev integration:
+      - updated `vite.config.ts` with `browserquest-map-runtime-sync` dev plugin:
+        - performs startup sync
+        - watches `tools/maps/tiled/world.json` and re-syncs runtime map outputs on change
+      - updated `tools/dev-vite.ts`:
+        - performs initial map sync before launching server/Vite
+        - no longer spawns separate `map:watch` process in default full-stack dev flow
+    - docs:
+      - updated `tools/maps/README.md` to reflect Vite-native sync behavior and modern map export usage
+  - Verification:
+    - `bun run map:export` -> pass
+    - `bun run check:map-wang-sync` -> pass
+    - `bun run check:map-runtime-sync` -> pass
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 Tiled hybrid path: project + editor automap action + runtime export)
 
 ### Ticket status
@@ -2646,7 +2810,7 @@ Executed successfully on 2026-02-08:
 - `T-321.1` Remove `@ts-nocheck` from selected medium-risk runtime/shared ESM files: `done`
 - `T-321.2` Re-verify modern lane and typecheck after batch: `done`
 - `T-321.3` Record evidence and finalize batch: `done`
-- `T-321.4` Remove `@ts-nocheck` from `server/js/main-esm.ts` after resolving `.cts` boundary typing/include constraints: `todo`
+- `T-321.4` Remove `@ts-nocheck` from `server/js/main-esm.ts` after resolving `.cts` boundary typing/include constraints: `done`
 
 ### Live progress log
 
@@ -2728,10 +2892,10 @@ Executed successfully on 2026-02-08:
 
 ### Ticket status
 
-- `T-324.1` Remove `@ts-nocheck` from `server/js/main-esm.ts`: `blocked`
+- `T-324.1` Remove `@ts-nocheck` from `server/js/main-esm.ts`: `done`
 - `T-324.2` Remove `@ts-nocheck` from `server/js/ws-runtime-esm.ts`: `done`
 - `T-324.3` Re-verify and record final holdout status: `done`
-- `T-324.4` Resolve `.cts` seam typing/include boundary so `main-esm.ts` can be fully checked without extension-import workaround: `todo`
+- `T-324.4` Resolve `.cts` seam typing/include boundary so `main-esm.ts` can be fully checked without extension-import workaround: `done`
 
 ### Live progress log
 

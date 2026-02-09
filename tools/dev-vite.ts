@@ -1,8 +1,7 @@
-const mapWatchProc = Bun.spawn({
-  cmd: ["bun", "run", "map:watch"],
-  stdout: "inherit",
-  stderr: "inherit",
-});
+import { syncRuntimeMaps } from "./maps/runtime-sync";
+
+await syncRuntimeMaps({ quiet: true });
+console.log("[dev:vite:full] Runtime maps synced.");
 
 const serverProc = Bun.spawn({
   cmd: ["bun", "server/js/main-esm.ts"],
@@ -16,13 +15,7 @@ const clientProc = Bun.spawn({
   stderr: "inherit",
 });
 
-const exitCode = await Promise.race([mapWatchProc.exited, serverProc.exited, clientProc.exited]);
-
-try {
-  mapWatchProc.kill();
-} catch (_) {
-  // ignore
-}
+const exitCode = await Promise.race([serverProc.exited, clientProc.exited]);
 try {
   serverProc.kill();
 } catch (_) {

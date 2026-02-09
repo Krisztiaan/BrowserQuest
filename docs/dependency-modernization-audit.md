@@ -53,7 +53,7 @@
 ## Follow-up execution order
 
 1. Track `@typescript-eslint` peer-range updates for explicit `eslint@10` support, and re-check lint behavior on each bump.
-2. Keep modern jQuery-free guard (`check:modern-jquery-free`) and modern-first entry routing tests in default verification.
+2. Keep modern jQuery-free guard enforced through ESLint (`no-restricted-imports` for `jquery` + restricted global `$`) and modern-first entry routing tests in default verification.
 3. Watch for runtime regressions in modern and legacy paths after UI/runtime routing refactors.
 4. Keep local runtime ergonomics aligned via `tools/node22-run.sh` helper and Node 22 CI baseline.
 

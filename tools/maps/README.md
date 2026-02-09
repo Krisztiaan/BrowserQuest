@@ -18,9 +18,7 @@ Project extensions are used for one-click map automation. If Tiled asks whether 
 Using the exporter
 ------------------
 
-This tool is to be used from the command line after the TMX file has been saved from the Tiled editor.
-
-Note: This tool was written with OSX in mind. If you are using a different OS (eg. Windows), additional/different steps might be required.
+This tool is used from the command line after saving `tiled/world.json` from Tiled.
 
 **Prerequisites:**
 
@@ -29,18 +27,17 @@ Note: This tool was written with OSX in mind. If you are using a different OS (e
 
 **Usage:**
 
-1. `cd tools/maps/`
-
-2. `bun ./export.ts both`
+1. From repo root: `bun run map:export`
 
 You can also export a single target:
 
-- `bun ./export.ts client`
-- `bun ./export.ts server`
+- `bun run map:export:client`
+- `bun run map:export:server`
 
-For live updates while editing in Tiled:
+For full-stack dev, runtime map sync is now Vite-native:
 
-- `bun run map:watch` (from repo root)
+- `bun run dev` performs an initial map sync before server start.
+- Vite dev server re-syncs runtime maps when `tools/maps/tiled/world.json` changes.
 
 Terrain/Wang metadata artifacts can be refreshed explicitly:
 
@@ -95,10 +92,8 @@ Here are a few ideas for anyone who might want to help make this tool better:
 
 - Remove hard-coded default filenames from `export.ts` in order to allow easier switching to different map files.
 
-- A complete rewrite of this tool using a custom Tiled plugin would surely be a better approach than the current one. Being able to export directly from Tiled would be much easier to use. Also, the export process is currently too slow.
-
 
 **Additional resources:**
 
 - Tiled editor wiki: https://github.com/bjorn/tiled/wiki
-- TMX map format documentation: https://github.com/bjorn/tiled/wiki/TMX-Map-Format
+- JSON map format documentation: https://doc.mapeditor.org/en/stable/reference/json-map-format/
