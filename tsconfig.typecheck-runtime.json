@@ -28,7 +28,6 @@
     "shared/js/ws-close-codes-esm.ts",
     "shared/js/gametypes.cts",
     "shared/js/protocol-contract.cts",
-    "shared/js/ws-close-codes.cts",
     "client/js-esm/protocol-payload.ts",
     "server/js/log.cts",
     "server/js/format.cts",

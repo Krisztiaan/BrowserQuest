@@ -51,6 +51,23 @@
     - `bun run verify:modern:node22` -> pass
   - Next action:
     - continue `T-401.4` by converging remaining server/shared `.cts` modules (`worldserver`, `player`, map/entity/message/property graph, shared gametypes/protocol seams) to pure ESM `.ts`.
+- `2026-02-10T01:27Z` `in_progress` Continued `T-401.4` seam reduction pass after push, prioritizing low-risk shared/runtime boundary removals that do not change behavior.
+  - Scope:
+    - remove dead shared `.cts` close-code artifact seam now that runtime is ESM close-code driven
+    - keep protocol/gameplay and websocket runtime behavior unchanged
+  - Acceptance criteria:
+    - no active runtime/test import depends on `shared/js/ws-close-codes.cts`
+    - full modern verification remains green
+  - Verification plan:
+    - repo scan for active `ws-close-codes.cts` references
+    - `bun run verify:modern:node22`
+- `2026-02-10T01:31Z` `done` Removed legacy shared close-code `.cts` seam and re-verified full modern lane.
+  - Evidence:
+    - deleted `shared/js/ws-close-codes.cts`
+    - updated `tsconfig.typecheck-runtime.json` include inventory accordingly
+    - active runtime/tests continue to consume `shared/js/ws-close-codes-esm.ts`
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
 
 ## Delta Update (2026-02-10 direct Tiled JSON runtime cutover project)
 
