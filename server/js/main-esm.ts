@@ -1,7 +1,7 @@
 import { runWebSocketBridgeProbeIfEnabled } from './main-esm-bridge-probe';
 import { runMainEsmBootEnvelope } from './main-esm-boot-envelope';
 import { createProbeEventEmitter, createStructuredEventEmitter } from './main-esm-structured-event';
-import { validateConfig } from './config-preflight-esm';
+import { validateConfig } from './config-preflight';
 import { resolveStartupRuntimeOptions } from './main-esm-runtime-options';
 import type {
     MainRuntimeDependencies,

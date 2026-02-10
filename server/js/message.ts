@@ -1,5 +1,5 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import Types from '../../shared/js/gametypes-esm';
+import Types from '../../shared/js/gametypes';
 
 type MessageValue = number | string | number[];
 export type SerializedMessage = MessageValue[];
@@ -44,8 +44,13 @@ class Spawn extends Message {
     }
 
     serialize(): SerializedMessage {
-        const spawn: SerializedMessage = [Types.Messages.SPAWN];
-        return spawn.concat(this.entity.getState());
+        const state = this.entity.getState();
+        const serialized: SerializedMessage = new Array(state.length + 1);
+        serialized[0] = Types.Messages.SPAWN;
+        for (let i = 0; i < state.length; i += 1) {
+            serialized[i + 1] = state[i];
+        }
+        return serialized;
     }
 }
 
@@ -164,14 +169,16 @@ class Drop extends Message {
     }
 
     serialize(): SerializedMessage {
+        const haters: number[] = new Array(this.mob.hatelist.length);
+        for (let i = 0; i < this.mob.hatelist.length; i += 1) {
+            haters[i] = this.mob.hatelist[i].id;
+        }
         return [
             Types.Messages.DROP,
             this.mob.id,
             this.item.id,
             this.item.kind,
-            this.mob.hatelist.map(function (hate) {
-                return hate.id;
-            }),
+            haters,
         ];
     }
 }
@@ -256,9 +263,12 @@ class List extends Message {
     }
 
     serialize(): number[] {
-        const list = this.ids;
-        list.unshift(Types.Messages.LIST);
-        return list;
+        const serialized = new Array(this.ids.length + 1);
+        serialized[0] = Types.Messages.LIST;
+        for (let i = 0; i < this.ids.length; i += 1) {
+            serialized[i + 1] = this.ids[i];
+        }
+        return serialized;
     }
 }
 

@@ -1,4 +1,4 @@
-import CLOSE_CODES from '../../shared/js/ws-close-codes-esm';
+import CLOSE_CODES from '../../shared/js/ws-close-codes';
 
 type CloseCodesContract = {
     NORMAL: number;

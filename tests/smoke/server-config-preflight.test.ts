@@ -97,7 +97,7 @@ test('server fails fast with structured config-invalid event when config preflig
             debug_level: 'info',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './tools/maps/tiled/world.json',
+            map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         })
     );

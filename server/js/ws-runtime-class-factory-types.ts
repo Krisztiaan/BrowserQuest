@@ -66,7 +66,6 @@ export interface WebSocketRuntimeFactoryDeps {
     createHttpServer: CreateHttpServer;
     parseUrlPathname: ParseUrlPathname;
     logConnectionEvent: LogConnectionEvent;
-    useBison?: boolean;
 }
 
 export interface WebSocketRuntimeConnection {

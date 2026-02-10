@@ -3,23 +3,15 @@ import Items from './items';
 import NPCs from './npcs';
 import Warrior from './warrior';
 import Chest from './chest';
+import type Entity from './entity';
 import log from './compat/log';
 import Types from './compat/gametypes';
 import type { EntityKind } from './compat/gametypes';
-
-/** @typedef {import('./client-boundary-types').EntityFactoryBuilder} EntityFactoryBuilder */
-/** @typedef {import('./client-boundary-types').EntityFactoryContract} EntityFactoryContract */
-
-type EntityFactoryBuilder = (id: string | number, name?: string) => any;
-
-type EntityFactoryContract = {
-    builders: Array<EntityFactoryBuilder | undefined>;
-    createEntity: (kind: EntityKind, id: string | number, name?: string) => any;
-};
+import type { EntityFactoryContract } from './client-boundary-types';
 
 const EntityFactory: EntityFactoryContract = {
     builders: [],
-    createEntity(kind: EntityKind, id: string | number, name?: string): any {
+    createEntity(kind: EntityKind, id: string | number, name?: string): Entity | undefined {
         if (!kind) {
             log.error('kind is undefined', true);
             return;

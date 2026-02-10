@@ -4,6 +4,7 @@ import Timer from './timer';
 import log from './compat/log';
 import Types from './compat/gametypes';
 import type { EntityKind } from './compat/gametypes';
+import type { MergeEvents, TypedEventMap, TypedEventSource } from '../../shared/js/typed-event-emitter';
 
 type GridPoint = [number, number];
 type Path = GridPoint[];
@@ -12,12 +13,30 @@ type CharacterLike = {
     id: string | number;
     gridX: number;
     gridY: number;
-    idle: () => void;
-    disengage: () => void;
-    removeAttacker: (attacker: Character) => void;
+    isWaitingToAttack?: (character: CharacterLike) => boolean;
+    waitToAttack?: (character: CharacterLike) => void;
+};
+type CombatTarget = CharacterLike & {
+    removeAttacker?: (attacker: Character<any>) => void;
 };
 
-class Character extends Entity {
+type PathRequestResolver = (x: number, y: number) => Path;
+
+export type CharacterEvents = {
+    dirty: [character: Character<any>];
+    startPathing: [path: Path];
+    stopPathing: [x: number, y: number];
+    beforeStep: [];
+    step: [];
+    aggro: [character: CharacterLike];
+    checkAggro: [];
+    death: [];
+    hasMoved: [character: Character<any>];
+};
+
+export type CharacterEventSource<TEvents extends TypedEventMap = CharacterEvents> = TypedEventSource<TEvents>;
+
+class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = CharacterEvents> extends Entity<TEvents> {
     nextGridX: number;
     nextGridY: number;
     orientation: number;
@@ -34,10 +53,10 @@ class Character extends Entity {
     destination: { gridX: number; gridY: number } | null;
     adjacentTiles: Record<string, unknown>;
 
-    target: any;
-    unconfirmedTarget: any;
-    previousTarget: any;
-    attackers: Record<string, any>;
+    target: CombatTarget | null;
+    unconfirmedTarget: CharacterLike | null;
+    previousTarget: CharacterLike | null;
+    attackers: Record<string, Character>;
 
     hitPoints: number;
     maxHitPoints: number;
@@ -51,16 +70,7 @@ class Character extends Entity {
     attackCooldown: Timer;
     hurting: ReturnType<typeof setTimeout> | null;
 
-    request_path_callback: ((x: number, y: number) => Path) | null;
-    start_pathing_callback: ((path: Path) => void) | null;
-    stop_pathing_callback: ((x: number, y: number) => void) | null;
-    before_step_callback: (() => void) | null;
-    step_callback: (() => void) | null;
-    aggro_callback: ((character: any) => void) | null;
-    checkaggro_callback: (() => void) | null;
-    death_callback: (() => void) | null;
-    hasmoved_callback: ((character: Character) => void) | null;
-
+    private pathRequestResolver: PathRequestResolver | null;
     constructor(id: string | number, kind: EntityKind) {
         super(id, kind);
 
@@ -104,15 +114,7 @@ class Character extends Entity {
 
         this.hurting = null;
 
-        this.request_path_callback = null;
-        this.start_pathing_callback = null;
-        this.stop_pathing_callback = null;
-        this.before_step_callback = null;
-        this.step_callback = null;
-        this.aggro_callback = null;
-        this.checkaggro_callback = null;
-        this.death_callback = null;
-        this.hasmoved_callback = null;
+        this.pathRequestResolver = null;
     }
 
     clean(): void {
@@ -200,23 +202,15 @@ class Character extends Entity {
     }
 
     requestPathfindingTo(x: number, y: number): Path {
-        if (this.request_path_callback) {
-            return this.request_path_callback(x, y);
+        if (this.pathRequestResolver) {
+            return this.pathRequestResolver(x, y);
         }
         log.error(this.id + " couldn't request pathfinding to " + x + ', ' + y);
         return [];
     }
 
-    onRequestPath(callback: (x: number, y: number) => Path): void {
-        this.request_path_callback = callback;
-    }
-
-    onStartPathing(callback: (path: Path) => void): void {
-        this.start_pathing_callback = callback;
-    }
-
-    onStopPathing(callback: (x: number, y: number) => void): void {
-        this.stop_pathing_callback = callback;
+    setPathRequestResolver(callback: PathRequestResolver): void {
+        this.pathRequestResolver = callback;
     }
 
     followPath(path: Path): void {
@@ -230,9 +224,7 @@ class Character extends Entity {
                 path.pop();
             }
 
-            if (this.start_pathing_callback) {
-                this.start_pathing_callback(path);
-            }
+            this.emit('startPathing', path);
             this.nextStep();
         }
     }
@@ -274,9 +266,7 @@ class Character extends Entity {
         let stop = false;
 
         if (this.isMoving() && this.path) {
-            if (this.before_step_callback) {
-                this.before_step_callback();
-            }
+            this.emit('beforeStep');
 
             this.updatePositionOnGrid();
             this.checkAggro();
@@ -291,9 +281,7 @@ class Character extends Entity {
                     this.nextGridY = this.path[this.step + 1][1];
                 }
 
-                if (this.step_callback) {
-                    this.step_callback();
-                }
+                this.emit('step');
 
                 if (this.hasChangedItsPath() && this.newDestination) {
                     const x = this.newDestination.x;
@@ -319,19 +307,9 @@ class Character extends Entity {
                 this.path = null;
                 this.idle();
 
-                if (this.stop_pathing_callback) {
-                    this.stop_pathing_callback(this.gridX, this.gridY);
-                }
+                this.emit('stopPathing', this.gridX, this.gridY);
             }
         }
-    }
-
-    onBeforeStep(callback: () => void): void {
-        this.before_step_callback = callback;
-    }
-
-    onStep(callback: () => void): void {
-        this.step_callback = callback;
     }
 
     isMoving(): boolean {
@@ -353,28 +331,12 @@ class Character extends Entity {
         return dx <= distance && dy <= distance;
     }
 
-    onAggro(callback: (character: any) => void): void {
-        this.aggro_callback = callback;
-    }
-
-    onCheckAggro(callback: () => void): void {
-        this.checkaggro_callback = callback;
-    }
-
     checkAggro(): void {
-        if (this.checkaggro_callback) {
-            this.checkaggro_callback();
-        }
+        this.emit('checkAggro');
     }
 
-    aggro(character: any): void {
-        if (this.aggro_callback) {
-            this.aggro_callback(character);
-        }
-    }
-
-    onDeath(callback: () => void): void {
-        this.death_callback = callback;
+    aggro(character: CharacterLike): void {
+        this.emit('aggro', character);
     }
 
     // Changes the character's orientation so that it is facing its target.
@@ -410,7 +372,7 @@ class Character extends Entity {
     }
 
     // Makes the character attack another character.
-    engage(character: any): void {
+    engage(character: CharacterLike): void {
         this.attackingMode = true;
         this.setTarget(character);
         this.follow(character);
@@ -447,7 +409,7 @@ class Character extends Entity {
     }
 
     // Registers a character as a current attacker of this one.
-    addAttacker(character: any): void {
+    addAttacker(character: Character): void {
         if (!this.isAttackedBy(character)) {
             this.attackers[String(character.id)] = character;
         } else {
@@ -456,7 +418,7 @@ class Character extends Entity {
     }
 
     // Unregisters a character as a current attacker of this one.
-    removeAttacker(character: any): void {
+    removeAttacker(character: CharacterLike): void {
         if (this.isAttackedBy(character)) {
             delete this.attackers[String(character.id)];
         } else {
@@ -465,14 +427,14 @@ class Character extends Entity {
     }
 
     // Loops through all the characters currently attacking this one.
-    forEachAttacker(callback: (attacker: any) => void): void {
+    forEachAttacker(callback: (attacker: Character) => void): void {
         Object.keys(this.attackers).forEach((id) => {
             callback(this.attackers[id]);
         });
     }
 
     // Sets this character's attack target.
-    setTarget(character: any): void {
+    setTarget(character: CombatTarget): void {
         if (this.target !== character) {
             if (this.hasTarget()) {
                 this.removeTarget();
@@ -500,12 +462,12 @@ class Character extends Entity {
     }
 
     // Marks this character as waiting to attack a target.
-    waitToAttack(character: any): void {
+    waitToAttack(character: CharacterLike): void {
         this.unconfirmedTarget = character;
     }
 
     // Returns true if waiting to attack the target.
-    isWaitingToAttack(character: any): boolean {
+    isWaitingToAttack(character: CharacterLike): boolean {
         return this.unconfirmedTarget === character;
     }
 
@@ -526,21 +488,12 @@ class Character extends Entity {
     die(): void {
         this.removeTarget();
         this.isDead = true;
-
-        if (this.death_callback) {
-            this.death_callback();
-        }
-    }
-
-    onHasMoved(callback: (character: Character) => void): void {
-        this.hasmoved_callback = callback;
+        this.emit('death');
     }
 
     hasMoved(): void {
         this.setDirty();
-        if (this.hasmoved_callback) {
-            this.hasmoved_callback(this);
-        }
+        this.emit('hasMoved', this);
     }
 
     hurt(): void {
@@ -559,6 +512,7 @@ class Character extends Entity {
     setAttackRate(rate: number): void {
         this.attackCooldown = new Timer(rate);
     }
+
 }
 
 export default Character;

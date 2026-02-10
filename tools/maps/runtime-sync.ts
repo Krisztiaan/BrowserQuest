@@ -5,7 +5,7 @@ import { syncWangsetArtifacts } from "./wangset";
 
 export type RuntimeMapTarget = "client" | "server" | "both";
 
-export const DEFAULT_TILED_SOURCE_PATH = "tiled/world.json";
+export const DEFAULT_TILED_SOURCE_PATH = "../../assets/maps/tiled/world.json";
 
 const mapsRoot = path.dirname(fileURLToPath(import.meta.url));
 

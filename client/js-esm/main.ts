@@ -2,7 +2,9 @@ import App from './app';
 import Detect from './compat/detect';
 import log from './compat/log';
 import Types from './compat/gametypes';
+import type { EntityKind } from './compat/gametypes';
 import { TRANSITIONEND } from './compat/util';
+import type Game from './game';
 
 /**
  * @typedef {{
@@ -21,7 +23,14 @@ import { TRANSITIONEND } from './compat/util';
  * }} GameRuntime
  */
 
-var app: any, game: any;
+type TestEntity = {
+    id: string | number;
+    kind: EntityKind;
+    gridX?: number;
+    gridY?: number;
+};
+
+var app: App | null = null, game: Game | null = null;
 var TEST_ZONE_WIDTH = 28;
 var TEST_ZONE_HEIGHT = 12;
 
@@ -40,7 +49,7 @@ var getTestEntities = function() {
     var mobs = [],
         items = [];
 
-    Object.values(game.entities).forEach(function(entity: any) {
+    Object.values(game.entities).forEach(function(entity: TestEntity) {
         if(!entity || !Number.isSafeInteger(entity.id) || !Number.isSafeInteger(entity.kind)) {
             return;
         }
@@ -425,7 +434,7 @@ var initApp = function() {
                     nameFromStorage = playerName ? playerName.innerHTML : '',
                     name = nameFromInput || nameFromStorage;
                 
-                app.tryStartingGame(name);
+                app.tryStartingGame(name, undefined);
             });
         });
     
@@ -449,12 +458,16 @@ var initApp = function() {
 
 var initGame = function() {
     import('./game').then(function(mod) {
-        var Game = ((mod as any) && (mod as any).default ? (mod as any).default : mod) as any;
+        var Game = mod.default;
         
-        var canvas = document.getElementById("entities"),
-            background = document.getElementById("background"),
-            foreground = document.getElementById("foreground"),
-            input = document.getElementById("chatinput");
+        var canvas = document.getElementById("entities") as HTMLCanvasElement | null,
+            background = document.getElementById("background") as HTMLCanvasElement | null,
+            foreground = document.getElementById("foreground") as HTMLCanvasElement | null,
+            input = document.getElementById("chatinput") as HTMLInputElement | null;
+
+        if(!app) {
+            return;
+        }
 
         game = new Game(app);
         game.setup('#bubbles', canvas, background, foreground, input);

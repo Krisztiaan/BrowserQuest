@@ -46,19 +46,21 @@ test('main runtime world population hooks are installed only when metrics are en
     let removedHooks = 0;
     const worlds = [
         {
-            onPlayerAdded() {
-                addedHooks += 1;
-            },
-            onPlayerRemoved() {
-                removedHooks += 1;
+            on(eventName: 'playerAdded' | 'playerRemoved') {
+                if (eventName === 'playerAdded') {
+                    addedHooks += 1;
+                } else {
+                    removedHooks += 1;
+                }
             },
         },
         {
-            onPlayerAdded() {
-                addedHooks += 1;
-            },
-            onPlayerRemoved() {
-                removedHooks += 1;
+            on(eventName: 'playerAdded' | 'playerRemoved') {
+                if (eventName === 'playerAdded') {
+                    addedHooks += 1;
+                } else {
+                    removedHooks += 1;
+                }
             },
         },
     ];

@@ -1,32 +1,92 @@
 import Character from './character';
 import Chest from './chest';
+import { attachPlayerSession } from './player-session';
 import Log from './log';
 import Messages from './message';
-import Utils from './utils';
 import Properties from './properties';
 import Formulas from './formulas';
-import FormatModule from './format';
-import Types from '../../shared/js/gametypes-esm';
+import Types from '../../shared/js/gametypes';
 import type { ClientToServerProtocolAction } from '../../shared/js/protocol-contract-types';
 import { HANDSHAKE_CONTROL } from '../../shared/js/connection-status';
-
-const check = FormatModule.check as (payload: ClientToServerProtocolAction) => boolean;
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
 const log = Log.getLogger();
 
-const NAME_MAX_UTF8_BYTES = 64;
-const NAME_MAX_CODEPOINTS = 15;
-const CHAT_MAX_UTF8_BYTES = 512;
-const CHAT_MAX_CODEPOINTS = 60;
-const WHO_MAX_IDS = 1000;
+type PlayerConnectionLike = {
+    id: number;
+    listen(callback: (message: ClientToServerProtocolAction) => void): void;
+    onClose(callback: () => void): void;
+    send(payload: unknown): void;
+    sendUTF8(payload: string): void;
+    close(reason?: string): void;
+    closeInvalidPayload?(reason: string): void;
+};
+type HaterMob = {
+    id: number;
+    forgetPlayer(playerId: number): void;
+};
+type MobLike = {
+    id: number;
+    armorLevel: number;
+    weaponLevel: number;
+    receiveDamage(dmg: number, playerId: number): void;
+    clearTarget?(): void;
+};
+type LootEntity = {
+    id: number;
+    kind: EntityKind;
+    despawn(): unknown;
+};
+type CheckpointLike = { id?: string | number };
+type PlayerServerLike = {
+    map: {
+        getCheckpoint(id: string | number): CheckpointLike | null;
+    };
+    addPlayer(player: Player): void;
+    emit(eventName: 'playerEnter', player: Player): void;
+    pushSpawnsToPlayer(player: Player, entities: Array<string | number>): void;
+    isValidPosition(x: number, y: number): boolean;
+    getEntityById(id: string | number): (MobLike | LootEntity | Chest | null);
+    handleMobHate(mobId: number, playerId: number, hate: number): void;
+    broadcastAttacker(player: Player): void;
+    handleHurtEntity(entity: unknown, attacker?: Player, damage?: number): void;
+    pushToPlayer(player: Player, message: unknown): void;
+    removeEntity(entity: LootEntity): void;
+    handlePlayerVanish(player: Player): void;
+    pushRelevantEntityListTo(player: Player): void;
+    handleOpenedChest(chest: Chest, player: Player): void;
+};
 
-class Player extends Character {
-    [key: string]: any;
+type PlayerEvents = {
+    exit: [];
+    move: [x: number, y: number];
+    lootMove: [x: number, y: number];
+    zone: [];
+    orient: [];
+    message: [message: ClientToServerProtocolAction];
+    broadcast: [message: unknown, ignoreSelf?: boolean];
+    broadcastZone: [message: unknown, ignoreSelf?: boolean];
+};
 
-    constructor(connection, worldServer) {
+class Player extends Character<PlayerEvents> {
+    server: PlayerServerLike;
+    connection: PlayerConnectionLike;
+    name: string;
+    hasEnteredGame: boolean;
+    isDead: boolean;
+    haters: Record<string, HaterMob>;
+    armor: EntityKind;
+    armorLevel: number;
+    weapon: EntityKind;
+    weaponLevel: number;
+    lastCheckpoint: CheckpointLike | null;
+    disconnectTimeout: ReturnType<typeof setTimeout> | null;
+    firepotionTimeout: ReturnType<typeof setTimeout> | null;
+    requestpos_callback: (() => { x: number; y: number }) | null;
+
+    constructor(connection: PlayerConnectionLike, worldServer: PlayerServerLike) {
         super(connection.id, 'player', Types.Entities.WARRIOR, 0, 0);
 
-        var self = this;
         this.server = worldServer;
         this.connection = connection;
 
@@ -37,226 +97,12 @@ class Player extends Character {
         this.lastCheckpoint = null;
         this.disconnectTimeout = null;
         this.firepotionTimeout = null;
-        var closeInvalidPayload = function (reason) {
-            if (self.connection && typeof self.connection.closeInvalidPayload === 'function') {
-                self.connection.closeInvalidPayload(reason);
-            } else {
-                self.connection.close(reason);
-            }
-        };
-
-        this.connection.listen(function (message: ClientToServerProtocolAction) {
-            var action = message[0];
-
-            log.debug('Received: ' + message);
-            if (!check(message)) {
-                closeInvalidPayload('Invalid ' + Types.getMessageTypeAsString(action) + ' message format: ' + message);
-                return;
-            }
-
-            if (!self.hasEnteredGame && action !== Types.Messages.HELLO) {
-                // HELLO must be the first message
-                closeInvalidPayload('Invalid handshake message: ' + message);
-                return;
-            }
-            if (self.hasEnteredGame && !self.isDead && action === Types.Messages.HELLO) {
-                // HELLO can be sent only once
-                closeInvalidPayload('Cannot initiate handshake twice: ' + message);
-                return;
-            }
-
-            self.resetTimeout();
-
-            if (action === Types.Messages.HELLO) {
-                if (!Utils.hasMaxUtf8Bytes(message[1], NAME_MAX_UTF8_BYTES)) {
-                    closeInvalidPayload('Name is too long.');
-                    return;
-                }
-                var name = Utils.sanitize(message[1]);
-                name = Utils.limitUtf8Bytes(name, NAME_MAX_UTF8_BYTES);
-                name = Utils.limitCodePoints(name, NAME_MAX_CODEPOINTS);
-
-                // If name was cleared by the sanitizer, give a default name.
-                // Always ensure that the name is not longer than a maximum length.
-                // (also enforced by the maxlength attribute of the name input element).
-                self.name = name === '' ? 'lorem ipsum' : name;
-
-                self.kind = Types.Entities.WARRIOR;
-                self.equipArmor(message[2]);
-                self.equipWeapon(message[3]);
-                self.orientation = Utils.randomOrientation();
-                self.updateHitPoints();
-                self.updatePosition();
-
-                self.server.addPlayer(self);
-                self.server.enter_callback(self);
-
-                self.send([Types.Messages.WELCOME, self.id, self.name, self.x, self.y, self.hitPoints]);
-                self.hasEnteredGame = true;
-                self.isDead = false;
-            } else if (action === Types.Messages.WHO) {
-                if (message.length - 1 > WHO_MAX_IDS) {
-                    closeInvalidPayload('WHO message is too large.');
-                    return;
-                }
-                message.shift();
-                self.server.pushSpawnsToPlayer(self, message);
-            } else if (action === Types.Messages.ZONE) {
-                self.zone_callback();
-            } else if (action === Types.Messages.CHAT) {
-                if (!Utils.hasMaxUtf8Bytes(message[1], CHAT_MAX_UTF8_BYTES)) {
-                    closeInvalidPayload('Chat message is too long.');
-                    return;
-                }
-                var msg = Utils.sanitize(message[1]);
-                msg = Utils.limitUtf8Bytes(msg, CHAT_MAX_UTF8_BYTES);
-                msg = Utils.limitCodePoints(msg, CHAT_MAX_CODEPOINTS);
-
-                // Sanitized messages may become empty. No need to broadcast empty chat messages.
-                if (msg && msg !== '') {
-                    self.broadcastToZone(new Messages.Chat(self, msg), false);
-                }
-            } else if (action === Types.Messages.MOVE) {
-                if (self.move_callback) {
-                    var x = Number(message[1]),
-                        y = Number(message[2]);
-
-                    if (self.server.isValidPosition(x, y)) {
-                        self.setPosition(x, y);
-                        self.clearTarget();
-
-                        self.broadcast(new Messages.Move(self));
-                        self.move_callback(self.x, self.y);
-                    }
-                }
-            } else if (action === Types.Messages.LOOTMOVE) {
-                if (self.lootmove_callback) {
-                    self.setPosition(Number(message[1]), Number(message[2]));
-
-                    var item = self.server.getEntityById(message[3]);
-                    if (item) {
-                        self.clearTarget();
-
-                        self.broadcast(new Messages.LootMove(self, item));
-                        self.lootmove_callback(self.x, self.y);
-                    }
-                }
-            } else if (action === Types.Messages.AGGRO) {
-                if (self.move_callback) {
-                    self.server.handleMobHate(message[1], self.id, 5);
-                }
-            } else if (action === Types.Messages.ATTACK) {
-                var mob = self.server.getEntityById(message[1]);
-
-                if (mob) {
-                    self.setTarget(mob);
-                    self.server.broadcastAttacker(self);
-                }
-            } else if (action === Types.Messages.HIT) {
-                var mob = self.server.getEntityById(message[1]);
-                if (mob) {
-                    var dmg = Formulas.dmg(self.weaponLevel, mob.armorLevel);
-
-                    if (dmg > 0) {
-                        mob.receiveDamage(dmg, self.id);
-                        self.server.handleMobHate(mob.id, self.id, dmg);
-                        self.server.handleHurtEntity(mob, self, dmg);
-                    }
-                }
-            } else if (action === Types.Messages.HURT) {
-                var mob = self.server.getEntityById(message[1]);
-                if (mob && self.hitPoints > 0) {
-                    self.hitPoints -= Formulas.dmg(mob.weaponLevel, self.armorLevel);
-                    self.server.handleHurtEntity(self);
-
-                    if (self.hitPoints <= 0) {
-                        self.isDead = true;
-                        if (self.firepotionTimeout) {
-                            clearTimeout(self.firepotionTimeout);
-                        }
-                    }
-                }
-            } else if (action === Types.Messages.LOOT) {
-                var item = self.server.getEntityById(message[1]);
-
-                if (item) {
-                    var kind = item.kind;
-
-                    if (Types.isItem(kind)) {
-                        self.broadcast(item.despawn());
-                        self.server.removeEntity(item);
-
-                        if (kind === Types.Entities.FIREPOTION) {
-                            self.updateHitPoints();
-                            self.broadcast(self.equip(Types.Entities.FIREFOX));
-                            self.firepotionTimeout = setTimeout(function () {
-                                self.broadcast(self.equip(self.armor)); // return to normal after 15 sec
-                                self.firepotionTimeout = null;
-                            }, 15000);
-                            self.send(new Messages.HitPoints(self.maxHitPoints).serialize());
-                        } else if (Types.isHealingItem(kind)) {
-                            var amount;
-
-                            switch (kind) {
-                                case Types.Entities.FLASK:
-                                    amount = 40;
-                                    break;
-                                case Types.Entities.BURGER:
-                                    amount = 100;
-                                    break;
-                            }
-
-                            if (!self.hasFullHealth()) {
-                                self.regenHealthBy(amount);
-                                self.server.pushToPlayer(self, self.health());
-                            }
-                        } else if (Types.isArmor(kind) || Types.isWeapon(kind)) {
-                            self.equipItem(item);
-                            self.broadcast(self.equip(kind));
-                        }
-                    }
-                }
-            } else if (action === Types.Messages.TELEPORT) {
-                var x = Number(message[1]),
-                    y = Number(message[2]);
-
-                if (self.server.isValidPosition(x, y)) {
-                    self.setPosition(x, y);
-                    self.clearTarget();
-
-                    self.broadcast(new Messages.Teleport(self));
-
-                    self.server.handlePlayerVanish(self);
-                    self.server.pushRelevantEntityListTo(self);
-                }
-            } else if (action === Types.Messages.OPEN) {
-                var chest = self.server.getEntityById(message[1]);
-                if (chest && chest instanceof Chest) {
-                    self.server.handleOpenedChest(chest, self);
-                }
-            } else if (action === Types.Messages.CHECK) {
-                var checkpoint = self.server.map.getCheckpoint(message[1]);
-                if (checkpoint) {
-                    self.lastCheckpoint = checkpoint;
-                }
-            } else {
-                if (self.message_callback) {
-                    self.message_callback(message);
-                }
-            }
-        });
-
-        this.connection.onClose(function () {
-            if (self.firepotionTimeout) {
-                clearTimeout(self.firepotionTimeout);
-            }
-            clearTimeout(self.disconnectTimeout);
-            if (self.exit_callback) {
-                self.exit_callback();
-            }
-        });
-
-        this.connection.sendUTF8(HANDSHAKE_CONTROL.GO); // Notify client that the HELLO/WELCOME handshake can start
+        this.armor = 0 as EntityKind;
+        this.armorLevel = 0;
+        this.weapon = 0 as EntityKind;
+        this.weaponLevel = 0;
+        this.requestpos_callback = null;
+        attachPlayerSession(this);
     }
 
     destroy() {
@@ -286,59 +132,23 @@ class Player extends Character {
         return basestate.concat(state);
     }
 
-    send(message) {
+    send(message: unknown): void {
         this.connection.send(message);
     }
 
-    broadcast(message, ignoreSelf = true) {
-        if (this.broadcast_callback) {
-            this.broadcast_callback(message, ignoreSelf);
-        }
+    broadcast(message: unknown, ignoreSelf = true): void {
+        this.emit('broadcast', message, ignoreSelf);
     }
 
-    broadcastToZone(message, ignoreSelf = true) {
-        if (this.broadcastzone_callback) {
-            this.broadcastzone_callback(message, ignoreSelf);
-        }
-    }
-
-    onExit(callback) {
-        this.exit_callback = callback;
-    }
-
-    onMove(callback) {
-        this.move_callback = callback;
-    }
-
-    onLootMove(callback) {
-        this.lootmove_callback = callback;
-    }
-
-    onZone(callback) {
-        this.zone_callback = callback;
-    }
-
-    onOrient(callback) {
-        this.orient_callback = callback;
-    }
-
-    onMessage(callback) {
-        this.message_callback = callback;
-    }
-
-    onBroadcast(callback) {
-        this.broadcast_callback = callback;
-    }
-
-    onBroadcastToZone(callback) {
-        this.broadcastzone_callback = callback;
+    broadcastToZone(message: unknown, ignoreSelf = true): void {
+        this.emit('broadcastZone', message, ignoreSelf);
     }
 
     equip(item) {
         return new Messages.EquipItem(this, item);
     }
 
-    addHater(mob) {
+    addHater(mob: HaterMob | null): void {
         if (mob) {
             if (!(mob.id in this.haters)) {
                 this.haters[mob.id] = mob;
@@ -346,13 +156,13 @@ class Player extends Character {
         }
     }
 
-    removeHater(mob) {
+    removeHater(mob: HaterMob | null): void {
         if (mob && mob.id in this.haters) {
             delete this.haters[mob.id];
         }
     }
 
-    forEachHater(callback) {
+    forEachHater(callback: (mob: HaterMob) => void): void {
         Object.keys(this.haters).forEach(function (haterId) {
             var mob = this.haters[haterId];
             callback(mob);

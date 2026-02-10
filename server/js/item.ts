@@ -9,20 +9,21 @@ interface ItemDespawnParams {
     beforeBlinkDelay: number;
 }
 
-class Item extends Entity {
+export type ItemEvents = {
+    respawn: [];
+};
+
+class Item extends Entity<ItemEvents> {
     isStatic: boolean;
     isFromChest: boolean;
     blinkTimeout: ReturnType<typeof setTimeout> | null;
     despawnTimeout: ReturnType<typeof setTimeout> | null;
-    respawn_callback: (() => void) | null;
-
     constructor(id: number | string, kind: EntityKind, x: number, y: number) {
         super(id, 'item', kind, x, y);
         this.isStatic = false;
         this.isFromChest = false;
         this.blinkTimeout = null;
         this.despawnTimeout = null;
-        this.respawn_callback = null;
     }
 
     handleDespawn(params: ItemDespawnParams): void {
@@ -50,14 +51,8 @@ class Item extends Entity {
     scheduleRespawn(delay: number): void {
         const self = this;
         setTimeout(function () {
-            if (self.respawn_callback) {
-                self.respawn_callback();
-            }
+            self.emit('respawn');
         }, delay);
-    }
-
-    onRespawn(callback: () => void): void {
-        this.respawn_callback = callback;
     }
 }
 

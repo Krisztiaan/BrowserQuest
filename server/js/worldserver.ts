@@ -1,5 +1,6 @@
-import type { RuntimeEventName, WorldEventName } from './server-event-names';
-import type { EntityKindName } from '../../shared/js/entity-kind-domain';
+import type { RuntimeEventName } from './server-event-names';
+import type { EntityKind, EntityKindName } from '../../shared/js/entity-kind-domain';
+import type { WorldMessage } from './worldserver-contracts';
 import Entity from './entity';
 import Character from './character';
 import Log from './log';
@@ -14,22 +15,95 @@ import Chest from './chest';
 import Messages from './message';
 import Properties from './properties';
 import Utils from './utils';
-import Types from '../../shared/js/gametypes-esm';
-import { WORLD_EVENT_NAMES } from './server-event-names';
+import { installWorldPlayerLifecycle } from './worldserver-player-lifecycle';
+import {
+    addWorldEntity,
+    addWorldItem,
+    addWorldItemFromChest,
+    addWorldMob,
+    addWorldNpc,
+    addWorldPlayer,
+    addWorldStaticItem,
+    removeWorldEntity,
+    removeWorldPlayer,
+} from './worldserver-entity-mutations';
+import {
+    addMobToContainingChestAreas,
+    createWorldChest,
+    createWorldItem,
+    handleEmptyChestAreaRefill,
+    handleOpenedChestOrchestration,
+    spawnStaticEntitiesForWorld,
+    scheduleWorldItemDespawn,
+} from './worldserver-chest-item-lifecycle';
+import { handleWorldHurtEntity } from './worldserver-hurt-entity';
+import {
+    broadcastWorldAttacker,
+    despawnWorldEntity,
+    findWorldPositionNextTo,
+    getWorldEntityById,
+    handleWorldPlayerVanish,
+    isWorldPositionValid,
+    moveWorldEntity,
+    selectDroppedItemForMob,
+} from './worldserver-entity-utilities';
+import {
+    forEachEntityInWorldMap,
+    forEachWorldCharacter,
+    initializeWorldZoneGroups,
+    processWorldGroups,
+    processWorldOutgoingQueues,
+    pushRelevantEntityListToPlayer,
+    pushWorldSpawnsToPlayer,
+} from './worldserver-group-flow';
+import {
+    addEntityAsIncomingToGroups,
+    addEntityToWorldGroup,
+    handleWorldEntityGroupMembership,
+    logWorldGroupPlayers,
+    removeEntityFromWorldGroups,
+} from './worldserver-group-membership-orchestration';
+import {
+    chooseWorldMobTarget,
+    clearWorldMobAggroLink,
+    clearWorldMobHateLinks,
+    handleWorldMobHate,
+    handleWorldMobMoveCallback,
+} from './worldserver-mob-orchestration';
+import {
+    countPlayersInWorld,
+    decrementWorldPlayerCount,
+    incrementWorldPlayerCount,
+    notifyWorldPopulation,
+    setWorldPlayerCount,
+} from './worldserver-population';
+import {
+    pushSerializedToWorldAdjacentGroupsQueue,
+    pushSerializedToWorldGroupQueue,
+    pushSerializedToWorldPlayerQueue,
+    pushWorldBroadcastMessage,
+    pushWorldMessageToAdjacentGroups,
+    pushWorldMessageToGroup,
+    pushWorldMessageToPlayer,
+    pushWorldMessageToPreviousGroups,
+} from './worldserver-push';
+import Types from '../../shared/js/gametypes';
+import { Evented } from '../../shared/js/evented';
 const log = Log.getLogger();
+const logWorldQueueError = (errorMessage: string): void => {
+    log.error(errorMessage);
+};
 
 // ======= GAME SERVER ========
 
 type EntityId = string | number;
 
-type WorldEntity = Record<string, any>;
-type WorldPlayer = Record<string, any>;
-type WorldMob = Record<string, any>;
-type WorldNpc = Record<string, any>;
-type WorldItem = Record<string, any>;
-type WorldChest = Record<string, any>;
-type WorldMessage = Record<string, any>;
-
+type WorldEntity = Entity;
+type WorldPlayer = Player;
+type WorldMob = Mob;
+type WorldNpc = Npc;
+type WorldItem = Item;
+type WorldChest = Chest;
 type MapMobAreaConfig = {
     id: string | number;
     nb: number;
@@ -56,6 +130,44 @@ type MapChestConfig = {
     y: number;
     i: unknown[];
 };
+const isMapMobAreaConfig = (value: unknown): value is MapMobAreaConfig => {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    const entry = value as Partial<MapMobAreaConfig>;
+    return (
+        (typeof entry.id === 'string' || typeof entry.id === 'number')
+        && typeof entry.nb === 'number'
+        && typeof entry.type === 'string'
+        && typeof entry.x === 'number'
+        && typeof entry.y === 'number'
+        && typeof entry.width === 'number'
+        && typeof entry.height === 'number'
+    );
+};
+const isMapChestAreaConfig = (value: unknown): value is MapChestAreaConfig => {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    const entry = value as Partial<MapChestAreaConfig>;
+    return (
+        (typeof entry.id === 'string' || typeof entry.id === 'number')
+        && typeof entry.x === 'number'
+        && typeof entry.y === 'number'
+        && typeof entry.w === 'number'
+        && typeof entry.h === 'number'
+        && typeof entry.tx === 'number'
+        && typeof entry.ty === 'number'
+        && Array.isArray(entry.i)
+    );
+};
+const isMapChestConfig = (value: unknown): value is MapChestConfig => {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    const entry = value as Partial<MapChestConfig>;
+    return typeof entry.x === 'number' && typeof entry.y === 'number' && Array.isArray(entry.i);
+};
 
 type WorldMapLike = {
     ready(callback: () => void): void;
@@ -68,10 +180,25 @@ type WorldMapLike = {
     forEachGroup(callback: (id: string) => void): void;
     forEachAdjacentGroup(groupId: string, callback: (id: string) => void): void;
     staticEntities?: Record<string, string>;
-    mobAreas?: any[];
-    chestAreas?: any[];
-    staticChests?: any[];
+    mobAreas?: unknown[];
+    chestAreas?: unknown[];
+    staticChests?: unknown[];
 };
+type SpawnableEntity = {
+    id: number;
+    x: number;
+    y: number;
+    kind: EntityKind;
+    getState(): Array<number | string>;
+};
+const isSpawnableEntity = (entity: unknown): entity is SpawnableEntity =>
+    typeof entity === 'object'
+    && entity !== null
+    && typeof (entity as { id?: unknown }).id === 'number'
+    && typeof (entity as { x?: unknown }).x === 'number'
+    && typeof (entity as { y?: unknown }).y === 'number'
+    && typeof (entity as { kind?: unknown }).kind === 'number'
+    && typeof (entity as { getState?: unknown }).getState === 'function';
 
 type WorldConnection = {
     send(payload: unknown): void;
@@ -86,8 +213,25 @@ type WorldGroup = {
     players: EntityId[];
     incoming: WorldEntity[];
 };
+type WorldAttackEvent = {
+    id: string | number;
+    group: string;
+    attack(): WorldMessage;
+    target?: EntityId | null;
+    type?: string;
+};
 
-class World {
+type WorldEvents = {
+    init: [];
+    playerConnect: [player: WorldPlayer];
+    playerEnter: [player: WorldPlayer];
+    playerAdded: [];
+    playerRemoved: [];
+    regenTick: [];
+    entityAttack: [attacker: WorldAttackEvent];
+};
+
+class World extends Evented<WorldEvents> {
     id: string;
     maxPlayers: number;
     server: WorldServerLike;
@@ -114,23 +258,9 @@ class World {
 
     zoneGroupsReady: boolean;
 
-    init_callback?: () => void;
-    connect_callback?: (player: WorldPlayer) => void;
-    enter_callback?: (player: WorldPlayer) => void;
-    added_callback?: () => void;
-    removed_callback?: () => void;
-    regen_callback?: () => void;
-    attack_callback?: (attacker: WorldEntity) => void;
-
     constructor(id, maxPlayers, websocketServer) {
+        super();
         var self = this;
-        var logPlayerEvent = function (eventName: WorldEventName, player) {
-            log.event('info', eventName, {
-                worldId: self.id,
-                playerId: player.id,
-                playerName: player.name,
-            });
-        };
 
         this.id = id;
         this.maxPlayers = maxPlayers;
@@ -157,93 +287,21 @@ class World {
         this.playerCount = 0;
 
         this.zoneGroupsReady = false;
-
-        this.onPlayerConnect(function (player) {
-            player.onRequestPosition(function () {
-                if (player.lastCheckpoint) {
-                    return player.lastCheckpoint.getRandomPosition();
-                } else {
-                    return self.map.getRandomStartingPosition();
-                }
-            });
-        });
-
-        this.onPlayerEnter(function (player) {
-            log.info(player.name + ' has joined ' + self.id);
-            logPlayerEvent(WORLD_EVENT_NAMES.PLAYER_JOIN, player);
-
-            if (!player.hasEnteredGame) {
-                self.incrementPlayerCount();
-            }
-
-            // Number of players in this world
-            self.pushToPlayer(player, new Messages.Population(self.playerCount));
-            self.pushRelevantEntityListTo(player);
-
-            var move_callback = function (x, y) {
-                log.debug(player.name + ' is moving to (' + x + ', ' + y + ').');
-
-                player.forEachAttacker(function (mob) {
-                    var target = self.getEntityById(mob.target);
-                    if (target) {
-                        var pos = self.findPositionNextTo(mob, target);
-                        if (mob.distanceToSpawningPoint(pos.x, pos.y) > 50) {
-                            mob.clearTarget();
-                            mob.forgetEveryone();
-                            player.removeAttacker(mob);
-                        } else {
-                            self.moveEntity(mob, pos.x, pos.y);
-                        }
-                    }
-                });
-            };
-
-            player.onMove(move_callback);
-            player.onLootMove(move_callback);
-
-            player.onZone(function () {
-                var hasChangedGroups = self.handleEntityGroupMembership(player);
-
-                if (hasChangedGroups) {
-                    self.pushToPreviousGroups(player, new Messages.Destroy(player));
-                    self.pushRelevantEntityListTo(player);
-                }
-            });
-
-            player.onBroadcast(function (message, ignoreSelf) {
-                self.pushToAdjacentGroups(player.group, message, ignoreSelf ? player.id : null);
-            });
-
-            player.onBroadcastToZone(function (message, ignoreSelf) {
-                self.pushToGroup(player.group, message, ignoreSelf ? player.id : null);
-            });
-
-            player.onExit(function () {
-                log.info(player.name + ' has left the game.');
-                logPlayerEvent(WORLD_EVENT_NAMES.PLAYER_LEAVE, player);
-                self.removePlayer(player);
-                self.decrementPlayerCount();
-
-                if (self.removed_callback) {
-                    self.removed_callback();
-                }
-            });
-
-            if (self.added_callback) {
-                self.added_callback();
-            }
-        });
+        installWorldPlayerLifecycle(this);
 
         // Called when an entity is attacked by another entity
-        this.onEntityAttack(function (attacker) {
-            var target = self.getEntityById(attacker.target);
-            if (target && attacker.type === 'mob') {
-                var pos = self.findPositionNextTo(attacker, target);
-                self.moveEntity(attacker, pos.x, pos.y);
+        this.on('entityAttack', function (attacker) {
+            if (attacker.type === 'mob') {
+                const mobAttacker = attacker as unknown as Mob;
+                var target = self.getEntityById(mobAttacker.target);
+                if (target) {
+                    var pos = self.findPositionNextTo(mobAttacker, target);
+                    self.moveEntity(mobAttacker, pos.x, pos.y);
+                }
             }
         });
 
-        this.onRegenTick(function () {
+        this.on('regenTick', function () {
             self.forEachCharacter(function (character) {
                 if (!character.hasFullHealth()) {
                     character.regenHealthBy(Math.floor(character.maxHitPoints / 25));
@@ -267,23 +325,23 @@ class World {
             self.map.generateCollisionGrid();
 
             // Populate all mob "roaming" areas
-            (self.map.mobAreas || []).forEach(function (a) {
+            (self.map.mobAreas || []).filter(isMapMobAreaConfig).forEach(function (a) {
                 var area = new MobArea(a.id, a.nb, a.type, a.x, a.y, a.width, a.height, self);
                 area.spawnMobs();
-                area.onEmpty(self.handleEmptyMobArea.bind(self, area));
+                area.on('empty', self.handleEmptyMobArea.bind(self, area));
 
                 self.mobAreas.push(area);
             });
 
             // Create all chest areas
-            (self.map.chestAreas || []).forEach(function (a) {
+            (self.map.chestAreas || []).filter(isMapChestAreaConfig).forEach(function (a) {
                 var area = new ChestArea(a.id, a.x, a.y, a.w, a.h, a.tx, a.ty, a.i, self);
                 self.chestAreas.push(area);
-                area.onEmpty(self.handleEmptyChestArea.bind(self, area));
+                area.on('empty', self.handleEmptyChestArea.bind(self, area));
             });
 
             // Spawn static chests
-            (self.map.staticChests || []).forEach(function (chest) {
+            (self.map.staticChests || []).filter(isMapChestConfig).forEach(function (chest) {
                 var c = self.createChest(chest.x, chest.y, chest.i);
                 self.addStaticItem(c);
             });
@@ -306,9 +364,7 @@ class World {
             if (updateCount < regenCount) {
                 updateCount += 1;
             } else {
-                if (self.regen_callback) {
-                    self.regen_callback();
-                }
+                self.emit('regenTick');
                 updateCount = 0;
             }
         }, 1000 / this.ups);
@@ -320,520 +376,438 @@ class World {
         this.ups = ups;
     }
 
-    onInit(callback) {
-        this.init_callback = callback;
-    }
-
-    onPlayerConnect(callback) {
-        this.connect_callback = callback;
-    }
-
-    onPlayerEnter(callback) {
-        this.enter_callback = callback;
-    }
-
-    onPlayerAdded(callback) {
-        this.added_callback = callback;
-    }
-
-    onPlayerRemoved(callback) {
-        this.removed_callback = callback;
-    }
-
-    onRegenTick(callback) {
-        this.regen_callback = callback;
-    }
-
     pushRelevantEntityListTo(player) {
-        var entities;
-
-        if (player && player.group in this.groups) {
-            entities = Object.keys(this.groups[player.group].entities);
-            entities = entities.filter(function (id) {
-                return id != player.id;
-            });
-            entities = entities.map(function (id) {
-                return parseInt(id, 10);
-            });
-            if (entities) {
-                this.pushToPlayer(player, new Messages.List(entities));
-            }
-        }
+        pushRelevantEntityListToPlayer({
+            player,
+            groups: this.groups,
+            pushToPlayer: this.pushToPlayer.bind(this),
+            createListMessage(entityIds) {
+                return new Messages.List(entityIds);
+            },
+        });
     }
 
     pushSpawnsToPlayer(player, ids) {
-        var self = this;
-
-        (ids || []).forEach(function (id) {
-            var entity = self.getEntityById(id);
-            if (entity) {
-                self.pushToPlayer(player, new Messages.Spawn(entity as any));
-            }
+        pushWorldSpawnsToPlayer({
+            player,
+            ids,
+            getEntityById: this.getEntityById.bind(this),
+            isSpawnableEntity,
+            pushToPlayer: this.pushToPlayer.bind(this),
+            createSpawnMessage(entity) {
+                return new Messages.Spawn(entity);
+            },
+            logDebug(message) {
+                log.debug(message);
+            },
         });
-
-        log.debug('Pushed ' + (ids ? ids.length : 0) + ' new spawns to ' + player.id);
     }
 
     pushToPlayer(player, message) {
-        if (player && player.id in this.outgoingQueues) {
-            this.outgoingQueues[player.id].push(message.serialize());
-        } else {
-            log.error('pushToPlayer: player was undefined');
-        }
+        pushWorldMessageToPlayer({
+            player,
+            message,
+            pushSerializedToPlayer: this.pushSerializedToPlayer.bind(this),
+        });
+    }
+
+    pushSerializedToPlayer(player, serializedMessage) {
+        pushSerializedToWorldPlayerQueue(
+            this.outgoingQueues,
+            player,
+            serializedMessage,
+            logWorldQueueError
+        );
     }
 
     pushToGroup(groupId, message, ignoredPlayer = null) {
-        var self = this,
-            group = this.groups[groupId];
+        pushWorldMessageToGroup({
+            groupId,
+            message,
+            ignoredPlayer,
+            pushSerializedToGroup: this.pushSerializedToGroup.bind(this),
+        });
+    }
 
-        if (group) {
-            group.players.forEach(function (playerId) {
-                if (playerId != ignoredPlayer) {
-                    self.pushToPlayer(self.getEntityById(playerId), message);
-                }
-            });
-        } else {
-            log.error('groupId: ' + groupId + ' is not a valid group');
-        }
+    pushSerializedToGroup(groupId, serializedMessage, ignoredPlayer = null) {
+        pushSerializedToWorldGroupQueue({
+            groups: this.groups,
+            outgoingQueues: this.outgoingQueues,
+            groupId,
+            serializedMessage,
+            ignoredPlayer,
+            getEntityById: this.getEntityById.bind(this),
+            logError: logWorldQueueError,
+        });
     }
 
     pushToAdjacentGroups(groupId, message, ignoredPlayer = null) {
-        var self = this;
-        self.map.forEachAdjacentGroup(groupId, function (id) {
-            self.pushToGroup(id, message, ignoredPlayer);
+        pushWorldMessageToAdjacentGroups({
+            groupId,
+            message,
+            ignoredPlayer,
+            pushSerializedToAdjacentGroups: (
+                queueGroupId,
+                serializedMessage,
+                queueIgnoredPlayer
+            ) => {
+                pushSerializedToWorldAdjacentGroupsQueue({
+                    map: this.map,
+                    groups: this.groups,
+                    outgoingQueues: this.outgoingQueues,
+                    groupId: queueGroupId,
+                    serializedMessage,
+                    ignoredPlayer: queueIgnoredPlayer ?? null,
+                    getEntityById: this.getEntityById.bind(this),
+                    logError: logWorldQueueError,
+                });
+            },
         });
     }
 
     pushToPreviousGroups(player, message) {
-        var self = this;
-
-        // Push this message to all groups which are not going to be updated anymore,
-        // since the player left them.
-        (player.recentlyLeftGroups || []).forEach(function (id) {
-            self.pushToGroup(id, message);
-        });
-        player.recentlyLeftGroups = [];
+        pushWorldMessageToPreviousGroups(player, message, this.pushToGroup.bind(this));
     }
 
     pushBroadcast(message, ignoredPlayer = null) {
-        for (var id in this.outgoingQueues) {
-            if (id != ignoredPlayer) {
-                this.outgoingQueues[id].push(message.serialize());
-            }
-        }
+        pushWorldBroadcastMessage({
+            message,
+            ignoredPlayer,
+            outgoingQueues: this.outgoingQueues,
+        });
     }
 
     processQueues() {
-        var self = this,
-            connection;
-
-        for (var id in this.outgoingQueues) {
-            if (this.outgoingQueues[id].length > 0) {
-                connection = this.server.getConnection(id);
-                connection.send(this.outgoingQueues[id]);
-                this.outgoingQueues[id] = [];
-            }
-        }
+        processWorldOutgoingQueues(this.outgoingQueues, this.server.getConnection.bind(this.server));
     }
 
     addEntity(entity) {
-        this.entities[entity.id] = entity;
-        this.handleEntityGroupMembership(entity);
+        addWorldEntity({
+            entity,
+            entities: this.entities,
+            handleEntityGroupMembership: this.handleEntityGroupMembership.bind(this),
+        });
     }
 
     removeEntity(entity) {
-        if (entity.id in this.entities) {
-            delete this.entities[entity.id];
-        }
-        if (entity.id in this.mobs) {
-            delete this.mobs[entity.id];
-        }
-        if (entity.id in this.items) {
-            delete this.items[entity.id];
-        }
-
-        if (entity.type === 'mob') {
-            this.clearMobAggroLink(entity);
-            this.clearMobHateLinks(entity);
-        }
-
-        entity.destroy();
-        this.removeFromGroups(entity);
-        log.debug('Removed ' + Types.getKindAsString(entity.kind) + ' : ' + entity.id);
+        removeWorldEntity({
+            entity,
+            entities: this.entities,
+            mobs: this.mobs,
+            items: this.items,
+            clearMobAggroLink: (mob) => this.clearMobAggroLink(mob as Mob),
+            clearMobHateLinks: (mob) => this.clearMobHateLinks(mob as Mob),
+            removeFromGroups: this.removeFromGroups.bind(this),
+            resolveKindAsString: Types.getKindAsString.bind(Types),
+            logDebug(message) {
+                log.debug(message);
+            },
+        });
     }
 
     addPlayer(player) {
-        this.addEntity(player);
-        this.players[player.id] = player;
-        this.outgoingQueues[player.id] = [];
+        addWorldPlayer({
+            player,
+            addEntity: this.addEntity.bind(this),
+            players: this.players,
+            outgoingQueues: this.outgoingQueues,
+        });
 
         //log.info("Added player : " + player.id);
     }
 
     removePlayer(player) {
-        player.broadcast(player.despawn());
-        this.removeEntity(player);
-        delete this.players[player.id];
-        delete this.outgoingQueues[player.id];
+        removeWorldPlayer({
+            player,
+            removeEntity: this.removeEntity.bind(this),
+            players: this.players,
+            outgoingQueues: this.outgoingQueues,
+        });
     }
 
     addMob(mob) {
-        this.addEntity(mob);
-        this.mobs[mob.id] = mob;
+        addWorldMob({
+            mob,
+            addEntity: this.addEntity.bind(this),
+            mobs: this.mobs,
+        });
     }
 
     addNpc(kind, x, y) {
-        var npc = new Npc('8' + x + '' + y, kind, x, y);
-        this.addEntity(npc);
-        this.npcs[npc.id] = npc;
-
-        return npc;
+        return addWorldNpc({
+            kind,
+            x,
+            y,
+            createNpc: (npcKind, npcX, npcY) => new Npc('8' + npcX + '' + npcY, npcKind, npcX, npcY),
+            addEntity: this.addEntity.bind(this),
+            npcs: this.npcs,
+        });
     }
 
     addItem(item) {
-        this.addEntity(item);
-        this.items[item.id] = item;
-
-        return item;
+        return addWorldItem({
+            item,
+            addEntity: this.addEntity.bind(this),
+            items: this.items,
+        });
     }
 
     createItem(kind, x, y) {
-        var id = '9' + this.itemCount++,
-            item = null;
-
-        if (kind === Types.Entities.CHEST) {
-            item = new Chest(id, x, y);
-        } else {
-            item = new Item(id, kind, x, y);
-        }
-        return item;
+        return createWorldItem({
+            kind,
+            x,
+            y,
+            chestKind: Types.Entities.CHEST,
+            nextItemId: () => '9' + this.itemCount++,
+            createChest: (id, chestX, chestY) => new Chest(id, chestX, chestY),
+            createItem: (id, itemKind, itemX, itemY) => new Item(id, itemKind, itemX, itemY),
+        });
     }
 
     createChest(x, y, items) {
-        var chest = this.createItem(Types.Entities.CHEST, x, y);
-        if (!(chest instanceof Chest)) {
-            return chest;
-        }
-        chest.setItems(items);
-        return chest;
+        return createWorldChest({
+            x,
+            y,
+            items,
+            chestKind: Types.Entities.CHEST,
+            createItem: this.createItem.bind(this),
+            isChest(item): item is Chest {
+                return item instanceof Chest;
+            },
+        });
     }
 
     addStaticItem(item) {
-        item.isStatic = true;
-        item.onRespawn(this.addStaticItem.bind(this, item));
-
-        return this.addItem(item);
+        return addWorldStaticItem({
+            item,
+            buildRespawnHandler: (staticItem) => this.addStaticItem.bind(this, staticItem),
+            addItem: this.addItem.bind(this),
+        });
     }
 
     addItemFromChest(kind, x, y) {
-        var item = this.createItem(kind, x, y);
-        item.isFromChest = true;
-
-        return this.addItem(item);
+        return addWorldItemFromChest({
+            kind,
+            x,
+            y,
+            createItem: this.createItem.bind(this),
+            addItem: this.addItem.bind(this),
+        });
     }
 
     /**
      * The mob will no longer be registered as an attacker of its current target.
      */
-    clearMobAggroLink(mob) {
-        var player = null;
-        if (mob.target) {
-            player = this.getEntityById(mob.target);
-            if (player) {
-                player.removeAttacker(mob);
-            }
-        }
+    clearMobAggroLink(mob: Mob) {
+        clearWorldMobAggroLink({
+            mob,
+            getEntityById: this.getEntityById.bind(this),
+            isPlayerEntity(entity): entity is Player {
+                return entity instanceof Player;
+            },
+        });
     }
 
-    clearMobHateLinks(mob) {
-        var self = this;
-        if (mob) {
-            mob.hatelist.forEach(function (obj) {
-                var player = self.getEntityById(obj.id);
-                if (player) {
-                    player.removeHater(mob);
-                }
-            });
-        }
+    clearMobHateLinks(mob: Mob) {
+        clearWorldMobHateLinks({
+            mob,
+            getEntityById: this.getEntityById.bind(this),
+            isPlayerEntity(entity): entity is Player {
+                return entity instanceof Player;
+            },
+        });
     }
 
     forEachEntity(callback) {
-        for (var id in this.entities) {
-            callback(this.entities[id]);
-        }
+        forEachEntityInWorldMap(this.entities, callback);
     }
 
     forEachPlayer(callback) {
-        for (var id in this.players) {
-            callback(this.players[id]);
-        }
+        forEachEntityInWorldMap(this.players, callback);
     }
 
     forEachMob(callback) {
-        for (var id in this.mobs) {
-            callback(this.mobs[id]);
-        }
+        forEachEntityInWorldMap(this.mobs, callback);
     }
 
     forEachCharacter(callback) {
-        this.forEachPlayer(callback);
-        this.forEachMob(callback);
+        forEachWorldCharacter({
+            callback,
+            forEachPlayer: this.forEachPlayer.bind(this),
+            forEachMob: this.forEachMob.bind(this),
+        });
     }
 
-    handleMobHate(mobId, playerId, hatePoints) {
-        var mob = this.getEntityById(mobId),
-            player = this.getEntityById(playerId),
-            mostHated;
-
-        if (player && mob) {
-            mob.increaseHateFor(playerId, hatePoints);
-            player.addHater(mob);
-
-            if (mob.hitPoints > 0) {
-                // only choose a target if still alive
-                this.chooseMobTarget(mob);
-            }
-        }
+    handleMobHate(mobId: EntityId, playerId: EntityId, hatePoints: number) {
+        handleWorldMobHate({
+            mobId,
+            playerId,
+            hatePoints,
+            getEntityById: this.getEntityById.bind(this),
+            isPlayerForHate(entity): entity is Player {
+                return entity instanceof Player;
+            },
+            isMobForHate(entity): entity is Mob {
+                return entity instanceof Mob;
+            },
+            chooseMobTarget: this.chooseMobTarget.bind(this),
+        });
     }
 
-    chooseMobTarget(mob, hateRank = null) {
-        var player = this.getEntityById(mob.getHatedPlayerId(hateRank));
-
-        // If the mob is not already attacking the player, create an attack link between them.
-        if (player && !(mob.id in player.attackers)) {
-            this.clearMobAggroLink(mob);
-
-            player.addAttacker(mob);
-            mob.setTarget(player);
-
-            this.broadcastAttacker(mob);
-            log.debug(mob.id + ' is now attacking ' + player.id);
-        }
-    }
-
-    onEntityAttack(callback) {
-        this.attack_callback = callback;
+    chooseMobTarget(mob: Mob, hateRank: number | null = null) {
+        chooseWorldMobTarget({
+            mob,
+            hateRank,
+            getEntityById: this.getEntityById.bind(this),
+            isPlayerAggroTarget(entity): entity is Player {
+                return entity instanceof Player;
+            },
+            clearMobAggroLink: this.clearMobAggroLink.bind(this),
+            broadcastAttacker: this.broadcastAttacker.bind(this),
+            logDebug(message) {
+                log.debug(message);
+            },
+        });
     }
 
     getEntityById(id) {
-        if (id in this.entities) {
-            return this.entities[id];
-        } else {
-            log.error('Unknown entity : ' + id);
-        }
+        return getWorldEntityById({
+            entities: this.entities,
+            id,
+            logError(message) {
+                log.error(message);
+            },
+        });
     }
 
     getPlayerCount() {
-        var count = 0;
-        for (var p in this.players) {
-            if (this.players.hasOwnProperty(p)) {
-                count += 1;
-            }
-        }
-        return count;
+        return countPlayersInWorld(this.players);
     }
 
     broadcastAttacker(character) {
-        if (character) {
-            this.pushToAdjacentGroups(character.group, character.attack(), character.id);
-        }
-        if (this.attack_callback) {
-            this.attack_callback(character);
-        }
+        broadcastWorldAttacker(
+            character,
+            this.pushToAdjacentGroups.bind(this),
+            (attacker) => {
+                if (attacker) {
+                    this.emit('entityAttack', attacker);
+                }
+            }
+        );
     }
 
     handleHurtEntity(entity, attacker, damage) {
-        var self = this;
-
-        if (entity.type === 'player') {
-            // A player is only aware of his own hitpoints
-            this.pushToPlayer(entity, entity.health());
-        }
-
-        if (entity.type === 'mob') {
-            // Let the mob's attacker (player) know how much damage was inflicted
-            this.pushToPlayer(attacker, new Messages.Damage(entity, damage));
-        }
-
-        // If the entity is about to die
-        if (entity.hitPoints <= 0) {
-            if (entity.type === 'mob') {
-                var mob = entity,
-                    item = this.getDroppedItem(mob);
-
-                this.pushToPlayer(attacker, new Messages.Kill(mob));
-                this.pushToAdjacentGroups(mob.group, mob.despawn()); // Despawn must be enqueued before the item drop
-                if (item) {
-                    this.pushToAdjacentGroups(mob.group, mob.drop(item));
-                    this.handleItemDespawn(item);
-                }
-            }
-
-            if (entity.type === 'player') {
-                this.handlePlayerVanish(entity);
-                this.pushToAdjacentGroups(entity.group, entity.despawn());
-            }
-
-            this.removeEntity(entity);
-        }
+        handleWorldHurtEntity({
+            entity,
+            attacker,
+            damage,
+            pushToPlayer: this.pushToPlayer.bind(this),
+            pushToAdjacentGroups: this.pushToAdjacentGroups.bind(this),
+            getDroppedItem: this.getDroppedItem.bind(this),
+            handleItemDespawn: this.handleItemDespawn.bind(this),
+            handlePlayerVanish: this.handlePlayerVanish.bind(this),
+            removeEntity: this.removeEntity.bind(this),
+            createDamageMessage(mob, hurtDamage) {
+                return new Messages.Damage(mob, hurtDamage);
+            },
+            createKillMessage(mob) {
+                return new Messages.Kill(mob);
+            },
+        });
     }
 
     despawn(entity) {
-        this.pushToAdjacentGroups(entity.group, entity.despawn());
-
-        if (entity.id in this.entities) {
-            this.removeEntity(entity);
-        }
+        despawnWorldEntity({
+            entity,
+            pushToAdjacentGroups: this.pushToAdjacentGroups.bind(this),
+            hasEntity: (entityId) => entityId in this.entities,
+            removeEntity: this.removeEntity.bind(this),
+        });
     }
 
     spawnStaticEntities() {
-        var self = this,
-            count = 0;
-
-        Object.keys(this.map.staticEntities || {}).forEach(function (tid) {
-            var kindName = self.map.staticEntities[tid];
-            var kind = Types.getKindFromString(kindName),
-                pos = self.map.tileIndexToGridPosition(Number.parseInt(tid, 10));
-
-            if (Types.isNpc(kind)) {
-                self.addNpc(kind, pos.x + 1, pos.y);
-            }
-            if (Types.isMob(kind)) {
-                var mob = new Mob('7' + kind + count++, kind, pos.x + 1, pos.y);
-                mob.onRespawn(function () {
-                    mob.isDead = false;
-                    self.addMob(mob);
-                    if (mob.area && mob.area instanceof ChestArea) {
-                        mob.area.addToArea(mob);
-                    }
-                });
-                mob.onMove(self.onMobMoveCallback.bind(self));
-                self.addMob(mob);
-                self.tryAddingMobToChestArea(mob);
-            }
-            if (Types.isItem(kind)) {
-                self.addStaticItem(self.createItem(kind, pos.x + 1, pos.y));
-            }
+        spawnStaticEntitiesForWorld({
+            staticEntities: this.map.staticEntities,
+            resolveKindFromString: Types.getKindFromString.bind(Types),
+            tileIndexToGridPosition: this.map.tileIndexToGridPosition.bind(this.map),
+            isNpcKind: Types.isNpc.bind(Types),
+            isMobKind: Types.isMob.bind(Types),
+            isItemKind: Types.isItem.bind(Types),
+            addNpc: this.addNpc.bind(this),
+            createMob: (id, kind, x, y) => new Mob(id, kind, x, y),
+            addMob: this.addMob.bind(this),
+            isChestArea(area): area is ChestArea {
+                return area instanceof ChestArea;
+            },
+            addMobToContainingChestArea: this.tryAddingMobToChestArea.bind(this),
+            onMobMove: this.onMobMoveCallback.bind(this),
+            createItem: this.createItem.bind(this),
+            addStaticItem: this.addStaticItem.bind(this),
         });
     }
 
     isValidPosition(x, y) {
-        if (
-            this.map &&
-            typeof x === 'number' &&
-            typeof y === 'number' &&
-            Number.isFinite(x) &&
-            Number.isFinite(y) &&
-            !this.map.isOutOfBounds(x, y) &&
-            !this.map.isColliding(x, y)
-        ) {
-            return true;
-        }
-        return false;
+        return isWorldPositionValid(this.map, x, y);
     }
 
     handlePlayerVanish(player) {
-        var self = this,
-            previousAttackers = [];
-
-        // When a player dies or teleports, all of his attackers go and attack their second most hated player.
-        player.forEachAttacker(function (mob) {
-            previousAttackers.push(mob);
-            self.chooseMobTarget(mob, 2);
+        handleWorldPlayerVanish({
+            player,
+            chooseMobTarget: this.chooseMobTarget.bind(this),
+            handleEntityGroupMembership: this.handleEntityGroupMembership.bind(this),
         });
-
-        previousAttackers.forEach(function (mob) {
-            player.removeAttacker(mob);
-            mob.clearTarget();
-            mob.forgetPlayer(player.id, 1000);
-        });
-
-        this.handleEntityGroupMembership(player);
     }
 
     setPlayerCount(count) {
-        this.playerCount = count;
+        setWorldPlayerCount(this, count);
     }
 
     incrementPlayerCount() {
-        this.setPlayerCount(this.playerCount + 1);
+        incrementWorldPlayerCount(this);
     }
 
     decrementPlayerCount() {
-        if (this.playerCount > 0) {
-            this.setPlayerCount(this.playerCount - 1);
-        }
+        decrementWorldPlayerCount(this);
     }
 
     getDroppedItem(mob) {
-        var kind = Types.getKindAsString(mob.kind);
-        if (!kind) {
-            return null;
-        }
-        var drops = (Properties as Record<string, any>)[kind]?.drops || {},
-            v = Utils.random(100),
-            p = 0,
-            item = null;
-
-        for (var itemName in drops) {
-            var percentage = drops[itemName];
-
-            p += percentage;
-            if (v <= p) {
-                item = this.addItem(this.createItem(Types.getKindFromString(itemName), mob.x, mob.y));
-                break;
-            }
-        }
-
-        return item;
+        return selectDroppedItemForMob({
+            mob,
+            propertiesByKind: Properties as Record<string, { drops?: Record<string, number> }>,
+            resolveKindAsString: Types.getKindAsString.bind(Types),
+            resolveKindFromString: Types.getKindFromString.bind(Types),
+            randomInt: Utils.random.bind(Utils),
+            createAndAddDrop: (kind, x, y) => this.addItem(this.createItem(kind, x, y)),
+        });
     }
 
     onMobMoveCallback(mob) {
-        this.pushToAdjacentGroups(mob.group, new Messages.Move(mob));
-        this.handleEntityGroupMembership(mob);
+        handleWorldMobMoveCallback({
+            mob,
+            pushToAdjacentGroups: this.pushToAdjacentGroups.bind(this),
+            createMoveMessage(entity) {
+                return new Messages.Move(entity);
+            },
+            handleEntityGroupMembership: this.handleEntityGroupMembership.bind(this),
+        });
     }
 
     findPositionNextTo(entity, target) {
-        var valid = false,
-            pos;
-
-        while (!valid) {
-            pos = entity.getPositionNextTo(target);
-            valid = this.isValidPosition(pos.x, pos.y);
-        }
-        return pos;
+        return findWorldPositionNextTo(entity, target, this.isValidPosition.bind(this));
     }
 
     initZoneGroups() {
-        var self = this;
-
-        this.map.forEachGroup(function (id) {
-            self.groups[id] = { entities: {}, players: [], incoming: [] };
-        });
+        initializeWorldZoneGroups(this.map, this.groups);
         this.zoneGroupsReady = true;
     }
 
     removeFromGroups(entity) {
-        var self = this,
-            oldGroups = [];
-
-        if (entity && entity.group) {
-            var group = this.groups[entity.group];
-            if (entity instanceof Player) {
-                group.players = group.players.filter(function (id) {
-                    return id !== entity.id;
-                });
-            }
-
-            this.map.forEachAdjacentGroup(entity.group, function (id) {
-                if (entity.id in self.groups[id].entities) {
-                    delete self.groups[id].entities[entity.id];
-                    oldGroups.push(id);
-                }
-            });
-            entity.group = null;
-        }
-        return oldGroups;
+        return removeEntityFromWorldGroups({
+            entity,
+            groups: this.groups,
+            forEachAdjacentGroup: this.map.forEachAdjacentGroup.bind(this.map),
+            isPlayerEntity: (groupedEntity) => groupedEntity instanceof Player,
+        });
     }
 
     /**
@@ -841,148 +815,106 @@ class World {
      * All players inside these groups will receive a Spawn message when WorldServer.processGroups is called.
      */
     addAsIncomingToGroup(entity, groupId) {
-        var self = this,
-            isChest = entity && entity instanceof Chest,
+        var isChest = entity && entity instanceof Chest,
             isItem = entity && entity instanceof Item,
             isDroppedItem = entity && isItem && !entity.isStatic && !entity.isFromChest;
 
-        if (entity && groupId) {
-            this.map.forEachAdjacentGroup(groupId, function (id) {
-                var group = self.groups[id];
-
-                if (group) {
-                    if (
-                        !Object.values(group.entities).includes(entity.id) &&
-                        //  Items dropped off of mobs are handled differently via DROP messages. See handleHurtEntity.
-                        (!isItem || isChest || (isItem && !isDroppedItem))
-                    ) {
-                        group.incoming.push(entity);
-                    }
-                }
-            });
-        }
+        addEntityAsIncomingToGroups({
+            entity,
+            groupId,
+            groups: this.groups,
+            forEachAdjacentGroup: this.map.forEachAdjacentGroup.bind(this.map),
+            isChestEntity: Boolean(isChest),
+            isItemEntity: Boolean(isItem),
+            isDroppedItemEntity: Boolean(isDroppedItem),
+        });
     }
 
     addToGroup(entity, groupId) {
-        var self = this,
-            newGroups = [];
-
-        if (entity && groupId && groupId in this.groups) {
-            this.map.forEachAdjacentGroup(groupId, function (id) {
-                self.groups[id].entities[entity.id] = entity;
-                newGroups.push(id);
-            });
-            entity.group = groupId;
-
-            if (entity instanceof Player) {
-                this.groups[groupId].players.push(entity.id);
-            }
-        }
-        return newGroups;
+        return addEntityToWorldGroup({
+            entity,
+            groupId,
+            groups: this.groups,
+            forEachAdjacentGroup: this.map.forEachAdjacentGroup.bind(this.map),
+            isPlayerEntity: (groupedEntity) => groupedEntity instanceof Player,
+        });
     }
 
     logGroupPlayers(groupId) {
-        log.debug('Players inside group ' + groupId + ':');
-        this.groups[groupId].players.forEach(function (id) {
-            log.debug('- player ' + id);
+        logWorldGroupPlayers({
+            groupId,
+            groups: this.groups,
+            logDebug(message) {
+                log.debug(message);
+            },
         });
     }
 
     handleEntityGroupMembership(entity) {
-        var hasChangedGroups = false;
-        if (entity) {
-            var groupId = this.map.getGroupIdFromPosition(entity.x, entity.y);
-            if (!entity.group || (entity.group && entity.group !== groupId)) {
-                hasChangedGroups = true;
-                this.addAsIncomingToGroup(entity, groupId);
-                var oldGroups = this.removeFromGroups(entity);
-                var newGroups = this.addToGroup(entity, groupId);
-
-                if (oldGroups.length > 0) {
-                    entity.recentlyLeftGroups = oldGroups.filter(function (id) {
-                        return !newGroups.includes(id);
-                    });
-                    log.debug('group diff: ' + entity.recentlyLeftGroups);
-                }
-            }
-        }
-        return hasChangedGroups;
+        return handleWorldEntityGroupMembership({
+            entity,
+            resolveGroupIdFromPosition: this.map.getGroupIdFromPosition.bind(this.map),
+            addAsIncomingToGroup: this.addAsIncomingToGroup.bind(this),
+            removeFromGroups: this.removeFromGroups.bind(this),
+            addToGroup: this.addToGroup.bind(this),
+            logDebug(message) {
+                log.debug(message);
+            },
+        });
     }
 
     processGroups() {
         var self = this;
-
-        if (this.zoneGroupsReady) {
-            this.map.forEachGroup(function (id) {
-                if (self.groups[id].incoming.length > 0) {
-                    self.groups[id].incoming.forEach(function (entity) {
-                        if (entity instanceof Player) {
-                            self.pushToGroup(id, new Messages.Spawn(entity), entity.id);
-                        } else {
-                            self.pushToGroup(id, new Messages.Spawn(entity as any));
-                        }
-                    });
-                    self.groups[id].incoming = [];
-                }
-            });
-        }
+        processWorldGroups({
+            zoneGroupsReady: self.zoneGroupsReady,
+            forEachGroup(callback) {
+                self.map.forEachGroup(callback);
+            },
+            getIncoming(groupId) {
+                return self.groups[groupId].incoming;
+            },
+            pushSpawnToGroup(groupId, entity, ignoredPlayerId) {
+                self.pushToGroup(
+                    groupId,
+                    new Messages.Spawn(entity as unknown as ConstructorParameters<typeof Messages.Spawn>[0]),
+                    ignoredPlayerId ?? null
+                );
+            },
+            isSpawnableEntity(entity) {
+                return isSpawnableEntity(entity);
+            },
+        });
     }
 
     moveEntity(entity, x, y) {
-        if (entity) {
-            entity.setPosition(x, y);
-            this.handleEntityGroupMembership(entity);
-        }
+        moveWorldEntity({
+            entity,
+            x,
+            y,
+            handleEntityGroupMembership: this.handleEntityGroupMembership.bind(this),
+        });
     }
 
     handleItemDespawn(item) {
-        var self = this;
-
-        if (item) {
-            item.handleDespawn({
-                beforeBlinkDelay: 10000,
-                blinkCallback: function () {
-                    self.pushToAdjacentGroups(item.group, new Messages.Blink(item));
-                },
-                blinkingDuration: 4000,
-                despawnCallback: function () {
-                    self.pushToAdjacentGroups(item.group, new Messages.Destroy(item));
-                    self.removeEntity(item);
-                },
-            });
-        }
+        scheduleWorldItemDespawn(this, item);
     }
 
     handleEmptyMobArea(area) {}
 
     handleEmptyChestArea(area) {
-        if (area) {
-            var chest = this.addItem(this.createChest(area.chestX, area.chestY, area.items));
-            this.handleItemDespawn(chest);
-        }
+        handleEmptyChestAreaRefill(this, area);
     }
 
     handleOpenedChest(chest, player) {
-        this.pushToAdjacentGroups(chest.group, chest.despawn());
-        this.removeEntity(chest);
-
-        var kind = chest.getRandomItem();
-        if (kind) {
-            var item = this.addItemFromChest(kind, chest.x, chest.y);
-            this.handleItemDespawn(item);
-        }
+        handleOpenedChestOrchestration(this, chest);
     }
 
     tryAddingMobToChestArea(mob) {
-        this.chestAreas.forEach(function (area) {
-            if (area.contains(mob)) {
-                area.addToArea(mob);
-            }
-        });
+        addMobToContainingChestAreas(this.chestAreas, mob);
     }
 
     updatePopulation(totalPlayers = null) {
-        this.pushBroadcast(new Messages.Population(this.playerCount, totalPlayers ? totalPlayers : this.playerCount));
+        notifyWorldPopulation(this, totalPlayers);
     }
 }
 

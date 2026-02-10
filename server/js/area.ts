@@ -1,4 +1,5 @@
 import Utils from './utils';
+import { Evented } from '../../shared/js/evented';
 
 export interface AreaWorldContract {
     isValidPosition(x: number, y: number): boolean;
@@ -12,9 +13,11 @@ export interface AreaEntity {
     area?: unknown;
 }
 
-type EmptyCallback = () => void;
+type AreaEvents = {
+    empty: [];
+};
 
-class Area {
+class Area extends Evented<AreaEvents> {
     id: number | string;
     x: number;
     y: number;
@@ -24,9 +27,9 @@ class Area {
     entities: AreaEntity[];
     hasCompletelyRespawned: boolean;
     nbEntities?: number;
-    empty_callback?: EmptyCallback;
 
     constructor(id: number | string, x: number, y: number, width: number, height: number, world: AreaWorldContract) {
+        super();
         this.id = id;
         this.x = x;
         this.y = y;
@@ -56,9 +59,9 @@ class Area {
 
         this.entities.splice(i, 1);
 
-        if (this.isEmpty() && this.hasCompletelyRespawned && this.empty_callback) {
+        if (this.isEmpty() && this.hasCompletelyRespawned) {
             this.hasCompletelyRespawned = false;
-            this.empty_callback();
+            this.emit('empty');
         }
     }
 
@@ -86,10 +89,6 @@ class Area {
 
     isFull(): boolean {
         return !this.isEmpty() && this.nbEntities === this.entities.length;
-    }
-
-    onEmpty(callback: EmptyCallback): void {
-        this.empty_callback = callback;
     }
 }
 

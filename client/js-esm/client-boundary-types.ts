@@ -9,7 +9,7 @@ export type ClientProtocolBatch = ClientProtocolAction[];
 export interface RuntimeEntity {
     id?: string | number;
     kind?: EntityKind;
-    weaponName?: string;
+    weaponName?: string | null;
     spriteName?: string;
     wasDropped?: boolean;
     playersInvolved?: Array<string | number>;

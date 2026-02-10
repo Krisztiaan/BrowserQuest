@@ -1,5 +1,6 @@
 import { WS_EVENT_NAMES } from './server-event-names';
-import { WebSocketRuntimeClasses, WebSocketRuntimeFactoryDeps } from './ws-runtime-class-factory-types';
+import type { WebSocketRuntimeClasses, WebSocketRuntimeFactoryDeps } from './ws-runtime-class-factory-types';
+import { TypedEventEmitter } from '../../shared/js/typed-event-emitter';
 
 export function createWebSocketRuntimeClasses({
     log,
@@ -10,7 +11,6 @@ export function createWebSocketRuntimeClasses({
     createHttpServer,
     parseUrlPathname,
     logConnectionEvent,
-    useBison = false,
 }: WebSocketRuntimeFactoryDeps): WebSocketRuntimeClasses {
     /**
      * @param {unknown} request
@@ -31,9 +31,8 @@ export function createWebSocketRuntimeClasses({
         port;
         _connections;
         _counter;
-        connection_callback;
-        error_callback;
-        status_callback;
+        events;
+        statusProvider;
         _httpServer;
         _wss;
 
@@ -41,14 +40,15 @@ export function createWebSocketRuntimeClasses({
             this.port = port;
             this._connections = {};
             this._counter = 0;
+            this.events = new TypedEventEmitter();
         }
 
         onConnect(callback) {
-            this.connection_callback = callback;
+            this.events.on('connect', callback);
         }
 
         onError(callback) {
-            this.error_callback = callback;
+            this.events.on('error', callback);
         }
 
         broadcast(_message) {
@@ -79,22 +79,22 @@ export function createWebSocketRuntimeClasses({
         _server;
         id;
         remoteAddress: string;
-        close_callback?: () => void;
-        listen_callback?: (action: unknown) => void;
+        events;
 
         constructor(id, connection, server, remoteAddress) {
             this._connection = connection;
             this._server = server;
             this.id = id;
             this.remoteAddress = remoteAddress;
+            this.events = new TypedEventEmitter();
         }
 
         onClose(callback) {
-            this.close_callback = callback;
+            this.events.on('close', callback);
         }
 
         listen(callback) {
-            this.listen_callback = callback;
+            this.events.on('listen', callback);
         }
 
         broadcast(_message) {
@@ -140,10 +140,6 @@ export function createWebSocketRuntimeClasses({
             super(id, connection, server, remoteAddress);
 
             this._connection.on('message', (data, isBinary) => {
-                if (!this.listen_callback) {
-                    return;
-                }
-
                 if (isBinary) {
                     this.closeUnsupportedData('Binary websocket frames are not supported.');
                     return;
@@ -152,25 +148,18 @@ export function createWebSocketRuntimeClasses({
                 const text =
                     typeof data === 'string' ? data : Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
 
-                if (useBison) {
-                    this.closeUnsupportedData('BISON is not supported in modern mode.');
-                    return;
-                }
-
                 const actions = Protocol.parseProtocolActionBatch(text);
                 if (actions.length !== 1) {
                     this.closeInvalidPayload('Invalid message: expected a single protocol action Array.');
                     return;
                 }
 
-                this.listen_callback(actions[0]);
+                this.events.emit('listen', actions[0]);
             });
 
             this._connection.on('close', () => {
                 logConnectionEvent('info', WS_EVENT_NAMES.CONNECTION_CLOSED, this);
-                if (this.close_callback) {
-                    this.close_callback();
-                }
+                this.events.emit('close');
                 this._server.removeConnection(this.id);
             });
 
@@ -198,9 +187,9 @@ export function createWebSocketRuntimeClasses({
             this._httpServer = createHttpServer((request, response) => {
                 const requestPath = parseUrlPathname(request.url);
 
-                if (requestPath === '/status' && this.status_callback) {
+                if (requestPath === '/status' && this.statusProvider) {
                     response.writeHead(200);
-                    response.write(this.status_callback());
+                    response.write(this.statusProvider());
                     response.end();
                     return;
                 }
@@ -223,15 +212,14 @@ export function createWebSocketRuntimeClasses({
             this._wss.on('error', (err) => {
                 log.error('WebSocket server error: ' + err);
                 log.event('error', WS_EVENT_NAMES.SERVER_ERROR, { error: String(err) });
+                this.events.emit('error', err);
             });
 
             this._wss.on('connection', (connection, req) => {
                 const remoteAddress = resolveRemoteAddress(req);
                 const wsConnection = new wsWebSocketConnection(this._createId(), connection, this, remoteAddress);
 
-                if (this.connection_callback) {
-                    this.connection_callback(wsConnection);
-                }
+                this.events.emit('connect', wsConnection);
                 this.addConnection(wsConnection);
                 logConnectionEvent('info', WS_EVENT_NAMES.CONNECTION_OPEN, wsConnection);
             });
@@ -248,7 +236,7 @@ export function createWebSocketRuntimeClasses({
         }
 
         onRequestStatus(status_callback) {
-            this.status_callback = status_callback;
+            this.statusProvider = status_callback;
         }
     }
 

@@ -2,7 +2,7 @@ import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
 import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol';
-import WsCloseCodes from '../../shared/js/ws-close-codes-esm';
+import WsCloseCodes from '../../shared/js/ws-close-codes';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 const CLOSE_INVALID_PAYLOAD = WsCloseCodes.INVALID_PAYLOAD;
@@ -121,7 +121,7 @@ async function startServer(): Promise<RunningServer> {
             debug_level: 'error',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './tools/maps/tiled/world.json',
+            map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         })
     );

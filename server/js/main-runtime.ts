@@ -144,8 +144,8 @@ function installWorldPopulationHooks(
     }
 
     worlds.forEach(function (world) {
-        world.onPlayerAdded(onPopulationChange);
-        world.onPlayerRemoved(onPopulationChange);
+        world.on('playerAdded', onPopulationChange);
+        world.on('playerRemoved', onPopulationChange);
     });
 }
 
@@ -309,7 +309,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     server.onConnect(function (connection) {
         const connect = function (world: RuntimeWorld | null | undefined) {
             if (world) {
-                world.connect_callback(new Player(connection, world));
+                world.emit('playerConnect', new Player(connection, world));
                 return;
             }
             connection.close('Server is full.');

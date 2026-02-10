@@ -31,14 +31,6 @@ export const PLAYER_CONSTRUCTOR_FIELDS = [
 export type PlayerConstructorField = (typeof PLAYER_CONSTRUCTOR_FIELDS)[number];
 
 export const PLAYER_CALLBACK_FIELDS = [
-    'exit_callback',
-    'move_callback',
-    'lootmove_callback',
-    'zone_callback',
-    'orient_callback',
-    'message_callback',
-    'broadcast_callback',
-    'broadcastzone_callback',
     'requestpos_callback',
 ] as const;
 
@@ -69,7 +61,7 @@ export interface PlayerRuntime {
 
 export interface PlayerRuntimeWorldServer {
     addPlayer(player: PlayerRuntime): void;
-    enter_callback(player: PlayerRuntime): void;
+    emit(eventName: 'playerEnter', player: PlayerRuntime): void;
     isValidPosition(x: number, y: number): boolean;
     getEntityById(id: string | number): PlayerRuntimeEntity | undefined;
     handleMobHate(mobId: string | number, playerId: string | number, hatePoints: number): void;

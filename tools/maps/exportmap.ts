@@ -1,5 +1,5 @@
 import fs from "node:fs/promises";
-import processMap from "./processmap";
+import processMap from "../../shared/js/maps/processmap";
 
 type ExportMode = "server" | "client";
 

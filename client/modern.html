@@ -336,25 +336,6 @@ Mozilla presents an HTML5 mini-MMORPG by Little Workshop http://www.littleworksh
         <img src="/img/common/thingy.png" alt="" class="preload">
         
         <div id="resize-check"></div>
-        <script>
-          (function () {
-            if (window.BQ_LOCAL_CONFIG) return;
-
-            var host = window.location.hostname;
-            if (!host || host === "localhost" || host === "127.0.0.1") return;
-
-            var wsHost = host;
-            if (/^\d+\./.test(host)) {
-              wsHost = host.replace(/^\d+\./, "8000.");
-            }
-
-            window.BQ_LOCAL_CONFIG = {
-              host: wsHost,
-              port: window.location.protocol === "https:" ? 443 : 8000,
-              dispatcher: false
-            };
-          })();
-        </script>
         <script type="module" src="js-esm/preflight.ts"></script>
         
         <!-- Modern ESM entry -->

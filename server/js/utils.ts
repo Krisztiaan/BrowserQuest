@@ -1,4 +1,4 @@
-import Types from '../../shared/js/gametypes-esm';
+import Types from '../../shared/js/gametypes';
 
 const Utils = {
     sanitize(string: string) {
@@ -15,7 +15,7 @@ const Utils = {
 
     limitUtf8Bytes(string: string, maxBytes: number) {
         const input = String(string ?? '');
-        let output = '';
+        const outputChunks: string[] = [];
         let byteCount = 0;
 
         for (const ch of input) {
@@ -23,27 +23,27 @@ const Utils = {
             if (byteCount + chBytes > maxBytes) {
                 break;
             }
-            output += ch;
+            outputChunks.push(ch);
             byteCount += chBytes;
         }
 
-        return output;
+        return outputChunks.join('');
     },
 
     limitCodePoints(string: string, maxCodePoints: number) {
         const input = String(string ?? '');
-        let output = '';
+        const outputChunks: string[] = [];
         let count = 0;
 
         for (const ch of input) {
             if (count >= maxCodePoints) {
                 break;
             }
-            output += ch;
+            outputChunks.push(ch);
             count += 1;
         }
 
-        return output;
+        return outputChunks.join('');
     },
 
     escapeHTML(string: string) {

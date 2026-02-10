@@ -37,7 +37,7 @@ Example (metrics disabled, default-safe):
   "debug_level": "info",
   "nb_players_per_world": 200,
   "nb_worlds": 5,
-  "map_filepath": "./tools/maps/tiled/world.json",
+  "map_filepath": "./assets/maps/tiled/world.json",
   "metrics_enabled": false
 }
 ```
@@ -50,7 +50,7 @@ Example (metrics enabled):
   "debug_level": "info",
   "nb_players_per_world": 200,
   "nb_worlds": 5,
-  "map_filepath": "./tools/maps/tiled/world.json",
+  "map_filepath": "./assets/maps/tiled/world.json",
   "metrics_enabled": true,
   "memcached_host": "127.0.0.1",
   "memcached_port": 11211,
@@ -72,8 +72,8 @@ Fallback behavior:
 Metrics dependency policy and troubleshooting:
 
 1. Metrics are optional for local/default development and CI.
-2. For metrics-enabled deployment, install runtime dependency and backend service:
-   - package dependency: `bun add memcache`
+2. For metrics-enabled deployment, install lockfile-managed runtime dependencies and backend service:
+   - package dependency: `memcache` is committed in `package.json`/`bun.lock`; install with `bun install --frozen-lockfile`
    - memcached daemon reachable at `memcached_host:memcached_port`
 3. If you see `server.metrics.unavailable`:
    - `reason: "invalid_config"`:
@@ -96,12 +96,18 @@ Metrics dependency policy and troubleshooting:
 Deployment
 ----------
 
-In order to deploy the server, simply copy the `server` and `shared` directories to the staging/production server.
+Runtime source deploy (direct):
 
-Then run `bun server/js/main-esm.ts` in order to start the server.
+1. Copy `server/`, `shared/`, and `assets/` to the target host.
+2. Start with `bun server/js/main-esm.ts server/config.json`.
 
+Bundle deploy (recommended baseline):
 
-Note: the `shared` directory is the only one in the project which is a server dependency.
+1. From repo root: `bun run build:bundle`.
+2. Deploy `dist/bundle/**`.
+3. Start from bundle root with `bun server/js/main-esm.ts server/config.json`.
+
+`assets/maps/tiled/world.json` is a runtime dependency via `map_filepath` defaults.
 
 
 Monitoring

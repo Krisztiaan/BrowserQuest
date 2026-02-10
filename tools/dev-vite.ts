@@ -1,5 +1,6 @@
 const serverProc = Bun.spawn({
-  cmd: ["bun", "server/js/main-esm.ts"],
+  // Keep full-stack dev in sync with server edits without manual restarts.
+  cmd: ["bun", "--watch", "server/js/main-esm.ts"],
   stdout: "inherit",
   stderr: "inherit",
 });

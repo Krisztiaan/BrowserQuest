@@ -4,6 +4,7 @@ build.txt
 config_build.json
 config_local*
 dist
+generated
 .DS_Store
 *.swp
 .tmp

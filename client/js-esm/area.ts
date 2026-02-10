@@ -6,7 +6,7 @@ class Area {
     id: string | number | null;
     musicName: string | null;
 
-    constructor(x, y, width, height) {
+    constructor(x: number, y: number, width: number, height: number) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -15,7 +15,7 @@ class Area {
         this.musicName = null;
     }
 
-    contains(entity) {
+    contains(entity: { gridX: number; gridY: number } | null): boolean {
         if (!entity) {
             return false;
         }

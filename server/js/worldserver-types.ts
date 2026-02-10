@@ -13,6 +13,8 @@ export const WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES = [
     './message',
     './properties',
     './utils',
+    './worldserver-transport',
+    './worldserver-player-lifecycle',
     '../../shared/js/gametypes',
 ] as const;
 
@@ -44,15 +46,7 @@ export const WORLDSERVER_CONSTRUCTOR_FIELDS = [
 
 export type WorldserverConstructorField = (typeof WORLDSERVER_CONSTRUCTOR_FIELDS)[number];
 
-export const WORLDSERVER_CALLBACK_FIELDS = [
-    'init_callback',
-    'connect_callback',
-    'enter_callback',
-    'added_callback',
-    'removed_callback',
-    'regen_callback',
-    'attack_callback',
-] as const;
+export const WORLDSERVER_CALLBACK_FIELDS = [] as const;
 
 export type WorldserverCallbackField = (typeof WORLDSERVER_CALLBACK_FIELDS)[number];
 

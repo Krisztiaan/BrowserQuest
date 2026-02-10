@@ -1,23 +1,23 @@
 class Logger {
-    [key: string]: any;
+    level: 'debug' | 'info' | 'error';
 
-    constructor(level) {
+    constructor(level: 'debug' | 'info' | 'error') {
         this.level = level;
     }
 
-    info(message) {
+    info(message: unknown) {
         if ((this.level === 'debug' || this.level === 'info') && globalThis.console) {
             console.info(message);
         }
     }
 
-    debug(message) {
+    debug(message: unknown) {
         if (this.level === 'debug' && globalThis.console) {
             console.log(message);
         }
     }
 
-    error(message, stacktrace?) {
+    error(message: unknown, stacktrace?: boolean) {
         if (!globalThis.console) return;
         console.error(message);
         if (stacktrace === true) {

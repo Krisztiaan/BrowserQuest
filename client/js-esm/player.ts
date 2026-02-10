@@ -1,13 +1,17 @@
-import Character from './character';
+import Character, { type CharacterEvents } from './character';
 import Exceptions from './exceptions';
 import log from './compat/log';
 import Types from './compat/gametypes';
 import type { EntityKind } from './compat/gametypes';
+import type { SpriteLike } from './entity';
+import type { MergeEvents } from '../../shared/js/typed-event-emitter';
 
-type PlayerSprite = {
+type PlayerSprite = SpriteLike & {
     id: string;
-    name: string;
+    animationData: Record<string, { row: number }>;
 };
+const isPlayerSprite = (sprite: ReturnType<Character['getSprite']>): sprite is PlayerSprite =>
+    Boolean(sprite) && typeof sprite === 'object' && 'id' in sprite && typeof sprite.id === 'string';
 
 type LootItem = {
     id: string | number;
@@ -16,14 +20,20 @@ type LootItem = {
     onLoot: (player: Player) => void;
 };
 
-class Player extends Character {
+export type PlayerEvents = {
+    armorLoot: [armorName: string];
+    switchItem: [];
+    invincible: [];
+};
+
+class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
     static MAX_LEVEL = 10;
 
     nameOffsetY: number;
 
     spriteName: string;
     weaponName: string | null;
-    dirtyRect: unknown;
+    declare dirtyRect: Record<string, number> | null;
     isOnPlateau: boolean;
     lastCheckpoint: { id: string | number } | null;
 
@@ -35,10 +45,6 @@ class Player extends Character {
     currentArmorSprite: PlayerSprite | null;
     invincible: boolean;
     invincibleTimeout: ReturnType<typeof setTimeout> | null;
-
-    armorloot_callback: ((armor: string) => void) | null;
-    switch_callback: (() => void) | null;
-    invincible_callback: (() => void) | null;
 
     constructor(id: string | number, name: string, kind: EntityKind) {
         super(id, kind);
@@ -65,9 +71,6 @@ class Player extends Character {
         this.invincible = false;
         this.invincibleTimeout = null;
 
-        this.armorloot_callback = null;
-        this.switch_callback = null;
-        this.invincible_callback = null;
     }
 
     loot(item: LootItem | null): void {
@@ -131,7 +134,11 @@ class Player extends Character {
         if (this.invincible && this.currentArmorSprite) {
             return this.currentArmorSprite;
         }
-        return this.sprite as unknown as PlayerSprite;
+        const sprite = this.getSprite();
+        if (isPlayerSprite(sprite)) {
+            return sprite;
+        }
+        throw new Error('Player armor sprite unavailable');
     }
 
     getWeaponName(): string | null {
@@ -176,9 +183,7 @@ class Player extends Character {
                     clearInterval(blanking);
                     this.switchingWeapon = false;
 
-                    if (this.switch_callback) {
-                        this.switch_callback();
-                    }
+                    this.emit('switchItem');
                 }
             }, 90);
         }
@@ -202,7 +207,7 @@ class Player extends Character {
             }
 
             this.isSwitchingArmor = true;
-            this.setSprite(newArmorSprite as unknown as never);
+            this.setSprite(newArmorSprite);
             this.setSpriteName(newArmorSprite.id);
             blanking = setInterval(() => {
                 this.setVisible(toggle());
@@ -212,33 +217,22 @@ class Player extends Character {
                     clearInterval(blanking);
                     this.isSwitchingArmor = false;
 
-                    if (this.switch_callback) {
-                        this.switch_callback();
-                    }
+                    this.emit('switchItem');
                 }
             }, 90);
         }
     }
 
-    onArmorLoot(callback: (armorName: string) => void): void {
-        this.armorloot_callback = callback;
-    }
-
-    onSwitchItem(callback: () => void): void {
-        this.switch_callback = callback;
-    }
-
-    onInvincible(callback: () => void): void {
-        this.invincible_callback = callback;
+    emitArmorLoot(armorName: string): void {
+        this.emit('armorLoot', armorName);
     }
 
     startInvincibility(): void {
         if (!this.invincible) {
-            this.currentArmorSprite = this.getSprite() as unknown as PlayerSprite;
+            const sprite = this.getSprite();
+            this.currentArmorSprite = isPlayerSprite(sprite) ? sprite : null;
             this.invincible = true;
-            if (this.invincible_callback) {
-                this.invincible_callback();
-            }
+            this.emit('invincible');
         } else {
             // If the player already has invincibility, just reset its duration.
             if (this.invincibleTimeout) {
@@ -253,13 +247,11 @@ class Player extends Character {
     }
 
     stopInvincibility(): void {
-        if (this.invincible_callback) {
-            this.invincible_callback();
-        }
+        this.emit('invincible');
         this.invincible = false;
 
         if (this.currentArmorSprite) {
-            this.setSprite(this.currentArmorSprite as unknown as never);
+            this.setSprite(this.currentArmorSprite);
             this.setSpriteName(this.currentArmorSprite.id);
             this.currentArmorSprite = null;
         }
@@ -267,6 +259,7 @@ class Player extends Character {
             clearTimeout(this.invincibleTimeout);
         }
     }
+
 }
 
 export default Player;

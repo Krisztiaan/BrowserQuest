@@ -1,6 +1,8 @@
 import log from './compat/log';
 import Types from './compat/gametypes';
 import type { EntityKind } from './compat/gametypes';
+import { Evented } from '../../shared/js/evented';
+import type { MergeEvents, TypedEventMap } from '../../shared/js/typed-event-emitter';
 
 type AnimationLike = {
     name: string;
@@ -9,25 +11,47 @@ type AnimationLike = {
     setCount: (count: number, onEndCount: () => void) => void;
 };
 
-type SpriteLike = {
+type SpriteRenderLike = {
+    image: CanvasImageSource;
+    isLoaded: boolean;
+    offsetX: number;
+    offsetY: number;
+    width: number;
+    height: number;
+};
+
+export type SpriteLike = {
+    image: CanvasImageSource;
+    isLoaded: boolean;
+    offsetX: number;
+    offsetY: number;
+    width: number;
+    height: number;
     name: string;
-    silhouetteSprite: SpriteLike;
-    getHurtSprite: () => SpriteLike;
+    silhouetteSprite: SpriteLike | SpriteRenderLike;
+    getHurtSprite: () => SpriteRenderLike | undefined;
     createAnimations: () => Record<string, AnimationLike>;
 };
+
+type ActiveSpriteLike = SpriteLike | SpriteRenderLike;
 
 type GridEntityLike = {
     gridX: number;
     gridY: number;
 };
+type DirtyRectLike = Record<string, number>;
 
-class Entity {
+export type EntityEvents = {
+    dirty: [entity: Entity<any>];
+};
+
+class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEvents> extends Evented<TEvents> {
     id: string | number;
     kind: EntityKind;
 
-    sprite: SpriteLike | null;
-    normalSprite: SpriteLike | null;
-    hurtSprite: SpriteLike | null;
+    sprite: ActiveSpriteLike | null;
+    normalSprite: ActiveSpriteLike | null;
+    hurtSprite: ActiveSpriteLike | null;
     flipSpriteX: boolean;
     flipSpriteY: boolean;
     animations: Record<string, AnimationLike>;
@@ -46,12 +70,14 @@ class Entity {
     startFadingTime: number;
     blinking: ReturnType<typeof setInterval> | null;
     isDirty: boolean;
+    dirtyRect: DirtyRectLike | null;
+    oldDirtyRect: DirtyRectLike | null;
 
     ready_func: (() => void) | null;
-    dirty_callback: ((entity: Entity) => void) | null;
     name: string;
 
     constructor(id: string | number, kind: EntityKind) {
+        super();
         this.id = id;
         this.kind = kind;
 
@@ -80,9 +106,10 @@ class Entity {
         this.startFadingTime = 0;
         this.blinking = null;
         this.isDirty = false;
+        this.dirtyRect = null;
+        this.oldDirtyRect = null;
 
         this.ready_func = null;
-        this.dirty_callback = null;
         this.name = '';
 
         this.setDirty();
@@ -110,7 +137,7 @@ class Entity {
             throw new Error('Sprite error');
         }
 
-        if (this.sprite && this.sprite.name === sprite.name) {
+        if (this.sprite && 'name' in this.sprite && this.sprite.name === sprite.name) {
             return;
         }
 
@@ -118,7 +145,7 @@ class Entity {
         this.normalSprite = this.sprite;
 
         if (Types.isMob(this.kind) || Types.isPlayer(this.kind)) {
-            this.hurtSprite = sprite.getHurtSprite();
+            this.hurtSprite = sprite.getHurtSprite() || this.sprite;
         }
 
         this.animations = sprite.createAnimations();
@@ -129,7 +156,7 @@ class Entity {
         }
     }
 
-    getSprite(): SpriteLike | null {
+    getSprite(): ActiveSpriteLike | null {
         return this.sprite;
     }
 
@@ -149,8 +176,6 @@ class Entity {
     }
 
     setAnimation(name: string, speed?: number, count?: number, onEndCount?: (() => void) | null): void {
-        const entityWithIdle = this as unknown as { idle?: () => void };
-
         if (this.isLoaded) {
             if (this.currentAnimation && this.currentAnimation.name === name) {
                 return;
@@ -164,11 +189,9 @@ class Entity {
                     this.currentAnimation.reset();
                 }
                 this.currentAnimation.setSpeed(speed);
-                this.currentAnimation.setCount(count ? count : 0, onEndCount || function () {
-                    if (entityWithIdle.idle) {
-                        entityWithIdle.idle();
-                    }
-                });
+                this.currentAnimation.setCount(count ? count : 0, onEndCount || (() => {
+                    this.idle?.();
+                }));
             }
         } else {
             this.log_error('Not ready for animation');
@@ -178,6 +201,8 @@ class Entity {
     hasShadow(): boolean {
         return false;
     }
+
+    idle(): void {}
 
     ready(f: () => void): void {
         this.ready_func = f;
@@ -196,7 +221,7 @@ class Entity {
     }
 
     setHighlight(value: boolean): void {
-        if (value === true && this.sprite) {
+        if (value === true && this.sprite && 'silhouetteSprite' in this.sprite) {
             this.sprite = this.sprite.silhouetteSprite;
             this.isHighlighted = true;
         } else {
@@ -291,13 +316,7 @@ class Entity {
 
     setDirty(): void {
         this.isDirty = true;
-        if (this.dirty_callback) {
-            this.dirty_callback(this);
-        }
-    }
-
-    onDirty(dirty_callback: (entity: Entity) => void): void {
-        this.dirty_callback = dirty_callback;
+        this.emit('dirty', this as TEvents['dirty'][0]);
     }
 }
 

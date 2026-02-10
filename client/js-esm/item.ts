@@ -7,7 +7,7 @@ type ItemType = 'weapon' | 'armor' | 'object';
 
 export type LootPlayer = {
     switchWeapon: (itemKind: string) => void;
-    armorloot_callback: (itemKind: string) => void;
+    emitArmorLoot: (itemKind: string) => void;
     startInvincibility: () => void;
 };
 
@@ -34,7 +34,7 @@ class Item extends Entity {
         if (this.type === "weapon") {
             player.switchWeapon(this.itemKind as string);
         } else if (this.type === "armor") {
-            player.armorloot_callback(this.itemKind as string);
+            player.emitArmorLoot(this.itemKind as string);
         }
     }
 

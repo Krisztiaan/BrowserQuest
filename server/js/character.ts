@@ -1,4 +1,5 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
+import type { NoEvents, TypedEventMap } from '../../shared/js/typed-event-emitter';
 
 import Entity from './entity';
 import Log from './log';
@@ -12,7 +13,7 @@ interface AttackerLike {
     clearTarget?(): void;
 }
 
-class Character extends Entity {
+class Character<TEvents extends TypedEventMap = NoEvents> extends Entity<TEvents> {
     orientation: number;
     attackers: Record<number, AttackerLike>;
     target: number | null;

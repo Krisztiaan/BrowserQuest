@@ -8,6 +8,9 @@
   "include": [
     "shared/js/connection-status.ts",
     "shared/js/entity-kind-domain.ts",
+    "shared/js/gametypes.ts",
+    "shared/js/gametypes-browser.ts",
+    "shared/js/protocol-schema.ts",
     "shared/js/protocol-contract-types.ts",
     "client/js-esm/client-boundary-types.ts",
     "client/js-esm/protocol-payload.ts",

@@ -141,7 +141,7 @@ test("esm server entry with websocket bridge probe sends initial 'go' handshake"
             debug_level: 'error',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './tools/maps/tiled/world.json',
+            map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         })
     );
@@ -201,7 +201,7 @@ test('esm server entry websocket bridge probe fails fast with structured failure
             debug_level: 'error',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './tools/maps/tiled/world.json',
+            map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         })
     );

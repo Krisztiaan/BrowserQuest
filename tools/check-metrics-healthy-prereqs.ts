@@ -51,7 +51,7 @@ async function main() {
 
   if (!hasMemcacheDependency()) {
     throw new Error(
-      'Missing optional dependency "memcache". Run `bun add memcache` before `bun run test:metrics:healthy`.'
+      'Missing runtime dependency "memcache". Run `bun install --frozen-lockfile` before `bun run test:metrics:healthy`.'
     );
   }
 

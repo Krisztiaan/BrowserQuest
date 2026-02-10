@@ -22,9 +22,8 @@ test('player shadow-source contract inventory is deterministic', () => {
     expect(PLAYER_CONSTRUCTOR_FIELDS).toContain('connection');
     expect(PLAYER_CONSTRUCTOR_FIELDS).toContain('firepotionTimeout');
 
-    expect(PLAYER_CALLBACK_FIELDS.length).toBe(9);
+    expect(PLAYER_CALLBACK_FIELDS.length).toBe(1);
     expect(hasDuplicates(PLAYER_CALLBACK_FIELDS)).toBe(false);
-    expect(PLAYER_CALLBACK_FIELDS).toContain('message_callback');
     expect(PLAYER_CALLBACK_FIELDS).toContain('requestpos_callback');
 
     expect(PLAYER_SHADOW_SOURCE_CONTRACT.dependencyBoundaries).toEqual(PLAYER_RUNTIME_DEPENDENCY_BOUNDARIES);
@@ -45,7 +44,7 @@ test('player runtime seam interfaces accept compatibility shapes', () => {
 
     const worldServer: PlayerRuntimeWorldServer = {
         addPlayer() {},
-        enter_callback() {},
+        emit() {},
         isValidPosition() {
             return true;
         },

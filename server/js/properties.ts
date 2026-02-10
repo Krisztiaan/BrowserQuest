@@ -1,7 +1,7 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
 import Log from './log';
-import Types from '../../shared/js/gametypes-esm';
+import Types from '../../shared/js/gametypes';
 
 const log = Log.getLogger();
 

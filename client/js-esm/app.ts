@@ -5,23 +5,89 @@ import type { AchievementId } from './achievement-domain';
 import type { PopupType } from './asset-key-domain';
 import { resolveImageAssetPath } from './image-assets';
 
-/**
- * @typedef {{
- *   dev: { host: string, port: number, dispatcher: boolean },
- *   build: { host: string, port: number, dispatcher: boolean },
- *   local: { host: string, port: number, dispatcher: boolean } | null
- * }} RuntimeConfig
- */
+type AchievementView = {
+    id: number;
+    name: string;
+    desc: string;
+    hidden?: boolean;
+};
+
+type RuntimeConfig = {
+    server: { host: string; port: number; dispatcher: boolean };
+};
+type AppGame = {
+    renderer: {
+        mobile: boolean;
+        tablet: boolean;
+        getScaleFactor(): number;
+        getWidth(): number;
+        getHeight(): number;
+        rescale(scale: number): void;
+    };
+    map?: { isLoaded: boolean };
+    mouse: { x: number; y: number };
+    started: boolean;
+    player: {
+        getWeaponName(): string;
+        getSpriteName(): string;
+    } | null;
+    storage: { getAchievementCount(): number };
+    loadMap(): void;
+    setServerOptions(host: string, port: number, username: string): void;
+    run(callback: () => void): void;
+    onPlayerHealthChange(callback: (hp: number, maxHp: number) => void): void;
+    onPlayerHurt(callback: () => void): void;
+    getAchievementById(id: AchievementId): AchievementView | undefined;
+    resize(): void;
+    updateBars(): void;
+};
 
 class App {
-    [key: string]: any;
+    currentPage: number;
+    blinkInterval: ReturnType<typeof setInterval> | null;
+    isParchmentReady: boolean;
+    ready: boolean;
+    config: RuntimeConfig | null;
+    storage: Storage;
+    watchNameInputInterval: ReturnType<typeof setInterval>;
+    isStarting: boolean;
+    playButtonEl: Element | null;
+    containerEl: HTMLElement | null;
+    characterEl: HTMLElement | null;
+    chatboxEl: HTMLElement | null;
+    chatinputEl: HTMLElement | null;
+    chatbuttonEl: HTMLElement | null;
+    healthbarEl: HTMLElement | null;
+    hitpointsEl: HTMLElement | null;
+    parchmentNameInputEl: HTMLInputElement | null;
+    populationEl: HTMLElement | null;
+    bodyEl: HTMLElement;
+    achievementsEl: HTMLElement | null;
+    achievementsButtonEl: HTMLElement | null;
+    instructionsEl: HTMLElement | null;
+    helpButtonEl: HTMLElement | null;
+    parchmentEl: HTMLElement | null;
+    weaponEl: HTMLElement | null;
+    armorEl: HTMLElement | null;
+    notificationWrapperEl: Element | null;
+    message1El: HTMLElement | null;
+    message2El: HTMLElement | null;
+    achievementNotificationEl: HTMLElement | null;
+    unlockedAchievementsEl: HTMLElement | null;
+    totalAchievementsEl: HTMLElement | null;
+    frontPage: string;
+    game: AppGame | null;
+    isMobile: boolean;
+    isTablet: boolean;
+    isDesktop: boolean;
+    supportsWorkers: boolean;
+    messageTimer: ReturnType<typeof setTimeout> | null;
 
     constructor() {
         this.currentPage = 1;
         this.blinkInterval = null;
         this.isParchmentReady = true;
         this.ready = false;
-        /** @type {RuntimeConfig | null} */
         this.config = null;
         this.storage = new Storage();
         this.watchNameInputInterval = setInterval(this.toggleButton.bind(this), 100);
@@ -34,7 +100,7 @@ class App {
         this.chatbuttonEl = document.getElementById('chatbutton');
         this.healthbarEl = document.getElementById('healthbar');
         this.hitpointsEl = document.getElementById('hitpoints');
-        this.parchmentNameInputEl = document.querySelector('#parchment input');
+        this.parchmentNameInputEl = document.querySelector<HTMLInputElement>('#parchment input');
         this.populationEl = document.getElementById('population');
         this.bodyEl = document.body;
         this.achievementsEl = document.getElementById('achievements');
@@ -51,13 +117,19 @@ class App {
         this.unlockedAchievementsEl = document.getElementById('unlocked-achievements');
         this.totalAchievementsEl = document.getElementById('total-achievements');
         this.frontPage = 'createcharacter';
+        this.game = null;
+        this.isMobile = false;
+        this.isTablet = false;
+        this.isDesktop = true;
+        this.supportsWorkers = false;
+        this.messageTimer = null;
         
         if(localStorage && localStorage.data) {
             this.frontPage = 'loadcharacter';
         }
     }
     
-    setGame(game) {
+    setGame(game: AppGame): void {
         this.game = game;
         this.isMobile = this.game.renderer.mobile;
         this.isTablet = this.game.renderer.tablet;
@@ -131,26 +203,14 @@ class App {
             firstTimePlaying = !self.storage.hasAlreadyPlayed();
         
         if(username && !this.game.started) {
-            var optionsSet = false,
-                config = this.config;
+            var config = this.config;
+            var serverConfig =
+                config && config.server
+                    ? config.server
+                    : { host: 'localhost', port: 8000, dispatcher: false };
 
-            //>>includeStart("devHost", pragmas.devHost);
-            if(config.local) {
-                log.debug("Starting game with local dev config.");
-                this.game.setServerOptions(config.local.host, config.local.port, username);
-            } else {
-                log.debug("Starting game with default dev config.");
-                this.game.setServerOptions(config.dev.host, config.dev.port, username);
-            }
-            optionsSet = true;
-            //>>includeEnd("devHost");
-            
-            //>>includeStart("prodHost", pragmas.prodHost);
-            if(!optionsSet) {
-                log.debug("Starting game with build config.");
-                this.game.setServerOptions(config.build.host, config.build.port, username);
-            }
-            //>>includeEnd("prodHost");
+            log.debug("Starting game with runtime server config.");
+            this.game.setServerOptions(serverConfig.host, serverConfig.port, username);
 
             this.center();
             this.game.run(function() {
@@ -443,7 +503,7 @@ class App {
         }
     }
 
-    initAchievementList(achievements) {
+    initAchievementList(achievements: Record<string, AchievementView>) {
         var self = this,
             lists = document.getElementById('lists'),
             pageTemplate = document.getElementById('page-tmpl'),
@@ -499,7 +559,7 @@ class App {
         }
     }
 
-    initUnlockedAchievements(ids) {
+    initUnlockedAchievements(ids: AchievementId[]) {
         var self = this;
         
         ids.forEach(function(id) {

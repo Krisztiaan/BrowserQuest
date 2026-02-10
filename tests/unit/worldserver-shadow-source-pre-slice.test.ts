@@ -11,10 +11,12 @@ function hasDuplicates(values: readonly string[]): boolean {
 }
 
 test('worldserver pre-slice inventory keeps deterministic dependency/field boundaries', () => {
-    expect(WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES.length).toBe(15);
+    expect(WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES.length).toBe(17);
     expect(hasDuplicates(WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES)).toBe(false);
     expect(WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES).toContain('./map');
     expect(WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES).toContain('./player');
+    expect(WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES).toContain('./worldserver-transport');
+    expect(WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES).toContain('./worldserver-player-lifecycle');
     expect(WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES).toContain('../../shared/js/gametypes');
 
     expect(WORLDSERVER_CONSTRUCTOR_FIELDS.length).toBe(20);
@@ -23,10 +25,8 @@ test('worldserver pre-slice inventory keeps deterministic dependency/field bound
     expect(WORLDSERVER_CONSTRUCTOR_FIELDS).toContain('outgoingQueues');
     expect(WORLDSERVER_CONSTRUCTOR_FIELDS).toContain('zoneGroupsReady');
 
-    expect(WORLDSERVER_CALLBACK_FIELDS.length).toBe(7);
+    expect(WORLDSERVER_CALLBACK_FIELDS.length).toBe(0);
     expect(hasDuplicates(WORLDSERVER_CALLBACK_FIELDS)).toBe(false);
-    expect(WORLDSERVER_CALLBACK_FIELDS).toContain('connect_callback');
-    expect(WORLDSERVER_CALLBACK_FIELDS).toContain('attack_callback');
 
     expect(WORLDSERVER_SHADOW_SOURCE_PRE_SLICE.dependencyBoundaries).toEqual(WORLDSERVER_RUNTIME_DEPENDENCY_BOUNDARIES);
     expect(WORLDSERVER_SHADOW_SOURCE_PRE_SLICE.constructorFields).toEqual(WORLDSERVER_CONSTRUCTOR_FIELDS);

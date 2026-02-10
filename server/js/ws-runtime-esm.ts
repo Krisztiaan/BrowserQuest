@@ -1,13 +1,13 @@
 import Log from './log';
 import Utils from './utils';
-import Protocol from '../../shared/js/protocol-contract-esm';
-import CLOSE_CODES from '../../shared/js/ws-close-codes-esm';
+import Protocol from '../../shared/js/protocol-contract';
+import CLOSE_CODES from '../../shared/js/ws-close-codes';
+import { TypedEventEmitter } from '../../shared/js/typed-event-emitter';
 import { createWebSocketRuntimeClasses } from './ws-runtime-class-factory';
 import { WS_EVENT_NAMES } from './server-event-names';
 
 const BunRuntime = globalThis['Bun'];
 const log = Log.getLogger();
-const useBison = false;
 
 function parseRequestPathname(requestUrl: string | URL) {
     try {
@@ -58,14 +58,15 @@ const runtimeClasses = createWebSocketRuntimeClasses({
             on() {}
         },
     },
-    createHttpServer: (requestHandler: (request: Request, server: unknown) => Response | undefined) => ({
-        listen() {
+    createHttpServer: (requestHandler) => ({
+        listen(_port, _callback) {
             void requestHandler;
+            void _port;
+            void _callback;
         },
     }),
     parseUrlPathname: parseRequestPathname,
     logConnectionEvent,
-    useBison,
 });
 
 const wsWebSocketConnection = runtimeClasses.wsWebSocketConnection;
@@ -104,22 +105,25 @@ class MultiVersionWebsocketServer {
     _counter: number;
     _socketAdapters: WeakMap<object, BunSocketAdapter>;
     _server: unknown;
-    connection_callback?: (connection: InstanceType<typeof wsWebSocketConnection>) => void;
-    error_callback?: (error: unknown) => void;
-    status_callback?: () => string;
+    private readonly events: TypedEventEmitter<{
+        connect: [connection: InstanceType<typeof wsWebSocketConnection>];
+        error: [error: unknown];
+    }>;
+    private statusProvider?: () => string;
 
     constructor(port: number) {
         this.port = port;
         this._connections = {};
         this._counter = 0;
         this._socketAdapters = new WeakMap();
+        this.events = new TypedEventEmitter();
 
         this._server = BunRuntime.serve({
             port,
             fetch: (request, server) => {
                 const requestPath = parseRequestPathname(request.url);
-                if (requestPath === '/status' && this.status_callback) {
-                    return new Response(this.status_callback(), { status: 200 });
+                if (requestPath === '/status' && this.statusProvider) {
+                    return new Response(this.statusProvider(), { status: 200 });
                 }
                 if (
                     (server as { upgrade: (request: Request, options?: unknown) => boolean }).upgrade(request, {
@@ -141,9 +145,7 @@ class MultiVersionWebsocketServer {
                     const remoteAddress = socket.data?.remoteAddress ? String(socket.data.remoteAddress) : 'unknown';
                     const connection = new wsWebSocketConnection(this.#createId(), adapter, this, remoteAddress);
                     this.addConnection(connection);
-                    if (this.connection_callback) {
-                        this.connection_callback(connection);
-                    }
+                    this.events.emit('connect', connection);
                     logConnectionEvent('info', WS_EVENT_NAMES.CONNECTION_OPEN, connection, undefined);
                 },
                 message: (socket: object, message: unknown) => {
@@ -189,15 +191,15 @@ class MultiVersionWebsocketServer {
     }
 
     onConnect(callback: (connection: InstanceType<typeof wsWebSocketConnection>) => void) {
-        this.connection_callback = callback;
+        this.events.on('connect', callback);
     }
 
     onError(callback: (error: unknown) => void) {
-        this.error_callback = callback;
+        this.events.on('error', callback);
     }
 
     onRequestStatus(status_callback: () => string) {
-        this.status_callback = status_callback;
+        this.statusProvider = status_callback;
     }
 
     forEachConnection(
@@ -214,6 +216,10 @@ class MultiVersionWebsocketServer {
 
     removeConnection(id: string) {
         delete this._connections[id];
+    }
+
+    getConnection(id: string) {
+        return this._connections[id];
     }
 
     broadcast(message: unknown) {

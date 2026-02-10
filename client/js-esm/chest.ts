@@ -1,31 +1,29 @@
 
 import Entity from './entity';
+import type { EntityEvents } from './entity';
 import Types from './compat/gametypes';
+import type { MergeEvents } from '../../shared/js/typed-event-emitter';
 
-class Chest extends Entity {
-    open_callback: (() => void) | null;
+type ChestEvents = {
+    open: [];
+};
 
-    constructor(id, kind) {
+class Chest extends Entity<MergeEvents<EntityEvents, ChestEvents>> {
+
+    constructor(id: string | number, _kind?: unknown) {
         super(id, Types.Entities.CHEST);
-        this.open_callback = null;
     }
 
-    getSpriteName() {
+    getSpriteName(): string {
         return "chest";
     }
 
-    isMoving() {
+    isMoving(): boolean {
         return false;
     }
 
-    open() {
-        if(this.open_callback) {
-            this.open_callback();
-        }
-    }
-
-    onOpen(callback) {
-        this.open_callback = callback;
+    open(): void {
+        this.emit('open');
     }
 }
 

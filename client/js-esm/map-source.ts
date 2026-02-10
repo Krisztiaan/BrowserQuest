@@ -1,6 +1,6 @@
-import processMap from '../../tools/maps/processmap';
-
-export const tiledWorldMapUrl = new URL('../../tools/maps/tiled/world.json', import.meta.url).href;
+import processMap from '../../shared/js/maps/processmap';
+import tiledWorldMapJson from '../../assets/maps/tiled/world.json';
+import type { MusicKey } from './asset-key-domain';
 
 type ClientRuntimeMap = {
   width: number;
@@ -9,7 +9,7 @@ type ClientRuntimeMap = {
   data: Array<number | number[]>;
   blocking: number[];
   plateau: number[];
-  musicAreas: Array<{ x: number; y: number; w: number; h: number; id: unknown }>;
+  musicAreas: Array<{ x: number; y: number; w: number; h: number; id: MusicKey }>;
   collisions: number[];
   high: number[];
   animated: Record<number, { l?: number; d?: number }>;
@@ -17,11 +17,24 @@ type ClientRuntimeMap = {
   checkpoints: Array<Record<string, unknown>>;
 };
 
-export async function fetchClientRuntimeMap(): Promise<ClientRuntimeMap> {
-  const response = await fetch(tiledWorldMapUrl);
-  if (!response.ok) {
-    throw new Error(`Map request failed with status ${response.status}`);
+const tiledWorldMap = tiledWorldMapJson as Parameters<typeof processMap>[0];
+
+function cloneClientRuntimeMap(map: ClientRuntimeMap): ClientRuntimeMap {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(map) as ClientRuntimeMap;
   }
-  const tiledMapJson = (await response.json()) as Parameters<typeof processMap>[0];
-  return processMap(tiledMapJson, { mode: 'client', quiet: true }) as ClientRuntimeMap;
+  return JSON.parse(JSON.stringify(map)) as ClientRuntimeMap;
+}
+
+let cachedClientRuntimeMap: ClientRuntimeMap | null = null;
+
+function loadClientRuntimeMap(): ClientRuntimeMap {
+  if (!cachedClientRuntimeMap) {
+    cachedClientRuntimeMap = processMap(tiledWorldMap, { mode: 'client', quiet: true }) as ClientRuntimeMap;
+  }
+  return cloneClientRuntimeMap(cachedClientRuntimeMap);
+}
+
+export async function fetchClientRuntimeMap(): Promise<ClientRuntimeMap> {
+  return loadClientRuntimeMap();
 }

@@ -150,8 +150,8 @@ if (
   fail('vite config must not include generated-map sync plugins after direct Tiled runtime cutover');
 }
 
-if (!readUtf8(serverConfigPath).includes('"map_filepath": "./tools/maps/tiled/world.json"')) {
-  fail('server/config.json must default map_filepath to ./tools/maps/tiled/world.json');
+if (!readUtf8(serverConfigPath).includes('"map_filepath": "./assets/maps/tiled/world.json"')) {
+  fail('server/config.json must default map_filepath to ./assets/maps/tiled/world.json');
 }
 
 const docsRootEntries = fs.existsSync(docsRoot) ? fs.readdirSync(docsRoot, { withFileTypes: true }) : [];

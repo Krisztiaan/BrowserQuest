@@ -1,4 +1,4 @@
-import Types from './gametypes-esm';
+import Types from './gametypes';
 import type { ProtocolActionValue, ProtocolContract, ProtocolParsedAction } from './protocol-contract-types';
 
 function isProtocolActionValue(value: unknown): value is ProtocolActionValue {

@@ -1,7 +1,3 @@
-const isInt = function (n) {
-    return n % 1 === 0;
-};
-
 const TRANSITIONEND = 'transitionend';
 
 const requestAnimFrame =
@@ -10,7 +6,7 @@ const requestAnimFrame =
         globalThis.setTimeout(callback, 1000 / 60);
     };
 
-const getBase64Image = function (url, callback) {
+const getBase64Image = function (url: string, callback: (img: HTMLImageElement) => void): void {
     const img = new Image();
     fetch(url)
         .then(function (response) {
@@ -36,6 +32,10 @@ const getBase64Image = function (url, callback) {
         .catch(function () {
             // Keep silent parity with previous helper behavior.
         });
+};
+
+const isInt = function (value: unknown): boolean {
+    return typeof value === 'number' && Number.isInteger(value);
 };
 
 export { TRANSITIONEND, getBase64Image, isInt, requestAnimFrame };

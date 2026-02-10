@@ -8,7 +8,7 @@ const sourcePath = positionalArgs[1] || DEFAULT_TILED_SOURCE_PATH;
 
 function printUsage(): void {
     console.log("Usage : bun ./export.ts [client|server|both] [source_tiled_json_path] [--quiet]");
-    console.log("Defaults: mode=both, source=tiled/world.json");
+    console.log("Defaults: mode=both, source=assets/maps/tiled/world.json");
 }
 
 function parseTarget(value: string): RuntimeMapTarget | null {

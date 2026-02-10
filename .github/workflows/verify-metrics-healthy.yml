@@ -33,9 +33,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Install optional metrics dependency (no-save)
-        run: bun add --no-save memcache
-
       - name: Wait for memcached service
         run: |
           for i in {1..30}; do
@@ -49,4 +46,7 @@ jobs:
           exit 1
 
       - name: Verify healthy metrics path
+        env:
+          BQ_TEST_METRICS_HOST: 127.0.0.1
+          BQ_TEST_METRICS_PORT: 11211
         run: bun run test:metrics:healthy

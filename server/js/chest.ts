@@ -2,7 +2,7 @@ import type { EntityKindId } from '../../shared/js/entity-kind-domain';
 
 import Utils from './utils';
 import Item from './item';
-import Types from '../../shared/js/gametypes-esm';
+import Types from '../../shared/js/gametypes';
 
 class Chest extends Item {
     items: unknown[];

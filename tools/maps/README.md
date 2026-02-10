@@ -9,16 +9,16 @@ Editing the map
 
 Install the Tiled editor: http://www.mapeditor.org/
 
-Open the project file `tiled/browserquest.tiled-project`, then open `tiled/world.json` and start editing.
+Open the project file `assets/maps/tiled/browserquest.tiled-project`, then open `assets/maps/tiled/world.json` and start editing.
 
-**Note:** there currently is no documentation on how to edit BrowserQuest-specific objects/layers in Tiled. Please refer to `tiled/world.json` as an example if you want to create your own map.
+**Note:** there currently is no documentation on how to edit BrowserQuest-specific objects/layers in Tiled. Please refer to `assets/maps/tiled/world.json` as an example if you want to create your own map.
 Project extensions are used for one-click map automation. If Tiled asks whether to enable project extensions, allow it for this project.
 
 
 Using the exporter
 ------------------
 
-This tool is used from the command line after saving `tiled/world.json` from Tiled.
+This tool is used from the command line after saving `assets/maps/tiled/world.json` from Tiled.
 
 **Prerequisites:**
 
@@ -36,8 +36,8 @@ You can also export a single target:
 
 Active runtime paths now consume Tiled source directly:
 
-- Client runtime loads `tools/maps/tiled/world.json` and transforms it in-browser.
-- Server runtime loads `tools/maps/tiled/world.json` and transforms it on load.
+- Client runtime loads `assets/maps/tiled/world.json` and transforms it in-browser.
+- Server runtime loads `assets/maps/tiled/world.json` and transforms it on load.
 - `map:export` is optional utility output, not an active runtime prerequisite.
 
 Terrain/Wang metadata artifacts can be refreshed explicitly:
@@ -67,11 +67,11 @@ Depending on what you want to change, it's therefore not always needed to export
 
 **How the exporting process works:**
 
-1. `tiled/world.json` is the canonical map source (plus map-local asset `tiled/mobset.png`).
+1. `assets/maps/tiled/world.json` is the canonical map source (plus map-local asset `assets/maps/tiled/mobset.png`).
 2. `wangset.ts` derives terrain/wang metadata sidecars from terrain layer usage:
-   - `tiled/tilesheet.wang.tsj`
-   - `tiled/automapping.rules`
-   - `tiled/rules/*.tmj` contains rule maps referenced by `automapping.rules`
+   - `assets/maps/tiled/tilesheet.wang.tsj`
+   - `assets/maps/tiled/automapping.rules`
+   - `assets/maps/tiled/rules/*.tmj` contains rule maps referenced by `automapping.rules`
 3. `processmap.ts` converts map JSON into BrowserQuest runtime map JSON (client or server mode).
 4. The processed map JSON is written to the appropriate output file.
 

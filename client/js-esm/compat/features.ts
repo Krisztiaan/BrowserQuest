@@ -1,6 +1,6 @@
 const FEATURE_TEST_KEY = 'browserquest_feature_test';
 
-const canPlayMP3 = function () {
+const canPlayMP3 = function (): boolean {
     if (typeof document === 'undefined') {
         return false;
     }
@@ -13,7 +13,7 @@ const canPlayMP3 = function () {
     return audio.canPlayType('audio/mpeg;').replace(/^no$/, '') !== '';
 };
 
-const supportsLocalStorage = function () {
+const supportsLocalStorage = function (): boolean {
     try {
         if (!globalThis.localStorage) {
             return false;

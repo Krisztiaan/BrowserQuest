@@ -20,7 +20,12 @@ interface MobAreaRespawnContract {
     removeFromArea?(mob: Mob): void;
 }
 
-class Mob extends Character {
+export type MobEvents = {
+    respawn: [];
+    move: [mob: Mob];
+};
+
+class Mob extends Character<MobEvents> {
     spawningX: number;
     spawningY: number;
     armorLevel: number;
@@ -30,9 +35,6 @@ class Mob extends Character {
     returnTimeout: ReturnType<typeof setTimeout> | null;
     area: MobAreaRespawnContract | null;
     isDead: boolean;
-    respawn_callback: (() => void) | null;
-    move_callback: ((mob: Mob) => void) | null;
-
     constructor(id: number | string, kind: EntityKind, x: number, y: number) {
         super(id, 'mob', kind, x, y);
 
@@ -46,8 +48,6 @@ class Mob extends Character {
         this.returnTimeout = null;
         this.area = null;
         this.isDead = false;
-        this.respawn_callback = null;
-        this.move_callback = null;
     }
 
     destroy(): void {
@@ -144,15 +144,9 @@ class Mob extends Character {
             }
 
             setTimeout(function () {
-                if (self.respawn_callback) {
-                    self.respawn_callback();
-                }
+                self.emit('respawn');
             }, delay);
         }
-    }
-
-    onRespawn(callback: () => void): void {
-        this.respawn_callback = callback;
     }
 
     resetPosition(): void {
@@ -171,15 +165,9 @@ class Mob extends Character {
         }, delay);
     }
 
-    onMove(callback: (mob: Mob) => void): void {
-        this.move_callback = callback;
-    }
-
     move(x: number, y: number): void {
         this.setPosition(x, y);
-        if (this.move_callback) {
-            this.move_callback(this);
-        }
+        this.emit('move', this);
     }
 
     updateHitPoints(): void {

@@ -1,4 +1,6 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
+import { Evented } from '../../shared/js/evented';
+import type { NoEvents, TypedEventMap } from '../../shared/js/typed-event-emitter';
 
 import Messages from './message';
 import Utils from './utils';
@@ -8,7 +10,7 @@ interface PositionLike {
     y: number;
 }
 
-class Entity {
+class Entity<TEvents extends TypedEventMap = NoEvents> extends Evented<TEvents> {
     id: number;
     type: string;
     kind: EntityKind;
@@ -16,6 +18,7 @@ class Entity {
     y: number;
 
     constructor(id: number | string, type: string, kind: EntityKind, x: number, y: number) {
+        super();
         this.id = Number.parseInt(String(id), 10);
         this.type = type;
         this.kind = kind;

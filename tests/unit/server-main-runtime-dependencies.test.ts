@@ -23,11 +23,10 @@ test('main runtime dependency helper uses injected boundaries when provided', ()
 
         constructor(_id: string, _capacity: number, _server: RuntimeServer) {}
 
-        connect_callback(_player: unknown): void {}
+        on(_eventName: 'playerAdded' | 'playerRemoved', _callback: () => void): void {}
+        emit(_eventName: 'playerConnect', _player: unknown): void {}
         run(_mapFilePath: string): void {}
         updatePopulation(_totalPlayers?: number): void {}
-        onPlayerAdded(_callback: () => void): void {}
-        onPlayerRemoved(_callback: () => void): void {}
     }
 
     class Player {

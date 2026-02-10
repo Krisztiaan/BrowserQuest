@@ -27,9 +27,12 @@ Active Scripts
 - `bun run dev:server`: server-only runtime
 - `bun run start:server`: production-style server entry
 - `bun run build:vite`: production client build to `dist/vite`
+- `bun run build:server`: runtime server artifact to `dist/server`
+- `bun run build:bundle`: deployable bundle artifact to `dist/bundle`
 - `bun run typecheck`: TypeScript solution build (`tsc -b tsconfig.projects.json`)
 - `bun run verify:modern`: canonical modern verify lane
 - `bun run verify:modern:node22`: Node22 policy wrapper for verify lane
+- `bun run check:browser:workflow-drift`: guard browser CI command/config drift
 
 Verification
 ------------
@@ -42,10 +45,25 @@ Verification
 - test suite
 - Vite production build
 
+Lint/Format Scope
+-----------------
+
+Current lint/format scope is intentionally bounded while legacy modules are incrementally modernized:
+
+- `lint` currently targets `tests/**/*.ts` and `client/js-esm/**/*.ts`.
+- `format`/`format:check` currently target:
+  - `server/js/{log.ts,utils.ts,format.ts}`
+  - `client/js-esm/compat/*.ts`
+  - `client/js-esm/preflight.ts`
+  - `shared/js/gametypes-browser.ts`
+  - `tests/**/*.ts`
+
+Unlisted runtime files are treated as explicit temporary exclusions and should be expanded via Ticket 9 follow-up slices, not ad-hoc.
+
 Runtime map loading now consumes Tiled source JSON directly:
 
-- Client runtime loads `tools/maps/tiled/world.json` and transforms it in-browser.
-- Server runtime loads `tools/maps/tiled/world.json` and transforms it on load.
+- Client runtime loads `assets/maps/tiled/world.json` and transforms it in-browser.
+- Server runtime loads `assets/maps/tiled/world.json` and transforms it on load.
 - `bun run map:export` remains available as an optional utility, not an active verify/build prerequisite.
 
 There is no legacy/rollback support path in active scripts.
@@ -53,9 +71,7 @@ There is no legacy/rollback support path in active scripts.
 Modernization Tracking
 ----------------------
 
-- Live roadmap: `MODERNIZE.md`
-- Status + ticket log: `docs/modernization-readiness-status.md`
-- Support matrix: `docs/client-build-support.md`
+- Backlog + execution log: `TODO.md`
 
 Documentation
 -------------

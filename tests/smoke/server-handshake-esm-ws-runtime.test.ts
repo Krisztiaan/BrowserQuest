@@ -107,7 +107,7 @@ test("esm server entry uses default ESM websocket runtime and sends 'go' handsha
             debug_level: 'error',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './tools/maps/tiled/world.json',
+            map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         })
     );

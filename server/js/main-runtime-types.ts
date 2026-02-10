@@ -8,11 +8,10 @@ export interface RuntimeLogger {
 
 export interface RuntimeWorld {
     playerCount: number;
-    connect_callback(player: RuntimePlayer): void;
+    on(eventName: 'playerAdded' | 'playerRemoved', callback: () => void): void;
+    emit(eventName: 'playerConnect', player: RuntimePlayer): void;
     run(mapFilePath: string): void;
     updatePopulation(totalPlayers?: number): void;
-    onPlayerAdded(callback: () => void): void;
-    onPlayerRemoved(callback: () => void): void;
 }
 
 export interface RuntimeServer {
@@ -97,6 +96,6 @@ export interface ServerConfig {
     nb_worlds: number;
     nb_players_per_world: number;
     map_filepath: string;
-    metrics_enabled?: boolean;
-    debug_level?: 'error' | 'debug' | 'info';
+    metrics_enabled: boolean;
+    debug_level: 'error' | 'debug' | 'info';
 }

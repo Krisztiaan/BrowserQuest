@@ -3,7 +3,7 @@ import Area from './area';
 import type { AreaWorldContract } from './area';
 import Mob from './mob';
 import Utils from './utils';
-import Types from '../../shared/js/gametypes-esm';
+import Types from '../../shared/js/gametypes';
 
 interface Position {
     x: number;
@@ -18,7 +18,7 @@ interface MobAreaMobContract {
     isDead: boolean;
     hasTarget(): boolean;
     move(x: number, y: number): void;
-    onMove(callback: (mob: MobAreaMobContract) => void): void;
+    on(eventName: 'move', callback: (mob: MobAreaMobContract) => void): void;
 }
 
 interface MobAreaWorldContract {
@@ -64,7 +64,7 @@ class MobArea extends Area {
         const pos = this._getRandomPositionInsideArea();
         const mob = new Mob('1' + this.id + '' + k + '' + this.entities.length, k, pos.x, pos.y);
 
-        mob.onMove(this.world.onMobMoveCallback.bind(this.world));
+        mob.on('move', this.world.onMobMoveCallback.bind(this.world));
 
         return mob;
     }

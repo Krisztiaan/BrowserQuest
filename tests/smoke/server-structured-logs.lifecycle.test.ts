@@ -24,14 +24,14 @@ test('server emits structured websocket lifecycle events', async () => {
     expect(closedEvent?.remoteAddress).toBeDefined();
 });
 
-test('server emits structured metrics-unavailable event when metrics backend is missing', async () => {
+test('server emits structured metrics-unavailable event when metrics backend is unreachable', async () => {
     const { events } = await harness.startServerWithEventCapture({
         name: 'structured-logs-metrics-unavailable',
         captureStderr: true,
         configOverrides: {
             metrics_enabled: true,
             memcached_host: '127.0.0.1',
-            memcached_port: 11211,
+            memcached_port: 65534,
             server_name: 'local',
             game_servers: [{ name: 'local' }],
         },
@@ -39,7 +39,7 @@ test('server emits structured metrics-unavailable event when metrics backend is 
 
     const metricsUnavailable = await harness.waitForEvent(events, 'server.metrics.unavailable');
 
-    expect(metricsUnavailable?.reason).toBe('init_failed');
+    expect(metricsUnavailable?.reason).toBe('connect_failed');
     expect(typeof metricsUnavailable?.error).toBe('string');
 });
 

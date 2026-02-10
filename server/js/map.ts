@@ -75,7 +75,7 @@ async function normalizeMapDefinition(rawMap: unknown): Promise<MapDefinition> {
         return rawMap as MapDefinition;
     }
 
-    const processMapModule = await import('../../tools/maps/processmap');
+    const processMapModule = await import('../../shared/js/maps/processmap');
     return processMapModule.default(rawMap as never, { mode: 'server', quiet: true }) as unknown as MapDefinition;
 }
 

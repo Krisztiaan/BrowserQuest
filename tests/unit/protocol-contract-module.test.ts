@@ -1,26 +1,25 @@
 import { expect, test } from 'bun:test';
-import ProtocolEsm, {
+import ProtocolContract, {
     MSG_CHAT,
     MSG_HELLO,
     MSG_MOVE,
-    parseProtocolActionBatch as parseProtocolActionBatchEsm,
-} from '../../shared/js/protocol-contract-esm';
-import ProtocolContract from '../../shared/js/protocol-contract';
+    parseProtocolActionBatch,
+} from '../../shared/js/protocol-contract';
 
-test('shared protocol contract ESM bridge mirrors CJS exports', () => {
+test('shared protocol contract exports stable canonical constants', () => {
     expect(MSG_HELLO).toBe(ProtocolContract.MSG_HELLO);
     expect(MSG_MOVE).toBe(ProtocolContract.MSG_MOVE);
     expect(MSG_CHAT).toBe(ProtocolContract.MSG_CHAT);
-    expect(ProtocolEsm.MSG_ZONE).toBe(ProtocolContract.MSG_ZONE);
-    expect(ProtocolEsm.ENTITY_CLOTH_ARMOR).toBe(ProtocolContract.ENTITY_CLOTH_ARMOR);
+    expect(ProtocolContract.MSG_ZONE).toBeDefined();
+    expect(ProtocolContract.ENTITY_CLOTH_ARMOR).toBeDefined();
 });
 
 test('shared protocol contract parser normalizes single and batched actions', () => {
-    expect(parseProtocolActionBatchEsm('[4,10,20]')).toEqual([[4, 10, 20]]);
-    expect(parseProtocolActionBatchEsm('[[4,10,20],[11,"hi"]]')).toEqual([
+    expect(parseProtocolActionBatch('[4,10,20]')).toEqual([[4, 10, 20]]);
+    expect(parseProtocolActionBatch('[[4,10,20],[11,"hi"]]')).toEqual([
         [4, 10, 20],
         [11, 'hi'],
     ]);
-    expect(parseProtocolActionBatchEsm('{"action":"move"}')).toEqual([]);
-    expect(parseProtocolActionBatchEsm('{"bad":')).toEqual([]);
+    expect(parseProtocolActionBatch('{"action":"move"}')).toEqual([]);
+    expect(parseProtocolActionBatch('{"bad":')).toEqual([]);
 });

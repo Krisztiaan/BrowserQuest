@@ -14,8 +14,13 @@ type AreaMusic = {
     name: MusicKey;
 };
 
+type AudioEntity = {
+    gridX: number;
+    gridY: number;
+};
+
 type AudioGame = {
-    player: any;
+    player: AudioEntity;
     renderer: {
         mobile: boolean;
     };
@@ -169,7 +174,7 @@ class AudioManager {
         this.areas.push(area);
     }
 
-    getSurroundingMusic(entity: any): AreaMusic | null {
+    getSurroundingMusic(entity: AudioEntity | null): AreaMusic | null {
         let music: AreaMusic | null = null;
         const area = this.areas.find((candidate) => candidate.contains(entity));
 

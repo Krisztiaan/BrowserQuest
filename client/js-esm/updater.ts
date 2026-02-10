@@ -1,17 +1,81 @@
 
 import Character from './character';
+import type AnimatedTile from './tile';
 import Timer from './timer';
 import Types from './compat/gametypes';
 
-class Updater {
-    [key: string]: any;
+type DirtyRect = Record<string, number>;
+type StepTransition = {
+    inProgress: boolean;
+    endValue: number;
+    step(currentTime: number): void;
+    start(
+        currentTime: number,
+        update: (value: number) => void,
+        done: () => void,
+        startValue: number,
+        endValue: number,
+        speed: number
+    ): void;
+};
+type NonCharacterEntity = {
+    isLoaded?: boolean;
+    isFading?: boolean;
+    startFadingTime?: number;
+    fadingAlpha?: number;
+    movement?: StepTransition | null;
+    currentAnimation?: { update(time: number): boolean } | null;
+    setDirty(): void;
+};
+type UpdaterEntity = Character | NonCharacterEntity;
+type AnimatedTileLike = AnimatedTile & {
+    isDirty?: boolean;
+    dirtyRect?: DirtyRect;
+};
+type UpdaterCharacter = Character;
+type UpdaterGame = {
+    currentTime: number;
+    player: { isMoving(): boolean; isAttacking(): boolean; checkAggro(): void } | null;
+    renderer: {
+        FPS: number;
+        mobile: boolean;
+        tablet: boolean;
+        renderStaticCanvases(): void;
+        getTileBoundingRect(tile: AnimatedTileLike): DirtyRect;
+    };
+    camera: {
+        x: number;
+        y: number;
+        gridW: number;
+        gridH: number;
+        setPosition(x: number, y: number): void;
+    };
+    currentZoning: StepTransition | null;
+    zoningOrientation: number;
+    sparksAnimation: { update(time: number): void } | null;
+    targetAnimation: { update(time: number): void } | null;
+    bubbleManager: { update(time: number): void };
+    infoManager: { update(time: number): void };
+    forEachEntity(callback: (entity: UpdaterEntity) => void): void;
+    onCharacterUpdate(character: Character): void;
+    initAnimatedTiles(): void;
+    endZoning(): void;
+    forEachAnimatedTile(callback: (tile: AnimatedTileLike) => void): void;
+    checkOtherDirtyRects(rect: DirtyRect, source: AnimatedTileLike, x: number, y: number): void;
+};
 
-    constructor(game) {
+class Updater {
+    game: UpdaterGame;
+    playerAggroTimer: Timer;
+    isFading: boolean;
+
+    constructor(game: UpdaterGame) {
         this.game = game;
         this.playerAggroTimer = new Timer(1000);
+        this.isFading = false;
     }
 
-    update() {
+    update(): void {
         this.updateZoning();
         this.updateCharacters();
         this.updatePlayerAggro();
@@ -22,14 +86,12 @@ class Updater {
         this.updateInfos();
     }
 
-    updateCharacters() {
+    updateCharacters(): void {
         var self = this;
     
         this.game.forEachEntity(function(entity) {
-            var isCharacter = entity instanceof Character;
-        
             if(entity.isLoaded) {
-                if(isCharacter) {
+                if(entity instanceof Character) {
                     self.updateCharacter(entity);
                     self.game.onCharacterUpdate(entity);
                 }
@@ -38,7 +100,7 @@ class Updater {
         });
     }
     
-    updatePlayerAggro() {
+    updatePlayerAggro(): void {
         var t = this.game.currentTime,
             player = this.game.player;
         
@@ -48,7 +110,7 @@ class Updater {
         }
     }
 
-    updateEntityFading(entity) {
+    updateEntityFading(entity: UpdaterEntity): void {
         if(entity && entity.isFading) {
             var duration = 1000,
                 t = this.game.currentTime,
@@ -56,14 +118,18 @@ class Updater {
         
             if(dt > duration) {
                 this.isFading = false;
-                entity.fadingAlpha = 1;
+                if ('fadingAlpha' in entity) {
+                    entity.fadingAlpha = 1;
+                }
             } else {
-                entity.fadingAlpha = dt / duration;
+                if ('fadingAlpha' in entity) {
+                    entity.fadingAlpha = dt / duration;
+                }
             }
         }
     }
 
-    updateTransitions() {
+    updateTransitions(): void {
         var self = this,
             m = null,
             z = this.game.currentZoning;
@@ -84,7 +150,7 @@ class Updater {
         }
     }
 
-    updateZoning() {
+    updateZoning(): void {
         var g = this.game,
             c = g.camera,
             z = g.currentZoning,
@@ -132,7 +198,7 @@ class Updater {
         }
     }
 
-    updateCharacter(c) {
+    updateCharacter(c: UpdaterCharacter): void {
         var self = this;
 
         // Estimate of the movement distance for one update
@@ -202,14 +268,14 @@ class Updater {
         }
     }
 
-    updateAnimations() {
+    updateAnimations(): void {
         var t = this.game.currentTime;
 
         this.game.forEachEntity(function(entity) {
             var anim = entity.currentAnimation;
             
             if(anim) {
-                if(anim.update(t)) {
+                if('update' in anim && typeof anim.update === 'function' && anim.update(t)) {
                     entity.setDirty();
                 }
             }
@@ -226,7 +292,7 @@ class Updater {
         }
     }
 
-    updateAnimatedTiles() {
+    updateAnimatedTiles(): void {
         var self = this,
             t = this.game.currentTime;
     
@@ -242,13 +308,13 @@ class Updater {
         });
     }
 
-    updateChatBubbles() {
+    updateChatBubbles(): void {
         var t = this.game.currentTime;
     
         this.game.bubbleManager.update(t);
     }
 
-    updateInfos() {
+    updateInfos(): void {
         var t = this.game.currentTime;
     
         this.game.infoManager.update(t);

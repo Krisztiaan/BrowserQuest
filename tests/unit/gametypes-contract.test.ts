@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import Types from '../../shared/js/gametypes-esm';
+import Types from '../../shared/js/gametypes';
 
 test('shared gametypes module sets global contract', () => {
     expect(Types).toBeDefined();
@@ -8,19 +8,19 @@ test('shared gametypes module sets global contract', () => {
     expect(Types.Messages.ZONE).toBe(21);
 });
 
-test('shared gametypes ESM bridge exports canonical contract values', async () => {
-    const esmModule = (await import('../../shared/js/gametypes-esm')) as {
+test('shared gametypes canonical entrypoint exports contract values', async () => {
+    const canonicalModule = (await import('../../shared/js/gametypes')) as {
         default: typeof Types;
         Types: typeof Types;
     };
-    const ESMTypes = esmModule.default;
+    const canonicalTypes = canonicalModule.default;
 
-    expect(esmModule.Types).toBe(ESMTypes);
-    expect(ESMTypes.Messages).toEqual(Types.Messages);
-    expect(ESMTypes.Entities).toEqual(Types.Entities);
-    expect(ESMTypes.Orientations).toEqual(Types.Orientations);
-    expect(ESMTypes.getKindFromString('rat')).toBe(Types.getKindFromString('rat'));
-    expect(ESMTypes.getKindAsString(Types.Entities.RAT)).toBe('rat');
+    expect(canonicalModule.Types).toBe(canonicalTypes);
+    expect(canonicalTypes.Messages).toEqual(Types.Messages);
+    expect(canonicalTypes.Entities).toEqual(Types.Entities);
+    expect(canonicalTypes.Orientations).toEqual(Types.Orientations);
+    expect(canonicalTypes.getKindFromString('rat')).toBe(Types.getKindFromString('rat'));
+    expect(canonicalTypes.getKindAsString(Types.Entities.RAT)).toBe('rat');
 });
 
 test('shared browser gametypes module matches canonical contract values', async () => {

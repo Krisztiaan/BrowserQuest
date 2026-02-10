@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import MetricsClient from './metrics-client';
 import Log from './log';
+import { Evented } from '../../shared/js/evented';
 
 const log = Log.getLogger();
 const MEMCACHE_MODULE_NAME = 'memcache';
@@ -27,16 +28,20 @@ interface WorldLike {
     playerCount: number;
 }
 
-class Metrics {
+type MetricsEvents = {
+    ready: [];
+};
+
+class Metrics extends Evented<MetricsEvents> {
     config: MetricsConfig;
     client: MetricsClientAdapter;
     isEnabled: boolean;
     isReady: boolean;
     unavailableReasons: Record<string, boolean>;
     onUnavailable: (reason: string, fields: Record<string, unknown>) => void;
-    ready_callback?: () => void;
 
     constructor(config: MetricsConfig, options?: RuntimeOptions) {
+        super();
         const self = this;
         const runtimeOptions = options || {};
         const memcacheModule = require(MEMCACHE_MODULE_NAME);
@@ -64,9 +69,7 @@ class Metrics {
             log.info(
                 'Metrics enabled: memcached client connected to ' + config.memcached_host + ':' + config.memcached_port
             );
-            if (self.ready_callback) {
-                self.ready_callback();
-            }
+            self.emit('ready');
         };
 
         this.client = MetricsClient.createMetricsClient(memcacheModule, config, {
@@ -96,10 +99,11 @@ class Metrics {
     }
 
     ready(callback: () => void): void {
-        this.ready_callback = callback;
-        if (this.isReady && typeof this.ready_callback === 'function') {
-            this.ready_callback();
+        if (this.isReady) {
+            callback();
+            return;
         }
+        this.on('ready', callback);
     }
 
     setValue(key: string, value: unknown, callback?: ((ok: boolean) => void) | undefined): void {

@@ -10,14 +10,132 @@ import log from './compat/log';
 import { getBase64Image } from './compat/util';
 import { resolveImageAssetPath } from './image-assets';
 
-class Renderer {
-    [key: string]: any;
+type RendererContext2D = CanvasRenderingContext2D & {
+    mozImageSmoothingEnabled?: boolean;
+};
+type BoundingRect = Record<string, number>;
+type RenderSprite = {
+    image: CanvasImageSource;
+    width: number;
+    height: number;
+    offsetX: number;
+    offsetY: number;
+    isLoaded?: boolean;
+    animationData: Record<string, { length: number; row: number }>;
+};
+type RenderAnimation = {
+    name: string;
+    row: number;
+    currentFrame: { x: number; y: number; index: number };
+};
+type RenderEntity = {
+    id: string | number;
+    x: number;
+    y: number;
+    kind: string | number;
+    name?: string;
+    nameOffsetY?: number;
+    sprite?: RenderSprite | null;
+    currentAnimation?: RenderAnimation | null;
+    isLoaded?: boolean;
+    isDirty?: boolean;
+    oldDirtyRect?: BoundingRect | null;
+    dirtyRect?: BoundingRect | null;
+    isFading?: boolean;
+    fadingAlpha?: number;
+    shadowOffsetY?: number;
+    flipSpriteX?: boolean;
+    flipSpriteY?: boolean;
+    hasShadow?(): boolean;
+    isVisible?(): boolean;
+};
+type RenderAnimatedTile = {
+    id: number;
+    index: number;
+    isDirty?: boolean;
+    dirtyRect?: BoundingRect;
+};
+type RenderInfo = {
+    opacity: number;
+    value: string | number;
+    x: number;
+    y: number;
+    fillColor?: string;
+    strokeColor?: string;
+};
+type RendererGameLike = {
+    map: {
+        tilesets?: Array<HTMLImageElement | undefined>;
+        width: number;
+        tilesize: number;
+        isHighTile(id: number): boolean;
+        isAnimatedTile(id: number): boolean;
+    };
+    renderer?: Renderer;
+    setSpriteScale(scale: number): void;
+    getMouseGridPosition(): { x: number; y: number };
+    getEntityAt(x: number, y: number): { x: number; y: number } | null;
+    entityGrid: unknown[][] | null;
+    pathingGrid: number[][] | null;
+    debugPathing: boolean;
+    camera: Camera;
+    cursors: Record<string, RenderSprite>;
+    targetAnimation: RenderAnimation | null;
+    selectedCellVisible: boolean;
+    drawTarget: boolean;
+    selectedX: number;
+    selectedY: number;
+    targetColor: string;
+    mouse: { x: number; y: number };
+    currentCursor: RenderSprite | null;
+    shadows: Record<string, RenderSprite>;
+    sprites: Record<string, RenderSprite>;
+    sparksAnimation: RenderAnimation | null;
+    forEachVisibleEntityByDepth(callback: (entity: RenderEntity) => void): void;
+    forEachAnimatedTile(callback: (tile: RenderAnimatedTile) => void): void;
+    clearTarget: boolean;
+    playerId: string | number | null;
+    forEachVisibleTile(callback: (id: number, index: number) => void, extra: number): void;
+    infoManager: { forEachInfo(callback: (info: RenderInfo) => void): void };
+    player: Player;
+    started: boolean;
+    currentTime: number;
+    targetCellVisible: boolean;
+};
 
-    constructor(game, canvas, background, foreground) {
+class Renderer {
+    game: RendererGameLike;
+    context: RendererContext2D;
+    background: RendererContext2D;
+    foreground: RendererContext2D;
+    canvas: HTMLCanvasElement;
+    backcanvas: HTMLCanvasElement;
+    forecanvas: HTMLCanvasElement;
+    FPS: number;
+    tilesize: number;
+    upscaledRendering: boolean;
+    supportsSilhouettes: boolean;
+    scale: number;
+    camera: Camera;
+    lastTime: Date;
+    frameCount: number;
+    maxFPS: number;
+    realFPS: number;
+    isDebugInfoVisible: boolean;
+    animatedTileCount: number;
+    highTileCount: number;
+    tablet: boolean;
+    mobile: boolean;
+    fixFlickeringTimer: Timer;
+    tileset: HTMLImageElement | null;
+    lastTargetPos: { x: number; y: number } | null;
+    targetRect: Record<string, number> | null;
+
+    constructor(game: RendererGameLike, canvas: HTMLCanvasElement, background: HTMLCanvasElement, foreground: HTMLCanvasElement) {
         this.game = game;
-        this.context = (canvas && canvas.getContext) ? canvas.getContext("2d") : null;
-        this.background = (background && background.getContext) ? background.getContext("2d") : null;
-        this.foreground = (foreground && foreground.getContext) ? foreground.getContext("2d") : null;
+        this.context = (canvas && canvas.getContext) ? canvas.getContext("2d") as RendererContext2D : null as never;
+        this.background = (background && background.getContext) ? background.getContext("2d") as RendererContext2D : null as never;
+        this.foreground = (foreground && foreground.getContext) ? foreground.getContext("2d") as RendererContext2D : null as never;
     
         this.canvas = canvas;
         this.backcanvas = background;
@@ -41,8 +159,12 @@ class Renderer {
         this.highTileCount = 0;
     
         this.tablet = Detect.isTablet(window.innerWidth);
+        this.mobile = false;
         
         this.fixFlickeringTimer = new Timer(100);
+        this.tileset = null;
+        this.lastTargetPos = null;
+        this.targetRect = null;
     }
 
     getWidth() {
@@ -99,7 +221,7 @@ class Renderer {
     }
 
     createCamera() {
-        this.camera = new Camera(this as any);
+        this.camera = new Camera(this);
         this.camera.rescale();
     
         this.canvas.width = this.camera.gridW * this.tilesize * this.scale;
@@ -379,8 +501,8 @@ class Renderer {
                 this.context.translate(dx, dy);
             }
         
-            if(entity.isVisible()) {
-                if(entity.hasShadow()) {
+            if(entity.isVisible?.()) {
+                if(entity.hasShadow?.()) {
                     this.context.drawImage(shadow.image, 0, 0, shadow.width * os, shadow.height * os,
                                            0,
                                            entity.shadowOffsetY * ds,
@@ -391,17 +513,25 @@ class Renderer {
 
                 if(entity instanceof Item && entity.kind !== Types.Entities.CAKE) {
                     var sparks = this.game.sprites["sparks"],
-                        anim = this.game.sparksAnimation,
-                        frame = anim.currentFrame,
-                        sx = sparks.width * frame.index * os,
-                        sy = sparks.height * anim.row * os,
-                        sw = sparks.width * os,
+                        sparksAnim = this.game.sparksAnimation,
+                        frame,
+                        sx,
+                        sy,
+                        sw,
+                        sh;
+
+                    if(sparksAnim) {
+                        frame = sparksAnim.currentFrame;
+                        sx = sparks.width * frame.index * os;
+                        sy = sparks.height * sparksAnim.row * os;
+                        sw = sparks.width * os;
                         sh = sparks.width * os;
 
-                    this.context.drawImage(sparks.image, sx, sy, sw, sh,
-                                           sparks.offsetX * s,
-                                           sparks.offsetY * s,
-                                           sw * ds, sh * ds);
+                        this.context.drawImage(sparks.image, sx, sy, sw, sh,
+                                               sparks.offsetX * s,
+                                               sparks.offsetY * s,
+                                               sw * ds, sh * ds);
+                    }
                 }
             }
         
@@ -491,8 +621,8 @@ class Renderer {
         }
     }
     
-    getEntityBoundingRect(entity) {
-        var rect: any = {},
+    getEntityBoundingRect(entity): BoundingRect {
+        var rect: BoundingRect = { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 },
             s = this.scale,
             spr;
             
@@ -516,8 +646,8 @@ class Renderer {
         return rect;
     }
     
-    getTileBoundingRect(tile) {
-        var rect: any = {},
+    getTileBoundingRect(tile): BoundingRect {
+        var rect: BoundingRect = { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 },
             gridW = this.game.map.width,
             s = this.scale,
             ts = this.tilesize,
@@ -535,8 +665,8 @@ class Renderer {
         return rect;
     }
     
-    getTargetBoundingRect(x, y) {
-        var rect: any = {},
+    getTargetBoundingRect(x?: number, y?: number): BoundingRect {
+        var rect: BoundingRect = { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 },
             s = this.scale,
             ts = this.tilesize,
             tx = x || this.game.selectedX,
@@ -554,7 +684,7 @@ class Renderer {
         return rect;
     }
     
-    isIntersecting(rect1, rect2) {
+    isIntersecting(rect1: BoundingRect, rect2: BoundingRect): boolean {
         return !((rect2.left > rect1.right) ||
                  (rect2.right < rect1.left) ||
                  (rect2.top > rect1.bottom) ||

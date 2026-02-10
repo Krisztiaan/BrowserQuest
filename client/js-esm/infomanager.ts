@@ -1,3 +1,5 @@
+import { Evented } from '../../shared/js/evented';
+
 type DamageInfoType = 'received' | 'inflicted' | 'healed';
 
 type DamageInfoColors = Record<DamageInfoType, { fill: string; stroke: string }>;
@@ -63,7 +65,11 @@ const damageInfoColors: DamageInfoColors = {
 };
 
 
-class DamageInfo {
+type DamageInfoEvents = {
+    destroy: [id: string];
+};
+
+class DamageInfo extends Evented<DamageInfoEvents> {
     static DURATION = 1000;
 
     id: string;
@@ -76,9 +82,8 @@ class DamageInfo {
     speed: number;
     fillColor: string;
     strokeColor: string;
-    destroy_callback: ((id: string) => void) | null;
-
     constructor(id: string, value: number | string, x: number, y: number, duration: number, type: DamageInfoType) {
+        super();
         this.id = id;
         this.value = value;
         this.duration = duration;
@@ -89,7 +94,6 @@ class DamageInfo {
         this.speed = 100;
         this.fillColor = damageInfoColors[type].fill;
         this.strokeColor = damageInfoColors[type].stroke;
-        this.destroy_callback = null;
     }
 
     isTimeToAnimate(time: number): boolean {
@@ -112,13 +116,11 @@ class DamageInfo {
     }
 
     onDestroy(callback: (id: string) => void): void {
-        this.destroy_callback = callback;
+        this.on('destroy', callback);
     }
 
     destroy(): void {
-        if (this.destroy_callback) {
-            this.destroy_callback(this.id);
-        }
+        this.emit('destroy', this.id);
     }
 }
 
