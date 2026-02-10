@@ -1,5 +1,42 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 legacy IE stylesheet/conditional retirement)
+
+### Ticket status
+
+- `T-348.1` Remove obsolete IE<9 conditional include path from active HTML entry: `done`
+- `T-348.2` Retire `client/css/ie.css` and enforce retirement boundary: `done`
+- `T-348.3` Re-verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-10T00:21Z` `in_progress` Started legacy-browser cleanup pass to remove obsolete IE-specific fallback scaffolding from modern-only entry/runtime policy.
+  - Scope:
+    - remove IE conditional blocks from `client/modern.html`
+    - delete retired `client/css/ie.css`
+    - enforce `client/css/ie.css` retirement in package boundary guard
+  - Out of scope:
+    - broader HTML head cleanup
+  - Acceptance criteria:
+    - no active `lt IE 9`/`ie.css`/`css3-mediaqueries.js` references remain
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `rg -n "ie\\.css|lt IE 9|css3-mediaqueries\\.js" client README.md docs package.json tools tests server -g '!docs/archive/**' -g '!docs/modernization-readiness-status.md' -g '!MODERNIZE.md' -g '!dist/**'`
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:22Z` `done` Completed IE fallback retirement and re-verified full modern lane.
+  - Evidence:
+    - updated `client/modern.html`:
+      - removed `<!--[if lt IE 9]>` conditional stylesheet/script block
+      - removed duplicate conditional body tag variant
+    - removed retired stylesheet:
+      - deleted `client/css/ie.css`
+    - boundary enforcement:
+      - `tools/check-package-mode-boundaries.ts` now fails if `client/css/ie.css` exists
+    - reference sweep:
+      - no active `ie.css`/`lt IE 9`/`css3-mediaqueries.js` references remain outside the retirement guard.
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 Bun-native Node22 runner cutover)
 
 ### Ticket status

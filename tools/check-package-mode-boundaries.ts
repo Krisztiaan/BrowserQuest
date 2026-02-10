@@ -8,6 +8,7 @@ const retiredClientMapsDir = path.join(repoRoot, 'client', 'maps');
 const retiredServerMapsDir = path.join(repoRoot, 'server', 'maps');
 const retiredClientImgDir = path.join(repoRoot, 'client', 'img');
 const retiredNode22RunShellPath = path.join(repoRoot, 'tools', 'node22-run.sh');
+const retiredLegacyIeStylesheetPath = path.join(repoRoot, 'client', 'css', 'ie.css');
 const docsRoot = path.join(repoRoot, 'docs');
 const docsArchiveRoot = path.join(docsRoot, 'archive');
 
@@ -87,6 +88,10 @@ if (fs.existsSync(retiredNode22RunShellPath)) {
   fail('tools/node22-run.sh must not exist after Bun-native Node22 runner cutover');
 }
 
+if (fs.existsSync(retiredLegacyIeStylesheetPath)) {
+  fail('client/css/ie.css must not exist in modern-only browser support mode');
+}
+
 const docsRootEntries = fs.existsSync(docsRoot) ? fs.readdirSync(docsRoot, { withFileTypes: true }) : [];
 const legacyRootDocs = docsRootEntries
   .filter((entry) => entry.isFile() && /^legacy-.*\.md$/.test(entry.name))
@@ -110,5 +115,5 @@ if (archivedNoteOffenders.length > 0) {
 }
 
 process.stdout.write(
-  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner retired)\n',
+  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet retired)\n',
 );
