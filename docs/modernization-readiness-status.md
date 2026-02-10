@@ -1,5 +1,35 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 authored `.js` elimination in active repo surface)
+
+### Ticket status
+
+- `T-343.1` Rename active ESLint flat config from `.js` to `.mjs`: `done`
+- `T-343.2` Re-verify modern lane after config filename migration: `done`
+- `T-343.3` Confirm no authored `.js` files remain outside generated/dependency outputs: `done`
+
+### Live progress log
+
+- `2026-02-10T00:11Z` `in_progress` Started final authored `.js` surface cleanup by renaming active ESLint config to ESM-native `.mjs`.
+  - Scope:
+    - rename `eslint.config.js` to `eslint.config.mjs`
+    - preserve config behavior and lint lane compatibility
+  - Out of scope:
+    - ESLint rule changes
+  - Acceptance criteria:
+    - modern verify lane passes with renamed config
+    - no authored `.js` files remain outside ignored generated/dependency directories
+  - Verification plan:
+    - `bun run verify:modern:node22`
+    - `rg --files -g '*.js' -g '!node_modules/**' -g '!dist/**'`
+- `2026-02-10T00:12Z` `done` Completed authored `.js` elimination by migrating ESLint config to `.mjs` and re-verifying full modern lane.
+  - Evidence:
+    - renamed `eslint.config.js` -> `eslint.config.mjs`
+    - authored `.js` sweep:
+      - `rg --files -g '*.js' -g '!node_modules/**' -g '!dist/**'` -> no matches
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 verify lane cleanup of redundant Wang sync checker)
 
 ### Ticket status
