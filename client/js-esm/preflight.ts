@@ -1,5 +1,5 @@
-import Detect from 'compat/detect';
-import { supportsLocalStorage } from 'compat/features';
+import Detect from './compat/detect';
+import { supportsLocalStorage } from './compat/features';
 
 const STORAGE_KEY = 'data';
 

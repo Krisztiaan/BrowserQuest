@@ -1,7 +1,7 @@
 
-import Character from 'character';
-import Types from 'compat/gametypes';
-import type { EntityKind } from 'compat/gametypes';
+import Character from './character';
+import Types from './compat/gametypes';
+import type { EntityKind } from './compat/gametypes';
 
 const NpcTalk = {
     "guard": [

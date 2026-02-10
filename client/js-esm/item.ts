@@ -1,7 +1,7 @@
 
-import Entity from 'entity';
-import Types from 'compat/gametypes';
-import type { EntityKind } from 'compat/gametypes';
+import Entity from './entity';
+import Types from './compat/gametypes';
+import type { EntityKind } from './compat/gametypes';
 
 type ItemType = 'weapon' | 'armor' | 'object';
 

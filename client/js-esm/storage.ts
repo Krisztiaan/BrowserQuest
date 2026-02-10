@@ -1,4 +1,4 @@
-import { supportsLocalStorage } from 'compat/features';
+import { supportsLocalStorage } from './compat/features';
 import type { AchievementId } from './achievement-domain';
 import { isAchievementId } from './achievement-domain';
 

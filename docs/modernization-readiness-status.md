@@ -1,5 +1,45 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 client relative-import cutover + alias retirement)
+
+### Ticket status
+
+- `T-355.1` Convert client runtime bare imports to idiomatic relative ESM imports: `done`
+- `T-356.1` Remove client runtime path-alias plumbing from TypeScript and Vite config: `done`
+- `T-357.1` Re-verify full modern lane and capture import-resolution evidence: `done`
+
+### Live progress log
+
+- `2026-02-10T00:33Z` `in_progress` Started client import-surface modernization to remove RequireJS-era bare specifier usage and retire alias indirection from build/typecheck surfaces.
+  - Scope:
+    - rewrite `client/js-esm/**/*.ts` bare specifiers (e.g. `character`, `compat/log`, `lib/astar`) to relative imports
+    - remove `compilerOptions.paths` + `baseUrl` from `tsconfig.typecheck-client-runtime.json`
+    - remove Vite alias-generation/plumbing from `vite.config.ts`
+  - Out of scope:
+    - changing runtime behavior or module boundaries
+    - non-client import style refactors
+  - Acceptance criteria:
+    - no bare non-package imports remain under `client/js-esm/**/*.ts`
+    - client runtime typecheck config no longer declares alias map
+    - Vite config no longer derives/apply client alias map
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `rg -n "^import .* from ['\\\"][^./][^'\\\"]*['\\\"]|^import ['\\\"][^./][^'\\\"]*['\\\"]|import\\(\\s*['\\\"][^./][^'\\\"]*['\\\"]\\s*\\)" client/js-esm -g '*.ts'`
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:34Z` `done` Completed client relative-import cutover and removed alias plumbing; modern lane remains green.
+  - Evidence:
+    - client runtime codemod:
+      - rewritten imports across 29 files in `client/js-esm/**` from bare aliases to relative ESM specifiers
+      - representative files: `client/js-esm/game.ts`, `client/js-esm/renderer.ts`, `client/js-esm/pathfinder.ts`
+      - bare import scan over `client/js-esm/**/*.ts` -> no matches
+    - TypeScript config simplification:
+      - `tsconfig.typecheck-client-runtime.json` no longer contains `baseUrl`/`paths`; keeps direct include coverage only
+    - Vite config simplification:
+      - removed `tsconfig` JSON read and alias-entry generation logic
+      - removed `resolve.alias` block tied to client runtime alias map
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 server ESM typecheck glob cutover + coverage-check retirement)
 
 ### Ticket status

@@ -1,8 +1,8 @@
-import EntityFactory from 'entityfactory';
-import BISON from 'lib/bison';
-import log from 'compat/log';
-import Types from 'compat/gametypes';
-import { normalizeProtocolActionBatch } from 'protocol-payload';
+import EntityFactory from './entityfactory';
+import BISON from './lib/bison';
+import log from './compat/log';
+import Types from './compat/gametypes';
+import { normalizeProtocolActionBatch } from './protocol-payload';
 import {
     DISPATCHER_CONNECT_STATUS,
     HANDSHAKE_CONTROL,

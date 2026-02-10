@@ -1,4 +1,4 @@
-import { canPlayMP3 } from 'compat/features';
+import { canPlayMP3 } from './features';
 
 const Detect = {
     supportsWebSocket: function () {

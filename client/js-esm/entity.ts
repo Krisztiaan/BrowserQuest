@@ -1,6 +1,6 @@
-import log from 'compat/log';
-import Types from 'compat/gametypes';
-import type { EntityKind } from 'compat/gametypes';
+import log from './compat/log';
+import Types from './compat/gametypes';
+import type { EntityKind } from './compat/gametypes';
 
 type AnimationLike = {
     name: string;

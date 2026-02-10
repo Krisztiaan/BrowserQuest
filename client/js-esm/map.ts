@@ -1,7 +1,7 @@
-import Area from 'area';
-import log from 'compat/log';
-import Types from 'compat/gametypes';
-import { isInt } from 'compat/util';
+import Area from './area';
+import log from './compat/log';
+import Types from './compat/gametypes';
+import { isInt } from './compat/util';
 import { resolveImageAssetPath } from './image-assets';
 
 const generatedMapUrl = new URL("../../generated/maps/world_client.json", import.meta.url).href;

@@ -1,5 +1,5 @@
 
-import AStar from 'lib/astar';
+import AStar from './lib/astar';
 
 class Pathfinder {
     width: number;

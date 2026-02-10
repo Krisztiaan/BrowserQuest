@@ -1,13 +1,13 @@
 
-import Camera from 'camera';
-import Item from 'item';
-import Character from 'character';
-import Player from 'player';
-import Timer from 'timer';
-import Detect from 'compat/detect';
-import Types from 'compat/gametypes';
-import log from 'compat/log';
-import { getBase64Image } from 'compat/util';
+import Camera from './camera';
+import Item from './item';
+import Character from './character';
+import Player from './player';
+import Timer from './timer';
+import Detect from './compat/detect';
+import Types from './compat/gametypes';
+import log from './compat/log';
+import { getBase64Image } from './compat/util';
 import { resolveImageAssetPath } from './image-assets';
 
 class Renderer {

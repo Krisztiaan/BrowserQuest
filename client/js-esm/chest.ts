@@ -1,6 +1,6 @@
 
-import Entity from 'entity';
-import Types from 'compat/gametypes';
+import Entity from './entity';
+import Types from './compat/gametypes';
 
 class Chest extends Entity {
     open_callback: (() => void) | null;

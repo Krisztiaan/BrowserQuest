@@ -1,7 +1,7 @@
 
-import Character from 'character';
-import Timer from 'timer';
-import Types from 'compat/gametypes';
+import Character from './character';
+import Timer from './timer';
+import Types from './compat/gametypes';
 
 class Updater {
     [key: string]: any;

@@ -1,29 +1,29 @@
 
-import InfoManager from 'infomanager';
-import BubbleManager from 'bubble';
-import Renderer from 'renderer';
-import Map from 'map';
-import Animation from 'animation';
-import Sprite from 'sprite';
-import AnimatedTile from 'tile';
-import Warrior from 'warrior';
-import GameClient from 'gameclient';
-import AudioManager from 'audio';
-import Updater from 'updater';
-import Transition from 'transition';
-import Pathfinder from 'pathfinder';
-import Item from 'item';
-import Mob from 'mob';
-import Npc from 'npc';
-import Player from 'player';
-import Character from 'character';
-import Chest from 'chest';
-import Mobs from 'mobs';
-import Exceptions from 'exceptions';
-import config from 'config';
-import log from 'compat/log';
-import Types from 'compat/gametypes';
-import { requestAnimFrame } from 'compat/util';
+import InfoManager from './infomanager';
+import BubbleManager from './bubble';
+import Renderer from './renderer';
+import Map from './map';
+import Animation from './animation';
+import Sprite from './sprite';
+import AnimatedTile from './tile';
+import Warrior from './warrior';
+import GameClient from './gameclient';
+import AudioManager from './audio';
+import Updater from './updater';
+import Transition from './transition';
+import Pathfinder from './pathfinder';
+import Item from './item';
+import Mob from './mob';
+import Npc from './npc';
+import Player from './player';
+import Character from './character';
+import Chest from './chest';
+import Mobs from './mobs';
+import Exceptions from './exceptions';
+import config from './config';
+import log from './compat/log';
+import Types from './compat/gametypes';
+import { requestAnimFrame } from './compat/util';
 import type { AchievementId, AchievementKey } from './achievement-domain';
 import { SPRITE_KEYS } from './asset-key-domain';
 import type { AudioSoundKey, CursorKey, SpriteKey } from './asset-key-domain';
@@ -1768,7 +1768,7 @@ class Game {
 
     /**
      * Returns the entity located at the given position on the world grid.
-     * @returns {import('entity').default | null} the entity located at (x, y) or null if there is none.
+     * @returns {import('./entity').default | null} the entity located at (x, y) or null if there is none.
      */
     getEntityAt(x, y) {
         if(this.map.isOutOfBounds(x, y) || !this.entityGrid) {

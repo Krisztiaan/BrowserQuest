@@ -1,7 +1,7 @@
 
-import Mob from 'mob';
-import Timer from 'timer';
-import Types from 'compat/gametypes';
+import Mob from './mob';
+import Timer from './timer';
+import Types from './compat/gametypes';
 
 type MobCtor = new (id: string | number) => Mob;
 

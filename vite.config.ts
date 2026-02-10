@@ -1,33 +1,12 @@
-import fs from "node:fs";
 import path from "node:path";
 import { defineConfig } from "vite";
 import { DEFAULT_TILED_SOURCE_PATH, syncRuntimeMaps } from "./tools/maps/runtime-sync";
 
 const viteDefaultEntry = "/client/modern.html";
-const clientRuntimeTsconfig = JSON.parse(
-  fs.readFileSync(path.resolve("tsconfig.typecheck-client-runtime.json"), "utf8"),
-) as {
-  compilerOptions?: {
-    paths?: Record<string, string[]>;
-  };
-};
-const clientRuntimeAliasEntries = Object.entries(clientRuntimeTsconfig.compilerOptions?.paths ?? {})
-  .map(([find, replacements]) => {
-    const firstReplacement = replacements[0];
-    if (!firstReplacement) return null;
-    return {
-      find,
-      replacement: path.resolve(firstReplacement),
-    };
-  })
-  .filter((entry): entry is { find: string; replacement: string } => entry !== null);
 
 export default defineConfig({
   root: ".",
   publicDir: "client/public",
-  resolve: {
-    alias: clientRuntimeAliasEntries,
-  },
   server: {
     host: true,
     port: 5173,

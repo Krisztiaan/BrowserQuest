@@ -1,9 +1,9 @@
-import Entity from 'entity';
-import Transition from 'transition';
-import Timer from 'timer';
-import log from 'compat/log';
-import Types from 'compat/gametypes';
-import type { EntityKind } from 'compat/gametypes';
+import Entity from './entity';
+import Transition from './transition';
+import Timer from './timer';
+import log from './compat/log';
+import Types from './compat/gametypes';
+import type { EntityKind } from './compat/gametypes';
 
 type GridPoint = [number, number];
 type Path = GridPoint[];

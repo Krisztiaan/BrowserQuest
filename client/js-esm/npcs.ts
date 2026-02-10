@@ -1,6 +1,6 @@
 
-import Npc from 'npc';
-import Types from 'compat/gametypes';
+import Npc from './npc';
+import Types from './compat/gametypes';
 
 type NpcCtor = new (id: string | number) => Npc;
 

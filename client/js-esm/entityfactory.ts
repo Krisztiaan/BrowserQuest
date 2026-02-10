@@ -1,11 +1,11 @@
-import Mobs from 'mobs';
-import Items from 'items';
-import NPCs from 'npcs';
-import Warrior from 'warrior';
-import Chest from 'chest';
-import log from 'compat/log';
-import Types from 'compat/gametypes';
-import type { EntityKind } from 'compat/gametypes';
+import Mobs from './mobs';
+import Items from './items';
+import NPCs from './npcs';
+import Warrior from './warrior';
+import Chest from './chest';
+import log from './compat/log';
+import Types from './compat/gametypes';
+import type { EntityKind } from './compat/gametypes';
 
 /** @typedef {import('./client-boundary-types').EntityFactoryBuilder} EntityFactoryBuilder */
 /** @typedef {import('./client-boundary-types').EntityFactoryContract} EntityFactoryContract */

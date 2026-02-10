@@ -1,8 +1,8 @@
-import App from 'app';
-import Detect from 'compat/detect';
-import log from 'compat/log';
-import Types from 'compat/gametypes';
-import { TRANSITIONEND } from 'compat/util';
+import App from './app';
+import Detect from './compat/detect';
+import log from './compat/log';
+import Types from './compat/gametypes';
+import { TRANSITIONEND } from './compat/util';
 
 /**
  * @typedef {{
@@ -448,7 +448,7 @@ var initApp = function() {
 };
 
 var initGame = function() {
-    import('game').then(function(mod) {
+    import('./game').then(function(mod) {
         var Game = ((mod as any) && (mod as any).default ? (mod as any).default : mod) as any;
         
         var canvas = document.getElementById("entities"),

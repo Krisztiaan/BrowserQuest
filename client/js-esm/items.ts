@@ -1,7 +1,7 @@
 
-import Item from 'item';
-import type { LootPlayer } from 'item';
-import Types from 'compat/gametypes';
+import Item from './item';
+import type { LootPlayer } from './item';
+import Types from './compat/gametypes';
 
 type ItemCtor = new (id: string | number) => Item;
 

@@ -1,7 +1,7 @@
-import Animation from 'animation';
-import sprites from 'sprites';
-import type { SpriteJson } from 'sprites';
-import log from 'compat/log';
+import Animation from './animation';
+import sprites from './sprites';
+import type { SpriteJson } from './sprites';
+import log from './compat/log';
 import { resolveImageAssetPath } from './image-assets';
 
 type SpriteRenderData = {
