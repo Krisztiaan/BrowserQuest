@@ -1,5 +1,44 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 Bun-native Node22 runner cutover)
+
+### Ticket status
+
+- `T-347.1` Replace shell-based Node22 shim runner with Bun-native TypeScript runner: `done`
+- `T-347.2` Rewire active `*:node22` scripts/docs to Bun runner and retire shell script: `done`
+- `T-347.3` Re-verify full modern lane and enforce retirement boundary: `done`
+
+### Live progress log
+
+- `2026-02-10T00:19Z` `in_progress` Started Node22 runner modernization to remove bash-script orchestration from active verify/test/typecheck lanes.
+  - Scope:
+    - add `tools/node22-run.ts` Bun-native runner
+    - rewire all active `*:node22` scripts from `bash tools/node22-run.sh ...` to `bun tools/node22-run.ts ...`
+    - remove retired `tools/node22-run.sh`
+    - enforce shell-runner retirement in package boundary checks
+  - Out of scope:
+    - changing Node22 resolution semantics (must still prefer system Node 22 and fallback via `npm exec --package=node@22`)
+  - Acceptance criteria:
+    - no active script/docs reference `tools/node22-run.sh`
+    - `tools/node22-run.sh` no longer exists
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:21Z` `done` Completed Bun-native Node22 runner cutover and re-verified full modern lane.
+  - Evidence:
+    - added `tools/node22-run.ts`:
+      - Bun-native command runner with Node22 resolution fallback (`npm exec --package=node@22`)
+      - PATH shim injection via temporary `node` symlink
+    - updated active scripts:
+      - `package.json` `*:node22` commands now use `bun tools/node22-run.ts ...`
+    - updated active docs:
+      - `docs/runtime-preflight.md` command updated to Bun runner path
+    - retired shell runner:
+      - deleted `tools/node22-run.sh`
+      - `tools/check-package-mode-boundaries.ts` now fails if `tools/node22-run.sh` reappears
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 Vite public-asset lane for dynamic runtime images)
 
 ### Ticket status

@@ -28,7 +28,7 @@ Example:
 - `nvm use` (uses `.nvmrc`)
 
 2. No shell switch available: run command with the Node 22 wrapper
-- `bash tools/node22-run.sh bun run check:runtime`
+- `bun tools/node22-run.ts bun run check:runtime`
 - `bun run verify:modern:node22`
 - `bun run test:browser:modern:node22`
 - `bun run test:browser:protocol:node22`
