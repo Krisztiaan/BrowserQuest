@@ -25,6 +25,7 @@
     "server/js/server-event-names.ts",
     "server/js/config-preflight.ts",
     "server/js/metrics-runtime.ts",
+    "server/js/metrics-adapters/*.ts",
     "client/js-esm/achievement-domain.ts",
     "client/js-esm/asset-key-domain.ts",
     "shared/js/connection-status.ts",

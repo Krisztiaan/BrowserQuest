@@ -1,8 +1,8 @@
 import type { RuntimeEventName } from './server-event-names';
 import { SERVER_EVENT_NAMES } from './server-event-names';
 import Log from './log-esm';
-import * as NoopAdapterModule from './metrics-adapters/noop.cts';
-import * as MemcacheAdapterModule from './metrics-adapters/memcache.cts';
+import * as NoopAdapterModule from './metrics-adapters/noop';
+import * as MemcacheAdapterModule from './metrics-adapters/memcache';
 
 const NoopAdapter = (NoopAdapterModule as unknown as { default?: unknown }).default
     ? ((NoopAdapterModule as unknown as { default: unknown }).default as {

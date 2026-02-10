@@ -68,6 +68,20 @@
     - active runtime/tests continue to consume `shared/js/ws-close-codes-esm.ts`
   - Verification:
     - `bun run verify:modern:node22` -> pass
+- `2026-02-10T01:40Z` `done` Converted metrics adapter seams from `.cts` to `.ts` ESM and aligned runtime import path.
+  - Scope:
+    - `server/js/metrics-adapters/noop.cts` -> `server/js/metrics-adapters/noop.ts`
+    - `server/js/metrics-adapters/memcache.cts` -> `server/js/metrics-adapters/memcache.ts`
+    - update `server/js/metrics-runtime.ts` imports and project include coverage
+  - Acceptance criteria:
+    - metrics runtime behavior unchanged across disabled/invalid/init-failed/ready/unavailable paths
+    - full modern verify lane remains green
+  - Evidence:
+    - adapter modules now export ESM default + named `create*` helpers
+    - `server/js/metrics-runtime.ts` consumes ESM adapter modules
+    - updated `tsconfig.typecheck.json`, `tsconfig.typecheck-server-esm.json`, `tsconfig.typecheck-runtime.json`
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
 
 ## Delta Update (2026-02-10 direct Tiled JSON runtime cutover project)
 

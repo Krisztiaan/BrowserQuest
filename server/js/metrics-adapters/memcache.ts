@@ -4,7 +4,11 @@ interface MetricsAdapter {
     [key: string]: unknown;
 }
 
-const Metrics = require('../metrics') as new (config: unknown, options?: unknown) => MetricsAdapter;
+import * as MetricsModule from '../metrics.cts';
+
+const Metrics = ((MetricsModule as unknown as { default?: unknown }).default
+    ? (MetricsModule as unknown as { default: unknown }).default
+    : MetricsModule) as new (config: unknown, options?: unknown) => MetricsAdapter;
 
 interface MemcacheAdapterOptions {
     onReady?: () => void;
@@ -33,6 +37,8 @@ function createMemcacheMetricsAdapter(
     return metrics;
 }
 
-module.exports = {
-    createMemcacheMetricsAdapter: createMemcacheMetricsAdapter,
+export { createMemcacheMetricsAdapter };
+
+export default {
+    createMemcacheMetricsAdapter,
 };

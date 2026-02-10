@@ -43,6 +43,8 @@ function createNoopMetricsAdapter(meta?: NoopMeta): unknown {
     };
 }
 
-module.exports = {
-    createNoopMetricsAdapter: createNoopMetricsAdapter,
+export { createNoopMetricsAdapter };
+
+export default {
+    createNoopMetricsAdapter,
 };
