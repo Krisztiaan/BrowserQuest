@@ -9,7 +9,7 @@ const BunRuntime = globalThis['Bun'];
 const log = Log.getLogger();
 const useBison = false;
 
-function parseRequestPathname(requestUrl) {
+function parseRequestPathname(requestUrl: string | URL) {
     try {
         return new URL(requestUrl, 'http://localhost').pathname;
     } catch (_) {
@@ -17,7 +17,7 @@ function parseRequestPathname(requestUrl) {
     }
 }
 
-function appendFields(baseFields, extraFields) {
+function appendFields(baseFields: Record<string, unknown>, extraFields?: Record<string, unknown>) {
     if (!extraFields) {
         return baseFields;
     }
@@ -29,7 +29,12 @@ function appendFields(baseFields, extraFields) {
     return baseFields;
 }
 
-function logConnectionEvent(level, eventName, connection, extraFields) {
+function logConnectionEvent(
+    level: string,
+    eventName: string,
+    connection: { id: string; remoteAddress: string },
+    extraFields?: Record<string, unknown>
+) {
     log.event(
         level,
         eventName,
@@ -53,7 +58,7 @@ const runtimeClasses = createWebSocketRuntimeClasses({
             on() {}
         },
     },
-    createHttpServer: (requestHandler) => ({
+    createHttpServer: (requestHandler: (request: Request, server: unknown) => Response | undefined) => ({
         listen() {
             void requestHandler;
         },
@@ -78,7 +83,7 @@ class BunSocketAdapter {
         this.#handlers[event] = handler;
     }
 
-    emit(event, ...args) {
+    emit(event: string, ...args: unknown[]) {
         if (this.#handlers[event]) {
             this.#handlers[event](...args);
         }
@@ -116,20 +121,24 @@ class MultiVersionWebsocketServer {
                 if (requestPath === '/status' && this.status_callback) {
                     return new Response(this.status_callback(), { status: 200 });
                 }
-                if ((server as { upgrade: (request: Request, options?: unknown) => boolean }).upgrade(request, {
-                    data: { remoteAddress: this.#resolveRemoteAddress(server, request) },
-                })) {
+                if (
+                    (server as { upgrade: (request: Request, options?: unknown) => boolean }).upgrade(request, {
+                        data: { remoteAddress: this.#resolveRemoteAddress(server, request) },
+                    })
+                ) {
                     return undefined;
                 }
                 return new Response('Not Found', { status: 404 });
             },
             websocket: {
-                open: (socket: { data?: { remoteAddress?: unknown }; send(data: unknown): void; close(code?: number, reason?: string): void }) => {
+                open: (socket: {
+                    data?: { remoteAddress?: unknown };
+                    send(data: unknown): void;
+                    close(code?: number, reason?: string): void;
+                }) => {
                     const adapter = new BunSocketAdapter(socket);
                     this._socketAdapters.set(socket as unknown as object, adapter);
-                    const remoteAddress = socket.data?.remoteAddress
-                        ? String(socket.data.remoteAddress)
-                        : 'unknown';
+                    const remoteAddress = socket.data?.remoteAddress ? String(socket.data.remoteAddress) : 'unknown';
                     const connection = new wsWebSocketConnection(this.#createId(), adapter, this, remoteAddress);
                     this.addConnection(connection);
                     if (this.connection_callback) {
@@ -191,7 +200,9 @@ class MultiVersionWebsocketServer {
         this.status_callback = status_callback;
     }
 
-    forEachConnection(callback: (connection: { id: string; send(message: unknown): void }, connectionId: string) => void) {
+    forEachConnection(
+        callback: (connection: { id: string; send(message: unknown): void }, connectionId: string) => void
+    ) {
         Object.keys(this._connections).forEach((connectionId) => {
             callback(this._connections[connectionId], connectionId);
         });

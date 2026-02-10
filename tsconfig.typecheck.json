@@ -61,7 +61,6 @@
     "server/js/main.ts",
     "server/js/worldserver-types.ts",
     "shared/js/protocol-contract-types.ts",
-    "server/js/**/*.cts",
-    "shared/js/**/*.cts"
+    "shared/js/protocol-contract-types.ts"
   ]
 }

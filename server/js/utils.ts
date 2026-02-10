@@ -1,19 +1,19 @@
 import Types from '../../shared/js/gametypes-esm';
 
 const Utils = {
-    sanitize(string) {
+    sanitize(string: string) {
         return this.escapeHTML(String(string ?? '')).replace(/[\u0000-\u001F\u007F]/g, '');
     },
 
-    utf8ByteLength(string) {
+    utf8ByteLength(string: string) {
         return Buffer.byteLength(String(string ?? ''), 'utf8');
     },
 
-    hasMaxUtf8Bytes(string, maxBytes) {
+    hasMaxUtf8Bytes(string: string, maxBytes: number) {
         return this.utf8ByteLength(string) <= maxBytes;
     },
 
-    limitUtf8Bytes(string, maxBytes) {
+    limitUtf8Bytes(string: string, maxBytes: number) {
         const input = String(string ?? '');
         let output = '';
         let byteCount = 0;
@@ -30,7 +30,7 @@ const Utils = {
         return output;
     },
 
-    limitCodePoints(string, maxCodePoints) {
+    limitCodePoints(string: string, maxCodePoints: number) {
         const input = String(string ?? '');
         let output = '';
         let count = 0;
@@ -46,7 +46,7 @@ const Utils = {
         return output;
     },
 
-    escapeHTML(string) {
+    escapeHTML(string: string) {
         return String(string)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -55,19 +55,19 @@ const Utils = {
             .replace(/'/g, '&#39;');
     },
 
-    random(range) {
+    random(range: number) {
         return Math.floor(Math.random() * range);
     },
 
-    randomRange(min, max) {
+    randomRange(min: number, max: number) {
         return min + Math.random() * (max - min);
     },
 
-    randomInt(min, max) {
+    randomInt(min: number, max: number) {
         return min + Math.floor(Math.random() * (max - min + 1));
     },
 
-    clamp(min, max, value) {
+    clamp(min: number, max: number, value: number) {
         if (value < min) {
             return min;
         }
@@ -85,7 +85,7 @@ const Utils = {
         return Types.Orientations.DOWN;
     },
 
-    Mixin(target, source) {
+    Mixin(target: Record<string, unknown>, source: Record<string, unknown>) {
         if (source) {
             for (let key, keys = Object.keys(source), l = keys.length; l--; ) {
                 key = keys[l];
@@ -98,7 +98,7 @@ const Utils = {
         return target;
     },
 
-    distanceTo(x, y, x2, y2) {
+    distanceTo(x: number, y: number, x2: number, y2: number) {
         const distX = Math.abs(x - x2);
         const distY = Math.abs(y - y2);
 

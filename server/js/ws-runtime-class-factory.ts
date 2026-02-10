@@ -1,9 +1,6 @@
 import { WS_EVENT_NAMES } from './server-event-names';
+import { WebSocketRuntimeClasses, WebSocketRuntimeFactoryDeps } from './ws-runtime-class-factory-types';
 
-/**
- * @param {import('./ws-runtime-class-factory-types').WebSocketRuntimeFactoryDeps} deps
- * @returns {import('./ws-runtime-class-factory-types').WebSocketRuntimeClasses}
- */
 export function createWebSocketRuntimeClasses({
     log,
     Utils,
@@ -14,7 +11,7 @@ export function createWebSocketRuntimeClasses({
     parseUrlPathname,
     logConnectionEvent,
     useBison = false,
-}) {
+}: WebSocketRuntimeFactoryDeps): WebSocketRuntimeClasses {
     /**
      * @param {unknown} request
      * @returns {string}
@@ -81,9 +78,9 @@ export function createWebSocketRuntimeClasses({
         _connection;
         _server;
         id;
-        remoteAddress;
-        close_callback;
-        listen_callback;
+        remoteAddress: string;
+        close_callback?: () => void;
+        listen_callback?: (action: unknown) => void;
 
         constructor(id, connection, server, remoteAddress) {
             this._connection = connection;
