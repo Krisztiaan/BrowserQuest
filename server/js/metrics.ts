@@ -1,24 +1,10 @@
-const MetricsClient = require('./metrics-client') as {
-    createMetricsClient(
-        memcacheModule: unknown,
-        config: MetricsConfig,
-        hooks: {
-            onReady?: () => void;
-            onError?: (error: unknown) => void;
-            onOperationError?: (details: { operation?: string; key?: string; error?: string }) => void;
-        }
-    ): MetricsClientAdapter;
-};
-
-const Log = require('./log') as {
-    getLogger(): {
-        info(...args: unknown[]): void;
-        error(...args: unknown[]): void;
-    };
-};
+import { createRequire } from 'node:module';
+import MetricsClient from './metrics-client';
+import Log from './log-esm';
 
 const log = Log.getLogger();
 const MEMCACHE_MODULE_NAME = 'memcache';
+const require = createRequire(import.meta.url);
 
 interface MetricsConfig {
     memcached_host: string;
@@ -191,4 +177,4 @@ class Metrics {
     }
 }
 
-module.exports = Metrics;
+export default Metrics;

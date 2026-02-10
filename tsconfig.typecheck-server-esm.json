@@ -12,6 +12,8 @@
     "server/js/main-runtime.ts",
     "server/js/config-preflight.ts",
     "server/js/metrics-runtime.ts",
+    "server/js/metrics.ts",
+    "server/js/metrics-client.ts",
     "server/js/metrics-adapters/*.ts",
     "server/js/server-event-names.ts",
     "server/js/*-esm.ts",

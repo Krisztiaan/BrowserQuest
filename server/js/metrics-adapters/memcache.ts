@@ -4,7 +4,7 @@ interface MetricsAdapter {
     [key: string]: unknown;
 }
 
-import * as MetricsModule from '../metrics.cts';
+import * as MetricsModule from '../metrics';
 
 const Metrics = ((MetricsModule as unknown as { default?: unknown }).default
     ? (MetricsModule as unknown as { default: unknown }).default

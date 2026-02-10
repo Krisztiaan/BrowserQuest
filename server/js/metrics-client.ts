@@ -1,4 +1,4 @@
-type Operation = "write" | "read";
+type Operation = 'write' | 'read';
 
 interface MetricsConfig {
     memcached_port: string | number;
@@ -32,7 +32,7 @@ interface MemcacheModuleShape {
 }
 
 interface MetricsClientAdapter {
-    clientType: "modern";
+    clientType: 'modern';
     connect(): void;
     set(key: string, value: unknown, callback: (ok: boolean) => void): void;
     get(key: string, callback: (result: unknown) => void): void;
@@ -40,7 +40,7 @@ interface MetricsClientAdapter {
 
 function normalizeError(error: unknown): string {
     if (!error) {
-        return "unknown_error";
+        return 'unknown_error';
     }
     if (
         typeof error === "object" &&
@@ -58,31 +58,27 @@ function createMetricsClient(
     config: MetricsConfig,
     hooks: MetricsClientHooks = {}
 ): MetricsClientAdapter {
-    const onReady =
-        typeof hooks.onReady === "function" ? hooks.onReady : () => {};
-    const onError =
-        typeof hooks.onError === "function" ? hooks.onError : () => {};
+    const onReady = typeof hooks.onReady === 'function' ? hooks.onReady : () => {};
+    const onError = typeof hooks.onError === 'function' ? hooks.onError : () => {};
     const onOperationError =
-        typeof hooks.onOperationError === "function"
-            ? hooks.onOperationError
-            : () => {};
+        typeof hooks.onOperationError === 'function' ? hooks.onOperationError : () => {};
 
     const ModernClient = memcacheModule?.Memcache || memcacheModule?.default;
 
     if (typeof ModernClient !== "function") {
-        throw new Error("Unsupported memcache client API");
+        throw new Error('Unsupported memcache client API');
     }
 
     const modernClient = new ModernClient(
         `${config.memcached_host}:${config.memcached_port}`
     );
-    if (typeof modernClient.on === "function") {
-        modernClient.on("connect", onReady);
-        modernClient.on("error", onError);
+    if (typeof modernClient.on === 'function') {
+        modernClient.on('connect', onReady);
+        modernClient.on('error', onError);
     }
 
     return {
-        clientType: "modern",
+        clientType: 'modern',
         connect() {
             Promise.resolve(modernClient.connect())
                 .then(onReady)
@@ -97,7 +93,7 @@ function createMetricsClient(
                 })
                 .catch((error) => {
                     onOperationError({
-                        operation: "write",
+                        operation: 'write',
                         key,
                         error: normalizeError(error),
                     });
@@ -111,7 +107,7 @@ function createMetricsClient(
                 })
                 .catch((error) => {
                     onOperationError({
-                        operation: "read",
+                        operation: 'read',
                         key,
                         error: normalizeError(error),
                     });
@@ -121,6 +117,5 @@ function createMetricsClient(
     };
 }
 
-module.exports = {
-    createMetricsClient,
-};
+export { createMetricsClient };
+export default { createMetricsClient };

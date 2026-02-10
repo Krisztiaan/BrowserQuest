@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const MetricsClient = require('../../server/js/metrics-client');
+import MetricsClient from '../../server/js/metrics-client';
 
 type MetricsConfig = {
     memcached_host: string;

@@ -7,6 +7,7 @@
 - `T-401.1` Convert server startup/runtime entry modules from `.cts`/`require` style to pure `.ts` ESM exports/imports: `done`
 - `T-401.2` Consolidate config preflight logic to a single ESM TypeScript source and remove `.cts` duplicate: `done`
 - `T-401.3` Convert metrics runtime module from `.cts` to `.ts` ESM and align runtime/tests/typecheck wiring: `done`
+- `T-401.5` Convert metrics core modules (`server/js/metrics`, `server/js/metrics-client`) from `.cts` to `.ts` ESM and align adapter/test wiring: `done`
 - `T-401.4` Continue full server graph convergence (`worldserver`/`player`/entity modules + shared `.cts` seams): `in_progress`
 
 ### Live progress log
@@ -80,6 +81,23 @@
     - adapter modules now export ESM default + named `create*` helpers
     - `server/js/metrics-runtime.ts` consumes ESM adapter modules
     - updated `tsconfig.typecheck.json`, `tsconfig.typecheck-server-esm.json`, `tsconfig.typecheck-runtime.json`
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+- `2026-02-10T01:53Z` `done` Completed metrics core ESM convergence (`T-401.5`) and re-verified full modern lane.
+  - Scope:
+    - `server/js/metrics-client.cts` -> `server/js/metrics-client.ts`
+    - `server/js/metrics.cts` -> `server/js/metrics.ts`
+    - align adapter import path to `server/js/metrics.ts`
+    - update metrics unit tests/imports and TypeScript include inventories
+  - Acceptance criteria:
+    - metrics core and client modules run from ESM `.ts` sources
+    - behavior parity for connect/setup/update/unavailable paths
+    - `bun run verify:modern:node22` passes
+  - Evidence:
+    - metrics modules now export ESM default/named contracts
+    - memcache optional runtime loading preserved via `node:module` `createRequire(import.meta.url)` in `server/js/metrics.ts`
+    - updated tests: `tests/unit/metrics-client.test.ts`, `tests/unit/server-metrics-esm.test.ts`
+    - updated typecheck configs: `tsconfig.typecheck.json`, `tsconfig.typecheck-server-esm.json`, `tsconfig.typecheck-runtime.json`
   - Verification:
     - `bun run verify:modern:node22` -> pass
 
