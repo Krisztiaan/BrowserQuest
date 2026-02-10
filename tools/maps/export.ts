@@ -1,10 +1,13 @@
 import { DEFAULT_TILED_SOURCE_PATH, syncRuntimeMaps, type RuntimeMapTarget } from "./runtime-sync";
 
-const modeArg = (Bun.argv[2] || "both").toLowerCase();
-const sourcePath = Bun.argv[3] || DEFAULT_TILED_SOURCE_PATH;
+const rawArgs = Bun.argv.slice(2);
+const quiet = rawArgs.includes("--quiet") || rawArgs.includes("-q");
+const positionalArgs = rawArgs.filter((arg) => arg !== "--quiet" && arg !== "-q");
+const modeArg = (positionalArgs[0] || "both").toLowerCase();
+const sourcePath = positionalArgs[1] || DEFAULT_TILED_SOURCE_PATH;
 
 function printUsage(): void {
-    console.log("Usage : bun ./export.ts [client|server|both] [source_tiled_json_path]");
+    console.log("Usage : bun ./export.ts [client|server|both] [source_tiled_json_path] [--quiet]");
     console.log("Defaults: mode=both, source=tiled/world.json");
 }
 
@@ -22,7 +25,7 @@ async function main(): Promise<void> {
         process.exit(1);
     }
 
-    await syncRuntimeMaps({ sourcePath, target });
+    await syncRuntimeMaps({ sourcePath, target, quiet });
 }
 
 main().catch((error) => {

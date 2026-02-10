@@ -1,5 +1,37 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 quiet map-export prestep in verify lane)
+
+### Ticket status
+
+- `T-344.1` Add `--quiet` support to map exporter CLI: `done`
+- `T-344.2` Switch modern verify pre-step to quiet direct exporter invocation: `done`
+- `T-344.3` Verify modern lane after CLI/script update: `done`
+
+### Live progress log
+
+- `2026-02-10T00:12Z` `in_progress` Started verify-output hygiene pass to keep deterministic map-export pre-step while reducing noisy exporter logs.
+  - Scope:
+    - add optional `--quiet` (`-q`) support to `tools/maps/export.ts`
+    - update `verify:modern` to invoke quiet exporter pre-step
+  - Out of scope:
+    - map export behavior/schema changes
+  - Acceptance criteria:
+    - `tools/maps/export.ts ... --quiet` runs successfully
+    - `verify:modern` begins with quiet map export pre-step
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:13Z` `done` Completed quiet map-export verify pre-step update and re-verified full modern lane.
+  - Evidence:
+    - updated `tools/maps/export.ts`:
+      - parses `--quiet` / `-q`
+      - passes `quiet` through to `syncRuntimeMaps`
+    - updated `package.json`:
+      - `verify:modern` now starts with `bun tools/maps/export.ts both --quiet`
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 authored `.js` elimination in active repo surface)
 
 ### Ticket status
