@@ -34,10 +34,11 @@ You can also export a single target:
 - `bun run map:export:client`
 - `bun run map:export:server`
 
-For full-stack dev, runtime map sync is now Vite-native:
+Active runtime paths now consume Tiled source directly:
 
-- `bun run dev` performs an initial map sync before server start.
-- Vite dev server re-syncs runtime maps when `tools/maps/tiled/world.json` changes.
+- Client runtime loads `tools/maps/tiled/world.json` and transforms it in-browser.
+- Server runtime loads `tools/maps/tiled/world.json` and transforms it on load.
+- `map:export` is optional utility output, not an active runtime prerequisite.
 
 Terrain/Wang metadata artifacts can be refreshed explicitly:
 
@@ -57,12 +58,12 @@ For editor-native automapping + export in one step:
 Things to know
 --------------
 
-The client map export creates `generated/maps/world_client.json`.
+The client map export writes `generated/maps/world_client.json` (optional utility output).
 
 The client map file contains data about terrain tile layers, collision cells, doors, music areas, etc.
 The server map file contains data about static entity spawning points, spawning areas, collision cells, etc.
 
-Depending on what you want to change, it's therefore not always needed to export both maps. Also, each `generated/maps/world_server.json` file change requires a server restart.
+Depending on what you want to change, it's therefore not always needed to export both maps.
 
 **How the exporting process works:**
 

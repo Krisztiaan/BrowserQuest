@@ -6,9 +6,9 @@ Modern-only mode is active.
 
 - No legacy client/runtime support.
 - No rollback CJS server entry support.
-- Runtime map artifacts are synced by active modern lanes (Vite serve/build hooks + map export tooling).
+- Runtime consumes canonical Tiled source JSON directly (`tools/maps/tiled/world.json`) for client and server map loading.
 - Vite build outputs are under `dist/**`.
-- Generated runtime map artifacts are under `generated/maps/**` and are auto-synced in modern lanes.
+- `map:export` tooling remains optional utility and is no longer an active dev/build/verify prerequisite.
 
 ## Runtime Baseline
 

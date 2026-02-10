@@ -68,7 +68,7 @@ test('esm server entry fails fast with esm preflight error for invalid config', 
             debug_level: 'info',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './generated/maps/world_server.json',
+            map_filepath: './tools/maps/tiled/world.json',
             metrics_enabled: false,
         })
     );

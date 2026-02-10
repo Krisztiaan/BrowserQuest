@@ -3,8 +3,7 @@ import log from './compat/log';
 import Types from './compat/gametypes';
 import { isInt } from './compat/util';
 import { resolveImageAssetPath } from './image-assets';
-
-const generatedMapUrl = new URL("../../generated/maps/world_client.json", import.meta.url).href;
+import { fetchClientRuntimeMap } from './map-source';
 
 class Map {
     [key: string]: any;
@@ -49,16 +48,10 @@ class Map {
                 self._checkReady();
             };
         } else {
-            log.info("Loading map via generated map asset URL.");
-            fetch(generatedMapUrl)
-                .then(function(response) {
-                    if(!response.ok) {
-                        throw new Error("Map request failed with status " + response.status);
-                    }
-                    return response.json();
-                })
-                .then(function(data) {
-                    self._initMap(data);
+            log.info("Loading map via Tiled world JSON runtime transform.");
+            fetchClientRuntimeMap()
+                .then(function(runtimeMap) {
+                    self._initMap(runtimeMap);
                     self._generateCollisionGrid();
                     self._generatePlateauGrid();
                     self.mapLoaded = true;

@@ -7,9 +7,11 @@
   },
   "include": [
     "client/js-esm/**/*.ts",
+    "tools/maps/processmap.ts",
     "shared/js/connection-status.ts",
     "shared/js/entity-kind-domain.ts",
     "shared/js/protocol-contract-types.ts",
+    "shared/js/gametypes-esm.ts",
     "shared/js/gametypes-browser.ts"
   ]
 }

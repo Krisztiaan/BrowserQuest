@@ -1,8 +1,3 @@
-import { syncRuntimeMaps } from "./maps/runtime-sync";
-
-await syncRuntimeMaps({ quiet: true });
-console.log("[dev:vite:full] Runtime maps synced.");
-
 const serverProc = Bun.spawn({
   cmd: ["bun", "server/js/main-esm.ts"],
   stdout: "inherit",

@@ -46,6 +46,16 @@ interface MapDefinition {
     checkpoints?: CheckpointDefinition[];
 }
 
+interface ProcessMapContract {
+    default: (
+        json: unknown,
+        options: {
+            mode?: string;
+            quiet?: boolean;
+        }
+    ) => unknown;
+}
+
 const Checkpoint = require('./checkpoint') as new (
     id: number | string,
     x: number,
@@ -55,6 +65,69 @@ const Checkpoint = require('./checkpoint') as new (
 ) => CheckpointContract;
 
 const log = Log.getLogger();
+const mapDefinitionCache = new globalThis.Map<string, Promise<MapDefinition | null>>();
+
+function cloneMapDefinition(mapDefinition: MapDefinition): MapDefinition {
+    if (typeof structuredClone === 'function') {
+        return structuredClone(mapDefinition) as MapDefinition;
+    }
+    return JSON.parse(JSON.stringify(mapDefinition)) as MapDefinition;
+}
+
+function isTiledMapSource(payload: unknown): payload is { layers: unknown[] } {
+    return (
+        typeof payload === 'object' &&
+        payload !== null &&
+        'layers' in payload &&
+        Array.isArray((payload as { layers?: unknown }).layers)
+    );
+}
+
+async function normalizeMapDefinition(rawMap: unknown): Promise<MapDefinition> {
+    if (!isTiledMapSource(rawMap)) {
+        return rawMap as MapDefinition;
+    }
+
+    const processMapModule = (await import('../../tools/maps/processmap')) as unknown as ProcessMapContract;
+    return processMapModule.default(rawMap, { mode: 'server', quiet: true }) as MapDefinition;
+}
+
+async function readAndNormalizeMapDefinition(filepath: string): Promise<MapDefinition | null> {
+    try {
+        await fs.access(filepath);
+    } catch (_) {
+        log.error(filepath + " doesn't exist.");
+        return null;
+    }
+
+    let file: string;
+    try {
+        file = await fs.readFile(filepath, 'utf8');
+    } catch (_) {
+        log.error('Could not read map file: ' + filepath);
+        return null;
+    }
+
+    try {
+        const parsed = JSON.parse(file) as unknown;
+        return await normalizeMapDefinition(parsed);
+    } catch (parseErr: unknown) {
+        const parseMessage = parseErr instanceof Error ? parseErr.message : String(parseErr);
+        log.error('Invalid map JSON: ' + filepath + ' (' + parseMessage + ')');
+        return null;
+    }
+}
+
+function getMapDefinition(filepath: string): Promise<MapDefinition | null> {
+    const cached = mapDefinitionCache.get(filepath);
+    if (cached) {
+        return cached;
+    }
+
+    const pending = readAndNormalizeMapDefinition(filepath);
+    mapDefinitionCache.set(filepath, pending);
+    return pending;
+}
 
 class Map {
     isLoaded: boolean;
@@ -98,28 +171,11 @@ class Map {
     }
 
     async loadMap(filepath: string): Promise<void> {
-        try {
-            await fs.access(filepath);
-        } catch (_) {
-            log.error(filepath + " doesn't exist.");
+        const mapDefinition = await getMapDefinition(filepath);
+        if (!mapDefinition) {
             return;
         }
-
-        let file: string;
-        try {
-            file = await fs.readFile(filepath, 'utf8');
-        } catch (_) {
-            log.error('Could not read map file: ' + filepath);
-            return;
-        }
-
-        try {
-            const json = JSON.parse(file) as MapDefinition;
-            this.initMap(json);
-        } catch (parseErr: unknown) {
-            const parseMessage = parseErr instanceof Error ? parseErr.message : String(parseErr);
-            log.error('Invalid map JSON: ' + filepath + ' (' + parseMessage + ')');
-        }
+        this.initMap(cloneMapDefinition(mapDefinition));
     }
 
     initMap(map: MapDefinition): void {

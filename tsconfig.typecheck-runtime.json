@@ -52,6 +52,9 @@
     "server/js/worldserver.cts",
     "server/js/config-preflight.cts",
     "server/js/ws-runtime-class-factory.cts",
-    "server/js/lib/class.cts"
+    "server/js/lib/class.cts",
+    "tools/maps/processmap.ts",
+    "shared/js/gametypes-esm.ts",
+    "shared/js/gametypes-browser.ts"
   ]
 }

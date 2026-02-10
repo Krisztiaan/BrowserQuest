@@ -6,7 +6,7 @@ The game server runtime baseline is Node.js `22.x` (recommended) or Bun `>= 1.3.
 Dependencies are managed at the repository root via Bun:
 
 - Install: `bun install`
-- Run: `bun run start:server` (or `bun server/js/main.js`)
+- Run: `bun run start:server` (or `bun server/js/main-esm.ts`)
 
 
 Configuration
@@ -37,7 +37,7 @@ Example (metrics disabled, default-safe):
   "debug_level": "info",
   "nb_players_per_world": 200,
   "nb_worlds": 5,
-  "map_filepath": "./generated/maps/world_server.json",
+  "map_filepath": "./tools/maps/tiled/world.json",
   "metrics_enabled": false
 }
 ```
@@ -50,7 +50,7 @@ Example (metrics enabled):
   "debug_level": "info",
   "nb_players_per_world": 200,
   "nb_worlds": 5,
-  "map_filepath": "./generated/maps/world_server.json",
+  "map_filepath": "./tools/maps/tiled/world.json",
   "metrics_enabled": true,
   "memcached_host": "127.0.0.1",
   "memcached_port": 11211,
@@ -98,7 +98,7 @@ Deployment
 
 In order to deploy the server, simply copy the `server` and `shared` directories to the staging/production server.
 
-Then run `node server/js/main.js` in order to start the server.
+Then run `bun server/js/main-esm.ts` in order to start the server.
 
 
 Note: the `shared` directory is the only one in the project which is a server dependency.

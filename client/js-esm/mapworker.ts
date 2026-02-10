@@ -1,4 +1,4 @@
-const generatedMapUrl = new URL("../../generated/maps/world_client.json", import.meta.url).href;
+import { fetchClientRuntimeMap } from "./map-source";
 
 type WorkerMap = {
   width: number;
@@ -66,20 +66,14 @@ function generatePlateauGrid(map: WorkerMap): void {
 }
 
 self.onmessage = function onmessage(): void {
-  void fetch(generatedMapUrl)
-    .then((response) => {
-      if (!response.ok) {
-        throw new Error(`Map request failed with status ${response.status}`);
-      }
-      return response.json() as Promise<WorkerMap>;
-    })
-    .then((map) => {
+  void fetchClientRuntimeMap()
+    .then((map: WorkerMap) => {
       generateCollisionGrid(map);
       generatePlateauGrid(map);
       self.postMessage(map);
     })
     .catch((error) => {
       const message = error instanceof Error ? error.message : String(error);
-      throw new Error(`Failed to load generated map JSON: ${message}`);
+      throw new Error(`Failed to load runtime map from Tiled source: ${message}`);
     });
 };

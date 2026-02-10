@@ -18,6 +18,7 @@ const retiredServerEsmRuntimeCoverageCheckerPath = path.join(
 );
 const rootIndexPath = path.join(repoRoot, 'index.html');
 const viteConfigPath = path.join(repoRoot, 'vite.config.ts');
+const serverConfigPath = path.join(repoRoot, 'server', 'config.json');
 const docsRoot = path.join(repoRoot, 'docs');
 const docsArchiveRoot = path.join(docsRoot, 'archive');
 
@@ -67,6 +68,10 @@ if (packageJson.type !== 'module') {
 const verifyModern = packageJson.scripts?.['verify:modern'];
 if (typeof verifyModern !== 'string' || !verifyModern.includes('check:package-mode-boundaries')) {
   fail('script "verify:modern" must include check:package-mode-boundaries');
+}
+
+if (verifyModern.includes('tools/maps/export.ts')) {
+  fail('script "verify:modern" must not run generated map export pre-step after direct Tiled runtime cutover');
 }
 
 if (typeof packageJson.scripts?.['verify:legacy'] === 'string') {
@@ -137,6 +142,18 @@ if (readUtf8(viteConfigPath).includes('browserquest-root-redirect')) {
   fail('vite config must not include browserquest-root-redirect middleware after static root-index cutover');
 }
 
+const viteConfigSource = readUtf8(viteConfigPath);
+if (
+  viteConfigSource.includes('browserquest-map-runtime-sync') ||
+  viteConfigSource.includes('syncRuntimeMaps(')
+) {
+  fail('vite config must not include generated-map sync plugins after direct Tiled runtime cutover');
+}
+
+if (!readUtf8(serverConfigPath).includes('"map_filepath": "./tools/maps/tiled/world.json"')) {
+  fail('server/config.json must default map_filepath to ./tools/maps/tiled/world.json');
+}
+
 const docsRootEntries = fs.existsSync(docsRoot) ? fs.readdirSync(docsRoot, { withFileTypes: true }) : [];
 const legacyRootDocs = docsRootEntries
   .filter((entry) => entry.isFile() && /^legacy-.*\.md$/.test(entry.name))
@@ -160,5 +177,5 @@ if (archivedNoteOffenders.length > 0) {
 }
 
 process.stdout.write(
-  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet/client alias drift checker/client runtime coverage checker/server esm runtime coverage checker/custom root redirect middleware retired)\n',
+  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet/client alias drift checker/client runtime coverage checker/server esm runtime coverage checker/custom root redirect middleware/generated-map sync middleware retired; direct Tiled runtime lane active)\n',
 );

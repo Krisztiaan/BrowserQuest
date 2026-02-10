@@ -1,5 +1,60 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 direct Tiled JSON runtime cutover project)
+
+### Ticket status
+
+- `T-400.1` Ticketize and log the direct Tiled JSON runtime cutover plan with acceptance and verification gates: `done`
+- `T-400.2` Client runtime map cutover from generated JSON artifacts to direct Tiled JSON + runtime transformation: `done`
+- `T-400.3` Server runtime map cutover from generated JSON artifacts to direct Tiled JSON + runtime transformation: `done`
+- `T-400.4` Retire generated-map sync from active modern lanes, refresh docs/guards, and run full verification: `done`
+
+### Live progress log
+
+- `2026-02-10T00:47Z` `in_progress` Started bigger modernization project after pushing branch head, focused on eliminating generated map artifacts from active runtime/dev/build lanes.
+  - Scope:
+    - consume `tools/maps/tiled/world.json` directly in client + server runtime paths
+    - run map transformation at runtime (client mode / server mode) using shared `processMap` implementation
+    - remove active verify/build/dev dependency on generated map export synchronization
+  - Out of scope:
+    - changing gameplay semantics, map content, or Tiled editing schema
+    - deleting map export tooling in this slice (it may remain as optional utility)
+  - Acceptance criteria:
+    - client runtime no longer fetches `generated/maps/world_client.json`
+    - server runtime can load Tiled world JSON directly through existing `map_filepath` contract
+    - `verify:modern` no longer runs generated map export pre-step
+    - Vite config no longer auto-syncs generated runtime map artifacts on serve/build
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - static scan for `generated/maps/world_client.json` runtime references
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - dependency: `tools/maps/processmap.ts` must remain browser-bundle compatible
+    - dependency: server map loader path must preserve existing runtime map contract after transformation
+- `2026-02-10T00:52Z` `done` Completed direct Tiled JSON runtime cutover across client/server and retired generated-map sync from active modern lanes.
+  - Evidence:
+    - client runtime cutover:
+      - added `client/js-esm/map-source.ts` (fetches `tools/maps/tiled/world.json` and transforms with `processMap(..., { mode: 'client', quiet: true })`)
+      - updated `client/js-esm/map.ts` to load runtime map from Tiled source transform path
+      - updated `client/js-esm/mapworker.ts` to use Tiled source transform path
+    - server runtime cutover:
+      - updated `server/js/map.cts` to detect Tiled source JSON (`layers`) and transform via `processMap(..., { mode: 'server', quiet: true })`
+      - added per-filepath normalized map cache in `server/js/map.cts` to avoid repeated transform work across world instances
+      - updated default and test config map path targets to `./tools/maps/tiled/world.json`
+    - active lane retirement of generated-map sync:
+      - removed map-export pre-step from `package.json` `verify:modern`
+      - removed Vite generated-map sync plugins/imports from `vite.config.ts`
+      - removed dev pre-sync from `tools/dev-vite.ts`
+      - updated active docs (`README.md`, `docs/client-build-support.md`, `tools/maps/README.md`, `server/README.md`)
+      - hardened `tools/check-package-mode-boundaries.ts`:
+        - fails if `verify:modern` reintroduces generated map export pre-step
+        - fails if Vite config reintroduces generated-map sync middleware
+        - enforces `server/config.json` default map path as `./tools/maps/tiled/world.json`
+    - typecheck project alignment:
+      - updated `tsconfig.typecheck-client-runtime.json` and `tsconfig.typecheck-runtime.json` includes for `tools/maps/processmap.ts` + `shared/js/gametypes-esm.ts` transitive usage
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 root static index redirect cutover)
 
 ### Ticket status

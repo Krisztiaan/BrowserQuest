@@ -55,7 +55,7 @@
     "test:modern-browser:node22": "bun tools/node22-run.ts bun run test:modern-browser",
     "test:modern-browser:install": "playwright install chromium",
     "verify": "bun run verify:modern",
-    "verify:modern": "bun tools/maps/export.ts both --quiet && bun run check:runtime && bun run check:server-shadow-hardening && bun run check:cts-require-const && bun run check:protocol-contract-esm-parity && bun run check:package-mode-boundaries && bun run check:runtime-esm-require-free && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:vite",
+    "verify:modern": "bun run check:runtime && bun run check:server-shadow-hardening && bun run check:cts-require-const && bun run check:protocol-contract-esm-parity && bun run check:package-mode-boundaries && bun run check:runtime-esm-require-free && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:vite",
     "verify:modern:node22": "bun tools/node22-run.ts bun run verify:modern",
     "test": "bun test --timeout 20000",
     "lint": "eslint \"tests/**/*.ts\" \"client/js-esm/**/*.ts\"",

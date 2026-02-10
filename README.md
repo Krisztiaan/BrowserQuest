@@ -42,10 +42,11 @@ Verification
 - test suite
 - Vite production build
 
-Map artifacts are synced automatically:
+Runtime map loading now consumes Tiled source JSON directly:
 
-- at dev startup and on `tools/maps/tiled/world.json` changes (Vite serve plugin)
-- at build start (`vite build` hook)
+- Client runtime loads `tools/maps/tiled/world.json` and transforms it in-browser.
+- Server runtime loads `tools/maps/tiled/world.json` and transforms it on load.
+- `bun run map:export` remains available as an optional utility, not an active verify/build prerequisite.
 
 There is no legacy/rollback support path in active scripts.
 
