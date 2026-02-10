@@ -27,7 +27,7 @@
     "shared/js/protocol-contract-esm.ts",
     "shared/js/ws-close-codes-esm.ts",
     "shared/js/gametypes.cts",
-    "shared/js/protocol-contract.cts",
+    "shared/js/protocol-contract.ts",
     "client/js-esm/protocol-payload.ts",
     "server/js/log.cts",
     "server/js/format.cts",

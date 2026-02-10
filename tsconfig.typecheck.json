@@ -32,6 +32,7 @@
     "client/js-esm/asset-key-domain.ts",
     "shared/js/connection-status.ts",
     "shared/js/entity-kind-domain.ts",
+    "shared/js/protocol-contract.ts",
     "client/js-esm/client-boundary-types.ts",
     "client/js-esm/protocol-payload.ts",
     "client/js-esm/compat/gametypes.ts",

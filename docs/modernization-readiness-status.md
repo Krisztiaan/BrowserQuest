@@ -9,6 +9,7 @@
 - `T-401.3` Convert metrics runtime module from `.cts` to `.ts` ESM and align runtime/tests/typecheck wiring: `done`
 - `T-401.5` Convert metrics core modules (`server/js/metrics`, `server/js/metrics-client`) from `.cts` to `.ts` ESM and align adapter/test wiring: `done`
 - `T-401.6` Remove dead websocket factory `.cts` shadow seam now that runtime uses native `.ts` factory source: `done`
+- `T-401.7` Consolidate shared protocol contract onto a single `.ts` source and retire `.cts` duplicate: `done`
 - `T-401.4` Continue full server graph convergence (`worldserver`/`player`/entity modules + shared `.cts` seams): `in_progress`
 
 ### Live progress log
@@ -112,6 +113,26 @@
     - deleted `server/js/ws-runtime-class-factory.cts`
     - removed `.cts` include from `tsconfig.typecheck-runtime.json`
     - websocket parity/factory/unit suites and full modern lane pass
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+- `2026-02-10T02:16Z` `done` Consolidated protocol contract implementation to a single `.ts` source (`T-401.7`) and re-verified full modern lane.
+  - Scope:
+    - `shared/js/protocol-contract.cts` -> `shared/js/protocol-contract.ts`
+    - `shared/js/protocol-contract-esm.ts` reduced to re-export shim over unified source
+    - update protocol contract unit tests + typecheck include inventory
+  - Acceptance criteria:
+    - protocol contract exports/parsing behavior unchanged
+    - parity checker and full modern verify lane remain green
+  - Evidence:
+    - created canonical `shared/js/protocol-contract.ts` implementation with typed exports
+    - removed legacy `.cts` duplicate
+    - updated tests:
+      - `tests/unit/protocol-contract-module.test.ts`
+      - `tests/unit/protocol-contract-types.test.ts`
+    - updated includes:
+      - `tsconfig.typecheck.json`
+      - `tsconfig.typecheck-server-esm.json`
+      - `tsconfig.typecheck-runtime.json`
   - Verification:
     - `bun run verify:modern:node22` -> pass
 
