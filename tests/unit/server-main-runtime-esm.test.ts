@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
+import * as MainRuntimeModule from '../../server/js/main-runtime';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const MainRuntime = require('../../server/js/main-runtime') as Record<string, unknown>;
+const MainRuntime = MainRuntimeModule as Record<string, unknown>;
 
 const expectedFunctions = [
     'main',

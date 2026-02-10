@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
+import * as MainRuntimeModule from '../../server/js/main-runtime';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const MainRuntime = require('../../server/js/main-runtime');
+const MainRuntime = MainRuntimeModule as any;
 
 test('main runtime server event emitter forwards structured events to logger', () => {
     const events: Array<{ level: string; eventName: string; fields: unknown }> = [];

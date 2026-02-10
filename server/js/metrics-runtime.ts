@@ -1,39 +1,38 @@
 import type { RuntimeEventName } from './server-event-names';
+import { SERVER_EVENT_NAMES } from './server-event-names';
+import Log from './log-esm';
+import * as NoopAdapterModule from './metrics-adapters/noop.cts';
+import * as MemcacheAdapterModule from './metrics-adapters/memcache.cts';
 
-const NoopAdapter = require('./metrics-adapters/noop') as {
-    createNoopMetricsAdapter(meta: Record<string, unknown>): unknown;
-};
+const NoopAdapter = (NoopAdapterModule as unknown as { default?: unknown }).default
+    ? ((NoopAdapterModule as unknown as { default: unknown }).default as {
+          createNoopMetricsAdapter(meta: Record<string, unknown>): unknown;
+      })
+    : (NoopAdapterModule as unknown as {
+          createNoopMetricsAdapter(meta: Record<string, unknown>): unknown;
+      });
 
-const MemcacheAdapter = require('./metrics-adapters/memcache') as {
-    createMemcacheMetricsAdapter(
-        config: MetricsConfig,
-        options: {
-            onReady: () => void;
-            onUnavailable: (reason: string, details?: Record<string, unknown>) => void;
-        }
-    ): unknown;
-};
-
-const Log = require('./log') as {
-    getLogger(): { error(...args: unknown[]): void };
-};
-const RuntimeEventNames = require('./server-event-names') as {
-    SERVER_EVENT_NAMES: {
-        METRICS_UNAVAILABLE: RuntimeEventName;
-        METRICS_READY: RuntimeEventName;
-    };
-};
+const MemcacheAdapter = (MemcacheAdapterModule as unknown as { default?: unknown }).default
+    ? ((MemcacheAdapterModule as unknown as { default: unknown }).default as {
+          createMemcacheMetricsAdapter(
+              config: MetricsConfig,
+              options: {
+                  onReady: () => void;
+                  onUnavailable: (reason: string, details?: Record<string, unknown>) => void;
+              }
+          ): unknown;
+      })
+    : (MemcacheAdapterModule as unknown as {
+          createMemcacheMetricsAdapter(
+              config: MetricsConfig,
+              options: {
+                  onReady: () => void;
+                  onUnavailable: (reason: string, details?: Record<string, unknown>) => void;
+              }
+          ): unknown;
+      });
 
 const log = Log.getLogger();
-
-interface MetricsConfig {
-    metrics_enabled?: boolean;
-    memcached_host?: unknown;
-    memcached_port?: unknown;
-    server_name?: unknown;
-    game_servers?: unknown;
-}
-
 interface RuntimeAdapters {
     createNoopMetricsAdapter(meta: Record<string, unknown>): unknown;
     createMemcacheMetricsAdapter(
@@ -43,6 +42,14 @@ interface RuntimeAdapters {
             onUnavailable: (reason: string, details?: Record<string, unknown>) => void;
         }
     ): unknown;
+};
+
+interface MetricsConfig {
+    metrics_enabled?: boolean;
+    memcached_host?: unknown;
+    memcached_port?: unknown;
+    server_name?: unknown;
+    game_servers?: unknown;
 }
 
 interface RuntimeOptions {
@@ -108,7 +115,7 @@ function createMetrics(
                 payload[key] = fields[key];
             });
         }
-        emitEvent('error', RuntimeEventNames.SERVER_EVENT_NAMES.METRICS_UNAVAILABLE, payload);
+        emitEvent('error', SERVER_EVENT_NAMES.METRICS_UNAVAILABLE, payload);
     };
 
     if (!config.metrics_enabled) {
@@ -130,7 +137,7 @@ function createMetrics(
     try {
         return adapters.createMemcacheMetricsAdapter(config, {
             onReady: function () {
-                emitEvent('info', RuntimeEventNames.SERVER_EVENT_NAMES.METRICS_READY, {
+                emitEvent('info', SERVER_EVENT_NAMES.METRICS_READY, {
                     memcachedHost: config.memcached_host,
                     memcachedPort: config.memcached_port,
                     serverName: config.server_name,
@@ -156,6 +163,5 @@ function createMetrics(
     }
 }
 
-module.exports = {
-    createMetrics: createMetrics,
-};
+export { createMetrics };
+export default { createMetrics };

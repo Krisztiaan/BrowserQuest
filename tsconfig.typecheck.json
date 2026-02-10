@@ -23,6 +23,8 @@
     "shared/js/*-esm.ts",
     "shared/js/gametypes-browser.ts",
     "server/js/server-event-names.ts",
+    "server/js/config-preflight.ts",
+    "server/js/metrics-runtime.ts",
     "client/js-esm/achievement-domain.ts",
     "client/js-esm/asset-key-domain.ts",
     "shared/js/connection-status.ts",
@@ -32,8 +34,11 @@
     "client/js-esm/compat/gametypes.ts",
     "server/js/player-types.ts",
     "server/js/main-runtime-types.ts",
-    "server/js/main-runtime.cts",
+    "server/js/main-runtime.ts",
+    "server/js/main.ts",
     "server/js/worldserver-types.ts",
-    "shared/js/protocol-contract-types.ts"
+    "shared/js/protocol-contract-types.ts",
+    "server/js/**/*.cts",
+    "shared/js/**/*.cts"
   ]
 }

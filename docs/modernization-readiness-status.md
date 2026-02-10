@@ -1,5 +1,57 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 server runtime ESM convergence slice)
+
+### Ticket status
+
+- `T-401.1` Convert server startup/runtime entry modules from `.cts`/`require` style to pure `.ts` ESM exports/imports: `done`
+- `T-401.2` Consolidate config preflight logic to a single ESM TypeScript source and remove `.cts` duplicate: `done`
+- `T-401.3` Convert metrics runtime module from `.cts` to `.ts` ESM and align runtime/tests/typecheck wiring: `done`
+- `T-401.4` Continue full server graph convergence (`worldserver`/`player`/entity modules + shared `.cts` seams): `in_progress`
+
+### Live progress log
+
+- `2026-02-10T01:00Z` `in_progress` Started server-runtime convergence execution block focused on replacing entrypoint `.cts` seams with pure ESM TypeScript while preserving startup/runtime behavior.
+  - Scope:
+    - convert `server/js/main-runtime` and `server/js/main` to `.ts` ESM
+    - remove `require/module.exports` usage from those modules
+    - align `server/js/main-esm.ts` runtime wiring to import typed ESM exports
+    - keep runtime behavior contracts unchanged (config preference/fallback, lifecycle hooks, server startup flow)
+  - Out of scope:
+    - full conversion of all server gameplay/world modules in this single slice
+    - gameplay/protocol behavior changes
+  - Acceptance criteria:
+    - server startup still prefers local config then default config fallback
+    - runtime helper exports remain available for unit tests/integration seams
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - targeted runtime/unit suites for `server-main-*`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - dependency: ESM/CJS interop for still-legacy modules (`worldserver`, `player`, adapters) must remain stable until full graph conversion completes
+- `2026-02-10T01:18Z` `done` Completed `T-401.1` through `T-401.3` with green full modern verification.
+  - Evidence:
+    - entry/runtime conversion:
+      - `server/js/main-runtime.cts` -> `server/js/main-runtime.ts`
+      - `server/js/main.cts` -> `server/js/main.ts`
+      - removed `require/module.exports` usage from both
+      - updated `server/js/main-esm.ts` to consume ESM exports from `./main-runtime`
+      - updated runtime/unit tests to import ESM modules directly
+    - config-preflight convergence:
+      - `server/js/config-preflight.cts` -> `server/js/config-preflight.ts`
+      - `server/js/config-preflight-esm.ts` now re-exports the unified source
+      - updated config-preflight unit tests to ESM imports
+    - metrics-runtime convergence:
+      - `server/js/metrics-runtime.cts` -> `server/js/metrics-runtime.ts`
+      - switched to ESM import/export flow with server event name constants + ESM logger
+      - updated dependent tests/imports
+    - typecheck project alignment:
+      - updated `tsconfig.typecheck.json`, `tsconfig.typecheck-server-esm.json`, and `tsconfig.typecheck-runtime.json` includes for renamed `.ts` modules
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+  - Next action:
+    - continue `T-401.4` by converging remaining server/shared `.cts` modules (`worldserver`, `player`, map/entity/message/property graph, shared gametypes/protocol seams) to pure ESM `.ts`.
+
 ## Delta Update (2026-02-10 direct Tiled JSON runtime cutover project)
 
 ### Ticket status

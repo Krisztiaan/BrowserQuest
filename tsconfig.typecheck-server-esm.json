@@ -9,15 +9,20 @@
   },
   "include": [
     "server/js/main-runtime-types.ts",
-    "server/js/main-runtime.cts",
+    "server/js/main-runtime.ts",
+    "server/js/config-preflight.ts",
+    "server/js/metrics-runtime.ts",
     "server/js/server-event-names.ts",
     "server/js/*-esm.ts",
     "server/js/main-esm*.ts",
     "server/js/ws-runtime-class-factory.ts",
+    "server/js/**/*.cts",
     "shared/js/connection-status.ts",
     "shared/js/entity-kind-domain.ts",
     "shared/js/protocol-contract-types.ts",
     "shared/js/gametypes-browser.ts",
-    "shared/js/*-esm.ts"
+    "shared/js/*-esm.ts",
+    "shared/js/**/*.cts",
+    "tools/maps/processmap.ts"
   ]
 }

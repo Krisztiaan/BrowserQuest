@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
+import ConfigPreflight from '../../server/js/config-preflight';
 import ConfigPreflightEsm, { validateConfig } from '../../server/js/config-preflight-esm';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ConfigPreflightCjs = require('../../server/js/config-preflight');
 
 function createValidConfig() {
     return {
@@ -33,7 +31,7 @@ test('esm config-preflight matches cjs output for invalid payload', () => {
     };
 
     const esmResult = ConfigPreflightEsm.validateConfig(invalid);
-    const cjsResult = ConfigPreflightCjs.validateConfig(invalid);
+    const cjsResult = ConfigPreflight.validateConfig(invalid);
 
     expect(esmResult).toEqual(cjsResult);
 });

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
+import * as MainRuntimeModule from '../../server/js/main-runtime';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const MainRuntime = require('../../server/js/main-runtime');
+const MainRuntime = MainRuntimeModule as any;
 
 test('main runtime population change handler updates counters, world population, and distribution', () => {
     const worldUpdates: number[] = [];

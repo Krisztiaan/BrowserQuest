@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const MetricsRuntime = require('../../server/js/metrics-runtime');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Log = require('../../server/js/log');
+import Log from '../../server/js/log-esm';
+import MetricsRuntime from '../../server/js/metrics-runtime';
 
 const originalConsoleError = console.error;
 const originalLogLevel = Log.getLogger().level;
@@ -53,7 +50,7 @@ test('metrics runtime returns no-op adapter when metrics are disabled', () => {
                 },
             },
         }
-    );
+    ) as any;
 
     expect(result.isEnabled).toBe(false);
     expect(result.meta.reason).toBe('disabled');
@@ -79,7 +76,7 @@ test('metrics runtime emits invalid-config fallback and uses no-op adapter', () 
                 },
             },
         }
-    );
+    ) as any;
 
     expect(result.isEnabled).toBe(false);
     expect(result.meta.reason).toBe('invalid_config');
@@ -107,7 +104,7 @@ test('metrics runtime emits init-failed fallback when memcache adapter throws', 
                 },
             },
         }
-    );
+    ) as any;
 
     expect(result.isEnabled).toBe(false);
     expect(result.meta.reason).toBe('init_failed');
@@ -131,7 +128,7 @@ test('metrics runtime returns memcache adapter when configuration is valid', () 
                 createMemcacheMetricsAdapter: () => expectedAdapter,
             },
         }
-    );
+    ) as any;
 
     expect(result).toBe(expectedAdapter);
     expect(emitted.length).toBe(0);

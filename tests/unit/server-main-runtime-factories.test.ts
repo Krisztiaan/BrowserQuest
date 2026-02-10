@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
+import * as MainRuntimeModule from '../../server/js/main-runtime';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const MainRuntime = require('../../server/js/main-runtime');
+const MainRuntime = MainRuntimeModule as any;
 
 test('main runtime createServerAndMetrics builds server and metrics via dependency seam', () => {
     const calls: { port?: number; metricsConfig?: unknown; metricsEmit?: unknown } = {};

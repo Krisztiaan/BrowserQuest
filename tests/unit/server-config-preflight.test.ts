@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const ConfigPreflight = require('../../server/js/config-preflight');
+import ConfigPreflight from '../../server/js/config-preflight';
 
 function createValidConfig() {
     return {

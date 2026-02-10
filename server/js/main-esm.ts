@@ -9,21 +9,7 @@ import type {
     ServerConfig,
 } from './main-runtime-types';
 import Utils from './utils-esm';
-import * as MainRuntime from './main-runtime.cts';
-
-type MainRuntimeModule = {
-    createRuntimeDependencies: (
-        overrides?: Partial<MainRuntimeDependencies>
-    ) => MainRuntimeDependencies;
-    main: (
-        config: ServerConfig,
-        options?: MainRuntimeOptions
-    ) => { cleanup: () => void } | undefined;
-};
-
-const RuntimeModule = MainRuntime as unknown as MainRuntimeModule;
-const createRuntimeDependencies = RuntimeModule.createRuntimeDependencies;
-const startServer = RuntimeModule.main;
+import { createRuntimeDependencies, main as startServer } from './main-runtime';
 
 const defaultConfigPath = './server/config.json';
 const customConfigPath = process.argv[2] || './server/config_local.json';

@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
+import * as MainModuleNs from '../../server/js/main';
+import * as MainRuntimeModuleNs from '../../server/js/main-runtime';
 
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const MainModule = require('../../server/js/main');
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const MainRuntimeModule = require('../../server/js/main-runtime');
+const MainModule = MainModuleNs as any;
+const MainRuntimeModule = MainRuntimeModuleNs as any;
 
 test('server main module exports shared startup helpers', () => {
     expect(typeof MainModule.main).toBe('function');
