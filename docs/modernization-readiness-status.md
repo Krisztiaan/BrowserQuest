@@ -1,5 +1,40 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 dead class-fanout guard retirement and doc archival)
+
+### Ticket status
+
+- `T-345.1` Remove dead `check:class-fanout` script/tooling from active package/tool surface: `done`
+- `T-345.2` Move archived class-fanout historical note out of active docs root: `done`
+- `T-345.3` Re-verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-10T00:13Z` `in_progress` Started dead-surface cleanup for obsolete class-fanout guard tooling after full `.js` source retirement.
+  - Scope:
+    - remove `check:class-fanout` script and `tools/check-classjs-fanout.ts`
+    - move `docs/server-classjs-fanout-map.md` into archive lane and update path references
+  - Out of scope:
+    - rewriting historical mentions in archived migration logs
+  - Acceptance criteria:
+    - no active script/tool path for class-fanout guard remains
+    - class-fanout historical note is outside active docs root
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:14Z` `done` Completed class-fanout guard retirement and archived its historical note under docs archive.
+  - Evidence:
+    - removed active tooling:
+      - deleted `tools/check-classjs-fanout.ts`
+      - removed `check:class-fanout` from `package.json`
+    - moved historical doc:
+      - `docs/server-classjs-fanout-map.md` -> `docs/archive/legacy/server-classjs-fanout-map.md`
+    - updated path references:
+      - `MODERNIZE.md`
+      - `docs/modernization-readiness-status.md`
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 quiet map-export prestep in verify lane)
 
 ### Ticket status
@@ -2937,7 +2972,7 @@ Executed successfully on 2026-02-08:
     - archived stale CJS planning docs that still referenced removed websocket artifacts:
       - `docs/server-cjs-hotspot-index.md`
       - `docs/server-cjs-esm-readiness-inventory.md`
-      - `docs/server-classjs-fanout-map.md`
+      - `docs/archive/legacy/server-classjs-fanout-map.md`
       - `docs/format-ts-shadow-source-pre-slice.md`
     - updated websocket drill workflow labels/artifact names to runtime-modern wording:
       - `.github/workflows/verify-ws-boundary-drill.yml`

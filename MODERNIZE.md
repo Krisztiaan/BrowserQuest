@@ -2683,7 +2683,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-163)
   - Actions:
     - Produced explicit `lib/class.js` dependency fanout inventory:
-      - `docs/server-classjs-fanout-map.md`
+      - `docs/archive/legacy/server-classjs-fanout-map.md`
       - Captures remaining direct dependents after pilot migration.
     - Completed first low-risk native-class migration pilot:
       - migrated `server/js/format.js` from `Class.extend` to native `class` while preserving exports (`FormatChecker`, `check`).
@@ -2741,7 +2741,7 @@ Only after Phase 2, introduce TS gradually:
   - Status: `in_progress` -> `done` (T-167)
   - Actions:
     - Refreshed `lib/class.js` fanout artifact:
-      - `docs/server-classjs-fanout-map.md`
+      - `docs/archive/legacy/server-classjs-fanout-map.md`
       - current direct dependency count now `8`.
     - Added automated guard against accidental new `lib/class.js` imports:
       - `tools/check-classjs-fanout.cjs`
@@ -2804,7 +2804,7 @@ Only after Phase 2, introduce TS gradually:
       - `docs/archive/legacy/server-core-class-migration-plan.md`
     - Refreshed fanout guard and artifact to current state:
       - `tools/check-classjs-fanout.cjs` allowlist reduced to `map`, `metrics`, `ws`, `worldserver`.
-      - `docs/server-classjs-fanout-map.md` now reflects 4 remaining `lib/class.js` dependents.
+      - `docs/archive/legacy/server-classjs-fanout-map.md` now reflects 4 remaining `lib/class.js` dependents.
     - Linked plan artifact in project docs:
       - `README.md`
       - `docs/server-cjs-esm-readiness-inventory.md`
@@ -2834,7 +2834,7 @@ Only after Phase 2, introduce TS gradually:
     - Migrated `server/js/map.js` from `Class.extend` to native class syntax.
     - Updated class fanout guard allowlist and artifacts to current remaining modules:
       - `tools/check-classjs-fanout.cjs`
-      - `docs/server-classjs-fanout-map.md`
+      - `docs/archive/legacy/server-classjs-fanout-map.md`
       - `docs/archive/legacy/server-core-class-migration-plan.md`
   - Evidence:
     - `bun run verify:legacy:node22` passed.
@@ -2880,7 +2880,7 @@ Only after Phase 2, introduce TS gradually:
       - `server/js` now has zero direct `require("./lib/class")` imports.
     - Refreshed guard/docs:
       - `tools/check-classjs-fanout.cjs` allowlist now empty.
-      - `docs/server-classjs-fanout-map.md` reflects zero remaining dependents.
+      - `docs/archive/legacy/server-classjs-fanout-map.md` reflects zero remaining dependents.
       - `docs/archive/legacy/server-core-class-migration-plan.md` marked complete.
   - Evidence:
     - `bun run verify:legacy:node22` passed.

@@ -30,7 +30,6 @@
     "typecheck:client-runtime": "bun x tsc -p tsconfig.typecheck-client-runtime.json",
     "typecheck:server-esm": "bun x tsc -p tsconfig.typecheck-server-esm.json",
     "typecheck:node22": "bash tools/node22-run.sh bun run typecheck",
-    "check:class-fanout": "bun tools/check-classjs-fanout.ts",
     "check:client-runtime-alias-drift": "bun tools/check-client-runtime-alias-drift.ts",
     "check:client-runtime-alias-drift:strict": "bun tools/check-client-runtime-alias-drift.ts --strict",
     "check:client-runtime-coverage": "bun tools/check-client-runtime-coverage.ts",
