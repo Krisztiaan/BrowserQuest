@@ -2,8 +2,6 @@ import path from "node:path";
 import { defineConfig } from "vite";
 import { DEFAULT_TILED_SOURCE_PATH, syncRuntimeMaps } from "./tools/maps/runtime-sync";
 
-const viteDefaultEntry = "/client/modern.html";
-
 export default defineConfig({
   root: ".",
   publicDir: "client/public",
@@ -18,25 +16,12 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
+        index: "index.html",
         modern: "client/modern.html",
       },
     },
   },
   plugins: [
-    {
-      name: "browserquest-root-redirect",
-      configureServer(server) {
-        server.middlewares.use((req, res, next) => {
-          if (req.url === "/" || req.url === "/index.html") {
-            res.statusCode = 302;
-            res.setHeader("Location", viteDefaultEntry);
-            res.end();
-            return;
-          }
-          next();
-        });
-      },
-    },
     {
       name: "browserquest-map-runtime-sync-build",
       apply: "build",

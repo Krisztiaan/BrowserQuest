@@ -1,5 +1,49 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 root static index redirect cutover)
+
+### Ticket status
+
+- `T-358.1` Replace custom Vite root redirect middleware with static root `index.html` redirect entry: `done`
+- `T-358.2` Wire root index into Vite build inputs and update active quickstart docs: `done`
+- `T-358.3` Enforce middleware retirement boundary and re-verify modern lane: `done`
+
+### Live progress log
+
+- `2026-02-10T00:35Z` `in_progress` Started root-entry simplification to remove custom Vite middleware redirect and use standard static `index.html` redirect semantics.
+  - Scope:
+    - remove `browserquest-root-redirect` plugin from `vite.config.ts`
+    - add root `index.html` that redirects to `/client/modern.html`
+    - include root `index.html` in Vite build input list
+    - update quickstart URL in `README.md`
+    - enforce retirement boundary in `tools/check-package-mode-boundaries.ts`
+  - Out of scope:
+    - changing active client entry target (`client/modern.html`)
+    - removing `client/index.html` compatibility redirect
+  - Acceptance criteria:
+    - Vite config has no custom root redirect middleware plugin
+    - root `index.html` exists and build emits `dist/vite/index.html`
+    - package boundary check fails if custom root redirect plugin returns
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:36Z` `done` Completed static root-index redirect cutover and re-verified full modern lane.
+  - Evidence:
+    - `vite.config.ts`:
+      - removed `browserquest-root-redirect` plugin block
+      - added `index: "index.html"` to build `rollupOptions.input`
+    - new root entry:
+      - added `index.html` with immediate redirect to `/client/modern.html`
+    - docs update:
+      - updated quickstart URL in `README.md` to `http://localhost:5173/`
+    - boundary guard:
+      - `tools/check-package-mode-boundaries.ts` now:
+        - requires `index.html` to exist
+        - fails if `vite.config.ts` contains `browserquest-root-redirect`
+      - success banner includes root-redirect middleware retirement
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 client relative-import cutover + alias retirement)
 
 ### Ticket status

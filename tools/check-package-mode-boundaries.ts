@@ -16,6 +16,8 @@ const retiredServerEsmRuntimeCoverageCheckerPath = path.join(
   'tools',
   'check-server-esm-runtime-coverage.ts',
 );
+const rootIndexPath = path.join(repoRoot, 'index.html');
+const viteConfigPath = path.join(repoRoot, 'vite.config.ts');
 const docsRoot = path.join(repoRoot, 'docs');
 const docsArchiveRoot = path.join(docsRoot, 'archive');
 
@@ -127,6 +129,14 @@ if (fs.existsSync(retiredServerEsmRuntimeCoverageCheckerPath)) {
   fail('tools/check-server-esm-runtime-coverage.ts must not exist after server-esm glob coverage cutover');
 }
 
+if (!fs.existsSync(rootIndexPath)) {
+  fail('root index.html redirect entry must exist for Vite default-root routing');
+}
+
+if (readUtf8(viteConfigPath).includes('browserquest-root-redirect')) {
+  fail('vite config must not include browserquest-root-redirect middleware after static root-index cutover');
+}
+
 const docsRootEntries = fs.existsSync(docsRoot) ? fs.readdirSync(docsRoot, { withFileTypes: true }) : [];
 const legacyRootDocs = docsRootEntries
   .filter((entry) => entry.isFile() && /^legacy-.*\.md$/.test(entry.name))
@@ -150,5 +160,5 @@ if (archivedNoteOffenders.length > 0) {
 }
 
 process.stdout.write(
-  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet/client alias drift checker/client runtime coverage checker/server esm runtime coverage checker retired)\n',
+  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet/client alias drift checker/client runtime coverage checker/server esm runtime coverage checker/custom root redirect middleware retired)\n',
 );
