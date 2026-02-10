@@ -56,13 +56,20 @@ interface ProcessMapContract {
     ) => unknown;
 }
 
-const Checkpoint = require('./checkpoint') as new (
-    id: number | string,
-    x: number,
-    y: number,
-    w: number,
-    h: number
-) => CheckpointContract;
+const CheckpointModule = require('./checkpoint') as {
+    default?: new (id: number | string, x: number, y: number, w: number, h: number) => CheckpointContract;
+};
+const Checkpoint =
+    (CheckpointModule.default as
+        | (new (id: number | string, x: number, y: number, w: number, h: number) => CheckpointContract)
+        | undefined) ||
+    (CheckpointModule as unknown as new (
+        id: number | string,
+        x: number,
+        y: number,
+        w: number,
+        h: number
+    ) => CheckpointContract);
 
 const log = Log.getLogger();
 const mapDefinitionCache = new globalThis.Map<string, Promise<MapDefinition | null>>();

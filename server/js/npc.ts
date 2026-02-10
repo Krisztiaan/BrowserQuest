@@ -1,6 +1,10 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
-const Entity = require('./entity') as new (
+import * as EntityModule from './entity.cts';
+
+const Entity = ((EntityModule as unknown as { default?: unknown }).default
+    ? (EntityModule as unknown as { default: unknown }).default
+    : EntityModule) as new (
     id: number | string,
     type: string,
     kind: EntityKind,
@@ -14,4 +18,4 @@ class Npc extends Entity {
     }
 }
 
-module.exports = Npc;
+export default Npc;

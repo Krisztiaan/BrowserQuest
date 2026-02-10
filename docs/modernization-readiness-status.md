@@ -10,6 +10,7 @@
 - `T-401.5` Convert metrics core modules (`server/js/metrics`, `server/js/metrics-client`) from `.cts` to `.ts` ESM and align adapter/test wiring: `done`
 - `T-401.6` Remove dead websocket factory `.cts` shadow seam now that runtime uses native `.ts` factory source: `done`
 - `T-401.7` Consolidate shared protocol contract onto a single `.ts` source and retire `.cts` duplicate: `done`
+- `T-401.8` Convert low-risk gameplay leaf modules (`formulas`, `checkpoint`, `npc`) to `.ts` ESM with CJS/ESM seam compatibility retained at call sites: `done`
 - `T-401.4` Continue full server graph convergence (`worldserver`/`player`/entity modules + shared `.cts` seams): `in_progress`
 
 ### Live progress log
@@ -130,6 +131,27 @@
       - `tests/unit/protocol-contract-module.test.ts`
       - `tests/unit/protocol-contract-types.test.ts`
     - updated includes:
+      - `tsconfig.typecheck.json`
+      - `tsconfig.typecheck-server-esm.json`
+      - `tsconfig.typecheck-runtime.json`
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+- `2026-02-10T02:34Z` `done` Converted low-risk gameplay leaf modules to `.ts` ESM (`T-401.8`) and re-verified full modern lane after seam fixes.
+  - Scope:
+    - `server/js/formulas.cts` -> `server/js/formulas.ts`
+    - `server/js/checkpoint.cts` -> `server/js/checkpoint.ts`
+    - `server/js/npc.cts` -> `server/js/npc.ts`
+    - align transitive interop usage in existing `.cts` runtime modules
+  - Acceptance criteria:
+    - no runtime behavior regression in login/gameplay/map flows
+    - full modern verify lane remains green
+  - Evidence:
+    - converted leaf modules to ESM default exports
+    - updated call sites to handle ESM default interop:
+      - `server/js/map.cts` (`Checkpoint`)
+      - `server/js/player.cts` (`Formulas`)
+      - `server/js/worldserver.cts` (`Npc`)
+    - updated typecheck include inventories:
       - `tsconfig.typecheck.json`
       - `tsconfig.typecheck-server-esm.json`
       - `tsconfig.typecheck-runtime.json`

@@ -1,4 +1,8 @@
-const Utils = require('./utils') as {
+import * as UtilsModule from './utils.cts';
+
+const Utils = ((UtilsModule as unknown as { default?: unknown }).default
+    ? (UtilsModule as unknown as { default: unknown }).default
+    : UtilsModule) as {
     randomInt(min: number, max: number): number;
 };
 
@@ -31,4 +35,4 @@ class Checkpoint {
     }
 }
 
-module.exports = Checkpoint;
+export default Checkpoint;

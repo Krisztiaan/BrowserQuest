@@ -12,7 +12,16 @@ const Log = require('./log') as {
 };
 const Mob = require('./mob');
 const Map = require('./map');
-const Npc = require('./npc');
+const NpcModule = require('./npc') as {
+    default?: new (id: number | string, kind: number, x: number, y: number) => { id: string | number };
+};
+const Npc =
+    (NpcModule.default as
+        | (new (id: number | string, kind: number, x: number, y: number) => { id: string | number })
+        | undefined) ||
+    (NpcModule as unknown as new (id: number | string, kind: number, x: number, y: number) => {
+        id: string | number;
+    });
 const Player = require('./player');
 const Item = require('./item');
 const MobArea = require('./mobarea');

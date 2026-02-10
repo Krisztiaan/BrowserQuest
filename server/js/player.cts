@@ -4,7 +4,23 @@ const Log = require('./log');
 const Messages = require('./message');
 const Utils = require('./utils');
 const Properties = require('./properties');
-const Formulas = require('./formulas');
+const FormulasModule = require('./formulas') as {
+    default?: {
+        dmg(weaponLevel: number, armorLevel: number): number;
+        hp(armorLevel: number): number;
+    };
+};
+const Formulas =
+    (FormulasModule.default as
+        | {
+              dmg(weaponLevel: number, armorLevel: number): number;
+              hp(armorLevel: number): number;
+          }
+        | undefined) ||
+    (FormulasModule as unknown as {
+        dmg(weaponLevel: number, armorLevel: number): number;
+        hp(armorLevel: number): number;
+    });
 const check = require('./format').check;
 const Types = require('../../shared/js/gametypes');
 import type { ClientToServerProtocolAction } from '../../shared/js/protocol-contract-types';
