@@ -1,5 +1,52 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 server ESM typecheck glob cutover + coverage-check retirement)
+
+### Ticket status
+
+- `T-354.1` Replace manually enumerated server ESM typecheck include list with glob-based include patterns: `done`
+- `T-354.2` Retire redundant `check:server-esm-runtime-coverage` script/tool from verify lane: `done`
+- `T-354.3` Enforce checker retirement boundary and re-verify full modern lane: `done`
+
+### Live progress log
+
+- `2026-02-10T00:31Z` `in_progress` Started server-ESM verifier simplification by moving `tsconfig.typecheck-server-esm.json` to glob coverage and retiring now-redundant explicit-include drift checker.
+  - Scope:
+    - update `tsconfig.typecheck-server-esm.json` includes to glob patterns
+    - remove `check:server-esm-runtime-coverage` from `package.json` and `verify:modern`
+    - remove `tools/check-server-esm-runtime-coverage.ts`
+    - enforce retirement in `tools/check-package-mode-boundaries.ts`
+  - Out of scope:
+    - changing runtime/server ESM code behavior
+    - changing non-server typecheck configs
+  - Acceptance criteria:
+    - server ESM typecheck config uses glob includes instead of hand-maintained file list
+    - no active server-esm-runtime-coverage script/tool remains
+    - package boundary check fails if script/tool reappears
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:32Z` `done` Completed server ESM glob cutover and retired redundant coverage checker; modern lane remains green.
+  - Evidence:
+    - `tsconfig.typecheck-server-esm.json`:
+      - switched from explicit enumerated ESM file list to:
+        - `server/js/*-esm.ts`
+        - `server/js/main-esm*.ts`
+        - `server/js/ws-runtime-class-factory.ts`
+        - `shared/js/*-esm.ts`
+      - retained required shared/type-support entries
+    - `package.json`:
+      - removed `check:server-esm-runtime-coverage`
+      - removed corresponding verify step from `verify:modern`
+    - removed obsolete tool:
+      - deleted `tools/check-server-esm-runtime-coverage.ts`
+    - package boundary guard updates:
+      - now fails if `check:server-esm-runtime-coverage` script exists
+      - now fails if `tools/check-server-esm-runtime-coverage.ts` exists
+      - success banner includes server ESM runtime coverage checker retirement
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 retire redundant client runtime coverage verifier)
 
 ### Ticket status
