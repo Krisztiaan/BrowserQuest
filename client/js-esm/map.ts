@@ -2,6 +2,7 @@ import Area from 'area';
 import log from 'compat/log';
 import Types from 'compat/gametypes';
 import { isInt } from 'compat/util';
+import { resolveImageAssetPath } from './image-assets';
 
 const generatedMapUrl = new URL("../../generated/maps/world_client.json", import.meta.url).href;
 
@@ -70,19 +71,19 @@ class Map {
     }
     
     _initTilesets() {
-        var tileset1, tileset2, tileset3, base = "";
+        var tileset1, tileset2, tileset3;
         
         if(!this.loadMultiTilesheets) {
             this.tilesetCount = 1;
-            tileset1 = this._loadTileset(base + 'img/1/tilesheet.png');
+            tileset1 = this._loadTileset(resolveImageAssetPath(1, 'tilesheet'));
         } else {
             if(this.game.renderer.mobile || this.game.renderer.tablet) {
                 this.tilesetCount = 1;
-                tileset2 = this._loadTileset(base + 'img/2/tilesheet.png');
+                tileset2 = this._loadTileset(resolveImageAssetPath(2, 'tilesheet'));
             } else {
                 this.tilesetCount = 2;
-                tileset2 = this._loadTileset(base + 'img/2/tilesheet.png');
-                tileset3 = this._loadTileset(base + 'img/3/tilesheet.png');
+                tileset2 = this._loadTileset(resolveImageAssetPath(2, 'tilesheet'));
+                tileset3 = this._loadTileset(resolveImageAssetPath(3, 'tilesheet'));
             }
         }
     

@@ -2,6 +2,7 @@ import Animation from 'animation';
 import sprites from 'sprites';
 import type { SpriteJson } from 'sprites';
 import log from 'compat/log';
+import { resolveImageAssetPath } from './image-assets';
 
 type SpriteRenderData = {
     image: CanvasImageSource;
@@ -56,7 +57,7 @@ class Sprite {
 
     loadJSON(data: SpriteJson): void {
         this.id = data.id;
-        this.filepath = 'img/' + this.scale + '/' + this.id + '.png';
+        this.filepath = resolveImageAssetPath(this.scale, this.id);
         this.animationData = data.animations;
         this.width = data.width;
         this.height = data.height;

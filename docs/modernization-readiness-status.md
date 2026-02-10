@@ -1,5 +1,42 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 Vite-native runtime image asset resolution)
+
+### Ticket status
+
+- `T-340.1` Add shared Vite-native runtime image asset resolver for `client/img/{1,2,3}/*.png`: `done`
+- `T-340.2` Rewire runtime `img/...` string-path callsites to resolver-backed URLs: `done`
+- `T-340.3` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-10T00:04Z` `in_progress` Started runtime image-asset modernization pass to replace hardcoded string image paths with Vite-managed asset URLs.
+  - Scope:
+    - add shared image resolver module backed by `import.meta.glob`
+    - migrate runtime image callsites in `app`, `sprite`, `map`, and Safari fallback rendering path
+  - Out of scope:
+    - image file content changes
+    - rendering behavior changes
+  - Acceptance criteria:
+    - no hardcoded runtime `img/...` path construction remains in `client/js-esm/**/*.ts`
+    - modern verify lane passes
+  - Verification plan:
+    - `rg -n "img/" client/js-esm -g '*.ts'`
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:07Z` `done` Completed Vite-native runtime image asset resolution migration and re-verified full modern lane.
+  - Evidence:
+    - added `client/js-esm/image-assets.ts`:
+      - shared `resolveImageAssetPath(scale, imageName)` backed by `import.meta.glob('../img/*/*.png', { eager: true, import: 'default' })`
+    - rewired runtime callsites:
+      - `client/js-esm/sprite.ts` (sprite image path resolution)
+      - `client/js-esm/map.ts` (tilesheet loading for scales 1/2/3)
+      - `client/js-esm/app.ts` (equipment icon URL resolution)
+      - `client/js-esm/renderer.ts` (Safari base64 fallback image URL resolution)
+    - runtime path sweep:
+      - `rg -n "img/" client/js-esm -g '*.ts'` leaves only resolver module pattern (`import.meta.glob('../img/*/*.png', ...)`)
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 source-map-directory retirement guard)
 
 ### Ticket status

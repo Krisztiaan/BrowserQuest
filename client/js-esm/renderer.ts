@@ -8,6 +8,7 @@ import Detect from 'compat/detect';
 import Types from 'compat/gametypes';
 import log from 'compat/log';
 import { getBase64Image } from 'compat/util';
+import { resolveImageAssetPath } from './image-assets';
 
 class Renderer {
     [key: string]: any;
@@ -721,7 +722,7 @@ class Renderer {
             // We retrieve via XHR three base64 images which compose the player image (current armor, current weapon, shadow).
             // These three base64 images are then rendered onto a canvas, which can then be converted to a data URL because it's not tainted.
             
-            var imgCounter = 3, spriteImage, weaponImage, shadowImage, basePath = 'img/',
+            var imgCounter = 3, spriteImage, weaponImage, shadowImage,
                 tryDrawing = function() {
                     imgCounter -= 1;
                     if(imgCounter == 0) {
@@ -729,15 +730,15 @@ class Renderer {
                     }
                 };
             
-            getBase64Image(basePath+this.scale+'/'+player.getArmorName()+'.png', function(img) {
+            getBase64Image(resolveImageAssetPath(this.scale, player.getArmorName()), function(img) {
                 spriteImage = img;
                 tryDrawing();
             });
-            getBase64Image(basePath+this.scale+'/shadow16.png', function(img) {
+            getBase64Image(resolveImageAssetPath(this.scale, 'shadow16'), function(img) {
                 shadowImage = img;
                 tryDrawing();
             });
-            getBase64Image(basePath+this.scale+'/'+player.getWeaponName()+'.png', function(img) {
+            getBase64Image(resolveImageAssetPath(this.scale, player.getWeaponName()), function(img) {
                 weaponImage = img;
                 tryDrawing();
             });

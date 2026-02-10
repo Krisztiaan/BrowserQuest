@@ -3,6 +3,7 @@ import log from 'compat/log';
 import { TRANSITIONEND } from 'compat/util';
 import type { AchievementId } from './achievement-domain';
 import type { PopupType } from './asset-key-domain';
+import { resolveImageAssetPath } from './image-assets';
 
 /**
  * @typedef {{
@@ -337,7 +338,7 @@ class App {
     initEquipmentIcons() {
         var scale = this.game.renderer.getScaleFactor();
         var getIconPath = function(spriteName) {
-                return 'img/'+ scale +'/item-' + spriteName + '.png';
+                return resolveImageAssetPath(scale, 'item-' + spriteName);
             },
             weapon = this.game.player.getWeaponName(),
             armor = this.game.player.getSpriteName(),
