@@ -1,5 +1,36 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 source-map-directory retirement guard)
+
+### Ticket status
+
+- `T-339.1` Enforce retirement of `client/maps` and `server/maps` source directories after generated-artifact lane cutover: `done`
+- `T-339.2` Verify package boundary guard and full modern lane after enforcement update: `done`
+
+### Live progress log
+
+- `2026-02-10T00:02Z` `in_progress` Started boundary-hardening follow-up to ensure generated map artifact lane cannot drift back into source directories.
+  - Scope:
+    - extend package boundary guard to fail when `client/maps` or `server/maps` directories exist
+    - keep all existing package-mode boundary checks intact
+  - Out of scope:
+    - map schema/runtime behavior changes
+  - Acceptance criteria:
+    - `check:package-mode-boundaries` fails if source map directories are reintroduced
+    - `bun run verify:modern:node22` passes with the stricter guard
+  - Verification plan:
+    - `bun run check:package-mode-boundaries`
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:03Z` `done` Completed source-map-directory retirement guard enforcement and re-verified full modern lane.
+  - Evidence:
+    - updated `tools/check-package-mode-boundaries.ts`:
+      - fails if `client/maps` exists
+      - fails if `server/maps` exists
+      - success message now includes source map directory retirement policy
+  - Verification:
+    - `bun run check:package-mode-boundaries` -> pass
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-09 root-invoked map script entrypoints)
 
 ### Ticket status

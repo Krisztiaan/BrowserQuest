@@ -4,6 +4,8 @@ import * as path from 'node:path';
 const repoRoot = path.resolve(import.meta.dir, '..');
 const packageJsonPath = path.join(repoRoot, 'package.json');
 const retiredMapWatchPath = path.join(repoRoot, 'tools', 'maps', 'watch.ts');
+const retiredClientMapsDir = path.join(repoRoot, 'client', 'maps');
+const retiredServerMapsDir = path.join(repoRoot, 'server', 'maps');
 const docsRoot = path.join(repoRoot, 'docs');
 const docsArchiveRoot = path.join(docsRoot, 'archive');
 
@@ -67,6 +69,14 @@ if (fs.existsSync(retiredMapWatchPath)) {
   fail('tools/maps/watch.ts must not exist after Vite-native map sync cutover');
 }
 
+if (fs.existsSync(retiredClientMapsDir)) {
+  fail('client/maps directory must not exist after generated-map artifact lane cutover');
+}
+
+if (fs.existsSync(retiredServerMapsDir)) {
+  fail('server/maps directory must not exist after generated-map artifact lane cutover');
+}
+
 const docsRootEntries = fs.existsSync(docsRoot) ? fs.readdirSync(docsRoot, { withFileTypes: true }) : [];
 const legacyRootDocs = docsRootEntries
   .filter((entry) => entry.isFile() && /^legacy-.*\.md$/.test(entry.name))
@@ -90,5 +100,5 @@ if (archivedNoteOffenders.length > 0) {
 }
 
 process.stdout.write(
-  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane and root legacy docs retired)\n',
+  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs retired)\n',
 );
