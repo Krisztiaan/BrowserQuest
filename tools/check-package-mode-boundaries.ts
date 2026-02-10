@@ -9,6 +9,7 @@ const retiredServerMapsDir = path.join(repoRoot, 'server', 'maps');
 const retiredClientImgDir = path.join(repoRoot, 'client', 'img');
 const retiredNode22RunShellPath = path.join(repoRoot, 'tools', 'node22-run.sh');
 const retiredLegacyIeStylesheetPath = path.join(repoRoot, 'client', 'css', 'ie.css');
+const retiredClientAliasDriftCheckerPath = path.join(repoRoot, 'tools', 'check-client-runtime-alias-drift.ts');
 const docsRoot = path.join(repoRoot, 'docs');
 const docsArchiveRoot = path.join(docsRoot, 'archive');
 
@@ -68,6 +69,14 @@ if (typeof packageJson.scripts?.['map:watch'] === 'string') {
   fail('script "map:watch" must not exist after Vite-native map sync cutover');
 }
 
+if (typeof packageJson.scripts?.['check:client-runtime-alias-drift'] === 'string') {
+  fail('script "check:client-runtime-alias-drift" must not exist after Vite alias built-in cutover');
+}
+
+if (typeof packageJson.scripts?.['check:client-runtime-alias-drift:strict'] === 'string') {
+  fail('script "check:client-runtime-alias-drift:strict" must not exist after Vite alias built-in cutover');
+}
+
 if (fs.existsSync(retiredMapWatchPath)) {
   fail('tools/maps/watch.ts must not exist after Vite-native map sync cutover');
 }
@@ -90,6 +99,10 @@ if (fs.existsSync(retiredNode22RunShellPath)) {
 
 if (fs.existsSync(retiredLegacyIeStylesheetPath)) {
   fail('client/css/ie.css must not exist in modern-only browser support mode');
+}
+
+if (fs.existsSync(retiredClientAliasDriftCheckerPath)) {
+  fail('tools/check-client-runtime-alias-drift.ts must not exist after Vite alias built-in cutover');
 }
 
 const docsRootEntries = fs.existsSync(docsRoot) ? fs.readdirSync(docsRoot, { withFileTypes: true }) : [];
@@ -115,5 +128,5 @@ if (archivedNoteOffenders.length > 0) {
 }
 
 process.stdout.write(
-  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet retired)\n',
+  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet/client alias drift checker retired)\n',
 );

@@ -1,5 +1,48 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 retire redundant client alias-drift verifier)
+
+### Ticket status
+
+- `T-352.1` Retire redundant `check:client-runtime-alias-drift` tooling/scripts after Vite built-in alias cutover: `done`
+- `T-352.2` Enforce alias-drift tool/script retirement boundary in package-mode guard: `done`
+- `T-352.3` Re-verify full modern lane and capture evidence: `done`
+
+### Live progress log
+
+- `2026-02-10T00:28Z` `in_progress` Started verify-lane cleanup to remove now-redundant client alias drift checker after `resolve.alias` moved to `tsconfig`-derived built-in mapping.
+  - Scope:
+    - remove `check:client-runtime-alias-drift` scripts from `package.json`
+    - remove `tools/check-client-runtime-alias-drift.ts`
+    - drop strict alias-drift invocation from `verify:modern`
+    - enforce retirement boundaries in `tools/check-package-mode-boundaries.ts`
+  - Out of scope:
+    - changing client runtime import style
+    - changing `check:client-runtime-coverage` behavior
+  - Acceptance criteria:
+    - no active `check:client-runtime-alias-drift*` scripts remain
+    - alias-drift tool file no longer exists
+    - package boundary check fails if scripts/tool are reintroduced
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:29Z` `done` Completed alias-drift verifier retirement and re-verified full modern lane.
+  - Evidence:
+    - `package.json` updates:
+      - removed `check:client-runtime-alias-drift`
+      - removed `check:client-runtime-alias-drift:strict`
+      - removed alias-drift strict step from `verify:modern`
+    - removed obsolete tool:
+      - deleted `tools/check-client-runtime-alias-drift.ts`
+    - retirement guard updates:
+      - `tools/check-package-mode-boundaries.ts` now fails if:
+        - `check:client-runtime-alias-drift` script exists
+        - `check:client-runtime-alias-drift:strict` script exists
+        - `tools/check-client-runtime-alias-drift.ts` exists
+      - guard success banner now includes alias-drift checker retirement
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 runtime preflight + Vite alias built-in cutover)
 
 ### Ticket status
