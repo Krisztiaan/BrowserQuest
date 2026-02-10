@@ -4,10 +4,30 @@ import { defineConfig } from "vite";
 import { DEFAULT_TILED_SOURCE_PATH, syncRuntimeMaps } from "./tools/maps/runtime-sync";
 
 const viteDefaultEntry = "/client/modern.html";
+const clientRuntimeTsconfig = JSON.parse(
+  fs.readFileSync(path.resolve("tsconfig.typecheck-client-runtime.json"), "utf8"),
+) as {
+  compilerOptions?: {
+    paths?: Record<string, string[]>;
+  };
+};
+const clientRuntimeAliasEntries = Object.entries(clientRuntimeTsconfig.compilerOptions?.paths ?? {})
+  .map(([find, replacements]) => {
+    const firstReplacement = replacements[0];
+    if (!firstReplacement) return null;
+    return {
+      find,
+      replacement: path.resolve(firstReplacement),
+    };
+  })
+  .filter((entry): entry is { find: string; replacement: string } => entry !== null);
 
 export default defineConfig({
   root: ".",
   publicDir: "client/public",
+  resolve: {
+    alias: clientRuntimeAliasEntries,
+  },
   server: {
     host: true,
     port: 5173,
@@ -36,35 +56,6 @@ export default defineConfig({
           }
           next();
         });
-      },
-    },
-    {
-      name: "browserquest-requirejs-imports",
-      resolveId(source) {
-        if (source.startsWith(".") || source.startsWith("/") || source.includes(":")) {
-          return null;
-        }
-        // Keep real packages resolvable by Vite.
-        if (source === "jquery") {
-          return null;
-        }
-
-        const direct = path.resolve("client/js-esm", source);
-        if (fs.existsSync(direct) && fs.statSync(direct).isFile()) return direct;
-
-        const withJs = direct + ".js";
-        if (fs.existsSync(withJs) && fs.statSync(withJs).isFile()) return withJs;
-
-        const withTs = direct + ".ts";
-        if (fs.existsSync(withTs) && fs.statSync(withTs).isFile()) return withTs;
-
-        const indexJs = path.join(direct, "index.js");
-        if (fs.existsSync(indexJs) && fs.statSync(indexJs).isFile()) return indexJs;
-
-        const indexTs = path.join(direct, "index.ts");
-        if (fs.existsSync(indexTs) && fs.statSync(indexTs).isFile()) return indexTs;
-
-        return null;
       },
     },
     {

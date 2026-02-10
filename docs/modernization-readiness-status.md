@@ -1,5 +1,49 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 runtime preflight + Vite alias built-in cutover)
+
+### Ticket status
+
+- `T-349.1` Replace shell-based runtime version probing with Bun built-in process APIs while preserving Node22-wrapper behavior: `done`
+- `T-350.1` Replace custom Vite FS resolver plugin with built-in `resolve.alias` sourced from client runtime TypeScript path map: `done`
+- `T-351.1` Record ticketized scope/acceptance/evidence for this modernization slice: `done`
+
+### Live progress log
+
+- `2026-02-10T00:24Z` `in_progress` Started built-in-modernization pass focused on runtime preflight probing and Vite import resolution surface simplification.
+  - Scope:
+    - `tools/check-runtime.ts`: drop shell `execSync` probes and keep runtime policy semantics intact for both direct and `node22` wrapper lanes
+    - `vite.config.ts`: remove custom `browserquest-requirejs-imports` plugin and use Vite `resolve.alias`
+  - Out of scope:
+    - changing Node/Bun required versions
+    - rewriting client runtime import specifiers
+  - Acceptance criteria:
+    - `bun run check:runtime:node22` remains green under wrapper semantics
+    - `vite build` resolves all client runtime bare specifiers without custom resolver plugin
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run check:runtime:node22`
+    - `bun run build:vite`
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:27Z` `done` Completed built-in runtime-preflight and Vite alias cutover; full modern lane re-verified.
+  - Evidence:
+    - runtime preflight:
+      - updated `tools/check-runtime.ts`:
+        - removed `node:child_process` dependency
+        - uses `Bun.spawnSync` for `node -p process.version` so PATH-based Node22 wrapper behavior stays intact
+        - uses `Bun.version` for Bun runtime version probe
+      - behavior confirmation:
+        - `bun run check:runtime` fails under non-22 local Node as expected
+        - `bun run check:runtime:node22` passes (`runtime-check: ok (node v22.22.0, bun 1.3.2)`)
+    - Vite import-resolution modernization:
+      - updated `vite.config.ts`:
+        - removed custom plugin `browserquest-requirejs-imports`
+        - added built-in `resolve.alias` entries generated from `tsconfig.typecheck-client-runtime.json` `compilerOptions.paths`
+      - build confirmation:
+        - `bun run build:vite` passed (126 modules transformed)
+    - full-lane verification:
+      - `bun run verify:modern:node22` passed
+
 ## Delta Update (2026-02-10 legacy IE stylesheet/conditional retirement)
 
 ### Ticket status

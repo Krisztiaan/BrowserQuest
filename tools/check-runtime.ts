@@ -1,5 +1,3 @@
-import { execSync } from 'node:child_process';
-
 const REQUIRED_NODE_MAJOR = 22;
 const MIN_BUN = { major: 1, minor: 3, patch: 0 };
 
@@ -27,14 +25,15 @@ function fail(message) {
 }
 
 let nodeRawVersion;
-try {
-  nodeRawVersion = execSync('node -p "process.version"', {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  }).trim();
-} catch (_) {
+const nodeVersionProbe = Bun.spawnSync({
+  cmd: ['node', '-p', 'process.version'],
+  stdout: 'pipe',
+  stderr: 'pipe',
+});
+if (nodeVersionProbe.exitCode !== 0) {
   fail('node is not available on PATH. Install Node 22.x.');
 }
+nodeRawVersion = nodeVersionProbe.stdout.toString().trim();
 
 const nodeVersion = parseSemver(nodeRawVersion);
 if (!nodeVersion) {
@@ -49,11 +48,10 @@ if (nodeVersion.major !== REQUIRED_NODE_MAJOR) {
 }
 
 let bunRawVersion;
-try {
-  bunRawVersion = execSync('bun -v', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-} catch (error) {
+if (!('Bun' in globalThis) || typeof Bun.version !== 'string') {
   fail('bun is not available on PATH. Install Bun >= 1.3.0.');
 }
+bunRawVersion = Bun.version;
 
 const bunVersion = parseSemver(bunRawVersion);
 if (!bunVersion) {
