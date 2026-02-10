@@ -7,6 +7,7 @@ const viteDefaultEntry = "/client/modern.html";
 
 export default defineConfig({
   root: ".",
+  publicDir: "client/public",
   server: {
     host: true,
     port: 5173,

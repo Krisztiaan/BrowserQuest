@@ -1,6 +1,6 @@
 {
   "columns": 20,
-  "image": "../../../client/img/1/tilesheet.png",
+  "image": "../../../client/public/img/1/tilesheet.png",
   "imageheight": 1568,
   "imagewidth": 320,
   "margin": 0,

@@ -14,7 +14,7 @@
   "extensionsPath": "extensions",
   "folders": [
     ".",
-    "../../../client/img/1"
+    "../../../client/public/img/1"
   ],
   "properties": [],
   "propertyTypes": []

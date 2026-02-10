@@ -1,5 +1,52 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 Vite public-asset lane for dynamic runtime images)
+
+### Ticket status
+
+- `T-346.1` Move dynamic runtime image assets from `client/img/**` to Vite public lane: `done`
+- `T-346.2` Repoint active runtime and Tiled references to public-asset paths: `done`
+- `T-346.3` Enforce `client/img` retirement boundary and verify full modern lane: `done`
+
+### Live progress log
+
+- `2026-02-10T00:15Z` `in_progress` Started dynamic-image asset lane cutover to avoid large `import.meta.glob` URL manifests in runtime JS and use Vite public assets for idiomatic dynamic filename loading.
+  - Scope:
+    - move `client/img/**` to `client/public/img/**`
+    - set Vite `publicDir` to `client/public`
+    - replace image resolver glob manifest with deterministic `/img/<scale>/<name>.png` URLs
+    - update active HTML/CSS and Tiled-source references still pointing at `client/img`
+  - Out of scope:
+    - image content changes
+  - Acceptance criteria:
+    - active runtime no longer references `client/img` or `../img` paths
+    - package boundary guard fails if `client/img` reappears
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `rg -n "client/img/|\\.\\./img/|import\\.meta\\.glob\\('\\.\\./img" client tools README.md docs vite.config.ts package.json -g '!docs/archive/**' -g '!docs/modernization-readiness-status.md' -g '!dist/**' -g '!MODERNIZE.md'`
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:18Z` `done` Completed Vite public-asset lane cutover for dynamic runtime images and re-verified full modern lane.
+  - Evidence:
+    - asset move and Vite config:
+      - moved `client/img/**` -> `client/public/img/**`
+      - updated `vite.config.ts` with `publicDir: "client/public"`
+    - runtime/image resolution:
+      - updated `client/js-esm/image-assets.ts` to deterministic `/img/<scale>/<image>.png` path generation (no `import.meta.glob` table)
+      - updated `client/modern.html` and `client/css/{main,ie}.css` image URLs to `/img/...`
+    - Tiled-source path alignment:
+      - updated:
+        - `tools/maps/tiled/world.json`
+        - `tools/maps/tiled/tilesheet.wang.tsj`
+        - `tools/maps/tiled/rules/sand-detail.tmj`
+        - `tools/maps/tiled/browserquest.tiled-project`
+      to point at `client/public/img/...`
+    - boundary enforcement:
+      - updated `tools/check-package-mode-boundaries.ts` to fail if `client/img` exists
+    - build-surface impact:
+      - Vite build transformed `126` modules (previous asset-manifest lane had substantially higher transform count)
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 dead class-fanout guard retirement and doc archival)
 
 ### Ticket status
