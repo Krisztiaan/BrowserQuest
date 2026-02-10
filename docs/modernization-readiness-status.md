@@ -1,5 +1,36 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 verify lane cleanup of redundant Wang sync checker)
+
+### Ticket status
+
+- `T-342.1` Remove redundant `check:map-wang-sync` gate from modern verify flow after deterministic `map:export` pre-step: `done`
+- `T-342.2` Remove now-unused `check:map-wang-sync` script from active package scripts: `done`
+- `T-342.3` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-10T00:10Z` `in_progress` Started verify-lane cleanup to remove redundant Wang sync check now that `verify:modern` deterministically runs `map:export` first.
+  - Scope:
+    - drop `check:map-wang-sync` from `verify:modern`
+    - remove unused `check:map-wang-sync` package script
+  - Out of scope:
+    - Wang artifact generation behavior changes
+  - Acceptance criteria:
+    - `verify:modern` no longer references `check:map-wang-sync`
+    - `check:map-wang-sync` script no longer exists in `package.json`
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:11Z` `done` Completed redundant Wang sync checker cleanup and re-verified full modern lane.
+  - Evidence:
+    - updated `package.json`:
+      - removed `check:map-wang-sync` script
+      - `verify:modern` no longer invokes `check:map-wang-sync`
+    - `verify:modern` retains deterministic `map:export` pre-step, which already syncs Wang artifacts via active map export flow.
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 map verify lane simplification via deterministic export)
 
 ### Ticket status
