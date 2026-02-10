@@ -1,5 +1,40 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 map verify lane simplification via deterministic export)
+
+### Ticket status
+
+- `T-341.1` Replace runtime map drift checker lane with deterministic `map:export` in modern verify flow: `done`
+- `T-341.2` Remove retired map drift checker tool/script from active tooling surface: `done`
+- `T-341.3` Verify modern lane and record evidence: `done`
+
+### Live progress log
+
+- `2026-02-10T00:08Z` `in_progress` Started map verify lane simplification to remove manual artifact-drift checker step in favor of deterministic map export.
+  - Scope:
+    - replace `check:map-runtime-sync` verify gate with direct `map:export` execution
+    - remove retired `tools/check-map-runtime-sync.ts` tool/script entry
+  - Out of scope:
+    - map export/process behavior changes
+  - Acceptance criteria:
+    - `verify:modern` starts with `map:export`
+    - no active script entry references `check:map-runtime-sync`
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `rg -n "check:map-runtime-sync|tools/check-map-runtime-sync\\.ts" package.json README.md docs tools tests server client -g '!docs/archive/**' -g '!docs/modernization-readiness-status.md'`
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:10Z` `done` Completed map verify lane simplification and re-verified full modern lane.
+  - Evidence:
+    - updated `package.json`:
+      - removed `check:map-runtime-sync` script
+      - `verify:modern` now begins with `bun run map:export` and no longer calls `check:map-runtime-sync`
+    - removed retired tool:
+      - deleted `tools/check-map-runtime-sync.ts`
+    - active reference sweep:
+      - `rg -n "check:map-runtime-sync|tools/check-map-runtime-sync\\.ts" ...` found no active references outside readiness-history content
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 Vite-native runtime image asset resolution)
 
 ### Ticket status
