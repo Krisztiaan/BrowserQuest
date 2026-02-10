@@ -8,6 +8,7 @@
 - `T-401.2` Consolidate config preflight logic to a single ESM TypeScript source and remove `.cts` duplicate: `done`
 - `T-401.3` Convert metrics runtime module from `.cts` to `.ts` ESM and align runtime/tests/typecheck wiring: `done`
 - `T-401.5` Convert metrics core modules (`server/js/metrics`, `server/js/metrics-client`) from `.cts` to `.ts` ESM and align adapter/test wiring: `done`
+- `T-401.6` Remove dead websocket factory `.cts` shadow seam now that runtime uses native `.ts` factory source: `done`
 - `T-401.4` Continue full server graph convergence (`worldserver`/`player`/entity modules + shared `.cts` seams): `in_progress`
 
 ### Live progress log
@@ -98,6 +99,19 @@
     - memcache optional runtime loading preserved via `node:module` `createRequire(import.meta.url)` in `server/js/metrics.ts`
     - updated tests: `tests/unit/metrics-client.test.ts`, `tests/unit/server-metrics-esm.test.ts`
     - updated typecheck configs: `tsconfig.typecheck.json`, `tsconfig.typecheck-server-esm.json`, `tsconfig.typecheck-runtime.json`
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+- `2026-02-10T02:03Z` `done` Removed dead websocket runtime class-factory `.cts` seam (`T-401.6`) and re-verified full modern lane.
+  - Scope:
+    - remove `server/js/ws-runtime-class-factory.cts` (unused legacy shadow source)
+    - update runtime typecheck include inventory
+  - Acceptance criteria:
+    - websocket runtime continues to consume `server/js/ws-runtime-class-factory.ts`
+    - full modern verify lane remains green
+  - Evidence:
+    - deleted `server/js/ws-runtime-class-factory.cts`
+    - removed `.cts` include from `tsconfig.typecheck-runtime.json`
+    - websocket parity/factory/unit suites and full modern lane pass
   - Verification:
     - `bun run verify:modern:node22` -> pass
 

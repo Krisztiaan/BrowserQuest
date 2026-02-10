@@ -56,7 +56,6 @@
     "server/js/message.cts",
     "server/js/worldserver.cts",
     "server/js/config-preflight.ts",
-    "server/js/ws-runtime-class-factory.cts",
     "server/js/lib/class.cts",
     "tools/maps/processmap.ts",
     "shared/js/gametypes-esm.ts",
