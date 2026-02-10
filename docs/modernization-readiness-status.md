@@ -1,5 +1,45 @@
 # Modernization Readiness Status (2026-02-08)
 
+## Delta Update (2026-02-10 retire redundant client runtime coverage verifier)
+
+### Ticket status
+
+- `T-353.1` Retire `check:client-runtime-coverage` script/tool from active verify lane: `done`
+- `T-353.2` Enforce retired coverage-checker boundary in package-mode guard: `done`
+- `T-353.3` Re-verify full modern lane and capture evidence: `done`
+
+### Live progress log
+
+- `2026-02-10T00:29Z` `in_progress` Started verifier-surface simplification to remove manual client top-level reachability checker now covered by core built-in gates (`tsc`/lint/runtime tests).
+  - Scope:
+    - remove `check:client-runtime-coverage` from `package.json`
+    - remove `tools/check-client-runtime-coverage.ts`
+    - remove coverage-check step from `verify:modern`
+    - enforce retirement in `tools/check-package-mode-boundaries.ts`
+  - Out of scope:
+    - changing server runtime coverage guard
+    - changing typecheck scope configuration
+  - Acceptance criteria:
+    - no active `check:client-runtime-coverage` script remains
+    - coverage checker tool file is removed
+    - package boundary guard fails if script/tool return
+    - `bun run verify:modern:node22` passes
+  - Verification plan:
+    - `bun run verify:modern:node22`
+- `2026-02-10T00:30Z` `done` Completed client runtime coverage verifier retirement and re-verified full modern lane.
+  - Evidence:
+    - `package.json`:
+      - removed `check:client-runtime-coverage` script
+      - removed coverage-check stage from `verify:modern`
+    - removed tool:
+      - deleted `tools/check-client-runtime-coverage.ts`
+    - package boundary guard:
+      - now fails if `check:client-runtime-coverage` script exists
+      - now fails if `tools/check-client-runtime-coverage.ts` exists
+      - success banner includes client runtime coverage checker retirement
+  - Verification:
+    - `bun run verify:modern:node22` -> pass
+
 ## Delta Update (2026-02-10 retire redundant client alias-drift verifier)
 
 ### Ticket status

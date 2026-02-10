@@ -10,6 +10,7 @@ const retiredClientImgDir = path.join(repoRoot, 'client', 'img');
 const retiredNode22RunShellPath = path.join(repoRoot, 'tools', 'node22-run.sh');
 const retiredLegacyIeStylesheetPath = path.join(repoRoot, 'client', 'css', 'ie.css');
 const retiredClientAliasDriftCheckerPath = path.join(repoRoot, 'tools', 'check-client-runtime-alias-drift.ts');
+const retiredClientRuntimeCoverageCheckerPath = path.join(repoRoot, 'tools', 'check-client-runtime-coverage.ts');
 const docsRoot = path.join(repoRoot, 'docs');
 const docsArchiveRoot = path.join(docsRoot, 'archive');
 
@@ -77,6 +78,10 @@ if (typeof packageJson.scripts?.['check:client-runtime-alias-drift:strict'] === 
   fail('script "check:client-runtime-alias-drift:strict" must not exist after Vite alias built-in cutover');
 }
 
+if (typeof packageJson.scripts?.['check:client-runtime-coverage'] === 'string') {
+  fail('script "check:client-runtime-coverage" must not exist after modern lane verifier simplification');
+}
+
 if (fs.existsSync(retiredMapWatchPath)) {
   fail('tools/maps/watch.ts must not exist after Vite-native map sync cutover');
 }
@@ -105,6 +110,10 @@ if (fs.existsSync(retiredClientAliasDriftCheckerPath)) {
   fail('tools/check-client-runtime-alias-drift.ts must not exist after Vite alias built-in cutover');
 }
 
+if (fs.existsSync(retiredClientRuntimeCoverageCheckerPath)) {
+  fail('tools/check-client-runtime-coverage.ts must not exist after modern lane verifier simplification');
+}
+
 const docsRootEntries = fs.existsSync(docsRoot) ? fs.readdirSync(docsRoot, { withFileTypes: true }) : [];
 const legacyRootDocs = docsRootEntries
   .filter((entry) => entry.isFile() && /^legacy-.*\.md$/.test(entry.name))
@@ -128,5 +137,5 @@ if (archivedNoteOffenders.length > 0) {
 }
 
 process.stdout.write(
-  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet/client alias drift checker retired)\n',
+  'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet/client alias drift checker/client runtime coverage checker retired)\n',
 );
