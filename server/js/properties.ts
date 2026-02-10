@@ -1,15 +1,7 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
-const Log = require('./log') as {
-    getLogger(): { error(...args: unknown[]): void };
-};
-
-const Types = require('../../shared/js/gametypes') as {
-    isMob(kind: EntityKind): boolean;
-    getKindAsString(kind: EntityKind): string;
-    getArmorRank(kind: EntityKind): number;
-    getWeaponRank(kind: EntityKind): number;
-};
+import Log from './log-esm';
+import Types from '../../shared/js/gametypes-esm';
 
 const log = Log.getLogger();
 
@@ -21,8 +13,8 @@ interface MobProperty {
 }
 
 interface PropertiesContract extends Record<string, unknown> {
-    getArmorLevel(kind: EntityKind): number | undefined;
-    getWeaponLevel(kind: EntityKind): number | undefined;
+    getArmorLevel(kind: EntityKind): number;
+    getWeaponLevel(kind: EntityKind): number;
     getHitPoints(kind: EntityKind): number;
 }
 
@@ -179,37 +171,45 @@ const PropertiesData: Record<string, MobProperty> = {
 
 const Properties = PropertiesData as PropertiesContract;
 
-Properties.getArmorLevel = function (kind: EntityKind): number | undefined {
+function getMobProperty(kind: EntityKind): MobProperty {
+    const kindName = Types.getKindAsString(kind);
+    if (!kindName || !(kindName in Properties)) {
+        throw new Error('Unknown kind: ' + String(kind));
+    }
+    return Properties[kindName] as MobProperty;
+}
+
+Properties.getArmorLevel = function (kind: EntityKind): number {
     try {
         if (Types.isMob(kind)) {
-            const mob = Properties[Types.getKindAsString(kind)] as MobProperty;
-            return mob.armor;
-        } else {
-            return Types.getArmorRank(kind) + 1;
+            return getMobProperty(kind).armor;
         }
-    } catch (e) {
+        return Types.getArmorRank(kind) + 1;
+    } catch (error) {
         log.error('No level found for armor: ' + Types.getKindAsString(kind));
-        return undefined;
+        return 1;
     }
 };
 
-Properties.getWeaponLevel = function (kind: EntityKind): number | undefined {
+Properties.getWeaponLevel = function (kind: EntityKind): number {
     try {
         if (Types.isMob(kind)) {
-            const mob = Properties[Types.getKindAsString(kind)] as MobProperty;
-            return mob.weapon;
-        } else {
-            return Types.getWeaponRank(kind) + 1;
+            return getMobProperty(kind).weapon;
         }
-    } catch (e) {
+        return Types.getWeaponRank(kind) + 1;
+    } catch (error) {
         log.error('No level found for weapon: ' + Types.getKindAsString(kind));
-        return undefined;
+        return 1;
     }
 };
 
 Properties.getHitPoints = function (kind: EntityKind): number {
-    const mob = Properties[Types.getKindAsString(kind)] as MobProperty;
-    return mob.hp;
+    try {
+        return getMobProperty(kind).hp;
+    } catch (error) {
+        log.error('No hit points found for kind: ' + Types.getKindAsString(kind));
+        return 0;
+    }
 };
 
-module.exports = Properties;
+export default Properties;

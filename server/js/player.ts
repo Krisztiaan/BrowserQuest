@@ -1,35 +1,16 @@
-const Character = require('./character');
-const Chest = require('./chest');
-const Log = require('./log');
-const Messages = require('./message');
-const Utils = require('./utils');
-const Properties = require('./properties');
-const FormulasModule = require('./formulas') as {
-    default?: {
-        dmg(weaponLevel: number, armorLevel: number): number;
-        hp(armorLevel: number): number;
-    };
-};
-const Formulas =
-    (FormulasModule.default as
-        | {
-              dmg(weaponLevel: number, armorLevel: number): number;
-              hp(armorLevel: number): number;
-          }
-        | undefined) ||
-    (FormulasModule as unknown as {
-        dmg(weaponLevel: number, armorLevel: number): number;
-        hp(armorLevel: number): number;
-    });
-const check = require('./format').check;
-const Types = require('../../shared/js/gametypes');
+import Character from './character';
+import Chest from './chest';
+import Log from './log-esm';
+import Messages from './message';
+import Utils from './utils-esm';
+import Properties from './properties';
+import Formulas from './formulas';
+import FormatModule from './format';
+import Types from '../../shared/js/gametypes-esm';
 import type { ClientToServerProtocolAction } from '../../shared/js/protocol-contract-types';
-const ConnectionStatus = require('../../shared/js/connection-status') as {
-    HANDSHAKE_CONTROL: {
-        GO: string;
-        TIMEOUT: string;
-    };
-};
+import { HANDSHAKE_CONTROL } from '../../shared/js/connection-status';
+
+const check = FormatModule.check as (payload: ClientToServerProtocolAction) => boolean;
 
 const log = Log.getLogger();
 
@@ -40,6 +21,8 @@ const CHAT_MAX_CODEPOINTS = 60;
 const WHO_MAX_IDS = 1000;
 
 class Player extends Character {
+    [key: string]: any;
+
     constructor(connection, worldServer) {
         super(connection.id, 'player', Types.Entities.WARRIOR, 0, 0);
 
@@ -135,8 +118,8 @@ class Player extends Character {
                 }
             } else if (action === Types.Messages.MOVE) {
                 if (self.move_callback) {
-                    var x = message[1],
-                        y = message[2];
+                    var x = Number(message[1]),
+                        y = Number(message[2]);
 
                     if (self.server.isValidPosition(x, y)) {
                         self.setPosition(x, y);
@@ -148,7 +131,7 @@ class Player extends Character {
                 }
             } else if (action === Types.Messages.LOOTMOVE) {
                 if (self.lootmove_callback) {
-                    self.setPosition(message[1], message[2]);
+                    self.setPosition(Number(message[1]), Number(message[2]));
 
                     var item = self.server.getEntityById(message[3]);
                     if (item) {
@@ -234,8 +217,8 @@ class Player extends Character {
                     }
                 }
             } else if (action === Types.Messages.TELEPORT) {
-                var x = message[1],
-                    y = message[2];
+                var x = Number(message[1]),
+                    y = Number(message[2]);
 
                 if (self.server.isValidPosition(x, y)) {
                     self.setPosition(x, y);
@@ -273,14 +256,16 @@ class Player extends Character {
             }
         });
 
-        this.connection.sendUTF8(ConnectionStatus.HANDSHAKE_CONTROL.GO); // Notify client that the HELLO/WELCOME handshake can start
+        this.connection.sendUTF8(HANDSHAKE_CONTROL.GO); // Notify client that the HELLO/WELCOME handshake can start
     }
 
     destroy() {
         var self = this;
 
         this.forEachAttacker(function (mob) {
-            mob.clearTarget();
+            if (typeof mob.clearTarget === 'function') {
+                mob.clearTarget();
+            }
         });
         this.attackers = {};
 
@@ -419,9 +404,9 @@ class Player extends Character {
     }
 
     timeout() {
-        this.connection.sendUTF8(ConnectionStatus.HANDSHAKE_CONTROL.TIMEOUT);
+        this.connection.sendUTF8(HANDSHAKE_CONTROL.TIMEOUT);
         this.connection.close('Player was idle for too long');
     }
 }
 
-module.exports = Player;
+export default Player;

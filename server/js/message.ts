@@ -1,11 +1,8 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
-
-const Types = require('../../shared/js/gametypes') as {
-    Messages: Record<string, number>;
-};
+import Types from '../../shared/js/gametypes-esm';
 
 type MessageValue = number | string | number[];
-type SerializedMessage = MessageValue[];
+export type SerializedMessage = MessageValue[];
 
 interface StatefulEntity {
     id: number;
@@ -32,17 +29,13 @@ interface MobLike extends IdentifiedEntity {
     hatelist: HateEntry[];
 }
 
-type MessageCtor = new (...args: unknown[]) => Message;
-const Messages: Record<string, MessageCtor> = {};
-module.exports = Messages;
-
 class Message {
     serialize(): SerializedMessage {
         return [];
     }
 }
 
-Messages.Spawn = class Spawn extends Message {
+class Spawn extends Message {
     entity: StatefulEntity;
 
     constructor(entity: StatefulEntity) {
@@ -54,9 +47,9 @@ Messages.Spawn = class Spawn extends Message {
         const spawn: SerializedMessage = [Types.Messages.SPAWN];
         return spawn.concat(this.entity.getState());
     }
-};
+}
 
-Messages.Despawn = class Despawn extends Message {
+class Despawn extends Message {
     entityId: number;
 
     constructor(entityId: number) {
@@ -67,9 +60,9 @@ Messages.Despawn = class Despawn extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.DESPAWN, this.entityId];
     }
-};
+}
 
-Messages.Move = class Move extends Message {
+class Move extends Message {
     entity: IdentifiedEntity & { x: number; y: number };
 
     constructor(entity: IdentifiedEntity & { x: number; y: number }) {
@@ -80,9 +73,9 @@ Messages.Move = class Move extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.MOVE, this.entity.id, this.entity.x, this.entity.y];
     }
-};
+}
 
-Messages.LootMove = class LootMove extends Message {
+class LootMove extends Message {
     entity: IdentifiedEntity;
     item: IdentifiedEntity;
 
@@ -95,9 +88,9 @@ Messages.LootMove = class LootMove extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.LOOTMOVE, this.entity.id, this.item.id];
     }
-};
+}
 
-Messages.Attack = class Attack extends Message {
+class Attack extends Message {
     attackerId: number;
     targetId: number | null;
 
@@ -110,9 +103,9 @@ Messages.Attack = class Attack extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.ATTACK, this.attackerId, this.targetId ?? 0];
     }
-};
+}
 
-Messages.Health = class Health extends Message {
+class Health extends Message {
     points: number;
     isRegen: boolean;
 
@@ -130,9 +123,9 @@ Messages.Health = class Health extends Message {
         }
         return health;
     }
-};
+}
 
-Messages.HitPoints = class HitPoints extends Message {
+class HitPoints extends Message {
     maxHitPoints: number;
 
     constructor(maxHitPoints: number) {
@@ -143,9 +136,9 @@ Messages.HitPoints = class HitPoints extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.HP, this.maxHitPoints];
     }
-};
+}
 
-Messages.EquipItem = class EquipItem extends Message {
+class EquipItem extends Message {
     playerId: number;
     itemKind: EntityKind;
 
@@ -158,9 +151,9 @@ Messages.EquipItem = class EquipItem extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.EQUIP, this.playerId, this.itemKind];
     }
-};
+}
 
-Messages.Drop = class Drop extends Message {
+class Drop extends Message {
     mob: MobLike;
     item: ItemLike;
 
@@ -171,7 +164,7 @@ Messages.Drop = class Drop extends Message {
     }
 
     serialize(): SerializedMessage {
-        const drop: SerializedMessage = [
+        return [
             Types.Messages.DROP,
             this.mob.id,
             this.item.id,
@@ -180,12 +173,10 @@ Messages.Drop = class Drop extends Message {
                 return hate.id;
             }),
         ];
-
-        return drop;
     }
-};
+}
 
-Messages.Chat = class Chat extends Message {
+class Chat extends Message {
     playerId: number;
     message: string;
 
@@ -198,9 +189,9 @@ Messages.Chat = class Chat extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.CHAT, this.playerId, this.message];
     }
-};
+}
 
-Messages.Teleport = class Teleport extends Message {
+class Teleport extends Message {
     entity: IdentifiedEntity & { x: number; y: number };
 
     constructor(entity: IdentifiedEntity & { x: number; y: number }) {
@@ -211,9 +202,9 @@ Messages.Teleport = class Teleport extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.TELEPORT, this.entity.id, this.entity.x, this.entity.y];
     }
-};
+}
 
-Messages.Damage = class Damage extends Message {
+class Damage extends Message {
     entity: IdentifiedEntity;
     points: number;
 
@@ -226,24 +217,24 @@ Messages.Damage = class Damage extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.DAMAGE, this.entity.id, this.points];
     }
-};
+}
 
-Messages.Population = class Population extends Message {
+class Population extends Message {
     world: number;
     total: number;
 
-    constructor(world: number, total: number) {
+    constructor(world: number, total?: number) {
         super();
         this.world = world;
-        this.total = total;
+        this.total = typeof total === 'number' ? total : world;
     }
 
     serialize(): SerializedMessage {
         return [Types.Messages.POPULATION, this.world, this.total];
     }
-};
+}
 
-Messages.Kill = class Kill extends Message {
+class Kill extends Message {
     mob: Pick<MobLike, 'kind'>;
 
     constructor(mob: Pick<MobLike, 'kind'>) {
@@ -254,9 +245,9 @@ Messages.Kill = class Kill extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.KILL, this.mob.kind];
     }
-};
+}
 
-Messages.List = class List extends Message {
+class List extends Message {
     ids: number[];
 
     constructor(ids: number[]) {
@@ -266,13 +257,12 @@ Messages.List = class List extends Message {
 
     serialize(): number[] {
         const list = this.ids;
-
         list.unshift(Types.Messages.LIST);
         return list;
     }
-};
+}
 
-Messages.Destroy = class Destroy extends Message {
+class Destroy extends Message {
     entity: IdentifiedEntity;
 
     constructor(entity: IdentifiedEntity) {
@@ -283,9 +273,9 @@ Messages.Destroy = class Destroy extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.DESTROY, this.entity.id];
     }
-};
+}
 
-Messages.Blink = class Blink extends Message {
+class Blink extends Message {
     item: IdentifiedEntity;
 
     constructor(item: IdentifiedEntity) {
@@ -296,4 +286,29 @@ Messages.Blink = class Blink extends Message {
     serialize(): SerializedMessage {
         return [Types.Messages.BLINK, this.item.id];
     }
+}
+
+const Messages = {
+    Spawn,
+    Despawn,
+    Move,
+    LootMove,
+    Attack,
+    Health,
+    HitPoints,
+    EquipItem,
+    Drop,
+    Chat,
+    Teleport,
+    Damage,
+    Population,
+    Kill,
+    List,
+    Destroy,
+    Blink,
 };
+
+export type MessageConstructors = typeof Messages;
+
+export { Message };
+export default Messages;

@@ -59,8 +59,8 @@
     "verify:modern:node22": "bun tools/node22-run.ts bun run verify:modern",
     "test": "bun test --timeout 20000",
     "lint": "eslint \"tests/**/*.ts\" \"client/js-esm/**/*.ts\"",
-    "format": "prettier --write \"server/js/{log,utils,format}.cts\" \"client/js-esm/compat/*.ts\" \"client/js-esm/preflight.ts\" \"shared/js/gametypes.cts\" \"tests/**/*.ts\"",
-    "format:check": "prettier --check \"server/js/{log,utils,format}.cts\" \"client/js-esm/compat/*.ts\" \"client/js-esm/preflight.ts\" \"shared/js/gametypes.cts\" \"tests/**/*.ts\""
+    "format": "prettier --write \"server/js/{log.cts,utils.cts,format.ts}\" \"client/js-esm/compat/*.ts\" \"client/js-esm/preflight.ts\" \"shared/js/gametypes.cts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"server/js/{log.cts,utils.cts,format.ts}\" \"client/js-esm/compat/*.ts\" \"client/js-esm/preflight.ts\" \"shared/js/gametypes.cts\" \"tests/**/*.ts\""
   },
   "dependencies": {},
   "devDependencies": {

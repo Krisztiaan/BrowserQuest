@@ -1,16 +1,5 @@
-const Area = require('./area') as new (
-    id: number | string,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    world: unknown
-) => {
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-};
+import Area from './area';
+import type { AreaWorldContract } from './area';
 
 interface ChestAreaEntity {
     x: number;
@@ -31,7 +20,7 @@ class ChestArea extends Area {
         cx: number,
         cy: number,
         items: unknown[],
-        world: unknown
+        world: AreaWorldContract
     ) {
         super(id, x, y, width, height, world);
         this.items = items;
@@ -53,4 +42,4 @@ class ChestArea extends Area {
     }
 }
 
-module.exports = ChestArea;
+export default ChestArea;

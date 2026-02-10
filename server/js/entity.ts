@@ -1,13 +1,7 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
-const Messages = require('./message') as {
-    Spawn: new (entity: Entity) => unknown;
-    Despawn: new (id: number) => unknown;
-};
-
-const Utils = require('./utils') as {
-    random(range: number): number;
-};
+import Messages from './message';
+import Utils from './utils-esm';
 
 interface PositionLike {
     x: number;
@@ -75,4 +69,4 @@ class Entity {
     }
 }
 
-module.exports = Entity;
+export default Entity;

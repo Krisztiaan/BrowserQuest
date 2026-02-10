@@ -1,38 +1,9 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
-const Character = require('./character') as new (
-    id: number | string,
-    type: string,
-    kind: EntityKind,
-    x: number,
-    y: number
-) => {
-    id: number;
-    kind: EntityKind;
-    x: number;
-    y: number;
-    hitPoints: number;
-    clearTarget(): void;
-    resetHitPoints(maxHitPoints: number): void;
-    setPosition(x: number, y: number): void;
-    hasTarget(): boolean;
-};
-
-const Messages = require('./message') as {
-    Drop: new (mob: Mob, item: DropItemLike) => unknown;
-};
-
-const Properties = require('./properties') as {
-    getArmorLevel(kind: EntityKind): number;
-    getWeaponLevel(kind: EntityKind): number;
-    getHitPoints(kind: EntityKind): number;
-};
-
-const Utils = require('./utils') as {
-    distanceTo(x: number, y: number, x2: number, y2: number): number;
-};
-
-require('../../shared/js/gametypes');
+import Character from './character';
+import Messages from './message';
+import Properties from './properties';
+import Utils from './utils-esm';
 
 interface HateEntry {
     id: number;
@@ -220,4 +191,4 @@ class Mob extends Character {
     }
 }
 
-module.exports = Mob;
+export default Mob;

@@ -11,49 +11,19 @@ import type {
     ServerConfig,
 } from './main-runtime-types';
 import { SERVER_EVENT_NAMES, type RuntimeEventName } from './server-event-names';
-import * as ConfigPreflightModule from './config-preflight';
-import * as MetricsRuntimeModule from './metrics-runtime';
-import * as LogModule from './log.cts';
+import ConfigPreflight from './config-preflight';
+import MetricsRuntime from './metrics-runtime';
+import Log from './log-esm';
 import WsRuntimeModule from './ws-runtime-esm';
-import * as WorldServerModule from './worldserver.cts';
-import * as PlayerModule from './player.cts';
+import WorldServer from './worldserver';
+import Player from './player';
 
 interface ConfigValidationResult {
     isValid: boolean;
     errors: unknown[];
 }
 
-function unwrapLegacyModule<T>(moduleValue: unknown): T {
-    if (
-        moduleValue &&
-        typeof moduleValue === 'object' &&
-        'default' in (moduleValue as Record<string, unknown>)
-    ) {
-        return (moduleValue as { default: T }).default;
-    }
-    return moduleValue as T;
-}
-
-const ConfigPreflight = unwrapLegacyModule<{
-    validateConfig(config: unknown): ConfigValidationResult;
-}>(ConfigPreflightModule);
-
-const MetricsRuntime = unwrapLegacyModule<MainRuntimeDependencies['metricsRuntime']>(
-    MetricsRuntimeModule
-);
-
-const Log = unwrapLegacyModule<{
-    getLogger(): RuntimeLogger;
-    setLevel(level: number): void;
-    ERROR: number;
-    INFO: number;
-    DEBUG: number;
-}>(LogModule);
 const WsRuntime = WsRuntimeModule as MainRuntimeDependencies['ws'];
-const WorldServer = unwrapLegacyModule<MainRuntimeDependencies['WorldServer']>(
-    WorldServerModule
-);
-const Player = unwrapLegacyModule<MainRuntimeDependencies['Player']>(PlayerModule);
 
 const log = Log.getLogger();
 
@@ -61,9 +31,9 @@ function createRuntimeDependencies(overrides?: MainRuntimeDependencyOverrides): 
     const injected = overrides || {};
     return {
         ws: injected.ws || WsRuntime,
-        WorldServer: injected.WorldServer || WorldServer,
-        Player: injected.Player || Player,
-        metricsRuntime: injected.metricsRuntime || MetricsRuntime,
+        WorldServer: injected.WorldServer || (WorldServer as unknown as MainRuntimeDependencies['WorldServer']),
+        Player: injected.Player || (Player as unknown as MainRuntimeDependencies['Player']),
+        metricsRuntime: injected.metricsRuntime || (MetricsRuntime as unknown as MainRuntimeDependencies['metricsRuntime']),
         logger: injected.logger || log,
         processObject: injected.processObject || (process as unknown as RuntimeProcessLike),
         setIntervalFn:

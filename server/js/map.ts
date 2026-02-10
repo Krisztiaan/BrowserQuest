@@ -1,12 +1,7 @@
-const fs = require('node:fs/promises') as typeof import('node:fs/promises');
-
-const Log = require('./log') as {
-    getLogger(): { error(...args: unknown[]): void };
-};
-
-const Utils = require('./utils') as {
-    randomInt(min: number, max: number): number;
-};
+import fs from 'node:fs/promises';
+import Log from './log-esm';
+import Utils from './utils-esm';
+import Checkpoint from './checkpoint';
 
 interface Position {
     x: number;
@@ -41,35 +36,10 @@ interface MapDefinition {
     roamingAreas: unknown[];
     chestAreas: unknown[];
     staticChests: unknown[];
-    staticEntities: unknown[];
+    staticEntities: Record<string, string>;
     doors?: DoorDefinition[];
     checkpoints?: CheckpointDefinition[];
 }
-
-interface ProcessMapContract {
-    default: (
-        json: unknown,
-        options: {
-            mode?: string;
-            quiet?: boolean;
-        }
-    ) => unknown;
-}
-
-const CheckpointModule = require('./checkpoint') as {
-    default?: new (id: number | string, x: number, y: number, w: number, h: number) => CheckpointContract;
-};
-const Checkpoint =
-    (CheckpointModule.default as
-        | (new (id: number | string, x: number, y: number, w: number, h: number) => CheckpointContract)
-        | undefined) ||
-    (CheckpointModule as unknown as new (
-        id: number | string,
-        x: number,
-        y: number,
-        w: number,
-        h: number
-    ) => CheckpointContract);
 
 const log = Log.getLogger();
 const mapDefinitionCache = new globalThis.Map<string, Promise<MapDefinition | null>>();
@@ -81,10 +51,20 @@ function cloneMapDefinition(mapDefinition: MapDefinition): MapDefinition {
     return JSON.parse(JSON.stringify(mapDefinition)) as MapDefinition;
 }
 
-function isTiledMapSource(payload: unknown): payload is { layers: unknown[] } {
+interface TiledMapSource {
+    width: number;
+    height: number;
+    tilewidth: number;
+    layers?: unknown[];
+}
+
+function isTiledMapSource(payload: unknown): payload is TiledMapSource {
     return (
         typeof payload === 'object' &&
         payload !== null &&
+        typeof (payload as { width?: unknown }).width === 'number' &&
+        typeof (payload as { height?: unknown }).height === 'number' &&
+        typeof (payload as { tilewidth?: unknown }).tilewidth === 'number' &&
         'layers' in payload &&
         Array.isArray((payload as { layers?: unknown }).layers)
     );
@@ -95,8 +75,8 @@ async function normalizeMapDefinition(rawMap: unknown): Promise<MapDefinition> {
         return rawMap as MapDefinition;
     }
 
-    const processMapModule = (await import('../../tools/maps/processmap')) as unknown as ProcessMapContract;
-    return processMapModule.default(rawMap, { mode: 'server', quiet: true }) as MapDefinition;
+    const processMapModule = await import('../../tools/maps/processmap');
+    return processMapModule.default(rawMap as never, { mode: 'server', quiet: true }) as unknown as MapDefinition;
 }
 
 async function readAndNormalizeMapDefinition(filepath: string): Promise<MapDefinition | null> {
@@ -144,7 +124,7 @@ class Map {
     mobAreas: unknown[];
     chestAreas: unknown[];
     staticChests: unknown[];
-    staticEntities: unknown[];
+    staticEntities: Record<string, string>;
     zoneWidth: number;
     zoneHeight: number;
     groupWidth: number;
@@ -163,7 +143,7 @@ class Map {
         this.mobAreas = [];
         this.chestAreas = [];
         this.staticChests = [];
-        this.staticEntities = [];
+        this.staticEntities = {};
         this.zoneWidth = 0;
         this.zoneHeight = 0;
         this.groupWidth = 0;
@@ -393,4 +373,4 @@ function equalPositions(pos1: Position, pos2: Position): boolean {
     return pos1.x === pos2.x && pos1.y === pos2.y;
 }
 
-module.exports = Map;
+export default Map;

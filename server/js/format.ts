@@ -1,11 +1,7 @@
-const Log = require('./log') as {
-    getLogger(): { error(...args: unknown[]): void };
-};
-
-const Types = require('../../shared/js/gametypes') as {
-    Messages: Record<string, number>;
-};
 import type { ClientToServerProtocolAction } from '../../shared/js/protocol-contract-types';
+
+import Types from '../../shared/js/gametypes-esm';
+import Log from './log-esm';
 
 const log = Log.getLogger();
 
@@ -88,5 +84,7 @@ class FormatChecker {
 
 const checker = new FormatChecker();
 
-exports.FormatChecker = FormatChecker;
-exports.check = checker.check.bind(checker);
+const check = checker.check.bind(checker);
+
+export { FormatChecker, check };
+export default { FormatChecker, check };

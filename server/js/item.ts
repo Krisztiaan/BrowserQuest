@@ -1,12 +1,6 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
-const Entity = require('./entity') as new (
-    id: number | string,
-    type: string,
-    kind: EntityKind,
-    x: number,
-    y: number
-) => object;
+import Entity from './entity';
 
 interface ItemDespawnParams {
     blinkCallback: () => void;
@@ -67,4 +61,4 @@ class Item extends Entity {
     }
 }
 
-module.exports = Item;
+export default Item;

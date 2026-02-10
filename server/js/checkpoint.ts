@@ -1,10 +1,4 @@
-import * as UtilsModule from './utils.cts';
-
-const Utils = ((UtilsModule as unknown as { default?: unknown }).default
-    ? (UtilsModule as unknown as { default: unknown }).default
-    : UtilsModule) as {
-    randomInt(min: number, max: number): number;
-};
+import Utils from './utils-esm';
 
 interface Position {
     x: number;

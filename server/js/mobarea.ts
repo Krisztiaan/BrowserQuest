@@ -1,4 +1,9 @@
 import type { EntityKind, EntityKindId, EntityKindName } from '../../shared/js/entity-kind-domain';
+import Area from './area';
+import type { AreaWorldContract } from './area';
+import Mob from './mob';
+import Utils from './utils-esm';
+import Types from '../../shared/js/gametypes-esm';
 
 interface Position {
     x: number;
@@ -6,8 +11,10 @@ interface Position {
 }
 
 interface MobAreaMobContract {
+    id: number | string;
     x: number;
     y: number;
+    type: string;
     isDead: boolean;
     hasTarget(): boolean;
     move(x: number, y: number): void;
@@ -20,45 +27,11 @@ interface MobAreaWorldContract {
     isValidPosition(x: number, y: number): boolean;
 }
 
-const Area = require('./area') as new (
-    id: number | string,
-    x: number,
-    y: number,
-    width: number,
-    height: number,
-    world: MobAreaWorldContract
-) => {
-    id: number | string;
-    entities: MobAreaMobContract[];
-    world: MobAreaWorldContract;
-    setNumberOfEntities(nb: number): void;
-    addToArea(entity: MobAreaMobContract): void;
-    removeFromArea(entity: MobAreaMobContract): void;
-    _getRandomPositionInsideArea(): Position;
-};
-
-const Mob = require('./mob') as new (
-    id: number | string,
-    kind: EntityKind,
-    x: number,
-    y: number
-) => MobAreaMobContract;
-
-const Utils = require('./utils') as {
-    random(range: number): number;
-};
-
-const Types = require('../../shared/js/gametypes') as {
-    getKindFromString(kind: string): EntityKindId | undefined;
-    Entities: {
-        CHEST: EntityKindId;
-    };
-};
-
 class MobArea extends Area {
     nb: number;
     kind: EntityKindName;
     respawns: unknown[];
+    declare world: MobAreaWorldContract;
 
     constructor(
         id: number | string,
@@ -70,7 +43,8 @@ class MobArea extends Area {
         height: number,
         world: MobAreaWorldContract
     ) {
-        super(id, x, y, width, height, world);
+        super(id, x, y, width, height, world as unknown as AreaWorldContract);
+        this.world = world;
         this.nb = nb;
         this.kind = kind;
         this.respawns = [];
@@ -115,7 +89,7 @@ class MobArea extends Area {
         const self = this;
 
         setInterval(function () {
-            self.entities.forEach(function (mob) {
+            (self.entities as MobAreaMobContract[]).forEach(function (mob) {
                 const canRoam = Utils.random(20) === 1;
                 let pos: Position;
 
@@ -136,4 +110,4 @@ class MobArea extends Area {
     }
 }
 
-module.exports = MobArea;
+export default MobArea;

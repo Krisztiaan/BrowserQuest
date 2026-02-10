@@ -1,60 +1,39 @@
 import type { RuntimeEventName, WorldEventName } from './server-event-names';
-
-const Entity = require('./entity');
-const Character = require('./character');
-const Log = require('./log') as {
-    getLogger(): {
-        info(...args: unknown[]): void;
-        debug(...args: unknown[]): void;
-        error(...args: unknown[]): void;
-        event(level: string, eventName: RuntimeEventName, fields?: Record<string, unknown>): void;
-    };
-};
-const Mob = require('./mob');
-const Map = require('./map');
-const NpcModule = require('./npc') as {
-    default?: new (id: number | string, kind: number, x: number, y: number) => { id: string | number };
-};
-const Npc =
-    (NpcModule.default as
-        | (new (id: number | string, kind: number, x: number, y: number) => { id: string | number })
-        | undefined) ||
-    (NpcModule as unknown as new (id: number | string, kind: number, x: number, y: number) => {
-        id: string | number;
-    });
-const Player = require('./player');
-const Item = require('./item');
-const MobArea = require('./mobarea');
-const ChestArea = require('./chestarea');
-const Chest = require('./chest');
-const Messages = require('./message');
-const Properties = require('./properties');
-const Utils = require('./utils');
-const Types = require('../../shared/js/gametypes');
-const RuntimeEventNames = require('./server-event-names') as {
-    WORLD_EVENT_NAMES: {
-        PLAYER_JOIN: WorldEventName;
-        PLAYER_LEAVE: WorldEventName;
-    };
-};
+import type { EntityKindName } from '../../shared/js/entity-kind-domain';
+import Entity from './entity';
+import Character from './character';
+import Log from './log-esm';
+import Mob from './mob';
+import Map from './map';
+import Npc from './npc';
+import Player from './player';
+import Item from './item';
+import MobArea from './mobarea';
+import ChestArea from './chestarea';
+import Chest from './chest';
+import Messages from './message';
+import Properties from './properties';
+import Utils from './utils-esm';
+import Types from '../../shared/js/gametypes-esm';
+import { WORLD_EVENT_NAMES } from './server-event-names';
 const log = Log.getLogger();
 
 // ======= GAME SERVER ========
 
 type EntityId = string | number;
 
-type WorldEntity = InstanceType<typeof Entity>;
-type WorldPlayer = InstanceType<typeof Player>;
-type WorldMob = InstanceType<typeof Mob>;
-type WorldNpc = InstanceType<typeof Npc>;
-type WorldItem = InstanceType<typeof Item>;
-type WorldChest = InstanceType<typeof Chest>;
-type WorldMessage = InstanceType<(typeof Messages)[keyof typeof Messages]>;
+type WorldEntity = Record<string, any>;
+type WorldPlayer = Record<string, any>;
+type WorldMob = Record<string, any>;
+type WorldNpc = Record<string, any>;
+type WorldItem = Record<string, any>;
+type WorldChest = Record<string, any>;
+type WorldMessage = Record<string, any>;
 
 type MapMobAreaConfig = {
     id: string | number;
     nb: number;
-    type: string;
+    type: EntityKindName;
     x: number;
     y: number;
     width: number;
@@ -69,13 +48,13 @@ type MapChestAreaConfig = {
     h: number;
     tx: number;
     ty: number;
-    i: string;
+    i: unknown[];
 };
 
 type MapChestConfig = {
     x: number;
     y: number;
-    i: string;
+    i: unknown[];
 };
 
 type WorldMapLike = {
@@ -89,9 +68,9 @@ type WorldMapLike = {
     forEachGroup(callback: (id: string) => void): void;
     forEachAdjacentGroup(groupId: string, callback: (id: string) => void): void;
     staticEntities?: Record<string, string>;
-    mobAreas?: MapMobAreaConfig[];
-    chestAreas?: MapChestAreaConfig[];
-    staticChests?: MapChestConfig[];
+    mobAreas?: any[];
+    chestAreas?: any[];
+    staticChests?: any[];
 };
 
 type WorldConnection = {
@@ -191,7 +170,7 @@ class World {
 
         this.onPlayerEnter(function (player) {
             log.info(player.name + ' has joined ' + self.id);
-            logPlayerEvent(RuntimeEventNames.WORLD_EVENT_NAMES.PLAYER_JOIN, player);
+            logPlayerEvent(WORLD_EVENT_NAMES.PLAYER_JOIN, player);
 
             if (!player.hasEnteredGame) {
                 self.incrementPlayerCount();
@@ -241,7 +220,7 @@ class World {
 
             player.onExit(function () {
                 log.info(player.name + ' has left the game.');
-                logPlayerEvent(RuntimeEventNames.WORLD_EVENT_NAMES.PLAYER_LEAVE, player);
+                logPlayerEvent(WORLD_EVENT_NAMES.PLAYER_LEAVE, player);
                 self.removePlayer(player);
                 self.decrementPlayerCount();
 
@@ -388,7 +367,7 @@ class World {
         (ids || []).forEach(function (id) {
             var entity = self.getEntityById(id);
             if (entity) {
-                self.pushToPlayer(player, new Messages.Spawn(entity));
+                self.pushToPlayer(player, new Messages.Spawn(entity as any));
             }
         });
 
@@ -787,8 +766,11 @@ class World {
     }
 
     getDroppedItem(mob) {
-        var kind = Types.getKindAsString(mob.kind),
-            drops = Properties[kind].drops,
+        var kind = Types.getKindAsString(mob.kind);
+        if (!kind) {
+            return null;
+        }
+        var drops = (Properties as Record<string, any>)[kind]?.drops || {},
             v = Utils.random(100),
             p = 0,
             item = null;
@@ -937,7 +919,7 @@ class World {
                         if (entity instanceof Player) {
                             self.pushToGroup(id, new Messages.Spawn(entity), entity.id);
                         } else {
-                            self.pushToGroup(id, new Messages.Spawn(entity));
+                            self.pushToGroup(id, new Messages.Spawn(entity as any));
                         }
                     });
                     self.groups[id].incoming = [];
@@ -1004,4 +986,4 @@ class World {
     }
 }
 
-module.exports = World;
+export default World;

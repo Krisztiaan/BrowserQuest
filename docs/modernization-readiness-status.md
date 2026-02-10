@@ -11,10 +11,50 @@
 - `T-401.6` Remove dead websocket factory `.cts` shadow seam now that runtime uses native `.ts` factory source: `done`
 - `T-401.7` Consolidate shared protocol contract onto a single `.ts` source and retire `.cts` duplicate: `done`
 - `T-401.8` Convert low-risk gameplay leaf modules (`formulas`, `checkpoint`, `npc`) to `.ts` ESM with CJS/ESM seam compatibility retained at call sites: `done`
+- `T-401.9` Convert core gameplay dependency modules (`entity`, `character`, `item`, `mob`, `message`, `properties`, `format`) to `.ts` ESM and retire their `.cts` counterparts: `done`
 - `T-401.4` Continue full server graph convergence (`worldserver`/`player`/entity modules + shared `.cts` seams): `in_progress`
 
 ### Live progress log
 
+- `2026-02-10T01:52Z` `in_progress` Continuing `T-401.4` as a single gameplay/runtime cluster conversion to remove interop-unwrapping glue and keep module boundaries idiomatic ESM.
+  - Scope:
+    - convert `server/js/{area,chest,chestarea,map,mobarea,player,worldserver}.cts` to `.ts` ESM sources
+    - align `server/js/main-runtime.ts` to direct ESM imports (no legacy unwrap helper)
+    - keep runtime behavior contracts unchanged (world startup, handshake, map load + fallback)
+  - Out of scope:
+    - conversion of deeper dependency graph modules still intentionally `.cts` in this slice (`entity`, `character`, `item`, `message`, `properties`, `mob`)
+  - Acceptance criteria:
+    - no default-unwrapping interop glue remains in the converted cluster
+    - full modern verification lane passes on Node 22 (`bun run verify:modern:node22`)
+  - Verification plan:
+    - `bun x tsc -b tsconfig.projects.json`
+    - `bun run verify:modern:node22`
+  - Dependencies/blockers:
+    - dependency: mixed `.ts`/`.cts` import edges must stay runtime-safe until full graph convergence
+- `2026-02-10T02:02Z` `done` Completed gameplay/world runtime cluster convergence and direct-import cleanup through core dependencies (`T-401.9`) with green modern verification.
+  - Evidence:
+    - converted and retired legacy `.cts` sources:
+      - `server/js/entity.cts` -> `server/js/entity.ts`
+      - `server/js/character.cts` -> `server/js/character.ts`
+      - `server/js/item.cts` -> `server/js/item.ts`
+      - `server/js/mob.cts` -> `server/js/mob.ts`
+      - `server/js/message.cts` -> `server/js/message.ts`
+      - `server/js/properties.cts` -> `server/js/properties.ts`
+      - `server/js/format.cts` -> `server/js/format.ts`
+    - converged runtime cluster imports to direct ESM module paths:
+      - `server/js/{main-runtime,worldserver,player,mobarea,chest,npc,formulas,checkpoint}.ts`
+    - removed remaining interop-unwrapping glue in:
+      - `server/js/area.ts`
+      - `server/js/chest.ts`
+      - `server/js/chestarea.ts`
+    - aligned project wiring:
+      - updated `tsconfig.typecheck.json`, `tsconfig.typecheck-server-esm.json`, `tsconfig.typecheck-runtime.json`
+      - updated `package.json` `format`/`format:check` file patterns for `format.ts`
+  - Verification:
+    - `bun x tsc -b tsconfig.projects.json` -> pass
+    - `bun run verify:modern:node22` -> pass
+  - Next action:
+    - continue `T-401.4` by converging final remaining `.cts` seams (`server/js/log.cts`, `server/js/utils.cts`, `shared/js/gametypes.cts`) to `.ts` ESM.
 - `2026-02-10T01:00Z` `in_progress` Started server-runtime convergence execution block focused on replacing entrypoint `.cts` seams with pure ESM TypeScript while preserving startup/runtime behavior.
   - Scope:
     - convert `server/js/main-runtime` and `server/js/main` to `.ts` ESM

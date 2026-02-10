@@ -1,36 +1,15 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
-const Entity = require('./entity') as new (
-    id: number | string,
-    type: string,
-    kind: EntityKind,
-    x: number,
-    y: number
-) => {
-    id: number;
-    _getBaseState(): Array<number | string>;
-};
-
-const Messages = require('./message') as {
-    Attack: new (attackerId: number, targetId: number | null) => unknown;
-    Health: new (points: number, isRegen: boolean) => unknown;
-};
-
-const Log = require('./log') as {
-    getLogger(): { debug(...args: unknown[]): void };
-};
-
-const Utils = require('./utils') as {
-    randomOrientation(): number;
-};
-
-require('./properties');
-require('../../shared/js/gametypes');
+import Entity from './entity';
+import Log from './log-esm';
+import Messages from './message';
+import Utils from './utils-esm';
 
 const log = Log.getLogger();
 
 interface AttackerLike {
     id: number;
+    clearTarget?(): void;
 }
 
 class Character extends Entity {
@@ -128,4 +107,4 @@ class Character extends Entity {
     }
 }
 
-module.exports = Character;
+export default Character;

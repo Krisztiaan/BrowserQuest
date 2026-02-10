@@ -1,17 +1,15 @@
-const Utils = require('./utils') as {
-    random(range: number): number;
-};
+import Utils from './utils-esm';
 
-interface AreaWorldContract {
+export interface AreaWorldContract {
     isValidPosition(x: number, y: number): boolean;
     addMob(entity: AreaEntity): void;
 }
 
-interface AreaEntity {
-    id: number;
+export interface AreaEntity {
+    id: number | string;
     type?: string;
     isDead?: boolean;
-    area?: Area;
+    area?: unknown;
 }
 
 type EmptyCallback = () => void;
@@ -95,4 +93,4 @@ class Area {
     }
 }
 
-module.exports = Area;
+export default Area;
