@@ -1,9 +1,9 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
 import Entity from './entity';
-import Log from './log-esm';
+import Log from './log';
 import Messages from './message';
-import Utils from './utils-esm';
+import Utils from './utils';
 
 const log = Log.getLogger();
 

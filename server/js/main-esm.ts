@@ -8,7 +8,7 @@ import type {
     MainRuntimeOptions,
     ServerConfig,
 } from './main-runtime-types';
-import Utils from './utils-esm';
+import Utils from './utils';
 import { createRuntimeDependencies, main as startServer } from './main-runtime';
 
 const defaultConfigPath = './server/config.json';

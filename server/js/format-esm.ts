@@ -1,4 +1,4 @@
-import Log from './log-esm';
+import Log from './log';
 import Types from '../../shared/js/gametypes-esm';
 
 const log = Log.getLogger();

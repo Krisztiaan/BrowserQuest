@@ -12,10 +12,54 @@
 - `T-401.7` Consolidate shared protocol contract onto a single `.ts` source and retire `.cts` duplicate: `done`
 - `T-401.8` Convert low-risk gameplay leaf modules (`formulas`, `checkpoint`, `npc`) to `.ts` ESM with CJS/ESM seam compatibility retained at call sites: `done`
 - `T-401.9` Convert core gameplay dependency modules (`entity`, `character`, `item`, `mob`, `message`, `properties`, `format`) to `.ts` ESM and retire their `.cts` counterparts: `done`
-- `T-401.4` Continue full server graph convergence (`worldserver`/`player`/entity modules + shared `.cts` seams): `in_progress`
+- `T-401.10` Consolidate duplicated logger modules (`log.cts` + `log-esm.ts`) into a single modern console-backed TypeScript module: `done`
+- `T-401.11` Retire remaining `utils.cts` and `gametypes.cts` seams by moving all consumers/tests to canonical ESM TypeScript modules: `done`
+- `T-401.12` Remove dead legacy inheritance helper seam (`server/js/lib/class.cts`) and finalize zero-`.cts` state under `server/js` + `shared/js`: `done`
+- `T-401.4` Continue full server graph convergence (`worldserver`/`player`/entity modules + shared `.cts` seams): `done`
 
 ### Live progress log
 
+- `2026-02-10T02:20Z` `done` Completed final legacy helper retirement (`T-401.12`) by removing the last `.cts` artifact in active server/shared runtime scope.
+  - Scope:
+    - remove dead file `server/js/lib/class.cts`
+    - remove stale typecheck include reference
+    - keep runtime behavior unchanged
+  - Acceptance criteria:
+    - `find server/js shared/js -name '*.cts'` returns no results
+    - full modern verification lane passes
+  - Evidence:
+    - deleted `server/js/lib/class.cts`
+    - removed include from `tsconfig.typecheck-runtime.json`
+    - post-change scan result: zero `.cts` files under `server/js` and `shared/js`
+  - Verification:
+    - `bun x tsc -b tsconfig.projects.json` -> pass
+    - `bun run verify:modern:node22` -> pass
+  - Next action:
+    - continue modernization by removing remaining transitional `*-esm` naming seams and interop wrappers where still present (metrics/runtime helpers).
+- `2026-02-10T02:20Z` `done` Completed final counterpart-based `.cts` seam retirement pass for utility/type-domain modules (`T-401.11`) with green full modern verification.
+  - Scope:
+    - remove `server/js/utils.cts` and canonicalize utility import path to `server/js/utils.ts`
+    - remove `shared/js/gametypes.cts` and migrate remaining test consumers to ESM (`shared/js/gametypes-esm.ts`)
+    - keep runtime semantics unchanged
+  - Acceptance criteria:
+    - no active source/test/tooling reference remains to `utils.cts` or `gametypes.cts`
+    - full modern verification lane passes
+  - Evidence:
+    - removed files:
+      - `server/js/utils.cts`
+      - `shared/js/gametypes.cts`
+    - canonicalized modules/imports:
+      - `server/js/utils-esm.ts` -> `server/js/utils.ts`
+      - runtime imports updated to `./utils` across server modules
+      - tests updated to ESM gametypes imports (`tests/unit/gametypes-contract.test.ts`, `tests/unit/entity-kind-domain.test.ts`, `tests/unit/server-utils-esm.test.ts`)
+    - tooling/config alignment:
+      - updated `package.json` format globs for `utils.ts` + `gametypes-browser.ts`
+      - updated `tsconfig.typecheck.json`, `tsconfig.typecheck-server-esm.json`, `tsconfig.typecheck-runtime.json`
+  - Verification:
+    - `bun x tsc -b tsconfig.projects.json` -> pass
+    - `bun run verify:modern:node22` -> pass
+  - Next action:
+    - continue `T-401.4` by converging the last remaining server `.cts` helper (`server/js/lib/class.cts`) to `.ts`.
 - `2026-02-10T01:52Z` `in_progress` Continuing `T-401.4` as a single gameplay/runtime cluster conversion to remove interop-unwrapping glue and keep module boundaries idiomatic ESM.
   - Scope:
     - convert `server/js/{area,chest,chestarea,map,mobarea,player,worldserver}.cts` to `.ts` ESM sources
@@ -31,6 +75,25 @@
     - `bun run verify:modern:node22`
   - Dependencies/blockers:
     - dependency: mixed `.ts`/`.cts` import edges must stay runtime-safe until full graph convergence
+- `2026-02-10T02:10Z` `done` Completed logger module consolidation (`T-401.10`) by replacing duplicate CJS/ESM logger implementations with one modern TypeScript module.
+  - Scope:
+    - remove `server/js/log.cts` and `server/js/log-esm.ts`
+    - add unified `server/js/log.ts` using built-in `console.*` and structured JSON event emission
+    - migrate server/runtime/tests imports to `./log`
+  - Acceptance criteria:
+    - no runtime/test import depends on `log.cts` or `log-esm.ts`
+    - logger level gating + structured `event(...)` output behavior remains intact
+    - full modern verification lane passes
+  - Evidence:
+    - new canonical logger source: `server/js/log.ts`
+    - deleted duplicate sources: `server/js/log.cts`, `server/js/log-esm.ts`
+    - migrated imports in runtime modules and tests (e.g. `server/js/main-runtime.ts`, `server/js/worldserver.ts`, `server/js/ws-runtime-esm.ts`, `tests/unit/server-log.test.ts`, `tests/unit/metrics-runtime.test.ts`)
+    - updated typecheck/format wiring: `tsconfig.typecheck.json`, `tsconfig.typecheck-server-esm.json`, `tsconfig.typecheck-runtime.json`, `package.json`
+  - Verification:
+    - `bun x tsc -b tsconfig.projects.json` -> pass
+    - `bun run verify:modern:node22` -> pass
+  - Next action:
+    - continue `T-401.4` by converging the remaining server `.cts` helper (`server/js/lib/class.cts`) to `.ts`.
 - `2026-02-10T02:02Z` `done` Completed gameplay/world runtime cluster convergence and direct-import cleanup through core dependencies (`T-401.9`) with green modern verification.
   - Evidence:
     - converted and retired legacy `.cts` sources:
@@ -54,7 +117,7 @@
     - `bun x tsc -b tsconfig.projects.json` -> pass
     - `bun run verify:modern:node22` -> pass
   - Next action:
-    - continue `T-401.4` by converging final remaining `.cts` seams (`server/js/log.cts`, `server/js/utils.cts`, `shared/js/gametypes.cts`) to `.ts` ESM.
+    - continue `T-401.4` by converging the remaining server `.cts` helper (`server/js/lib/class.cts`) to `.ts`.
 - `2026-02-10T01:00Z` `in_progress` Started server-runtime convergence execution block focused on replacing entrypoint `.cts` seams with pure ESM TypeScript while preserving startup/runtime behavior.
   - Scope:
     - convert `server/js/main-runtime` and `server/js/main` to `.ts` ESM
@@ -3727,7 +3790,7 @@ Executed successfully on 2026-02-08:
     - constrained core runtime interfaces to typed event names:
       - `server/js/main-runtime-types.ts`
       - `server/js/ws-runtime-class-factory-types.ts`
-      - `server/js/log.cts`
+      - `server/js/log.ts`
       - `server/js/metrics-runtime.cts`
     - switched runtime emitters to shared constants:
       - `server/js/main-runtime.cts`
@@ -3942,7 +4005,7 @@ Executed successfully on 2026-02-08:
       - `server/js/main-esm-boot-envelope.ts`
       - `server/js/main-esm-structured-event.ts`
       - `server/js/main-esm-bridge-probe.ts`
-      - `server/js/log-esm.ts`
+      - `server/js/log.ts`
     - removed `@ts-nocheck` from stabilized unit tests:
       - `tests/unit/server-main-esm-config-source.test.ts`
       - `tests/unit/server-main-esm-boot-envelope.test.ts`

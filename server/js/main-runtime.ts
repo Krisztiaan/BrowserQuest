@@ -13,7 +13,7 @@ import type {
 import { SERVER_EVENT_NAMES, type RuntimeEventName } from './server-event-names';
 import ConfigPreflight from './config-preflight';
 import MetricsRuntime from './metrics-runtime';
-import Log from './log-esm';
+import Log from './log';
 import WsRuntimeModule from './ws-runtime-esm';
 import WorldServer from './worldserver';
 import Player from './player';

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import Log from '../../server/js/log-esm';
+import Log from '../../server/js/log';
 import MetricsRuntime from '../../server/js/metrics-runtime';
 
 const originalConsoleError = console.error;

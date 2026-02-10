@@ -1,4 +1,4 @@
-import Utils from './utils-esm';
+import Utils from './utils';
 
 export interface AreaWorldContract {
     isValidPosition(x: number, y: number): boolean;

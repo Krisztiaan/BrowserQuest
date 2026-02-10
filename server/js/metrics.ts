@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import MetricsClient from './metrics-client';
-import Log from './log-esm';
+import Log from './log';
 
 const log = Log.getLogger();
 const MEMCACHE_MODULE_NAME = 'memcache';

@@ -1,7 +1,7 @@
 import type { ClientToServerProtocolAction } from '../../shared/js/protocol-contract-types';
 
 import Types from '../../shared/js/gametypes-esm';
-import Log from './log-esm';
+import Log from './log';
 
 const log = Log.getLogger();
 

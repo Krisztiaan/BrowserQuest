@@ -1,7 +1,7 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
 import Messages from './message';
-import Utils from './utils-esm';
+import Utils from './utils';
 
 interface PositionLike {
     x: number;

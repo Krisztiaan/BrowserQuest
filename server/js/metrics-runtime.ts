@@ -1,6 +1,6 @@
 import type { RuntimeEventName } from './server-event-names';
 import { SERVER_EVENT_NAMES } from './server-event-names';
-import Log from './log-esm';
+import Log from './log';
 import * as NoopAdapterModule from './metrics-adapters/noop';
 import * as MemcacheAdapterModule from './metrics-adapters/memcache';
 

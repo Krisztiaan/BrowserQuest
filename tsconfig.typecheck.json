@@ -23,6 +23,8 @@
     "shared/js/*-esm.ts",
     "shared/js/gametypes-browser.ts",
     "server/js/server-event-names.ts",
+    "server/js/log.ts",
+    "server/js/utils.ts",
     "server/js/config-preflight.ts",
     "server/js/metrics-runtime.ts",
     "server/js/metrics.ts",

@@ -10,6 +10,8 @@
   "include": [
     "server/js/main-runtime-types.ts",
     "server/js/main-runtime.ts",
+    "server/js/log.ts",
+    "server/js/utils.ts",
     "server/js/config-preflight.ts",
     "server/js/metrics-runtime.ts",
     "server/js/metrics.ts",

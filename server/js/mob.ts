@@ -3,7 +3,7 @@ import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import Character from './character';
 import Messages from './message';
 import Properties from './properties';
-import Utils from './utils-esm';
+import Utils from './utils';
 
 interface HateEntry {
     id: number;

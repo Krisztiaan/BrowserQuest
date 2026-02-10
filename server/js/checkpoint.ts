@@ -1,4 +1,4 @@
-import Utils from './utils-esm';
+import Utils from './utils';
 
 interface Position {
     x: number;

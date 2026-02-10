@@ -1,4 +1,4 @@
-import Utils from './utils-esm';
+import Utils from './utils';
 
 interface FormulasContract {
     dmg(weaponLevel: number, armorLevel: number): number;

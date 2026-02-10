@@ -1,5 +1,5 @@
-import Log from './log-esm';
-import Utils from './utils-esm';
+import Log from './log';
+import Utils from './utils';
 import Protocol from '../../shared/js/protocol-contract-esm';
 import CLOSE_CODES from '../../shared/js/ws-close-codes-esm';
 import { createWebSocketRuntimeClasses } from './ws-runtime-class-factory';

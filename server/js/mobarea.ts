@@ -2,7 +2,7 @@ import type { EntityKind, EntityKindId, EntityKindName } from '../../shared/js/e
 import Area from './area';
 import type { AreaWorldContract } from './area';
 import Mob from './mob';
-import Utils from './utils-esm';
+import Utils from './utils';
 import Types from '../../shared/js/gametypes-esm';
 
 interface Position {

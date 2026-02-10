@@ -1,8 +1,6 @@
 import { expect, test } from 'bun:test';
 import { ENTITY_KIND_DOMAIN } from '../../shared/js/entity-kind-domain';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const Types = require('../../shared/js/gametypes');
+import Types from '../../shared/js/gametypes-esm';
 
 test('entity kind domain stays aligned with shared runtime gametypes contract', () => {
     for (const [kindName, [kindId, category]] of Object.entries(ENTITY_KIND_DOMAIN)) {

@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
-import Log from './log-esm';
-import Utils from './utils-esm';
+import Log from './log';
+import Utils from './utils';
 import Checkpoint from './checkpoint';
 
 interface Position {
