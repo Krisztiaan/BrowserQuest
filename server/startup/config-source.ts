@@ -9,15 +9,20 @@ type ReadFileFn = (
 const defaultReadFile: ReadFileFn = (path, options) =>
     fs.readFile(path, options as BufferEncoding | { encoding?: BufferEncoding | null }) as Promise<string | Buffer>;
 
+function isConfigObject(value: unknown): value is ConfigObject {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 export async function loadConfigFile(configPath: string, readFileFn: ReadFileFn = defaultReadFile): Promise<ConfigObject | null> {
-    const BunRuntime = globalThis.Bun;
+    const BunRuntime = 'Bun' in globalThis ? globalThis.Bun : undefined;
     if (readFileFn === defaultReadFile && BunRuntime && typeof BunRuntime.file === 'function') {
         try {
             const file = BunRuntime.file(configPath);
             if (!(await file.exists())) {
                 return null;
             }
-            return (await file.json()) as ConfigObject;
+            const parsed = (await file.json()) as unknown;
+            return isConfigObject(parsed) ? parsed : null;
         } catch (_) {
             return null;
         }
@@ -26,7 +31,8 @@ export async function loadConfigFile(configPath: string, readFileFn: ReadFileFn 
     try {
         const raw = await readFileFn(configPath, 'utf8');
         const rawText = typeof raw === 'string' ? raw : raw.toString('utf8');
-        return JSON.parse(rawText);
+        const parsed = JSON.parse(rawText) as unknown;
+        return isConfigObject(parsed) ? parsed : null;
     } catch (_) {
         return null;
     }

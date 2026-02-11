@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const repoRoot = path.resolve(import.meta.dir, '..');
+const repoRoot = path.resolve(import.meta.dir, '..', '..');
 const serverArtifactRoot = path.join(repoRoot, 'dist', 'server');
 const clientArtifactRoot = path.join(repoRoot, 'dist', 'vite');
 const bundleRoot = path.join(repoRoot, 'dist', 'bundle');

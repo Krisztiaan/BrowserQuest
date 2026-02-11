@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const repoRoot = path.resolve(import.meta.dir, '..');
+const repoRoot = path.resolve(import.meta.dir, '..', '..');
 const outputRoot = path.join(repoRoot, 'dist', 'server');
 
 async function pathExists(targetPath: string): Promise<boolean> {

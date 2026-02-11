@@ -33,9 +33,9 @@ export async function runWebSocketBridgeProbeIfEnabled({
     }
 
     const wsRuntime = await importWsRuntime();
-    const wsDefault = wsRuntime.default;
+    const wsDefault = wsRuntime.default ?? null;
     const contractMatches =
-        wsDefault &&
+        wsDefault !== null &&
         wsDefault.CLOSE_CODES === wsRuntime.CLOSE_CODES &&
         wsDefault.MultiVersionWebsocketServer === wsRuntime.MultiVersionWebsocketServer &&
         wsDefault.wsWebSocketConnection === wsRuntime.wsWebSocketConnection &&
