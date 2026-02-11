@@ -2,8 +2,8 @@ import Entity from './entity';
 import Transition from './transition';
 import Timer from './timer';
 import log from './compat/log';
-import Types from './compat/gametypes';
-import type { EntityKind } from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import type { MergeEvents, TypedEventMap, TypedEventSource } from '../../shared/js/typed-event-emitter';
 
 type GridPoint = [number, number];

@@ -165,6 +165,9 @@ export function pushWorldMessageToPreviousGroups(
     message: WorldMessage,
     pushToGroup: PushToGroup
 ): void {
+    if (!player) {
+        return;
+    }
     pushMessageToPreviouslyLeftGroups(player, (groupId) => {
         pushToGroup(groupId, message);
     });

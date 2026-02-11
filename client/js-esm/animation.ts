@@ -18,14 +18,14 @@ class Animation {
         this.height = height;
         this.speed = 100;
         this.count = 0;
-        this.onEndCount = function() {};
+        this.onEndCount = function () {};
         this.reset();
     }
 
     tick(): void {
-        var i = this.currentFrame.index;
+        let i = this.currentFrame.index;
 
-        i = (i < this.length - 1) ? i + 1 : 0;
+        i = i < this.length - 1 ? i + 1 : 0;
 
         if (this.count > 0) {
             if (i === 0) {
@@ -55,7 +55,7 @@ class Animation {
     }
 
     isTimeToAnimate(time: number): boolean {
-        return (time - this.lastTime) > this.speed;
+        return time - this.lastTime > this.speed;
     }
 
     update(time: number): boolean {

@@ -1,4 +1,4 @@
-import type { EntityKind } from './compat/gametypes';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
 type EquipPlayer = {
     setSprite(sprite: unknown): void;

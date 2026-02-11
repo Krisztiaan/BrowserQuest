@@ -10,9 +10,9 @@ import { WS_EVENT_NAMES } from './server-event-names';
 const BunRuntime = globalThis['Bun'];
 const log = Log.getLogger();
 
-function parseRequestPathname(requestUrl: string | URL) {
+function parseRequestPathname(requestUrl: string | undefined): string {
     try {
-        return new URL(requestUrl, 'http://localhost').pathname;
+        return new URL(requestUrl ?? '/', 'http://localhost').pathname;
     } catch (_) {
         return '/';
     }
@@ -91,9 +91,7 @@ class BunSocketAdapter {
     }
 
     emit(event: string, ...args: unknown[]) {
-        if (this.#handlers[event]) {
-            this.#handlers[event](...args);
-        }
+        this.#handlers[event]?.(...args);
     }
 
     send(data: unknown) {

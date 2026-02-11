@@ -11,7 +11,7 @@ const log = Log.getLogger();
 
 export function attachPlayerSession(player: Player): void {
     const closeInvalidPayload = (reason: string): void => {
-        if (player.connection && typeof player.connection.closeInvalidPayload === 'function') {
+        if (typeof player.connection.closeInvalidPayload === 'function') {
             player.connection.closeInvalidPayload(reason);
         } else {
             player.connection.close(reason);
@@ -48,7 +48,9 @@ export function attachPlayerSession(player: Player): void {
         if (player.firepotionTimeout) {
             clearTimeout(player.firepotionTimeout);
         }
-        clearTimeout(player.disconnectTimeout);
+        if (player.disconnectTimeout) {
+            clearTimeout(player.disconnectTimeout);
+        }
         player.emit('exit');
     });
 

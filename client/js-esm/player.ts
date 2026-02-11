@@ -1,8 +1,8 @@
 import Character, { type CharacterEvents } from './character';
 import Exceptions from './exceptions';
 import log from './compat/log';
-import Types from './compat/gametypes';
-import type { EntityKind } from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import type { SpriteLike } from './entity';
 import type { MergeEvents } from '../../shared/js/typed-event-emitter';
 
@@ -70,7 +70,6 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
         this.currentArmorSprite = null;
         this.invincible = false;
         this.invincibleTimeout = null;
-
     }
 
     loot(item: LootItem | null): void {
@@ -156,7 +155,7 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
     switchWeapon(newWeaponName: string): void {
         let count = 14;
         let value = false;
-        let blanking: ReturnType<typeof setInterval> | null = null;
+        let blanking: ReturnType<typeof setInterval> | undefined;
 
         const toggle = function (): boolean {
             value = !value;
@@ -165,9 +164,7 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
 
         if (newWeaponName !== this.getWeaponName()) {
             if (this.isSwitchingWeapon) {
-                if (blanking) {
-                    clearInterval(blanking);
-                }
+                clearInterval(blanking);
             }
 
             this.switchingWeapon = true;
@@ -192,7 +189,7 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
     switchArmor(newArmorSprite: PlayerSprite | null): void {
         let count = 14;
         let value = false;
-        let blanking: ReturnType<typeof setInterval> | null = null;
+        let blanking: ReturnType<typeof setInterval> | undefined;
 
         const toggle = function (): boolean {
             value = !value;
@@ -201,9 +198,7 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
 
         if (newArmorSprite && newArmorSprite.id !== this.getSpriteName()) {
             if (this.isSwitchingArmor) {
-                if (blanking) {
-                    clearInterval(blanking);
-                }
+                clearInterval(blanking);
             }
 
             this.isSwitchingArmor = true;
@@ -259,7 +254,6 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
             clearTimeout(this.invincibleTimeout);
         }
     }
-
 }
 
 export default Player;

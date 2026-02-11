@@ -1,8 +1,8 @@
 import App from './app';
 import Detect from './compat/detect';
 import log from './compat/log';
-import Types from './compat/gametypes';
-import type { EntityKind } from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import type { AchievementId } from './achievement-domain';
 import { TRANSITIONEND } from './compat/util';
 import type Game from './game';
@@ -45,37 +45,38 @@ declare global {
     }
 }
 
-var app: App | null = null, game: Game | null = null;
-var TEST_ZONE_WIDTH = 28;
-var TEST_ZONE_HEIGHT = 12;
+let app: App | null = null,
+    game: Game | null = null;
+const TEST_ZONE_WIDTH = 28;
+const TEST_ZONE_HEIGHT = 12;
 
-var getZoneGroupId = function(x: number, y: number): string {
-    var gx = Math.floor((x - 1) / TEST_ZONE_WIDTH),
+const getZoneGroupId = function (x: number, y: number): string {
+    const gx = Math.floor((x - 1) / TEST_ZONE_WIDTH),
         gy = Math.floor((y - 1) / TEST_ZONE_HEIGHT);
 
     return gx + '-' + gy;
 };
 
-var getTestEntities = function(): TestEntities {
-    if(!game || !game.entities || !game.player) {
+const getTestEntities = function (): TestEntities {
+    if (!game?.entities || !game.player) {
         return { mobs: [], items: [] };
     }
 
-    var mobs = [],
-        items = [];
+    const mobs: TestEntity[] = [],
+        items: TestEntity[] = [];
 
-    Object.values(game.entities).forEach(function(entity: TestEntity) {
-        if(!entity || !Number.isSafeInteger(entity.id) || !Number.isSafeInteger(entity.kind)) {
+    Object.values(game.entities).forEach(function (entity?: TestEntity) {
+        if (!entity || !Number.isSafeInteger(entity.id) || !Number.isSafeInteger(entity.kind)) {
             return;
         }
-        if(entity.id === game.player.id) {
+        if (entity.id === game.player.id) {
             return;
         }
 
-        if(Types.isMob(entity.kind)) {
+        if (Types.isMob(entity.kind)) {
             mobs.push(entity);
         }
-        if(Types.isItem(entity.kind)) {
+        if (Types.isItem(entity.kind)) {
             items.push(entity);
         }
     });
@@ -83,44 +84,44 @@ var getTestEntities = function(): TestEntities {
     return { mobs: mobs, items: items };
 };
 
-var installTestApi = function(): void {
-    if(!globalThis.__BQ_TEST_MODE__) {
+const installTestApi = function (): void {
+    if (!globalThis.__BQ_TEST_MODE__) {
         return;
     }
 
     globalThis.__BQ_TEST_API = {
-        isReady: function() {
+        isReady: function () {
             return !!(game && game.started && game.client && game.map && game.map.isLoaded && game.player);
         },
 
-        moveToDifferentZone: function() {
-            if(!game || !game.client || !game.map || !game.map.isLoaded || !game.player) {
+        moveToDifferentZone: function () {
+            if (!game?.client || !game.map || !game.map.isLoaded || !game.player) {
                 return { ok: false, reason: 'not_ready' };
             }
 
-            var currentX = game.player.gridX,
+            const currentX = game.player.gridX,
                 currentY = game.player.gridY,
                 currentGroup = getZoneGroupId(currentX, currentY),
                 width = game.map.width,
                 height = game.map.height,
                 offsets = [28, -28, 56, -56, 84, -84, 112, -112],
-                yOffsets = [0, 12, -12, 24, -24, 36, -36],
-                target: ZoneTarget | null = null;
+                yOffsets = [0, 12, -12, 24, -24, 36, -36];
+            let target: ZoneTarget | null = null;
 
-            offsets.some(function(xOffset: number) {
-                return yOffsets.some(function(yOffset: number) {
-                    var x = currentX + xOffset,
+            offsets.some(function (xOffset: number) {
+                return yOffsets.some(function (yOffset: number) {
+                    const x = currentX + xOffset,
                         y = currentY + yOffset;
 
-                    if(x <= 1 || y <= 1 || x >= width || y >= height) {
+                    if (x <= 1 || y <= 1 || x >= width || y >= height) {
                         return false;
                     }
-                    if(game.map.isColliding(x, y)) {
+                    if (game.map.isColliding(x, y)) {
                         return false;
                     }
 
-                    var group = getZoneGroupId(x, y);
-                    if(group === currentGroup) {
+                    const group = getZoneGroupId(x, y);
+                    if (group === currentGroup) {
                         return false;
                     }
 
@@ -129,7 +130,7 @@ var installTestApi = function(): void {
                 });
             });
 
-            if(!target) {
+            if (!target) {
                 return { ok: false, reason: 'no_target' };
             }
 
@@ -139,16 +140,16 @@ var installTestApi = function(): void {
             return {
                 ok: true,
                 from: { x: currentX, y: currentY, group: currentGroup },
-                to: target
+                to: target,
             };
         },
 
-        getActionTargets: function() {
-            if(!game || !game.client || !game.map || !game.map.isLoaded || !game.player) {
+        getActionTargets: function () {
+            if (!game?.client || !game.map || !game.map.isLoaded || !game.player) {
                 return { ready: false, mobId: null, itemId: null, mobCount: 0, itemCount: 0 };
             }
 
-            var entities = getTestEntities(),
+            const entities = getTestEntities(),
                 mob = entities.mobs[0],
                 item = entities.items[0];
 
@@ -157,26 +158,36 @@ var installTestApi = function(): void {
                 mobId: mob ? mob.id : null,
                 itemId: item ? item.id : null,
                 mobCount: entities.mobs.length,
-                itemCount: entities.items.length
+                itemCount: entities.items.length,
             };
         },
 
-        sendCombatLootProbe: function() {
-            if(!game || !game.client || !game.map || !game.map.isLoaded || !game.player) {
+        sendCombatLootProbe: function () {
+            if (!game?.client || !game.map || !game.map.isLoaded || !game.player) {
                 return { ok: false, reason: 'not_ready' };
             }
 
-            var entities = getTestEntities(),
+            const entities = getTestEntities(),
                 mob = entities.mobs[0],
                 item = entities.items[0];
 
-            if(!mob) {
-                return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length, itemCount: entities.items.length };
+            if (!mob) {
+                return {
+                    ok: false,
+                    reason: 'no_mob',
+                    mobCount: entities.mobs.length,
+                    itemCount: entities.items.length,
+                };
             }
-            if(!item) {
-                return { ok: false, reason: 'no_item', mobCount: entities.mobs.length, itemCount: entities.items.length };
+            if (!item) {
+                return {
+                    ok: false,
+                    reason: 'no_item',
+                    mobCount: entities.mobs.length,
+                    itemCount: entities.items.length,
+                };
             }
-            if(!Number.isSafeInteger(item.gridX) || !Number.isSafeInteger(item.gridY)) {
+            if (!Number.isSafeInteger(item.gridX) || !Number.isSafeInteger(item.gridY)) {
                 return { ok: false, reason: 'item_position_invalid', itemId: item.id };
             }
 
@@ -189,31 +200,31 @@ var installTestApi = function(): void {
                 mobId: mob.id,
                 itemId: item.id,
                 itemX: item.gridX,
-                itemY: item.gridY
+                itemY: item.gridY,
             };
-        }
+        },
     };
 };
 
-var initApp = function(): void {
-    var onReady = function(): void {
+const initApp = function (): void {
+    const onReady = function (): void {
         app = new App();
         app.center();
-    
-        if(Detect.isWindows()) {
+
+        if (Detect.isWindows()) {
             // Workaround for graphical glitches on text
             document.body.classList.add('windows');
         }
-        
-        if(Detect.isFirefoxAndroid()) {
+
+        if (Detect.isFirefoxAndroid()) {
             // Remove chat placeholder
-            var chatInput = document.getElementById('chatinput');
-            if(chatInput) {
+            const chatInput = document.getElementById('chatinput');
+            if (chatInput) {
                 chatInput.removeAttribute('placeholder');
             }
         }
-        
-        var body = document.body,
+
+        const body = document.body,
             parchment = document.getElementById('parchment'),
             chatButton = document.getElementById('chatbutton'),
             helpButton = document.getElementById('helpbutton'),
@@ -235,31 +246,31 @@ var initApp = function(): void {
             playerImage = document.getElementById('playerimage'),
             resizeCheck = document.getElementById('resize-check');
 
-        if(body) {
-            body.addEventListener('click', function(event: MouseEvent) {
-                if(parchment && parchment.classList.contains('credits')) {
+        if (body) {
+            body.addEventListener('click', function (event: MouseEvent) {
+                if (parchment && parchment.classList.contains('credits')) {
                     app.toggleScrollContent('credits');
                 }
-                
-                if(parchment && parchment.classList.contains('legal')) {
+
+                if (parchment && parchment.classList.contains('legal')) {
                     app.toggleScrollContent('legal');
                 }
-                
-                if(parchment && parchment.classList.contains('about')) {
+
+                if (parchment && parchment.classList.contains('about')) {
                     app.toggleScrollContent('about');
                 }
             });
         }
 
-        document.querySelectorAll('.barbutton').forEach(function(button: Element) {
-            button.addEventListener('click', function() {
+        document.querySelectorAll('.barbutton').forEach(function (button: Element) {
+            button.addEventListener('click', function () {
                 button.classList.toggle('active');
             });
         });
 
-        if(chatButton) {
-            chatButton.addEventListener('click', function() {
-                if(chatButton.classList.contains('active')) {
+        if (chatButton) {
+            chatButton.addEventListener('click', function () {
+                if (chatButton.classList.contains('active')) {
                     app.showChat();
                 } else {
                     app.hideChat();
@@ -267,9 +278,9 @@ var initApp = function(): void {
             });
         }
 
-        if(helpButton) {
-            helpButton.addEventListener('click', function() {
-                if(body && body.classList.contains('about')) {
+        if (helpButton) {
+            helpButton.addEventListener('click', function () {
+                if (body && body.classList.contains('about')) {
                     app.closeInGameScroll('about');
                     helpButton.classList.remove('active');
                 } else {
@@ -278,51 +289,51 @@ var initApp = function(): void {
             });
         }
 
-        if(achievementsButton) {
-            achievementsButton.addEventListener('click', function() {
+        if (achievementsButton) {
+            achievementsButton.addEventListener('click', function () {
                 app.toggleAchievements();
-                if(app.blinkInterval) {
+                if (app.blinkInterval) {
                     clearInterval(app.blinkInterval);
                 }
                 achievementsButton.classList.remove('blink');
             });
         }
 
-        if(instructions) {
-            instructions.addEventListener('click', function() {
+        if (instructions) {
+            instructions.addEventListener('click', function () {
                 app.hideWindows();
             });
         }
-        
-        if(playercount) {
-            playercount.addEventListener('click', function() {
-                app.togglePopulationInfo();
-            });
-        }
-        
-        if(population) {
-            population.addEventListener('click', function() {
+
+        if (playercount) {
+            playercount.addEventListener('click', function () {
                 app.togglePopulationInfo();
             });
         }
 
-        document.querySelectorAll('.clickable').forEach(function(element: Element) {
-            element.addEventListener('click', function(event: MouseEvent) {
+        if (population) {
+            population.addEventListener('click', function () {
+                app.togglePopulationInfo();
+            });
+        }
+
+        document.querySelectorAll('.clickable').forEach(function (element: Element) {
+            element.addEventListener('click', function (event: MouseEvent) {
                 event.stopPropagation();
             });
         });
 
-        if(toggleCredits) {
-            toggleCredits.addEventListener('click', function() {
+        if (toggleCredits) {
+            toggleCredits.addEventListener('click', function () {
                 app.toggleScrollContent('credits');
             });
         }
-        
-        if(toggleLegal) {
-            toggleLegal.addEventListener('click', function() {
+
+        if (toggleLegal) {
+            toggleLegal.addEventListener('click', function () {
                 app.toggleScrollContent('legal');
-                if(game && game.renderer && game.renderer.mobile) {
-                    if(parchment && parchment.classList.contains('legal')) {
+                if (game && game.renderer && game.renderer.mobile) {
+                    if (parchment && parchment.classList.contains('legal')) {
                         toggleLegal.textContent = 'close';
                     } else {
                         toggleLegal.textContent = 'Privacy';
@@ -331,83 +342,83 @@ var initApp = function(): void {
             });
         }
 
-        if(createNew) {
-            createNew.addEventListener('click', function() {
+        if (createNew) {
+            createNew.addEventListener('click', function () {
                 app.animateParchment('loadcharacter', 'confirmation');
             });
         }
 
-        document.querySelectorAll('.delete').forEach(function(element: Element) {
-            element.addEventListener('click', function() {
+        document.querySelectorAll('.delete').forEach(function (element: Element) {
+            element.addEventListener('click', function () {
                 app.storage.clear();
                 app.animateParchment('confirmation', 'createcharacter');
-                if(body) {
+                if (body) {
                     body.classList.remove('returning');
                 }
             });
         });
 
-        if(cancel) {
-            cancel.addEventListener('click', function() {
+        if (cancel) {
+            cancel.addEventListener('click', function () {
                 app.animateParchment('confirmation', 'loadcharacter');
             });
         }
-        
-        document.querySelectorAll('.ribbon').forEach(function(element: Element) {
-            element.addEventListener('click', function() {
+
+        document.querySelectorAll('.ribbon').forEach(function (element: Element) {
+            element.addEventListener('click', function () {
                 app.toggleScrollContent('about');
             });
         });
 
-        if(nameInput) {
-            nameInput.addEventListener("keyup", function() {
+        if (nameInput) {
+            nameInput.addEventListener('keyup', function () {
                 app.toggleButton();
             });
         }
 
-        if(previous) {
-            previous.addEventListener('click', function(event: MouseEvent) {
-                if(app.currentPage === 1) {
+        if (previous) {
+            previous.addEventListener('click', function (event: MouseEvent) {
+                if (app.currentPage === 1) {
                     event.preventDefault();
                     return false;
                 } else {
                     app.currentPage -= 1;
-                    if(achievements) {
+                    if (achievements) {
                         achievements.className = 'active page' + app.currentPage;
                     }
                 }
             });
         }
 
-        if(next) {
-            next.addEventListener('click', function(event: MouseEvent) {
-                var nbPages = lists ? lists.querySelectorAll('ul').length : 0;
-    
-                if(app.currentPage === nbPages) {
+        if (next) {
+            next.addEventListener('click', function (event: MouseEvent) {
+                const nbPages = lists ? lists.querySelectorAll('ul').length : 0;
+
+                if (app.currentPage === nbPages) {
                     event.preventDefault();
                     return false;
                 } else {
                     app.currentPage += 1;
-                    if(achievements) {
+                    if (achievements) {
                         achievements.className = 'active page' + app.currentPage;
                     }
                 }
             });
         }
 
-        if(notifications) {
+        if (notifications) {
             notifications.addEventListener(TRANSITIONEND, app.resetMessagesPosition.bind(app));
         }
 
-        document.querySelectorAll('.close').forEach(function(element: Element) {
-            element.addEventListener('click', function() {
+        document.querySelectorAll('.close').forEach(function (element: Element) {
+            element.addEventListener('click', function () {
                 app.hideWindows();
             });
         });
-    
-        document.querySelectorAll('.twitter').forEach(function(element: Element) {
-            element.addEventListener('click', function(event: MouseEvent) {
-                var url = element.getAttribute('href');
+
+        document.querySelectorAll('.twitter').forEach(function (element: Element) {
+            element.addEventListener('click', function (event: MouseEvent) {
+                const url = element.getAttribute('href');
 
                 app.openPopup('twitter', url);
                 event.preventDefault();
@@ -415,9 +426,9 @@ var initApp = function(): void {
             });
         });
 
-        document.querySelectorAll('.facebook').forEach(function(element: Element) {
-            element.addEventListener('click', function(event: MouseEvent) {
-                var url = element.getAttribute('href');
+        document.querySelectorAll('.facebook').forEach(function (element: Element) {
+            element.addEventListener('click', function (event: MouseEvent) {
+                const url = element.getAttribute('href');
 
                 app.openPopup('facebook', url);
                 event.preventDefault();
@@ -425,409 +436,415 @@ var initApp = function(): void {
             });
         });
 
-        var data = app.storage.data;
-        if(data.hasAlreadyPlayed) {
-            if(data.player.name && data.player.name !== "") {
-                if(playerName) {
+        const data = app.storage.data;
+        if (data.hasAlreadyPlayed) {
+            if (data.player.name && data.player.name !== '') {
+                if (playerName) {
                     playerName.innerHTML = data.player.name;
                 }
-                if(playerImage) {
+                if (playerImage) {
                     playerImage.setAttribute('src', data.player.image);
                 }
             }
         }
-        
-        document.querySelectorAll('.play div').forEach(function(element: Element) {
-            element.addEventListener('click', function(event: MouseEvent) {
-                var nameFromInput = nameInput ? nameInput.getAttribute('value') : '',
+
+        document.querySelectorAll('.play div').forEach(function (element: Element) {
+            element.addEventListener('click', function (event: MouseEvent) {
+                const nameFromInput = nameInput ? nameInput.getAttribute('value') : '',
                     nameFromStorage = playerName ? playerName.innerHTML : '',
                     name = nameFromInput || nameFromStorage;
-                
+
                 app.tryStartingGame(name, undefined);
             });
         });
-    
-        document.addEventListener("touchstart", function() {},false);
-        
-        if(resizeCheck) {
+
+        document.addEventListener('touchstart', function () {}, false);
+
+        if (resizeCheck) {
             resizeCheck.addEventListener(TRANSITIONEND, app.resizeUi.bind(app));
         }
-    
-        log.info("App initialized.");
-    
+
+        log.info('App initialized.');
+
         initGame();
     };
 
-    if(document.readyState === 'loading') {
+    if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', onReady, { once: true });
     } else {
         onReady();
     }
 };
 
-var initGame = function(): void {
-    import('./game').then(function(mod) {
-        var Game = mod.default;
-        
-        var canvas = document.getElementById("entities") as HTMLCanvasElement | null,
-            background = document.getElementById("background") as HTMLCanvasElement | null,
-            foreground = document.getElementById("foreground") as HTMLCanvasElement | null,
-            input = document.getElementById("chatinput") as HTMLInputElement | null;
+function initGame(): void {
+    import('./game')
+        .then(function (mod) {
+            const Game = mod.default;
 
-        if(!app) {
-            return;
-        }
+            const canvas = document.getElementById('entities') as HTMLCanvasElement | null,
+                background = document.getElementById('background') as HTMLCanvasElement | null,
+                foreground = document.getElementById('foreground') as HTMLCanvasElement | null,
+                input = document.getElementById('chatinput') as HTMLInputElement | null;
 
-        game = new Game(app);
-        game.setup('#bubbles', canvas, background, foreground, input);
-        game.setStorage(app.storage);
-        app.setGame(game);
-        installTestApi();
-        
-        if(app.isDesktop && app.supportsWorkers) {
-            game.loadMap();
-        }
-
-        game.on('gameStart', function() {
-            app.initEquipmentIcons();
-        });
-        
-        game.on('disconnect', function(message: string) {
-            var deathParagraph = document.querySelector('#death p'),
-                respawn = document.getElementById('respawn');
-            if(deathParagraph) {
-                deathParagraph.innerHTML = message + "<em>Please reload the page.</em>";
-            }
-            if(respawn) {
-                respawn.style.display = 'none';
-            }
-        });
-
-        game.on('playerDeath', function() {
-            if(document.body.classList.contains('credits')) {
-                document.body.classList.remove('credits');
-            }
-            document.body.classList.add('death');
-        });
-
-        game.on('playerEquipmentChange', function() {
-            app.initEquipmentIcons();
-        });
-
-        game.on('playerInvincible', function() {
-            var hitpoints = document.getElementById('hitpoints');
-            if(hitpoints) {
-                hitpoints.classList.toggle('invincible');
-            }
-        });
-
-        var instancePopulation = document.getElementById('instance-population'),
-            playerCount = document.getElementById('playercount'),
-            worldPopulation = document.getElementById('world-population');
-
-        var setPopulationText = function(root: ParentNode | null, selector: string, value: string): void {
-            if(!root) {
+            if (!app || !canvas || !background || !foreground || !input) {
                 return;
             }
-            var node = root.querySelector(selector);
-            if(node) {
-                node.textContent = value;
+
+            game = new Game(app, '#bubbles', canvas, background, foreground, input);
+            game.setStorage(app.storage);
+            app.setGame(game);
+            installTestApi();
+
+            if (app.isDesktop && app.supportsWorkers) {
+                game.loadMap();
             }
-        };
 
-        game.on('nbPlayersChange', function(worldPlayers: number, totalPlayers: number) {
-            var worldCount = String(worldPlayers),
-                totalCount = String(totalPlayers),
-                worldLabel = worldPlayers === 1 ? "player" : "players",
-                totalLabel = totalPlayers === 1 ? "player" : "players";
+            game.on('gameStart', function () {
+                app.initEquipmentIcons();
+            });
 
-            setPopulationText(playerCount, 'span.count', worldCount);
-            setPopulationText(playerCount, 'span:nth-child(2)', worldLabel);
-            setPopulationText(instancePopulation, 'span:nth-child(1)', worldCount);
-            setPopulationText(instancePopulation, 'span:nth-child(2)', worldLabel);
-            setPopulationText(worldPopulation, 'span:nth-child(1)', totalCount);
-            setPopulationText(worldPopulation, 'span:nth-child(2)', totalLabel);
-        });
+            game.on('disconnect', function (message: string) {
+                const deathParagraph = document.querySelector('#death p'),
+                    respawn = document.getElementById('respawn');
+                if (deathParagraph) {
+                    deathParagraph.innerHTML = message + '<em>Please reload the page.</em>';
+                }
+                if (respawn) {
+                    respawn.style.display = 'none';
+                }
+            });
 
-        game.on('achievementUnlock', function(id: AchievementId, name: string, _description: string) {
-            app.unlockAchievement(id, name);
-        });
+            game.on('playerDeath', function () {
+                if (document.body.classList.contains('credits')) {
+                    document.body.classList.remove('credits');
+                }
+                document.body.classList.add('death');
+            });
 
-        game.on('notification', function(message: string) {
-            app.showMessage(message);
-        });
+            game.on('playerEquipmentChange', function () {
+                app.initEquipmentIcons();
+            });
 
-        app.initHealthBar();
+            game.on('playerInvincible', function () {
+                const hitpoints = document.getElementById('hitpoints');
+                if (hitpoints) {
+                    hitpoints.classList.toggle('invincible');
+                }
+            });
 
-        var nameInput = document.getElementById('nameinput') as HTMLInputElement | null,
-            chatBox = document.getElementById('chatbox'),
-            chatInput = document.getElementById('chatinput') as HTMLInputElement | null,
-            createCharacterForm = document.getElementById('createcharacter-form') as HTMLFormElement | null,
-            chatForm = document.getElementById('chat-form') as HTMLFormElement | null,
-            foregroundEl = document.getElementById('foreground') as HTMLElement | null,
-            parchmentEl = document.getElementById('parchment'),
-            nameTooltip = document.getElementById('name-tooltip'),
-            respawnButton = document.getElementById('respawn'),
-            muteButton = document.getElementById('mutebutton');
-        if(nameInput) {
-            nameInput.setAttribute('value', '');
-        }
-        if(chatBox) {
-            chatBox.setAttribute('value', '');
-        }
-        
-        if(game.renderer.mobile || game.renderer.tablet) {
-            if(foregroundEl) {
-                foregroundEl.addEventListener('touchstart', function(event: TouchEvent) {
-                    app.center();
-                    if(event.touches && event.touches[0]) {
-                        app.setMouseCoordinates(event.touches[0]);
-                    }
-                    game.click();
-                    app.hideWindows();
-                });
+            const instancePopulation = document.getElementById('instance-population'),
+                playerCount = document.getElementById('playercount'),
+                worldPopulation = document.getElementById('world-population');
+
+            const setPopulationText = function (root: ParentNode | null, selector: string, value: string): void {
+                if (!root) {
+                    return;
+                }
+                const node = root.querySelector(selector);
+                if (node) {
+                    node.textContent = value;
+                }
+            };
+
+            game.on('nbPlayersChange', function (worldPlayers: number, totalPlayers: number) {
+                const worldCount = String(worldPlayers),
+                    totalCount = String(totalPlayers),
+                    worldLabel = worldPlayers === 1 ? 'player' : 'players',
+                    totalLabel = totalPlayers === 1 ? 'player' : 'players';
+
+                setPopulationText(playerCount, 'span.count', worldCount);
+                setPopulationText(playerCount, 'span:nth-child(2)', worldLabel);
+                setPopulationText(instancePopulation, 'span:nth-child(1)', worldCount);
+                setPopulationText(instancePopulation, 'span:nth-child(2)', worldLabel);
+                setPopulationText(worldPopulation, 'span:nth-child(1)', totalCount);
+                setPopulationText(worldPopulation, 'span:nth-child(2)', totalLabel);
+            });
+
+            game.on('achievementUnlock', function (id: AchievementId, name: string, _description: string) {
+                app.unlockAchievement(id, name);
+            });
+
+            game.on('notification', function (message: string) {
+                app.showMessage(message);
+            });
+
+            app.initHealthBar();
+
+            const nameInput = document.getElementById('nameinput') as HTMLInputElement | null,
+                chatBox = document.getElementById('chatbox'),
+                chatInput = document.getElementById('chatinput') as HTMLInputElement | null,
+                createCharacterForm = document.getElementById('createcharacter-form') as HTMLFormElement | null,
+                chatForm = document.getElementById('chat-form') as HTMLFormElement | null,
+                foregroundEl = document.getElementById('foreground'),
+                parchmentEl = document.getElementById('parchment'),
+                nameTooltip = document.getElementById('name-tooltip'),
+                respawnButton = document.getElementById('respawn'),
+                muteButton = document.getElementById('mutebutton');
+            if (nameInput) {
+                nameInput.setAttribute('value', '');
             }
-        } else {
-            if(foregroundEl) {
-                foregroundEl.addEventListener('click', function(event: MouseEvent) {
-                    app.center();
-                    app.setMouseCoordinates(event);
-                    if(game) {
+            if (chatBox) {
+                chatBox.setAttribute('value', '');
+            }
+
+            if (game.renderer.mobile || game.renderer.tablet) {
+                if (foregroundEl) {
+                    foregroundEl.addEventListener('touchstart', function (event: TouchEvent) {
+                        app.center();
+                        if (event.touches && event.touches[0]) {
+                            app.setMouseCoordinates(event.touches[0]);
+                        }
                         game.click();
+                        app.hideWindows();
+                    });
+                }
+            } else {
+                if (foregroundEl) {
+                    foregroundEl.addEventListener('click', function (event: MouseEvent) {
+                        app.center();
+                        app.setMouseCoordinates(event);
+                        if (game) {
+                            game.click();
+                        }
+                        app.hideWindows();
+                    });
+                }
+            }
+
+            document.body.onclick = function () {
+                let hasClosedParchment = false;
+
+                if (parchmentEl?.classList.contains('credits')) {
+                    if (game.started) {
+                        app.closeInGameScroll('credits');
+                        hasClosedParchment = true;
+                    } else {
+                        app.toggleScrollContent('credits');
                     }
-                    app.hideWindows();
+                }
+
+                if (parchmentEl?.classList.contains('legal')) {
+                    if (game.started) {
+                        app.closeInGameScroll('legal');
+                        hasClosedParchment = true;
+                    } else {
+                        app.toggleScrollContent('legal');
+                    }
+                }
+
+                if (parchmentEl?.classList.contains('about')) {
+                    if (game.started) {
+                        app.closeInGameScroll('about');
+                        hasClosedParchment = true;
+                    } else {
+                        app.toggleScrollContent('about');
+                    }
+                }
+
+                if (game.started && !game.renderer.mobile && game.player && !hasClosedParchment) {
+                    game.click();
+                }
+            };
+
+            if (respawnButton) {
+                respawnButton.addEventListener('click', function () {
+                    game.audioManager.playSound('revive');
+                    game.restart();
+                    document.body.classList.remove('death');
                 });
             }
-        }
 
-        document.body.onclick = function(event: MouseEvent) {
-            var hasClosedParchment = false;
-            
-            if(parchmentEl && parchmentEl.classList.contains('credits')) {
-                if(game.started) {
-                    app.closeInGameScroll('credits');
-                    hasClosedParchment = true;
-                } else {
-                    app.toggleScrollContent('credits');
+            document.addEventListener('mousemove', function (event: MouseEvent) {
+                app.setMouseCoordinates(event);
+                if (game.started) {
+                    game.movecursor();
                 }
-            }
-            
-            if(parchmentEl && parchmentEl.classList.contains('legal')) {
-                if(game.started) {
-                    app.closeInGameScroll('legal');
-                    hasClosedParchment = true;
-                } else {
-                    app.toggleScrollContent('legal');
-                }
-            }
-            
-            if(parchmentEl && parchmentEl.classList.contains('about')) {
-                if(game.started) {
-                    app.closeInGameScroll('about');
-                    hasClosedParchment = true;
-                } else {
-                    app.toggleScrollContent('about');
-                }
-            }
-            
-            if(game.started && !game.renderer.mobile && game.player && !hasClosedParchment) {
-                game.click();
-            }
-        };
-        
-        if(respawnButton) {
-            respawnButton.addEventListener('click', function(event: MouseEvent) {
-                game.audioManager.playSound("revive");
-                game.restart();
-                document.body.classList.remove('death');
             });
-        }
-        
-        document.addEventListener('mousemove', function(event: MouseEvent) {
-            app.setMouseCoordinates(event);
-            if(game.started) {
-                game.movecursor();
-            }
-        });
 
-        document.addEventListener('keydown', function(e: KeyboardEvent) {
-            var key = e.which,
-                chat = chatInput;
+            document.addEventListener('keydown', function (e: KeyboardEvent) {
+                const key = e.which,
+                    chat = chatInput;
 
-            if(key === 13) {
-                if(chatBox && chatBox.classList.contains('active')) {
-                    app.hideChat();
-                } else {
-                    app.showChat();
+                if (key === 13) {
+                    if (chatBox && chatBox.classList.contains('active')) {
+                        app.hideChat();
+                    } else {
+                        app.showChat();
+                    }
                 }
-            }
-        });
-        
-        if(chatInput) {
-            if(chatForm) {
-                chatForm.addEventListener('submit', function(event: Event) {
-                    event.preventDefault();
-                    return false;
-                });
-            }
+            });
 
-            chatInput.addEventListener('keydown', function(e: KeyboardEvent) {
-                var key = e.which,
-                    placeholder = chatInput.getAttribute("placeholder");
-                
-                if (!(e.shiftKey && e.keyCode === 16) && e.keyCode !== 9) {
+            if (chatInput) {
+                if (chatForm) {
+                    chatForm.addEventListener('submit', function (event: Event) {
+                        event.preventDefault();
+                        return false;
+                    });
+                }
+
+                chatInput.addEventListener('keydown', function (e: KeyboardEvent) {
+                    const key = e.which,
+                        placeholder = chatInput.getAttribute('placeholder');
+
+                    if (!(e.shiftKey && e.keyCode === 16) && e.keyCode !== 9) {
+                        if (chatInput.value === placeholder) {
+                            chatInput.value = '';
+                            chatInput.removeAttribute('placeholder');
+                            chatInput.classList.remove('placeholder');
+                        }
+                    }
+
+                    if (key === 13) {
+                        if (chatInput.value !== '') {
+                            if (game.player) {
+                                game.say(chatInput.value);
+                            }
+                            chatInput.value = '';
+                            app.hideChat();
+                            if (foregroundEl) {
+                                foregroundEl.focus();
+                            }
+                            e.preventDefault();
+                            return false;
+                        } else {
+                            app.hideChat();
+                            e.preventDefault();
+                            return false;
+                        }
+                    }
+
+                    if (key === 27) {
+                        app.hideChat();
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+
+                chatInput.addEventListener('focus', function (_e: FocusEvent) {
+                    const placeholder = chatInput.getAttribute('placeholder');
+
+                    if (!Detect.isFirefoxAndroid()) {
+                        chatInput.value = placeholder || '';
+                    }
+
                     if (chatInput.value === placeholder) {
-                        chatInput.value = '';
-                        chatInput.removeAttribute('placeholder');
-                        chatInput.classList.remove('placeholder');
+                        chatInput.setSelectionRange(0, 0);
                     }
-                }
-                
-                if(key === 13) {
-                    if(chatInput.value !== '') {
-                        if(game.player) {
-                            game.say(chatInput.value);
-                        }
-                        chatInput.value = '';
-                        app.hideChat();
-                        if(foregroundEl) {
-                            foregroundEl.focus();
-                        }
-                        e.preventDefault();
-                        return false;
-                    } else {
-                        app.hideChat();
-                        e.preventDefault();
-                        return false;
-                    }
-                }
-                
-                if(key === 27) {
-                    app.hideChat();
-                    e.preventDefault();
-                    return false;
-                }
-            });
-
-            chatInput.addEventListener('focus', function(_e: FocusEvent) {
-                var placeholder = chatInput.getAttribute("placeholder");
-                
-                if(!Detect.isFirefoxAndroid()) {
-                    chatInput.value = placeholder || '';
-                }
-                
-                if (chatInput.value === placeholder) {
-                    chatInput.setSelectionRange(0, 0);
-                }
-            });
-        }
-        
-        if(nameInput) {
-            if(createCharacterForm) {
-                createCharacterForm.addEventListener('submit', function(event: Event) {
-                    var name = nameInput.value;
-                    event.preventDefault();
-                    if(name !== '') {
-                        app.tryStartingGame(name, function() {
-                            nameInput.blur(); // exit keyboard on mobile
-                        });
-                    }
-                    return false;
                 });
             }
 
-            nameInput.addEventListener('focusin', function() {
-                if(nameTooltip) {
-                    nameTooltip.classList.add('visible');
-                }
-            });
-            
-            nameInput.addEventListener('focusout', function() {
-                if(nameTooltip) {
-                    nameTooltip.classList.remove('visible');
-                }
-            });
-
-            nameInput.addEventListener('keypress', function(event: KeyboardEvent) {
-                var name = nameInput.value;
-
-                if(nameTooltip) {
-                    nameTooltip.classList.remove('visible');
-                }
-
-                if(event.keyCode === 13) {
-                    if(name !== '') {
-                        app.tryStartingGame(name, function() {
-                            nameInput.blur(); // exit keyboard on mobile
-                        });
+            if (nameInput) {
+                if (createCharacterForm) {
+                    createCharacterForm.addEventListener('submit', function (event: Event) {
+                        const name = nameInput.value;
                         event.preventDefault();
-                        return false; // prevent form submit
-                    } else {
-                        event.preventDefault();
-                        return false; // prevent form submit
+                        if (name !== '') {
+                            app.tryStartingGame(name, function () {
+                                nameInput.blur(); // exit keyboard on mobile
+                            });
+                        }
+                        return false;
+                    });
+                }
+
+                nameInput.addEventListener('focusin', function () {
+                    if (nameTooltip) {
+                        nameTooltip.classList.add('visible');
                     }
-                }
-            });
-        }
-        
-        if(muteButton) {
-            muteButton.addEventListener('click', function() {
-                game.audioManager.toggle();
-            });
-        }
-        
-        document.addEventListener("keydown", function(e: KeyboardEvent) {
-            var key = e.which,
-                activeElement = document.activeElement,
-                chatFocused = chatInput && activeElement === chatInput,
-                nameFocused = nameInput && activeElement === nameInput;
+                });
 
-            if(!chatFocused && !nameFocused) {
-                if(key === 13) { // Enter
-                    if(game.ready && chatInput) {
+                nameInput.addEventListener('focusout', function () {
+                    if (nameTooltip) {
+                        nameTooltip.classList.remove('visible');
+                    }
+                });
+
+                nameInput.addEventListener('keypress', function (event: KeyboardEvent) {
+                    const name = nameInput.value;
+
+                    if (nameTooltip) {
+                        nameTooltip.classList.remove('visible');
+                    }
+
+                    if (event.keyCode === 13) {
+                        if (name !== '') {
+                            app.tryStartingGame(name, function () {
+                                nameInput.blur(); // exit keyboard on mobile
+                            });
+                            event.preventDefault();
+                            return false; // prevent form submit
+                        } else {
+                            event.preventDefault();
+                            return false; // prevent form submit
+                        }
+                    }
+                });
+            }
+
+            if (muteButton) {
+                muteButton.addEventListener('click', function () {
+                    game.audioManager.toggle();
+                });
+            }
+
+            document.addEventListener('keydown', function (e: KeyboardEvent) {
+                const key = e.which,
+                    activeElement = document.activeElement,
+                    chatFocused = chatInput && activeElement === chatInput,
+                    nameFocused = nameInput && activeElement === nameInput;
+
+                if (!chatFocused && !nameFocused) {
+                    if (key === 13) {
+                        // Enter
+                        if (game.ready && chatInput) {
+                            chatInput.focus();
+                            e.preventDefault();
+                            return false;
+                        }
+                    }
+                    if (key === 32) {
+                        // Space
+                        // game.togglePathingGrid();
+                        e.preventDefault();
+                        return false;
+                    }
+                    if (key === 70) {
+                        // F
+                        // game.toggleDebugInfo();
+                        e.preventDefault();
+                        return false;
+                    }
+                    if (key === 27) {
+                        // ESC
+                        app.hideWindows();
+                        Object.keys(game.player.attackers).forEach(function (id) {
+                            game.player.attackers[id].stop();
+                        });
+                        e.preventDefault();
+                        return false;
+                    }
+                    if (key === 65) {
+                        // a
+                        // game.player.hit();
+                        e.preventDefault();
+                        return false;
+                    }
+                } else {
+                    if (key === 13 && game.ready && chatInput) {
                         chatInput.focus();
                         e.preventDefault();
                         return false;
                     }
                 }
-                if(key === 32) { // Space
-                    // game.togglePathingGrid();
-                    e.preventDefault();
-                    return false;
-                }
-                if(key === 70) { // F
-                    // game.toggleDebugInfo();
-                    e.preventDefault();
-                    return false;
-                }
-                if(key === 27) { // ESC
-                    app.hideWindows();
-                    Object.keys(game.player.attackers).forEach(function(id) {
-                        game.player.attackers[id].stop();
-                    });
-                    e.preventDefault();
-                    return false;
-                }
-                if(key === 65) { // a
-                    // game.player.hit();
-                    e.preventDefault();
-                    return false;
-                }
-            } else {
-                if(key === 13 && game.ready && chatInput) {
-                    chatInput.focus();
-                    e.preventDefault();
-                    return false;
-                }
+            });
+
+            if (game.renderer.tablet) {
+                document.body.classList.add('tablet');
             }
+        })
+        .catch(function (err: unknown) {
+            log.error(err, true);
         });
-        
-        if(game.renderer.tablet) {
-            document.body.classList.add('tablet');
-        }
-    }).catch(function(err: unknown) {
-        log.error(err, true);
-    });
-};
+}
 
 initApp();

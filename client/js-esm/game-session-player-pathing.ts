@@ -22,9 +22,9 @@ type StartPathingHost = {
 
 export function installPlayerStartPathingHandler(host: StartPathingHost): void {
     host.player.on('startPathing', function (path: Array<[number, number]>): void {
-        var i = path.length - 1;
-        var x = path[i][0];
-        var y = path[i][1];
+        const i = path.length - 1;
+        const x = path[i][0];
+        const y = path[i][1];
 
         if (host.player.isMovingToLoot()) {
             host.player.isLootMoving = false;
@@ -35,7 +35,7 @@ export function installPlayerStartPathingHandler(host: StartPathingHost): void {
         host.setSelection(x, y);
 
         if (host.renderer.mobile || host.renderer.tablet) {
-            var targetRect = host.renderer.getTargetBoundingRect();
+            const targetRect = host.renderer.getTargetBoundingRect();
             host.enableMobileTargeting(targetRect);
             host.checkTargetDirtyRect(targetRect, x, y);
         }

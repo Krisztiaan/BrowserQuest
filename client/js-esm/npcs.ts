@@ -1,6 +1,6 @@
 
 import Npc from './npc';
-import Types from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 
 type NpcCtor = new (id: string | number) => Npc;
 

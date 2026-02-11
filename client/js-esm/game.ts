@@ -51,7 +51,7 @@ import {
 } from './game-entity-lookups';
 import AnimatedTile from './tile';
 import Warrior from './warrior';
-import GameClient from './gameclient';
+import type GameClient from './gameclient';
 import AudioManager from './audio';
 import Updater from './updater';
 import Transition from './transition';
@@ -67,13 +67,13 @@ import Character from './character';
 import Chest from './chest';
 import config from './config';
 import log from './compat/log';
-import Types from './compat/gametypes';
-import type { EntityKind } from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import { requestAnimFrame } from './compat/util';
 import type { AchievementId, AchievementKey } from './achievement-domain';
 import { SPRITE_KEYS } from './asset-key-domain';
 import type { AudioSoundKey, CursorKey, MusicKey, SpriteKey } from './asset-key-domain';
-import Storage from './storage';
+import type Storage from './storage';
 import { Evented } from '../../shared/js/evented';
 import type { TypedEventSource } from '../../shared/js/typed-event-emitter';
 
@@ -148,7 +148,7 @@ class Game extends Evented<GameEvents> {
     itemGrid: EntityGrid | null;
     playerId: number | string | null;
     currentCursor: Sprite | null;
-    currentCursorOrientation: number | null;
+    currentCursorOrientation?: number | null;
     mouse: { x: number; y: number };
     zoningQueue: Array<{ x: number; y: number }>;
     previousClickPosition: Partial<{ x: number; y: number }>;
@@ -191,7 +191,14 @@ class Game extends Evented<GameEvents> {
     drawTarget: boolean;
     lastHovered: GridIndexedEntity | null;
 
-    constructor(app: AppLike) {
+    constructor(
+        app: AppLike,
+        bubbleContainer: string | Element | null,
+        canvas: HTMLCanvasElement,
+        background: HTMLCanvasElement,
+        foreground: HTMLCanvasElement,
+        input: HTMLInputElement
+    ) {
         super();
         this.app = app;
         this.app.config = config;
@@ -270,6 +277,10 @@ class Game extends Evented<GameEvents> {
         this.obsoleteEntities = null;
         this.drawTarget = false;
         this.lastHovered = null;
+
+        this.setBubbleManager(new BubbleManager(bubbleContainer));
+        this.setRenderer(new Renderer(this, canvas, background, foreground));
+        this.setChatInput(input);
     }
 
     setup(
@@ -309,13 +320,13 @@ class Game extends Evented<GameEvents> {
     }
 
     loadMap(): void {
-        var self = this;
+        const self = this;
 
         this.map = new Map(!this.renderer.upscaledRendering, this);
 
         this.map.ready(function () {
             log.info('Map loaded.');
-            var tilesetIndex = self.renderer.upscaledRendering ? 0 : self.renderer.scale - 1;
+            const tilesetIndex = self.renderer.upscaledRendering ? 0 : self.renderer.scale - 1;
             self.renderer.setTileset(self.map.tilesets[tilesetIndex]);
         });
     }
@@ -365,9 +376,9 @@ class Game extends Evented<GameEvents> {
     }
 
     getAchievementById(id: string | number): AchievementDefinition | null {
-        var found: AchievementDefinition | null = null;
+        let found: AchievementDefinition | null = null;
         Object.keys(this.achievements).forEach(function (key: string) {
-            var achievement = this.achievements[key];
+            const achievement = this.achievements[key];
             if (achievement.id === parseInt(String(id), 10)) {
                 found = achievement;
             }
@@ -436,7 +447,7 @@ class Game extends Evented<GameEvents> {
     }
 
     addEntity(entity: GridIndexedEntity): void {
-        var self = this;
+        const self = this;
 
         if (this.entities[entity.id] === undefined) {
             this.entities[entity.id] = entity;
@@ -488,9 +499,9 @@ class Game extends Evented<GameEvents> {
 
     initPathingGrid(): void {
         this.pathingGrid = [];
-        for (var i = 0; i < this.map.height; i += 1) {
+        for (let i = 0; i < this.map.height; i += 1) {
             this.pathingGrid[i] = [];
-            for (var j = 0; j < this.map.width; j += 1) {
+            for (let j = 0; j < this.map.width; j += 1) {
                 this.pathingGrid[i][j] = this.map.grid[i][j];
             }
         }
@@ -499,9 +510,9 @@ class Game extends Evented<GameEvents> {
 
     initEntityGrid(): void {
         this.entityGrid = [];
-        for (var i = 0; i < this.map.height; i += 1) {
+        for (let i = 0; i < this.map.height; i += 1) {
             this.entityGrid[i] = [];
-            for (var j = 0; j < this.map.width; j += 1) {
+            for (let j = 0; j < this.map.width; j += 1) {
                 this.entityGrid[i][j] = {};
             }
         }
@@ -510,9 +521,9 @@ class Game extends Evented<GameEvents> {
 
     initRenderingGrid(): void {
         this.renderingGrid = [];
-        for (var i = 0; i < this.map.height; i += 1) {
+        for (let i = 0; i < this.map.height; i += 1) {
             this.renderingGrid[i] = [];
-            for (var j = 0; j < this.map.width; j += 1) {
+            for (let j = 0; j < this.map.width; j += 1) {
                 this.renderingGrid[i][j] = {};
             }
         }
@@ -521,9 +532,9 @@ class Game extends Evented<GameEvents> {
 
     initItemGrid(): void {
         this.itemGrid = [];
-        for (var i = 0; i < this.map.height; i += 1) {
+        for (let i = 0; i < this.map.height; i += 1) {
             this.itemGrid[i] = [];
-            for (var j = 0; j < this.map.width; j += 1) {
+            for (let j = 0; j < this.map.width; j += 1) {
                 this.itemGrid[i][j] = {};
             }
         }
@@ -534,13 +545,13 @@ class Game extends Evented<GameEvents> {
      *
      */
     initAnimatedTiles(): void {
-        var self = this,
+        const self = this,
             m = this.map;
 
         this.animatedTiles = [];
         this.forEachVisibleTile(function (id: number, index: number) {
             if (m.isAnimatedTile(id)) {
-                var tile = new AnimatedTile(id, m.getTileAnimationLength(id), m.getTileAnimationDelay(id), index),
+                const tile = new AnimatedTile(id, m.getTileAnimationLength(id), m.getTileAnimationDelay(id), index),
                     pos = self.map.tileIndexToGridPosition(tile.index);
 
                 tile.x = pos.x;
@@ -627,7 +638,7 @@ class Game extends Evented<GameEvents> {
     }
 
     registerEntityPosition(entity: GridIndexedEntity): void {
-        var x = entity.gridX,
+        const x = entity.gridX,
             y = entity.gridY;
 
         if (entity) {
@@ -656,14 +667,14 @@ class Game extends Evented<GameEvents> {
     }
 
     initMusicAreas(): void {
-        var self = this;
+        const self = this;
         this.map.musicAreas.forEach(function (area: { x: number; y: number; w: number; h: number; id: MusicKey }) {
             self.audioManager.addArea(area.x, area.y, area.w, area.h, area.id);
         });
     }
 
     run(onStarted: () => void) {
-        var self = this;
+        const self = this;
 
         this.loadSprites();
         this.setUpdater(new Updater(this));
@@ -671,7 +682,7 @@ class Game extends Evented<GameEvents> {
 
         this.setSpriteScale(this.renderer.scale);
 
-        var wait = setInterval(function () {
+        const wait = setInterval(function () {
             if (self.map.isLoaded && self.spritesLoaded()) {
                 self.ready = true;
                 log.debug('All sprites loaded.');
@@ -750,7 +761,7 @@ class Game extends Evented<GameEvents> {
      * Converts the current mouse position on the screen to world grid coordinates.
      */
     getMouseGridPosition(): { x: number; y: number } {
-        var mx = this.mouse.x,
+        const mx = this.mouse.x,
             my = this.mouse.y,
             c = this.renderer.camera,
             s = this.renderer.scale,
@@ -925,9 +936,9 @@ class Game extends Evented<GameEvents> {
      * The path will pass through any entity present in the ignore list.
      */
     findPath(character: Character, x: number, y: number, ignoreList?: GridIndexedEntity[]): GridPath {
-        var self = this,
-            grid = this.pathingGrid,
-            path: GridPath = [];
+        const self = this,
+            grid = this.pathingGrid;
+        let path: GridPath = [];
 
         if (this.map.isColliding(x, y)) {
             return path;
@@ -997,12 +1008,12 @@ class Game extends Evented<GameEvents> {
      *
      */
     onCharacterUpdate(character: Character): void {
-        var time = this.currentTime,
+        const time = this.currentTime,
             self = this;
 
         // If mob has finished moving to a different tile in order to avoid stacking, attack again from the new position.
         if (character.previousTarget && !character.isMoving() && character instanceof Mob) {
-            var t = character.previousTarget;
+            const t = character.previousTarget;
 
             if (t instanceof Character && this.getEntityById(t.id)) {
                 // does it still exist?
@@ -1013,7 +1024,7 @@ class Game extends Evented<GameEvents> {
         }
 
         if (character.isAttacking() && !character.previousTarget) {
-            var isMoving = this.tryMovingToADifferentTile(character); // Don't let multiple mobs stack on the same tile when attacking a player.
+            const isMoving = this.tryMovingToADifferentTile(character); // Don't let multiple mobs stack on the same tile when attacking a player.
 
             if (character.canAttack(time)) {
                 if (!isMoving) {
@@ -1062,7 +1073,7 @@ class Game extends Evented<GameEvents> {
      *
      */
     isZoningTile(x: number, y: number): boolean {
-        var c = this.camera;
+        const c = this.camera;
 
         x = x - c.gridX;
         y = y - c.gridY;
@@ -1074,8 +1085,8 @@ class Game extends Evented<GameEvents> {
      *
      */
     getZoningOrientation(x: number, y: number): number {
-        var orientation = Types.Orientations.DOWN,
-            c = this.camera;
+        const c = this.camera;
+        let orientation = Types.Orientations.DOWN;
 
         x = x - c.gridX;
         y = y - c.gridY;
@@ -1097,13 +1108,13 @@ class Game extends Evented<GameEvents> {
         this.zoningOrientation = this.getZoningOrientation(x, y);
 
         if (this.renderer.mobile || this.renderer.tablet) {
-            var z = this.zoningOrientation,
+            const z = this.zoningOrientation,
                 c = this.camera,
                 ts = this.renderer.tilesize,
-                nextX = c.x,
-                nextY = c.y,
                 xoffset = (c.gridW - 2) * ts,
                 yoffset = (c.gridH - 2) * ts;
+            let nextX = c.x;
+            let nextY = c.y;
 
             if (z === Types.Orientations.LEFT || z === Types.Orientations.RIGHT) {
                 nextX = z === Types.Orientations.LEFT ? c.x - xoffset : c.x + xoffset;
@@ -1140,7 +1151,7 @@ class Game extends Evented<GameEvents> {
         this.zoningQueue.shift();
 
         if (this.zoningQueue.length > 0) {
-            var pos = this.zoningQueue[0];
+            const pos = this.zoningQueue[0];
             this.startZoningFrom(pos.x, pos.y);
         }
     }
@@ -1173,16 +1184,15 @@ class Game extends Evented<GameEvents> {
     }
 
     assignBubbleTo(character: BubbleAnchor): void {
-        var bubble = this.bubbleManager.getBubbleById(String(character.id));
+        const bubble = this.bubbleManager.getBubbleById(String(character.id));
 
         if (bubble && bubble.element) {
-            var s = this.renderer.scale,
+            const s = this.renderer.scale,
                 t = 16 * s, // tile size
                 x = (character.x - this.camera.x) * s,
                 w = (bubble.element.offsetWidth || 0) + 24,
-                offset = w / 2 - t / 2,
-                offsetY,
-                y;
+                offset = w / 2 - t / 2;
+            let offsetY = 12;
 
             if (character instanceof Npc) {
                 offsetY = 0;
@@ -1198,7 +1208,7 @@ class Game extends Evented<GameEvents> {
                 }
             }
 
-            y = (character.y - this.camera.y) * s - t * 2 - offsetY;
+            const y = (character.y - this.camera.y) * s - t * 2 - offsetY;
 
             bubble.element.style.left = x - offset + 'px';
             bubble.element.style.top = y + 'px';
@@ -1227,7 +1237,7 @@ class Game extends Evented<GameEvents> {
     }
 
     resize(): void {
-        var x = this.camera.x,
+        const x = this.camera.x,
             y = this.camera.y,
             currentScale = this.renderer.scale,
             newScale = this.renderer.getScaleFactor();
@@ -1246,7 +1256,7 @@ class Game extends Evented<GameEvents> {
     }
 
     getDeadMobPosition(mobId: EntityId): GridPosition | undefined {
-        var position: GridPosition | undefined;
+        let position: GridPosition | undefined;
 
         if (mobId in this.deathpositions) {
             position = this.deathpositions[mobId];
@@ -1257,11 +1267,11 @@ class Game extends Evented<GameEvents> {
     }
 
     tryUnlockingAchievement(name: AchievementKey): void {
-        var achievement = null;
+        let achievement: AchievementDefinition | null = null;
         if (name in this.achievements) {
             achievement = this.achievements[name];
 
-            if (achievement.isCompleted() && this.storage.unlockAchievement(achievement.id)) {
+            if (achievement && achievement.isCompleted() && this.storage.unlockAchievement(achievement.id)) {
                 this.emit('achievementUnlock', achievement.id, achievement.name, achievement.desc);
                 this.audioManager.playSound('achievement');
             }
@@ -1273,7 +1283,7 @@ class Game extends Evented<GameEvents> {
     }
 
     removeObsoleteEntities(): void {
-        var obsoleteEntities: GridIndexedEntity[] = this.obsoleteEntities || [],
+        const obsoleteEntities: GridIndexedEntity[] = this.obsoleteEntities || [],
             nb = obsoleteEntities.length,
             self = this;
 
@@ -1323,10 +1333,10 @@ class Game extends Evented<GameEvents> {
     }
 
     updatePlayerCheckpoint(): void {
-        var checkpoint = this.map.getCurrentCheckpoint(this.player);
+        const checkpoint = this.map.getCurrentCheckpoint(this.player);
 
         if (checkpoint) {
-            var lastCheckpoint = this.player.lastCheckpoint;
+            const lastCheckpoint = this.player.lastCheckpoint;
             if (!lastCheckpoint || (lastCheckpoint && lastCheckpoint.id !== checkpoint.id)) {
                 this.player.lastCheckpoint = checkpoint;
                 this.client.sendCheck(checkpoint.id);
@@ -1335,7 +1345,7 @@ class Game extends Evented<GameEvents> {
     }
 
     checkUndergroundAchievement(): void {
-        var music = this.audioManager.getSurroundingMusic(this.player);
+        const music = this.audioManager.getSurroundingMusic(this.player);
 
         if (music) {
             if (music.name === 'cave') {
@@ -1345,10 +1355,10 @@ class Game extends Evented<GameEvents> {
     }
 
     forEachEntityAround(x: number, y: number, r: number, callback: (entity: GridIndexedEntity) => void) {
-        for (var i = x - r, max_i = x + r; i <= max_i; i += 1) {
-            for (var j = y - r, max_j = y + r; j <= max_j; j += 1) {
+        for (let i = x - r, max_i = x + r; i <= max_i; i += 1) {
+            for (let j = y - r, max_j = y + r; j <= max_j; j += 1) {
                 if (!this.map.isOutOfBounds(i, j)) {
-                    var entities = this.renderingGrid[j][i];
+                    const entities = this.renderingGrid[j][i];
                     if (entities) {
                         Object.keys(entities).forEach(function (id: string) {
                             callback(entities[id]);
@@ -1360,14 +1370,14 @@ class Game extends Evented<GameEvents> {
     }
 
     checkOtherDirtyRects(r1: DirtyRect, source: DirtyRectSource, x: number, y: number): void {
-        var r = this.renderer;
+        const r = this.renderer;
 
         this.forEachEntityAround(x, y, 2, function (e2: GridIndexedEntity) {
             if (source && 'id' in source && e2.id === source.id) {
                 return;
             }
             if (!e2.isDirty) {
-                var r2 = r.getEntityBoundingRect(e2);
+                const r2 = r.getEntityBoundingRect(e2);
                 if (r.isIntersecting(r1, r2)) {
                     e2.setDirty();
                 }
@@ -1377,7 +1387,7 @@ class Game extends Evented<GameEvents> {
         if (source && !('index' in source)) {
             this.forEachAnimatedTile(function (tile: DirtyAnimatedTile) {
                 if (!tile.isDirty) {
-                    var r2 = r.getTileBoundingRect(tile);
+                    const r2 = r.getTileBoundingRect(tile);
                     if (r.isIntersecting(r1, r2)) {
                         tile.isDirty = true;
                     }
@@ -1386,7 +1396,7 @@ class Game extends Evented<GameEvents> {
         }
 
         if (!this.drawTarget && this.selectedCellVisible) {
-            var targetRect = r.getTargetBoundingRect();
+            const targetRect = r.getTargetBoundingRect();
             if (r.isIntersecting(r1, targetRect)) {
                 this.drawTarget = true;
                 this.renderer.targetRect = targetRect;

@@ -1,4 +1,3 @@
-
 import AStar from './lib/astar';
 
 type GridPoint = [number, number];
@@ -11,12 +10,8 @@ type PathEntity = {
     nextGridY?: number;
 };
 const isGridPoint = (point: unknown): point is GridPoint =>
-    Array.isArray(point)
-    && point.length === 2
-    && typeof point[0] === 'number'
-    && typeof point[1] === 'number';
-const toGridPath = (value: unknown): GridPath =>
-    Array.isArray(value) ? value.filter(isGridPoint) : [];
+    Array.isArray(point) && point.length === 2 && typeof point[0] === 'number' && typeof point[1] === 'number';
+const toGridPath = (value: unknown): GridPath => (Array.isArray(value) ? value.filter(isGridPoint) : []);
 
 class Pathfinder {
     width: number;
@@ -35,24 +30,18 @@ class Pathfinder {
     }
 
     initBlankGrid_(): void {
-        for (var i = 0; i < this.height; i += 1) {
+        for (let i = 0; i < this.height; i += 1) {
             this.blankGrid[i] = [];
-            for (var j = 0; j < this.width; j += 1) {
+            for (let j = 0; j < this.width; j += 1) {
                 this.blankGrid[i][j] = 0;
             }
         }
     }
 
-    findPath(
-        grid: number[][],
-        entity: PathEntity,
-        x: number,
-        y: number,
-        findIncomplete: boolean
-    ): GridPath {
-        var start: GridPoint = [entity.gridX, entity.gridY],
-            end: GridPoint = [x, y],
-            path = toGridPath(AStar(grid, start, end));
+    findPath(grid: number[][], entity: PathEntity, x: number, y: number, findIncomplete: boolean): GridPath {
+        const start: GridPoint = [entity.gridX, entity.gridY],
+            end: GridPoint = [x, y];
+        let path = toGridPath(AStar(grid, start, end));
 
         this.grid = grid;
         this.applyIgnoreList_(true);
@@ -76,16 +65,14 @@ class Pathfinder {
      * returns an incomplete path to the chosen destination.
      */
     findIncompletePath_(start: GridPoint, end: GridPoint): GridPath {
-        var perfect, x, y,
-            incomplete: GridPath = [];
+        const perfect = toGridPath(AStar(this.blankGrid, start, end));
+        let incomplete: GridPath = [];
 
-        perfect = toGridPath(AStar(this.blankGrid, start, end));
+        for (let i = perfect.length - 1; i > 0; i -= 1) {
+            const x = perfect[i][0];
+            const y = perfect[i][1];
 
-        for (var i = perfect.length - 1; i > 0; i -= 1) {
-            x = perfect[i][0];
-            y = perfect[i][1];
-
-            if (this.grid[y][x] === 0) {
+            if (this.grid && this.grid[y]?.[x] === 0) {
                 incomplete = toGridPath(AStar(this.grid, start, [x, y]));
                 break;
             }
@@ -103,16 +90,15 @@ class Pathfinder {
     }
 
     applyIgnoreList_(ignored: boolean): void {
-        var self = this,
-            x, y;
+        const self = this;
 
         if (!this.grid) {
             return;
         }
 
-        this.ignored.forEach(function(entity) {
-            x = entity.isMoving?.() ? entity.nextGridX ?? entity.gridX : entity.gridX;
-            y = entity.isMoving?.() ? entity.nextGridY ?? entity.gridY : entity.gridY;
+        this.ignored.forEach(function (entity) {
+            const x = entity.isMoving?.() ? (entity.nextGridX ?? entity.gridX) : entity.gridX;
+            const y = entity.isMoving?.() ? (entity.nextGridY ?? entity.gridY) : entity.gridY;
 
             if (x !== undefined && y !== undefined && x >= 0 && y >= 0) {
                 self.grid[y][x] = ignored ? 0 : 1;

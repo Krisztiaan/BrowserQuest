@@ -1,7 +1,7 @@
 
 import Entity from './entity';
 import type { EntityEvents } from './entity';
-import Types from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 import type { MergeEvents } from '../../shared/js/typed-event-emitter';
 
 type ChestEvents = {

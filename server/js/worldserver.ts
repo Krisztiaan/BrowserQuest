@@ -131,13 +131,13 @@ type SpawnableEntity = {
     getState(): Array<number | string>;
 };
 const isSpawnableEntity = (entity: unknown): entity is SpawnableEntity =>
-    typeof entity === 'object'
-    && entity !== null
-    && typeof (entity as { id?: unknown }).id === 'number'
-    && typeof (entity as { x?: unknown }).x === 'number'
-    && typeof (entity as { y?: unknown }).y === 'number'
-    && typeof (entity as { kind?: unknown }).kind === 'number'
-    && typeof (entity as { getState?: unknown }).getState === 'function';
+    typeof entity === 'object' &&
+    entity !== null &&
+    typeof (entity as { id?: unknown }).id === 'number' &&
+    typeof (entity as { x?: unknown }).x === 'number' &&
+    typeof (entity as { y?: unknown }).y === 'number' &&
+    typeof (entity as { kind?: unknown }).kind === 'number' &&
+    typeof (entity as { getState?: unknown }).getState === 'function';
 
 type WorldConnection = {
     send(payload: unknown): void;
@@ -197,7 +197,7 @@ class World extends Evented<WorldEvents> {
 
     zoneGroupsReady: boolean;
 
-    constructor(id, maxPlayers, websocketServer) {
+    constructor(id: string, maxPlayers: number, websocketServer: WorldServerLike) {
         super();
 
         this.id = id;
@@ -229,8 +229,8 @@ class World extends Evented<WorldEvents> {
         installWorldRuntimeEvents(this);
     }
 
-    run(mapFilePath) {
-        var self = this;
+    run(mapFilePath: string) {
+        const self = this;
 
         this.map = new Map(mapFilePath);
 
@@ -253,7 +253,17 @@ class World extends Evented<WorldEvents> {
                     );
                 },
                 createChestArea(config) {
-                    return new ChestArea(config.id, config.x, config.y, config.w, config.h, config.tx, config.ty, config.i, self);
+                    return new ChestArea(
+                        config.id,
+                        config.x,
+                        config.y,
+                        config.w,
+                        config.h,
+                        config.tx,
+                        config.ty,
+                        config.i,
+                        self
+                    );
                 },
             });
         });
@@ -263,11 +273,11 @@ class World extends Evented<WorldEvents> {
         log.info('' + this.id + ' created (capacity: ' + this.maxPlayers + ' players).');
     }
 
-    setUpdatesPerSecond(ups) {
+    setUpdatesPerSecond(ups: number) {
         this.ups = ups;
     }
 
-    pushRelevantEntityListTo(player) {
+    pushRelevantEntityListTo(player: WorldPlayer) {
         pushRelevantEntityListToPlayer({
             player,
             groups: this.groups,
@@ -278,7 +288,7 @@ class World extends Evented<WorldEvents> {
         });
     }
 
-    pushSpawnsToPlayer(player, ids) {
+    pushSpawnsToPlayer(player: WorldPlayer, ids: string[]) {
         pushWorldSpawnsToPlayer({
             player,
             ids,
@@ -294,7 +304,7 @@ class World extends Evented<WorldEvents> {
         });
     }
 
-    pushToPlayer(player, message) {
+    pushToPlayer(player: WorldPlayer, message: WorldMessage) {
         pushWorldMessageToPlayer({
             player,
             message,
@@ -302,16 +312,11 @@ class World extends Evented<WorldEvents> {
         });
     }
 
-    pushSerializedToPlayer(player, serializedMessage) {
-        pushSerializedToWorldPlayerQueue(
-            this.outgoingQueues,
-            player,
-            serializedMessage,
-            logWorldQueueError
-        );
+    pushSerializedToPlayer(player: WorldPlayer, serializedMessage: string) {
+        pushSerializedToWorldPlayerQueue(this.outgoingQueues, player, serializedMessage, logWorldQueueError);
     }
 
-    pushToGroup(groupId, message, ignoredPlayer = null) {
+    pushToGroup(groupId: string, message: WorldMessage, ignoredPlayer: WorldPlayer | null = null) {
         pushWorldMessageToGroup({
             groupId,
             message,
@@ -337,11 +342,7 @@ class World extends Evented<WorldEvents> {
             groupId,
             message,
             ignoredPlayer,
-            pushSerializedToAdjacentGroups: (
-                queueGroupId,
-                serializedMessage,
-                queueIgnoredPlayer
-            ) => {
+            pushSerializedToAdjacentGroups: (queueGroupId, serializedMessage, queueIgnoredPlayer) => {
                 pushSerializedToWorldAdjacentGroupsQueue({
                     map: this.map,
                     groups: this.groups,
@@ -576,15 +577,11 @@ class World extends Evented<WorldEvents> {
     }
 
     broadcastAttacker(character) {
-        broadcastWorldAttacker(
-            character,
-            this.pushToAdjacentGroups.bind(this),
-            (attacker) => {
-                if (attacker) {
-                    this.emit('entityAttack', attacker);
-                }
+        broadcastWorldAttacker(character, this.pushToAdjacentGroups.bind(this), (attacker) => {
+            if (attacker) {
+                this.emit('entityAttack', attacker);
             }
-        );
+        });
     }
 
     handleHurtEntity(entity, attacker, damage) {
@@ -706,7 +703,7 @@ class World extends Evented<WorldEvents> {
      * All players inside these groups will receive a Spawn message when WorldServer.processGroups is called.
      */
     addAsIncomingToGroup(entity, groupId) {
-        var isChest = entity && entity instanceof Chest,
+        const isChest = entity && entity instanceof Chest,
             isItem = entity && entity instanceof Item,
             isDroppedItem = entity && isItem && !entity.isStatic && !entity.isFromChest;
 
@@ -755,7 +752,7 @@ class World extends Evented<WorldEvents> {
     }
 
     processGroups() {
-        var self = this;
+        const self = this;
         processWorldGroups({
             zoneGroupsReady: self.zoneGroupsReady,
             forEachGroup(callback) {

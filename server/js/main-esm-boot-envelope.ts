@@ -2,7 +2,7 @@ import { resolveActiveConfig } from './main-esm-config-source';
 import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './main-esm-preflight-failures';
 import { runStartupWithConfig } from './main-esm-startup-runner';
 
-export async function runMainEsmBootEnvelope({
+export async function runMainEsmBootEnvelope<TStartupParams extends Record<string, unknown>>({
     defaultConfigPath,
     customConfigPath,
     validateConfig,
@@ -13,7 +13,7 @@ export async function runMainEsmBootEnvelope({
     resolveActiveConfigFn = resolveActiveConfig,
     ensureConfigSourcePresentFn = ensureConfigSourcePresent,
     ensureConfigPreflightValidFn = ensureConfigPreflightValid,
-    runStartupWithConfigFn = runStartupWithConfig,
+    runStartupWithConfigFn = runStartupWithConfig as (params: { activeConfig: object } & TStartupParams) => Promise<unknown>,
 }: {
     defaultConfigPath: string;
     customConfigPath: string;
@@ -21,7 +21,7 @@ export async function runMainEsmBootEnvelope({
     limitUtf8Bytes: (text: string, maxBytes: number) => string;
     emitError: (message: string) => void;
     fail: (code: number) => void;
-    startupParams: Record<string, unknown>;
+    startupParams: TStartupParams;
     resolveActiveConfigFn?: (params: {
         defaultConfigPath: string;
         customConfigPath: string;
@@ -38,7 +38,7 @@ export async function runMainEsmBootEnvelope({
         emitError: (message: string) => void;
         fail: (code: number) => void;
     }) => boolean;
-    runStartupWithConfigFn?: (params: Record<string, unknown>) => Promise<unknown>;
+    runStartupWithConfigFn?: (params: { activeConfig: object } & TStartupParams) => Promise<unknown>;
 }): Promise<{ activeConfig: object | null; started: boolean }> {
     const configSource = await resolveActiveConfigFn({
         defaultConfigPath,
@@ -52,6 +52,10 @@ export async function runMainEsmBootEnvelope({
         fail,
     });
     if (!hasConfig) {
+        return { activeConfig, started: false };
+    }
+
+    if (!activeConfig) {
         return { activeConfig, started: false };
     }
 
@@ -69,7 +73,7 @@ export async function runMainEsmBootEnvelope({
     await runStartupWithConfigFn({
         activeConfig,
         ...startupParams,
-    });
+    } as { activeConfig: object } & TStartupParams);
 
     return { activeConfig, started: true };
 }

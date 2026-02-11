@@ -3,7 +3,6 @@ import Messages from './message';
 import Utils from './utils';
 import Formulas from './formulas';
 import Types from '../../shared/js/gametypes-browser';
-import { PLAYER_SESSION_DISPATCH_OPCODES } from '../../shared/js/protocol-handler-opcodes';
 import type { ClientToServerHelloAction, ClientToServerProtocolAction } from '../../shared/js/protocol-contract-types';
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import type Player from './player';
@@ -112,7 +111,12 @@ function handleMove(player: Player, message: ClientToServerProtocolAction): void
 function handleLootMove(player: Player, message: ClientToServerProtocolAction): void {
     player.setPosition(Number(message[1]), Number(message[2]));
 
-    const item = player.server.getEntityById(message[3]);
+    const itemId = message[3];
+    if (itemId === undefined) {
+        return;
+    }
+
+    const item = player.server.getEntityById(itemId);
     if (item) {
         player.clearTarget();
 
@@ -122,7 +126,11 @@ function handleLootMove(player: Player, message: ClientToServerProtocolAction): 
 }
 
 function handleAttack(player: Player, message: ClientToServerProtocolAction): void {
-    const targetMob = player.server.getEntityById(message[1]) as MobLike | null;
+    const targetId = message[1];
+    if (targetId === undefined) {
+        return;
+    }
+    const targetMob = player.server.getEntityById(targetId) as MobLike | null;
 
     if (targetMob) {
         player.setTarget(targetMob);
@@ -131,7 +139,11 @@ function handleAttack(player: Player, message: ClientToServerProtocolAction): vo
 }
 
 function handleHit(player: Player, message: ClientToServerProtocolAction): void {
-    const attackedMob = player.server.getEntityById(message[1]) as MobLike | null;
+    const attackedMobId = message[1];
+    if (attackedMobId === undefined) {
+        return;
+    }
+    const attackedMob = player.server.getEntityById(attackedMobId) as MobLike | null;
     if (attackedMob) {
         const dmg = Formulas.dmg(player.weaponLevel, attackedMob.armorLevel);
 
@@ -144,7 +156,11 @@ function handleHit(player: Player, message: ClientToServerProtocolAction): void 
 }
 
 function handleHurt(player: Player, message: ClientToServerProtocolAction): void {
-    const hurtingMob = player.server.getEntityById(message[1]) as MobLike | null;
+    const hurtingMobId = message[1];
+    if (hurtingMobId === undefined) {
+        return;
+    }
+    const hurtingMob = player.server.getEntityById(hurtingMobId) as MobLike | null;
     if (hurtingMob && player.hitPoints > 0) {
         player.hitPoints -= Formulas.dmg(hurtingMob.weaponLevel, player.armorLevel);
         player.server.handleHurtEntity(player);
@@ -159,7 +175,12 @@ function handleHurt(player: Player, message: ClientToServerProtocolAction): void
 }
 
 function handleLoot(player: Player, message: ClientToServerProtocolAction): void {
-    const droppedItem = player.server.getEntityById(message[1]) as LootEntity | null;
+    const droppedItemId = message[1];
+    if (droppedItemId === undefined) {
+        return;
+    }
+
+    const droppedItem = player.server.getEntityById(droppedItemId) as LootEntity | null;
 
     if (!droppedItem) {
         return;
@@ -225,14 +246,24 @@ function handleTeleport(player: Player, message: ClientToServerProtocolAction): 
 }
 
 function handleOpen(player: Player, message: ClientToServerProtocolAction): void {
-    const chest = player.server.getEntityById(message[1]);
+    const chestId = message[1];
+    if (chestId === undefined) {
+        return;
+    }
+
+    const chest = player.server.getEntityById(chestId);
     if (chest && chest instanceof Chest) {
         player.server.handleOpenedChest(chest, player);
     }
 }
 
 function handleCheck(player: Player, message: ClientToServerProtocolAction): void {
-    const checkpoint = player.server.map.getCheckpoint(message[1]);
+    const checkpointId = message[1];
+    if (checkpointId === undefined) {
+        return;
+    }
+
+    const checkpoint = player.server.map.getCheckpoint(checkpointId);
     if (checkpoint) {
         player.lastCheckpoint = checkpoint;
     }

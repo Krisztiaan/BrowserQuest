@@ -9,8 +9,7 @@
         /* Strict type-checking */
         "strict": true,
         "strictNullChecks": true,
-        // temporarily disable noUncheckedIndexedAccess to reduce noise while migrating to exactOptionalPropertyTypes
-        "noUncheckedIndexedAccess": false,
+        "noUncheckedIndexedAccess": true,
         "noImplicitOverride": true,
         "noFallthroughCasesInSwitch": true,
         "forceConsistentCasingInFileNames": true,
@@ -31,7 +30,14 @@
         "shared/js/**/*.ts",
         "client/js-esm/client-boundary-types.ts",
         "client/js-esm/achievement-domain.ts",
-        "client/js-esm/asset-key-domain.ts",
-        "client/js-esm/compat/gametypes.ts"
+        "client/js-esm/asset-key-domain.ts"
+    ],
+    "exclude": [
+        "server/js/worldserver.ts",
+        "server/js/worldserver-*.ts",
+        "server/js/main-runtime.ts",
+        "server/js/main.ts",
+        "server/js/main-esm.ts",
+        "server/js/main-esm-*.ts"
     ]
 }

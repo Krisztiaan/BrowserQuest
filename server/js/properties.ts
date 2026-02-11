@@ -13,54 +13,54 @@ interface MobProperty {
     weapon: number;
 }
 
-interface PropertiesContract extends Record<string, unknown> {
+interface PropertiesContract {
     getArmorLevel(kind: EntityKind): number;
     getWeaponLevel(kind: EntityKind): number;
     getHitPoints(kind: EntityKind): number;
 }
 
-const PropertiesData = MOB_PROPERTIES_DATA as unknown as Record<string, MobProperty>;
-const Properties = PropertiesData as PropertiesContract & Record<string, MobProperty>;
+const PropertiesData = MOB_PROPERTIES_DATA;
 
 function getMobProperty(kind: EntityKind): MobProperty {
     const kindName = Types.getKindAsString(kind);
-    if (!kindName || !(kindName in Properties)) {
+    if (!kindName || !(kindName in PropertiesData)) {
         throw new Error('Unknown kind: ' + String(kind));
     }
-    return Properties[kindName] as MobProperty;
+    return PropertiesData[kindName as keyof typeof PropertiesData];
 }
 
-Properties.getArmorLevel = function (kind: EntityKind): number {
-    try {
-        if (Types.isMob(kind)) {
-            return getMobProperty(kind).armor;
+const Properties: PropertiesContract & typeof PropertiesData = {
+    ...PropertiesData,
+    getArmorLevel(kind: EntityKind): number {
+        try {
+            if (Types.isMob(kind)) {
+                return getMobProperty(kind).armor;
+            }
+            return Types.getArmorRank(kind) + 1;
+        } catch (_error) {
+            log.error('No level found for armor: ' + Types.getKindAsString(kind));
+            return 1;
         }
-        return Types.getArmorRank(kind) + 1;
-    } catch (_error) {
-        log.error('No level found for armor: ' + Types.getKindAsString(kind));
-        return 1;
-    }
-};
-
-Properties.getWeaponLevel = function (kind: EntityKind): number {
-    try {
-        if (Types.isMob(kind)) {
-            return getMobProperty(kind).weapon;
+    },
+    getWeaponLevel(kind: EntityKind): number {
+        try {
+            if (Types.isMob(kind)) {
+                return getMobProperty(kind).weapon;
+            }
+            return Types.getWeaponRank(kind) + 1;
+        } catch (_error) {
+            log.error('No level found for weapon: ' + Types.getKindAsString(kind));
+            return 1;
         }
-        return Types.getWeaponRank(kind) + 1;
-    } catch (_error) {
-        log.error('No level found for weapon: ' + Types.getKindAsString(kind));
-        return 1;
-    }
-};
-
-Properties.getHitPoints = function (kind: EntityKind): number {
-    try {
-        return getMobProperty(kind).hp;
-    } catch (_error) {
-        log.error('No hit points found for kind: ' + Types.getKindAsString(kind));
-        return 0;
-    }
+    },
+    getHitPoints(kind: EntityKind): number {
+        try {
+            return getMobProperty(kind).hp;
+        } catch (_error) {
+            log.error('No hit points found for kind: ' + Types.getKindAsString(kind));
+            return 0;
+        }
+    },
 };
 
 export default Properties;

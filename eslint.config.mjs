@@ -163,13 +163,35 @@ export default [
 
     // ── Client TS (type-aware) ──
     {
+        files: ['server/js/**/*.ts', 'shared/js/**/*.ts'],
+        languageOptions: {
+            parser: tsParser,
+            parserOptions: {
+                ecmaVersion: 'latest',
+                sourceType: 'module',
+                project: './tsconfig.eslint.json',
+                tsconfigRootDir: import.meta.dirname,
+            },
+            globals: {
+                ...globals.node,
+                ...globals.es2024,
+            },
+        },
+        plugins: {
+            '@typescript-eslint': tsPlugin,
+        },
+        rules: tsStrictRules,
+    },
+
+    // ── Client TS (type-aware) ──
+    {
         files: ['client/js-esm/**/*.ts'],
         languageOptions: {
             parser: tsParser,
             parserOptions: {
                 ecmaVersion: 'latest',
                 sourceType: 'module',
-                projectService: true,
+                project: './tsconfig.eslint.json',
                 tsconfigRootDir: import.meta.dirname,
             },
             globals: {
@@ -191,7 +213,7 @@ export default [
             parserOptions: {
                 ecmaVersion: 'latest',
                 sourceType: 'module',
-                projectService: true,
+                project: './tsconfig.eslint.json',
                 tsconfigRootDir: import.meta.dirname,
             },
             globals: {

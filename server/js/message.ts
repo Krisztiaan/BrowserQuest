@@ -43,9 +43,9 @@ class Spawn extends Message {
         this.entity = entity;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         const state = this.entity.getState();
-        const serialized: SerializedMessage = new Array(state.length + 1);
+        const serialized: SerializedMessage = Array.from({ length: state.length + 1 });
         serialized[0] = Types.Messages.SPAWN;
         for (let i = 0; i < state.length; i += 1) {
             serialized[i + 1] = state[i];
@@ -62,7 +62,7 @@ class Despawn extends Message {
         this.entityId = entityId;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.DESPAWN, this.entityId];
     }
 }
@@ -75,7 +75,7 @@ class Move extends Message {
         this.entity = entity;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.MOVE, this.entity.id, this.entity.x, this.entity.y];
     }
 }
@@ -90,7 +90,7 @@ class LootMove extends Message {
         this.item = item;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.LOOTMOVE, this.entity.id, this.item.id];
     }
 }
@@ -105,7 +105,7 @@ class Attack extends Message {
         this.targetId = targetId;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.ATTACK, this.attackerId, this.targetId ?? 0];
     }
 }
@@ -120,7 +120,7 @@ class Health extends Message {
         this.isRegen = isRegen;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         const health: SerializedMessage = [Types.Messages.HEALTH, this.points];
 
         if (this.isRegen) {
@@ -138,7 +138,7 @@ class HitPoints extends Message {
         this.maxHitPoints = maxHitPoints;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.HP, this.maxHitPoints];
     }
 }
@@ -153,7 +153,7 @@ class EquipItem extends Message {
         this.itemKind = itemKind;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.EQUIP, this.playerId, this.itemKind];
     }
 }
@@ -168,18 +168,12 @@ class Drop extends Message {
         this.item = item;
     }
 
-    serialize(): SerializedMessage {
-        const haters: number[] = new Array(this.mob.hatelist.length);
+    override serialize(): SerializedMessage {
+        const haters: number[] = Array.from({ length: this.mob.hatelist.length });
         for (let i = 0; i < this.mob.hatelist.length; i += 1) {
             haters[i] = this.mob.hatelist[i].id;
         }
-        return [
-            Types.Messages.DROP,
-            this.mob.id,
-            this.item.id,
-            this.item.kind,
-            haters,
-        ];
+        return [Types.Messages.DROP, this.mob.id, this.item.id, this.item.kind, haters];
     }
 }
 
@@ -193,7 +187,7 @@ class Chat extends Message {
         this.message = message;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.CHAT, this.playerId, this.message];
     }
 }
@@ -206,7 +200,7 @@ class Teleport extends Message {
         this.entity = entity;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.TELEPORT, this.entity.id, this.entity.x, this.entity.y];
     }
 }
@@ -221,7 +215,7 @@ class Damage extends Message {
         this.points = points;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.DAMAGE, this.entity.id, this.points];
     }
 }
@@ -236,7 +230,7 @@ class Population extends Message {
         this.total = typeof total === 'number' ? total : world;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.POPULATION, this.world, this.total];
     }
 }
@@ -249,7 +243,7 @@ class Kill extends Message {
         this.mob = mob;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.KILL, this.mob.kind];
     }
 }
@@ -262,8 +256,8 @@ class List extends Message {
         this.ids = ids;
     }
 
-    serialize(): number[] {
-        const serialized = new Array(this.ids.length + 1);
+    override serialize(): number[] {
+        const serialized: number[] = Array.from({ length: this.ids.length + 1 });
         serialized[0] = Types.Messages.LIST;
         for (let i = 0; i < this.ids.length; i += 1) {
             serialized[i + 1] = this.ids[i];
@@ -280,7 +274,7 @@ class Destroy extends Message {
         this.entity = entity;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.DESTROY, this.entity.id];
     }
 }
@@ -293,7 +287,7 @@ class Blink extends Message {
         this.item = item;
     }
 
-    serialize(): SerializedMessage {
+    override serialize(): SerializedMessage {
         return [Types.Messages.BLINK, this.item.id];
     }
 }

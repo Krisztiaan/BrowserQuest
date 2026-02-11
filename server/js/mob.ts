@@ -50,7 +50,7 @@ class Mob extends Character<MobEvents> {
         this.isDead = false;
     }
 
-    destroy(): void {
+    override destroy(): void {
         this.isDead = true;
         this.hatelist = [];
         this.clearTarget();
@@ -103,7 +103,7 @@ class Mob extends Character<MobEvents> {
         } else {
             i = size - 1;
         }
-        if (sorted && sorted[i]) {
+        if (sorted[i]) {
             playerId = sorted[i].id;
         }
 
@@ -155,7 +155,7 @@ class Mob extends Character<MobEvents> {
 
     returnToSpawningPosition(waitDuration?: number): void {
         const self = this;
-        const delay = waitDuration || 4000;
+        const delay = waitDuration ?? 4000;
 
         this.clearTarget();
 

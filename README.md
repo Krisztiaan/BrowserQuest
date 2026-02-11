@@ -32,6 +32,10 @@ Active Scripts
 - `bun run typecheck`: TypeScript solution build (`tsc -b tsconfig.json`)
 - `bun run verify:modern`: canonical modern verify lane
 - `bun run verify:modern:node22`: Node22 policy wrapper for verify lane
+- `bun run content:mobs:generate`: regenerate mob balance artifact from canonical content
+- `bun run check:content:mobs`: verify generated mob balance artifact is up to date
+- `bun run content:item-loot:generate`: regenerate client item loot-message artifact from canonical content
+- `bun run check:content:item-loot`: verify generated item loot-message artifact is up to date
 - `bun run check:browser:workflow-drift`: guard browser CI command/config drift
 
 Verification
@@ -44,6 +48,18 @@ Verification
 - lint + format check
 - test suite
 - Vite production build
+
+Content Canonicalization (Current)
+----------------------------------
+
+- Canonical mob balance source: `assets/content/mob-properties.json`
+- Generated runtime artifact: `server/js/generated/mob-properties.generated.ts`
+- Canonical item-loot message source: `assets/content/item-loot-messages.json`
+- Generated runtime artifact: `client/js-esm/item-loot-messages.generated.ts`
+- Workflow:
+  - Edit canonical JSON
+  - Run the matching generator command (`content:mobs:generate` or `content:item-loot:generate`)
+  - Validate with matching check command (both are enforced in `verify:modern`)
 
 Runtime Probes and Shutdown
 ---------------------------
@@ -60,7 +76,7 @@ Lint/Format Scope
 
 Current lint/format scope is intentionally bounded while legacy modules are incrementally modernized:
 
-- `lint` currently targets `tests/**/*.ts` and `client/js-esm/**/*.ts`.
+- `lint` currently targets an explicit modern-runtime allowlist in `package.json` (server/shared/client boundary-critical modules).
 - `format`/`format:check` currently target:
   - `server/js/{log.ts,utils.ts,format.ts}`
   - `client/js-esm/compat/*.ts`

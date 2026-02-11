@@ -45,14 +45,14 @@ class Transition {
                 this.count -= 1;
                 log.debug(currentTime + ': jumped frame');
             } else {
-                var elapsed = currentTime - this.startTime;
+                let elapsed = currentTime - this.startTime;
 
                 if (elapsed > this.duration) {
                     elapsed = this.duration;
                 }
 
-                var diff = this.endValue - this.startValue;
-                var i = this.startValue + ((diff / this.duration) * elapsed);
+                const diff = this.endValue - this.startValue;
+                let i = this.startValue + (diff / this.duration) * elapsed;
 
                 i = Math.round(i);
 

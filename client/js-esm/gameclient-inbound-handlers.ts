@@ -1,33 +1,34 @@
-import Types from './compat/gametypes';
-import type { ClientInboundProtocolAction } from './client-boundary-types';
-import { GAMECLIENT_INBOUND_HANDLER_OPCODES } from '../../shared/js/protocol-handler-opcodes';
+import type { ClientInboundActionByOpcode, ClientInboundProtocolAction } from './client-boundary-types';
+import Types from '../../shared/js/gametypes-browser';
 
-type GameClientActionHandler = (data: ClientInboundProtocolAction) => void;
+export type GameClientInboundActionHandlerMap = {
+    [Opcode in ClientInboundProtocolAction[0]]: (data: ClientInboundActionByOpcode<Opcode>) => void;
+};
 
 type GameClientInboundReceiver = {
-    receiveWelcome(data: ClientInboundProtocolAction): void;
-    receiveMove(data: ClientInboundProtocolAction): void;
-    receiveLootMove(data: ClientInboundProtocolAction): void;
-    receiveAttack(data: ClientInboundProtocolAction): void;
-    receiveSpawn(data: ClientInboundProtocolAction): void;
-    receiveDespawn(data: ClientInboundProtocolAction): void;
-    receiveHealth(data: ClientInboundProtocolAction): void;
-    receiveChat(data: ClientInboundProtocolAction): void;
-    receiveEquipItem(data: ClientInboundProtocolAction): void;
-    receiveDrop(data: ClientInboundProtocolAction): void;
-    receiveTeleport(data: ClientInboundProtocolAction): void;
-    receiveDamage(data: ClientInboundProtocolAction): void;
-    receivePopulation(data: ClientInboundProtocolAction): void;
-    receiveList(data: ClientInboundProtocolAction): void;
-    receiveDestroy(data: ClientInboundProtocolAction): void;
-    receiveKill(data: ClientInboundProtocolAction): void;
-    receiveHitPoints(data: ClientInboundProtocolAction): void;
-    receiveBlink(data: ClientInboundProtocolAction): void;
+    receiveWelcome(data: ClientInboundActionByOpcode<typeof Types.Messages.WELCOME>): void;
+    receiveMove(data: ClientInboundActionByOpcode<typeof Types.Messages.MOVE>): void;
+    receiveLootMove(data: ClientInboundActionByOpcode<typeof Types.Messages.LOOTMOVE>): void;
+    receiveAttack(data: ClientInboundActionByOpcode<typeof Types.Messages.ATTACK>): void;
+    receiveSpawn(data: ClientInboundActionByOpcode<typeof Types.Messages.SPAWN>): void;
+    receiveDespawn(data: ClientInboundActionByOpcode<typeof Types.Messages.DESPAWN>): void;
+    receiveHealth(data: ClientInboundActionByOpcode<typeof Types.Messages.HEALTH>): void;
+    receiveChat(data: ClientInboundActionByOpcode<typeof Types.Messages.CHAT>): void;
+    receiveEquipItem(data: ClientInboundActionByOpcode<typeof Types.Messages.EQUIP>): void;
+    receiveDrop(data: ClientInboundActionByOpcode<typeof Types.Messages.DROP>): void;
+    receiveTeleport(data: ClientInboundActionByOpcode<typeof Types.Messages.TELEPORT>): void;
+    receiveDamage(data: ClientInboundActionByOpcode<typeof Types.Messages.DAMAGE>): void;
+    receivePopulation(data: ClientInboundActionByOpcode<typeof Types.Messages.POPULATION>): void;
+    receiveList(data: ClientInboundActionByOpcode<typeof Types.Messages.LIST>): void;
+    receiveDestroy(data: ClientInboundActionByOpcode<typeof Types.Messages.DESTROY>): void;
+    receiveKill(data: ClientInboundActionByOpcode<typeof Types.Messages.KILL>): void;
+    receiveHitPoints(data: ClientInboundActionByOpcode<typeof Types.Messages.HP>): void;
+    receiveBlink(data: ClientInboundActionByOpcode<typeof Types.Messages.BLINK>): void;
 };
 
 export function createGameClientInboundHandlers(
     receiver: GameClientInboundReceiver
-): Record<ClientInboundProtocolAction[0], GameClientActionHandler> {
+): GameClientInboundActionHandlerMap {
     return {
         [Types.Messages.WELCOME]: (data) => receiver.receiveWelcome(data),
         [Types.Messages.MOVE]: (data) => receiver.receiveMove(data),

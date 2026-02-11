@@ -1,8 +1,11 @@
 import EntityFactory from './entityfactory';
 import log from './compat/log';
-import Types from './compat/gametypes';
-import type { EntityKind } from './compat/gametypes';
-import { createGameClientInboundHandlers } from './gameclient-inbound-handlers';
+import Types from '../../shared/js/gametypes-browser';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
+import {
+    createGameClientInboundHandlers,
+    type GameClientInboundActionHandlerMap,
+} from './gameclient-inbound-handlers';
 import {
     createAggroAction,
     createAttackAction,
@@ -29,17 +32,13 @@ import {
     isDispatcherConnectStatus,
 } from '../../shared/js/connection-status';
 import type {
+    ClientInboundActionByOpcode,
     ClientInboundProtocolAction,
     ClientOutboundProtocolAction,
     ClientProtocolBatch,
 } from './client-boundary-types';
 
 type EntityId = string | number;
-type InboundAction<Opcode extends ClientInboundProtocolAction[0]> = Extract<
-    ClientInboundProtocolAction,
-    [Opcode, ...unknown[]]
->;
-type GameClientActionHandler = (data: ClientInboundProtocolAction) => void;
 type ClientPlayerLike = {
     name: string;
     getSpriteName(): string;
@@ -87,7 +86,7 @@ class GameClient extends Evented<GameClientEvents> {
     port: number;
     isTimeout: boolean;
     isListening: boolean;
-    handlers: Record<ClientInboundProtocolAction[0], GameClientActionHandler>;
+    handlers: GameClientInboundActionHandlerMap;
 
     constructor(host: string, port: number) {
         super();
@@ -109,7 +108,7 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     connect(dispatcherMode = false): void {
-        var scheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://',
+        const scheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://',
             url = scheme + this.host + ':' + this.port + '/',
             self = this;
 
@@ -119,8 +118,8 @@ class GameClient extends Evented<GameClientEvents> {
 
         if (dispatcherMode) {
             this.connection.onmessage = function (e: MessageEvent) {
-                var reply = JSON.parse(e.data);
-                var status = reply?.status;
+                const reply = JSON.parse(e.data);
+                const status = reply?.status;
 
                 if (isDispatcherConnectStatus(status) && status === DISPATCHER_CONNECT_STATUS.OK) {
                     self.emit('dispatched', reply.host, reply.port);
@@ -156,7 +155,7 @@ class GameClient extends Evented<GameClientEvents> {
 
             this.connection.onclose = function () {
                 log.debug('Connection closed');
-                var container = document.getElementById('container');
+                const container = document.getElementById('container');
                 if (container) {
                     container.classList.add('error');
                 }
@@ -171,7 +170,7 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     sendMessage(json: ClientOutboundProtocolAction): void {
-        var data;
+        let data;
         if (this.connection.readyState === 1) {
             data = JSON.stringify(json);
             this.connection.send(data);
@@ -179,7 +178,7 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveMessage(message: string): void {
-        var actions;
+        let actions;
 
         if (this.isListening) {
             log.debug('data: ' + message);
@@ -194,39 +193,38 @@ class GameClient extends Evented<GameClientEvents> {
 
     receiveAction(data: ClientInboundProtocolAction): void {
         const action = data[0];
-        this.handlers[action](data);
+        const handler = this.handlers[action] as (payload: ClientInboundProtocolAction) => void;
+        handler(data);
     }
 
     receiveActionBatch(actions: ClientProtocolBatch): void {
-        var self = this;
-
-        actions.forEach(function (action: ClientInboundProtocolAction) {
-            self.receiveAction(action);
-        });
+        for (const action of actions) {
+            this.receiveAction(action);
+        }
     }
 
-    receiveWelcome(data: ClientInboundProtocolAction): void {
-        const [, id, name, x, y, hp] = data as InboundAction<typeof Types.Messages.WELCOME>;
+    receiveWelcome(data: ClientInboundActionByOpcode<typeof Types.Messages.WELCOME>): void {
+        const [, id, name, x, y, hp] = data;
         this.emit('welcome', id, name, x, y, hp);
     }
 
-    receiveMove(data: ClientInboundProtocolAction): void {
-        const [, id, x, y] = data as InboundAction<typeof Types.Messages.MOVE>;
+    receiveMove(data: ClientInboundActionByOpcode<typeof Types.Messages.MOVE>): void {
+        const [, id, x, y] = data;
         this.emit('entityMove', id, x, y);
     }
 
-    receiveLootMove(data: ClientInboundProtocolAction): void {
-        const [, id, item] = data as InboundAction<typeof Types.Messages.LOOTMOVE>;
+    receiveLootMove(data: ClientInboundActionByOpcode<typeof Types.Messages.LOOTMOVE>): void {
+        const [, id, item] = data;
         this.emit('playerMoveToItem', id, item);
     }
 
-    receiveAttack(data: ClientInboundProtocolAction): void {
-        const [, attacker, target] = data as InboundAction<typeof Types.Messages.ATTACK>;
+    receiveAttack(data: ClientInboundActionByOpcode<typeof Types.Messages.ATTACK>): void {
+        const [, attacker, target] = data;
         this.emit('entityAttack', attacker, target);
     }
 
-    receiveSpawn(data: ClientInboundProtocolAction): void {
-        const [, id, kind, x, y, ...spawnData] = data as InboundAction<typeof Types.Messages.SPAWN>;
+    receiveSpawn(data: ClientInboundActionByOpcode<typeof Types.Messages.SPAWN>): void {
+        const [, id, kind, x, y, ...spawnData] = data;
 
         if (Types.isItem(kind)) {
             const item = EntityFactory.createEntity(kind, id);
@@ -273,7 +271,7 @@ class GameClient extends Evented<GameClientEvents> {
 
         const character = EntityFactory.createEntity(kind, id, name);
 
-        if (Types.isPlayer(kind) && character) {
+        if (Types.isPlayer(kind)) {
             character.weaponName = weapon !== undefined ? Types.getKindAsString(weapon) : undefined;
             character.spriteName = armor !== undefined ? Types.getKindAsString(armor) : undefined;
         }
@@ -281,71 +279,71 @@ class GameClient extends Evented<GameClientEvents> {
         this.emit('spawnCharacter', character, x, y, orientation, target);
     }
 
-    receiveDespawn(data: ClientInboundProtocolAction): void {
-        const [, id] = data as InboundAction<typeof Types.Messages.DESPAWN>;
+    receiveDespawn(data: ClientInboundActionByOpcode<typeof Types.Messages.DESPAWN>): void {
+        const [, id] = data;
         this.emit('despawnEntity', id);
     }
 
-    receiveHealth(data: ClientInboundProtocolAction): void {
-        const [, points, isRegenFlag] = data as InboundAction<typeof Types.Messages.HEALTH>;
+    receiveHealth(data: ClientInboundActionByOpcode<typeof Types.Messages.HEALTH>): void {
+        const [, points, isRegenFlag] = data;
         this.emit('playerChangeHealth', points, isRegenFlag === 1);
     }
 
-    receiveChat(data: ClientInboundProtocolAction): void {
-        const [, id, text] = data as InboundAction<typeof Types.Messages.CHAT>;
+    receiveChat(data: ClientInboundActionByOpcode<typeof Types.Messages.CHAT>): void {
+        const [, id, text] = data;
         this.emit('chatMessage', id, text);
     }
 
-    receiveEquipItem(data: ClientInboundProtocolAction): void {
-        const [, id, itemKind] = data as InboundAction<typeof Types.Messages.EQUIP>;
+    receiveEquipItem(data: ClientInboundActionByOpcode<typeof Types.Messages.EQUIP>): void {
+        const [, id, itemKind] = data;
         this.emit('playerEquipItem', id, itemKind);
     }
 
-    receiveDrop(data: ClientInboundProtocolAction): void {
-        const [, mobId, id, kind, playersInvolved] = data as InboundAction<typeof Types.Messages.DROP>;
+    receiveDrop(data: ClientInboundActionByOpcode<typeof Types.Messages.DROP>): void {
+        const [, mobId, id, kind, playersInvolved] = data;
         const item = EntityFactory.createEntity(kind, id);
         item.wasDropped = true;
         item.playersInvolved = playersInvolved;
         this.emit('dropItem', item, mobId);
     }
 
-    receiveTeleport(data: ClientInboundProtocolAction): void {
-        const [, id, x, y] = data as InboundAction<typeof Types.Messages.TELEPORT>;
+    receiveTeleport(data: ClientInboundActionByOpcode<typeof Types.Messages.TELEPORT>): void {
+        const [, id, x, y] = data;
         this.emit('playerTeleport', id, x, y);
     }
 
-    receiveDamage(data: ClientInboundProtocolAction): void {
-        const [, id, dmg] = data as InboundAction<typeof Types.Messages.DAMAGE>;
+    receiveDamage(data: ClientInboundActionByOpcode<typeof Types.Messages.DAMAGE>): void {
+        const [, id, dmg] = data;
         this.emit('playerDamageMob', id, dmg);
     }
 
-    receivePopulation(data: ClientInboundProtocolAction): void {
-        const [, worldPlayers, totalPlayers] = data as InboundAction<typeof Types.Messages.POPULATION>;
+    receivePopulation(data: ClientInboundActionByOpcode<typeof Types.Messages.POPULATION>): void {
+        const [, worldPlayers, totalPlayers] = data;
         this.emit('populationChange', worldPlayers, totalPlayers);
     }
 
-    receiveKill(data: ClientInboundProtocolAction): void {
-        const [, mobKind] = data as InboundAction<typeof Types.Messages.KILL>;
+    receiveKill(data: ClientInboundActionByOpcode<typeof Types.Messages.KILL>): void {
+        const [, mobKind] = data;
         this.emit('playerKillMob', mobKind);
     }
 
-    receiveList(data: ClientInboundProtocolAction): void {
-        const [, ...ids] = data as InboundAction<typeof Types.Messages.LIST>;
+    receiveList(data: ClientInboundActionByOpcode<typeof Types.Messages.LIST>): void {
+        const [, ...ids] = data;
         this.emit('entityList', ids);
     }
 
-    receiveDestroy(data: ClientInboundProtocolAction): void {
-        const [, id] = data as InboundAction<typeof Types.Messages.DESTROY>;
+    receiveDestroy(data: ClientInboundActionByOpcode<typeof Types.Messages.DESTROY>): void {
+        const [, id] = data;
         this.emit('entityDestroy', id);
     }
 
-    receiveHitPoints(data: ClientInboundProtocolAction): void {
-        const [, maxHp] = data as InboundAction<typeof Types.Messages.HP>;
+    receiveHitPoints(data: ClientInboundActionByOpcode<typeof Types.Messages.HP>): void {
+        const [, maxHp] = data;
         this.emit('playerChangeMaxHitPoints', maxHp);
     }
 
-    receiveBlink(data: ClientInboundProtocolAction): void {
-        const [, id] = data as InboundAction<typeof Types.Messages.BLINK>;
+    receiveBlink(data: ClientInboundActionByOpcode<typeof Types.Messages.BLINK>): void {
+        const [, id] = data;
         this.emit('itemBlink', id);
     }
 

@@ -1,135 +1,57 @@
-
 import Item from './item';
 import type { LootPlayer } from './item';
-import Types from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
+import { ITEM_LOOT_MESSAGES } from './item-loot-messages.generated';
 
 type ItemCtor = new (id: string | number) => Item;
+type ItemCategory = 'weapon' | 'armor' | 'object';
+type ItemLootMessageKey = keyof typeof ITEM_LOOT_MESSAGES;
 
-class Sword2 extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.SWORD2, "weapon");
-        this.lootMessage = "You pick up a steel sword";
-    }
-}
+type ItemDefinition = {
+    kind: EntityKind;
+    type: ItemCategory;
+    lootMessageKey: ItemLootMessageKey;
+    onLoot?: (player: LootPlayer) => void;
+};
 
-class Axe extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.AXE, "weapon");
-        this.lootMessage = "You pick up an axe";
-    }
-}
+function createItemCtor(definition: ItemDefinition): ItemCtor {
+    return class extends Item {
+        constructor(id: string | number) {
+            super(id, definition.kind, definition.type);
+            this.lootMessage = ITEM_LOOT_MESSAGES[definition.lootMessageKey];
+        }
 
-class RedSword extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.REDSWORD, "weapon");
-        this.lootMessage = "You pick up a blazing sword";
-    }
-}
-
-class BlueSword extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.BLUESWORD, "weapon");
-        this.lootMessage = "You pick up a magic sword";
-    }
-}
-
-class GoldenSword extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.GOLDENSWORD, "weapon");
-        this.lootMessage = "You pick up the ultimate sword";
-    }
-}
-
-class MorningStar extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.MORNINGSTAR, "weapon");
-        this.lootMessage = "You pick up a morning star";
-    }
-}
-
-class LeatherArmor extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.LEATHERARMOR, "armor");
-        this.lootMessage = "You equip a leather armor";
-    }
-}
-
-class MailArmor extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.MAILARMOR, "armor");
-        this.lootMessage = "You equip a mail armor";
-    }
-}
-
-class PlateArmor extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.PLATEARMOR, "armor");
-        this.lootMessage = "You equip a plate armor";
-    }
-}
-
-class RedArmor extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.REDARMOR, "armor");
-        this.lootMessage = "You equip a ruby armor";
-    }
-}
-
-class GoldenArmor extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.GOLDENARMOR, "armor");
-        this.lootMessage = "You equip a golden armor";
-    }
-}
-
-class Flask extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.FLASK, "object");
-        this.lootMessage = "You drink a health potion";
-    }
-}
-
-class Cake extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.CAKE, "object");
-        this.lootMessage = "You eat a cake";
-    }
-}
-
-class Burger extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.BURGER, "object");
-        this.lootMessage = "You can haz rat burger";
-    }
-}
-
-class FirePotion extends Item {
-    constructor(id: string | number) {
-        super(id, Types.Entities.FIREPOTION, "object");
-        this.lootMessage = "You feel the power of Firefox!";
-    }
-
-    onLoot(player: LootPlayer): void {
-        player.startInvincibility();
-    }
+        override onLoot(player: LootPlayer): void {
+            super.onLoot(player);
+            definition.onLoot?.(player);
+        }
+    };
 }
 
 const Items: Record<string, ItemCtor> = {
-    Sword2,
-    Axe,
-    RedSword,
-    BlueSword,
-    GoldenSword,
-    MorningStar,
-    LeatherArmor,
-    MailArmor,
-    PlateArmor,
-    RedArmor,
-    GoldenArmor,
-    Flask,
-    Cake,
-    Burger,
-    FirePotion,
+    Sword2: createItemCtor({ kind: Types.Entities.SWORD2, type: 'weapon', lootMessageKey: 'sword2' }),
+    Axe: createItemCtor({ kind: Types.Entities.AXE, type: 'weapon', lootMessageKey: 'axe' }),
+    RedSword: createItemCtor({ kind: Types.Entities.REDSWORD, type: 'weapon', lootMessageKey: 'redsword' }),
+    BlueSword: createItemCtor({ kind: Types.Entities.BLUESWORD, type: 'weapon', lootMessageKey: 'bluesword' }),
+    GoldenSword: createItemCtor({ kind: Types.Entities.GOLDENSWORD, type: 'weapon', lootMessageKey: 'goldensword' }),
+    MorningStar: createItemCtor({ kind: Types.Entities.MORNINGSTAR, type: 'weapon', lootMessageKey: 'morningstar' }),
+    LeatherArmor: createItemCtor({ kind: Types.Entities.LEATHERARMOR, type: 'armor', lootMessageKey: 'leatherarmor' }),
+    MailArmor: createItemCtor({ kind: Types.Entities.MAILARMOR, type: 'armor', lootMessageKey: 'mailarmor' }),
+    PlateArmor: createItemCtor({ kind: Types.Entities.PLATEARMOR, type: 'armor', lootMessageKey: 'platearmor' }),
+    RedArmor: createItemCtor({ kind: Types.Entities.REDARMOR, type: 'armor', lootMessageKey: 'redarmor' }),
+    GoldenArmor: createItemCtor({ kind: Types.Entities.GOLDENARMOR, type: 'armor', lootMessageKey: 'goldenarmor' }),
+    Flask: createItemCtor({ kind: Types.Entities.FLASK, type: 'object', lootMessageKey: 'flask' }),
+    Cake: createItemCtor({ kind: Types.Entities.CAKE, type: 'object', lootMessageKey: 'cake' }),
+    Burger: createItemCtor({ kind: Types.Entities.BURGER, type: 'object', lootMessageKey: 'burger' }),
+    FirePotion: createItemCtor({
+        kind: Types.Entities.FIREPOTION,
+        type: 'object',
+        lootMessageKey: 'firepotion',
+        onLoot(player) {
+            player.startInvincibility();
+        },
+    }),
 };
 
 export default Items;

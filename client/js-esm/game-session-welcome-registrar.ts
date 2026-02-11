@@ -13,7 +13,7 @@ import { installSpawnCharacterHandlerFromGame } from './game-session-spawn-chara
 import { installSpawnPrimitiveHandlersFromGame } from './game-session-spawn-primitives-host-builder';
 import { applyWelcomeBootstrap } from './game-session-welcome';
 import log from './compat/log';
-import Types from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 
 type AddEntityArg = Parameters<Game['addEntity']>[0];
 type RemoveEntityArg = Parameters<Game['removeEntity']>[0];

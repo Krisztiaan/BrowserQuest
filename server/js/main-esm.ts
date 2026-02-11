@@ -23,7 +23,7 @@ await runMainEsmBootEnvelope({
     validateConfig,
     limitUtf8Bytes: Utils.limitUtf8Bytes,
     emitError: (message) => console.error(message),
-    fail: (code) => process.exit(code),
+    fail: (code: number) => process.exit(code),
     startupParams: {
         env: process.env,
         emitStructuredEvent,
@@ -31,7 +31,7 @@ await runMainEsmBootEnvelope({
         importWsEsm: () => import('./ws-runtime-esm'),
         createRuntimeDependencies,
         startServer,
-        fail: (code) => process.exit(code),
+        fail: (code: number) => process.exit(code),
         runBridgeProbeFn: runWebSocketBridgeProbeIfEnabled,
         resolveRuntimeOptionsFn: resolveStartupRuntimeOptions,
     },

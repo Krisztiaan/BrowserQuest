@@ -1,8 +1,15 @@
-import type { ClientToServerProtocolAction, ServerToClientProtocolAction } from '../../shared/js/protocol-contract-types';
+import type {
+    ClientToServerProtocolAction,
+    ServerToClientProtocolAction,
+} from '../../shared/js/protocol-contract-types';
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
 export type ClientInboundProtocolAction = ServerToClientProtocolAction;
 export type ClientOutboundProtocolAction = ClientToServerProtocolAction;
+export type ClientInboundActionByOpcode<Opcode extends ClientInboundProtocolAction[0]> = Extract<
+    ClientInboundProtocolAction,
+    [Opcode, ...unknown[]]
+>;
 export type ClientProtocolAction = ClientInboundProtocolAction;
 export type ClientProtocolBatch = ClientProtocolAction[];
 
@@ -19,7 +26,7 @@ export type EntityFactoryBuilder = (id: string | number, name?: string) => Runti
 
 export interface EntityFactoryContract {
     builders: Array<EntityFactoryBuilder | undefined>;
-    createEntity(kind: EntityKind, id: string | number, name?: string): RuntimeEntity | undefined;
+    createEntity(kind: EntityKind, id: string | number, name?: string): RuntimeEntity;
 }
 
 export interface GameClientProtocolBoundary {

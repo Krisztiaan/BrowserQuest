@@ -1,8 +1,5 @@
 import Types from './gametypes-browser';
-import type {
-    ProtocolActionValue,
-    ServerToClientProtocolAction,
-} from './protocol-contract-types';
+import type { ProtocolActionValue, ServerToClientProtocolAction } from './protocol-contract-types';
 
 type MessageTypeFormat = Array<'n' | 's'>;
 export type ClientToServerFormatSchema = Record<number, MessageTypeFormat>;
@@ -29,11 +26,7 @@ function isNumberArray(value: unknown): value is number[] {
 
 function isProtocolActionValue(value: unknown): value is ProtocolActionValue {
     return (
-        isFiniteNumber(value) ||
-        isString(value) ||
-        typeof value === 'boolean' ||
-        value === null ||
-        isNumberArray(value)
+        isFiniteNumber(value) || isString(value) || typeof value === 'boolean' || value === null || isNumberArray(value)
     );
 }
 
@@ -73,7 +66,8 @@ const SERVER_TO_CLIENT_FIXED_VALIDATORS: Record<number, ServerToClientActionVali
     [Types.Messages.DESPAWN]: (action) => action.length === 2 && isFiniteNumber(action[1]),
     [Types.Messages.MOVE]: (action) =>
         action.length === 4 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]) && isFiniteNumber(action[3]),
-    [Types.Messages.LOOTMOVE]: (action) => action.length === 3 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]),
+    [Types.Messages.LOOTMOVE]: (action) =>
+        action.length === 3 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]),
     [Types.Messages.ATTACK]: (action) => action.length === 3 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]),
     [Types.Messages.HEALTH]: (action) =>
         (action.length === 2 && isFiniteNumber(action[1])) ||
@@ -110,7 +104,10 @@ export function checkClientToServerProtocolAction(action: unknown[]): boolean {
     const payload = action.slice(1);
 
     if (isFixedClientToServerOpcode(opcode)) {
-        const format = CLIENT_TO_SERVER_FORMAT_SCHEMA[opcode] as MessageTypeFormat;
+        const format = CLIENT_TO_SERVER_FORMAT_SCHEMA[opcode];
+        if (!format) {
+            return false;
+        }
         if (payload.length !== format.length) {
             return false;
         }
@@ -143,8 +140,7 @@ export function isServerToClientProtocolAction(action: unknown): action is Serve
         return action.slice(1).every((entry) => isFiniteNumber(entry));
     }
 
-    const validate = SERVER_TO_CLIENT_FIXED_VALIDATORS[opcode];
-    return validate ? validate(action) : false;
+    return SERVER_TO_CLIENT_FIXED_VALIDATORS[opcode](action);
 }
 
 export default {

@@ -2,7 +2,7 @@ import Character from './character';
 import Mob from './mob';
 import Player from './player';
 import type Game from './game';
-import Types from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 
 type AdjacentPosition = { x: number; y: number; o: number };
 

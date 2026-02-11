@@ -1,12 +1,68 @@
 # TODO Backlog (Open Tickets Only)
 
-Last updated: 2026-02-11 02:46 CET
+Last updated: 2026-02-11 04:12 CET
 Status legend: `todo` | `in_progress` | `done` | `blocked`
 
 ## Execution Queue (Work Order)
 
-1. Ticket 8 (`todo`) - Content canonicalization and data-driven authoring
-2. Ticket 12 (`blocked`) - Rendering modernization (product-gated)
+1. Ticket 12 (`blocked`) - Rendering modernization (product-gated)
+
+## Ticket 14: Redundancy Cleanup Baseline (Shared Types + Client Boundary)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Remove remaining avoidable duplication around shared `gametypes` message constants/types.
+  - Reduce repetitive inbound action cast boilerplate in `GameClient` while preserving runtime behavior.
+  - Keep boundary typing strict and explicit (no JS fallback behavior changes).
+- Out of scope:
+  - Protocol opcode/value changes.
+  - Product-facing rendering work (Ticket 12).
+- Acceptance criteria:
+  - Shared message opcode typing is defined from one runtime source (no duplicated value maps).
+  - `GameClient` inbound handling no longer repeats per-method cast assertions for each opcode payload.
+  - Verify lane remains green.
+- Verification plan:
+  - Per slice: `bun run typecheck` + focused unit/smoke command.
+  - Ticket completion: `bun run verify:modern:node22`.
+- Dependencies/blockers:
+  - No functional blockers; executes before optional Ticket 12.
+- Discussion venue:
+  - Code review/PR comments for implementation details; architecture thread only if protocol contract shape changes (not planned).
+- Planned slices:
+  - 14.1 (`done`) Canonicalize `gametypes` message opcode typing from runtime constant source.
+  - 14.2 (`done`) Consolidate `GameClient` inbound typing to remove repeated per-handler casts.
+  - 14.3 (`done`) Final redundancy sweep and cleanup of adjacent low-risk duplicates.
+- Recent execution:
+  - 2026-02-11 04:12 CET:
+    - Completed 14.1-14.3:
+      - `shared/js/gametypes-browser.ts`:
+        - Removed duplicated message opcode declarations by defining one `MESSAGE_OPCODES` runtime constant and deriving `MessageOpcodeMap` from it.
+        - Removed duplicated armor iteration function bodies by sharing one implementation between `forEachArmor` and `forEachArmorKind`.
+      - `client/js-esm/client-boundary-types.ts`:
+        - Added `ClientInboundActionByOpcode<...>` helper type for opcode-specific inbound payload narrowing.
+      - `client/js-esm/gameclient-inbound-handlers.ts`:
+        - Added typed inbound handler map keyed by opcode with opcode-specific payload signatures.
+      - `client/js-esm/gameclient.ts`:
+        - Removed repeated per-handler `as InboundAction<...>` casts by using opcode-specific method signatures.
+        - Kept one centralized dispatch cast boundary in `receiveAction(...)`.
+        - Simplified batched inbound dispatch loop to direct `for..of`.
+    - Verification evidence:
+      - `bun run typecheck` passed.
+      - `bun test tests/unit/gametypes-contract.test.ts tests/unit/client-boundary-types.test.ts tests/unit/protocol-registry.test.ts --timeout 20000` passed.
+      - `bun run verify:modern:node22` passed.
+    - Next action:
+      - Return execution queue to Ticket 12 decision gate.
+  - 2026-02-11 04:09 CET:
+    - Started Ticket 14 redundancy audit.
+    - Identified highest-priority targets:
+      - Duplicated message opcode declarations in `shared/js/gametypes-browser.ts` (`MessageOpcodeMap` + runtime map values).
+      - Repeated `as InboundAction<...>` cast boilerplate in `client/js-esm/gameclient.ts` receive handlers.
+    - Evidence:
+      - `rg -n "gametypes"` (repo-wide import/usage audit).
+      - `rg -n "as InboundAction<" client/js-esm/gameclient.ts`.
+    - Next action:
+      - Implement slice 14.1 (`gametypes` opcode-source canonicalization) and run `bun run typecheck`.
 
 ## Ticket 7: Server/Client Decomposition of God Objects
 
@@ -338,7 +394,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
 
 ## Ticket 8: Content Canonicalization + Data-Driven Authoring
 
-- Status: `todo`
+- Status: `done`
 - Priority: P2
 - Scope:
   - Define canonical content sources (entities/mobs/drops/balance values).
@@ -360,9 +416,39 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
 - Discussion venue:
   - Content model issue thread before generator contract is frozen.
 - Planned slices:
-  - 8.1 (`todo`) Canonical schema and file layout decision.
-  - 8.2 (`todo`) Generator + validator implementation.
-  - 8.3 (`todo`) First data migration (narrow vertical slice).
+  - 8.1 (`done`) Canonical schema and file layout decision (mob properties).
+  - 8.2 (`done`) Generator + validator implementation (mob properties).
+  - 8.3 (`done`) First data migration (mob drops/stats -> canonical JSON + generated server artifact).
+  - 8.4 (`done`) Second content-domain migration (client item loot-message content).
+- Recent execution:
+  - 2026-02-11 03:35 CET:
+    - Completed 8.4 with client item-loot message canonicalization:
+      - Added canonical source: `assets/content/item-loot-messages.json`.
+      - Added generator/check tooling: `tools/content-item-loot-messages.ts`.
+      - Added generated runtime artifact: `client/js-esm/item-loot-messages.generated.ts`.
+      - Refactored duplicated item class boilerplate in `client/js-esm/items.ts` to a data-driven constructor factory using generated content.
+      - Added content integrity tests in `tests/unit/content-item-loot-messages.test.ts`.
+      - Wired drift-check into verification lane:
+        - `package.json` scripts: `content:item-loot:generate`, `check:content:item-loot`.
+        - `verify:modern` now runs `check:content:item-loot`.
+    - Verification evidence:
+      - `bun run check:content:item-loot` passed.
+      - `bun test tests/unit/content-item-loot-messages.test.ts tests/unit/content-mob-properties.test.ts --timeout 20000` passed.
+      - `bun run build:vite` passed.
+      - `bun run verify:modern:node22` passed.
+    - Next action:
+      - Move execution queue to Ticket 12 decision gate.
+  - 2026-02-11 03:30 CET:
+    - Hardened Ticket 8 mob canonicalization flow:
+      - Added full mob-kind coverage enforcement to `tools/content-mob-properties.ts`.
+      - Added unit coverage guard in `tests/unit/content-mob-properties.test.ts` to assert canonical content includes all known mob kinds.
+      - Cleared strict baseline/blockers so full lane runs remain actionable (`vite build` failures from const-mutation regressions fixed in client runtime modules).
+    - Verification evidence:
+      - `bun run check:content:mobs` passed.
+      - `bun test tests/unit/content-mob-properties.test.ts --timeout 20000` passed.
+      - `bun run verify:modern:node22` passed.
+    - Next action:
+      - Execute 8.4 by selecting and migrating the next content-domain table to canonical source + generated artifact.
 
 ## Ticket 12: Rendering Modernization Track (Optional Product Track)
 
@@ -391,7 +477,4 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
 
 ## Discussion Checklist (Before/While Execution)
 
-1. Ticket 7: confirm first seam boundaries and success metrics for slice 7.1.
-2. Ticket 11: confirm exact probe contract (`/healthz` + `/version` vs `/status` extension).
-3. Ticket 8: confirm canonical content schema and generated artifact ownership.
-4. Ticket 12: confirm whether this cycle includes any rendering track work at all.
+1. Ticket 12: confirm whether this cycle includes any rendering track work at all.

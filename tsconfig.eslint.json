@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.browser.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "strict": false
+  },
+  "include": [
+    "client/js-esm/**/*.ts",
+    "tests/**/*.ts",
+    "tests/support/**/*.ts"
+  ]
+}

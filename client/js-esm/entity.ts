@@ -1,6 +1,6 @@
 import log from './compat/log';
-import Types from './compat/gametypes';
-import type { EntityKind } from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import { Evented } from '../../shared/js/evented';
 import type { MergeEvents, TypedEventMap } from '../../shared/js/typed-event-emitter';
 

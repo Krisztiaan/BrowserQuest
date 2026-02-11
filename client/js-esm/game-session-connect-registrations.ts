@@ -16,7 +16,7 @@ import { handlePlayerMaxHitPoints } from './game-session-player-max-hit-points';
 import { handlePlayerMoveToItem } from './game-session-player-move-to-item';
 import { handlePlayerTeleport } from './game-session-player-teleport';
 import { handlePopulationChange } from './game-session-population-change';
-import type { EntityKind } from './compat/gametypes';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import type { GameClientEventSource } from './gameclient';
 
 type EntityId = string | number;

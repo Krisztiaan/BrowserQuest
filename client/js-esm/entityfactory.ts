@@ -1,22 +1,16 @@
-import Mobs from './mobs';
+import Chest from './chest';
+import type { EntityFactoryContract } from './client-boundary-types';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
+import Types from '../../shared/js/gametypes-browser';
+import type Entity from './entity';
 import Items from './items';
+import Mobs from './mobs';
 import NPCs from './npcs';
 import Warrior from './warrior';
-import Chest from './chest';
-import type Entity from './entity';
-import log from './compat/log';
-import Types from './compat/gametypes';
-import type { EntityKind } from './compat/gametypes';
-import type { EntityFactoryContract } from './client-boundary-types';
 
 const EntityFactory: EntityFactoryContract = {
     builders: [],
-    createEntity(kind: EntityKind, id: string | number, name?: string): Entity | undefined {
-        if (!kind) {
-            log.error('kind is undefined', true);
-            return;
-        }
-
+    createEntity(kind: EntityKind, id: string | number, name?: string): Entity {
         if (typeof EntityFactory.builders[kind] !== 'function') {
             throw Error(kind + ' is not a valid Entity type');
         }
@@ -27,7 +21,7 @@ const EntityFactory: EntityFactoryContract = {
 
 //===== mobs ======
 EntityFactory.builders[Types.Entities.WARRIOR] = function (id, name) {
-    return new Warrior(id, name || '');
+    return new Warrior(id, name ?? '');
 };
 
 EntityFactory.builders[Types.Entities.RAT] = function (id) {

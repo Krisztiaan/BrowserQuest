@@ -26,6 +26,16 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function getKnownMobKindNames(): string[] {
+    const names: string[] = [];
+    Types.forEachKind((kind, kindName) => {
+        if (Types.isMob(kind)) {
+            names.push(kindName);
+        }
+    });
+    return names.sort();
+}
+
 function validateAndNormalizeMobPropertyMap(value: unknown): MobPropertyMap {
     if (!isRecord(value)) {
         fail('Canonical mob-properties content must be an object map.');
@@ -86,6 +96,11 @@ function validateAndNormalizeMobPropertyMap(value: unknown): MobPropertyMap {
                 weapon,
             };
         });
+
+    const missingMobKinds = getKnownMobKindNames().filter((mobName) => !(mobName in normalized));
+    if (missingMobKinds.length > 0) {
+        fail(`Canonical mob-properties content is missing mob kinds: ${missingMobKinds.join(', ')}`);
+    }
 
     return normalized;
 }

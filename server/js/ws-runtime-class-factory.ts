@@ -1,9 +1,6 @@
 import { WS_EVENT_NAMES } from './server-event-names';
-import type {
-    WebSocketRuntimeClasses,
-    WebSocketRuntimeConnection,
-    WebSocketRuntimeFactoryDeps,
-} from './ws-runtime-class-factory-types';
+import type { ProtocolParsedAction } from '../../shared/js/protocol-contract-types';
+import type { WebSocketRuntimeClasses, WebSocketRuntimeConnection, WebSocketRuntimeFactoryDeps } from './ws-runtime-class-factory-types';
 import { getHealthzResponseBody, getVersionResponseBody } from './runtime-health-response';
 import { TypedEventEmitter } from '../../shared/js/typed-event-emitter';
 import { Evented } from '../../shared/js/evented';
@@ -23,6 +20,16 @@ export function createWebSocketRuntimeClasses({
     parseUrlPathname,
     logConnectionEvent,
 }: WebSocketRuntimeFactoryDeps): WebSocketRuntimeClasses {
+    type RuntimeConnection = Connection;
+
+    type WsConnectionLike = {
+        on(event: 'message', handler: (data: unknown, isBinary: boolean) => void): void;
+        on(event: 'close', handler: () => void): void;
+        on(event: 'error', handler: (error: unknown) => void): void;
+        send(data: string): void;
+        close(code?: number, reason?: string): void;
+    };
+
     function resolveRemoteAddress(request: unknown): string {
         if (!request || typeof request !== 'object' || !('socket' in request)) {
             return 'unknown';
@@ -35,75 +42,78 @@ export function createWebSocketRuntimeClasses({
     }
 
     class Server extends Evented<WebSocketRuntimeServerEvents> {
-        port;
-        _connections;
-        _counter;
-        statusProvider;
-        _httpServer;
-        _wss;
+        port: number;
+        _connections: Record<string, RuntimeConnection>;
+        _counter: number;
+        statusProvider?: () => string;
+        _httpServer?: ReturnType<typeof createHttpServer>;
+        _wss?: InstanceType<typeof WebSocket.WebSocketServer>;
 
-        constructor(port) {
+        constructor(port: number) {
             super();
             this.port = port;
             this._connections = {};
             this._counter = 0;
         }
 
-        broadcast(_message) {
+        broadcast(_message: unknown): void {
             throw new Error('Not implemented');
         }
 
-        forEachConnection(callback) {
+        forEachConnection(callback: (connection: RuntimeConnection, connectionId: string) => void): void {
             Object.keys(this._connections).forEach((connectionId) => {
-                callback(this._connections[connectionId], connectionId);
+                const connection = this._connections[connectionId];
+                if (connection) {
+                    callback(connection, connectionId);
+                }
             });
         }
 
-        addConnection(connection) {
+        addConnection(connection: RuntimeConnection): void {
             this._connections[connection.id] = connection;
         }
 
-        removeConnection(id) {
+        removeConnection(id: string): void {
             delete this._connections[id];
         }
 
-        getConnection(id) {
+        getConnection(id: string): RuntimeConnection | undefined {
             return this._connections[id];
         }
     }
 
     class Connection {
-        _connection;
-        _server;
-        id;
+        _connection: WsConnectionLike;
+        _server: { removeConnection(id: string): void };
+        id: string;
         remoteAddress: string;
-        events;
+        events: TypedEventEmitter<{ close: []; listen: [action: ProtocolParsedAction] }>;
 
-        constructor(id, connection, server, remoteAddress) {
-            this._connection = connection;
+        constructor(id: string, connection: unknown, server: { removeConnection(id: string): void }, remoteAddress: string) {
+            this._connection = connection as WsConnectionLike;
             this._server = server;
             this.id = id;
             this.remoteAddress = remoteAddress;
             this.events = new TypedEventEmitter();
         }
 
-        onClose(callback) {
+        onClose(callback: () => void): void {
             this.events.on('close', callback);
         }
 
-        listen(callback) {
+        listen(callback: (action: ProtocolParsedAction) => void): void {
             this.events.on('listen', callback);
         }
 
-        broadcast(_message) {
+        broadcast(_message: unknown): void {
             throw new Error('Not implemented');
         }
 
-        send(_message) {
+        send(_message: unknown): void {
             throw new Error('Not implemented');
         }
 
-        sendUTF8(_data) {
+        sendUTF8(_data: string): void {
             throw new Error('Not implemented');
         }
 
@@ -134,7 +144,7 @@ export function createWebSocketRuntimeClasses({
     }
 
     class wsWebSocketConnection extends Connection {
-        constructor(id, connection, server, remoteAddress) {
+        constructor(id: string, connection: unknown, server: { removeConnection(id: string): void }, remoteAddress: string) {
             super(id, connection, server, remoteAddress);
 
             this._connection.on('message', (data, isBinary) => {
@@ -169,17 +179,17 @@ export function createWebSocketRuntimeClasses({
             });
         }
 
-        send(message) {
+        override send(message: unknown): void {
             this.sendUTF8(JSON.stringify(message));
         }
 
-        sendUTF8(data) {
+        override sendUTF8(data: string): void {
             this._connection.send(data);
         }
     }
 
     class MultiVersionWebsocketServer extends Server {
-        constructor(port) {
+        constructor(port: number) {
             super(port);
 
             this._httpServer = createHttpServer((request, response) => {
@@ -221,15 +231,20 @@ export function createWebSocketRuntimeClasses({
                 perMessageDeflate: false,
             });
 
-            this._wss.on('error', (err) => {
+            this._wss.on('error', (err: unknown) => {
                 log.error('WebSocket server error: ' + err);
                 log.event('error', WS_EVENT_NAMES.SERVER_ERROR, { error: String(err) });
                 this.emit('error', err);
             });
 
-            this._wss.on('connection', (connection, req) => {
+            this._wss.on('connection', (connection: unknown, req: unknown) => {
                 const remoteAddress = resolveRemoteAddress(req);
-                const wsConnection = new wsWebSocketConnection(this._createId(), connection, this, remoteAddress);
+                const wsConnection = new wsWebSocketConnection(
+                    this._createId(),
+                    connection as WsConnectionLike,
+                    this,
+                    remoteAddress
+                );
 
                 this.emit('connect', wsConnection);
                 this.addConnection(wsConnection);
@@ -237,17 +252,17 @@ export function createWebSocketRuntimeClasses({
             });
         }
 
-        _createId() {
+        _createId(): string {
             return '5' + Utils.random(99) + '' + this._counter++;
         }
 
-        broadcast(message) {
+        override broadcast(message: unknown): void {
             this.forEachConnection((connection) => {
                 connection.send(message);
             });
         }
 
-        onRequestStatus(statusProvider) {
+        onRequestStatus(statusProvider: () => string): void {
             this.statusProvider = statusProvider;
         }
     }

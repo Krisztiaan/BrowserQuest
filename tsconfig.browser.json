@@ -9,7 +9,6 @@
     "client/js-esm/achievement-domain.ts",
     "client/js-esm/asset-key-domain.ts",
     "client/js-esm/client-boundary-types.ts",
-    "client/js-esm/compat/gametypes.ts",
     "shared/js/entity-kind-domain.ts",
     "shared/js/gametypes-browser.ts",
     "shared/js/protocol-schema.ts",

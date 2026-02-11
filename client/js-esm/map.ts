@@ -1,6 +1,6 @@
 import Area from './area';
 import type { MusicKey } from './asset-key-domain';
-import Types from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 import log from './compat/log';
 import { resolveImageAssetPath } from './image-assets';
 import { fetchClientRuntimeMap } from './map-source';
@@ -93,7 +93,7 @@ class Map {
         this.tilesetCount = 0;
         this.ready_func = null;
 
-        var useWorker = !(this.game.renderer.mobile || this.game.renderer.tablet);
+        const useWorker = !(this.game.renderer.mobile || this.game.renderer.tablet);
 
         this._loadMap(useWorker);
         this._initTilesets();
@@ -109,15 +109,15 @@ class Map {
     }
 
     _loadMap(useWorker: boolean): void {
-        var self = this;
+        const self = this;
 
         if (useWorker) {
             log.info('Loading map with web worker.');
-            var worker = new Worker(new URL('./mapworker', import.meta.url), { type: 'module' });
+            const worker = new Worker(new URL('./mapworker', import.meta.url), { type: 'module' });
             worker.postMessage(1);
 
             worker.onmessage = function (event: MessageEvent<RuntimeMapPayload>) {
-                var map = event.data;
+                const map = event.data;
                 self._initMap(map);
                 self.grid = map.grid;
                 self.plateauGrid = map.plateauGrid;
@@ -142,7 +142,9 @@ class Map {
     }
 
     _initTilesets(): void {
-        var tileset1, tileset2, tileset3;
+        let tileset1: HTMLImageElement | undefined;
+        let tileset2: HTMLImageElement | undefined;
+        let tileset3: HTMLImageElement | undefined;
 
         if (!this.loadMultiTilesheets) {
             this.tilesetCount = 1;
@@ -178,11 +180,11 @@ class Map {
     }
 
     _getDoors(map: RuntimeMapPayload): Record<number, DoorDestination> {
-        var doors: Record<number, DoorDestination> = {},
+        const doors: Record<number, DoorDestination> = {},
             self = this;
 
         (map.doors || []).forEach(function (door: RawDoor) {
-            var o;
+            let o = Types.Orientations.DOWN;
             const fromX = Number(door.x);
             const fromY = Number(door.y);
             const toX = Number(door.tx);
@@ -202,8 +204,6 @@ class Map {
                 case 'r':
                     o = Types.Orientations.RIGHT;
                     break;
-                default:
-                    o = Types.Orientations.DOWN;
             }
 
             doors[self.GridPositionToTileIndex(fromX, fromY)] = {
@@ -220,8 +220,8 @@ class Map {
     }
 
     _loadTileset(filepath: string): HTMLImageElement {
-        var self = this;
-        var tileset = new Image();
+        const self = this;
+        const tileset = new Image();
 
         tileset.crossOrigin = 'Anonymous';
         tileset.src = filepath;
@@ -251,14 +251,14 @@ class Map {
     }
 
     tileIndexToGridPosition(tileNum: number): { x: number; y: number } {
-        var x = 0,
-            y = 0;
+        let x = 0;
+        let y = 0;
 
-        var getX = function (num: number, w: number): number {
-            if (num == 0) {
+        const getX = function (num: number, w: number): number {
+            if (num === 0) {
                 return 0;
             }
-            return num % w == 0 ? w - 1 : (num % w) - 1;
+            return num % w === 0 ? w - 1 : (num % w) - 1;
         };
 
         tileNum -= 1;
@@ -287,11 +287,10 @@ class Map {
     }
 
     _generateCollisionGrid(): void {
-        var tileIndex = 0,
-            self = this;
+        const self = this;
 
         this.grid = [];
-        for (var j, i = 0; i < this.height; i++) {
+        for (let j, i = 0; i < this.height; i++) {
             this.grid[i] = [];
             for (j = 0; j < this.width; j++) {
                 this.grid[i][j] = 0;
@@ -299,12 +298,12 @@ class Map {
         }
 
         this.collisions.forEach(function (tileIndex: number) {
-            var pos = self.tileIndexToGridPosition(tileIndex + 1);
+            const pos = self.tileIndexToGridPosition(tileIndex + 1);
             self.grid[pos.y][pos.x] = 1;
         });
 
         this.blocking.forEach(function (tileIndex: number) {
-            var pos = self.tileIndexToGridPosition(tileIndex + 1);
+            const pos = self.tileIndexToGridPosition(tileIndex + 1);
             if (self.grid[pos.y] !== undefined) {
                 self.grid[pos.y][pos.x] = 1;
             }
@@ -313,10 +312,10 @@ class Map {
     }
 
     _generatePlateauGrid(): void {
-        var tileIndex = 0;
+        let tileIndex = 0;
 
         this.plateauGrid = [];
-        for (var j, i = 0; i < this.height; i++) {
+        for (let j, i = 0; i < this.height; i++) {
             this.plateauGrid[i] = [];
             for (j = 0; j < this.width; j++) {
                 if (this.plateau.includes(tileIndex)) {
@@ -366,7 +365,7 @@ class Map {
      *
      */
     getTileAnimationDelay(id: number): number {
-        var animProperties = this.animated[id + 1];
+        const animProperties = this.animated[id + 1];
         if (animProperties.d) {
             return animProperties.d;
         } else {
@@ -383,7 +382,7 @@ class Map {
     }
 
     _getCheckpoints(map: RuntimeMapPayload): CheckpointArea[] {
-        var checkpoints: CheckpointArea[] = [];
+        const checkpoints: CheckpointArea[] = [];
         map.checkpoints.forEach(function (cp: RawCheckpoint) {
             const area = new Area(Number(cp.x), Number(cp.y), Number(cp.w), Number(cp.h));
             area.id = typeof cp.id === 'string' || typeof cp.id === 'number' ? cp.id : undefined;

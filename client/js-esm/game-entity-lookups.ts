@@ -1,7 +1,7 @@
 import Chest from './chest';
 import Mob from './mob';
 import Npc from './npc';
-import Types from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 import type Game from './game';
 
 type GridEntity = Game['entities'][string];

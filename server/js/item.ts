@@ -35,7 +35,7 @@ class Item extends Entity<ItemEvents> {
         }, params.beforeBlinkDelay);
     }
 
-    destroy(): void {
+    override destroy(): void {
         if (this.blinkTimeout) {
             clearTimeout(this.blinkTimeout);
         }

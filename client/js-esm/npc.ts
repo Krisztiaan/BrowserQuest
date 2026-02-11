@@ -1,7 +1,7 @@
 
 import Character from './character';
-import Types from './compat/gametypes';
-import type { EntityKind } from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
 const NpcTalk = {
     "guard": [

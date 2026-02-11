@@ -1,4 +1,4 @@
-import type { EntityKind } from './compat/gametypes';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import Character from './character';
 import type { GameClientEventSource } from './gameclient';
 import { handleSpawnCharacterEntry } from './game-session-spawn-character-entry';

@@ -19,7 +19,7 @@ type BeforeStepHost = {
 
 export function installPlayerBeforeStepHandler(host: BeforeStepHost): void {
     host.player.on('beforeStep', function (): void {
-        var blockingEntity = host.getEntityAt(host.player.nextGridX, host.player.nextGridY);
+        const blockingEntity = host.getEntityAt(host.player.nextGridX, host.player.nextGridY);
         if (blockingEntity && blockingEntity.id !== host.playerId) {
             log.debug('Blocked by ' + blockingEntity.id);
         }

@@ -1,11 +1,11 @@
 import Character from './character';
-import Chest from './chest';
 import { attachPlayerSession } from './player-session';
 import Log from './log';
 import Messages from './message';
 import Properties from './properties';
 import Formulas from './formulas';
 import Types from '../../shared/js/gametypes-browser';
+import type Chest from './chest';
 import type { ClientToServerProtocolAction } from '../../shared/js/protocol-contract-types';
 import { HANDSHAKE_CONTROL } from '../../shared/js/connection-status';
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
@@ -49,7 +49,7 @@ type PlayerServerLike = {
     emit(eventName: 'playerEnter', player: Player): void;
     pushSpawnsToPlayer(player: Player, entities: Array<string | number>): void;
     isValidPosition(x: number, y: number): boolean;
-    getEntityById(id: string | number): (MobLike | LootEntity | Chest | null);
+    getEntityById(id: string | number): MobLike | LootEntity | Chest | null;
     handleMobHate(mobId: number, playerId: number, hate: number): void;
     broadcastAttacker(player: Player): void;
     handleHurtEntity(entity: unknown, attacker?: Player, damage?: number): void;
@@ -108,8 +108,8 @@ class Player extends Character<PlayerEvents> {
         attachPlayerSession(this);
     }
 
-    destroy(): void {
-        var self = this;
+    override destroy(): void {
+        const self = this;
 
         this.forEachAttacker(function (mob) {
             if (typeof mob.clearTarget === 'function') {
@@ -124,8 +124,8 @@ class Player extends Character<PlayerEvents> {
         this.haters = {};
     }
 
-    getState(): Array<number | string> {
-        var basestate = this._getBaseState(),
+    override getState(): Array<number | string> {
+        const basestate = this._getBaseState(),
             state = [this.name, this.orientation, this.armor, this.weapon];
 
         if (this.target) {
@@ -166,10 +166,10 @@ class Player extends Character<PlayerEvents> {
     }
 
     forEachHater(callback: (mob: HaterMob) => void): void {
-        Object.keys(this.haters).forEach(function (haterId) {
-            var mob = this.haters[haterId];
+        Object.keys(this.haters).forEach((haterId) => {
+            const mob = this.haters[haterId];
             callback(mob);
-        }, this);
+        });
     }
 
     equipArmor(kind: EntityKind): void {
@@ -202,7 +202,7 @@ class Player extends Character<PlayerEvents> {
 
     updatePosition(): void {
         if (this.positionResolver) {
-            var pos = this.positionResolver();
+            const pos = this.positionResolver();
             this.setPosition(pos.x, pos.y);
         }
     }

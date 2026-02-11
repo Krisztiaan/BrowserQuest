@@ -1,4 +1,4 @@
-import type { EntityKind } from './compat/gametypes';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
 type KillAchievement = 'HUNTER' | 'ANGRY_RATS' | 'SKULL_COLLECTOR' | 'HERO';
 

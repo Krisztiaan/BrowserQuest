@@ -325,7 +325,13 @@ export default function processMap(
                         .split(",")
                         .map((name) => name.trim())
                         .filter(Boolean)
-                        .map((name) => Types.getKindFromString(name)),
+                        .map((name) => Types.getKindFromString(name))
+                        .filter(
+                            (
+                                kind
+                            ): kind is Exclude<ReturnType<typeof Types.getKindFromString>, undefined> =>
+                                kind !== undefined
+                        ),
                 });
             }
             continue;

@@ -126,12 +126,12 @@ class App {
         this.isDesktop = true;
         this.supportsWorkers = false;
         this.messageTimer = null;
-        
-        if(localStorage && localStorage.data) {
+
+        if (localStorage && localStorage.data) {
             this.frontPage = 'loadcharacter';
         }
     }
-    
+
     setGame(game: AppGame): void {
         this.game = game;
         this.isMobile = this.game.renderer.mobile;
@@ -144,35 +144,35 @@ class App {
     center(): void {
         window.scrollTo(0, 1);
     }
-    
+
     canStartGame(): boolean {
-        if(this.isDesktop) {
+        if (this.isDesktop) {
             return !!(this.game && this.game.map && this.game.map.isLoaded);
         } else {
             return !!this.game;
         }
     }
-    
+
     tryStartingGame(username: string, onStarting?: (() => void) | undefined) {
-        var self = this,
+        const self = this,
             playButton = this.playButtonEl || document.querySelector('#createcharacter .play');
-        
-        if(username === '' || this.isStarting) {
+
+        if (username === '' || this.isStarting) {
             return;
         }
 
         this.isStarting = true;
 
-        if(!this.ready || !this.canStartGame()) {
-            if(!this.isMobile && playButton) {
+        if (!this.ready || !this.canStartGame()) {
+            if (!this.isMobile && playButton) {
                 // on desktop and tablets, add a spinner to the play button
                 playButton.classList.add('loading');
             }
-            var watchCanStart = setInterval(function() {
-                log.debug("waiting...");
-                if(self.canStartGame()) {
-                    setTimeout(function() {
-                        if(!self.isMobile && playButton) {
+            const watchCanStart = setInterval(function () {
+                log.debug('waiting...');
+                if (self.canStartGame()) {
+                    setTimeout(function () {
+                        if (!self.isMobile && playButton) {
                             playButton.classList.remove('loading');
                         }
                     }, 1500);
@@ -184,15 +184,15 @@ class App {
             this.startGame(username, onStarting);
         }
     }
-    
+
     startGame(username: string, onStarting?: (() => void) | undefined): void {
-        var self = this;
-        
-        if(onStarting) {
+        const self = this;
+
+        if (onStarting) {
             onStarting();
         }
-        this.hideIntro(function() {
-            if(!self.isDesktop) {
+        this.hideIntro(function () {
+            if (!self.isDesktop) {
                 // On mobile and tablet we load the map after the player has clicked
                 // on the PLAY button instead of loading it in a web worker.
                 self.game.loadMap();
@@ -202,25 +202,23 @@ class App {
     }
 
     start(username: string): void {
-        var self = this,
+        const self = this,
             firstTimePlaying = !self.storage.hasAlreadyPlayed();
-        
-        if(username && !this.game.started) {
-            var config = this.config;
-            var serverConfig =
-                config && config.server
-                    ? config.server
-                    : { host: 'localhost', port: 8000, dispatcher: false };
 
-            log.debug("Starting game with runtime server config.");
+        if (username && !this.game.started) {
+            const config = this.config;
+            const serverConfig =
+                config && config.server ? config.server : { host: 'localhost', port: 8000, dispatcher: false };
+
+            log.debug('Starting game with runtime server config.');
             this.game.setServerOptions(serverConfig.host, serverConfig.port, username);
 
             this.center();
-            this.game.run(function() {
-                if(self.bodyEl) {
+            this.game.run(function () {
+                if (self.bodyEl) {
                     self.bodyEl.classList.add('started');
                 }
-                if(firstTimePlaying) {
+                if (firstTimePlaying) {
                     self.toggleInstructions();
                 }
             });
@@ -228,11 +226,11 @@ class App {
     }
 
     setMouseCoordinates(event: PointerPosition): void {
-        var container = this.containerEl || document.getElementById('container');
-        if(!container) {
+        const container = this.containerEl || document.getElementById('container');
+        if (!container) {
             return;
         }
-        var gamePos = container.getBoundingClientRect(),
+        const gamePos = container.getBoundingClientRect(),
             scale = this.game.renderer.getScaleFactor(),
             width = this.game.renderer.getWidth(),
             height = this.game.renderer.getHeight(),
@@ -241,29 +239,29 @@ class App {
         mouse.x = event.pageX - (gamePos.left + window.scrollX) - (this.isMobile ? 0 : 5 * scale);
         mouse.y = event.pageY - (gamePos.top + window.scrollY) - (this.isMobile ? 0 : 7 * scale);
 
-        if(mouse.x <= 0) {
+        if (mouse.x <= 0) {
             mouse.x = 0;
-        } else if(mouse.x >= width) {
+        } else if (mouse.x >= width) {
             mouse.x = width - 1;
         }
 
-        if(mouse.y <= 0) {
+        if (mouse.y <= 0) {
             mouse.y = 0;
-        } else if(mouse.y >= height) {
+        } else if (mouse.y >= height) {
             mouse.y = height - 1;
         }
     }
 
     initHealthBar(): void {
-        var scale = this.game.renderer.getScaleFactor(),
+        const scale = this.game.renderer.getScaleFactor(),
             healthbar = this.healthbarEl || document.getElementById('healthbar'),
             hitpoints = this.hitpointsEl || document.getElementById('hitpoints'),
-            healthMaxWidth = (healthbar ? healthbar.offsetWidth : 0) - (12 * scale);
+            healthMaxWidth = (healthbar ? healthbar.offsetWidth : 0) - 12 * scale;
 
-        this.game.on('playerHealthChange', function(hp, maxHp) {
-            var barWidth = Math.round((healthMaxWidth / maxHp) * (hp > 0 ? hp : 0));
-            if(hitpoints) {
-                hitpoints.style.width = barWidth + "px";
+        this.game.on('playerHealthChange', function (hp, maxHp) {
+            const barWidth = Math.round((healthMaxWidth / maxHp) * (hp > 0 ? hp : 0));
+            if (hitpoints) {
+                hitpoints.style.width = barWidth + 'px';
             }
         });
 
@@ -271,35 +269,36 @@ class App {
     }
 
     blinkHealthBar(): void {
-        var hitpoints = this.hitpointsEl || document.getElementById('hitpoints');
-        if(!hitpoints) {
+        const hitpoints = this.hitpointsEl || document.getElementById('hitpoints');
+        if (!hitpoints) {
             return;
         }
 
         hitpoints.classList.add('white');
-        setTimeout(function() {
+        setTimeout(function () {
             hitpoints.classList.remove('white');
-        }, 500)
+        }, 500);
     }
 
     toggleButton(): void {
-        var nameInput = (this.parchmentNameInputEl || document.querySelector('#parchment input')) as HTMLInputElement | null,
+        const nameInput = (this.parchmentNameInputEl ||
+                document.querySelector('#parchment input')) as HTMLInputElement | null,
             playButton = this.playButtonEl || document.querySelector('#createcharacter .play'),
             character = this.characterEl || document.getElementById('character'),
             name = nameInput ? nameInput.value : '';
 
-        if(name && name.length > 0) {
-            if(playButton) {
+        if (name && name.length > 0) {
+            if (playButton) {
                 playButton.classList.remove('disabled');
             }
-            if(character) {
+            if (character) {
                 character.classList.remove('disabled');
             }
         } else {
-            if(playButton) {
+            if (playButton) {
                 playButton.classList.add('disabled');
             }
-            if(character) {
+            if (character) {
                 character.classList.add('disabled');
             }
         }
@@ -308,87 +307,87 @@ class App {
     hideIntro(onHidden: () => void): void {
         clearInterval(this.watchNameInputInterval);
         document.body.classList.remove('intro');
-        setTimeout(function() {
+        setTimeout(function () {
             document.body.classList.add('game');
             onHidden();
         }, 1000);
     }
 
     showChat(): void {
-        var chatbox = this.chatboxEl || document.getElementById('chatbox'),
+        const chatbox = this.chatboxEl || document.getElementById('chatbox'),
             chatinput = this.chatinputEl || document.getElementById('chatinput'),
             chatbutton = this.chatbuttonEl || document.getElementById('chatbutton');
 
-        if(this.game.started) {
-            if(chatbox) {
+        if (this.game.started) {
+            if (chatbox) {
                 chatbox.classList.add('active');
             }
-            if(chatinput) {
+            if (chatinput) {
                 chatinput.focus();
             }
-            if(chatbutton) {
+            if (chatbutton) {
                 chatbutton.classList.add('active');
             }
         }
     }
 
     hideChat(): void {
-        var chatbox = this.chatboxEl || document.getElementById('chatbox'),
+        const chatbox = this.chatboxEl || document.getElementById('chatbox'),
             chatinput = this.chatinputEl || document.getElementById('chatinput'),
             chatbutton = this.chatbuttonEl || document.getElementById('chatbutton');
 
-        if(this.game.started) {
-            if(chatbox) {
+        if (this.game.started) {
+            if (chatbox) {
                 chatbox.classList.remove('active');
             }
-            if(chatinput) {
+            if (chatinput) {
                 chatinput.blur();
             }
-            if(chatbutton) {
+            if (chatbutton) {
                 chatbutton.classList.remove('active');
             }
         }
     }
 
     toggleInstructions(): void {
-        var achievements = this.achievementsEl || document.getElementById('achievements'),
+        const achievements = this.achievementsEl || document.getElementById('achievements'),
             achievementsButton = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
             instructions = this.instructionsEl || document.getElementById('instructions');
 
-        if(achievements && achievements.classList.contains('active')) {
+        if (achievements && achievements.classList.contains('active')) {
             this.toggleAchievements();
-            if(achievementsButton) {
+            if (achievementsButton) {
                 achievementsButton.classList.remove('active');
             }
         }
-        if(instructions) {
+        if (instructions) {
             instructions.classList.toggle('active');
         }
     }
 
     toggleAchievements(): void {
-        var instructions = this.instructionsEl || document.getElementById('instructions'),
+        const instructions = this.instructionsEl || document.getElementById('instructions'),
             helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
             achievements = this.achievementsEl || document.getElementById('achievements');
 
-        if(instructions && instructions.classList.contains('active')) {
+        if (instructions && instructions.classList.contains('active')) {
             this.toggleInstructions();
-            if(helpButton) {
+            if (helpButton) {
                 helpButton.classList.remove('active');
             }
         }
         this.resetPage();
-        if(achievements) {
+        if (achievements) {
             achievements.classList.toggle('active');
         }
     }
 
     resetPage(): void {
-        var self = this,
+        const self = this,
             achievements = this.achievementsEl || document.getElementById('achievements');
 
-        if(achievements && achievements.classList.contains('active')) {
-            var onTransitionEnd = function() {
+        if (achievements && achievements.classList.contains('active')) {
+            const onTransitionEnd = function () {
                 achievements.classList.remove('page' + self.currentPage);
                 achievements.classList.add('page1');
                 self.currentPage = 1;
@@ -399,8 +398,8 @@ class App {
     }
 
     initEquipmentIcons(): void {
-        var scale = this.game.renderer.getScaleFactor();
-        var getIconPath = function(spriteName) {
+        const scale = this.game.renderer.getScaleFactor();
+        const getIconPath = function (spriteName) {
                 return resolveImageAssetPath(scale, 'item-' + spriteName);
             },
             weapon = this.game.player.getWeaponName(),
@@ -408,89 +407,89 @@ class App {
             weaponPath = getIconPath(weapon),
             armorPath = getIconPath(armor);
 
-        if(this.weaponEl) {
+        if (this.weaponEl) {
             this.weaponEl.style.backgroundImage = 'url("' + weaponPath + '")';
         }
-        if(armor !== 'firefox') {
-            if(this.armorEl) {
+        if (armor !== 'firefox') {
+            if (this.armorEl) {
                 this.armorEl.style.backgroundImage = 'url("' + armorPath + '")';
             }
         }
     }
 
     hideWindows(): void {
-        var achievements = this.achievementsEl || document.getElementById('achievements'),
+        const achievements = this.achievementsEl || document.getElementById('achievements'),
             achievementsButton = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
             instructions = this.instructionsEl || document.getElementById('instructions'),
             helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
             body = this.bodyEl || document.body;
 
-        if(achievements && achievements.classList.contains('active')) {
+        if (achievements && achievements.classList.contains('active')) {
             this.toggleAchievements();
-            if(achievementsButton) {
+            if (achievementsButton) {
                 achievementsButton.classList.remove('active');
             }
         }
-        if(instructions && instructions.classList.contains('active')) {
+        if (instructions && instructions.classList.contains('active')) {
             this.toggleInstructions();
-            if(helpButton) {
+            if (helpButton) {
                 helpButton.classList.remove('active');
             }
         }
-        if(body && body.classList.contains('credits')) {
+        if (body && body.classList.contains('credits')) {
             this.closeInGameScroll('credits');
         }
-        if(body && body.classList.contains('legal')) {
+        if (body && body.classList.contains('legal')) {
             this.closeInGameScroll('legal');
         }
-        if(body && body.classList.contains('about')) {
+        if (body && body.classList.contains('about')) {
             this.closeInGameScroll('about');
         }
     }
 
     showAchievementNotification(id: AchievementId, name: string): void {
-        var notif = this.achievementNotificationEl || document.getElementById('achievement-notification'),
+        const notif = this.achievementNotificationEl || document.getElementById('achievement-notification'),
             button = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
             nameEl = notif ? notif.querySelector('.name') : null;
 
-        if(notif) {
+        if (notif) {
             notif.className = 'active achievement' + id;
         }
-        if(nameEl) {
+        if (nameEl) {
             nameEl.textContent = name;
         }
-        if(this.game.storage.getAchievementCount() === 1) {
-            this.blinkInterval = setInterval(function() {
-                if(button) {
+        if (this.game.storage.getAchievementCount() === 1) {
+            this.blinkInterval = setInterval(function () {
+                if (button) {
                     button.classList.toggle('blink');
                 }
             }, 500);
         }
-        setTimeout(function() {
-            if(notif) {
+        setTimeout(function () {
+            if (notif) {
                 notif.classList.remove('active');
             }
-            if(button) {
+            if (button) {
                 button.classList.remove('blink');
             }
         }, 5000);
     }
 
     displayUnlockedAchievement(id: AchievementId): void {
-        var achievementEl = document.querySelector('#achievements li.achievement' + id);
+        const achievementEl = document.querySelector('#achievements li.achievement' + id);
 
-        var achievement = this.game.getAchievementById(id);
-        if(achievement && achievement.hidden && achievementEl) {
-            var nameEl = achievementEl.querySelector('.achievement-name'),
+        const achievement = this.game.getAchievementById(id);
+        if (achievement && achievement.hidden && achievementEl) {
+            const nameEl = achievementEl.querySelector('.achievement-name'),
                 descEl = achievementEl.querySelector('.achievement-description');
-            if(nameEl) {
+            if (nameEl) {
                 nameEl.innerHTML = achievement.name;
             }
-            if(descEl) {
+            if (descEl) {
                 descEl.innerHTML = achievement.desc;
             }
         }
-        if(achievementEl) {
+        if (achievementEl) {
             achievementEl.classList.add('unlocked');
         }
     }
@@ -499,123 +498,128 @@ class App {
         this.showAchievementNotification(id, name);
         this.displayUnlockedAchievement(id);
 
-        var unlockedAchievements = this.unlockedAchievementsEl || document.getElementById('unlocked-achievements'),
+        const unlockedAchievements = this.unlockedAchievementsEl || document.getElementById('unlocked-achievements'),
             nb = parseInt(unlockedAchievements ? unlockedAchievements.textContent : '0', 10) || 0;
-        if(unlockedAchievements) {
+        if (unlockedAchievements) {
             unlockedAchievements.textContent = String(nb + 1);
         }
     }
 
     initAchievementList(achievements: Record<string, AchievementView>): void {
-        var self = this,
+        const self = this,
             lists = document.getElementById('lists'),
             pageTemplate = document.getElementById('page-tmpl'),
-            achievementTemplate = document.getElementById('achievement-tmpl'),
-            page = 0,
-            count = 0,
-            pageNode: HTMLElement | null = null;
+            achievementTemplate = document.getElementById('achievement-tmpl');
+        let page = 0;
+        let count = 0;
+        let pageNode: HTMLElement | null = null;
 
-        if(!lists || !pageTemplate || !achievementTemplate) {
+        if (!lists || !pageTemplate || !achievementTemplate) {
             return;
         }
 
-        Object.keys(achievements).forEach(function(key: string) {
-            var achievement = achievements[key];
+        Object.keys(achievements).forEach(function (key: string) {
+            const achievement = achievements[key];
             count++;
 
-            var achievementNode = achievementTemplate.cloneNode(true) as HTMLElement;
+            const achievementNode = achievementTemplate.cloneNode(true) as HTMLElement;
             achievementNode.removeAttribute('id');
-            achievementNode.classList.add('achievement'+count);
+            achievementNode.classList.add('achievement' + count);
             achievementNode.style.display = '';
-            if(!achievement.hidden) {
+            if (!achievement.hidden) {
                 self.setAchievementData(achievementNode, achievement.name, achievement.desc);
             }
-            var twitterLink = achievementNode.querySelector('.twitter');
-            if(twitterLink) {
-                twitterLink.setAttribute('href', 'http://twitter.com/share?url=http%3A%2F%2Fbrowserquest.mozilla.org&text=I%20unlocked%20the%20%27'+ achievement.name +'%27%20achievement%20on%20Mozilla%27s%20%23BrowserQuest%21&related=glecollinet:Creators%20of%20BrowserQuest%2Cwhatthefranck');
+            const twitterLink = achievementNode.querySelector('.twitter');
+            if (twitterLink) {
+                twitterLink.setAttribute(
+                    'href',
+                    'http://twitter.com/share?url=http%3A%2F%2Fbrowserquest.mozilla.org&text=I%20unlocked%20the%20%27' +
+                        achievement.name +
+                        '%27%20achievement%20on%20Mozilla%27s%20%23BrowserQuest%21&related=glecollinet:Creators%20of%20BrowserQuest%2Cwhatthefranck'
+                );
             }
 
-            achievementNode.querySelectorAll('a').forEach(function(link: Element) {
-                link.addEventListener('click', function(event: MouseEvent) {
-                    var url = link.getAttribute('href');
+            achievementNode.querySelectorAll('a').forEach(function (link: Element) {
+                link.addEventListener('click', function (event: MouseEvent) {
+                    const url = link.getAttribute('href');
                     self.openPopup('twitter', url);
                     event.preventDefault();
                     return false;
                 });
             });
 
-            if((count - 1) % 4 === 0) {
+            if ((count - 1) % 4 === 0) {
                 page++;
                 pageNode = pageTemplate.cloneNode(true) as HTMLElement;
-                pageNode.setAttribute('id', 'page'+page);
+                pageNode.setAttribute('id', 'page' + page);
                 pageNode.style.display = '';
                 lists.appendChild(pageNode);
             }
-            if(pageNode) {
+            if (pageNode) {
                 pageNode.appendChild(achievementNode);
             }
         });
 
-        if(this.totalAchievementsEl) {
+        if (this.totalAchievementsEl) {
             this.totalAchievementsEl.textContent = String(document.querySelectorAll('#achievements li').length);
         }
     }
 
     initUnlockedAchievements(ids: AchievementId[]): void {
-        var self = this;
-        
-        ids.forEach(function(id: AchievementId) {
+        const self = this;
+
+        ids.forEach(function (id: AchievementId) {
             self.displayUnlockedAchievement(id);
         });
-        var unlockedAchievements = this.unlockedAchievementsEl || document.getElementById('unlocked-achievements');
-        if(unlockedAchievements) {
+        const unlockedAchievements = this.unlockedAchievementsEl || document.getElementById('unlocked-achievements');
+        if (unlockedAchievements) {
             unlockedAchievements.textContent = String(ids.length);
         }
     }
 
     setAchievementData(el: Element | null, name: string, desc: string): void {
-        if(!el) {
+        if (!el) {
             return;
         }
-        var nameEl = el.querySelector('.achievement-name'),
+        const nameEl = el.querySelector('.achievement-name'),
             descriptionEl = el.querySelector('.achievement-description');
-        if(nameEl) {
+        if (nameEl) {
             nameEl.innerHTML = name;
         }
-        if(descriptionEl) {
+        if (descriptionEl) {
             descriptionEl.innerHTML = desc;
         }
     }
 
     toggleScrollContent(content: ScrollContent): void {
-        var parchment = this.parchmentEl || document.getElementById('parchment'),
+        const parchment = this.parchmentEl || document.getElementById('parchment'),
             body = this.bodyEl || document.body,
             helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
             currentState = parchment ? parchment.className : '';
 
-        if(this.game.started) {
-            if(parchment) {
+        if (this.game.started) {
+            if (parchment) {
                 parchment.className = content;
             }
-            if(body) {
+            if (body) {
                 body.classList.remove('credits', 'legal', 'about');
                 body.classList.toggle(content);
             }
-                
-            if(!this.game.player) {
-                if(body) {
+
+            if (!this.game.player) {
+                if (body) {
                     body.classList.toggle('death');
                 }
             }
-            
-            if(content !== 'about') {
-                if(helpButton) {
+
+            if (content !== 'about') {
+                if (helpButton) {
                     helpButton.classList.remove('active');
                 }
             }
         } else {
-            if(currentState !== 'animate') {
-                if(currentState === content) {
+            if (currentState !== 'animate') {
+                if (currentState === content) {
                     this.animateParchment(currentState, this.frontPage);
                 } else {
                     this.animateParchment(currentState, content);
@@ -625,91 +629,87 @@ class App {
     }
 
     closeInGameScroll(content: ScrollContent): void {
-        var body = this.bodyEl || document.body,
+        const body = this.bodyEl || document.body,
             parchment = this.parchmentEl || document.getElementById('parchment'),
             helpButton = this.helpButtonEl || document.getElementById('helpbutton');
 
-        if(body) {
+        if (body) {
             body.classList.remove(content);
         }
-        if(parchment) {
+        if (parchment) {
             parchment.classList.remove(content);
         }
-        if(!this.game.player) {
-            if(body) {
+        if (!this.game.player) {
+            if (body) {
                 body.classList.add('death');
             }
         }
-        if(content === 'about') {
-            if(helpButton) {
+        if (content === 'about') {
+            if (helpButton) {
                 helpButton.classList.remove('active');
             }
         }
     }
-    
+
     togglePopulationInfo(): void {
-        var population = this.populationEl || document.getElementById('population');
-        if(population) {
+        const population = this.populationEl || document.getElementById('population');
+        if (population) {
             population.classList.toggle('visible');
         }
     }
 
     openPopup(type: PopupType, url: string): void {
-        var h = window.innerHeight,
-            w = window.innerWidth,
-            popupHeight,
-            popupWidth,
-            top,
-            left;
+        const h = window.innerHeight,
+            w = window.innerWidth;
+        let popupHeight = 450;
+        let popupWidth = 550;
 
-        switch(type) {
-            case 'twitter':
-                popupHeight = 450;
-                popupWidth = 550;
-                break;
-            case 'facebook':
-                popupHeight = 400;
-                popupWidth = 580;
-                break;
+        if (type === 'facebook') {
+            popupHeight = 400;
+            popupWidth = 580;
         }
 
-        top = (h / 2) - (popupHeight / 2);
-        left = (w / 2) - (popupWidth / 2);
+        const top = h / 2 - popupHeight / 2;
+        const left = w / 2 - popupWidth / 2;
 
-        var newwindow = window.open(url, 'name', 'height=' + popupHeight + ',width=' + popupWidth + ',top=' + top + ',left=' + left);
-        if(window.focus && newwindow) {
+        const newwindow = window.open(
+            url,
+            'name',
+            'height=' + popupHeight + ',width=' + popupWidth + ',top=' + top + ',left=' + left
+        );
+        if (window.focus && newwindow) {
             newwindow.focus();
         }
     }
 
     animateParchment(origin: string, destination: string): void {
-        var self = this,
-            parchment = this.parchmentEl || document.getElementById('parchment'),
-            duration = 1;
+        const self = this,
+            parchment = this.parchmentEl || document.getElementById('parchment');
+        let duration = 1;
 
-        if(!parchment) {
+        if (!parchment) {
             return;
         }
 
-        if(this.isMobile) {
+        if (this.isMobile) {
             parchment.classList.remove(origin);
             parchment.classList.add(destination);
         } else {
-            if(this.isParchmentReady) {
-                if(this.isTablet) {
+            if (this.isParchmentReady) {
+                if (this.isTablet) {
                     duration = 0;
                 }
                 this.isParchmentReady = !this.isParchmentReady;
-    
+
                 parchment.classList.toggle('animate');
                 parchment.classList.remove(origin);
 
-                setTimeout(function() {
+                setTimeout(function () {
                     parchment.classList.toggle('animate');
                     parchment.classList.add(destination);
                 }, duration * 1000);
-    
-                setTimeout(function() {
+
+                setTimeout(function () {
                     self.isParchmentReady = !self.isParchmentReady;
                 }, duration * 1000);
             }
@@ -717,63 +717,63 @@ class App {
     }
 
     animateMessages(): void {
-        var messages = this.notificationWrapperEl || document.querySelector('#notifications div');
-        if(messages) {
+        const messages = this.notificationWrapperEl || document.querySelector('#notifications div');
+        if (messages) {
             messages.classList.add('top');
         }
     }
 
     resetMessagesPosition(): void {
-        var wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
+        const wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
             message1 = this.message1El || document.getElementById('message1'),
             message2 = this.message2El || document.getElementById('message2'),
             message = message2 ? message2.textContent : '';
 
-        if(wrapper) {
+        if (wrapper) {
             wrapper.classList.remove('top');
         }
-        if(message2) {
+        if (message2) {
             message2.textContent = '';
         }
-        if(message1) {
+        if (message1) {
             message1.textContent = message || '';
         }
     }
 
     showMessage(message: string): void {
-        var wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
+        const wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
             messageEl = this.message2El || document.getElementById('message2');
 
         this.animateMessages();
-        if(messageEl) {
+        if (messageEl) {
             messageEl.textContent = message;
         }
-        if(this.messageTimer) {
+        if (this.messageTimer) {
             this.resetMessageTimer();
         }
 
-        this.messageTimer = setTimeout(function() {
-                if(wrapper) {
-                    wrapper.classList.add('top');
-                }
+        this.messageTimer = setTimeout(function () {
+            if (wrapper) {
+                wrapper.classList.add('top');
+            }
         }, 5000);
     }
 
     resetMessageTimer(): void {
         clearTimeout(this.messageTimer);
     }
-    
+
     resizeUi(): void {
-        if(this.game) {
-            if(this.game.started) {
+        if (this.game) {
+            if (this.game.started) {
                 this.game.resize();
                 this.initHealthBar();
                 this.game.updateBars();
             } else {
-                var newScale = this.game.renderer.getScaleFactor();
+                const newScale = this.game.renderer.getScaleFactor();
                 this.game.renderer.rescale(newScale);
             }
-        } 
+        }
     }
 }
 

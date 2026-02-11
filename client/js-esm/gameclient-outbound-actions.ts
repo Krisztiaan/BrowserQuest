@@ -1,4 +1,4 @@
-import Types from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 import type { ClientOutboundProtocolAction } from './client-boundary-types';
 
 type OutboundAction<Opcode extends ClientOutboundProtocolAction[0]> = Extract<

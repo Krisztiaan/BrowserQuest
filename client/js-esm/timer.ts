@@ -8,9 +8,9 @@ class Timer {
     }
 
     isOver(time: number): boolean {
-        var over = false;
+        let over = false;
 
-        if((time - this.lastTime) > this.duration) {
+        if (time - this.lastTime > this.duration) {
             over = true;
             this.lastTime = time;
         }

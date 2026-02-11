@@ -1,6 +1,6 @@
 
 import Character from './character';
-import type { EntityKind } from './compat/gametypes';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 
 class Mob extends Character {
     aggroRange: number;

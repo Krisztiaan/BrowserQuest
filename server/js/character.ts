@@ -30,7 +30,7 @@ class Character<TEvents extends TypedEventMap = NoEvents> extends Entity<TEvents
         this.hitPoints = 0;
     }
 
-    getState(): Array<number | string> {
+    override getState(): Array<number | string> {
         const basestate = this._getBaseState();
         const state: number[] = [];
 

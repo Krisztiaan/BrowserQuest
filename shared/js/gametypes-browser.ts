@@ -4,7 +4,7 @@ type KindType = EntityCategory;
 type KindEntry = [EntityKindId, KindType];
 
 interface TypesContract {
-    Messages: MessageOpcodeMap & Record<string, number>;
+    Messages: MessageOpcodeMap;
     Entities: Record<string, EntityKindId>;
     Orientations: Record<string, number>;
     rankedWeapons: EntityKindId[];
@@ -33,66 +33,40 @@ interface TypesContract {
     getMessageTypeAsString(type: number): string;
 }
 
-export type MessageOpcodeMap = {
-    HELLO: 0;
-    WELCOME: 1;
-    SPAWN: 2;
-    DESPAWN: 3;
-    MOVE: 4;
-    LOOTMOVE: 5;
-    AGGRO: 6;
-    ATTACK: 7;
-    HIT: 8;
-    HURT: 9;
-    HEALTH: 10;
-    CHAT: 11;
-    LOOT: 12;
-    EQUIP: 13;
-    DROP: 14;
-    TELEPORT: 15;
-    DAMAGE: 16;
-    POPULATION: 17;
-    KILL: 18;
-    LIST: 19;
-    WHO: 20;
-    ZONE: 21;
-    DESTROY: 22;
-    HP: 23;
-    BLINK: 24;
-    OPEN: 25;
-    CHECK: 26;
-};
+const MESSAGE_OPCODES = {
+    HELLO: 0,
+    WELCOME: 1,
+    SPAWN: 2,
+    DESPAWN: 3,
+    MOVE: 4,
+    LOOTMOVE: 5,
+    AGGRO: 6,
+    ATTACK: 7,
+    HIT: 8,
+    HURT: 9,
+    HEALTH: 10,
+    CHAT: 11,
+    LOOT: 12,
+    EQUIP: 13,
+    DROP: 14,
+    TELEPORT: 15,
+    DAMAGE: 16,
+    POPULATION: 17,
+    KILL: 18,
+    LIST: 19,
+    WHO: 20,
+    ZONE: 21,
+    DESTROY: 22,
+    HP: 23,
+    BLINK: 24,
+    OPEN: 25,
+    CHECK: 26,
+} as const;
+
+export type MessageOpcodeMap = typeof MESSAGE_OPCODES;
 
 const Types = {
-    Messages: {
-        HELLO: 0,
-        WELCOME: 1,
-        SPAWN: 2,
-        DESPAWN: 3,
-        MOVE: 4,
-        LOOTMOVE: 5,
-        AGGRO: 6,
-        ATTACK: 7,
-        HIT: 8,
-        HURT: 9,
-        HEALTH: 10,
-        CHAT: 11,
-        LOOT: 12,
-        EQUIP: 13,
-        DROP: 14,
-        TELEPORT: 15,
-        DAMAGE: 16,
-        POPULATION: 17,
-        KILL: 18,
-        LIST: 19,
-        WHO: 20,
-        ZONE: 21,
-        DESTROY: 22,
-        HP: 23,
-        BLINK: 24,
-        OPEN: 25,
-        CHECK: 26,
-    },
+    Messages: MESSAGE_OPCODES,
 
     Entities: {
         WARRIOR: 1,
@@ -226,7 +200,7 @@ function getType(kind: EntityKind): KindType {
     if (!kindName || !(kindName in kinds)) {
         throw new Error('Unknown kind: ' + String(kind));
     }
-    return kinds[kindName][1];
+    return kinds[kindName as EntityKindName][1];
 }
 
 Types.rankedWeapons = [
@@ -307,25 +281,19 @@ Types.getKindFromString = function (kind) {
 };
 
 Types.getKindAsString = function (kind) {
-    for (var k in kinds) {
-        if (kinds[k][0] === kind) {
-            return k as EntityKindName;
+    const kindNames = Object.keys(kinds) as EntityKindName[];
+    for (const kindName of kindNames) {
+        if (kinds[kindName][0] === kind) {
+            return kindName;
         }
     }
 };
 
 Types.forEachKind = function (callback) {
-    for (var k in kinds) {
-        callback(kinds[k][0], k);
+    const kindNames = Object.keys(kinds) as EntityKindName[];
+    for (const kindName of kindNames) {
+        callback(kinds[kindName][0], kindName);
     }
-};
-
-Types.forEachArmor = function (callback) {
-    Types.forEachKind(function (kind, kindName) {
-        if (Types.isArmor(kind)) {
-            callback(kind, kindName);
-        }
-    });
 };
 
 Types.forEachMobOrNpcKind = function (callback) {
@@ -336,7 +304,7 @@ Types.forEachMobOrNpcKind = function (callback) {
     });
 };
 
-Types.forEachArmorKind = function (callback) {
+const forEachArmorKind = function (callback: (kind: EntityKindId, kindName: string) => void) {
     Types.forEachKind(function (kind, kindName) {
         if (Types.isArmor(kind)) {
             callback(kind, kindName);
@@ -344,46 +312,35 @@ Types.forEachArmorKind = function (callback) {
     });
 };
 
+Types.forEachArmor = forEachArmorKind;
+Types.forEachArmorKind = forEachArmorKind;
+
 Types.getOrientationAsString = function (orientation) {
     switch (orientation) {
         case Types.Orientations.LEFT:
             return 'left';
-            break;
         case Types.Orientations.RIGHT:
             return 'right';
-            break;
         case Types.Orientations.UP:
             return 'up';
-            break;
         case Types.Orientations.DOWN:
             return 'down';
-            break;
     }
 };
 
-Types.getRandomItemKind = function (item) {
-    var all = this.rankedWeapons.concat(this.rankedArmors),
-        forbidden = [Types.Entities.SWORD1, Types.Entities.CLOTHARMOR],
-        itemKinds = all.filter(function (kind) {
-            return forbidden.indexOf(kind) < 0;
-        }),
-        i = Math.floor(Math.random() * itemKinds.length);
+Types.getRandomItemKind = function (_item) {
+    const all = Types.rankedWeapons.concat(Types.rankedArmors);
+    const forbidden = new Set<EntityKindId>([Types.Entities.SWORD1, Types.Entities.CLOTHARMOR]);
+    const itemKinds = all.filter((kind) => !forbidden.has(kind));
+    const i = Math.floor(Math.random() * itemKinds.length);
 
     return itemKinds[i];
 };
 
 Types.getMessageTypeAsString = function (type) {
-    var typeName;
-    for (var name in Types.Messages) {
-        if (Types.Messages[name] === type) {
-            typeName = name;
-            break;
-        }
-    }
-    if (!typeName) {
-        typeName = 'UNKNOWN';
-    }
-    return typeName;
+    const messageEntries = Object.entries(Types.Messages);
+    const match = messageEntries.find(([, value]) => value === type);
+    return match?.[0] ?? 'UNKNOWN';
 };
 
 if (typeof globalThis !== 'undefined') {

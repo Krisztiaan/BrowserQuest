@@ -13,6 +13,19 @@ test('mob content table is non-empty and maps only to known mob kinds', () => {
     });
 });
 
+test('mob content table covers all known mob kinds', () => {
+    const knownMobNames: string[] = [];
+    Types.forEachKind((kind, kindName) => {
+        if (Types.isMob(kind)) {
+            knownMobNames.push(kindName);
+        }
+    });
+    knownMobNames.sort();
+
+    const contentMobNames = Object.keys(MOB_PROPERTIES_DATA).sort();
+    expect(contentMobNames).toEqual(knownMobNames);
+});
+
 test('mob content table preserves representative baseline values', () => {
     expect(MOB_PROPERTIES_DATA.rat.hp).toBe(25);
     expect(MOB_PROPERTIES_DATA.rat.armor).toBe(1);

@@ -3,7 +3,7 @@ import Mob from './mob';
 import Npc from './npc';
 import type Game from './game';
 import type Item from './item';
-import Types from './compat/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 
 export function movePlayerToItem(game: Game, item: Item | null): void {
     if (!item) {

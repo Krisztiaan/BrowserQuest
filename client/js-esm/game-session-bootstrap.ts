@@ -47,13 +47,13 @@ export function installGameSessionBootstrapHandlers(game: SessionGameHost, clien
     });
 
     client.on('entityList', function (list: EntityId[]) {
-        var entityIds = Object.values(game.entities).map(function (entity: SessionEntity) {
+        const entityIds = Object.values(game.entities).map(function (entity: SessionEntity) {
             return entity.id;
         });
-        var knownIds = entityIds.filter(function (id: EntityId) {
+        const knownIds = entityIds.filter(function (id: EntityId) {
             return list.includes(id);
         });
-        var newIds = list.filter(function (id: EntityId) {
+        const newIds = list.filter(function (id: EntityId) {
             return !knownIds.includes(id);
         });
 

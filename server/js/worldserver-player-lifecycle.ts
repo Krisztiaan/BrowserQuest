@@ -43,10 +43,7 @@ type LifecycleWorld = {
     pushToPlayer(player: EnteringPlayer, message: unknown): void;
     pushRelevantEntityListTo(player: EnteringPlayer): void;
     getEntityById(id: string | number): { id?: string | number } | null | undefined;
-    findPositionNextTo(
-        attacker: AttackerMob,
-        target: { id?: string | number } | null | undefined
-    ): Position;
+    findPositionNextTo(attacker: AttackerMob, target: { id?: string | number } | null | undefined): Position;
     moveEntity(entity: AttackerMob, x: number, y: number): void;
     handleEntityGroupMembership(player: EnteringPlayer): boolean;
     pushToPreviousGroups(player: EnteringPlayer, message: unknown): void;
@@ -89,13 +86,13 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
         world.pushToPlayer(player, new Messages.Population(world.playerCount));
         world.pushRelevantEntityListTo(player);
 
-        var onMove = function (x, y) {
+        const onMove = function (x: number, y: number) {
             log.debug(player.name + ' is moving to (' + x + ', ' + y + ').');
 
             player.forEachAttacker(function (mob) {
-                var target = world.getEntityById(mob.target);
+                const target = world.getEntityById(mob.target);
                 if (target) {
-                    var pos = world.findPositionNextTo(mob, target);
+                    const pos = world.findPositionNextTo(mob, target);
                     if (mob.distanceToSpawningPoint(pos.x, pos.y) > 50) {
                         mob.clearTarget();
                         mob.forgetEveryone();
@@ -111,7 +108,7 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
         player.on('lootMove', onMove);
 
         player.on('zone', function () {
-            var hasChangedGroups = world.handleEntityGroupMembership(player);
+            const hasChangedGroups = world.handleEntityGroupMembership(player);
 
             if (hasChangedGroups) {
                 world.pushToPreviousGroups(player, new Messages.Destroy(player));
