@@ -1,4 +1,4 @@
-import type { WorldMessage } from './worldserver-contracts';
+import type { WorldMessage } from './contracts';
 
 type AttackingCharacter = {
     group: string;
@@ -136,7 +136,7 @@ export function selectDroppedItemForMob({
     let item: unknown = null;
 
     for (const itemName in drops) {
-        const percentage = drops[itemName];
+        const percentage = drops[itemName] ?? 0;
         threshold += percentage;
         if (randomValue <= threshold) {
             item = createAndAddDrop(resolveKindFromString(itemName), mob.x, mob.y);

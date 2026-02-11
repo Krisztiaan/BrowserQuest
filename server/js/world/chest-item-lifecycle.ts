@@ -1,5 +1,5 @@
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import Messages from './message';
+import type { EntityKind } from '../../../shared/js/entity-kind-domain';
+import Messages from '../message';
 
 type NextItemId = () => string;
 type CreateChest<TItem> = (id: string, x: number, y: number) => TItem;
@@ -227,6 +227,9 @@ export function spawnStaticEntitiesForWorld({
 
     Object.keys(staticEntities || {}).forEach((tileId) => {
         const kindName = (staticEntities as Record<string, string>)[tileId];
+        if (!kindName) {
+            return;
+        }
         const kind = resolveKindFromString(kindName);
         const position = tileIndexToGridPosition(Number.parseInt(tileId, 10));
         const x = position.x + 1;

@@ -5,7 +5,7 @@ import type {
     QueuePlayer,
     TransportErrorLogger,
     WorldConnection,
-} from './worldserver-contracts';
+} from './contracts';
 
 export function pushSerializedToPlayerQueue(
     outgoingQueues: OutgoingQueues,
@@ -14,7 +14,10 @@ export function pushSerializedToPlayerQueue(
     logError: TransportErrorLogger
 ): void {
     if (player && player.id in outgoingQueues) {
-        outgoingQueues[player.id].push(serializedMessage);
+        const queue = outgoingQueues[player.id];
+        if (queue) {
+            queue.push(serializedMessage);
+        }
     } else {
         logError('pushToPlayer: player was undefined');
     }
@@ -97,7 +100,10 @@ export function pushSerializedBroadcastQueue(
 ): void {
     for (const id in outgoingQueues) {
         if (id != ignoredPlayer) {
-            outgoingQueues[id].push(serializedMessage);
+            const queue = outgoingQueues[id];
+            if (queue) {
+                queue.push(serializedMessage);
+            }
         }
     }
 }
@@ -108,13 +114,14 @@ export function flushOutgoingQueues(
 ): void {
     for (const id in outgoingQueues) {
         const queue = outgoingQueues[id];
-        if (queue.length > 0) {
-            const connection = getConnection(id);
-            if (!connection) {
-                continue;
-            }
-            connection.send(queue);
-            queue.length = 0;
+        if (!queue || queue.length === 0) {
+            continue;
         }
+        const connection = getConnection(id);
+        if (!connection) {
+            continue;
+        }
+        connection.send(queue);
+        queue.length = 0;
     }
 }

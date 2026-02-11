@@ -3,9 +3,9 @@ import {
     pushSerializedToAdjacentGroupsQueue,
     pushSerializedToGroupQueue,
     pushSerializedToPlayerQueue,
-} from './worldserver-transport';
-import { pushMessageToPreviouslyLeftGroups } from './worldserver-group-flow';
-import type { WorldMessage } from './worldserver-contracts';
+} from './transport';
+import { pushMessageToPreviouslyLeftGroups } from './group-flow';
+import type { WorldMessage } from './contracts';
 import type {
     AdjacentGroupMap,
     GetEntityById,
@@ -15,7 +15,7 @@ import type {
     QueuePlayer,
     TransportErrorLogger,
     WorldEntityId,
-} from './worldserver-contracts';
+} from './contracts';
 
 type WorldGroups = Record<string, QueueGroup>;
 

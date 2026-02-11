@@ -93,13 +93,20 @@ export function addEntityToWorldGroup({
 
     if (entity && groupId && groupId in groups) {
         forEachAdjacentGroup(groupId, (adjacentGroupId) => {
-            groups[adjacentGroupId].entities[entity.id] = entity;
+            const group = groups[adjacentGroupId];
+            if (!group) {
+                return;
+            }
+            group.entities[entity.id] = entity;
             newGroups.push(adjacentGroupId);
         });
         entity.group = groupId;
 
         if (isPlayerEntity(entity)) {
-            groups[groupId].players.push(entity.id);
+            const group = groups[groupId];
+            if (group) {
+                group.players.push(entity.id);
+            }
         }
     }
 
@@ -141,6 +148,10 @@ export function removeEntityFromWorldGroups({
 
     if (entity && entity.group) {
         const group = groups[entity.group];
+        if (!group) {
+            entity.group = null;
+            return oldGroups;
+        }
         if (isPlayerEntity(entity)) {
             for (let index = group.players.length - 1; index >= 0; index -= 1) {
                 if (group.players[index] === entity.id) {
@@ -150,8 +161,12 @@ export function removeEntityFromWorldGroups({
         }
 
         forEachAdjacentGroup(entity.group, (groupId) => {
-            if (entity.id in groups[groupId].entities) {
-                delete groups[groupId].entities[entity.id];
+            const adjacent = groups[groupId];
+            if (!adjacent) {
+                return;
+            }
+            if (entity.id in adjacent.entities) {
+                delete adjacent.entities[entity.id];
                 oldGroups.push(groupId);
             }
         });
@@ -182,7 +197,7 @@ export function handleWorldEntityGroupMembership({
                 const remaining: string[] = [];
                 for (let index = 0; index < oldGroups.length; index += 1) {
                     const oldGroupId = oldGroups[index];
-                    if (!newGroups.includes(oldGroupId)) {
+                    if (oldGroupId !== undefined && !newGroups.includes(oldGroupId)) {
                         remaining.push(oldGroupId);
                     }
                 }
@@ -196,7 +211,11 @@ export function handleWorldEntityGroupMembership({
 
 export function logWorldGroupPlayers({ groupId, groups, logDebug }: LogWorldGroupPlayersParams): void {
     logDebug('Players inside group ' + groupId + ':');
-    groups[groupId].players.forEach((playerId) => {
+    const group = groups[groupId];
+    if (!group) {
+        return;
+    }
+    group.players.forEach((playerId) => {
         logDebug('- player ' + playerId);
     });
 }

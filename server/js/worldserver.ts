@@ -1,6 +1,6 @@
 import type { RuntimeEventName } from './server-event-names';
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import type { WorldMessage } from './worldserver-contracts';
+import type { WorldMessage } from './world/contracts';
 import Entity from './entity';
 import Character from './character';
 import Log from './log';
@@ -15,11 +15,11 @@ import Chest from './chest';
 import Messages from './message';
 import Properties from './properties';
 import Utils from './utils';
-import { installWorldPlayerLifecycle } from './worldserver-player-lifecycle';
-import { installWorldRuntimeEvents } from './worldserver-runtime-events';
-import { startWorldUpdateLoop } from './worldserver-update-loop';
-import { bootstrapWorldMapRuntime } from './worldserver-map-bootstrap';
-import { isMapChestAreaConfig, isMapChestConfig, isMapMobAreaConfig } from './worldserver-map-config';
+import { installWorldPlayerLifecycle } from './world/player-lifecycle';
+import { installWorldRuntimeEvents } from './world/runtime-events';
+import { startWorldUpdateLoop } from './world/update-loop';
+import { bootstrapWorldMapRuntime } from './world/map-bootstrap';
+import { isMapChestAreaConfig, isMapChestConfig, isMapMobAreaConfig } from './world/map-config';
 import {
     addWorldEntity,
     addWorldItem,
@@ -30,7 +30,7 @@ import {
     addWorldStaticItem,
     removeWorldEntity,
     removeWorldPlayer,
-} from './worldserver-entity-mutations';
+} from './world/entity-mutations';
 import {
     addMobToContainingChestAreas,
     createWorldChest,
@@ -39,8 +39,8 @@ import {
     handleOpenedChestOrchestration,
     spawnStaticEntitiesForWorld,
     scheduleWorldItemDespawn,
-} from './worldserver-chest-item-lifecycle';
-import { handleWorldHurtEntity } from './worldserver-hurt-entity';
+} from './world/chest-item-lifecycle';
+import { handleWorldHurtEntity } from './world/hurt-entity';
 import {
     broadcastWorldAttacker,
     despawnWorldEntity,
@@ -50,7 +50,7 @@ import {
     isWorldPositionValid,
     moveWorldEntity,
     selectDroppedItemForMob,
-} from './worldserver-entity-utilities';
+} from './world/entity-utilities';
 import {
     forEachEntityInWorldMap,
     forEachWorldCharacter,
@@ -59,28 +59,28 @@ import {
     processWorldOutgoingQueues,
     pushRelevantEntityListToPlayer,
     pushWorldSpawnsToPlayer,
-} from './worldserver-group-flow';
+} from './world/group-flow';
 import {
     addEntityAsIncomingToGroups,
     addEntityToWorldGroup,
     handleWorldEntityGroupMembership,
     logWorldGroupPlayers,
     removeEntityFromWorldGroups,
-} from './worldserver-group-membership-orchestration';
+} from './world/group-membership';
 import {
     chooseWorldMobTarget,
     clearWorldMobAggroLink,
     clearWorldMobHateLinks,
     handleWorldMobHate,
     handleWorldMobMoveCallback,
-} from './worldserver-mob-orchestration';
+} from './world/mob-orchestration';
 import {
     countPlayersInWorld,
     decrementWorldPlayerCount,
     incrementWorldPlayerCount,
     notifyWorldPopulation,
     setWorldPlayerCount,
-} from './worldserver-population';
+} from './world/population';
 import {
     pushSerializedToWorldAdjacentGroupsQueue,
     pushSerializedToWorldGroupQueue,
@@ -90,7 +90,7 @@ import {
     pushWorldMessageToGroup,
     pushWorldMessageToPlayer,
     pushWorldMessageToPreviousGroups,
-} from './worldserver-push';
+} from './world/push';
 import Types from '../../shared/js/gametypes-browser';
 import { Evented } from '../../shared/js/evented';
 const log = Log.getLogger();

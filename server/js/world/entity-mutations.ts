@@ -1,5 +1,5 @@
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import type { OutgoingQueues } from './worldserver-contracts';
+import type { EntityKind } from '../../../shared/js/entity-kind-domain';
+import type { OutgoingQueues } from './contracts';
 
 type IdentifiedEntity = {
     id: string | number;

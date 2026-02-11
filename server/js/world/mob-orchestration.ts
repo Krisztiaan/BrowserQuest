@@ -1,4 +1,4 @@
-import type { WorldMessage } from './worldserver-contracts';
+import type { WorldMessage } from './contracts';
 
 type MobForHate = {
     hitPoints: number;

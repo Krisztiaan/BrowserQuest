@@ -1,4 +1,4 @@
-import Messages from './message';
+import Messages from '../message';
 
 type PlayerMap = Record<string, unknown>;
 

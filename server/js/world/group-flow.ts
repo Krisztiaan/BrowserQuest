@@ -1,6 +1,6 @@
-import Player from './player';
-import { flushOutgoingQueues } from './worldserver-transport';
-import type { OutgoingQueues, WorldConnection } from './worldserver-contracts';
+import Player from '../player';
+import { flushOutgoingQueues } from './transport';
+import type { OutgoingQueues, WorldConnection } from './contracts';
 
 type GroupEntities = Record<string, unknown>;
 
@@ -99,7 +99,10 @@ export function collectRelevantEntityIds(groupEntities: GroupEntities, playerId:
 
 export function forEachEntityInWorldMap<T>(entityMap: EntityMap<T>, callback: EntityCallback<T>): void {
     for (const entityId in entityMap) {
-        callback(entityMap[entityId]);
+        const entity = entityMap[entityId];
+        if (entity !== undefined) {
+            callback(entity);
+        }
     }
 }
 
@@ -119,7 +122,11 @@ export function pushRelevantEntityListToPlayer({
     createListMessage,
 }: PushRelevantEntityListToPlayerParams): void {
     if (player && player.group in groups) {
-        const groupEntities = groups[player.group].entities;
+        const group = groups[player.group];
+        if (!group) {
+            return;
+        }
+        const groupEntities = group.entities;
         const entities = collectRelevantEntityIds(groupEntities, player.id);
         if (entities.length > 0) {
             pushToPlayer(player, createListMessage(entities));
@@ -135,6 +142,9 @@ export function pushSpawnEntitiesToPlayer<TSpawnableEntity>({
 }: PushSpawnEntitiesParams<TSpawnableEntity>): void {
     for (let index = 0; index < spawnIds.length; index += 1) {
         const spawnId = spawnIds[index];
+        if (spawnId === undefined) {
+            continue;
+        }
         const entity = getEntityById(spawnId);
         if (isSpawnableEntity(entity)) {
             pushSpawn(entity);
@@ -167,7 +177,10 @@ export function pushWorldSpawnsToPlayer<TSpawnableEntity>({
 export function pushMessageToPreviouslyLeftGroups(player: PreviousGroupsPlayer, pushToGroup: PushToGroupFn): void {
     const previouslyLeftGroups = player.recentlyLeftGroups || [];
     for (let index = 0; index < previouslyLeftGroups.length; index += 1) {
-        pushToGroup(previouslyLeftGroups[index]);
+        const groupId = previouslyLeftGroups[index];
+        if (groupId !== undefined) {
+            pushToGroup(groupId);
+        }
     }
     player.recentlyLeftGroups = [];
 }

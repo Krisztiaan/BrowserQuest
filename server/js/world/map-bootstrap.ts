@@ -1,4 +1,4 @@
-import type { MapChestAreaConfig, MapChestConfig, MapMobAreaConfig } from './worldserver-map-config';
+import type { MapChestAreaConfig, MapChestConfig, MapMobAreaConfig } from './map-config';
 
 type RuntimeMobArea = {
     spawnMobs(): void;

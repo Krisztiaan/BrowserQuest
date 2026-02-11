@@ -1,6 +1,6 @@
-import Log from './log';
-import Messages from './message';
-import { WORLD_EVENT_NAMES } from './server-event-names';
+import Log from '../log';
+import Messages from '../message';
+import { WORLD_EVENT_NAMES } from '../server-event-names';
 
 type Position = { x: number; y: number };
 

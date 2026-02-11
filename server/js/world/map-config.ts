@@ -1,4 +1,4 @@
-import type { EntityKindName } from '../../shared/js/entity-kind-domain';
+import type { EntityKindName } from '../../../shared/js/entity-kind-domain';
 
 export type MapMobAreaConfig = {
     id: string | number;

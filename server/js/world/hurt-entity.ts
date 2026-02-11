@@ -1,5 +1,5 @@
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import type { WorldMessage } from './worldserver-contracts';
+import type { EntityKind } from '../../../shared/js/entity-kind-domain';
+import type { WorldMessage } from './contracts';
 
 type HurtEntityBase = {
     type: string;
