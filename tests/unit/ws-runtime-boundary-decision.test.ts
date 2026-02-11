@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
 import WsRuntimeModule, {
-    createWebSocketRuntimeClasses as createWebSocketRuntimeClassesEsm,
+    createWebSocketRuntimeClasses as createWebSocketRuntimeClassesRuntime,
 } from '../../server/ws-runtime';
 
-test('ws runtime boundary decision: ESM websocket seam contract remains stable', () => {
-    expect(typeof createWebSocketRuntimeClassesEsm).toBe('function');
-    expect(WsRuntimeModule.createWebSocketRuntimeClasses).toBe(createWebSocketRuntimeClassesEsm);
+test('ws runtime boundary decision: websocket seam contract remains stable', () => {
+    expect(typeof createWebSocketRuntimeClassesRuntime).toBe('function');
+    expect(WsRuntimeModule.createWebSocketRuntimeClasses).toBe(createWebSocketRuntimeClassesRuntime);
     expect(typeof WsRuntimeModule.wsWebSocketConnection).toBe('function');
     expect(typeof WsRuntimeModule.MultiVersionWebsocketServer).toBe('function');
     expect(WsRuntimeModule.CLOSE_CODES.INVALID_PAYLOAD).toBe(1007);

@@ -24,7 +24,6 @@ function fail(message) {
   process.exit(1);
 }
 
-let nodeRawVersion;
 const nodeVersionProbe = Bun.spawnSync({
   cmd: ['node', '-p', 'process.version'],
   stdout: 'pipe',
@@ -33,7 +32,7 @@ const nodeVersionProbe = Bun.spawnSync({
 if (nodeVersionProbe.exitCode !== 0) {
   fail('node is not available on PATH. Install Node 22.x.');
 }
-nodeRawVersion = nodeVersionProbe.stdout.toString().trim();
+const nodeRawVersion = nodeVersionProbe.stdout.toString().trim();
 
 const nodeVersion = parseSemver(nodeRawVersion);
 if (!nodeVersion) {
@@ -47,11 +46,10 @@ if (nodeVersion.major !== REQUIRED_NODE_MAJOR) {
   );
 }
 
-let bunRawVersion;
 if (!('Bun' in globalThis) || typeof Bun.version !== 'string') {
   fail('bun is not available on PATH. Install Bun >= 1.3.0.');
 }
-bunRawVersion = Bun.version;
+const bunRawVersion = Bun.version;
 
 const bunVersion = parseSemver(bunRawVersion);
 if (!bunVersion) {

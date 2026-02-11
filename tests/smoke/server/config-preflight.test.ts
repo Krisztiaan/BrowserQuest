@@ -120,7 +120,7 @@ test('server fails fast with structured config-invalid event when config preflig
 
     const invalidEvent = events.find((eventRecord) => eventRecord.event === 'server.config.invalid');
     const hasPreflightMessage = stderrLines.some((line) =>
-        line.includes('ESM preflight: invalid server configuration')
+        line.includes('Startup preflight: invalid server configuration')
     );
     expect(Boolean(invalidEvent) || hasPreflightMessage).toBe(true);
 });

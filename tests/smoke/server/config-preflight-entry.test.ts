@@ -84,5 +84,5 @@ test('server entry fails fast with preflight error for invalid config', async ()
     expect(code).toBe(1);
 
     const [stdoutText, stderrText] = await Promise.all([readStreamText(proc.stdout), readStreamText(proc.stderr)]);
-    expect(`${stdoutText}\n${stderrText}`).toContain('ESM preflight: invalid server configuration:');
+    expect(`${stdoutText}\n${stderrText}`).toContain('Startup preflight: invalid server configuration:');
 });

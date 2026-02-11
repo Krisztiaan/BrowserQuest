@@ -11,7 +11,7 @@ const retiredNode22RunShellPath = path.join(repoRoot, 'tools', 'node22-run.sh');
 const retiredLegacyIeStylesheetPath = path.join(repoRoot, 'client', 'css', 'ie.css');
 const retiredClientAliasDriftCheckerPath = path.join(repoRoot, 'tools', 'check-client-runtime-alias-drift.ts');
 const retiredClientRuntimeCoverageCheckerPath = path.join(repoRoot, 'tools', 'check-client-runtime-coverage.ts');
-const retiredServerEsmRuntimeCoverageCheckerPath = path.join(repoRoot, 'tools', 'check-server-runtime-coverage.ts');
+const retiredServerRuntimeCoverageCheckerPath = path.join(repoRoot, 'tools', 'check-server-runtime-coverage.ts');
 const rootIndexPath = path.join(repoRoot, 'index.html');
 const viteConfigPath = path.join(repoRoot, 'vite.config.ts');
 const serverConfigPath = path.join(repoRoot, 'server', 'config.json');
@@ -90,10 +90,6 @@ if (typeof packageJson.scripts?.['check:client-runtime-coverage'] === 'string') 
     fail('script "check:client-runtime-coverage" must not exist after modern lane verifier simplification');
 }
 
-if (typeof packageJson.scripts?.['check:server-esm-runtime-coverage'] === 'string') {
-    fail('script "check:server-esm-runtime-coverage" must not exist after server runtime glob coverage cutover');
-}
-
 if (fs.existsSync(retiredMapWatchPath)) {
     fail('tools/maps/watch.ts must not exist after Vite-native map sync cutover');
 }
@@ -126,7 +122,7 @@ if (fs.existsSync(retiredClientRuntimeCoverageCheckerPath)) {
     fail('tools/check-client-runtime-coverage.ts must not exist after modern lane verifier simplification');
 }
 
-if (fs.existsSync(retiredServerEsmRuntimeCoverageCheckerPath)) {
+if (fs.existsSync(retiredServerRuntimeCoverageCheckerPath)) {
     fail('tools/check-server-runtime-coverage.ts must not exist after server runtime glob coverage cutover');
 }
 

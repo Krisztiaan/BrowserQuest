@@ -86,5 +86,5 @@ test('preflight validation helper emits compacted error payload and fails for in
     expect(limitInput).toContain('Expected number');
     expect(limitBytes).toBe(512);
     expect(failCode).toBe(1);
-    expect(errors).toEqual(['ESM preflight: invalid server configuration: trimmed-errors']);
+    expect(errors).toEqual(['Startup preflight: invalid server configuration: trimmed-errors']);
 });

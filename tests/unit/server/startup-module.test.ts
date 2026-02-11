@@ -5,7 +5,7 @@ import * as MainRuntimeModuleNs from '../../../server/runtime';
 const MainModule = MainModuleNs as any;
 const MainRuntimeModule = MainRuntimeModuleNs as any;
 
-test('server main module exports shared startup helpers', () => {
+test('server startup module exports shared startup helpers', () => {
     expect(typeof MainModule.main).toBe('function');
     expect(typeof MainModule.getConfigFile).toBe('function');
     expect(typeof MainModule.getWorldDistribution).toBe('function');

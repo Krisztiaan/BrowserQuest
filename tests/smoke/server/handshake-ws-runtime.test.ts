@@ -97,7 +97,7 @@ afterEach(async () => {
     }
 });
 
-test("server entry uses default ESM websocket runtime and sends 'go' handshake", async () => {
+test("server entry uses default websocket runtime and sends 'go' handshake", async () => {
     const port = await getFreePort();
     const configPath = `${repoRoot}/server/.tmp-config.test-runtime-ws-runtime-${port}.json`;
     await Bun.write(

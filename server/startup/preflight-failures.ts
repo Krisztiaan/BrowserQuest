@@ -40,7 +40,7 @@ export function ensureConfigPreflightValid({
     }
 
     const compactErrors = limitUtf8Bytes(JSON.stringify(validationResult.errors), 512);
-    emitError(`ESM preflight: invalid server configuration: ${compactErrors}`);
+    emitError(`Startup preflight: invalid server configuration: ${compactErrors}`);
     fail(1);
     return false;
 }
