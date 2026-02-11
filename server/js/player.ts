@@ -166,8 +166,7 @@ class Player extends Character<PlayerEvents> {
     }
 
     forEachHater(callback: (mob: HaterMob) => void): void {
-        Object.keys(this.haters).forEach((haterId) => {
-            const mob = this.haters[haterId];
+        Object.values(this.haters).forEach((mob) => {
             callback(mob);
         });
     }
@@ -215,7 +214,7 @@ class Player extends Character<PlayerEvents> {
         if (this.disconnectTimeout) {
             clearTimeout(this.disconnectTimeout);
         }
-        this.disconnectTimeout = setTimeout(this.timeout.bind(this), 1000 * 60 * 15); // 15 min.
+        this.disconnectTimeout = setTimeout(() => this.timeout(), 1000 * 60 * 15); // 15 min.
     }
 
     timeout(): void {

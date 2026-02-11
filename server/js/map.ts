@@ -221,12 +221,13 @@ class Map {
         if (this.isLoaded) {
             let tileIndex = 0;
             for (let i = 0; i < this.height; i++) {
-                this.grid[i] = [];
+                const row: number[] = [];
+                this.grid[i] = row;
                 for (let j = 0; j < this.width; j++) {
                     if (this.collisions.includes(tileIndex)) {
-                        this.grid[i][j] = 1;
+                        row[j] = 1;
                     } else {
-                        this.grid[i][j] = 0;
+                        row[j] = 0;
                     }
                     tileIndex += 1;
                 }
@@ -243,13 +244,14 @@ class Map {
         if (this.isOutOfBounds(x, y)) {
             return false;
         }
-        return this.grid[y][x] === 1;
+        return this.grid[y]?.[x] === 1;
     }
 
     GroupIdToGroupPosition(id: string): Position {
         const posArray = id.split('-');
-
-        return pos(Number.parseInt(posArray[0], 10), Number.parseInt(posArray[1], 10));
+        const x = Number.parseInt(posArray[0] ?? '0', 10);
+        const y = Number.parseInt(posArray[1] ?? '0', 10);
+        return pos(x, y);
     }
 
     forEachGroup(callback: (groupId: string) => void): void {
@@ -329,8 +331,9 @@ class Map {
             const connectedGroupId = self.getGroupIdFromPosition(door.tx, door.ty);
             const connectedPosition = self.GroupIdToGroupPosition(connectedGroupId);
 
-            if (groupId in self.connectedGroups) {
-                self.connectedGroups[groupId].push(connectedPosition);
+            const connected = self.connectedGroups[groupId];
+            if (connected) {
+                connected.push(connectedPosition);
             } else {
                 self.connectedGroups[groupId] = [connectedPosition];
             }
@@ -358,9 +361,14 @@ class Map {
 
     getRandomStartingPosition(): Position {
         const nbAreas = this.startingAreas.length;
+        if (nbAreas === 0) {
+            throw new Error('Map has no starting area.');
+        }
         const i = Utils.randomInt(0, nbAreas - 1);
         const area = this.startingAreas[i];
-
+        if (!area) {
+            throw new Error('Failed to resolve starting area.');
+        }
         return area.getRandomPosition();
     }
 }

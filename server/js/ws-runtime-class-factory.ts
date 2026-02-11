@@ -1,6 +1,10 @@
 import { WS_EVENT_NAMES } from './server-event-names';
 import type { ProtocolParsedAction } from '../../shared/js/protocol-contract-types';
-import type { WebSocketRuntimeClasses, WebSocketRuntimeConnection, WebSocketRuntimeFactoryDeps } from './ws-runtime-class-factory-types';
+import type {
+    WebSocketRuntimeClasses,
+    WebSocketRuntimeConnection,
+    WebSocketRuntimeFactoryDeps,
+} from './ws-runtime-class-factory-types';
 import { getHealthzResponseBody, getVersionResponseBody } from './runtime-health-response';
 import { TypedEventEmitter } from '../../shared/js/typed-event-emitter';
 import { Evented } from '../../shared/js/evented';
@@ -89,7 +93,12 @@ export function createWebSocketRuntimeClasses({
         remoteAddress: string;
         events: TypedEventEmitter<{ close: []; listen: [action: ProtocolParsedAction] }>;
 
-        constructor(id: string, connection: unknown, server: { removeConnection(id: string): void }, remoteAddress: string) {
+        constructor(
+            id: string,
+            connection: unknown,
+            server: { removeConnection(id: string): void },
+            remoteAddress: string
+        ) {
             this._connection = connection as WsConnectionLike;
             this._server = server;
             this.id = id;
@@ -118,7 +127,7 @@ export function createWebSocketRuntimeClasses({
         }
 
         close(logError: unknown, closeCode?: number) {
-            const reason = String(logError || '');
+            const reason = String(logError ?? '');
             const sanitizedReason = reason.length > 120 ? reason.slice(0, 117) + '...' : reason;
             const code = Number.isInteger(closeCode) ? closeCode : CLOSE_CODES.NORMAL;
             log.info('Closing connection to ' + this.remoteAddress + '. Error: ' + reason);
@@ -144,7 +153,12 @@ export function createWebSocketRuntimeClasses({
     }
 
     class wsWebSocketConnection extends Connection {
-        constructor(id: string, connection: unknown, server: { removeConnection(id: string): void }, remoteAddress: string) {
+        constructor(
+            id: string,
+            connection: unknown,
+            server: { removeConnection(id: string): void },
+            remoteAddress: string
+        ) {
             super(id, connection, server, remoteAddress);
 
             this._connection.on('message', (data, isBinary) => {
@@ -162,7 +176,13 @@ export function createWebSocketRuntimeClasses({
                     return;
                 }
 
-                this.events.emit('listen', actions[0]);
+                const action = actions[0];
+                if (!action) {
+                    this.closeInvalidPayload('Invalid message: expected a single protocol action Array.');
+                    return;
+                }
+
+                this.events.emit('listen', action);
             });
 
             this._connection.on('close', () => {

@@ -102,8 +102,8 @@ class Character<TEvents extends TypedEventMap = NoEvents> extends Entity<TEvents
     }
 
     forEachAttacker(callback: (attacker: AttackerLike) => void): void {
-        for (const id in this.attackers) {
-            callback(this.attackers[id]);
+        for (const attacker of Object.values(this.attackers)) {
+            callback(attacker);
         }
     }
 }

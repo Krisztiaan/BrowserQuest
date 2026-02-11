@@ -3,36 +3,6 @@ import type { EntityCategory, EntityKind, EntityKindId, EntityKindName } from '.
 type KindType = EntityCategory;
 type KindEntry = [EntityKindId, KindType];
 
-interface TypesContract {
-    Messages: MessageOpcodeMap;
-    Entities: Record<string, EntityKindId>;
-    Orientations: Record<string, number>;
-    rankedWeapons: EntityKindId[];
-    rankedArmors: EntityKindId[];
-    getWeaponRank(weaponKind: EntityKind): number;
-    getArmorRank(armorKind: EntityKind): number;
-    isPlayer(kind: EntityKind): boolean;
-    isMob(kind: EntityKind): boolean;
-    isNpc(kind: EntityKind): boolean;
-    isCharacter(kind: EntityKind): boolean;
-    isArmor(kind: EntityKind): boolean;
-    isWeapon(kind: EntityKind): boolean;
-    isObject(kind: EntityKind): boolean;
-    isChest(kind: EntityKind): boolean;
-    isItem(kind: EntityKind): boolean;
-    isHealingItem(kind: EntityKind): boolean;
-    isExpendableItem(kind: EntityKind): boolean;
-    getKindFromString(kind: string): EntityKindId | undefined;
-    getKindAsString(kind: EntityKind): string | undefined;
-    forEachKind(callback: (kind: EntityKindId, kindName: string) => void): void;
-    forEachArmor(callback: (kind: EntityKindId, kindName: string) => void): void;
-    forEachMobOrNpcKind(callback: (kind: EntityKindId, kindName: string) => void): void;
-    forEachArmorKind(callback: (kind: EntityKindId, kindName: string) => void): void;
-    getOrientationAsString(orientation: number): string | undefined;
-    getRandomItemKind(item: unknown): number | undefined;
-    getMessageTypeAsString(type: number): string;
-}
-
 const MESSAGE_OPCODES = {
     HELLO: 0,
     WELCOME: 1,
@@ -63,79 +33,111 @@ const MESSAGE_OPCODES = {
     CHECK: 26,
 } as const;
 
+const ENTITY_IDS = {
+    WARRIOR: 1,
+
+    // Mobs
+    RAT: 2,
+    SKELETON: 3,
+    GOBLIN: 4,
+    OGRE: 5,
+    SPECTRE: 6,
+    CRAB: 7,
+    BAT: 8,
+    WIZARD: 9,
+    EYE: 10,
+    SNAKE: 11,
+    SKELETON2: 12,
+    BOSS: 13,
+    DEATHKNIGHT: 14,
+
+    // Armors
+    FIREFOX: 20,
+    CLOTHARMOR: 21,
+    LEATHERARMOR: 22,
+    MAILARMOR: 23,
+    PLATEARMOR: 24,
+    REDARMOR: 25,
+    GOLDENARMOR: 26,
+
+    // Objects
+    FLASK: 35,
+    BURGER: 36,
+    CHEST: 37,
+    FIREPOTION: 38,
+    CAKE: 39,
+
+    // NPCs
+    GUARD: 40,
+    KING: 41,
+    OCTOCAT: 42,
+    VILLAGEGIRL: 43,
+    VILLAGER: 44,
+    PRIEST: 45,
+    SCIENTIST: 46,
+    AGENT: 47,
+    RICK: 48,
+    NYAN: 49,
+    SORCERER: 50,
+    BEACHNPC: 51,
+    FORESTNPC: 52,
+    DESERTNPC: 53,
+    LAVANPC: 54,
+    CODER: 55,
+
+    // Weapons
+    SWORD1: 60,
+    SWORD2: 61,
+    REDSWORD: 62,
+    GOLDENSWORD: 63,
+    MORNINGSTAR: 64,
+    AXE: 65,
+    BLUESWORD: 66,
+} as const satisfies Record<string, EntityKindId>;
+
+const ORIENTATION_IDS = {
+    UP: 1,
+    DOWN: 2,
+    LEFT: 3,
+    RIGHT: 4,
+} as const;
+
+interface TypesContract {
+    Messages: MessageOpcodeMap;
+    Entities: typeof ENTITY_IDS;
+    Orientations: typeof ORIENTATION_IDS;
+    rankedWeapons: EntityKindId[];
+    rankedArmors: EntityKindId[];
+    getWeaponRank(weaponKind: EntityKind): number;
+    getArmorRank(armorKind: EntityKind): number;
+    isPlayer(kind: EntityKind): boolean;
+    isMob(kind: EntityKind): boolean;
+    isNpc(kind: EntityKind): boolean;
+    isCharacter(kind: EntityKind): boolean;
+    isArmor(kind: EntityKind): boolean;
+    isWeapon(kind: EntityKind): boolean;
+    isObject(kind: EntityKind): boolean;
+    isChest(kind: EntityKind): boolean;
+    isItem(kind: EntityKind): boolean;
+    isHealingItem(kind: EntityKind): boolean;
+    isExpendableItem(kind: EntityKind): boolean;
+    getKindFromString(kind: string): EntityKindId | undefined;
+    getKindAsString(kind: EntityKind): string | undefined;
+    forEachKind(callback: (kind: EntityKindId, kindName: string) => void): void;
+    forEachArmor(callback: (kind: EntityKindId, kindName: string) => void): void;
+    forEachMobOrNpcKind(callback: (kind: EntityKindId, kindName: string) => void): void;
+    forEachArmorKind(callback: (kind: EntityKindId, kindName: string) => void): void;
+    getOrientationAsString(orientation: number): string | undefined;
+    getRandomItemKind(item: unknown): number | undefined;
+    getMessageTypeAsString(type: number): string;
+}
+
 export type MessageOpcodeMap = typeof MESSAGE_OPCODES;
 
 const Types = {
     Messages: MESSAGE_OPCODES,
-
-    Entities: {
-        WARRIOR: 1,
-
-        // Mobs
-        RAT: 2,
-        SKELETON: 3,
-        GOBLIN: 4,
-        OGRE: 5,
-        SPECTRE: 6,
-        CRAB: 7,
-        BAT: 8,
-        WIZARD: 9,
-        EYE: 10,
-        SNAKE: 11,
-        SKELETON2: 12,
-        BOSS: 13,
-        DEATHKNIGHT: 14,
-
-        // Armors
-        FIREFOX: 20,
-        CLOTHARMOR: 21,
-        LEATHERARMOR: 22,
-        MAILARMOR: 23,
-        PLATEARMOR: 24,
-        REDARMOR: 25,
-        GOLDENARMOR: 26,
-
-        // Objects
-        FLASK: 35,
-        BURGER: 36,
-        CHEST: 37,
-        FIREPOTION: 38,
-        CAKE: 39,
-
-        // NPCs
-        GUARD: 40,
-        KING: 41,
-        OCTOCAT: 42,
-        VILLAGEGIRL: 43,
-        VILLAGER: 44,
-        PRIEST: 45,
-        SCIENTIST: 46,
-        AGENT: 47,
-        RICK: 48,
-        NYAN: 49,
-        SORCERER: 50,
-        BEACHNPC: 51,
-        FORESTNPC: 52,
-        DESERTNPC: 53,
-        LAVANPC: 54,
-        CODER: 55,
-
-        // Weapons
-        SWORD1: 60,
-        SWORD2: 61,
-        REDSWORD: 62,
-        GOLDENSWORD: 63,
-        MORNINGSTAR: 64,
-        AXE: 65,
-        BLUESWORD: 66,
-    },
-
-    Orientations: {
-        UP: 1,
-        DOWN: 2,
-        LEFT: 3,
-        RIGHT: 4,
-    },
+    Entities: ENTITY_IDS,
+    Orientations: ORIENTATION_IDS,
 } as unknown as TypesContract;
 
 const kinds: Record<EntityKindName, KindEntry> = {

@@ -87,9 +87,12 @@ const Utils = {
 
     Mixin(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
         if (source) {
-            for (let key, keys = Object.keys(source), l = keys.length; l--; ) {
-                key = keys[l];
-
+            const keys = Object.keys(source);
+            for (let l = keys.length - 1; l >= 0; l -= 1) {
+                const key = keys[l];
+                if (!key) {
+                    continue;
+                }
                 if (Object.prototype.hasOwnProperty.call(source, key)) {
                     target[key] = source[key];
                 }

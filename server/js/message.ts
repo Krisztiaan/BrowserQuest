@@ -45,10 +45,13 @@ class Spawn extends Message {
 
     override serialize(): SerializedMessage {
         const state = this.entity.getState();
-        const serialized: SerializedMessage = Array.from({ length: state.length + 1 });
+        const serialized: SerializedMessage = [Types.Messages.SPAWN];
         serialized[0] = Types.Messages.SPAWN;
         for (let i = 0; i < state.length; i += 1) {
-            serialized[i + 1] = state[i];
+            const entry = state[i];
+            if (entry !== undefined) {
+                serialized.push(entry);
+            }
         }
         return serialized;
     }
@@ -169,9 +172,9 @@ class Drop extends Message {
     }
 
     override serialize(): SerializedMessage {
-        const haters: number[] = Array.from({ length: this.mob.hatelist.length });
-        for (let i = 0; i < this.mob.hatelist.length; i += 1) {
-            haters[i] = this.mob.hatelist[i].id;
+        const haters: number[] = [];
+        for (const hateEntry of this.mob.hatelist) {
+            haters.push(hateEntry.id);
         }
         return [Types.Messages.DROP, this.mob.id, this.item.id, this.item.kind, haters];
     }
@@ -257,10 +260,13 @@ class List extends Message {
     }
 
     override serialize(): number[] {
-        const serialized: number[] = Array.from({ length: this.ids.length + 1 });
+        const serialized: number[] = [Types.Messages.LIST];
         serialized[0] = Types.Messages.LIST;
         for (let i = 0; i < this.ids.length; i += 1) {
-            serialized[i + 1] = this.ids[i];
+            const id = this.ids[i];
+            if (id !== undefined) {
+                serialized.push(id);
+            }
         }
         return serialized;
     }

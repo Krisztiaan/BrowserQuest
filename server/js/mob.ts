@@ -103,8 +103,9 @@ class Mob extends Character<MobEvents> {
         } else {
             i = size - 1;
         }
-        if (sorted[i]) {
-            playerId = sorted[i].id;
+        const entry = sorted[i];
+        if (entry) {
+            playerId = entry.id;
         }
 
         return playerId;

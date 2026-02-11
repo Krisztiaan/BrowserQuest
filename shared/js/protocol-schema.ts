@@ -140,7 +140,11 @@ export function isServerToClientProtocolAction(action: unknown): action is Serve
         return action.slice(1).every((entry) => isFiniteNumber(entry));
     }
 
-    return SERVER_TO_CLIENT_FIXED_VALIDATORS[opcode](action);
+    const validator = SERVER_TO_CLIENT_FIXED_VALIDATORS[opcode];
+    if (!validator) {
+        return false;
+    }
+    return validator(action);
 }
 
 export default {

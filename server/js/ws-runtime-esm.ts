@@ -148,7 +148,14 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                 }) => {
                     const adapter = new BunSocketAdapter(socket);
                     this._socketAdapters.set(socket as unknown as object, adapter);
-                    const remoteAddress = socket.data?.remoteAddress ? String(socket.data.remoteAddress) : 'unknown';
+                    const remote = socket.data?.remoteAddress;
+                    const remoteAddress =
+                        typeof remote === 'string' ||
+                        typeof remote === 'number' ||
+                        typeof remote === 'boolean' ||
+                        typeof remote === 'bigint'
+                            ? String(remote)
+                            : 'unknown';
                     const connection = new wsWebSocketConnection(this.#createId(), adapter, this, remoteAddress);
                     this.addConnection(connection);
                     this.emit('connect', connection);
@@ -182,7 +189,7 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                 typeof (server as { requestIP?: (request: Request) => { address?: unknown } }).requestIP === 'function'
             ) {
                 const ip = (server as { requestIP: (request: Request) => { address?: unknown } }).requestIP(request);
-                if (typeof ip?.address === 'string') {
+                if (typeof ip.address === 'string') {
                     return ip.address;
                 }
             }
@@ -204,7 +211,10 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
         callback: (connection: { id: string; send(message: unknown): void }, connectionId: string) => void
     ) {
         Object.keys(this._connections).forEach((connectionId) => {
-            callback(this._connections[connectionId], connectionId);
+            const connection = this._connections[connectionId];
+            if (connection) {
+                callback(connection, connectionId);
+            }
         });
     }
 
