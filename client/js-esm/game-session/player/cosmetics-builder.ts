@@ -1,4 +1,4 @@
-import { installPlayerCosmeticHandlers } from './game-session-player-cosmetics';
+import { installPlayerCosmeticHandlers } from './cosmetics';
 
 type MovedPlayerAnchor = {
     id: string | number;

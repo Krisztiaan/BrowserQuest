@@ -1,8 +1,8 @@
-import Chest from './chest';
-import Item from './item';
-import Npc from './npc';
-import Exceptions from './exceptions';
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
+import Chest from '../../chest';
+import Item from '../../item';
+import Npc from '../../npc';
+import Exceptions from '../../exceptions';
+import type { EntityKind } from '../../../../shared/js/entity-kind-domain';
 
 type EntityId = string | number;
 

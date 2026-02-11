@@ -1,4 +1,4 @@
-import log from './compat/log';
+import log from '../../compat/log';
 
 type IdentifiedEntity = {
     id: string | number;
