@@ -1,4 +1,4 @@
-import log from './compat/log';
+import log from './platform/log';
 
 type CameraRenderer = {
     mobile: boolean;

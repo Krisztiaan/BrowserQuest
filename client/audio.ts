@@ -1,6 +1,6 @@
 import Area from './area';
-import Detect from './compat/detect';
-import log from './compat/log';
+import Detect from './platform/detect';
+import log from './platform/log';
 import { AUDIO_SOUND_KEYS, MUSIC_KEYS } from './asset-key-domain';
 import type { AudioSoundKey, MusicKey } from './asset-key-domain';
 

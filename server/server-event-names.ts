@@ -9,8 +9,8 @@ export const SERVER_EVENT_NAMES = {
     FATAL_UNKNOWN: 'server.fatal.unknown',
     METRICS_UNAVAILABLE: 'server.metrics.unavailable',
     METRICS_READY: 'server.metrics.ready',
-    ESM_WS_RUNTIME_MODE: 'server.esm.ws_runtime_mode',
-    ESM_WS_BRIDGE_PROBE: 'server.esm.ws_bridge_probe',
+    WS_RUNTIME_MODE: 'server.runtime.ws_runtime_mode',
+    WS_BRIDGE_PROBE: 'server.runtime.ws_bridge_probe',
 } as const;
 
 export const WS_EVENT_NAMES = {

@@ -1,6 +1,6 @@
 import Storage from './storage';
-import log from './compat/log';
-import { TRANSITIONEND } from './compat/util';
+import log from './platform/log';
+import { TRANSITIONEND } from './platform/util';
 import type { AchievementId } from './achievement-domain';
 import type { PopupType } from './asset-key-domain';
 import { resolveImageAssetPath } from './image-assets';

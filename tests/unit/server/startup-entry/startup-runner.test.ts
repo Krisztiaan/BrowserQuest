@@ -3,7 +3,7 @@ import { runStartupWithConfig } from '../../../../server/startup/startup-runner'
 
 test('startup runner executes bridge probe, runtime-option resolution, and startServer in order', async () => {
     const activeConfig = { port: 8000 };
-    const runtimeOptions = { dependencies: { ws: { id: 'ws-esm' } } };
+    const runtimeOptions = { dependencies: { ws: { id: 'ws-runtime' } } };
     const calls: string[] = [];
     let startArgs: { config: unknown; options: unknown } | null = null;
 
@@ -16,7 +16,7 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
         emitProbeEvent: () => {
             // no-op
         },
-        importWsRuntime: async () => ({ default: { id: 'ws-esm-default' } }),
+        importWsRuntime: async () => ({ default: { id: 'ws-runtime-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         startServer: (config, options) => {
             calls.push('start');
@@ -52,7 +52,7 @@ test('startup runner passes undefined runtime options through to startServer whe
         emitProbeEvent: () => {
             // no-op
         },
-        importWsRuntime: async () => ({ default: { id: 'ws-esm-default' } }),
+        importWsRuntime: async () => ({ default: { id: 'ws-runtime-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         startServer: (_, options) => {
             startedOptions = options;

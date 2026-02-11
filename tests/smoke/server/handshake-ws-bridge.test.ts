@@ -152,7 +152,7 @@ test("server entry with websocket bridge probe sends initial 'go' handshake", as
         cwd: repoRoot,
         env: {
             ...process.env,
-            BQ_ESM_WS_BRIDGE_PROBE: '1',
+            BQ_WS_BRIDGE_PROBE: '1',
         },
         stdout: 'pipe',
         stderr: 'pipe',
@@ -163,10 +163,10 @@ test("server entry with websocket bridge probe sends initial 'go' handshake", as
     await waitForCondition(
         () =>
             events.some(
-                (eventRecord) => eventRecord.event === 'server.esm.ws_bridge_probe' && eventRecord.status === 'ok'
+                (eventRecord) => eventRecord.event === 'server.runtime.ws_bridge_probe' && eventRecord.status === 'ok'
             ),
         4000,
-        'esm websocket bridge probe success event'
+        'runtime websocket bridge probe success event'
     );
 
     const ws = new WebSocket(`ws://127.0.0.1:${port}/`);
@@ -211,8 +211,8 @@ test('server entry websocket bridge probe fails fast with structured failure sig
         cwd: repoRoot,
         env: {
             ...process.env,
-            BQ_ESM_WS_BRIDGE_PROBE: '1',
-            BQ_ESM_WS_BRIDGE_PROBE_FORCE_FAIL: '1',
+            BQ_WS_BRIDGE_PROBE: '1',
+            BQ_WS_BRIDGE_PROBE_FORCE_FAIL: '1',
         },
         stdout: 'pipe',
         stderr: 'pipe',
@@ -223,7 +223,7 @@ test('server entry websocket bridge probe fails fast with structured failure sig
 
     const [stdoutText, stderrText] = await Promise.all([readStreamText(proc.stdout), readStreamText(proc.stderr)]);
     const merged = `${stdoutText}\n${stderrText}`;
-    expect(merged).toContain('"event":"server.esm.ws_bridge_probe"');
+    expect(merged).toContain('"event":"server.runtime.ws_bridge_probe"');
     expect(merged).toContain('"status":"failed"');
     expect(merged).toContain('"reason":"forced_failure"');
 

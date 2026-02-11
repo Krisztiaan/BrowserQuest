@@ -45,8 +45,8 @@
     "verify:modern:node22": "bun tools/node22-run.ts bun run verify:modern",
     "test": "bun test --timeout 20000",
     "lint": "eslint \"client/achievement-domain.ts\" \"client/asset-key-domain.ts\" \"client/client-boundary-types.ts\" \"shared/connection-status.ts\" \"shared/entity-kind-domain.ts\" \"shared/evented.ts\" \"shared/gametypes-browser.ts\" \"shared/protocol-contract-types.ts\" \"shared/protocol-contract.ts\" \"shared/protocol-schema.ts\" \"shared/typed-event-emitter.ts\" \"shared/ws-close-codes.ts\" \"server/character.ts\" \"server/entry.ts\" \"server/item.ts\" \"server/message.ts\" \"server/metrics.ts\" \"server/mob.ts\" \"server/player-session-dispatch.ts\" \"server/player-session.ts\" \"server/player.ts\" \"server/properties.ts\" \"server/runtime-health-response.ts\" \"server/server-event-names.ts\" \"server/startup/*.ts\" \"server/ws-runtime-class-factory-types.ts\" \"server/ws-runtime-class-factory.ts\" \"server/ws-runtime.ts\"",
-    "format": "prettier --write \"server/{log.ts,utils.ts,format.ts}\" \"client/compat/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\"",
-    "format:check": "prettier --check \"server/{log.ts,utils.ts,format.ts}\" \"client/compat/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\""
+    "format": "prettier --write \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\""
   },
   "dependencies": {
     "memcache": "^1.3.0"

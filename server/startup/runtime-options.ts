@@ -22,8 +22,8 @@ export async function resolveStartupRuntimeOptions({
 
     try {
         const wsRuntime = await importWsRuntime();
-        emitStructuredEvent('info', SERVER_EVENT_NAMES.ESM_WS_RUNTIME_MODE, {
-            mode: 'esm',
+        emitStructuredEvent('info', SERVER_EVENT_NAMES.WS_RUNTIME_MODE, {
+            mode: 'runtime',
             status: 'ok',
         });
 
@@ -33,8 +33,8 @@ export async function resolveStartupRuntimeOptions({
             }),
         };
     } catch (error) {
-        emitStructuredEvent('error', SERVER_EVENT_NAMES.ESM_WS_RUNTIME_MODE, {
-            mode: 'esm',
+        emitStructuredEvent('error', SERVER_EVENT_NAMES.WS_RUNTIME_MODE, {
+            mode: 'runtime',
             status: 'failed',
             reason: 'load_error',
             error: String(error),

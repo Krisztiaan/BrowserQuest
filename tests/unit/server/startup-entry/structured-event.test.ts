@@ -11,7 +11,7 @@ test('structured-event emitter writes non-error events to info channel with stab
         nowIso: () => '2026-01-01T00:00:00.000Z',
     });
 
-    emitStructuredEvent('info', 'server.startup', { mode: 'esm', port: 8000 });
+    emitStructuredEvent('info', 'server.startup', { mode: 'runtime', port: 8000 });
 
     expect(errorLogs).toEqual([]);
     expect(infoLogs).toHaveLength(1);
@@ -19,7 +19,7 @@ test('structured-event emitter writes non-error events to info channel with stab
         ts: '2026-01-01T00:00:00.000Z',
         level: 'info',
         event: 'server.startup',
-        mode: 'esm',
+        mode: 'runtime',
         port: 8000,
     });
 });
@@ -59,7 +59,7 @@ test('probe-event emitter forwards through structured emitter with probe event n
     expect(emitted).toEqual([
         {
             level: 'info',
-            event: 'server.esm.ws_bridge_probe',
+            event: 'server.runtime.ws_bridge_probe',
             fields: { mode: 'enabled' },
         },
     ]);

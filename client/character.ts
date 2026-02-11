@@ -1,7 +1,7 @@
 import Entity from './entity';
 import Transition from './transition';
 import Timer from './timer';
-import log from './compat/log';
+import log from './platform/log';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { MergeEvents, TypedEventMap, TypedEventSource } from '../shared/typed-event-emitter';

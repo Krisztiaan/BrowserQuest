@@ -28,7 +28,7 @@ export async function runWebSocketBridgeProbeIfEnabled({
     importWsRuntime: () => Promise<WebSocketRuntimeModule>;
     fail: (code: number) => void;
 }): Promise<void> {
-    if (env.BQ_ESM_WS_BRIDGE_PROBE !== '1') {
+    if (env.BQ_WS_BRIDGE_PROBE !== '1') {
         return;
     }
 
@@ -44,7 +44,7 @@ export async function runWebSocketBridgeProbeIfEnabled({
         wsRuntime.CLOSE_CODES.NORMAL === CLOSE_CODES.NORMAL &&
         wsRuntime.CLOSE_CODES.UNSUPPORTED_DATA === CLOSE_CODES.UNSUPPORTED_DATA &&
         wsRuntime.CLOSE_CODES.INVALID_PAYLOAD === CLOSE_CODES.INVALID_PAYLOAD;
-    const forceFail = env.BQ_ESM_WS_BRIDGE_PROBE_FORCE_FAIL === '1';
+    const forceFail = env.BQ_WS_BRIDGE_PROBE_FORCE_FAIL === '1';
 
     if (!contractMatches || forceFail) {
         emitProbeEvent('error', {

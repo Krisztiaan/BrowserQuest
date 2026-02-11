@@ -62,7 +62,7 @@ test('bridge probe emits success when bridge contract matches', async () => {
 
     await runWebSocketBridgeProbeIfEnabled({
         env: {
-            BQ_ESM_WS_BRIDGE_PROBE: '1',
+            BQ_WS_BRIDGE_PROBE: '1',
         },
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
@@ -89,8 +89,8 @@ test('bridge probe emits forced-failure diagnostics and exits', async () => {
 
     await runWebSocketBridgeProbeIfEnabled({
         env: {
-            BQ_ESM_WS_BRIDGE_PROBE: '1',
-            BQ_ESM_WS_BRIDGE_PROBE_FORCE_FAIL: '1',
+            BQ_WS_BRIDGE_PROBE: '1',
+            BQ_WS_BRIDGE_PROBE_FORCE_FAIL: '1',
         },
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
@@ -126,7 +126,7 @@ test('bridge probe emits contract mismatch diagnostics and exits', async () => {
 
     await runWebSocketBridgeProbeIfEnabled({
         env: {
-            BQ_ESM_WS_BRIDGE_PROBE: '1',
+            BQ_WS_BRIDGE_PROBE: '1',
         },
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });

@@ -1,6 +1,6 @@
 import Character from '../../character';
 import Item from '../../item';
-import log from '../../compat/log';
+import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 import { registerConnectSessionHandlers } from './registrations';
 import type { EntityKind } from '../../../shared/entity-kind-domain';

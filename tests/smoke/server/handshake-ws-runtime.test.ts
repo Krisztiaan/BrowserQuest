@@ -126,12 +126,12 @@ test("server entry uses default ESM websocket runtime and sends 'go' handshake",
         () =>
             events.some(
                 (eventRecord) =>
-                    eventRecord.event === 'server.esm.ws_runtime_mode' &&
-                    eventRecord.mode === 'esm' &&
+                    eventRecord.event === 'server.runtime.ws_runtime_mode' &&
+                    eventRecord.mode === 'runtime' &&
                     eventRecord.status === 'ok'
             ),
         4000,
-        'esm websocket runtime mode event'
+        'runtime websocket runtime mode event'
     );
 
     const ws = new WebSocket(`ws://127.0.0.1:${port}/`);

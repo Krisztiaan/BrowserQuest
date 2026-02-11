@@ -1,6 +1,6 @@
 import Chest from '../../../chest';
 import Item from '../../../item';
-import log from '../../../compat/log';
+import log from '../../../platform/log';
 import Types from '../../../../shared/gametypes-browser';
 import type { GameClientEventSource } from '../../../gameclient';
 import { installSpawnPrimitiveHandlersFromHost } from './builder';

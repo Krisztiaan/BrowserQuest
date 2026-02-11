@@ -1,7 +1,7 @@
 import Area from './area';
 import type { MusicKey } from './asset-key-domain';
 import Types from '../shared/gametypes-browser';
-import log from './compat/log';
+import log from './platform/log';
 import { resolveImageAssetPath } from './image-assets';
 import { fetchClientRuntimeMap } from './map-source';
 

@@ -11,7 +11,7 @@ const retiredNode22RunShellPath = path.join(repoRoot, 'tools', 'node22-run.sh');
 const retiredLegacyIeStylesheetPath = path.join(repoRoot, 'client', 'css', 'ie.css');
 const retiredClientAliasDriftCheckerPath = path.join(repoRoot, 'tools', 'check-client-runtime-alias-drift.ts');
 const retiredClientRuntimeCoverageCheckerPath = path.join(repoRoot, 'tools', 'check-client-runtime-coverage.ts');
-const retiredServerEsmRuntimeCoverageCheckerPath = path.join(repoRoot, 'tools', 'check-server-esm-runtime-coverage.ts');
+const retiredServerEsmRuntimeCoverageCheckerPath = path.join(repoRoot, 'tools', 'check-server-runtime-coverage.ts');
 const rootIndexPath = path.join(repoRoot, 'index.html');
 const viteConfigPath = path.join(repoRoot, 'vite.config.ts');
 const serverConfigPath = path.join(repoRoot, 'server', 'config.json');
@@ -91,7 +91,7 @@ if (typeof packageJson.scripts?.['check:client-runtime-coverage'] === 'string') 
 }
 
 if (typeof packageJson.scripts?.['check:server-esm-runtime-coverage'] === 'string') {
-    fail('script "check:server-esm-runtime-coverage" must not exist after server-esm glob coverage cutover');
+    fail('script "check:server-esm-runtime-coverage" must not exist after server runtime glob coverage cutover');
 }
 
 if (fs.existsSync(retiredMapWatchPath)) {
@@ -127,7 +127,7 @@ if (fs.existsSync(retiredClientRuntimeCoverageCheckerPath)) {
 }
 
 if (fs.existsSync(retiredServerEsmRuntimeCoverageCheckerPath)) {
-    fail('tools/check-server-esm-runtime-coverage.ts must not exist after server-esm glob coverage cutover');
+    fail('tools/check-server-runtime-coverage.ts must not exist after server runtime glob coverage cutover');
 }
 
 if (!fs.existsSync(rootIndexPath)) {
@@ -166,5 +166,5 @@ if (archivedNoteOffenders.length > 0) {
 }
 
 process.stdout.write(
-    'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet/client alias drift checker/client runtime coverage checker/server esm runtime coverage checker/custom root redirect middleware/generated-map sync middleware retired; direct Tiled runtime lane active)\n'
+    'package-mode-boundary-check: ok (module package mode + modern-only script boundaries intact, map watch lane/root legacy docs/source map dirs/client img lane/node22 shell runner/ie stylesheet/client alias drift checker/client runtime coverage checker/server runtime coverage checker/custom root redirect middleware/generated-map sync middleware retired; direct Tiled runtime lane active)\n'
 );

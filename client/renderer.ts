@@ -3,9 +3,9 @@ import Item from './item';
 import Character from './character';
 import Player from './player';
 import Timer from './timer';
-import Detect from './compat/detect';
+import Detect from './platform/detect';
 import Types from '../shared/gametypes-browser';
-import log from './compat/log';
+import log from './platform/log';
 
 type RendererContext2D = CanvasRenderingContext2D & {
     mozImageSmoothingEnabled?: boolean;

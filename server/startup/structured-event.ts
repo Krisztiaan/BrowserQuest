@@ -32,7 +32,7 @@ export function createStructuredEventEmitter({
 
 export function createProbeEventEmitter({
     emitStructuredEvent,
-    probeEvent = SERVER_EVENT_NAMES.ESM_WS_BRIDGE_PROBE,
+    probeEvent = SERVER_EVENT_NAMES.WS_BRIDGE_PROBE,
 }: {
     emitStructuredEvent: StructuredEventEmitter;
     probeEvent?: string;

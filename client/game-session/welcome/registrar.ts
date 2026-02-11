@@ -12,7 +12,7 @@ import { installPlayerStopPathingHandler } from '../player/stop-pathing';
 import { installSpawnCharacterHandlerFromGame } from '../spawn/character/registrar-builder';
 import { installSpawnPrimitiveHandlersFromGame } from '../spawn/primitives/host-builder';
 import { applyWelcomeBootstrap } from './bootstrap';
-import log from '../../compat/log';
+import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 
 type AddEntityArg = Parameters<Game['addEntity']>[0];

@@ -1,6 +1,6 @@
 import Character from '../../../character';
 import Mobs from '../../../mobs';
-import log from '../../../compat/log';
+import log from '../../../platform/log';
 import Types from '../../../../shared/gametypes-browser';
 import type { AudioSoundKey } from '../../../asset-key-domain';
 import type { EntityKind } from '../../../../shared/entity-kind-domain';

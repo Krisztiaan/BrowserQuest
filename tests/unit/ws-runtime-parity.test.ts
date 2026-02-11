@@ -42,7 +42,7 @@ function createSocketMock() {
     };
 }
 
-const runtimes = [{ label: 'esm', ws: WsRuntimeModule }] as const;
+const runtimes = [{ label: 'runtime', ws: WsRuntimeModule }] as const;
 
 for (const runtime of runtimes) {
     test(`ws runtime parity (${runtime.label}): malformed JSON closes with INVALID_PAYLOAD`, () => {

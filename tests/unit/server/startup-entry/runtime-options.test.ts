@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
 import { resolveStartupRuntimeOptions } from '../../../../server/startup/runtime-options';
 
-test('startup runtime options always inject esm websocket runtime through dependency seam', async () => {
+test('startup runtime options always inject runtime websocket runtime through dependency seam', async () => {
     const events: Array<Record<string, unknown>> = [];
-    const wsDefault = { id: 'ws-esm-default' };
+    const wsDefault = { id: 'ws-runtime-default' };
     const runtimeDependencies = { id: 'runtime-dependencies' };
     let receivedOverrides: Record<string, unknown> | null = null;
     let failCode: number | null = null;
@@ -29,8 +29,8 @@ test('startup runtime options always inject esm websocket runtime through depend
     expect(events.length).toBe(1);
     expect(events[0]).toMatchObject({
         level: 'info',
-        event: 'server.esm.ws_runtime_mode',
-        mode: 'esm',
+        event: 'server.runtime.ws_runtime_mode',
+        mode: 'runtime',
         status: 'ok',
     });
 });
@@ -40,13 +40,13 @@ test('startup runtime options ignore removed runtime-mode env toggles', async ()
 
     const runtimeOptions = await resolveStartupRuntimeOptions({
         env: {
-            BQ_ESM_WS_RUNTIME: '0',
-            BQ_ESM_WS_RUNTIME_FORCE_FAIL: '1',
+            BQ_WS_RUNTIME: '0',
+            BQ_WS_RUNTIME_FORCE_FAIL: '1',
         },
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
         },
-        importWsRuntime: async () => ({ default: { id: 'ws-esm-default' } }),
+        importWsRuntime: async () => ({ default: { id: 'ws-runtime-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         fail: () => {
             // no-op
@@ -57,13 +57,13 @@ test('startup runtime options ignore removed runtime-mode env toggles', async ()
     expect(events.length).toBe(1);
     expect(events[0]).toMatchObject({
         level: 'info',
-        event: 'server.esm.ws_runtime_mode',
-        mode: 'esm',
+        event: 'server.runtime.ws_runtime_mode',
+        mode: 'runtime',
         status: 'ok',
     });
 });
 
-test('startup runtime options emit load-error diagnostics when esm websocket runtime import fails', async () => {
+test('startup runtime options emit load-error diagnostics when runtime websocket runtime import fails', async () => {
     const events: Array<Record<string, unknown>> = [];
     let failCode: number | null = null;
 
@@ -86,8 +86,8 @@ test('startup runtime options emit load-error diagnostics when esm websocket run
     expect(events.length).toBe(1);
     expect(events[0]).toMatchObject({
         level: 'error',
-        event: 'server.esm.ws_runtime_mode',
-        mode: 'esm',
+        event: 'server.runtime.ws_runtime_mode',
+        mode: 'runtime',
         status: 'failed',
         reason: 'load_error',
     });

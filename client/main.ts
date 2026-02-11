@@ -1,10 +1,10 @@
 import App from './app';
-import Detect from './compat/detect';
-import log from './compat/log';
+import Detect from './platform/detect';
+import log from './platform/log';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { AchievementId } from './achievement-domain';
-import { TRANSITIONEND } from './compat/util';
+import { TRANSITIONEND } from './platform/util';
 import type Game from './game';
 
 type TestEntity = {

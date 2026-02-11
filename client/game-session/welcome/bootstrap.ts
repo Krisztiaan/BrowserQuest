@@ -1,4 +1,4 @@
-import log from '../../compat/log';
+import log from '../../platform/log';
 import type { AchievementKey } from '../../achievement-domain';
 
 type EntityId = string | number;
