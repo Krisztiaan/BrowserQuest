@@ -1,10 +1,10 @@
-import { runWebSocketBridgeProbeIfEnabled } from './bridge-probe';
-import { resolveStartupRuntimeOptions } from './options';
+import { runBridgeProbeIfEnabled } from './bridge-probe';
+import { resolveRuntimeOptions } from './options';
 
-type BridgeProbeParams = Parameters<typeof runWebSocketBridgeProbeIfEnabled>[0];
+type BridgeProbeParams = Parameters<typeof runBridgeProbeIfEnabled>[0];
 type StartupWsImport = () => Promise<{ default: unknown; [key: string]: unknown }>;
 
-export async function runStartupWithConfig({
+export async function runStartup({
     activeConfig,
     env,
     emitStructuredEvent,
@@ -13,8 +13,8 @@ export async function runStartupWithConfig({
     createRuntimeDependencies,
     startServer,
     fail,
-    runBridgeProbeFn = runWebSocketBridgeProbeIfEnabled,
-    resolveRuntimeOptionsFn = resolveStartupRuntimeOptions,
+    runBridgeProbeFn = runBridgeProbeIfEnabled,
+    resolveRuntimeOptionsFn = resolveRuntimeOptions,
 }: {
     activeConfig: object;
     env: NodeJS.ProcessEnv;
@@ -54,5 +54,5 @@ export async function runStartupWithConfig({
 }
 
 export default {
-    runStartupWithConfig,
+    runStartup,
 };

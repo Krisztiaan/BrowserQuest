@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { runStartupWithConfig } from '../../../../server/startup/runner';
+import { runStartup } from '../../../../server/startup/runner';
 
 test('startup runner executes bridge probe, runtime-option resolution, and startServer in order', async () => {
     const activeConfig = { port: 8000 };
@@ -7,7 +7,7 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
     const calls: string[] = [];
     let startArgs: { config: unknown; options: unknown } | null = null;
 
-    const result = await runStartupWithConfig({
+    const result = await runStartup({
         activeConfig,
         env: {},
         emitStructuredEvent: () => {
@@ -43,7 +43,7 @@ test('startup runner passes undefined runtime options through to startServer whe
     const activeConfig = { port: 8001 };
     let startedOptions: unknown = 'unset';
 
-    const result = await runStartupWithConfig({
+    const result = await runStartup({
         activeConfig,
         env: {},
         emitStructuredEvent: () => {

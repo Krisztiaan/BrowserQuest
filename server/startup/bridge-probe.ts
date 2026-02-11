@@ -17,7 +17,7 @@ type WebSocketRuntimeModule = {
     wsWebSocketConnection: unknown;
 };
 
-export async function runWebSocketBridgeProbeIfEnabled({
+export async function runBridgeProbeIfEnabled({
     env,
     emitProbeEvent,
     importWsRuntime,
@@ -61,5 +61,5 @@ export async function runWebSocketBridgeProbeIfEnabled({
 }
 
 export default {
-    runWebSocketBridgeProbeIfEnabled,
+    runBridgeProbeIfEnabled,
 };

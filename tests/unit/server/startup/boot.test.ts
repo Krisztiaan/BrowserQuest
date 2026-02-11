@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
-import { runMainEntryBootEnvelope } from '../../../../server/startup/boot';
+import { runEntryBoot } from '../../../../server/startup/boot';
 
 test('boot envelope resolves config and starts runtime when preflight succeeds', async () => {
     const activeConfig = { port: 8000 };
     const calls: string[] = [];
 
-    const result = await runMainEntryBootEnvelope({
+    const result = await runEntryBoot({
         defaultConfigPath: './server/config.json',
         customConfigPath: './server/config_local.json',
         validateConfig: () => ({ isValid: true, errors: [] }),
@@ -26,7 +26,7 @@ test('boot envelope resolves config and starts runtime when preflight succeeds',
             calls.push('preflight');
             return Boolean(validatedConfig);
         },
-        runStartupWithConfigFn: async ({ activeConfig: bootConfig }) => {
+        runStartupFn: async ({ activeConfig: bootConfig }) => {
             calls.push('startup');
             expect(bootConfig).toBe(activeConfig);
         },
@@ -39,7 +39,7 @@ test('boot envelope resolves config and starts runtime when preflight succeeds',
 test('boot envelope aborts before startup when no config is resolved', async () => {
     const calls: string[] = [];
 
-    const result = await runMainEntryBootEnvelope({
+    const result = await runEntryBoot({
         defaultConfigPath: './server/config.json',
         customConfigPath: './server/config_local.json',
         validateConfig: () => ({ isValid: true, errors: [] }),
@@ -60,7 +60,7 @@ test('boot envelope aborts before startup when no config is resolved', async () 
             calls.push('preflight');
             return true;
         },
-        runStartupWithConfigFn: async () => {
+        runStartupFn: async () => {
             calls.push('startup');
         },
     });
@@ -73,7 +73,7 @@ test('boot envelope aborts before startup when preflight validation fails', asyn
     const activeConfig = { port: 'invalid' };
     const calls: string[] = [];
 
-    const result = await runMainEntryBootEnvelope({
+    const result = await runEntryBoot({
         defaultConfigPath: './server/config.json',
         customConfigPath: './server/config_local.json',
         validateConfig: () => ({ isValid: false, errors: [{ field: 'port' }] }),
@@ -94,7 +94,7 @@ test('boot envelope aborts before startup when preflight validation fails', asyn
             calls.push('preflight');
             return false;
         },
-        runStartupWithConfigFn: async () => {
+        runStartupFn: async () => {
             calls.push('startup');
         },
     });

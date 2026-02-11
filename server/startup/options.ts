@@ -1,6 +1,6 @@
 import { SERVER_EVENT_NAMES } from '../server-event-names';
 
-export async function resolveStartupRuntimeOptions({
+export async function resolveRuntimeOptions({
     env,
     emitStructuredEvent,
     importWsRuntime,
@@ -45,5 +45,5 @@ export async function resolveStartupRuntimeOptions({
 }
 
 export default {
-    resolveStartupRuntimeOptions,
+    resolveRuntimeOptions,
 };

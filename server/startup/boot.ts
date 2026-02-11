@@ -1,8 +1,8 @@
 import { resolveActiveConfig } from './config';
 import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './preflight';
-import { runStartupWithConfig } from './runner';
+import { runStartup } from './runner';
 
-export async function runMainEntryBootEnvelope<TStartupParams extends Record<string, unknown>>({
+export async function runEntryBoot<TStartupParams extends Record<string, unknown>>({
     defaultConfigPath,
     customConfigPath,
     validateConfig,
@@ -13,7 +13,7 @@ export async function runMainEntryBootEnvelope<TStartupParams extends Record<str
     resolveActiveConfigFn = resolveActiveConfig,
     ensureConfigSourcePresentFn = ensureConfigSourcePresent,
     ensureConfigPreflightValidFn = ensureConfigPreflightValid,
-    runStartupWithConfigFn = runStartupWithConfig as unknown as (
+    runStartupFn = runStartup as unknown as (
         params: { activeConfig: object } & TStartupParams
     ) => Promise<unknown>,
 }: {
@@ -40,7 +40,7 @@ export async function runMainEntryBootEnvelope<TStartupParams extends Record<str
         emitError: (message: string) => void;
         fail: (code: number) => void;
     }) => boolean;
-    runStartupWithConfigFn?: (params: { activeConfig: object } & TStartupParams) => Promise<unknown>;
+    runStartupFn?: (params: { activeConfig: object } & TStartupParams) => Promise<unknown>;
 }): Promise<{ activeConfig: object | null; started: boolean }> {
     const configSource = await resolveActiveConfigFn({
         defaultConfigPath,
@@ -72,7 +72,7 @@ export async function runMainEntryBootEnvelope<TStartupParams extends Record<str
         return { activeConfig, started: false };
     }
 
-    await runStartupWithConfigFn({
+    await runStartupFn({
         activeConfig,
         ...startupParams,
     } as { activeConfig: object } & TStartupParams);
@@ -81,5 +81,5 @@ export async function runMainEntryBootEnvelope<TStartupParams extends Record<str
 }
 
 export default {
-    runMainEntryBootEnvelope,
+    runEntryBoot,
 };

@@ -1,8 +1,8 @@
-import { runWebSocketBridgeProbeIfEnabled } from './startup/bridge-probe';
-import { runMainEntryBootEnvelope } from './startup/boot';
+import { runBridgeProbeIfEnabled } from './startup/bridge-probe';
+import { runEntryBoot } from './startup/boot';
 import { createProbeEventEmitter, createStructuredEventEmitter } from './startup/events';
 import { validateConfig } from './config-preflight';
-import { resolveStartupRuntimeOptions } from './startup/options';
+import { resolveRuntimeOptions } from './startup/options';
 import Utils from './utils';
 import { createRuntimeDependencies, main as startServer } from './runtime';
 
@@ -12,7 +12,7 @@ const customConfigPath = process.argv[2] || './server/config_local.json';
 const emitStructuredEvent = createStructuredEventEmitter();
 const emitProbeEvent = createProbeEventEmitter({ emitStructuredEvent });
 
-await runMainEntryBootEnvelope({
+await runEntryBoot({
     defaultConfigPath,
     customConfigPath,
     validateConfig,
@@ -27,7 +27,7 @@ await runMainEntryBootEnvelope({
         createRuntimeDependencies,
         startServer,
         fail: (code: number) => process.exit(code),
-        runBridgeProbeFn: runWebSocketBridgeProbeIfEnabled,
-        resolveRuntimeOptionsFn: resolveStartupRuntimeOptions,
+        runBridgeProbeFn: runBridgeProbeIfEnabled,
+        resolveRuntimeOptionsFn: resolveRuntimeOptions,
     },
 });

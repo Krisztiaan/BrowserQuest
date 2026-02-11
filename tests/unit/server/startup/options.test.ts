@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { resolveStartupRuntimeOptions } from '../../../../server/startup/options';
+import { resolveRuntimeOptions } from '../../../../server/startup/options';
 
 test('startup runtime options always inject runtime websocket runtime through dependency seam', async () => {
     const events: Array<Record<string, unknown>> = [];
@@ -8,7 +8,7 @@ test('startup runtime options always inject runtime websocket runtime through de
     let receivedOverrides: Record<string, unknown> | null = null;
     let failCode: number | null = null;
 
-    const runtimeOptions = await resolveStartupRuntimeOptions({
+    const runtimeOptions = await resolveRuntimeOptions({
         env: {},
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
@@ -38,7 +38,7 @@ test('startup runtime options always inject runtime websocket runtime through de
 test('startup runtime options ignore removed runtime-mode env toggles', async () => {
     const events: Array<Record<string, unknown>> = [];
 
-    const runtimeOptions = await resolveStartupRuntimeOptions({
+    const runtimeOptions = await resolveRuntimeOptions({
         env: {
             BQ_WS_RUNTIME: '0',
             BQ_WS_RUNTIME_FORCE_FAIL: '1',
@@ -67,7 +67,7 @@ test('startup runtime options emit load-error diagnostics when runtime websocket
     const events: Array<Record<string, unknown>> = [];
     let failCode: number | null = null;
 
-    const runtimeOptions = await resolveStartupRuntimeOptions({
+    const runtimeOptions = await resolveRuntimeOptions({
         env: {},
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });

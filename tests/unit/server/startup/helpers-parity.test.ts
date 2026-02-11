@@ -1,34 +1,34 @@
 import { expect, test } from 'bun:test';
-import BridgeProbeModule, { runWebSocketBridgeProbeIfEnabled } from '../../../../server/startup/bridge-probe';
-import BootEnvelopeModule, { runMainEntryBootEnvelope } from '../../../../server/startup/boot';
+import BridgeProbeModule, { runBridgeProbeIfEnabled } from '../../../../server/startup/bridge-probe';
+import BootEnvelopeModule, { runEntryBoot } from '../../../../server/startup/boot';
 import ConfigSourceModule, { loadConfigFile, resolveActiveConfig } from '../../../../server/startup/config';
 import PreflightFailuresModule, {
     ensureConfigPreflightValid,
     ensureConfigSourcePresent,
 } from '../../../../server/startup/preflight';
-import StartupRunnerModule, { runStartupWithConfig } from '../../../../server/startup/runner';
+import StartupRunnerModule, { runStartup } from '../../../../server/startup/runner';
 import StructuredEventModule, {
     createProbeEventEmitter,
     createStructuredEventEmitter,
 } from '../../../../server/startup/events';
-import RuntimeOptionsModule, { resolveStartupRuntimeOptions } from '../../../../server/startup/options';
+import RuntimeOptionsModule, { resolveRuntimeOptions } from '../../../../server/startup/options';
 
 test('startup bridge probe helper exports stable named/default contract', () => {
-    expect(typeof runWebSocketBridgeProbeIfEnabled).toBe('function');
+    expect(typeof runBridgeProbeIfEnabled).toBe('function');
     expect(typeof BridgeProbeModule).toBe('object');
-    expect(BridgeProbeModule.runWebSocketBridgeProbeIfEnabled).toBe(runWebSocketBridgeProbeIfEnabled);
+    expect(BridgeProbeModule.runBridgeProbeIfEnabled).toBe(runBridgeProbeIfEnabled);
 });
 
 test('startup boot helper exports stable named/default contract', () => {
-    expect(typeof runMainEntryBootEnvelope).toBe('function');
+    expect(typeof runEntryBoot).toBe('function');
     expect(typeof BootEnvelopeModule).toBe('object');
-    expect(BootEnvelopeModule.runMainEntryBootEnvelope).toBe(runMainEntryBootEnvelope);
+    expect(BootEnvelopeModule.runEntryBoot).toBe(runEntryBoot);
 });
 
 test('startup options helper exports stable named/default contract', () => {
-    expect(typeof resolveStartupRuntimeOptions).toBe('function');
+    expect(typeof resolveRuntimeOptions).toBe('function');
     expect(typeof RuntimeOptionsModule).toBe('object');
-    expect(RuntimeOptionsModule.resolveStartupRuntimeOptions).toBe(resolveStartupRuntimeOptions);
+    expect(RuntimeOptionsModule.resolveRuntimeOptions).toBe(resolveRuntimeOptions);
 });
 
 test('startup preflight helper exports stable named/default contract', () => {
@@ -48,9 +48,9 @@ test('startup config helper exports stable named/default contract', () => {
 });
 
 test('startup runner helper exports stable named/default contract', () => {
-    expect(typeof runStartupWithConfig).toBe('function');
+    expect(typeof runStartup).toBe('function');
     expect(typeof StartupRunnerModule).toBe('object');
-    expect(StartupRunnerModule.runStartupWithConfig).toBe(runStartupWithConfig);
+    expect(StartupRunnerModule.runStartup).toBe(runStartup);
 });
 
 test('startup events helper exports stable named/default contract', () => {

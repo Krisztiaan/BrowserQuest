@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { runWebSocketBridgeProbeIfEnabled } from '../../../../server/startup/bridge-probe';
+import { runBridgeProbeIfEnabled } from '../../../../server/startup/bridge-probe';
 
 type ProbeEvent = {
     level: string;
@@ -38,7 +38,7 @@ test('bridge probe does nothing when probe mode is disabled', async () => {
     const events: ProbeEvent[] = [];
     let failCode: number | null = null;
 
-    await runWebSocketBridgeProbeIfEnabled({
+    await runBridgeProbeIfEnabled({
         env: {},
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
@@ -60,7 +60,7 @@ test('bridge probe emits success when bridge contract matches', async () => {
     let failCode: number | null = null;
     const contracts = createMatchingBridgeContracts();
 
-    await runWebSocketBridgeProbeIfEnabled({
+    await runBridgeProbeIfEnabled({
         env: {
             BQ_WS_BRIDGE_PROBE: '1',
         },
@@ -87,7 +87,7 @@ test('bridge probe emits forced-failure diagnostics and exits', async () => {
     let failCode: number | null = null;
     const contracts = createMatchingBridgeContracts();
 
-    await runWebSocketBridgeProbeIfEnabled({
+    await runBridgeProbeIfEnabled({
         env: {
             BQ_WS_BRIDGE_PROBE: '1',
             BQ_WS_BRIDGE_PROBE_FORCE_FAIL: '1',
@@ -124,7 +124,7 @@ test('bridge probe emits contract mismatch diagnostics and exits', async () => {
         },
     };
 
-    await runWebSocketBridgeProbeIfEnabled({
+    await runBridgeProbeIfEnabled({
         env: {
             BQ_WS_BRIDGE_PROBE: '1',
         },
