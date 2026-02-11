@@ -1,4 +1,4 @@
-import type { ClientToServerProtocolAction, ServerToClientProtocolAction } from '../shared/protocol-contract-types';
+import type { ClientToServerProtocolAction, ServerToClientProtocolAction } from '../shared/protocol/types';
 import type { EntityKind } from '../shared/entity-kind-domain';
 
 export interface PlayerRuntimeConnection {

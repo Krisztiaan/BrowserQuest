@@ -14,7 +14,7 @@ import { SERVER_EVENT_NAMES, type RuntimeEventName } from './server-event-names'
 import ConfigPreflight from './config-preflight';
 import MetricsRuntime from './metrics-runtime';
 import Log from './log';
-import WsRuntimeModule from './ws-runtime';
+import WsRuntimeModule from './ws/runtime';
 import WorldServer from './world-server';
 import Player from './player';
 

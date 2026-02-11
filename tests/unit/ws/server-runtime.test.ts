@@ -4,7 +4,7 @@ import WsRuntimeModule, {
     createWebSocketRuntimeClasses as createWebSocketRuntimeClassesEsm,
     MultiVersionWebsocketServer as MultiVersionWebsocketServerESM,
     wsWebSocketConnection as WsWebSocketConnectionESM,
-} from '../../server/ws-runtime';
+} from '../../../server/ws/runtime';
 
 test('ws runtime exports websocket contract', () => {
     expect(typeof WsRuntimeModule).toBe('object');

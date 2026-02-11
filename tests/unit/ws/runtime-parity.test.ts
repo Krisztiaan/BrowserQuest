@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import WsRuntimeModule from '../../server/ws-runtime';
+import WsRuntimeModule from '../../../server/ws/runtime';
 
 const originalConsoleInfo = console.info;
 

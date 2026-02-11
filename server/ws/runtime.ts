@@ -1,11 +1,11 @@
-import Log from './log';
-import Utils from './utils';
-import Protocol from '../shared/protocol-contract';
-import CLOSE_CODES from '../shared/ws-close-codes';
-import { Evented } from '../shared/evented';
-import { createWebSocketRuntimeClasses } from './ws-runtime-class-factory';
-import { getHealthzResponseBody, getVersionResponseBody } from './runtime-health-response';
-import { WS_EVENT_NAMES } from './server-event-names';
+import Log from '../log';
+import Utils from '../utils';
+import Protocol from '../../shared/protocol/contract';
+import CLOSE_CODES from '../../shared/ws-close-codes';
+import { Evented } from '../../shared/evented';
+import { createWebSocketRuntimeClasses } from './runtime-factory';
+import { getHealthzResponseBody, getVersionResponseBody } from '../runtime-health-response';
+import { WS_EVENT_NAMES } from '../server-event-names';
 
 const BunRuntime = globalThis['Bun'];
 const log = Log.getLogger();

@@ -25,7 +25,7 @@ import {
 } from './gameclient-outbound-actions';
 import type { TypedEventSource } from '../shared/typed-event-emitter';
 import { Evented } from '../shared/evented';
-import { decodeServerToClientProtocolActionBatch } from '../shared/protocol-registry';
+import { decodeServerToClientProtocolActionBatch } from '../shared/protocol/registry';
 import {
     DISPATCHER_CONNECT_STATUS,
     HANDSHAKE_CONTROL,

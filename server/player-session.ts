@@ -2,7 +2,7 @@ import Log from './log';
 import FormatModule from './format';
 import { createPlayerSessionActionDispatcher } from './player-session-dispatch';
 import Types from '../shared/gametypes-browser';
-import type { ClientToServerProtocolAction } from '../shared/protocol-contract-types';
+import type { ClientToServerProtocolAction } from '../shared/protocol/types';
 import { HANDSHAKE_CONTROL } from '../shared/connection-status';
 import type Player from './player';
 

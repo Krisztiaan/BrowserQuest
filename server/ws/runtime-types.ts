@@ -1,5 +1,5 @@
-import type { ProtocolParsedAction } from '../shared/protocol-contract-types';
-import type { RuntimeEventName } from './server-event-names';
+import type { ProtocolParsedAction } from '../../shared/protocol/types';
+import type { RuntimeEventName } from '../server-event-names';
 
 export interface WebSocketRuntimeLogger {
     info(message: string): void;

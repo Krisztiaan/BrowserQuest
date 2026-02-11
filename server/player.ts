@@ -6,7 +6,7 @@ import Properties from './properties';
 import Formulas from './formulas';
 import Types from '../shared/gametypes-browser';
 import type Chest from './chest';
-import type { ClientToServerProtocolAction } from '../shared/protocol-contract-types';
+import type { ClientToServerProtocolAction } from '../shared/protocol/types';
 import { HANDSHAKE_CONTROL } from '../shared/connection-status';
 import type { EntityKind } from '../shared/entity-kind-domain';
 

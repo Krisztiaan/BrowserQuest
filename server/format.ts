@@ -1,6 +1,6 @@
 import Types from '../shared/gametypes-browser';
-import { isClientToServerProtocolAction } from '../shared/protocol-registry';
-import { isFixedClientToServerOpcode } from '../shared/protocol-schema';
+import { isClientToServerProtocolAction } from '../shared/protocol/registry';
+import { isFixedClientToServerOpcode } from '../shared/protocol/schema';
 import Log from './log';
 
 const log = Log.getLogger();

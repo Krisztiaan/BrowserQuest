@@ -3,8 +3,8 @@ import {
     PROTOCOL_CONTRACT_FUNCTION_KEYS,
     PROTOCOL_CONTRACT_KEYS,
     PROTOCOL_CONTRACT_NUMERIC_KEYS,
-} from '../../shared/protocol-contract-types';
-import ProtocolContract from '../../shared/protocol-contract';
+} from '../../../shared/protocol/types';
+import ProtocolContract from '../../../shared/protocol/contract';
 
 test('protocol TS key inventory aligns with canonical runtime protocol contract exports', () => {
     for (const key of PROTOCOL_CONTRACT_NUMERIC_KEYS) {

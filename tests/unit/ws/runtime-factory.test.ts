@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import { createWebSocketRuntimeClasses } from '../../server/ws-runtime-class-factory';
-import type { ProtocolParsedAction } from '../../shared/protocol-contract-types';
+import { createWebSocketRuntimeClasses } from '../../../server/ws/runtime-factory';
+import type { ProtocolParsedAction } from '../../../shared/protocol/types';
 
 type Handler = (...args: unknown[]) => void;
 

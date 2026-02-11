@@ -1,7 +1,7 @@
 import type {
     ClientToServerProtocolAction,
     ServerToClientProtocolAction,
-} from '../shared/protocol-contract-types';
+} from '../shared/protocol/types';
 import type { EntityKind } from '../shared/entity-kind-domain';
 
 export type ClientInboundProtocolAction = ServerToClientProtocolAction;

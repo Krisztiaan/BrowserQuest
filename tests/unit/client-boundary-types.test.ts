@@ -10,7 +10,7 @@ import type {
 import {
     decodeServerToClientProtocolAction,
     normalizeServerToClientProtocolActionBatch,
-} from '../../shared/protocol-registry';
+} from '../../shared/protocol/registry';
 
 test('client protocol payload helper normalizes protocol action batches', () => {
     const singleAction: ClientProtocolAction = [1, 7, 'hello', 10, 20, 100];

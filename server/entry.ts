@@ -23,7 +23,7 @@ await runEntryBoot({
         env: process.env,
         emitStructuredEvent,
         emitProbeEvent,
-        importWsRuntime: () => import('./ws-runtime'),
+        importWsRuntime: () => import('./ws/runtime'),
         createRuntimeDependencies,
         startServer,
         fail: (code: number) => process.exit(code),

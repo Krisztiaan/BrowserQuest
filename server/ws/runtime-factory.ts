@@ -1,13 +1,13 @@
-import { WS_EVENT_NAMES } from './server-event-names';
-import type { ProtocolParsedAction } from '../shared/protocol-contract-types';
+import { WS_EVENT_NAMES } from '../server-event-names';
+import type { ProtocolParsedAction } from '../../shared/protocol/types';
 import type {
     WebSocketRuntimeClasses,
     WebSocketRuntimeConnection,
     WebSocketRuntimeFactoryDeps,
-} from './ws-runtime-class-factory-types';
-import { getHealthzResponseBody, getVersionResponseBody } from './runtime-health-response';
-import { TypedEventEmitter } from '../shared/typed-event-emitter';
-import { Evented } from '../shared/evented';
+} from './runtime-types';
+import { getHealthzResponseBody, getVersionResponseBody } from '../runtime-health-response';
+import { TypedEventEmitter } from '../../shared/typed-event-emitter';
+import { Evented } from '../../shared/evented';
 
 type WebSocketRuntimeServerEvents = {
     connect: [connection: WebSocketRuntimeConnection];

@@ -4,7 +4,7 @@ import ProtocolContract, {
     MSG_HELLO,
     MSG_MOVE,
     parseProtocolActionBatch,
-} from '../../shared/protocol-contract';
+} from '../../../shared/protocol/contract';
 
 test('shared protocol contract exports stable canonical constants', () => {
     expect(MSG_HELLO).toBe(ProtocolContract.MSG_HELLO);
