@@ -1,6 +1,6 @@
 import type Game from '../../game';
 import GameClient from '../../gameclient';
-import { installGameSessionBootstrapHandlers } from '../../game-session-bootstrap';
+import { installGameSessionBootstrapHandlers } from '../connection/bootstrap';
 import { registerWelcomeSessionHandlersFromGame } from '../welcome/registrar';
 
 export function initializeGameSessionConnection(game: Game, startedCallback: () => void): void {

@@ -1,5 +1,5 @@
-import log from './compat/log';
-import type { GameClientEventSource } from './gameclient';
+import log from '../../compat/log';
+import type { GameClientEventSource } from '../../gameclient';
 
 type EntityId = string | number;
 

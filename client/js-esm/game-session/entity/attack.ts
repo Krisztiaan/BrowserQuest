@@ -1,5 +1,5 @@
-import Character from './character';
-import Player from './player';
+import Character from '../../character';
+import Player from '../../player';
 
 type AttackEntity = {
     id: string | number;

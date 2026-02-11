@@ -1,4 +1,4 @@
-import Item from './item';
+import Item from '../../item';
 
 type DestroyableEntity = {
     id: string | number;

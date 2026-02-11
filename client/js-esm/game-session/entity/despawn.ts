@@ -1,7 +1,7 @@
-import Character from './character';
-import Chest from './chest';
-import Item from './item';
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
+import Character from '../../character';
+import Chest from '../../chest';
+import Item from '../../item';
+import type { EntityKind } from '../../../../shared/js/entity-kind-domain';
 
 type DespawnEntity = {
     kind: EntityKind;
