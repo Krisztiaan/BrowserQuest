@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
 
-const repoRoot = new URL('../..', import.meta.url).pathname;
+const repoRoot = new URL('../../..', import.meta.url).pathname;
 
 async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs = 4000) {
     return await new Promise<number>((resolve, reject) => {

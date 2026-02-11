@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
 
-const repoRoot = new URL('../..', import.meta.url).pathname;
+const repoRoot = new URL('../../..', import.meta.url).pathname;
 
 type EventRecord = Record<string, unknown>;
 

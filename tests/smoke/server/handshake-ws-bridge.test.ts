@@ -1,8 +1,8 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
-import WebSocket from '../support/ws-client';
+import WebSocket from '../../support/ws-client';
 
-const repoRoot = new URL('../..', import.meta.url).pathname;
+const repoRoot = new URL('../../..', import.meta.url).pathname;
 type EventRecord = Record<string, unknown>;
 
 async function getFreePort() {

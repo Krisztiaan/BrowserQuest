@@ -1,8 +1,9 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
-import WebSocket from '../support/ws-client';
+import WebSocket from '../../support/ws-client';
 
-const repoRoot = new URL('../..', import.meta.url).pathname;
+const repoRoot = new URL('../../..', import.meta.url).pathname;
+type EventRecord = Record<string, unknown>;
 
 async function getFreePort() {
     return await new Promise<number>((resolve, reject) => {
@@ -38,9 +39,55 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
     }
 }
 
+async function waitForCondition(check: () => boolean, timeoutMs: number, label: string) {
+    const start = Date.now();
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+        if (check()) return;
+        if (Date.now() - start > timeoutMs) {
+            throw new Error(`Timed out waiting for ${label}`);
+        }
+        await Bun.sleep(25);
+    }
+}
+
+function startStructuredCapture(stream: ReadableStream<unknown> | number | null | undefined, events: EventRecord[]) {
+    if (!stream || typeof stream === 'number') {
+        return;
+    }
+    const reader = stream.getReader();
+    (async () => {
+        let carry = '';
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!(value instanceof Uint8Array)) {
+                continue;
+            }
+            carry += new TextDecoder().decode(value);
+            const chunks = carry.split('\n');
+            carry = chunks.pop() || '';
+            chunks.forEach((line) => {
+                const trimmed = line.trim();
+                if (!trimmed.startsWith('{')) {
+                    return;
+                }
+                try {
+                    const parsed = JSON.parse(trimmed);
+                    if (parsed && typeof parsed === 'object') {
+                        events.push(parsed);
+                    }
+                } catch (_) {
+                    // ignore
+                }
+            });
+        }
+    })();
+}
+
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 
-afterEach(() => {
+afterEach(async () => {
     try {
         proc?.kill();
     } catch (_) {
@@ -50,9 +97,9 @@ afterEach(() => {
     }
 });
 
-test("server entry sends initial 'go' handshake", async () => {
+test("server entry uses default ESM websocket runtime and sends 'go' handshake", async () => {
     const port = await getFreePort();
-    const configPath = `${repoRoot}/server/.tmp-config.test-runtime-${port}.json`;
+    const configPath = `${repoRoot}/server/.tmp-config.test-runtime-ws-runtime-${port}.json`;
     await Bun.write(
         configPath,
         JSON.stringify({
@@ -65,14 +112,27 @@ test("server entry sends initial 'go' handshake", async () => {
         })
     );
 
+    const events: EventRecord[] = [];
     proc = Bun.spawn({
         cmd: ['bun', 'server/entry.ts', configPath],
         cwd: repoRoot,
-        stdout: 'ignore',
+        stdout: 'pipe',
         stderr: 'pipe',
     });
+    startStructuredCapture(proc.stdout, events);
 
     await waitForHttpOk(`http://127.0.0.1:${port}/status`, 8000);
+    await waitForCondition(
+        () =>
+            events.some(
+                (eventRecord) =>
+                    eventRecord.event === 'server.esm.ws_runtime_mode' &&
+                    eventRecord.mode === 'esm' &&
+                    eventRecord.status === 'ok'
+            ),
+        4000,
+        'esm websocket runtime mode event'
+    );
 
     const ws = new WebSocket(`ws://127.0.0.1:${port}/`);
     const message = await new Promise<string>((resolve, reject) => {
