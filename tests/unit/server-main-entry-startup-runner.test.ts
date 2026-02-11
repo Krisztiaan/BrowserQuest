@@ -16,7 +16,7 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
         emitProbeEvent: () => {
             // no-op
         },
-        importWsEsm: async () => ({ default: { id: 'ws-esm-default' } }),
+        importWsRuntime: async () => ({ default: { id: 'ws-esm-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         startServer: (config, options) => {
             calls.push('start');
@@ -52,7 +52,7 @@ test('startup runner passes undefined runtime options through to startServer whe
         emitProbeEvent: () => {
             // no-op
         },
-        importWsEsm: async () => ({ default: { id: 'ws-esm-default' } }),
+        importWsRuntime: async () => ({ default: { id: 'ws-esm-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         startServer: (_, options) => {
             startedOptions = options;

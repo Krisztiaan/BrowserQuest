@@ -20,30 +20,30 @@ type WebSocketRuntimeModule = {
 export async function runWebSocketBridgeProbeIfEnabled({
     env,
     emitProbeEvent,
-    importWsEsm,
+    importWsRuntime,
     fail,
 }: {
     env: NodeJS.ProcessEnv;
     emitProbeEvent: (level: string, fields: Record<string, unknown>) => void;
-    importWsEsm: () => Promise<WebSocketRuntimeModule>;
+    importWsRuntime: () => Promise<WebSocketRuntimeModule>;
     fail: (code: number) => void;
 }): Promise<void> {
     if (env.BQ_ESM_WS_BRIDGE_PROBE !== '1') {
         return;
     }
 
-    const wsEsm = await importWsEsm();
-    const wsDefault = wsEsm.default;
+    const wsRuntime = await importWsRuntime();
+    const wsDefault = wsRuntime.default;
     const contractMatches =
         wsDefault &&
-        wsDefault.CLOSE_CODES === wsEsm.CLOSE_CODES &&
-        wsDefault.MultiVersionWebsocketServer === wsEsm.MultiVersionWebsocketServer &&
-        wsDefault.wsWebSocketConnection === wsEsm.wsWebSocketConnection &&
-        typeof wsEsm.MultiVersionWebsocketServer === 'function' &&
-        typeof wsEsm.wsWebSocketConnection === 'function' &&
-        wsEsm.CLOSE_CODES.NORMAL === CLOSE_CODES.NORMAL &&
-        wsEsm.CLOSE_CODES.UNSUPPORTED_DATA === CLOSE_CODES.UNSUPPORTED_DATA &&
-        wsEsm.CLOSE_CODES.INVALID_PAYLOAD === CLOSE_CODES.INVALID_PAYLOAD;
+        wsDefault.CLOSE_CODES === wsRuntime.CLOSE_CODES &&
+        wsDefault.MultiVersionWebsocketServer === wsRuntime.MultiVersionWebsocketServer &&
+        wsDefault.wsWebSocketConnection === wsRuntime.wsWebSocketConnection &&
+        typeof wsRuntime.MultiVersionWebsocketServer === 'function' &&
+        typeof wsRuntime.wsWebSocketConnection === 'function' &&
+        wsRuntime.CLOSE_CODES.NORMAL === CLOSE_CODES.NORMAL &&
+        wsRuntime.CLOSE_CODES.UNSUPPORTED_DATA === CLOSE_CODES.UNSUPPORTED_DATA &&
+        wsRuntime.CLOSE_CODES.INVALID_PAYLOAD === CLOSE_CODES.INVALID_PAYLOAD;
     const forceFail = env.BQ_ESM_WS_BRIDGE_PROBE_FORCE_FAIL === '1';
 
     if (!contractMatches || forceFail) {

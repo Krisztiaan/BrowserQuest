@@ -9,7 +9,7 @@ export async function runStartupWithConfig({
     env,
     emitStructuredEvent,
     emitProbeEvent,
-    importWsEsm,
+    importWsRuntime,
     createRuntimeDependencies,
     startServer,
     fail,
@@ -20,7 +20,7 @@ export async function runStartupWithConfig({
     env: NodeJS.ProcessEnv;
     emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
     emitProbeEvent: (level: string, fields: Record<string, unknown>) => void;
-    importWsEsm: StartupWsImport;
+    importWsRuntime: StartupWsImport;
     createRuntimeDependencies: (overrides: object) => unknown;
     startServer: (config: object, runtimeOptions?: unknown) => void;
     fail: (code: number) => void;
@@ -28,7 +28,7 @@ export async function runStartupWithConfig({
     resolveRuntimeOptionsFn?: (params: {
         env: NodeJS.ProcessEnv;
         emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
-        importWsEsm: StartupWsImport;
+        importWsRuntime: StartupWsImport;
         createRuntimeDependencies: (overrides: object) => unknown;
         fail: (code: number) => void;
     }) => Promise<unknown>;
@@ -36,14 +36,14 @@ export async function runStartupWithConfig({
     await runBridgeProbeFn({
         env,
         emitProbeEvent,
-        importWsEsm: importWsEsm as BridgeProbeParams['importWsEsm'],
+        importWsRuntime: importWsRuntime as BridgeProbeParams['importWsRuntime'],
         fail,
     });
 
     const runtimeOptions = await resolveRuntimeOptionsFn({
         env,
         emitStructuredEvent,
-        importWsEsm,
+        importWsRuntime,
         createRuntimeDependencies,
         fail,
     });

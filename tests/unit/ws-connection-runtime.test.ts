@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import WS from '../../server/ws-runtime-esm';
+import WS from '../../server/ws-runtime';
 
 const originalConsoleInfo = console.info;
 
@@ -40,10 +40,10 @@ function createSocketMock() {
     };
 }
 
-test('ws esm connection close uses provided code and trims reason length', () => {
+test('ws runtime connection close uses provided code and trims reason length', () => {
     const socket = createSocketMock();
     const server = { removeConnection() {} };
-    const conn = new WS.wsWebSocketConnection('id-esm-1', socket, server, '127.0.0.1');
+    const conn = new WS.wsWebSocketConnection('id-runtime-1', socket, server, '127.0.0.1');
     const longReason = 'x'.repeat(300);
 
     conn.close(longReason, WS.CLOSE_CODES.INVALID_PAYLOAD);
@@ -54,10 +54,10 @@ test('ws esm connection close uses provided code and trims reason length', () =>
     expect(closed?.reason.length).toBeLessThanOrEqual(120);
 });
 
-test('ws esm connection closes with invalid payload code on malformed json', () => {
+test('ws runtime connection closes with invalid payload code on malformed json', () => {
     const socket = createSocketMock();
     const server = { removeConnection() {} };
-    const conn = new WS.wsWebSocketConnection('id-esm-2', socket, server, '127.0.0.1');
+    const conn = new WS.wsWebSocketConnection('id-runtime-2', socket, server, '127.0.0.1');
     let listened = false;
 
     conn.listen(() => {
@@ -70,10 +70,10 @@ test('ws esm connection closes with invalid payload code on malformed json', () 
     expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.INVALID_PAYLOAD);
 });
 
-test('ws esm connection closes with unsupported-data code on binary payload', () => {
+test('ws runtime connection closes with unsupported-data code on binary payload', () => {
     const socket = createSocketMock();
     const server = { removeConnection() {} };
-    const conn = new WS.wsWebSocketConnection('id-esm-3', socket, server, '127.0.0.1');
+    const conn = new WS.wsWebSocketConnection('id-runtime-3', socket, server, '127.0.0.1');
     let listened = false;
 
     conn.listen(() => {

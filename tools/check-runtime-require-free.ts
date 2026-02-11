@@ -4,7 +4,7 @@ import * as path from 'node:path';
 const repoRoot = path.resolve(import.meta.dir, '..');
 const roots = [path.join(repoRoot, 'server'), path.join(repoRoot, 'shared')];
 
-function listRuntimeEsmFiles(rootDir) {
+function listRuntimeBridgeFiles(rootDir) {
   if (!fs.existsSync(rootDir)) return [];
   const files = [];
   const stack = [rootDir];
@@ -22,11 +22,10 @@ function listRuntimeEsmFiles(rootDir) {
       }
       const relative = path.relative(repoRoot, absolute).replace(/\\/g, '/');
       const isRuntimeBridgeFile =
-        entry.name.endsWith('-esm.ts') ||
         relative === 'server/entry.ts' ||
         relative.startsWith('server/main/') ||
         relative === 'server/ws-runtime-class-factory.ts' ||
-        relative === 'server/ws-runtime-esm.ts';
+        relative === 'server/ws-runtime.ts';
       if (isRuntimeBridgeFile) {
         files.push(absolute);
       }
@@ -37,7 +36,7 @@ function listRuntimeEsmFiles(rootDir) {
 
 const offenders = [];
 for (const root of roots) {
-  const files = listRuntimeEsmFiles(root);
+  const files = listRuntimeBridgeFiles(root);
   for (const filePath of files) {
     const source = fs.readFileSync(filePath, 'utf8');
     if (source.includes('createRequire(')) {
@@ -47,7 +46,7 @@ for (const root of roots) {
 }
 
 if (offenders.length > 0) {
-  console.error('runtime-esm-require-free-check: createRequire usage is not allowed in runtime .ts bridge modules:');
+  console.error('runtime-require-free-check: createRequire usage is not allowed in runtime .ts bridge modules:');
   for (const relativePath of offenders) {
     console.error(` - ${relativePath}`);
   }
@@ -55,4 +54,4 @@ if (offenders.length > 0) {
   process.exit(1);
 }
 
-console.log('runtime-esm-require-free-check: ok (no createRequire usage in runtime .ts modules).');
+console.log('runtime-require-free-check: ok (no createRequire usage in runtime .ts modules).');

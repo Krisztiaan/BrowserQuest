@@ -3,13 +3,13 @@ import { SERVER_EVENT_NAMES } from '../server-event-names';
 export async function resolveStartupRuntimeOptions({
     env,
     emitStructuredEvent,
-    importWsEsm,
+    importWsRuntime,
     createRuntimeDependencies,
     fail,
 }: {
     env: NodeJS.ProcessEnv;
     emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
-    importWsEsm: () => Promise<{
+    importWsRuntime: () => Promise<{
         default: unknown;
         CLOSE_CODES?: unknown;
         MultiVersionWebsocketServer?: unknown;
@@ -21,7 +21,7 @@ export async function resolveStartupRuntimeOptions({
     void env;
 
     try {
-        const wsEsm = await importWsEsm();
+        const wsRuntime = await importWsRuntime();
         emitStructuredEvent('info', SERVER_EVENT_NAMES.ESM_WS_RUNTIME_MODE, {
             mode: 'esm',
             status: 'ok',
@@ -29,7 +29,7 @@ export async function resolveStartupRuntimeOptions({
 
         return {
             dependencies: createRuntimeDependencies({
-                ws: wsEsm.default,
+                ws: wsRuntime.default,
             }),
         };
     } catch (error) {

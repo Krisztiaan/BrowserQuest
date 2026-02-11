@@ -59,8 +59,8 @@ afterEach(async () => {
     }
 });
 
-test('esm server entry fails fast with esm preflight error for invalid config', async () => {
-    configPath = `${repoRoot}/server/.tmp-config.invalid-preflight-esm.json`;
+test('server entry fails fast with preflight error for invalid config', async () => {
+    configPath = `${repoRoot}/server/.tmp-config.invalid-preflight-runtime.json`;
     await Bun.write(
         configPath,
         JSON.stringify({

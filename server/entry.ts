@@ -1,5 +1,5 @@
 import { runWebSocketBridgeProbeIfEnabled } from './main/bridge-probe';
-import { runMainEsmBootEnvelope } from './main/boot-envelope';
+import { runMainEntryBootEnvelope } from './main/boot-envelope';
 import { createProbeEventEmitter, createStructuredEventEmitter } from './main/structured-event';
 import { validateConfig } from './config-preflight';
 import { resolveStartupRuntimeOptions } from './main/runtime-options';
@@ -17,7 +17,7 @@ const customConfigPath = process.argv[2] || './server/config_local.json';
 const emitStructuredEvent = createStructuredEventEmitter();
 const emitProbeEvent = createProbeEventEmitter({ emitStructuredEvent });
 
-await runMainEsmBootEnvelope({
+await runMainEntryBootEnvelope({
     defaultConfigPath,
     customConfigPath,
     validateConfig,
@@ -28,7 +28,7 @@ await runMainEsmBootEnvelope({
         env: process.env,
         emitStructuredEvent,
         emitProbeEvent,
-        importWsEsm: () => import('./ws-runtime-esm'),
+        importWsRuntime: () => import('./ws-runtime'),
         createRuntimeDependencies,
         startServer,
         fail: (code: number) => process.exit(code),

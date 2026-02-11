@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import WSEsm from '../../server/ws-runtime-esm';
+import WsRuntimeModule from '../../server/ws-runtime';
 
 const originalConsoleInfo = console.info;
 
@@ -42,7 +42,7 @@ function createSocketMock() {
     };
 }
 
-const runtimes = [{ label: 'esm', ws: WSEsm }] as const;
+const runtimes = [{ label: 'esm', ws: WsRuntimeModule }] as const;
 
 for (const runtime of runtimes) {
     test(`ws runtime parity (${runtime.label}): malformed JSON closes with INVALID_PAYLOAD`, () => {

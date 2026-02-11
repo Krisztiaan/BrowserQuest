@@ -1,17 +1,17 @@
 import { expect, test } from 'bun:test';
-import WSEsm, {
+import WsRuntimeModule, {
     CLOSE_CODES as CLOSE_CODES_ESM,
     createWebSocketRuntimeClasses as createWebSocketRuntimeClassesEsm,
     MultiVersionWebsocketServer as MultiVersionWebsocketServerESM,
     wsWebSocketConnection as WsWebSocketConnectionESM,
-} from '../../server/ws-runtime-esm';
+} from '../../server/ws-runtime';
 
-test('ws runtime esm exports websocket contract', () => {
-    expect(typeof WSEsm).toBe('object');
-    expect(WSEsm.CLOSE_CODES).toBe(CLOSE_CODES_ESM);
-    expect(WSEsm.MultiVersionWebsocketServer).toBe(MultiVersionWebsocketServerESM);
-    expect(WSEsm.wsWebSocketConnection).toBe(WsWebSocketConnectionESM);
-    expect(WSEsm.createWebSocketRuntimeClasses).toBe(createWebSocketRuntimeClassesEsm);
+test('ws runtime exports websocket contract', () => {
+    expect(typeof WsRuntimeModule).toBe('object');
+    expect(WsRuntimeModule.CLOSE_CODES).toBe(CLOSE_CODES_ESM);
+    expect(WsRuntimeModule.MultiVersionWebsocketServer).toBe(MultiVersionWebsocketServerESM);
+    expect(WsRuntimeModule.wsWebSocketConnection).toBe(WsWebSocketConnectionESM);
+    expect(WsRuntimeModule.createWebSocketRuntimeClasses).toBe(createWebSocketRuntimeClassesEsm);
     expect(CLOSE_CODES_ESM.INVALID_PAYLOAD).toBe(1007);
     expect(CLOSE_CODES_ESM.UNSUPPORTED_DATA).toBe(1003);
     expect(typeof createWebSocketRuntimeClassesEsm).toBe('function');

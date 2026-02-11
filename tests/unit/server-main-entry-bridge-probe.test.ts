@@ -21,7 +21,7 @@ function createMatchingBridgeContracts() {
     };
 
     return {
-        wsEsm: {
+        wsRuntime: {
             default: {
                 CLOSE_CODES: closeCodes,
                 MultiVersionWebsocketServer,
@@ -43,7 +43,7 @@ test('bridge probe does nothing when probe mode is disabled', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        importWsEsm: async () => {
+        importWsRuntime: async () => {
             throw new Error('should_not_import');
         },
         fail: (code) => {
@@ -67,7 +67,7 @@ test('bridge probe emits success when bridge contract matches', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        importWsEsm: async () => contracts.wsEsm,
+        importWsRuntime: async () => contracts.wsRuntime,
         fail: (code) => {
             failCode = code;
         },
@@ -95,7 +95,7 @@ test('bridge probe emits forced-failure diagnostics and exits', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        importWsEsm: async () => contracts.wsEsm,
+        importWsRuntime: async () => contracts.wsRuntime,
         fail: (code) => {
             failCode = code;
         },
@@ -116,7 +116,7 @@ test('bridge probe emits contract mismatch diagnostics and exits', async () => {
     let failCode: number | null = null;
     const contracts = createMatchingBridgeContracts();
     const mismatchedEsm = {
-        ...contracts.wsEsm,
+        ...contracts.wsRuntime,
         CLOSE_CODES: {
             NORMAL: 1000,
             UNSUPPORTED_DATA: 1003,
@@ -131,7 +131,7 @@ test('bridge probe emits contract mismatch diagnostics and exits', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        importWsEsm: async () => mismatchedEsm,
+        importWsRuntime: async () => mismatchedEsm,
         fail: (code) => {
             failCode = code;
         },

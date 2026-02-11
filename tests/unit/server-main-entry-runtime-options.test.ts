@@ -13,7 +13,7 @@ test('startup runtime options always inject esm websocket runtime through depend
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
         },
-        importWsEsm: async () => ({ default: wsDefault }),
+        importWsRuntime: async () => ({ default: wsDefault }),
         createRuntimeDependencies: (overrides) => {
             receivedOverrides = overrides as Record<string, unknown>;
             return runtimeDependencies;
@@ -46,7 +46,7 @@ test('startup runtime options ignore removed runtime-mode env toggles', async ()
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
         },
-        importWsEsm: async () => ({ default: { id: 'ws-esm-default' } }),
+        importWsRuntime: async () => ({ default: { id: 'ws-esm-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         fail: () => {
             // no-op
@@ -72,7 +72,7 @@ test('startup runtime options emit load-error diagnostics when esm websocket run
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
         },
-        importWsEsm: async () => {
+        importWsRuntime: async () => {
             throw new Error('ws_import_failed');
         },
         createRuntimeDependencies: () => ({}),

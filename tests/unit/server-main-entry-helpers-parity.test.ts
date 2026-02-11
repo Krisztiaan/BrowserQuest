@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import BridgeProbeModule, { runWebSocketBridgeProbeIfEnabled } from '../../server/main/bridge-probe';
-import BootEnvelopeModule, { runMainEsmBootEnvelope } from '../../server/main/boot-envelope';
+import BootEnvelopeModule, { runMainEntryBootEnvelope } from '../../server/main/boot-envelope';
 import ConfigSourceModule, { loadConfigFile, resolveActiveConfig } from '../../server/main/config-source';
 import PreflightFailuresModule, {
     ensureConfigPreflightValid,
@@ -20,9 +20,9 @@ test('main-entry bridge probe helper exports stable named/default contract', () 
 });
 
 test('main-entry boot-envelope helper exports stable named/default contract', () => {
-    expect(typeof runMainEsmBootEnvelope).toBe('function');
+    expect(typeof runMainEntryBootEnvelope).toBe('function');
     expect(typeof BootEnvelopeModule).toBe('object');
-    expect(BootEnvelopeModule.runMainEsmBootEnvelope).toBe(runMainEsmBootEnvelope);
+    expect(BootEnvelopeModule.runMainEntryBootEnvelope).toBe(runMainEntryBootEnvelope);
 });
 
 test('main-entry runtime-options helper exports stable named/default contract', () => {

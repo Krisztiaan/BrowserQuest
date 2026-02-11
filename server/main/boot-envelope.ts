@@ -2,7 +2,7 @@ import { resolveActiveConfig } from './config-source';
 import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './preflight-failures';
 import { runStartupWithConfig } from './startup-runner';
 
-export async function runMainEsmBootEnvelope<TStartupParams extends Record<string, unknown>>({
+export async function runMainEntryBootEnvelope<TStartupParams extends Record<string, unknown>>({
     defaultConfigPath,
     customConfigPath,
     validateConfig,
@@ -81,5 +81,5 @@ export async function runMainEsmBootEnvelope<TStartupParams extends Record<strin
 }
 
 export default {
-    runMainEsmBootEnvelope,
+    runMainEntryBootEnvelope,
 };

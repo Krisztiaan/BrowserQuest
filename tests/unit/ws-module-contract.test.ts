@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import WsModule from '../../server/ws-runtime-esm';
+import WsModule from '../../server/ws-runtime';
 
 function hasDuplicates(values: readonly string[]): boolean {
     return new Set(values).size !== values.length;

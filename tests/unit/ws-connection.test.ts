@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import WS from '../../server/ws-runtime-esm';
+import WS from '../../server/ws-runtime';
 const originalConsoleInfo = console.info;
 
 type Handler = (...args: unknown[]) => void;

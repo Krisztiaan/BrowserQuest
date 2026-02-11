@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
-import { runMainEsmBootEnvelope } from '../../server/main/boot-envelope';
+import { runMainEntryBootEnvelope } from '../../server/main/boot-envelope';
 
 test('boot envelope resolves config and starts runtime when preflight succeeds', async () => {
     const activeConfig = { port: 8000 };
     const calls: string[] = [];
 
-    const result = await runMainEsmBootEnvelope({
+    const result = await runMainEntryBootEnvelope({
         defaultConfigPath: './server/config.json',
         customConfigPath: './server/config_local.json',
         validateConfig: () => ({ isValid: true, errors: [] }),
@@ -39,7 +39,7 @@ test('boot envelope resolves config and starts runtime when preflight succeeds',
 test('boot envelope aborts before startup when no config is resolved', async () => {
     const calls: string[] = [];
 
-    const result = await runMainEsmBootEnvelope({
+    const result = await runMainEntryBootEnvelope({
         defaultConfigPath: './server/config.json',
         customConfigPath: './server/config_local.json',
         validateConfig: () => ({ isValid: true, errors: [] }),
@@ -73,7 +73,7 @@ test('boot envelope aborts before startup when preflight validation fails', asyn
     const activeConfig = { port: 'invalid' };
     const calls: string[] = [];
 
-    const result = await runMainEsmBootEnvelope({
+    const result = await runMainEntryBootEnvelope({
         defaultConfigPath: './server/config.json',
         customConfigPath: './server/config_local.json',
         validateConfig: () => ({ isValid: false, errors: [{ field: 'port' }] }),

@@ -11,7 +11,7 @@ afterEach(() => {
     Log.setLevel(originalLogLevel);
 });
 
-test('esm logger emits structured JSON events', () => {
+test('logger emits structured JSON events', () => {
     const lines: string[] = [];
     console.info = (...args: unknown[]) => {
         lines.push(args.join(' '));
@@ -29,7 +29,7 @@ test('esm logger emits structured JSON events', () => {
     expect(typeof record.ts).toBe('string');
 });
 
-test('esm logger suppresses debug events when level is info', () => {
+test('logger suppresses debug events when level is info', () => {
     const lines: string[] = [];
     console.info = (...args: unknown[]) => {
         lines.push(args.join(' '));
@@ -42,7 +42,7 @@ test('esm logger suppresses debug events when level is info', () => {
     expect(lines.length).toBe(0);
 });
 
-test('esm logger singleton instance is shared and setLevel guards invalid values', () => {
+test('logger singleton instance is shared and setLevel guards invalid values', () => {
     const loggerA = Log.getLogger();
     const loggerB = Log.getLogger();
 
