@@ -41,7 +41,7 @@ class Metrics extends Evented<MetricsEvents> {
     constructor(config: MetricsConfig, options?: RuntimeOptions) {
         super();
         const self = this;
-        const runtimeOptions = options || {};
+        const runtimeOptions = options ?? {};
 
         this.config = config;
         this.isEnabled = false;
@@ -55,7 +55,7 @@ class Metrics extends Evented<MetricsEvents> {
                 return;
             }
             self.unavailableReasons[reason] = true;
-            self.onUnavailable(reason, fields || {});
+            self.onUnavailable(reason, fields ?? {});
         };
 
         const markReady = function (): void {

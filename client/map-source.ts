@@ -1,5 +1,5 @@
 import processMap from '../shared/maps/processmap';
-import tiledWorldMapJson from '../../assets/maps/tiled/world.json';
+import tiledWorldMapJson from '../assets/maps/tiled/world.json';
 import type { MusicKey } from './asset-key-domain';
 
 type ClientRuntimeMap = {

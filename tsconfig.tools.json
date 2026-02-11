@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "composite": true,
+    "strict": false,
+    "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-tools.tsbuildinfo"
+  },
+  "include": ["tools/**/*.ts", "shared/gametypes-browser.ts", "shared/entity-kind-domain.ts"],
+  "exclude": ["node_modules/**", "dist/**"]
+}

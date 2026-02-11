@@ -1,11 +1,60 @@
 # TODO Backlog (Open Tickets Only)
 
-Last updated: 2026-02-11 04:12 CET
+Last updated: 2026-02-11 14:26 CET
 Status legend: `todo` | `in_progress` | `done` | `blocked`
 
 ## Execution Queue (Work Order)
 
 1. Ticket 12 (`blocked`) - Rendering modernization (product-gated)
+
+## Ticket 15: Tooling Modernization (Native Bun/TS/Workflow Lane)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Remove legacy/redundant custom tool scripts that duplicate native workflow/Bun functionality.
+  - Keep only tools with active runtime/build/content value.
+  - Align scripts/workflows/docs with the simplified toolset.
+- Out of scope:
+  - Broad lint warning cleanup outside this slice.
+  - Rendering/product changes (Ticket 12).
+- Acceptance criteria:
+  - Removed obsolete tool scripts and script aliases.
+  - CI workflows no longer depend on removed tools and use current file paths.
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun run test:ws:runtime:decision`
+  - `bun run test:ws:runtime:parity`
+  - `bun run verify:modern`
+- Dependencies/blockers:
+  - None.
+- Recent execution:
+  - 2026-02-11 14:26 CET:
+    - Removed deprecated tooling scripts:
+      - `tools/check-runtime.ts`
+      - `tools/check-server-shadow-source-hardening.ts`
+      - `tools/check-package-mode-boundaries.ts`
+      - `tools/check-browser-workflow-drift.ts`
+      - `tools/check-dependency-drift.ts`
+      - `tools/node22-run.ts`
+      - `tools/run-ws-boundary-drill.ts`
+    - Simplified `package.json` scripts by removing legacy check wrappers and shim wrappers.
+    - Added tool typecheck project (`tsconfig.tools.json`) and wired solution references (`tsconfig.json`).
+    - Updated workflows:
+      - `verify-dependency-drift.yml` now uses native `bun outdated` parsing.
+      - `verify-ws-boundary-drill.yml` now runs native ws runtime test scripts directly and writes simple artifacts.
+      - Updated stale ws-runtime path filters to current filenames.
+    - Updated docs:
+      - Removed Node22 wrapper command references from `README.md` and `client/README.md`.
+      - Corrected map JSON import path in `client/map-source.ts` to unblock Vite build.
+    - Verification evidence:
+      - `bun run typecheck` passed.
+      - `bun run test:ws:runtime:decision` passed.
+      - `bun run test:ws:runtime:parity` passed.
+      - `bun run verify:modern` passed (lint warnings remain non-fatal).
+    - Next action:
+      - Return queue focus to Ticket 12 gate and next strict-lint hardening slice.
 
 ## Ticket 14: Redundancy Cleanup Baseline (Shared Types + Client Boundary)
 

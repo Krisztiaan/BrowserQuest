@@ -4,13 +4,12 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
-      - "server/ws-runtime-esm.ts"
+      - "server/ws-runtime.ts"
       - "server/ws-runtime-class-factory.ts"
       - "server/ws-runtime-class-factory-types.ts"
       - "shared/ws-close-codes.ts"
       - "tests/unit/ws-runtime-*.test.ts"
-      - "tests/unit/server-ws-esm.test.ts"
-      - "tools/run-ws-boundary-drill.ts"
+      - "tests/unit/server-ws-runtime.test.ts"
       - "package.json"
       - "bun.lock"
       - ".github/workflows/verify-ws-boundary-drill.yml"
@@ -39,11 +38,39 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Run websocket boundary drill
-        env:
-          BQ_WS_DRILL_SUMMARY_PATH: artifacts/ws-runtime-drill-summary.json
-          BQ_WS_DRILL_MARKDOWN_PATH: artifacts/ws-runtime-drill-summary.md
-        run: bun run test:ws:runtime:drill
+      - name: Run websocket runtime checks
+        shell: bash
+        run: |
+          mkdir -p artifacts
+          set +e
+          bun run test:ws:runtime:decision 2>&1 | tee artifacts/ws-runtime-decision.log
+          decision_status=${PIPESTATUS[0]}
+          bun run test:ws:runtime:parity 2>&1 | tee artifacts/ws-runtime-parity.log
+          parity_status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "${decision_status}" -eq 0 ]; then decision_result="PASS"; else decision_result="FAIL"; fi
+          if [ "${parity_status}" -eq 0 ]; then parity_result="PASS"; else parity_result="FAIL"; fi
+          overall_status=0
+          if [ "${decision_status}" -ne 0 ] || [ "${parity_status}" -ne 0 ]; then overall_status=1; fi
+
+          cat > artifacts/ws-runtime-drill-summary.md <<EOF
+          # Websocket Runtime Drill Summary
+
+          - decision: ${decision_result} (exit=${decision_status})
+          - parity: ${parity_result} (exit=${parity_status})
+          - overall: $([ "${overall_status}" -eq 0 ] && echo PASS || echo FAIL)
+          EOF
+
+          cat > artifacts/ws-runtime-drill-summary.json <<EOF
+          {
+            "decisionExitCode": ${decision_status},
+            "parityExitCode": ${parity_status},
+            "passed": $([ "${overall_status}" -eq 0 ] && echo true || echo false)
+          }
+          EOF
+
+          exit "${overall_status}"
 
       - name: Upload websocket runtime drill summary
         if: always()

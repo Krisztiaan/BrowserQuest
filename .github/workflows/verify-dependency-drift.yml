@@ -30,8 +30,22 @@ jobs:
         id: drift
         shell: bash
         run: |
-          bun tools/check-dependency-drift.ts --allow-drift --text dependency-drift.txt --json dependency-drift.json
-          drift_detected="$(node -e "const fs=require('fs'); const report=JSON.parse(fs.readFileSync('dependency-drift.json','utf8')); process.stdout.write(report.driftDetected ? 'true' : 'false');")"
+          bun outdated --no-progress > dependency-drift.txt
+          drift_detected="$(
+            awk -F'|' '
+              /^\|/ {
+                pkg=$2; cur=$3; upd=$4; latest=$5;
+                gsub(/^[ \t]+|[ \t]+$/, "", pkg);
+                gsub(/^[ \t]+|[ \t]+$/, "", cur);
+                gsub(/^[ \t]+|[ \t]+$/, "", upd);
+                gsub(/^[ \t]+|[ \t]+$/, "", latest);
+                if (pkg != "" && pkg != "Package" && pkg !~ /^-+$/ && cur != "" && upd != "" && latest != "") {
+                  found=1
+                }
+              }
+              END { print found ? "true" : "false" }
+            ' dependency-drift.txt
+          )"
           echo "drift_detected=${drift_detected}" >> "$GITHUB_OUTPUT"
 
       - name: Summarize dependency drift
@@ -54,4 +68,3 @@ jobs:
           name: dependency-drift-${{ github.run_id }}
           path: |
             dependency-drift.txt
-            dependency-drift.json

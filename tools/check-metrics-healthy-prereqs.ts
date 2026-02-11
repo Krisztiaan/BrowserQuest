@@ -1,11 +1,11 @@
 import * as net from 'node:net';
 
 function getHost() {
-  return process.env.BQ_TEST_METRICS_HOST || "127.0.0.1";
+  return process.env.BQ_TEST_METRICS_HOST ?? "127.0.0.1";
 }
 
 function getPort() {
-  const raw = process.env.BQ_TEST_METRICS_PORT || "11211";
+  const raw = process.env.BQ_TEST_METRICS_PORT ?? "11211";
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
     throw new Error(

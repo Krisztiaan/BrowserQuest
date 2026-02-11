@@ -17,8 +17,6 @@ Quickstart
 2. Start full-stack dev: `bun run dev`
 3. Open `http://localhost:5173/` (redirects to `client/modern.html`)
 
-If your shell Node is not `22.x`, use wrapper commands, e.g. `bun run verify:modern:node22`.
-
 Active Scripts
 --------------
 
@@ -30,20 +28,18 @@ Active Scripts
 - `bun run build:server`: runtime server artifact to `dist/server`
 - `bun run build:bundle`: deployable bundle artifact to `dist/bundle`
 - `bun run typecheck`: TypeScript solution build (`tsc -b tsconfig.json`)
+- `bun run typecheck:tools`: Type-check tooling scripts (`tools/**/*.ts`)
 - `bun run verify:modern`: canonical modern verify lane
-- `bun run verify:modern:node22`: Node22 policy wrapper for verify lane
 - `bun run content:mobs:generate`: regenerate mob balance artifact from canonical content
 - `bun run check:content:mobs`: verify generated mob balance artifact is up to date
 - `bun run content:item-loot:generate`: regenerate client item loot-message artifact from canonical content
 - `bun run check:content:item-loot`: verify generated item loot-message artifact is up to date
-- `bun run check:browser:workflow-drift`: guard browser CI command/config drift
-
 Verification
 ------------
 
 `verify:modern` runs:
 
-- runtime/tooling checks (`check:*` modern lane)
+- generated-content drift checks
 - TypeScript solution build
 - lint + format check
 - test suite
@@ -79,7 +75,7 @@ Current lint/format scope is intentionally bounded while legacy modules are incr
 - `lint` currently targets an explicit modern-runtime allowlist in `package.json` (server/shared/client boundary-critical modules).
 - `format`/`format:check` currently target:
   - `server/{log.ts,utils.ts,format.ts}`
-  - `client/compat/*.ts`
+  - `client/platform/*.ts`
   - `client/preflight.ts`
   - `shared/gametypes-browser.ts`
   - `tests/**/*.ts`

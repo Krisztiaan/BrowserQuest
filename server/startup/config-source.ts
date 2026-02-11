@@ -43,7 +43,7 @@ export async function resolveActiveConfig({
 }): Promise<{ defaultConfig: ConfigObject | null; localConfig: ConfigObject | null; activeConfig: ConfigObject | null }> {
     const defaultConfig = await loadConfigFileFn(defaultConfigPath);
     const localConfig = await loadConfigFileFn(customConfigPath);
-    const activeConfig = localConfig || defaultConfig;
+    const activeConfig = localConfig ?? defaultConfig;
 
     return {
         defaultConfig,

@@ -20,7 +20,6 @@ Build and verification
 
 - Production client build: `bun run build:vite` (output: `dist/vite`)
 - Full modern verify lane: `bun run verify:modern`
-- Node22 policy verify: `bun run verify:modern:node22`
 
 Support policy
 --------------
