@@ -1,5 +1,5 @@
 import { runWebSocketBridgeProbeIfEnabled } from './bridge-probe';
-import { resolveStartupRuntimeOptions } from './runtime-options';
+import { resolveStartupRuntimeOptions } from './options';
 
 type BridgeProbeParams = Parameters<typeof runWebSocketBridgeProbeIfEnabled>[0];
 type StartupWsImport = () => Promise<{ default: unknown; [key: string]: unknown }>;

@@ -1,8 +1,8 @@
 import { runWebSocketBridgeProbeIfEnabled } from './startup/bridge-probe';
-import { runMainEntryBootEnvelope } from './startup/boot-envelope';
-import { createProbeEventEmitter, createStructuredEventEmitter } from './startup/structured-event';
+import { runMainEntryBootEnvelope } from './startup/boot';
+import { createProbeEventEmitter, createStructuredEventEmitter } from './startup/events';
 import { validateConfig } from './config-preflight';
-import { resolveStartupRuntimeOptions } from './startup/runtime-options';
+import { resolveStartupRuntimeOptions } from './startup/options';
 import Utils from './utils';
 import { createRuntimeDependencies, main as startServer } from './runtime';
 

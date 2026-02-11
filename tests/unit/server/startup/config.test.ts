@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { loadConfigFile, resolveActiveConfig } from '../../../../server/startup/config-source';
+import { loadConfigFile, resolveActiveConfig } from '../../../../server/startup/config';
 
 test('config source resolver prefers local config over default config', async () => {
     const defaultConfig = { port: 8000, source: 'default' };

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { resolveStartupRuntimeOptions } from '../../../../server/startup/runtime-options';
+import { resolveStartupRuntimeOptions } from '../../../../server/startup/options';
 
 test('startup runtime options always inject runtime websocket runtime through dependency seam', async () => {
     const events: Array<Record<string, unknown>> = [];

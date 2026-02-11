@@ -1,6 +1,6 @@
-import { resolveActiveConfig } from './config-source';
-import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './preflight-failures';
-import { runStartupWithConfig } from './startup-runner';
+import { resolveActiveConfig } from './config';
+import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './preflight';
+import { runStartupWithConfig } from './runner';
 
 export async function runMainEntryBootEnvelope<TStartupParams extends Record<string, unknown>>({
     defaultConfigPath,
