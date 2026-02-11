@@ -9,7 +9,7 @@ import type {
     RuntimeServerEventEmitter,
     RuntimeWorld,
     ServerConfig,
-} from './main-runtime-types';
+} from './runtime-types';
 import { SERVER_EVENT_NAMES, type RuntimeEventName } from './server-event-names';
 import ConfigPreflight from './config-preflight';
 import MetricsRuntime from './metrics-runtime';

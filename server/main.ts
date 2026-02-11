@@ -18,8 +18,8 @@ import {
     installShutdownHandlers,
     triggerFatalTestEvent,
     createRuntimeCleanup,
-} from './main-runtime';
-import type { ServerConfig } from './main-runtime-types';
+} from './runtime';
+import type { ServerConfig } from './runtime-types';
 
 type RuntimeConfig = ServerConfig;
 type NullableRuntimeConfig = RuntimeConfig | null;

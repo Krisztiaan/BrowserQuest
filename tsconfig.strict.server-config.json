@@ -4,5 +4,5 @@
         "exactOptionalPropertyTypes": true,
         "tsBuildInfoFile": ".tmp/tsbuildinfo/strict-server-config.tsbuildinfo"
     },
-    "include": ["server/server-event-names.ts", "server/main-runtime-types.ts", "server/config-preflight.ts"]
+    "include": ["server/server-event-names.ts", "server/runtime-types.ts", "server/config-preflight.ts"]
 }

@@ -34,7 +34,7 @@
     ],
     "exclude": [
         "server/world-server.ts",
-        "server/main-runtime.ts",
+        "server/runtime.ts",
         "server/main.ts",
         "server/entry.ts",
         "server/main/*.ts"

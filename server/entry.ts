@@ -7,9 +7,9 @@ import type {
     MainRuntimeDependencies,
     MainRuntimeOptions,
     ServerConfig,
-} from './main-runtime-types';
+} from './runtime-types';
 import Utils from './utils';
-import { createRuntimeDependencies, main as startServer } from './main-runtime';
+import { createRuntimeDependencies, main as startServer } from './runtime';
 
 const defaultConfigPath = './server/config.json';
 const customConfigPath = process.argv[2] || './server/config_local.json';
