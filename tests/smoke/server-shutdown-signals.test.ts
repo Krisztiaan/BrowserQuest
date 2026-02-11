@@ -82,7 +82,7 @@ async function runSignalShutdownScenario(signal: 'SIGTERM' | 'SIGINT') {
 
     try {
         proc = Bun.spawn({
-            cmd: ['bun', 'server/main-esm.ts', configPath],
+            cmd: ['bun', 'server/entry.ts', configPath],
             cwd: repoRoot,
             stdout: 'ignore',
             stderr: 'pipe',

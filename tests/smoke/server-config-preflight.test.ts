@@ -106,7 +106,7 @@ test('server fails fast with structured config-invalid event when config preflig
     const stderrLines: string[] = [];
 
     proc = Bun.spawn({
-        cmd: ['bun', 'server/main-esm.ts', configPath],
+        cmd: ['bun', 'server/entry.ts', configPath],
         cwd: repoRoot,
         stdout: 'pipe',
         stderr: 'pipe',

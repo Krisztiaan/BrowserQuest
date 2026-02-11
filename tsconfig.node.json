@@ -33,11 +33,11 @@
         "client/asset-key-domain.ts"
     ],
     "exclude": [
-        "server/worldserver.ts",
+        "server/world-server.ts",
         "server/worldserver-*.ts",
         "server/main-runtime.ts",
         "server/main.ts",
-        "server/main-esm.ts",
+        "server/entry.ts",
         "server/main-esm-*.ts"
     ]
 }

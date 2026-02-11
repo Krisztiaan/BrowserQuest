@@ -6,7 +6,7 @@ The game server runtime baseline is Node.js `22.x` (recommended) or Bun `>= 1.3.
 Dependencies are managed at the repository root via Bun:
 
 - Install: `bun install`
-- Run: `bun run start:server` (or `bun server/main-esm.ts`)
+- Run: `bun run start:server` (or `bun server/entry.ts`)
 
 
 Configuration
@@ -99,13 +99,13 @@ Deployment
 Runtime source deploy (direct):
 
 1. Copy `server/`, `shared/`, and `assets/` to the target host.
-2. Start with `bun server/main-esm.ts server/config.json`.
+2. Start with `bun server/entry.ts server/config.json`.
 
 Bundle deploy (recommended baseline):
 
 1. From repo root: `bun run build:bundle`.
 2. Deploy `dist/bundle/**`.
-3. Start from bundle root with `bun server/main-esm.ts server/config.json`.
+3. Start from bundle root with `bun server/entry.ts server/config.json`.
 
 `assets/maps/tiled/world.json` is a runtime dependency via `map_filepath` defaults.
 

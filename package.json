@@ -12,7 +12,7 @@
     "dev:client": "vite",
     "dev:server": "bun run start:server",
     "dev:vite:full": "bun run tools/dev-vite.ts",
-    "start:server": "bun server/main-esm.ts",
+    "start:server": "bun server/entry.ts",
     "content:mobs:generate": "bun tools/content-mob-properties.ts generate",
     "check:content:mobs": "bun tools/content-mob-properties.ts check",
     "content:item-loot:generate": "bun tools/content-item-loot-messages.ts generate",

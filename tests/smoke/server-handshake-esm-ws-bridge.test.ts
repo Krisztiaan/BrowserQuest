@@ -148,7 +148,7 @@ test("esm server entry with websocket bridge probe sends initial 'go' handshake"
 
     const events: EventRecord[] = [];
     proc = Bun.spawn({
-        cmd: ['bun', 'server/main-esm.ts', configPath],
+        cmd: ['bun', 'server/entry.ts', configPath],
         cwd: repoRoot,
         env: {
             ...process.env,
@@ -207,7 +207,7 @@ test('esm server entry websocket bridge probe fails fast with structured failure
     );
 
     proc = Bun.spawn({
-        cmd: ['bun', 'server/main-esm.ts', configPath],
+        cmd: ['bun', 'server/entry.ts', configPath],
         cwd: repoRoot,
         env: {
             ...process.env,

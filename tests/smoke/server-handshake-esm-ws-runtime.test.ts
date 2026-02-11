@@ -114,7 +114,7 @@ test("esm server entry uses default ESM websocket runtime and sends 'go' handsha
 
     const events: EventRecord[] = [];
     proc = Bun.spawn({
-        cmd: ['bun', 'server/main-esm.ts', configPath],
+        cmd: ['bun', 'server/entry.ts', configPath],
         cwd: repoRoot,
         stdout: 'pipe',
         stderr: 'pipe',

@@ -144,7 +144,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:11 CET:
     - Centralized map area/chest config guards and types into `server/worldserver-map-config.ts`.
-    - Removed duplicated inline map-config guard definitions from `server/worldserver.ts` and reused the shared module from world bootstrap seams.
+    - Removed duplicated inline map-config guard definitions from `server/world-server.ts` and reused the shared module from world bootstrap seams.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
@@ -153,20 +153,20 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
       - `bun run verify:modern:node22` passed after formatting fix.
   - 2026-02-11 02:09 CET:
     - Extracted `World.run()` map-ready bootstrap orchestration into `server/worldserver-map-bootstrap.ts`.
-    - Reduced `server/worldserver.ts` runtime map-ready callback to dependency wiring (config filtering + area constructors).
+    - Reduced `server/world-server.ts` runtime map-ready callback to dependency wiring (config filtering + area constructors).
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:07 CET:
-    - Extracted world tick/regen interval loop from `server/worldserver.ts` into `server/worldserver-update-loop.ts`.
+    - Extracted world tick/regen interval loop from `server/world-server.ts` into `server/worldserver-update-loop.ts`.
     - Reduced `World.run()` to orchestration by delegating update-loop lifecycle startup.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:06 CET:
-    - Extracted constructor runtime event wiring (`entityAttack` + `regenTick`) from `server/worldserver.ts` into `server/worldserver-runtime-events.ts`.
+    - Extracted constructor runtime event wiring (`entityAttack` + `regenTick`) from `server/world-server.ts` into `server/worldserver-runtime-events.ts`.
     - Reduced `World` constructor to orchestration-only wiring by delegating runtime listener installation.
     - Verification evidence:
       - `bun run typecheck` passed.

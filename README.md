@@ -22,7 +22,7 @@ If your shell Node is not `22.x`, use wrapper commands, e.g. `bun run verify:mod
 Active Scripts
 --------------
 
-- `bun run dev`: full-stack dev (`server/main-esm.ts` + Vite)
+- `bun run dev`: full-stack dev (`server/entry.ts` + Vite)
 - `bun run dev:client`: Vite-only dev server
 - `bun run dev:server`: server-only runtime
 - `bun run start:server`: production-style server entry

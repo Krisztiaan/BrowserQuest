@@ -57,7 +57,7 @@ async function main(): Promise<void> {
         built_at: new Date().toISOString(),
         artifact_root: 'dist/bundle',
         client_root: 'dist/bundle/client',
-        server_entry: 'dist/bundle/server/main-esm.ts',
+        server_entry: 'dist/bundle/server/entry.ts',
         server_config: 'dist/bundle/server/config.json',
     };
 

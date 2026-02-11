@@ -2,24 +2,37 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 
 const repoRoot = path.resolve(import.meta.dir, '..');
-const roots = [path.join(repoRoot, 'server', 'js'), path.join(repoRoot, 'shared', 'js')];
+const roots = [path.join(repoRoot, 'server'), path.join(repoRoot, 'shared')];
 
 function listRuntimeEsmFiles(rootDir) {
   if (!fs.existsSync(rootDir)) return [];
-  return fs.readdirSync(rootDir, { withFileTypes: true })
-    .filter((entry) => {
-      if (!entry.isFile()) return false;
-      if (rootDir.endsWith(path.join('server', 'js'))) {
-        return (
-          entry.name.endsWith('-esm.ts') ||
-          entry.name === 'main-esm.ts' ||
-          entry.name.startsWith('main-esm-') ||
-          entry.name === 'ws-runtime-class-factory.ts'
-        );
+  const files = [];
+  const stack = [rootDir];
+  while (stack.length > 0) {
+    const currentDir = stack.pop();
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
+    for (const entry of entries) {
+      const absolute = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        stack.push(absolute);
+        continue;
       }
-      return entry.name.endsWith('-esm.ts');
-    })
-    .map((entry) => path.join(rootDir, entry.name));
+      if (!entry.isFile()) {
+        continue;
+      }
+      const relative = path.relative(repoRoot, absolute).replace(/\\/g, '/');
+      const isRuntimeBridgeFile =
+        entry.name.endsWith('-esm.ts') ||
+        relative === 'server/entry.ts' ||
+        relative.startsWith('server/main/') ||
+        relative === 'server/ws-runtime-class-factory.ts' ||
+        relative === 'server/ws-runtime-esm.ts';
+      if (isRuntimeBridgeFile) {
+        files.push(absolute);
+      }
+    }
+  }
+  return files;
 }
 
 const offenders = [];
