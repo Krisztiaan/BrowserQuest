@@ -1,6 +1,17 @@
 import { WS_EVENT_NAMES } from './server-event-names';
-import type { WebSocketRuntimeClasses, WebSocketRuntimeFactoryDeps } from './ws-runtime-class-factory-types';
+import type {
+    WebSocketRuntimeClasses,
+    WebSocketRuntimeConnection,
+    WebSocketRuntimeFactoryDeps,
+} from './ws-runtime-class-factory-types';
+import { getHealthzResponseBody, getVersionResponseBody } from './runtime-health-response';
 import { TypedEventEmitter } from '../../shared/js/typed-event-emitter';
+import { Evented } from '../../shared/js/evented';
+
+type WebSocketRuntimeServerEvents = {
+    connect: [connection: WebSocketRuntimeConnection];
+    error: [error: unknown];
+};
 
 export function createWebSocketRuntimeClasses({
     log,
@@ -12,11 +23,7 @@ export function createWebSocketRuntimeClasses({
     parseUrlPathname,
     logConnectionEvent,
 }: WebSocketRuntimeFactoryDeps): WebSocketRuntimeClasses {
-    /**
-     * @param {unknown} request
-     * @returns {string}
-     */
-    function resolveRemoteAddress(request) {
+    function resolveRemoteAddress(request: unknown): string {
         if (!request || typeof request !== 'object' || !('socket' in request)) {
             return 'unknown';
         }
@@ -27,28 +34,19 @@ export function createWebSocketRuntimeClasses({
         return typeof socket.remoteAddress === 'string' ? socket.remoteAddress : 'unknown';
     }
 
-    class Server {
+    class Server extends Evented<WebSocketRuntimeServerEvents> {
         port;
         _connections;
         _counter;
-        events;
         statusProvider;
         _httpServer;
         _wss;
 
         constructor(port) {
+            super();
             this.port = port;
             this._connections = {};
             this._counter = 0;
-            this.events = new TypedEventEmitter();
-        }
-
-        onConnect(callback) {
-            this.events.on('connect', callback);
-        }
-
-        onError(callback) {
-            this.events.on('error', callback);
         }
 
         broadcast(_message) {
@@ -126,11 +124,11 @@ export function createWebSocketRuntimeClasses({
             }
         }
 
-        closeInvalidPayload(logError) {
+        closeInvalidPayload(logError: unknown) {
             this.close(logError, CLOSE_CODES.INVALID_PAYLOAD);
         }
 
-        closeUnsupportedData(logError) {
+        closeUnsupportedData(logError: unknown) {
             this.close(logError, CLOSE_CODES.UNSUPPORTED_DATA);
         }
     }
@@ -187,6 +185,20 @@ export function createWebSocketRuntimeClasses({
             this._httpServer = createHttpServer((request, response) => {
                 const requestPath = parseUrlPathname(request.url);
 
+                if (requestPath === '/healthz') {
+                    response.writeHead(200);
+                    response.write(getHealthzResponseBody());
+                    response.end();
+                    return;
+                }
+
+                if (requestPath === '/version') {
+                    response.writeHead(200);
+                    response.write(getVersionResponseBody());
+                    response.end();
+                    return;
+                }
+
                 if (requestPath === '/status' && this.statusProvider) {
                     response.writeHead(200);
                     response.write(this.statusProvider());
@@ -212,14 +224,14 @@ export function createWebSocketRuntimeClasses({
             this._wss.on('error', (err) => {
                 log.error('WebSocket server error: ' + err);
                 log.event('error', WS_EVENT_NAMES.SERVER_ERROR, { error: String(err) });
-                this.events.emit('error', err);
+                this.emit('error', err);
             });
 
             this._wss.on('connection', (connection, req) => {
                 const remoteAddress = resolveRemoteAddress(req);
                 const wsConnection = new wsWebSocketConnection(this._createId(), connection, this, remoteAddress);
 
-                this.events.emit('connect', wsConnection);
+                this.emit('connect', wsConnection);
                 this.addConnection(wsConnection);
                 logConnectionEvent('info', WS_EVENT_NAMES.CONNECTION_OPEN, wsConnection);
             });
@@ -235,8 +247,8 @@ export function createWebSocketRuntimeClasses({
             });
         }
 
-        onRequestStatus(status_callback) {
-            this.statusProvider = status_callback;
+        onRequestStatus(statusProvider) {
+            this.statusProvider = statusProvider;
         }
     }
 

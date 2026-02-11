@@ -15,8 +15,8 @@ export interface RuntimeWorld {
 }
 
 export interface RuntimeServer {
-    onConnect(callback: (connection: RuntimeConnection) => void): void;
-    onError(callback: (...args: unknown[]) => void): void;
+    on(eventName: 'connect', callback: (connection: RuntimeConnection) => void): void;
+    on(eventName: 'error', callback: (...args: unknown[]) => void): void;
     onRequestStatus(callback: () => string): void;
 }
 

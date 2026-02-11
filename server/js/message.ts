@@ -1,5 +1,5 @@
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import Types from '../../shared/js/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 
 type MessageValue = number | string | number[];
 export type SerializedMessage = MessageValue[];

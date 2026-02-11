@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": ["bun-types", "node"],
+    "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-browser.tsbuildinfo"
+  },
+  "include": [
+    "client/js-esm/achievement-domain.ts",
+    "client/js-esm/asset-key-domain.ts",
+    "client/js-esm/client-boundary-types.ts",
+    "client/js-esm/compat/gametypes.ts",
+    "shared/js/entity-kind-domain.ts",
+    "shared/js/gametypes-browser.ts",
+    "shared/js/protocol-schema.ts",
+    "shared/js/protocol-contract.ts",
+    "shared/js/protocol-contract-types.ts",
+    "shared/js/connection-status.ts",
+    "shared/js/ws-close-codes.ts",
+    "shared/js/typed-event-emitter.ts",
+    "shared/js/evented.ts"
+  ]
+}

@@ -116,7 +116,7 @@ class Map {
             var worker = new Worker(new URL('./mapworker', import.meta.url), { type: 'module' });
             worker.postMessage(1);
 
-            worker.onmessage = function (event) {
+            worker.onmessage = function (event: MessageEvent<RuntimeMapPayload>) {
                 var map = event.data;
                 self._initMap(map);
                 self.grid = map.grid;
@@ -134,8 +134,9 @@ class Map {
                     self.mapLoaded = true;
                     self._checkReady();
                 })
-                .catch(function (error) {
-                    log.error('Failed to load map JSON: ' + error.message);
+                .catch(function (error: unknown) {
+                    const message = error instanceof Error ? error.message : String(error);
+                    log.error('Failed to load map JSON: ' + message);
                 });
         }
     }
@@ -180,7 +181,7 @@ class Map {
         var doors: Record<number, DoorDestination> = {},
             self = this;
 
-        (map.doors || []).forEach(function (door) {
+        (map.doors || []).forEach(function (door: RawDoor) {
             var o;
             const fromX = Number(door.x);
             const fromY = Number(door.y);
@@ -253,7 +254,7 @@ class Map {
         var x = 0,
             y = 0;
 
-        var getX = function (num, w) {
+        var getX = function (num: number, w: number): number {
             if (num == 0) {
                 return 0;
             }
@@ -297,12 +298,12 @@ class Map {
             }
         }
 
-        this.collisions.forEach(function (tileIndex) {
+        this.collisions.forEach(function (tileIndex: number) {
             var pos = self.tileIndexToGridPosition(tileIndex + 1);
             self.grid[pos.y][pos.x] = 1;
         });
 
-        this.blocking.forEach(function (tileIndex) {
+        this.blocking.forEach(function (tileIndex: number) {
             var pos = self.tileIndexToGridPosition(tileIndex + 1);
             if (self.grid[pos.y] !== undefined) {
                 self.grid[pos.y][pos.x] = 1;
@@ -331,8 +332,6 @@ class Map {
 
     /**
      * Returns true if the given position is located within the dimensions of the map.
-     *
-     * @returns {Boolean} Whether the position is out of bounds.
      */
     isOutOfBounds(x: number, y: number): boolean {
         return Number.isInteger(x) && Number.isInteger(y) && (x < 0 || x >= this.width || y < 0 || y >= this.height);
@@ -343,7 +342,6 @@ class Map {
      * Used by the renderer to know which tiles to draw after all the entities
      * have been drawn.
      *
-     * @param {Number} id The tile id in the tileset
      * @see Renderer.drawHighTiles
      */
     isHighTile(id: number): boolean {
@@ -352,7 +350,6 @@ class Map {
 
     /**
      * Returns true if the tile is animated. Used by the renderer.
-     * @param {Number} id The tile id in the tileset
      */
     isAnimatedTile(id: number): boolean {
         return id + 1 in this.animated;
@@ -387,7 +384,7 @@ class Map {
 
     _getCheckpoints(map: RuntimeMapPayload): CheckpointArea[] {
         var checkpoints: CheckpointArea[] = [];
-        map.checkpoints.forEach(function (cp) {
+        map.checkpoints.forEach(function (cp: RawCheckpoint) {
             const area = new Area(Number(cp.x), Number(cp.y), Number(cp.w), Number(cp.h));
             area.id = typeof cp.id === 'string' || typeof cp.id === 'number' ? cp.id : undefined;
             checkpoints.push(area);
@@ -396,7 +393,7 @@ class Map {
     }
 
     getCurrentCheckpoint(entity: { gridX: number; gridY: number }): CheckpointArea | undefined {
-        return this.checkpoints.find(function (checkpoint) {
+        return this.checkpoints.find(function (checkpoint: CheckpointArea) {
             return checkpoint.contains(entity);
         });
     }

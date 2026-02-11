@@ -29,7 +29,7 @@ type SessionGameHost = {
 };
 
 export function installGameSessionBootstrapHandlers(game: SessionGameHost, client: SessionClient): void {
-    client.on('dispatched', function (host, port) {
+    client.on('dispatched', function (host: string, port: number) {
         log.debug('Dispatched to game server ' + host + ':' + port);
 
         client.host = host;
@@ -37,7 +37,7 @@ export function installGameSessionBootstrapHandlers(game: SessionGameHost, clien
         client.connect();
     });
 
-    client.on('connected', function () {
+    client.on('connected', function (): void {
         log.info('Starting client/server handshake');
 
         game.player.name = game.username;
@@ -46,18 +46,18 @@ export function installGameSessionBootstrapHandlers(game: SessionGameHost, clien
         game.sendHello();
     });
 
-    client.on('entityList', function (list) {
-        var entityIds = Object.values(game.entities).map(function (entity) {
+    client.on('entityList', function (list: EntityId[]) {
+        var entityIds = Object.values(game.entities).map(function (entity: SessionEntity) {
             return entity.id;
         });
-        var knownIds = entityIds.filter(function (id) {
+        var knownIds = entityIds.filter(function (id: EntityId) {
             return list.includes(id);
         });
-        var newIds = list.filter(function (id) {
+        var newIds = list.filter(function (id: EntityId) {
             return !knownIds.includes(id);
         });
 
-        game.obsoleteEntities = Object.values(game.entities).filter(function (entity) {
+        game.obsoleteEntities = Object.values(game.entities).filter(function (entity: SessionEntity) {
             return !knownIds.includes(entity.id) && entity.id !== game.player.id;
         });
 

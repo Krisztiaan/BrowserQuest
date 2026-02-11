@@ -55,107 +55,72 @@ type SpawnCharacterRegistrarHost<TEntity extends SpawnEntity> = {
 export function registerSpawnCharacterHandler<TEntity extends SpawnEntity>(
     host: SpawnCharacterRegistrarHost<TEntity>
 ): void {
-    host.client.on('spawnCharacter', function (entity, x, y, orientation, targetId) {
-        const spawnEntity = entity as TEntity;
+    const directHost = {
+        unregisterEntityPosition: host.unregisterEntityPosition,
+        registerEntityDualPosition: host.registerEntityDualPosition,
+        registerEntityPosition: host.registerEntityPosition,
+        isDoor: host.isDoor,
+        getDoorDestination: host.getDoorDestination,
+        findPath: host.findPath,
+        logInfo: host.logInfo,
+        recordMobDeathPosition: host.recordMobDeathPosition,
+        getDeathSprite: host.getDeathSprite,
+        removeEntity: host.removeEntity,
+        removeFromRenderingGrid: host.removeFromRenderingGrid,
+        isPlayerTarget: host.isPlayerTarget,
+        disengagePlayer: host.disengagePlayer,
+        removeFromEntityGrid: host.removeFromEntityGrid,
+        removeFromPathingGrid: host.removeFromPathingGrid,
+        playKillSoundIfVisible: host.playKillSoundIfVisible,
+        updateCursor: host.updateCursor,
+        resolveTarget: host.resolveTarget,
+        createAttackLink: host.createAttackLink,
+    };
 
-        handleSpawnCharacterEntry({
-            entity: spawnEntity,
-            playerId: host.playerId,
-            entityExists(entityId) {
-                return host.entityExists(entityId);
-            },
-            handleSpawn() {
-                applySpawnedCharacterBootstrapFromHost({
-                    entity: spawnEntity,
-                    x,
-                    y,
-                    orientation,
-                    getSprite(spriteName) {
-                        return host.getSprite(spriteName);
-                    },
-                    addEntity(spawnedEntity) {
-                        host.addEntity(spawnedEntity as TEntity);
-                    },
-                    describeKind(kind) {
-                        return host.describeKind(kind);
-                    },
-                    logDebug(message) {
-                        host.logDebug(message);
-                    },
-                });
+    host.client.on(
+        'spawnCharacter',
+        function (
+            entity: unknown,
+            x: number,
+            y: number,
+            orientation: number | undefined,
+            targetId: string | number | undefined
+        ) {
+            const spawnEntity = entity as TEntity;
 
-                installSpawnedCharacterOrchestration({
-                    entity,
-                    targetId,
-                    playerId: host.playerId,
-                    unregisterEntityPosition(character) {
-                        host.unregisterEntityPosition(character);
-                    },
-                    registerEntityDualPosition(character) {
-                        host.registerEntityDualPosition(character);
-                    },
-                    registerEntityPosition(character) {
-                        host.registerEntityPosition(character);
-                    },
-                    isDoor(gridX, gridY) {
-                        return host.isDoor(gridX, gridY);
-                    },
-                    getDoorDestination(gridX, gridY) {
-                        return host.getDoorDestination(gridX, gridY);
-                    },
-                    findPath(character, pathX, pathY, ignored) {
-                        return host.findPath(character, pathX, pathY, ignored);
-                    },
-                    logInfo(message) {
-                        host.logInfo(message);
-                    },
-                    recordMobDeathPosition(characterId, deathX, deathY) {
-                        host.recordMobDeathPosition(characterId, deathX, deathY);
-                    },
-                    getDeathSprite(character) {
-                        return host.getDeathSprite(character);
-                    },
-                    removeEntity(character) {
-                        host.removeEntity(character);
-                    },
-                    removeFromRenderingGrid(character, gridX, gridY) {
-                        host.removeFromRenderingGrid(character, gridX, gridY);
-                    },
-                    isPlayerTarget(character) {
-                        return host.isPlayerTarget(character);
-                    },
-                    disengagePlayer() {
-                        host.disengagePlayer();
-                    },
-                    removeFromEntityGrid(character, gridX, gridY) {
-                        host.removeFromEntityGrid(character, gridX, gridY);
-                    },
-                    removeFromPathingGrid(gridX, gridY) {
-                        host.removeFromPathingGrid(gridX, gridY);
-                    },
-                    playKillSoundIfVisible(character) {
-                        host.playKillSoundIfVisible(character);
-                    },
-                    updateCursor() {
-                        host.updateCursor();
-                    },
-                    assignBubbleTo(character) {
-                        host.assignBubbleTo(character);
-                    },
-                    resolveTarget(candidateTargetId) {
-                        return host.resolveTarget(candidateTargetId);
-                    },
-                    createAttackLink(attacker, target) {
-                        host.createAttackLink(attacker, target);
-                    },
-                });
-            },
-            logDuplicate(duplicateEntity) {
-                host.logDebug("Character " + duplicateEntity.id + " already exists. Don't respawn.");
-            },
-            logError(error) {
-                host.logError(error);
-            },
-        });
-    });
+            handleSpawnCharacterEntry({
+                entity: spawnEntity,
+                playerId: host.playerId,
+                entityExists: host.entityExists,
+                handleSpawn() {
+                    applySpawnedCharacterBootstrapFromHost({
+                        entity: spawnEntity,
+                        x,
+                        y,
+                        orientation,
+                        getSprite: host.getSprite,
+                        addEntity(spawnedEntity) {
+                            host.addEntity(spawnedEntity as TEntity);
+                        },
+                        describeKind: host.describeKind,
+                        logDebug: host.logDebug,
+                    });
+
+                    installSpawnedCharacterOrchestration({
+                        entity,
+                        targetId,
+                        playerId: host.playerId,
+                        ...directHost,
+                        assignBubbleTo(character) {
+                            host.assignBubbleTo(character);
+                        },
+                    });
+                },
+                logDuplicate(duplicateEntity) {
+                    host.logDebug("Character " + duplicateEntity.id + " already exists. Don't respawn.");
+                },
+                logError: host.logError,
+            });
+        }
+    );
 }

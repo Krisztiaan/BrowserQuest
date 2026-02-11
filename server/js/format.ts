@@ -1,12 +1,13 @@
-import Types from '../../shared/js/gametypes';
-import { checkClientToServerProtocolAction, isFixedClientToServerOpcode } from '../../shared/js/protocol-schema';
+import Types from '../../shared/js/gametypes-browser';
+import { isClientToServerProtocolAction } from '../../shared/js/protocol-registry';
+import { isFixedClientToServerOpcode } from '../../shared/js/protocol-schema';
 import Log from './log';
 
 const log = Log.getLogger();
 
 class FormatChecker {
     check(msg: unknown[]): boolean {
-        if (checkClientToServerProtocolAction(msg)) {
+        if (isClientToServerProtocolAction(msg)) {
             return true;
         }
 

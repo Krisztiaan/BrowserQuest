@@ -5,7 +5,7 @@ import Log from './log';
 import Messages from './message';
 import Properties from './properties';
 import Formulas from './formulas';
-import Types from '../../shared/js/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 import type { ClientToServerProtocolAction } from '../../shared/js/protocol-contract-types';
 import { HANDSHAKE_CONTROL } from '../../shared/js/connection-status';
 import type { EntityKind } from '../../shared/js/entity-kind-domain';
@@ -38,6 +38,9 @@ type LootEntity = {
     despawn(): unknown;
 };
 type CheckpointLike = { id?: string | number };
+type EquipableItem = {
+    kind: EntityKind;
+};
 type PlayerServerLike = {
     map: {
         getCheckpoint(id: string | number): CheckpointLike | null;
@@ -82,7 +85,7 @@ class Player extends Character<PlayerEvents> {
     lastCheckpoint: CheckpointLike | null;
     disconnectTimeout: ReturnType<typeof setTimeout> | null;
     firepotionTimeout: ReturnType<typeof setTimeout> | null;
-    requestpos_callback: (() => { x: number; y: number }) | null;
+    positionResolver: (() => { x: number; y: number }) | null;
 
     constructor(connection: PlayerConnectionLike, worldServer: PlayerServerLike) {
         super(connection.id, 'player', Types.Entities.WARRIOR, 0, 0);
@@ -101,11 +104,11 @@ class Player extends Character<PlayerEvents> {
         this.armorLevel = 0;
         this.weapon = 0 as EntityKind;
         this.weaponLevel = 0;
-        this.requestpos_callback = null;
+        this.positionResolver = null;
         attachPlayerSession(this);
     }
 
-    destroy() {
+    destroy(): void {
         var self = this;
 
         this.forEachAttacker(function (mob) {
@@ -121,7 +124,7 @@ class Player extends Character<PlayerEvents> {
         this.haters = {};
     }
 
-    getState() {
+    getState(): Array<number | string> {
         var basestate = this._getBaseState(),
             state = [this.name, this.orientation, this.armor, this.weapon];
 
@@ -144,7 +147,7 @@ class Player extends Character<PlayerEvents> {
         this.emit('broadcastZone', message, ignoreSelf);
     }
 
-    equip(item) {
+    equip(item: EntityKind): InstanceType<typeof Messages.EquipItem> {
         return new Messages.EquipItem(this, item);
     }
 
@@ -169,17 +172,17 @@ class Player extends Character<PlayerEvents> {
         }, this);
     }
 
-    equipArmor(kind) {
+    equipArmor(kind: EntityKind): void {
         this.armor = kind;
         this.armorLevel = Properties.getArmorLevel(kind);
     }
 
-    equipWeapon(kind) {
+    equipWeapon(kind: EntityKind): void {
         this.weapon = kind;
         this.weaponLevel = Properties.getWeaponLevel(kind);
     }
 
-    equipItem(item) {
+    equipItem(item: EquipableItem | null | undefined): void {
         if (item) {
             log.debug(this.name + ' equips ' + Types.getKindAsString(item.kind));
 
@@ -193,27 +196,29 @@ class Player extends Character<PlayerEvents> {
         }
     }
 
-    updateHitPoints() {
+    updateHitPoints(): void {
         this.resetHitPoints(Formulas.hp(this.armorLevel));
     }
 
-    updatePosition() {
-        if (this.requestpos_callback) {
-            var pos = this.requestpos_callback();
+    updatePosition(): void {
+        if (this.positionResolver) {
+            var pos = this.positionResolver();
             this.setPosition(pos.x, pos.y);
         }
     }
 
-    onRequestPosition(callback) {
-        this.requestpos_callback = callback;
+    setPositionResolver(resolver: () => { x: number; y: number }): void {
+        this.positionResolver = resolver;
     }
 
-    resetTimeout() {
-        clearTimeout(this.disconnectTimeout);
+    resetTimeout(): void {
+        if (this.disconnectTimeout) {
+            clearTimeout(this.disconnectTimeout);
+        }
         this.disconnectTimeout = setTimeout(this.timeout.bind(this), 1000 * 60 * 15); // 15 min.
     }
 
-    timeout() {
+    timeout(): void {
         this.connection.sendUTF8(HANDSHAKE_CONTROL.TIMEOUT);
         this.connection.close('Player was idle for too long');
     }

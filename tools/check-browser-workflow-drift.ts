@@ -39,14 +39,14 @@ const ensureWorkflowRunsCommand = (workflowPath: string, command: string): void 
     }
 };
 
-const requiredScripts = ['test:browser:modern', 'test:browser:protocol:ci', 'test:modern-browser'];
+const requiredScripts = ['test:browser:modern', 'test:browser:protocol:ci'];
 requiredScripts.forEach(ensureScriptExists);
 
 ensureFileExists('playwright.config.ts');
 ensureWorkflowRunsCommand('.github/workflows/verify-modern-browser.yml', 'bun run test:browser:modern');
 ensureWorkflowRunsCommand('.github/workflows/verify-protocol-invariant.yml', 'bun run test:browser:protocol:ci');
 
-const browserScriptNames = ['test:browser:protocol:ci', 'test:browser:protocol', 'test:browser:protocol-invariant', 'test:modern-browser'];
+const browserScriptNames = ['test:browser:modern', 'test:browser:protocol:ci', 'test:browser:protocol', 'test:browser:protocol-invariant'];
 const browserTestPaths = new Set<string>();
 
 for (const scriptName of browserScriptNames) {

@@ -29,7 +29,7 @@ class Item extends Entity<ItemEvents> {
     handleDespawn(params: ItemDespawnParams): void {
         const self = this;
 
-        this.blinkTimeout = setTimeout(function () {
+        this.blinkTimeout = setTimeout(function (): void {
             params.blinkCallback();
             self.despawnTimeout = setTimeout(params.despawnCallback, params.blinkingDuration);
         }, params.beforeBlinkDelay);
@@ -50,7 +50,7 @@ class Item extends Entity<ItemEvents> {
 
     scheduleRespawn(delay: number): void {
         const self = this;
-        setTimeout(function () {
+        setTimeout(function (): void {
             self.emit('respawn');
         }, delay);
     }

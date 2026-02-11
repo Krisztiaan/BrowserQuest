@@ -213,6 +213,36 @@ function installFatalHandlers(
     };
 }
 
+function installShutdownHandlers(
+    processObject: RuntimeProcessLike,
+    onShutdown: (signal: 'SIGTERM' | 'SIGINT') => void
+): () => void {
+    const handlers: Partial<Record<'SIGTERM' | 'SIGINT', () => void>> = {};
+    const signals: Array<'SIGTERM' | 'SIGINT'> = ['SIGTERM', 'SIGINT'];
+
+    signals.forEach(function (signal) {
+        const handler = function () {
+            onShutdown(signal);
+        };
+        handlers[signal] = handler;
+        processObject.on(signal, handler);
+    });
+
+    return function () {
+        signals.forEach(function (signal) {
+            const handler = handlers[signal];
+            if (!handler) {
+                return;
+            }
+            if (typeof processObject.off === 'function') {
+                processObject.off(signal, handler);
+            } else if (typeof processObject.removeListener === 'function') {
+                processObject.removeListener(signal, handler);
+            }
+        });
+    };
+}
+
 function triggerFatalTestEvent(
     env: RuntimeProcessLike['env'] | undefined,
     setTimeoutFn: MainRuntimeDependencies['setTimeoutFn'],
@@ -306,7 +336,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
         metricsEnabled: !!config.metrics_enabled,
     });
 
-    server.onConnect(function (connection) {
+    server.on('connect', function (connection) {
         const connect = function (world: RuntimeWorld | null | undefined) {
             if (world) {
                 world.emit('playerConnect', new Player(connection, world));
@@ -346,7 +376,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
         }
     });
 
-    server.onError(function (...args: unknown[]) {
+    server.on('error', function (...args: unknown[]) {
         const message = args.map(String).join(', ');
         logger.error(message);
         emitServerEvent('error', SERVER_EVENT_NAMES.ERROR, {
@@ -372,7 +402,29 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
 
     const reportFatal = createFatalReporter(emitServerEvent, logger);
     const cleanupFatalHandlers = installFatalHandlers(dependencies.processObject, reportFatal);
-    const cleanupRuntime = createRuntimeCleanup([cleanupPopulationCheckTimer, cleanupFatalHandlers]);
+    const baseRuntimeCleanup = createRuntimeCleanup([cleanupPopulationCheckTimer, cleanupFatalHandlers]);
+    let hasShutdownStarted = false;
+    const cleanupShutdownHandlers = installShutdownHandlers(dependencies.processObject, function (signal) {
+        if (hasShutdownStarted) {
+            return;
+        }
+        hasShutdownStarted = true;
+        emitServerEvent('info', SERVER_EVENT_NAMES.SHUTDOWN_SIGNAL, { signal });
+        logger.info('Received ' + signal + ', shutting down runtime.');
+
+        const closeableServer = server as RuntimeServer & { close?: () => void };
+        if (typeof closeableServer.close === 'function') {
+            try {
+                closeableServer.close();
+            } catch (_) {
+                // ignore close failures during shutdown
+            }
+        }
+
+        baseRuntimeCleanup();
+        dependencies.processObject.exit(0);
+    });
+    const cleanupRuntime = createRuntimeCleanup([baseRuntimeCleanup, cleanupShutdownHandlers]);
 
     triggerFatalTestEvent(dependencies.processObject.env, dependencies.setTimeoutFn, reportFatal);
 
@@ -407,6 +459,7 @@ export {
     createPopulationCheckCleanup,
     createFatalReporter,
     installFatalHandlers,
+    installShutdownHandlers,
     triggerFatalTestEvent,
     createRuntimeCleanup,
 };

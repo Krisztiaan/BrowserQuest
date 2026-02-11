@@ -35,7 +35,7 @@ export function handlePlayerTeleport<TCharacter extends TeleportableCharacter>(
     host.teleportEntity(entity, host.x, host.y);
     entity.setOrientation(currentOrientation);
 
-    entity.forEachAttacker(function (attacker) {
+    entity.forEachAttacker(function (attacker: TeleportAttacker) {
         attacker.disengage();
         attacker.idle();
         attacker.stop();

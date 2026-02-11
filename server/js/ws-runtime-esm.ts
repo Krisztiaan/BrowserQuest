@@ -2,8 +2,9 @@ import Log from './log';
 import Utils from './utils';
 import Protocol from '../../shared/js/protocol-contract';
 import CLOSE_CODES from '../../shared/js/ws-close-codes';
-import { TypedEventEmitter } from '../../shared/js/typed-event-emitter';
+import { Evented } from '../../shared/js/evented';
 import { createWebSocketRuntimeClasses } from './ws-runtime-class-factory';
+import { getHealthzResponseBody, getVersionResponseBody } from './runtime-health-response';
 import { WS_EVENT_NAMES } from './server-event-names';
 
 const BunRuntime = globalThis['Bun'];
@@ -59,10 +60,10 @@ const runtimeClasses = createWebSocketRuntimeClasses({
         },
     },
     createHttpServer: (requestHandler) => ({
-        listen(_port, _callback) {
+        listen(_port, _onListen) {
             void requestHandler;
             void _port;
-            void _callback;
+            void _onListen;
         },
     }),
     parseUrlPathname: parseRequestPathname,
@@ -70,6 +71,11 @@ const runtimeClasses = createWebSocketRuntimeClasses({
 });
 
 const wsWebSocketConnection = runtimeClasses.wsWebSocketConnection;
+
+type BunWebSocketServerEvents = {
+    connect: [connection: InstanceType<typeof wsWebSocketConnection>];
+    error: [error: unknown];
+};
 
 class BunSocketAdapter {
     #socket: { send(data: unknown): void; close(code?: number, reason?: string): void };
@@ -99,29 +105,31 @@ class BunSocketAdapter {
     }
 }
 
-class MultiVersionWebsocketServer {
+class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
     port: number;
     _connections: Record<string, { id: string; send(message: unknown): void }>;
     _counter: number;
     _socketAdapters: WeakMap<object, BunSocketAdapter>;
     _server: unknown;
-    private readonly events: TypedEventEmitter<{
-        connect: [connection: InstanceType<typeof wsWebSocketConnection>];
-        error: [error: unknown];
-    }>;
     private statusProvider?: () => string;
 
     constructor(port: number) {
+        super();
         this.port = port;
         this._connections = {};
         this._counter = 0;
         this._socketAdapters = new WeakMap();
-        this.events = new TypedEventEmitter();
 
         this._server = BunRuntime.serve({
             port,
             fetch: (request, server) => {
                 const requestPath = parseRequestPathname(request.url);
+                if (requestPath === '/healthz') {
+                    return new Response(getHealthzResponseBody(), { status: 200 });
+                }
+                if (requestPath === '/version') {
+                    return new Response(getVersionResponseBody(), { status: 200 });
+                }
                 if (requestPath === '/status' && this.statusProvider) {
                     return new Response(this.statusProvider(), { status: 200 });
                 }
@@ -145,7 +153,7 @@ class MultiVersionWebsocketServer {
                     const remoteAddress = socket.data?.remoteAddress ? String(socket.data.remoteAddress) : 'unknown';
                     const connection = new wsWebSocketConnection(this.#createId(), adapter, this, remoteAddress);
                     this.addConnection(connection);
-                    this.events.emit('connect', connection);
+                    this.emit('connect', connection);
                     logConnectionEvent('info', WS_EVENT_NAMES.CONNECTION_OPEN, connection, undefined);
                 },
                 message: (socket: object, message: unknown) => {
@@ -190,16 +198,8 @@ class MultiVersionWebsocketServer {
         return '5' + Utils.random(99) + '' + this._counter++;
     }
 
-    onConnect(callback: (connection: InstanceType<typeof wsWebSocketConnection>) => void) {
-        this.events.on('connect', callback);
-    }
-
-    onError(callback: (error: unknown) => void) {
-        this.events.on('error', callback);
-    }
-
-    onRequestStatus(status_callback: () => string) {
-        this.statusProvider = status_callback;
+    onRequestStatus(statusProvider: () => string) {
+        this.statusProvider = statusProvider;
     }
 
     forEachConnection(

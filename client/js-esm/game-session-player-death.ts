@@ -28,12 +28,12 @@ type PlayerDeathHost = {
 };
 
 export function installPlayerDeathHandler(host: PlayerDeathHost): void {
-    host.player.on('death', function () {
+    host.player.on('death', function (): void {
         host.logInfo(host.player.id + ' is dead');
 
         host.player.stopBlinking();
         host.player.setSprite(host.getDeathSprite());
-        host.player.animate('death', 120, 1, function () {
+        host.player.animate('death', 120, 1, function (): void {
             host.logInfo(host.player.id + ' was removed');
             host.removePlayerEntity(host.player);
             host.removePlayerFromRenderingGrid(host.player, host.player.gridX, host.player.gridY);
@@ -42,7 +42,7 @@ export function installPlayerDeathHandler(host: PlayerDeathHost): void {
             host.schedulePlayerDeathCallback(1000);
         });
 
-        host.player.forEachAttacker(function (attacker) {
+        host.player.forEachAttacker(function (attacker: DeathAttacker): void {
             attacker.disengage();
             attacker.idle();
         });

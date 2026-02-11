@@ -74,9 +74,6 @@ class Pathfinder {
      * We would like the entities to move the closest possible to it though, instead of
      * staying where they are without moving at all. That's why we have this function which
      * returns an incomplete path to the chosen destination.
-     *
-     * @private
-     * @returns {Array} The incomplete path towards the end position
      */
     findIncompletePath_(start: GridPoint, end: GridPoint): GridPath {
         var perfect, x, y,

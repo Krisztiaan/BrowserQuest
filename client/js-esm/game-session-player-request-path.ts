@@ -12,7 +12,7 @@ type PlayerRequestPathHost = {
 };
 
 export function installPlayerRequestPathHandler(host: PlayerRequestPathHost): void {
-    host.player.setPathRequestResolver(function (x, y) {
+    host.player.setPathRequestResolver(function (x: number, y: number) {
         const ignored: Character[] = [host.player as Character];
 
         if (host.player.hasTarget() && host.player.target instanceof Character) {

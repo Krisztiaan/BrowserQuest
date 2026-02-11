@@ -58,7 +58,7 @@ export function installSpawnedCharacterOrchestration(host: SpawnCharacterOrchest
                 handleActiveStep(activeCharacter) {
                     host.registerEntityDualPosition(activeCharacter);
 
-                    character.forEachAttacker(function (attacker) {
+                    character.forEachAttacker(function (attacker: Character): void {
                         if (attacker.isAdjacent(attacker.target)) {
                             attacker.lookAtTarget();
                         } else {
@@ -91,7 +91,7 @@ export function installSpawnedCharacterOrchestration(host: SpawnCharacterOrchest
                     }
                 },
                 updateAttackers() {
-                    character.forEachAttacker(function (attacker) {
+                    character.forEachAttacker(function (attacker: Character): void {
                         if (!attacker.isAdjacentNonDiagonal(character) && attacker.id !== host.playerId) {
                             attacker.follow(character);
                         }

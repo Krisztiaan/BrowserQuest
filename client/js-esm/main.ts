@@ -3,25 +3,9 @@ import Detect from './compat/detect';
 import log from './compat/log';
 import Types from './compat/gametypes';
 import type { EntityKind } from './compat/gametypes';
+import type { AchievementId } from './achievement-domain';
 import { TRANSITIONEND } from './compat/util';
 import type Game from './game';
-
-/**
- * @typedef {{
- *   setup: (...args: unknown[]) => void,
- *   setStorage: (storage: unknown) => void,
- *   loadMap: () => void,
- *   onGameStart: (callback: () => void) => void,
- *   onDisconnect: (callback: (message: string) => void) => void,
- *   onPlayerDeath: (callback: () => void) => void,
- *   onPlayerEquipmentChange: (callback: () => void) => void,
- *   onPlayerInvincible: (callback: (invincible: boolean) => void) => void,
- *   onNbPlayersChange: (callback: (worldPlayers: number, totalPlayers: number) => void) => void,
- *   onAchievementUnlock: (callback: (achievementId: number) => void) => void,
- *   onNotification: (callback: (message: string) => void) => void,
- *   renderer: { mobile: boolean, tablet: boolean },
- * }} GameRuntime
- */
 
 type TestEntity = {
     id: string | number;
@@ -30,18 +14,49 @@ type TestEntity = {
     gridY?: number;
 };
 
+type ZoneTarget = { x: number; y: number; group: string };
+type TestEntities = { mobs: TestEntity[]; items: TestEntity[] };
+type TestApi = {
+    isReady: () => boolean;
+    moveToDifferentZone: () => { ok: boolean; reason?: string; from?: ZoneTarget; to?: ZoneTarget };
+    getActionTargets: () => {
+        ready: boolean;
+        mobId: string | number | null;
+        itemId: string | number | null;
+        mobCount: number;
+        itemCount: number;
+    };
+    sendCombatLootProbe: () => {
+        ok: boolean;
+        reason?: string;
+        mobId?: string | number;
+        itemId?: string | number;
+        mobCount?: number;
+        itemCount?: number;
+        itemX?: number;
+        itemY?: number;
+    };
+};
+
+declare global {
+    interface GlobalThis {
+        __BQ_TEST_MODE__?: boolean;
+        __BQ_TEST_API?: TestApi;
+    }
+}
+
 var app: App | null = null, game: Game | null = null;
 var TEST_ZONE_WIDTH = 28;
 var TEST_ZONE_HEIGHT = 12;
 
-var getZoneGroupId = function(x, y) {
+var getZoneGroupId = function(x: number, y: number): string {
     var gx = Math.floor((x - 1) / TEST_ZONE_WIDTH),
         gy = Math.floor((y - 1) / TEST_ZONE_HEIGHT);
 
     return gx + '-' + gy;
 };
 
-var getTestEntities = function() {
+var getTestEntities = function(): TestEntities {
     if(!game || !game.entities || !game.player) {
         return { mobs: [], items: [] };
     }
@@ -68,7 +83,7 @@ var getTestEntities = function() {
     return { mobs: mobs, items: items };
 };
 
-var installTestApi = function() {
+var installTestApi = function(): void {
     if(!globalThis.__BQ_TEST_MODE__) {
         return;
     }
@@ -90,11 +105,10 @@ var installTestApi = function() {
                 height = game.map.height,
                 offsets = [28, -28, 56, -56, 84, -84, 112, -112],
                 yOffsets = [0, 12, -12, 24, -24, 36, -36],
-                /** @type {{ x: number, y: number, group: string } | null} */
-                target = null;
+                target: ZoneTarget | null = null;
 
-            offsets.some(function(xOffset) {
-                return yOffsets.some(function(yOffset) {
+            offsets.some(function(xOffset: number) {
+                return yOffsets.some(function(yOffset: number) {
                     var x = currentX + xOffset,
                         y = currentY + yOffset;
 
@@ -181,19 +195,14 @@ var installTestApi = function() {
     };
 };
 
-var initApp = function() {
-    var onReady = function() {
+var initApp = function(): void {
+    var onReady = function(): void {
         app = new App();
         app.center();
     
         if(Detect.isWindows()) {
             // Workaround for graphical glitches on text
             document.body.classList.add('windows');
-        }
-        
-        if(Detect.isOpera()) {
-            // Fix for no pointer events
-            document.body.classList.add('opera');
         }
         
         if(Detect.isFirefoxAndroid()) {
@@ -227,7 +236,7 @@ var initApp = function() {
             resizeCheck = document.getElementById('resize-check');
 
         if(body) {
-            body.addEventListener('click', function(event) {
+            body.addEventListener('click', function(event: MouseEvent) {
                 if(parchment && parchment.classList.contains('credits')) {
                     app.toggleScrollContent('credits');
                 }
@@ -242,7 +251,7 @@ var initApp = function() {
             });
         }
 
-        document.querySelectorAll('.barbutton').forEach(function(button) {
+        document.querySelectorAll('.barbutton').forEach(function(button: Element) {
             button.addEventListener('click', function() {
                 button.classList.toggle('active');
             });
@@ -297,8 +306,8 @@ var initApp = function() {
             });
         }
 
-        document.querySelectorAll('.clickable').forEach(function(element) {
-            element.addEventListener('click', function(event) {
+        document.querySelectorAll('.clickable').forEach(function(element: Element) {
+            element.addEventListener('click', function(event: MouseEvent) {
                 event.stopPropagation();
             });
         });
@@ -328,7 +337,7 @@ var initApp = function() {
             });
         }
 
-        document.querySelectorAll('.delete').forEach(function(element) {
+        document.querySelectorAll('.delete').forEach(function(element: Element) {
             element.addEventListener('click', function() {
                 app.storage.clear();
                 app.animateParchment('confirmation', 'createcharacter');
@@ -344,7 +353,7 @@ var initApp = function() {
             });
         }
         
-        document.querySelectorAll('.ribbon').forEach(function(element) {
+        document.querySelectorAll('.ribbon').forEach(function(element: Element) {
             element.addEventListener('click', function() {
                 app.toggleScrollContent('about');
             });
@@ -357,7 +366,7 @@ var initApp = function() {
         }
 
         if(previous) {
-            previous.addEventListener('click', function(event) {
+            previous.addEventListener('click', function(event: MouseEvent) {
                 if(app.currentPage === 1) {
                     event.preventDefault();
                     return false;
@@ -371,7 +380,7 @@ var initApp = function() {
         }
 
         if(next) {
-            next.addEventListener('click', function(event) {
+            next.addEventListener('click', function(event: MouseEvent) {
                 var nbPages = lists ? lists.querySelectorAll('ul').length : 0;
     
                 if(app.currentPage === nbPages) {
@@ -390,14 +399,14 @@ var initApp = function() {
             notifications.addEventListener(TRANSITIONEND, app.resetMessagesPosition.bind(app));
         }
 
-        document.querySelectorAll('.close').forEach(function(element) {
+        document.querySelectorAll('.close').forEach(function(element: Element) {
             element.addEventListener('click', function() {
                 app.hideWindows();
             });
         });
     
-        document.querySelectorAll('.twitter').forEach(function(element) {
-            element.addEventListener('click', function(event) {
+        document.querySelectorAll('.twitter').forEach(function(element: Element) {
+            element.addEventListener('click', function(event: MouseEvent) {
                 var url = element.getAttribute('href');
 
                 app.openPopup('twitter', url);
@@ -406,8 +415,8 @@ var initApp = function() {
             });
         });
 
-        document.querySelectorAll('.facebook').forEach(function(element) {
-            element.addEventListener('click', function(event) {
+        document.querySelectorAll('.facebook').forEach(function(element: Element) {
+            element.addEventListener('click', function(event: MouseEvent) {
                 var url = element.getAttribute('href');
 
                 app.openPopup('facebook', url);
@@ -428,8 +437,8 @@ var initApp = function() {
             }
         }
         
-        document.querySelectorAll('.play div').forEach(function(element) {
-            element.addEventListener('click', function(event) {
+        document.querySelectorAll('.play div').forEach(function(element: Element) {
+            element.addEventListener('click', function(event: MouseEvent) {
                 var nameFromInput = nameInput ? nameInput.getAttribute('value') : '',
                     nameFromStorage = playerName ? playerName.innerHTML : '',
                     name = nameFromInput || nameFromStorage;
@@ -456,7 +465,7 @@ var initApp = function() {
     }
 };
 
-var initGame = function() {
+var initGame = function(): void {
     import('./game').then(function(mod) {
         var Game = mod.default;
         
@@ -479,11 +488,11 @@ var initGame = function() {
             game.loadMap();
         }
 
-        game.onGameStart(function() {
+        game.on('gameStart', function() {
             app.initEquipmentIcons();
         });
         
-        game.onDisconnect(function(message) {
+        game.on('disconnect', function(message: string) {
             var deathParagraph = document.querySelector('#death p'),
                 respawn = document.getElementById('respawn');
             if(deathParagraph) {
@@ -494,18 +503,18 @@ var initGame = function() {
             }
         });
 
-        game.onPlayerDeath(function() {
+        game.on('playerDeath', function() {
             if(document.body.classList.contains('credits')) {
                 document.body.classList.remove('credits');
             }
             document.body.classList.add('death');
         });
 
-        game.onPlayerEquipmentChange(function() {
+        game.on('playerEquipmentChange', function() {
             app.initEquipmentIcons();
         });
 
-        game.onPlayerInvincible(function() {
+        game.on('playerInvincible', function() {
             var hitpoints = document.getElementById('hitpoints');
             if(hitpoints) {
                 hitpoints.classList.toggle('invincible');
@@ -516,7 +525,7 @@ var initGame = function() {
             playerCount = document.getElementById('playercount'),
             worldPopulation = document.getElementById('world-population');
 
-        var setPopulationText = function(root, selector, value) {
+        var setPopulationText = function(root: ParentNode | null, selector: string, value: string): void {
             if(!root) {
                 return;
             }
@@ -526,7 +535,7 @@ var initGame = function() {
             }
         };
 
-        game.onNbPlayersChange(function(worldPlayers, totalPlayers) {
+        game.on('nbPlayersChange', function(worldPlayers: number, totalPlayers: number) {
             var worldCount = String(worldPlayers),
                 totalCount = String(totalPlayers),
                 worldLabel = worldPlayers === 1 ? "player" : "players",
@@ -540,11 +549,11 @@ var initGame = function() {
             setPopulationText(worldPopulation, 'span:nth-child(2)', totalLabel);
         });
 
-        game.onAchievementUnlock(function(id, name, description) {
+        game.on('achievementUnlock', function(id: AchievementId, name: string, _description: string) {
             app.unlockAchievement(id, name);
         });
 
-        game.onNotification(function(message) {
+        game.on('notification', function(message: string) {
             app.showMessage(message);
         });
 
@@ -569,7 +578,7 @@ var initGame = function() {
         
         if(game.renderer.mobile || game.renderer.tablet) {
             if(foregroundEl) {
-                foregroundEl.addEventListener('touchstart', function(event) {
+                foregroundEl.addEventListener('touchstart', function(event: TouchEvent) {
                     app.center();
                     if(event.touches && event.touches[0]) {
                         app.setMouseCoordinates(event.touches[0]);
@@ -580,7 +589,7 @@ var initGame = function() {
             }
         } else {
             if(foregroundEl) {
-                foregroundEl.addEventListener('click', function(event) {
+                foregroundEl.addEventListener('click', function(event: MouseEvent) {
                     app.center();
                     app.setMouseCoordinates(event);
                     if(game) {
@@ -591,7 +600,7 @@ var initGame = function() {
             }
         }
 
-        document.body.onclick = function(event) {
+        document.body.onclick = function(event: MouseEvent) {
             var hasClosedParchment = false;
             
             if(parchmentEl && parchmentEl.classList.contains('credits')) {
@@ -627,21 +636,21 @@ var initGame = function() {
         };
         
         if(respawnButton) {
-            respawnButton.addEventListener('click', function(event) {
+            respawnButton.addEventListener('click', function(event: MouseEvent) {
                 game.audioManager.playSound("revive");
                 game.restart();
                 document.body.classList.remove('death');
             });
         }
         
-        document.addEventListener('mousemove', function(event) {
+        document.addEventListener('mousemove', function(event: MouseEvent) {
             app.setMouseCoordinates(event);
             if(game.started) {
                 game.movecursor();
             }
         });
 
-        document.addEventListener('keydown', function(e) {
+        document.addEventListener('keydown', function(e: KeyboardEvent) {
             var key = e.which,
                 chat = chatInput;
 
@@ -656,13 +665,13 @@ var initGame = function() {
         
         if(chatInput) {
             if(chatForm) {
-                chatForm.addEventListener('submit', function(event) {
+                chatForm.addEventListener('submit', function(event: Event) {
                     event.preventDefault();
                     return false;
                 });
             }
 
-            chatInput.addEventListener('keydown', function(e) {
+            chatInput.addEventListener('keydown', function(e: KeyboardEvent) {
                 var key = e.which,
                     placeholder = chatInput.getAttribute("placeholder");
                 
@@ -700,7 +709,7 @@ var initGame = function() {
                 }
             });
 
-            chatInput.addEventListener('focus', function(e) {
+            chatInput.addEventListener('focus', function(_e: FocusEvent) {
                 var placeholder = chatInput.getAttribute("placeholder");
                 
                 if(!Detect.isFirefoxAndroid()) {
@@ -715,7 +724,7 @@ var initGame = function() {
         
         if(nameInput) {
             if(createCharacterForm) {
-                createCharacterForm.addEventListener('submit', function(event) {
+                createCharacterForm.addEventListener('submit', function(event: Event) {
                     var name = nameInput.value;
                     event.preventDefault();
                     if(name !== '') {
@@ -739,7 +748,7 @@ var initGame = function() {
                 }
             });
 
-            nameInput.addEventListener('keypress', function(event) {
+            nameInput.addEventListener('keypress', function(event: KeyboardEvent) {
                 var name = nameInput.value;
 
                 if(nameTooltip) {
@@ -767,7 +776,7 @@ var initGame = function() {
             });
         }
         
-        document.addEventListener("keydown", function(e) {
+        document.addEventListener("keydown", function(e: KeyboardEvent) {
             var key = e.which,
                 activeElement = document.activeElement,
                 chatFocused = chatInput && activeElement === chatInput,
@@ -816,7 +825,7 @@ var initGame = function() {
         if(game.renderer.tablet) {
             document.body.classList.add('tablet');
         }
-    }).catch(function(err) {
+    }).catch(function(err: unknown) {
         log.error(err, true);
     });
 };

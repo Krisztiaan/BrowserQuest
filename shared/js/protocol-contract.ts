@@ -1,4 +1,4 @@
-import Types from './gametypes';
+import Types from './gametypes-browser';
 import type { ProtocolActionValue, ProtocolContract, ProtocolParsedAction } from './protocol-contract-types';
 
 function isProtocolActionValue(value: unknown): value is ProtocolActionValue {

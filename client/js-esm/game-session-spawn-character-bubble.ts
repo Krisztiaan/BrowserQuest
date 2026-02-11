@@ -11,7 +11,7 @@ type SpawnCharacterBubbleHost = {
 };
 
 export function installSpawnedCharacterBubbleHandler(host: SpawnCharacterBubbleHost): void {
-    host.character.on('hasMoved', function (character) {
+    host.character.on('hasMoved', function (character: BubbleCharacter): void {
         host.assignBubbleTo(character);
     });
 }

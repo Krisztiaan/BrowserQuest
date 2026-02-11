@@ -20,6 +20,7 @@ test('server main module exports shared startup helpers', () => {
     expect(typeof MainModule.createPopulationCheckCleanup).toBe('function');
     expect(typeof MainModule.createFatalReporter).toBe('function');
     expect(typeof MainModule.installFatalHandlers).toBe('function');
+    expect(typeof MainModule.installShutdownHandlers).toBe('function');
     expect(typeof MainModule.triggerFatalTestEvent).toBe('function');
     expect(typeof MainModule.createRuntimeCleanup).toBe('function');
     expect(MainModule.main).toBe(MainRuntimeModule.main);
@@ -35,6 +36,7 @@ test('server main module exports shared startup helpers', () => {
     expect(MainModule.createPopulationCheckCleanup).toBe(MainRuntimeModule.createPopulationCheckCleanup);
     expect(MainModule.createFatalReporter).toBe(MainRuntimeModule.createFatalReporter);
     expect(MainModule.installFatalHandlers).toBe(MainRuntimeModule.installFatalHandlers);
+    expect(MainModule.installShutdownHandlers).toBe(MainRuntimeModule.installShutdownHandlers);
     expect(MainModule.triggerFatalTestEvent).toBe(MainRuntimeModule.triggerFatalTestEvent);
     expect(MainModule.createRuntimeCleanup).toBe(MainRuntimeModule.createRuntimeCleanup);
 });

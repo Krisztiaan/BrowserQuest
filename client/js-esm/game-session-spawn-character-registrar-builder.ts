@@ -82,7 +82,7 @@ export function installSpawnCharacterHandlerFromGame(host: SpawnCharacterBuilder
             host.addEntity(entity);
         },
         describeKind(kind) {
-            return Types.getKindAsString(kind);
+            return Types.getKindAsString(kind) ?? 'unknown';
         },
         logDebug(message) {
             log.debug(message);

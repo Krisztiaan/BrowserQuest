@@ -1,16 +1,6 @@
 {
   "automappingRulesFile": "automapping.rules",
-  "commands": [
-    {
-      "arguments": "run map:export",
-      "command": "bun",
-      "enabled": true,
-      "name": "BrowserQuest: Export Runtime Map JSON",
-      "saveBeforeExecute": false,
-      "showOutput": true,
-      "workingDirectory": "%projectpath/../../.."
-    }
-  ],
+  "commands": [],
   "extensionsPath": "extensions",
   "folders": [
     ".",

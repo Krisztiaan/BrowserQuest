@@ -29,7 +29,7 @@ Active Scripts
 - `bun run build:vite`: production client build to `dist/vite`
 - `bun run build:server`: runtime server artifact to `dist/server`
 - `bun run build:bundle`: deployable bundle artifact to `dist/bundle`
-- `bun run typecheck`: TypeScript solution build (`tsc -b tsconfig.projects.json`)
+- `bun run typecheck`: TypeScript solution build (`tsc -b tsconfig.json`)
 - `bun run verify:modern`: canonical modern verify lane
 - `bun run verify:modern:node22`: Node22 policy wrapper for verify lane
 - `bun run check:browser:workflow-drift`: guard browser CI command/config drift
@@ -44,6 +44,16 @@ Verification
 - lint + format check
 - test suite
 - Vite production build
+
+Runtime Probes and Shutdown
+---------------------------
+
+- `/status`: JSON world population distribution (existing contract)
+- `/healthz`: JSON liveness payload `{ "status": "ok" }`
+- `/version`: JSON version payload `{ "version": "<value>" }`
+  - Source: `BQ_VERSION` env, fallback `npm_package_version`, fallback `"dev"`
+- Controlled shutdown signals:
+  - `SIGTERM` and `SIGINT` trigger runtime cleanup before process exit (`0`)
 
 Lint/Format Scope
 -----------------
@@ -64,8 +74,6 @@ Runtime map loading now consumes Tiled source JSON directly:
 
 - Client runtime loads `assets/maps/tiled/world.json` and transforms it in-browser.
 - Server runtime loads `assets/maps/tiled/world.json` and transforms it on load.
-- `bun run map:export` remains available as an optional utility, not an active verify/build prerequisite.
-
 There is no legacy/rollback support path in active scripts.
 
 Modernization Tracking

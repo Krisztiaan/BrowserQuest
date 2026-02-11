@@ -17,13 +17,13 @@ type CharacterLike = {
     waitToAttack?: (character: CharacterLike) => void;
 };
 type CombatTarget = CharacterLike & {
-    removeAttacker?: (attacker: Character<any>) => void;
+    removeAttacker?: (attacker: Character) => void;
 };
 
 type PathRequestResolver = (x: number, y: number) => Path;
 
 export type CharacterEvents = {
-    dirty: [character: Character<any>];
+    dirty: [character: Character];
     startPathing: [path: Path];
     stopPathing: [x: number, y: number];
     beforeStep: [];
@@ -31,7 +31,7 @@ export type CharacterEvents = {
     aggro: [character: CharacterLike];
     checkAggro: [];
     death: [];
-    hasMoved: [character: Character<any>];
+    hasMoved: [character: Character];
 };
 
 export type CharacterEventSource<TEvents extends TypedEventMap = CharacterEvents> = TypedEventSource<TEvents>;
@@ -189,7 +189,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
         this.animate('walk', this.walkSpeed);
     }
 
-    moveTo_(x: number, y: number, _callback?: () => void): void {
+    moveTo_(x: number, y: number, _onArrive?: () => void): void {
         this.destination = { gridX: x, gridY: y };
         this.adjacentTiles = {};
 

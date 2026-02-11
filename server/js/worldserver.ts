@@ -1,5 +1,5 @@
 import type { RuntimeEventName } from './server-event-names';
-import type { EntityKind, EntityKindName } from '../../shared/js/entity-kind-domain';
+import type { EntityKind } from '../../shared/js/entity-kind-domain';
 import type { WorldMessage } from './worldserver-contracts';
 import Entity from './entity';
 import Character from './character';
@@ -16,6 +16,10 @@ import Messages from './message';
 import Properties from './properties';
 import Utils from './utils';
 import { installWorldPlayerLifecycle } from './worldserver-player-lifecycle';
+import { installWorldRuntimeEvents } from './worldserver-runtime-events';
+import { startWorldUpdateLoop } from './worldserver-update-loop';
+import { bootstrapWorldMapRuntime } from './worldserver-map-bootstrap';
+import { isMapChestAreaConfig, isMapChestConfig, isMapMobAreaConfig } from './worldserver-map-config';
 import {
     addWorldEntity,
     addWorldItem,
@@ -87,7 +91,7 @@ import {
     pushWorldMessageToPlayer,
     pushWorldMessageToPreviousGroups,
 } from './worldserver-push';
-import Types from '../../shared/js/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 import { Evented } from '../../shared/js/evented';
 const log = Log.getLogger();
 const logWorldQueueError = (errorMessage: string): void => {
@@ -104,71 +108,6 @@ type WorldMob = Mob;
 type WorldNpc = Npc;
 type WorldItem = Item;
 type WorldChest = Chest;
-type MapMobAreaConfig = {
-    id: string | number;
-    nb: number;
-    type: EntityKindName;
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-};
-
-type MapChestAreaConfig = {
-    id: string | number;
-    x: number;
-    y: number;
-    w: number;
-    h: number;
-    tx: number;
-    ty: number;
-    i: unknown[];
-};
-
-type MapChestConfig = {
-    x: number;
-    y: number;
-    i: unknown[];
-};
-const isMapMobAreaConfig = (value: unknown): value is MapMobAreaConfig => {
-    if (!value || typeof value !== 'object') {
-        return false;
-    }
-    const entry = value as Partial<MapMobAreaConfig>;
-    return (
-        (typeof entry.id === 'string' || typeof entry.id === 'number')
-        && typeof entry.nb === 'number'
-        && typeof entry.type === 'string'
-        && typeof entry.x === 'number'
-        && typeof entry.y === 'number'
-        && typeof entry.width === 'number'
-        && typeof entry.height === 'number'
-    );
-};
-const isMapChestAreaConfig = (value: unknown): value is MapChestAreaConfig => {
-    if (!value || typeof value !== 'object') {
-        return false;
-    }
-    const entry = value as Partial<MapChestAreaConfig>;
-    return (
-        (typeof entry.id === 'string' || typeof entry.id === 'number')
-        && typeof entry.x === 'number'
-        && typeof entry.y === 'number'
-        && typeof entry.w === 'number'
-        && typeof entry.h === 'number'
-        && typeof entry.tx === 'number'
-        && typeof entry.ty === 'number'
-        && Array.isArray(entry.i)
-    );
-};
-const isMapChestConfig = (value: unknown): value is MapChestConfig => {
-    if (!value || typeof value !== 'object') {
-        return false;
-    }
-    const entry = value as Partial<MapChestConfig>;
-    return typeof entry.x === 'number' && typeof entry.y === 'number' && Array.isArray(entry.i);
-};
-
 type WorldMapLike = {
     ready(callback: () => void): void;
     generateCollisionGrid(): void;
@@ -260,7 +199,6 @@ class World extends Evented<WorldEvents> {
 
     constructor(id, maxPlayers, websocketServer) {
         super();
-        var self = this;
 
         this.id = id;
         this.maxPlayers = maxPlayers;
@@ -288,30 +226,7 @@ class World extends Evented<WorldEvents> {
 
         this.zoneGroupsReady = false;
         installWorldPlayerLifecycle(this);
-
-        // Called when an entity is attacked by another entity
-        this.on('entityAttack', function (attacker) {
-            if (attacker.type === 'mob') {
-                const mobAttacker = attacker as unknown as Mob;
-                var target = self.getEntityById(mobAttacker.target);
-                if (target) {
-                    var pos = self.findPositionNextTo(mobAttacker, target);
-                    self.moveEntity(mobAttacker, pos.x, pos.y);
-                }
-            }
-        });
-
-        this.on('regenTick', function () {
-            self.forEachCharacter(function (character) {
-                if (!character.hasFullHealth()) {
-                    character.regenHealthBy(Math.floor(character.maxHitPoints / 25));
-
-                    if (character.type === 'player') {
-                        self.pushToPlayer(character, character.regen());
-                    }
-                }
-            });
-        });
+        installWorldRuntimeEvents(this);
     }
 
     run(mapFilePath) {
@@ -320,54 +235,30 @@ class World extends Evented<WorldEvents> {
         this.map = new Map(mapFilePath);
 
         this.map.ready(function () {
-            self.initZoneGroups();
-
-            self.map.generateCollisionGrid();
-
-            // Populate all mob "roaming" areas
-            (self.map.mobAreas || []).filter(isMapMobAreaConfig).forEach(function (a) {
-                var area = new MobArea(a.id, a.nb, a.type, a.x, a.y, a.width, a.height, self);
-                area.spawnMobs();
-                area.on('empty', self.handleEmptyMobArea.bind(self, area));
-
-                self.mobAreas.push(area);
-            });
-
-            // Create all chest areas
-            (self.map.chestAreas || []).filter(isMapChestAreaConfig).forEach(function (a) {
-                var area = new ChestArea(a.id, a.x, a.y, a.w, a.h, a.tx, a.ty, a.i, self);
-                self.chestAreas.push(area);
-                area.on('empty', self.handleEmptyChestArea.bind(self, area));
-            });
-
-            // Spawn static chests
-            (self.map.staticChests || []).filter(isMapChestConfig).forEach(function (chest) {
-                var c = self.createChest(chest.x, chest.y, chest.i);
-                self.addStaticItem(c);
-            });
-
-            // Spawn static entities
-            self.spawnStaticEntities();
-
-            // Set maximum number of entities contained in each chest area
-            self.chestAreas.forEach(function (area) {
-                area.setNumberOfEntities(area.entities.length);
+            bootstrapWorldMapRuntime({
+                world: self,
+                mobAreaConfigs: (self.map.mobAreas || []).filter(isMapMobAreaConfig),
+                chestAreaConfigs: (self.map.chestAreas || []).filter(isMapChestAreaConfig),
+                staticChestConfigs: (self.map.staticChests || []).filter(isMapChestConfig),
+                createMobArea(config) {
+                    return new MobArea(
+                        config.id,
+                        config.nb,
+                        config.type,
+                        config.x,
+                        config.y,
+                        config.width,
+                        config.height,
+                        self
+                    );
+                },
+                createChestArea(config) {
+                    return new ChestArea(config.id, config.x, config.y, config.w, config.h, config.tx, config.ty, config.i, self);
+                },
             });
         });
 
-        var regenCount = this.ups * 2;
-        var updateCount = 0;
-        setInterval(function () {
-            self.processGroups();
-            self.processQueues();
-
-            if (updateCount < regenCount) {
-                updateCount += 1;
-            } else {
-                self.emit('regenTick');
-                updateCount = 0;
-            }
-        }, 1000 / this.ups);
+        startWorldUpdateLoop(this, this.ups);
 
         log.info('' + this.id + ' created (capacity: ' + this.maxPlayers + ' players).');
     }

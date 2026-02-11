@@ -7,8 +7,6 @@ import Timer from './timer';
 import Detect from './compat/detect';
 import Types from './compat/gametypes';
 import log from './compat/log';
-import { getBase64Image } from './compat/util';
-import { resolveImageAssetPath } from './image-assets';
 
 type RendererContext2D = CanvasRenderingContext2D & {
     mozImageSmoothingEnabled?: boolean;
@@ -54,6 +52,13 @@ type RenderAnimatedTile = {
     index: number;
     isDirty?: boolean;
     dirtyRect?: BoundingRect;
+};
+type BoundingEntity = {
+    x: number;
+    y: number;
+    sprite?: { offsetX: number; offsetY: number; width: number; height: number } | null;
+    hasWeapon?(): boolean;
+    getWeaponName?(): string;
 };
 type RenderInfo = {
     opacity: number;
@@ -167,19 +172,19 @@ class Renderer {
         this.targetRect = null;
     }
 
-    getWidth() {
+    getWidth(): number {
         return this.canvas.width;
     }
 
-    getHeight() {
+    getHeight(): number {
         return this.canvas.height;
     }
 
-    setTileset(tileset) {
+    setTileset(tileset: HTMLImageElement | undefined): void {
         this.tileset = tileset;
     }
 
-    getScaleFactor() {
+    getScaleFactor(): number {
         var w = window.innerWidth,
             h = window.innerHeight,
             scale;
@@ -200,7 +205,7 @@ class Renderer {
         return scale;
     }
 
-    rescale(factor) {
+    rescale(factor: number): void {
         this.scale = this.getScaleFactor();
     
         this.createCamera();
@@ -220,7 +225,7 @@ class Renderer {
         }
     }
 
-    createCamera() {
+    createCamera(): void {
         this.camera = new Camera(this);
         this.camera.rescale();
     
@@ -237,11 +242,11 @@ class Renderer {
         log.debug("#foreground set to "+this.forecanvas.width+" x "+this.forecanvas.height);
     }
 
-    initFPS() {
+    initFPS(): void {
         this.FPS = this.mobile ? 50 : 50;
     }
 
-    initFont() {
+    initFont(): void {
         var fontsize;
     
         switch(this.scale) {
@@ -255,14 +260,14 @@ class Renderer {
         this.setFontSize(fontsize);
     }
 
-    setFontSize(size) {
+    setFontSize(size: number): void {
         var font = size+"px GraphicPixel";
     
         this.context.font = font;
         this.background.font = font;
     }
 
-    drawText(text, x, y, centered, color?, strokeColor?) {
+    drawText(text: string | number, x: number, y: number, centered: boolean, color?: string, strokeColor?: string): void {
         var ctx = this.context;
         
         var strokeSize;
@@ -277,20 +282,21 @@ class Renderer {
         }
         
         if(text && x && y) {
+            const label = String(text);
             ctx.save();
             if(centered) {
                 ctx.textAlign = "center";
             }
             ctx.strokeStyle = strokeColor || "#373737";
             ctx.lineWidth = strokeSize;
-            ctx.strokeText(text, x, y);
+            ctx.strokeText(label, x, y);
             ctx.fillStyle = color || "white";
-            ctx.fillText(text, x, y);
+            ctx.fillText(label, x, y);
             ctx.restore();
         }
     }
 
-    drawCellRect(x, y, color) {
+    drawCellRect(x: number, y: number, color: string): void {
         this.context.save();
         this.context.lineWidth = 2*this.scale;
         this.context.strokeStyle = color;
@@ -299,7 +305,7 @@ class Renderer {
         this.context.restore();
     }
 
-    drawCellHighlight(x, y, color) {
+    drawCellHighlight(x: number, y: number, color: string): void {
         var s = this.scale,
             ts = this.tilesize,
             tx = x * ts * s,
@@ -308,7 +314,7 @@ class Renderer {
         this.drawCellRect(tx, ty, color);
     }
 
-    drawTargetCell() {
+    drawTargetCell(): void {
         var mouse = this.game.getMouseGridPosition();
     
         if(this.game.targetCellVisible && !(mouse.x === this.game.selectedX && mouse.y === this.game.selectedY)) {
@@ -316,7 +322,7 @@ class Renderer {
         }
     }
 
-    drawAttackTargetCell() {
+    drawAttackTargetCell(): void {
         var mouse = this.game.getMouseGridPosition(),
             entity = this.game.getEntityAt(mouse.x, mouse.y),
             s = this.scale;
@@ -326,7 +332,7 @@ class Renderer {
         }
     }
 
-    drawOccupiedCells() {
+    drawOccupiedCells(): void {
         var positions = this.game.entityGrid;
     
         if(positions) {
@@ -340,7 +346,7 @@ class Renderer {
         }
     }
 
-    drawPathingCells() {
+    drawPathingCells(): void {
         var grid = this.game.pathingGrid;
     
         if(grid && this.game.debugPathing) {
@@ -354,7 +360,7 @@ class Renderer {
         }
     }
 
-    drawSelectedCell() {
+    drawSelectedCell(): void {
         var sprite = this.game.cursors["target"],
             anim = this.game.targetAnimation,
             os = this.upscaledRendering ? 1 : this.scale,
@@ -394,13 +400,13 @@ class Renderer {
         }
     }
 
-    clearScaledRect(ctx, x, y, w, h) {
+    clearScaledRect(ctx: RendererContext2D, x: number, y: number, w: number, h: number): void {
         var s = this.scale;
     
         ctx.clearRect(x * s, y * s, w * s, h * s);
     }
 
-    drawCursor() {
+    drawCursor(): void {
         var mx = this.game.mouse.x,
             my = this.game.mouse.y,
             s = this.scale,
@@ -413,10 +419,20 @@ class Renderer {
         this.context.restore();
     }
 
-    drawScaledImage(ctx, image, x, y, w, h, dx, dy) {
+    drawScaledImage(
+        ctx: RendererContext2D,
+        image: CanvasImageSource,
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        dx: number,
+        dy: number
+    ): void {
         var s = this.upscaledRendering ? 1 : this.scale;
-        Array.prototype.forEach.call(arguments, function(arg) {
-            if(arg === undefined || Number.isNaN(arg) || arg === null || arg < 0) {
+        Array.prototype.forEach.call(arguments, function(arg: unknown) {
+            const isInvalidNumber = typeof arg === 'number' && (Number.isNaN(arg) || arg < 0);
+            if(arg === undefined || arg === null || isInvalidNumber) {
                 log.error("x:"+x+" y:"+y+" w:"+w+" h:"+h+" dx:"+dx+" dy:"+dy, true);
                 throw Error("A problem occured when trying to draw on the canvas");
             }
@@ -433,7 +449,14 @@ class Renderer {
                       h * this.scale);
     }
 
-    drawTile(ctx, tileid, tileset, setW, gridW, cellid) {
+    drawTile(
+        ctx: RendererContext2D,
+        tileid: number,
+        tileset: CanvasImageSource,
+        setW: number,
+        gridW: number,
+        cellid: number
+    ): void {
         var s = this.upscaledRendering ? 1 : this.scale;
         if(tileid !== -1) { // -1 when tile is empty in Tiled. Don't attempt to draw it.
             this.drawScaledImage(ctx,
@@ -447,7 +470,7 @@ class Renderer {
         }
     }
 
-    clearTile(ctx, gridW, cellid) {
+    clearTile(ctx: RendererContext2D, gridW: number, cellid: number): void {
         var s = this.scale,
             ts = this.tilesize,
             x = getX(cellid + 1, gridW) * ts * s,
@@ -458,7 +481,7 @@ class Renderer {
         ctx.clearRect(x, y, h, w);
     }
 
-    drawEntity(entity) {
+    drawEntity(entity: RenderEntity): void {
         var sprite = entity.sprite,
             shadow = this.game.shadows["small"],
             anim = entity.currentAnimation,
@@ -514,15 +537,15 @@ class Renderer {
                 if(entity instanceof Item && entity.kind !== Types.Entities.CAKE) {
                     var sparks = this.game.sprites["sparks"],
                         sparksAnim = this.game.sparksAnimation,
-                        frame,
+                        sparkFrame,
                         sx,
                         sy,
                         sw,
                         sh;
 
                     if(sparksAnim) {
-                        frame = sparksAnim.currentFrame;
-                        sx = sparks.width * frame.index * os;
+                        sparkFrame = sparksAnim.currentFrame;
+                        sx = sparks.width * sparkFrame.index * os;
                         sy = sparks.height * sparksAnim.row * os;
                         sw = sparks.width * os;
                         sh = sparks.width * os;
@@ -561,10 +584,10 @@ class Renderer {
         }
     }
 
-    drawEntities(dirtyOnly = false) {
+    drawEntities(dirtyOnly = false): void {
         var self = this;
     
-        this.game.forEachVisibleEntityByDepth(function(entity) {
+        this.game.forEachVisibleEntityByDepth(function(entity: RenderEntity) {
             if(entity.isLoaded) {
                 if(dirtyOnly) {
                     if(entity.isDirty) {
@@ -581,26 +604,26 @@ class Renderer {
         });
     }
     
-    drawDirtyEntities() {
+    drawDirtyEntities(): void {
         this.drawEntities(true);
     }
     
-    clearDirtyRect(r) {
+    clearDirtyRect(r: BoundingRect): void {
         this.context.clearRect(r.x, r.y, r.w, r.h);
     }
 
-    clearDirtyRects() {
+    clearDirtyRects(): void {
         var self = this,
             count = 0;
         
-        this.game.forEachVisibleEntityByDepth(function(entity) {
+        this.game.forEachVisibleEntityByDepth(function(entity: RenderEntity) {
             if(entity.isDirty && entity.oldDirtyRect) {
                 self.clearDirtyRect(entity.oldDirtyRect);
                 count += 1;
             }
         });
         
-        this.game.forEachAnimatedTile(function(tile) {
+        this.game.forEachAnimatedTile(function(tile: RenderAnimatedTile) {
             if(tile.isDirty) {
                 self.clearDirtyRect(tile.dirtyRect);
                 count += 1;
@@ -621,7 +644,7 @@ class Renderer {
         }
     }
     
-    getEntityBoundingRect(entity): BoundingRect {
+    getEntityBoundingRect(entity: BoundingEntity): BoundingRect {
         var rect: BoundingRect = { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 },
             s = this.scale,
             spr;
@@ -646,7 +669,7 @@ class Renderer {
         return rect;
     }
     
-    getTileBoundingRect(tile): BoundingRect {
+    getTileBoundingRect(tile: RenderAnimatedTile): BoundingRect {
         var rect: BoundingRect = { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 },
             gridW = this.game.map.width,
             s = this.scale,
@@ -691,7 +714,7 @@ class Renderer {
                  (rect2.bottom < rect1.top));
     }
     
-    drawEntityName(entity) {
+    drawEntityName(entity: RenderEntity): void {
         this.context.save();
         if(entity.name && entity instanceof Player) {
             var color = (entity.id === this.game.playerId) ? "#fcda5c" : "white";
@@ -704,25 +727,25 @@ class Renderer {
         this.context.restore();
     }
 
-    drawTerrain() {
+    drawTerrain(): void {
         var self = this,
             m = this.game.map,
             tilesetwidth = this.tileset.width / m.tilesize;
     
-        this.game.forEachVisibleTile(function (id, index) {
+        this.game.forEachVisibleTile(function (id: number, index: number) {
             if(!m.isHighTile(id) && !m.isAnimatedTile(id)) { // Don't draw unnecessary tiles
                 self.drawTile(self.background, id, self.tileset, tilesetwidth, m.width, index);
             }
         }, 1);
     }
 
-    drawAnimatedTiles(dirtyOnly = false) {
+    drawAnimatedTiles(dirtyOnly = false): void {
         var self = this,
             m = this.game.map,
             tilesetwidth = this.tileset.width / m.tilesize;
     
         this.animatedTileCount = 0;
-        this.game.forEachAnimatedTile(function (tile) {
+        this.game.forEachAnimatedTile(function (tile: RenderAnimatedTile) {
             if(dirtyOnly) {
                 if(tile.isDirty) {
                     self.drawTile(self.context, tile.id, self.tileset, tilesetwidth, m.width, tile.index);
@@ -735,17 +758,17 @@ class Renderer {
         });
     }
     
-    drawDirtyAnimatedTiles() {
+    drawDirtyAnimatedTiles(): void {
         this.drawAnimatedTiles(true);
     }
 
-    drawHighTiles(ctx) {
+    drawHighTiles(ctx: RendererContext2D): void {
         var self = this,
             m = this.game.map,
             tilesetwidth = this.tileset.width / m.tilesize;
     
         this.highTileCount = 0;
-        this.game.forEachVisibleTile(function (id, index) {
+        this.game.forEachVisibleTile(function (id: number, index: number) {
             if(m.isHighTile(id)) {
                 self.drawTile(ctx, id, self.tileset, tilesetwidth, m.width, index);
                 self.highTileCount += 1;
@@ -753,12 +776,12 @@ class Renderer {
         }, 1);
     }
 
-    drawBackground(ctx, color) {
+    drawBackground(ctx: RendererContext2D, color: string): void {
         ctx.fillStyle = color;
         ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
-    drawFPS() {
+    drawFPS(): void {
         var nowTime = new Date(),
             diffTime = nowTime.getTime() - this.lastTime.getTime();
 
@@ -773,7 +796,7 @@ class Renderer {
         this.drawText("FPS: " + this.realFPS, 30, 30, false);
     }
 
-    drawDebugInfo() {
+    drawDebugInfo(): void {
         if(this.isDebugInfoVisible) {
             this.drawFPS();
             this.drawText("A: " + this.animatedTileCount, 100, 30, false);
@@ -781,14 +804,14 @@ class Renderer {
         }
     }
 
-    drawCombatInfo() {
+    drawCombatInfo(): void {
         var self = this;
     
         switch(this.scale) {
             case 2: this.setFontSize(20); break;
             case 3: this.setFontSize(30); break;
         }
-        this.game.infoManager.forEachInfo(function(info) {
+        this.game.infoManager.forEachInfo(function(info: RenderInfo) {
             self.context.save();
             self.context.globalAlpha = info.opacity;
             self.drawText(info.value, (info.x + 8) * self.scale, Math.floor(info.y * self.scale), true, info.fillColor, info.strokeColor);
@@ -797,15 +820,15 @@ class Renderer {
         this.initFont();
     }
 
-    setCameraView(ctx) {
+    setCameraView(ctx: RendererContext2D): void {
         ctx.translate(-this.camera.x * this.scale, -this.camera.y * this.scale);
     }
 
-    clearScreen(ctx) {
+    clearScreen(ctx: RendererContext2D): void {
         ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
-    getPlayerImage(callback) {
+    getPlayerImage(callback?: (imageDataUrl: string) => void): void {
         var canvas = document.createElement('canvas'),
             ctx = canvas.getContext('2d'),
             os = this.upscaledRendering ? 1 : this.scale,
@@ -830,7 +853,11 @@ class Renderer {
             sh = shadow.height * os,
             ox = -sprite.offsetX * os,
             oy = -sprite.offsetY * os,
-            drawPlayerImage = function(shadowImage, spriteImage, weaponImage) {
+            drawPlayerImage = function(
+                shadowImage: CanvasImageSource,
+                spriteImage: CanvasImageSource,
+                weaponImage: CanvasImageSource
+            ): void {
                 ctx.drawImage(shadowImage, 0, 0, sw, sh, ox, oy, sw, sh);
                 ctx.drawImage(spriteImage, 0, y, w, h, 0, 0, w, h);
                 ctx.drawImage(weaponImage, 0, wy, ww, wh, offsetX, offsetY, ww, wh);
@@ -843,44 +870,11 @@ class Renderer {
         canvas.width = w;
         canvas.height = h;
         ctx.clearRect(0, 0, w, h);
-        
-        if(Detect.isSafari()) {
-            // In Safari, any image loaded from an external domain drawn onto a canvas makes it tainted even though the .crossOrigin property was set.
-            // This triggers a security exception when calling toDataURL() on this canvas.
-            //
-            // When using a CDN for images, we need to use a workaround in order to be able to render the player image.
-            // We retrieve via XHR three base64 images which compose the player image (current armor, current weapon, shadow).
-            // These three base64 images are then rendered onto a canvas, which can then be converted to a data URL because it's not tainted.
-            
-            var imgCounter = 3, spriteImage, weaponImage, shadowImage,
-                tryDrawing = function() {
-                    imgCounter -= 1;
-                    if(imgCounter == 0) {
-                        drawPlayerImage(shadowImage, spriteImage, weaponImage);
-                    }
-                };
-            
-            getBase64Image(resolveImageAssetPath(this.scale, player.getArmorName()), function(img) {
-                spriteImage = img;
-                tryDrawing();
-            });
-            getBase64Image(resolveImageAssetPath(this.scale, 'shadow16'), function(img) {
-                shadowImage = img;
-                tryDrawing();
-            });
-            getBase64Image(resolveImageAssetPath(this.scale, player.getWeaponName()), function(img) {
-                weaponImage = img;
-                tryDrawing();
-            });
-        } else {
-            drawPlayerImage(shadow.image, sprite.image, weapon.image);
-            if(callback) {
-                callback(canvas.toDataURL("image/png"));
-            } 
-        }
+
+        drawPlayerImage(shadow.image, sprite.image, weapon.image);
     }
 
-    renderStaticCanvases() {
+    renderStaticCanvases(): void {
         this.background.save();
             this.setCameraView(this.background);
             this.drawTerrain();
@@ -895,7 +889,7 @@ class Renderer {
         }
     }
 
-    renderFrame() {
+    renderFrame(): void {
         if(this.mobile || this.tablet) {
             this.renderFrameMobile();
         }
@@ -904,7 +898,7 @@ class Renderer {
         }
     }
 
-    renderFrameDesktop() {
+    renderFrameDesktop(): void {
         this.clearScreen(this.context);
     
         this.context.save();
@@ -928,7 +922,7 @@ class Renderer {
         this.drawDebugInfo();
     }
 
-    renderFrameMobile() {
+    renderFrameMobile(): void {
         this.clearDirtyRects();
         this.preventFlickeringBug();
 
@@ -941,7 +935,7 @@ class Renderer {
         this.context.restore();
     }
     
-    preventFlickeringBug() {
+    preventFlickeringBug(): void {
         if(this.fixFlickeringTimer.isOver(this.game.currentTime)) {
             this.background.fillRect(0, 0, 0, 0);
             this.context.fillRect(0, 0, 0, 0);
@@ -950,7 +944,7 @@ class Renderer {
     }
 }
 
-var getX = function(id, w) {
+var getX = function(id: number, w: number): number {
     if(id == 0) {
         return 0;
     }

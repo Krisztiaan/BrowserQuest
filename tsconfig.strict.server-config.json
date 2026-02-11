@@ -1,19 +1,8 @@
 {
-  "extends": "./tsconfig.typecheck.json",
-  "compilerOptions": {
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "useUnknownInCatchVariables": true,
-    "noImplicitOverride": true,
-    "noFallthroughCasesInSwitch": true,
-    "allowJs": false,
-    "checkJs": false,
-    "tsBuildInfoFile": ".tmp/tsbuildinfo/strict-server-config.tsbuildinfo"
-  },
-  "include": [
-    "server/js/server-event-names.ts",
-    "server/js/main-runtime-types.ts",
-    "server/js/config-preflight.ts"
-  ]
+    "extends": "./tsconfig.node.json",
+    "compilerOptions": {
+        "exactOptionalPropertyTypes": true,
+        "tsBuildInfoFile": ".tmp/tsbuildinfo/strict-server-config.tsbuildinfo"
+    },
+    "include": ["server/js/server-event-names.ts", "server/js/main-runtime-types.ts", "server/js/config-preflight.ts"]
 }

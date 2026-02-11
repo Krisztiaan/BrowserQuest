@@ -13,11 +13,11 @@ type SpawnCharacterMotionHost<TCharacter extends SpawnedCharacterLike> = {
 export function installSpawnedCharacterMotionHandlers<TCharacter extends SpawnedCharacterLike>(
     host: SpawnCharacterMotionHost<TCharacter>
 ): void {
-    host.character.on('beforeStep', function () {
+    host.character.on('beforeStep', function (): void {
         host.handleBeforeStep(host.character);
     });
 
-    host.character.on('step', function () {
+    host.character.on('step', function (): void {
         if (!host.character.isDying) {
             host.handleActiveStep(host.character);
         }

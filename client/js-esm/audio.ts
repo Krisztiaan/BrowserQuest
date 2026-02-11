@@ -46,7 +46,7 @@ class AudioManager {
         this.musicNames = [...MUSIC_KEYS];
         this.soundNames = [...AUDIO_SOUND_KEYS];
 
-        const loadMusicFiles = () => {
+        const loadMusicFiles = (): void => {
             // disable music on mobile devices
             if (!this.game.renderer.mobile) {
                 log.info('Loading music files...');
@@ -63,27 +63,20 @@ class AudioManager {
             }
         };
 
-        const loadSoundFiles = () => {
+        const loadSoundFiles = (): void => {
             let counter = this.soundNames.length;
             log.info('Loading sound files...');
             this.soundNames.forEach((name) => {
                 this.loadSound(name, () => {
                     counter -= 1;
                     if (counter === 0) {
-                        // Disable music on Safari - See bug 738008
-                        if (!Detect.isSafari()) {
-                            loadMusicFiles();
-                        }
+                        loadMusicFiles();
                     }
                 });
             });
         };
 
-        if (!(Detect.isSafari() && Detect.isWindows())) {
-            loadSoundFiles();
-        } else {
-            this.enabled = false; // Disable audio on Safari Windows
-        }
+        loadSoundFiles();
     }
 
     toggle(): void {
@@ -106,7 +99,7 @@ class AudioManager {
     load(
         basePath: string,
         name: MusicKey | AudioSoundKey,
-        loaded_callback?: (() => void) | null,
+        onLoaded?: (() => void) | null,
         channels = 1
     ): void {
         const path = basePath + name + '.' + this.extension;
@@ -115,8 +108,8 @@ class AudioManager {
         const onReady = () => {
             sound.removeEventListener('canplaythrough', onReady, false);
             log.debug(path + ' is ready to play.');
-            if (loaded_callback) {
-                loaded_callback();
+            if (onLoaded) {
+                onLoaded();
             }
         };
         sound.addEventListener('canplaythrough', onReady, false);
@@ -144,7 +137,7 @@ class AudioManager {
         const music = this.sounds[name]?.[0];
         if (music) {
             music.loop = true;
-            music.addEventListener('ended', function () { music.play(); }, false);
+            music.addEventListener('ended', function (): void { music.play(); }, false);
         }
     }
 
@@ -224,7 +217,7 @@ class AudioManager {
         }
     }
 
-    fadeOutMusic(music: AreaMusic | null, ended_callback: (music: AreaMusic) => void): void {
+    fadeOutMusic(music: AreaMusic | null, onEnded: (music: AreaMusic) => void): void {
         if (music && music.sound && !music.sound.fadingOut) {
             this.clearFadeIn(music);
             music.sound.fadingOut = setInterval(() => {
@@ -236,7 +229,7 @@ class AudioManager {
                 } else if (music.sound) {
                     music.sound.volume = 0;
                     this.clearFadeOut(music);
-                    ended_callback(music);
+                    onEnded(music);
                 }
             }, 50);
         }

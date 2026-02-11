@@ -15,7 +15,7 @@ import {
     MSG_WHO,
     MSG_ZONE,
 } from '../support/protocol';
-import SharedTypes from '../../shared/js/gametypes';
+import SharedTypes from '../../shared/js/gametypes-browser';
 
 const Types = SharedTypes as {
     Messages: Record<string, number>;

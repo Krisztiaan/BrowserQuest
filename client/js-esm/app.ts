@@ -15,6 +15,9 @@ type AchievementView = {
 type RuntimeConfig = {
     server: { host: string; port: number; dispatcher: boolean };
 };
+type ScrollContent = 'credits' | 'legal' | 'about';
+type PointerPosition = { pageX: number; pageY: number };
+
 type AppGame = {
     renderer: {
         mobile: boolean;
@@ -35,8 +38,8 @@ type AppGame = {
     loadMap(): void;
     setServerOptions(host: string, port: number, username: string): void;
     run(callback: () => void): void;
-    onPlayerHealthChange(callback: (hp: number, maxHp: number) => void): void;
-    onPlayerHurt(callback: () => void): void;
+    on(eventName: 'playerHealthChange', callback: (hp: number, maxHp: number) => void): void;
+    on(eventName: 'playerHurt', callback: () => void): void;
     getAchievementById(id: AchievementId): AchievementView | undefined;
     resize(): void;
     updateBars(): void;
@@ -138,19 +141,19 @@ class App {
         this.ready = true;
     }
 
-    center() {
+    center(): void {
         window.scrollTo(0, 1);
     }
     
-    canStartGame() {
+    canStartGame(): boolean {
         if(this.isDesktop) {
-            return (this.game && this.game.map && this.game.map.isLoaded);
+            return !!(this.game && this.game.map && this.game.map.isLoaded);
         } else {
-            return this.game;
+            return !!this.game;
         }
     }
     
-    tryStartingGame(username, starting_callback) {
+    tryStartingGame(username: string, onStarting?: (() => void) | undefined) {
         var self = this,
             playButton = this.playButtonEl || document.querySelector('#createcharacter .play');
         
@@ -174,19 +177,19 @@ class App {
                         }
                     }, 1500);
                     clearInterval(watchCanStart);
-                    self.startGame(username, starting_callback);
+                    self.startGame(username, onStarting);
                 }
             }, 100);
         } else {
-            this.startGame(username, starting_callback);
+            this.startGame(username, onStarting);
         }
     }
     
-    startGame(username, starting_callback) {
+    startGame(username: string, onStarting?: (() => void) | undefined): void {
         var self = this;
         
-        if(starting_callback) {
-            starting_callback();
+        if(onStarting) {
+            onStarting();
         }
         this.hideIntro(function() {
             if(!self.isDesktop) {
@@ -198,7 +201,7 @@ class App {
         });
     }
 
-    start(username) {
+    start(username: string): void {
         var self = this,
             firstTimePlaying = !self.storage.hasAlreadyPlayed();
         
@@ -224,7 +227,7 @@ class App {
         }
     }
 
-    setMouseCoordinates(event) {
+    setMouseCoordinates(event: PointerPosition): void {
         var container = this.containerEl || document.getElementById('container');
         if(!container) {
             return;
@@ -251,23 +254,23 @@ class App {
         }
     }
 
-    initHealthBar() {
+    initHealthBar(): void {
         var scale = this.game.renderer.getScaleFactor(),
             healthbar = this.healthbarEl || document.getElementById('healthbar'),
             hitpoints = this.hitpointsEl || document.getElementById('hitpoints'),
             healthMaxWidth = (healthbar ? healthbar.offsetWidth : 0) - (12 * scale);
 
-        this.game.onPlayerHealthChange(function(hp, maxHp) {
+        this.game.on('playerHealthChange', function(hp, maxHp) {
             var barWidth = Math.round((healthMaxWidth / maxHp) * (hp > 0 ? hp : 0));
             if(hitpoints) {
                 hitpoints.style.width = barWidth + "px";
             }
         });
 
-        this.game.onPlayerHurt(this.blinkHealthBar.bind(this));
+        this.game.on('playerHurt', this.blinkHealthBar.bind(this));
     }
 
-    blinkHealthBar() {
+    blinkHealthBar(): void {
         var hitpoints = this.hitpointsEl || document.getElementById('hitpoints');
         if(!hitpoints) {
             return;
@@ -279,8 +282,8 @@ class App {
         }, 500)
     }
 
-    toggleButton() {
-        var nameInput = /** @type {HTMLInputElement | null} */ (this.parchmentNameInputEl || document.querySelector('#parchment input')),
+    toggleButton(): void {
+        var nameInput = (this.parchmentNameInputEl || document.querySelector('#parchment input')) as HTMLInputElement | null,
             playButton = this.playButtonEl || document.querySelector('#createcharacter .play'),
             character = this.characterEl || document.getElementById('character'),
             name = nameInput ? nameInput.value : '';
@@ -302,16 +305,16 @@ class App {
         }
     }
 
-    hideIntro(hidden_callback) {
+    hideIntro(onHidden: () => void): void {
         clearInterval(this.watchNameInputInterval);
         document.body.classList.remove('intro');
         setTimeout(function() {
             document.body.classList.add('game');
-            hidden_callback();
+            onHidden();
         }, 1000);
     }
 
-    showChat() {
+    showChat(): void {
         var chatbox = this.chatboxEl || document.getElementById('chatbox'),
             chatinput = this.chatinputEl || document.getElementById('chatinput'),
             chatbutton = this.chatbuttonEl || document.getElementById('chatbutton');
@@ -329,7 +332,7 @@ class App {
         }
     }
 
-    hideChat() {
+    hideChat(): void {
         var chatbox = this.chatboxEl || document.getElementById('chatbox'),
             chatinput = this.chatinputEl || document.getElementById('chatinput'),
             chatbutton = this.chatbuttonEl || document.getElementById('chatbutton');
@@ -347,7 +350,7 @@ class App {
         }
     }
 
-    toggleInstructions() {
+    toggleInstructions(): void {
         var achievements = this.achievementsEl || document.getElementById('achievements'),
             achievementsButton = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
             instructions = this.instructionsEl || document.getElementById('instructions');
@@ -363,7 +366,7 @@ class App {
         }
     }
 
-    toggleAchievements() {
+    toggleAchievements(): void {
         var instructions = this.instructionsEl || document.getElementById('instructions'),
             helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
             achievements = this.achievementsEl || document.getElementById('achievements');
@@ -380,7 +383,7 @@ class App {
         }
     }
 
-    resetPage() {
+    resetPage(): void {
         var self = this,
             achievements = this.achievementsEl || document.getElementById('achievements');
 
@@ -395,7 +398,7 @@ class App {
         }
     }
 
-    initEquipmentIcons() {
+    initEquipmentIcons(): void {
         var scale = this.game.renderer.getScaleFactor();
         var getIconPath = function(spriteName) {
                 return resolveImageAssetPath(scale, 'item-' + spriteName);
@@ -415,7 +418,7 @@ class App {
         }
     }
 
-    hideWindows() {
+    hideWindows(): void {
         var achievements = this.achievementsEl || document.getElementById('achievements'),
             achievementsButton = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
             instructions = this.instructionsEl || document.getElementById('instructions'),
@@ -445,7 +448,7 @@ class App {
         }
     }
 
-    showAchievementNotification(id, name) {
+    showAchievementNotification(id: AchievementId, name: string): void {
         var notif = this.achievementNotificationEl || document.getElementById('achievement-notification'),
             button = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
             nameEl = notif ? notif.querySelector('.name') : null;
@@ -473,7 +476,7 @@ class App {
         }, 5000);
     }
 
-    displayUnlockedAchievement(id) {
+    displayUnlockedAchievement(id: AchievementId): void {
         var achievementEl = document.querySelector('#achievements li.achievement' + id);
 
         var achievement = this.game.getAchievementById(id);
@@ -492,7 +495,7 @@ class App {
         }
     }
 
-    unlockAchievement(id: AchievementId, name: string) {
+    unlockAchievement(id: AchievementId, name: string): void {
         this.showAchievementNotification(id, name);
         this.displayUnlockedAchievement(id);
 
@@ -503,21 +506,20 @@ class App {
         }
     }
 
-    initAchievementList(achievements: Record<string, AchievementView>) {
+    initAchievementList(achievements: Record<string, AchievementView>): void {
         var self = this,
             lists = document.getElementById('lists'),
             pageTemplate = document.getElementById('page-tmpl'),
             achievementTemplate = document.getElementById('achievement-tmpl'),
             page = 0,
             count = 0,
-            /** @type {HTMLElement | null} */
-            pageNode = null;
+            pageNode: HTMLElement | null = null;
 
         if(!lists || !pageTemplate || !achievementTemplate) {
             return;
         }
 
-        Object.keys(achievements).forEach(function(key) {
+        Object.keys(achievements).forEach(function(key: string) {
             var achievement = achievements[key];
             count++;
 
@@ -533,8 +535,8 @@ class App {
                 twitterLink.setAttribute('href', 'http://twitter.com/share?url=http%3A%2F%2Fbrowserquest.mozilla.org&text=I%20unlocked%20the%20%27'+ achievement.name +'%27%20achievement%20on%20Mozilla%27s%20%23BrowserQuest%21&related=glecollinet:Creators%20of%20BrowserQuest%2Cwhatthefranck');
             }
 
-            achievementNode.querySelectorAll('a').forEach(function(link) {
-                link.addEventListener('click', function(event) {
+            achievementNode.querySelectorAll('a').forEach(function(link: Element) {
+                link.addEventListener('click', function(event: MouseEvent) {
                     var url = link.getAttribute('href');
                     self.openPopup('twitter', url);
                     event.preventDefault();
@@ -544,7 +546,7 @@ class App {
 
             if((count - 1) % 4 === 0) {
                 page++;
-                pageNode = /** @type {HTMLElement} */ (pageTemplate.cloneNode(true));
+                pageNode = pageTemplate.cloneNode(true) as HTMLElement;
                 pageNode.setAttribute('id', 'page'+page);
                 pageNode.style.display = '';
                 lists.appendChild(pageNode);
@@ -559,10 +561,10 @@ class App {
         }
     }
 
-    initUnlockedAchievements(ids: AchievementId[]) {
+    initUnlockedAchievements(ids: AchievementId[]): void {
         var self = this;
         
-        ids.forEach(function(id) {
+        ids.forEach(function(id: AchievementId) {
             self.displayUnlockedAchievement(id);
         });
         var unlockedAchievements = this.unlockedAchievementsEl || document.getElementById('unlocked-achievements');
@@ -571,7 +573,7 @@ class App {
         }
     }
 
-    setAchievementData(el, name, desc) {
+    setAchievementData(el: Element | null, name: string, desc: string): void {
         if(!el) {
             return;
         }
@@ -585,7 +587,7 @@ class App {
         }
     }
 
-    toggleScrollContent(content) {
+    toggleScrollContent(content: ScrollContent): void {
         var parchment = this.parchmentEl || document.getElementById('parchment'),
             body = this.bodyEl || document.body,
             helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
@@ -622,7 +624,7 @@ class App {
         }
     }
 
-    closeInGameScroll(content) {
+    closeInGameScroll(content: ScrollContent): void {
         var body = this.bodyEl || document.body,
             parchment = this.parchmentEl || document.getElementById('parchment'),
             helpButton = this.helpButtonEl || document.getElementById('helpbutton');
@@ -645,14 +647,14 @@ class App {
         }
     }
     
-    togglePopulationInfo() {
+    togglePopulationInfo(): void {
         var population = this.populationEl || document.getElementById('population');
         if(population) {
             population.classList.toggle('visible');
         }
     }
 
-    openPopup(type: PopupType, url: string) {
+    openPopup(type: PopupType, url: string): void {
         var h = window.innerHeight,
             w = window.innerWidth,
             popupHeight,
@@ -680,7 +682,7 @@ class App {
         }
     }
 
-    animateParchment(origin, destination) {
+    animateParchment(origin: string, destination: string): void {
         var self = this,
             parchment = this.parchmentEl || document.getElementById('parchment'),
             duration = 1;
@@ -714,14 +716,14 @@ class App {
         }
     }
 
-    animateMessages() {
+    animateMessages(): void {
         var messages = this.notificationWrapperEl || document.querySelector('#notifications div');
         if(messages) {
             messages.classList.add('top');
         }
     }
 
-    resetMessagesPosition() {
+    resetMessagesPosition(): void {
         var wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
             message1 = this.message1El || document.getElementById('message1'),
             message2 = this.message2El || document.getElementById('message2'),
@@ -738,7 +740,7 @@ class App {
         }
     }
 
-    showMessage(message) {
+    showMessage(message: string): void {
         var wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
             messageEl = this.message2El || document.getElementById('message2');
 
@@ -757,11 +759,11 @@ class App {
         }, 5000);
     }
 
-    resetMessageTimer() {
+    resetMessageTimer(): void {
         clearTimeout(this.messageTimer);
     }
     
-    resizeUi() {
+    resizeUi(): void {
         if(this.game) {
             if(this.game.started) {
                 this.game.resize();

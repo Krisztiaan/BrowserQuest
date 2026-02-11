@@ -1,0 +1,37 @@
+{
+    "compilerOptions": {
+        "target": "ES2022",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "lib": ["ES2022"],
+        "types": ["bun-types", "node"],
+
+        /* Strict type-checking */
+        "strict": true,
+        "strictNullChecks": true,
+        // temporarily disable noUncheckedIndexedAccess to reduce noise while migrating to exactOptionalPropertyTypes
+        "noUncheckedIndexedAccess": false,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+        "forceConsistentCasingInFileNames": true,
+
+        /* Emit */
+        "noEmit": true,
+        "composite": true,
+        "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-node.tsbuildinfo",
+        "skipLibCheck": true,
+
+        /* Modules */
+        "resolveJsonModule": true,
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true
+    },
+    "include": [
+        "server/js/**/*.ts",
+        "shared/js/**/*.ts",
+        "client/js-esm/client-boundary-types.ts",
+        "client/js-esm/achievement-domain.ts",
+        "client/js-esm/asset-key-domain.ts",
+        "client/js-esm/compat/gametypes.ts"
+    ]
+}

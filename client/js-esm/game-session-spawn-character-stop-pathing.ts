@@ -12,7 +12,7 @@ type SpawnCharacterStopPathingHost = {
 };
 
 export function installSpawnedCharacterStopPathingHandler(host: SpawnCharacterStopPathingHost): void {
-    host.character.on('stopPathing', function (_x, _y) {
+    host.character.on('stopPathing', function (_x: number, _y: number): void {
         if (host.isDying()) {
             return;
         }

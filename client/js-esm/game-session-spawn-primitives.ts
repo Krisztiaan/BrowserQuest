@@ -27,22 +27,22 @@ type SpawnPrimitiveHost<TItem, TChest extends SpawnChestContract> = {
 export function installSpawnPrimitiveHandlers<TItem, TChest extends SpawnChestContract>(
     host: SpawnPrimitiveHost<TItem, TChest>
 ): void {
-    host.registerSpawnItem(function (item, x, y) {
+    host.registerSpawnItem(function (item: TItem, x: number, y: number) {
         host.onItemSpawned(item, x, y);
         host.addItem(item, x, y);
     });
 
-    host.registerSpawnChest(function (chest, x, y) {
+    host.registerSpawnChest(function (chest: TChest, x: number, y: number) {
         host.onChestSpawned(chest, x, y);
         chest.setSprite(host.getSprite(chest.getSpriteName()));
         chest.setGridPosition(x, y);
         chest.setAnimation('idle_down', 150);
         host.addChestEntity(chest);
 
-        chest.on('open', function () {
+        chest.on('open', function (): void {
             chest.stopBlinking();
             chest.setSprite(host.getSprite('death'));
-            chest.setAnimation('death', 120, 1, function () {
+            chest.setAnimation('death', 120, 1, function (): void {
                 host.onChestRemoved(chest);
                 host.removeChestEntity(chest);
                 host.removeChestFromRenderingGrid(chest, chest.gridX, chest.gridY);

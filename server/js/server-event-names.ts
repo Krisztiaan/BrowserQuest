@@ -2,6 +2,7 @@ export const SERVER_EVENT_NAMES = {
     START: 'server.start',
     CONNECT_REJECTED: 'server.connect.rejected',
     ERROR: 'server.error',
+    SHUTDOWN_SIGNAL: 'server.shutdown.signal',
     CONFIG_INVALID: 'server.config.invalid',
     FATAL_UNCAUGHT_EXCEPTION: 'server.fatal.uncaught_exception',
     FATAL_UNHANDLED_REJECTION: 'server.fatal.unhandled_rejection',

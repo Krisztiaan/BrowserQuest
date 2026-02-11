@@ -91,7 +91,7 @@ type DestroyableEntity = {
 };
 
 export function registerConnectSessionHandlers(host: ConnectRegistrationHost): void {
-    host.client.on('despawnEntity', function (entityId) {
+    host.client.on('despawnEntity', function (entityId: EntityId) {
         handleEntityDespawn({
             entity: host.resolveEntity(entityId) as {
                 kind: EntityKind;
@@ -101,26 +101,22 @@ export function registerConnectSessionHandlers(host: ConnectRegistrationHost): v
                 clean(): void;
             } | null,
             previousClickPosition: host.previousClickPosition,
-            clearPreviousClickPosition() {
-                host.clearPreviousClickPosition();
-            },
+            clearPreviousClickPosition: host.clearPreviousClickPosition,
             logDespawn(entity) {
                 host.logInfo('Despawning ' + host.describeKind(entity.kind) + ' (' + entity.id + ')');
             },
-            removeItem(item) {
-                host.removeItem(item);
-            },
+            removeItem: host.removeItem,
         });
     });
 
-    host.client.on('itemBlink', function (entityId) {
+    host.client.on('itemBlink', function (entityId: EntityId) {
         handleItemBlink({
             item: host.resolveEntity(entityId) as { blink(speed: number): void } | null,
             speed: 150,
         });
     });
 
-    host.client.on('entityMove', function (entityId, x, y) {
+    host.client.on('entityMove', function (entityId: EntityId, x: number, y: number) {
         handleEntityMove<Character>({
             entityId,
             playerId: host.playerId,
@@ -138,28 +134,22 @@ export function registerConnectSessionHandlers(host: ConnectRegistrationHost): v
             unlockCowardAchievement() {
                 host.unlockAchievement('COWARD');
             },
-            moveEntity(entity, moveX, moveY) {
-                host.moveCharacterTo(entity, moveX, moveY);
-            },
+            moveEntity: host.moveCharacterTo,
         });
     });
 
-    host.client.on('entityDestroy', function (entityId) {
+    host.client.on('entityDestroy', function (entityId: EntityId) {
         handleEntityDestroy<DestroyableEntity>({
             entity: host.resolveEntity(entityId) as DestroyableEntity | null,
-            removeItem(item) {
-                host.removeItem(item);
-            },
-            removeEntity(entity) {
-                host.removeEntity(entity);
-            },
+            removeItem: host.removeItem,
+            removeEntity: host.removeEntity,
             logDestroyed(entity) {
                 host.logDebug('Entity was destroyed: ' + entity.id);
             },
         });
     });
 
-    host.client.on('playerMoveToItem', function (playerId, itemId) {
+    host.client.on('playerMoveToItem', function (playerId: EntityId, itemId: EntityId) {
         handlePlayerMoveToItem<Character, MoveToItemTarget>({
             playerId,
             localPlayerId: host.playerId,
@@ -170,13 +160,11 @@ export function registerConnectSessionHandlers(host: ConnectRegistrationHost): v
             resolveItem(entityId) {
                 return host.resolveEntity(entityId) as MoveToItemTarget | null;
             },
-            movePlayerTo(player, x, y) {
-                host.moveCharacterTo(player, x, y);
-            },
+            movePlayerTo: host.moveCharacterTo,
         });
     });
 
-    host.client.on('entityAttack', function (attackerId, targetId) {
+    host.client.on('entityAttack', function (attackerId: EntityId, targetId: EntityId) {
         handleEntityAttack({
             attacker: host.resolveEntity(attackerId) as { id: EntityId } | null,
             target: host.resolveEntity(targetId) as { id: EntityId } | null,
@@ -184,87 +172,55 @@ export function registerConnectSessionHandlers(host: ConnectRegistrationHost): v
             logAttack(attacker, target) {
                 host.logDebug(attacker.id + ' attacks ' + target.id);
             },
-            createAttackLink(attacker, target) {
-                host.createAttackLink(attacker, target);
-            },
+            createAttackLink: host.createAttackLink,
             scheduleAttackLink(attacker, target, delayMs) {
-                host.schedule(function () {
-                    host.createAttackLink(attacker, target);
-                }, delayMs);
+                host.schedule((): void => host.createAttackLink(attacker, target), delayMs);
             },
         });
     });
 
-    host.client.on('playerDamageMob', function (mobId, points) {
+    host.client.on('playerDamageMob', function (mobId: EntityId, points: number) {
         handlePlayerDamageMob({
             mob: host.resolveEntity(mobId) as { x: number; y: number } | null,
             points,
-            addDamageInfo(damagePoints, x, y, kind) {
-                host.addDamageInfo(damagePoints, x, y, kind);
-            },
+            addDamageInfo: host.addDamageInfo,
         });
     });
 
-    host.client.on('playerKillMob', function (kind) {
+    host.client.on('playerKillMob', function (kind: EntityKind) {
         handlePlayerKillMob({
             kind,
-            getMobName(entityKind) {
-                return host.describeKind(entityKind);
-            },
-            showNotification(message) {
-                host.showNotification(message);
-            },
-            incrementTotalKills() {
-                host.incrementTotalKills();
-            },
+            getMobName: host.describeKind,
+            showNotification: host.showNotification,
+            incrementTotalKills: host.incrementTotalKills,
             unlockAchievement(achievementId) {
                 host.unlockAchievement(achievementId);
             },
-            isRat(entityKind) {
-                return host.isRat(entityKind);
-            },
-            isSkeleton(entityKind) {
-                return host.isSkeleton(entityKind);
-            },
-            isBoss(entityKind) {
-                return host.isBoss(entityKind);
-            },
-            incrementRatCount() {
-                host.incrementRatCount();
-            },
-            incrementSkeletonCount() {
-                host.incrementSkeletonCount();
-            },
+            isRat: host.isRat,
+            isSkeleton: host.isSkeleton,
+            isBoss: host.isBoss,
+            incrementRatCount: host.incrementRatCount,
+            incrementSkeletonCount: host.incrementSkeletonCount,
         });
     });
 
-    host.client.on('playerChangeHealth', function (points, isRegen) {
+    host.client.on('playerChangeHealth', function (points: number, isRegen: boolean) {
         handlePlayerChangeHealth({
             player: host.player,
             points,
             isRegen,
-            addDamageInfo(value, x, y, type) {
-                host.addDamageInfo(value, x, y, type);
-            },
-            playHurtSound() {
-                host.playHurtSound();
-            },
-            addStoredDamage(value) {
-                host.addStoredDamage(value);
-            },
+            addDamageInfo: host.addDamageInfo,
+            playHurtSound: host.playHurtSound,
+            addStoredDamage: host.addStoredDamage,
             unlockMeatshieldAchievement() {
                 host.unlockAchievement('MEATSHIELD');
             },
-            onPlayerHurt() {
-                host.onPlayerHurt();
-            },
-            updateBars() {
-                host.updateBars();
-            },
+            onPlayerHurt: host.onPlayerHurt,
+            updateBars: host.updateBars,
         });
     });
 
-    host.client.on('playerChangeMaxHitPoints', function (hp) {
+    host.client.on('playerChangeMaxHitPoints', function (hp: number) {
         if (!host.player) {
             return;
         }
@@ -272,35 +228,25 @@ export function registerConnectSessionHandlers(host: ConnectRegistrationHost): v
         handlePlayerMaxHitPoints({
             player: host.player,
             hp,
-            updateBars() {
-                host.updateBars();
-            },
+            updateBars: host.updateBars,
         });
     });
 
-    host.client.on('playerEquipItem', function (playerId, itemKind) {
+    host.client.on('playerEquipItem', function (playerId: EntityId, itemKind: EntityKind) {
         handlePlayerEquipItem({
             player: host.resolveEntity(playerId) as {
                 setSprite(sprite: unknown): void;
                 setWeaponName?(name: string): void;
             } | null,
             itemKind,
-            getItemName(kind) {
-                return host.getItemName(kind);
-            },
-            isArmor(kind) {
-                return host.isArmor(kind);
-            },
-            isWeapon(kind) {
-                return host.isWeapon(kind);
-            },
-            getSprite(itemName) {
-                return host.getSprite(itemName);
-            },
+            getItemName: host.getItemName,
+            isArmor: host.isArmor,
+            isWeapon: host.isWeapon,
+            getSprite: host.getSprite,
         });
     });
 
-    host.client.on('playerTeleport', function (entityId, x, y) {
+    host.client.on('playerTeleport', function (entityId: EntityId, x: number, y: number) {
         handlePlayerTeleport<Character>({
             entityId,
             localPlayerId: host.playerId,
@@ -309,48 +255,32 @@ export function registerConnectSessionHandlers(host: ConnectRegistrationHost): v
             resolveEntity(id) {
                 return host.resolveEntity(id) as Character | null;
             },
-            teleportEntity(entity, teleportX, teleportY) {
-                host.teleportCharacterTo(entity, teleportX, teleportY);
-            },
+            teleportEntity: host.teleportCharacterTo,
         });
     });
 
-    host.client.on('dropItem', function (item, mobId) {
+    host.client.on('dropItem', function (item: unknown, mobId: EntityId) {
         handleDropItem({
             item,
             mobId,
-            resolveDeadMobPosition(candidateMobId) {
-                return host.resolveDeadMobPosition(candidateMobId);
-            },
-            addItem(droppedItem, x, y) {
-                host.addItem(droppedItem, x, y);
-            },
-            updateCursor() {
-                host.updateCursor();
-            },
+            resolveDeadMobPosition: host.resolveDeadMobPosition,
+            addItem: host.addItem,
+            updateCursor: host.updateCursor,
         });
     });
 
-    host.client.on('chatMessage', function (entityId, message) {
+    host.client.on('chatMessage', function (entityId: EntityId, message: string) {
         handleChatMessage({
             entityId,
             message,
-            resolveEntity(id) {
-                return host.resolveEntity(id);
-            },
-            createBubble(id, text) {
-                host.createBubble(id, text);
-            },
-            assignBubbleTo(entity) {
-                host.assignBubbleTo(entity);
-            },
-            playChatSound() {
-                host.playChatSound();
-            },
+            resolveEntity: host.resolveEntity,
+            createBubble: host.createBubble,
+            assignBubbleTo: host.assignBubbleTo,
+            playChatSound: host.playChatSound,
         });
     });
 
-    host.client.on('populationChange', function (worldPlayers, totalPlayers) {
+    host.client.on('populationChange', function (worldPlayers: number, totalPlayers: number) {
         handlePopulationChange({
             worldPlayers,
             totalPlayers,
@@ -358,7 +288,7 @@ export function registerConnectSessionHandlers(host: ConnectRegistrationHost): v
         });
     });
 
-    host.client.on('disconnected', function (message) {
+    host.client.on('disconnected', function (message: string) {
         handleDisconnected({
             player: host.player,
             message,

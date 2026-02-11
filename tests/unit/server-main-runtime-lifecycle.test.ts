@@ -33,14 +33,10 @@ test('main runtime exposes lifecycle cleanup handle and onLifecycle receives sam
         },
     };
     const FakeServer = function FakeServer(this: {
-        onConnect: (callback: unknown) => void;
-        onError: (callback: unknown) => void;
+        on: (eventName: 'connect' | 'error', callback: unknown) => void;
         onRequestStatus: (callback: unknown) => void;
     }) {
-        this.onConnect = () => {
-            // no-op
-        };
-        this.onError = () => {
+        this.on = () => {
             // no-op
         };
         this.onRequestStatus = () => {
@@ -48,8 +44,7 @@ test('main runtime exposes lifecycle cleanup handle and onLifecycle receives sam
         };
     } as unknown as {
         new (port: number): {
-            onConnect: (callback: unknown) => void;
-            onError: (callback: unknown) => void;
+            on: (eventName: 'connect' | 'error', callback: unknown) => void;
             onRequestStatus: (callback: unknown) => void;
         };
     };
@@ -106,10 +101,12 @@ test('main runtime exposes lifecycle cleanup handle and onLifecycle receives sam
     expect(lifecyclePayloads[0]?.cleanup).toBe(runtime.cleanup);
     expect(typeof processHandlers.uncaughtException).toBe('function');
     expect(typeof processHandlers.unhandledRejection).toBe('function');
+    expect(typeof processHandlers.SIGTERM).toBe('function');
+    expect(typeof processHandlers.SIGINT).toBe('function');
 
     runtime.cleanup();
     runtime.cleanup();
 
     expect(cleared).toEqual([timerHandle]);
-    expect(removedEvents).toEqual(['uncaughtException', 'unhandledRejection']);
+    expect(removedEvents).toEqual(['uncaughtException', 'unhandledRejection', 'SIGTERM', 'SIGINT']);
 });

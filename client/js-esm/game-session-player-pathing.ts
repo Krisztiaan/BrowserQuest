@@ -21,7 +21,7 @@ type StartPathingHost = {
 };
 
 export function installPlayerStartPathingHandler(host: StartPathingHost): void {
-    host.player.on('startPathing', function (path) {
+    host.player.on('startPathing', function (path: Array<[number, number]>): void {
         var i = path.length - 1;
         var x = path[i][0];
         var y = path[i][1];

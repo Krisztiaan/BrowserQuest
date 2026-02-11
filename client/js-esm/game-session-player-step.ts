@@ -34,7 +34,7 @@ type PlayerStepHost = {
 };
 
 export function installPlayerStepHandler(host: PlayerStepHost): void {
-    host.player.on('step', function () {
+    host.player.on('step', function (): void {
         if (host.player.hasNextStep()) {
             host.registerEntityDualPosition(host.player);
         }
@@ -43,7 +43,7 @@ export function installPlayerStepHandler(host: PlayerStepHost): void {
             host.enqueueZoningFrom(host.player.gridX, host.player.gridY);
         }
 
-        host.player.forEachAttacker(function (attacker) {
+        host.player.forEachAttacker(function (attacker: StepAttacker): void {
             if (attacker.isAdjacent(attacker.target)) {
                 attacker.lookAtTarget();
             } else {

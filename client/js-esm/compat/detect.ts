@@ -28,20 +28,8 @@ const Detect = {
         return this.userAgentContains('Windows');
     },
 
-    isChromeOnWindows: function (): boolean {
-        return this.userAgentContains('Chrome') && this.userAgentContains('Windows');
-    },
-
     canPlayMP3: function (): boolean {
         return canPlayMP3();
-    },
-
-    isSafari: function (): boolean {
-        return this.userAgentContains('Safari') && !this.userAgentContains('Chrome');
-    },
-
-    isOpera: function (): boolean {
-        return this.userAgentContains('Opera');
     },
 
     isFirefoxAndroid: function (): boolean {

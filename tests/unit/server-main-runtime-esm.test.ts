@@ -17,6 +17,7 @@ const expectedFunctions = [
     'createPopulationCheckCleanup',
     'createFatalReporter',
     'installFatalHandlers',
+    'installShutdownHandlers',
     'triggerFatalTestEvent',
     'createRuntimeCleanup',
 ] as const;

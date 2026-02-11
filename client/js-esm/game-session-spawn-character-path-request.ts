@@ -16,13 +16,13 @@ type SpawnCharacterPathRequestHost = {
 };
 
 export function installSpawnedCharacterPathRequestHandler(host: SpawnCharacterPathRequestHost): void {
-    host.character.setPathRequestResolver(function (x, y) {
+    host.character.setPathRequestResolver(function (x: number, y: number) {
         var ignored: unknown[] = [host.character];
-        var ignoreTarget = function (target: PathRequestTarget) {
+        var ignoreTarget = function (target: PathRequestTarget): void {
             ignored.push(target);
 
             if (typeof target.forEachAttacker === 'function') {
-                target.forEachAttacker(function (attacker) {
+                target.forEachAttacker(function (attacker: unknown) {
                     ignored.push(attacker);
                 });
             }

@@ -25,7 +25,7 @@ export function installSpawnPrimitiveHandlersFromGame(game: SpawnPrimitiveBuilde
     installSpawnPrimitiveHandlersFromHost<Item, Chest>({
         client: game.client,
         describeKind(kind) {
-            return Types.getKindAsString(kind);
+            return Types.getKindAsString(kind) ?? 'unknown';
         },
         logInfo(message) {
             log.info(message);

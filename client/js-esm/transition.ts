@@ -21,7 +21,14 @@ class Transition {
         this.stopFunction = null;
     }
 
-    start(currentTime, updateFunction, stopFunction, startValue, endValue, duration) {
+    start(
+        currentTime: number,
+        updateFunction: ((value: number) => void) | null,
+        stopFunction: (() => void) | null,
+        startValue: number,
+        endValue: number,
+        duration: number
+    ): void {
         this.startTime = currentTime;
         this.updateFunction = updateFunction;
         this.stopFunction = stopFunction;
@@ -32,7 +39,7 @@ class Transition {
         this.count = 0;
     }
 
-    step(currentTime) {
+    step(currentTime: number): void {
         if (this.inProgress) {
             if (this.count > 0) {
                 this.count -= 1;
@@ -61,12 +68,12 @@ class Transition {
         }
     }
 
-    restart(currentTime, startValue, endValue) {
+    restart(currentTime: number, startValue: number, endValue: number): void {
         this.start(currentTime, this.updateFunction, this.stopFunction, startValue, endValue, this.duration);
         this.step(currentTime);
     }
 
-    stop() {
+    stop(): void {
         this.inProgress = false;
     }
 }

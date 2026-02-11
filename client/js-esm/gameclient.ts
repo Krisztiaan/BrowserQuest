@@ -2,9 +2,27 @@ import EntityFactory from './entityfactory';
 import log from './compat/log';
 import Types from './compat/gametypes';
 import type { EntityKind } from './compat/gametypes';
-import { normalizeProtocolActionBatch } from './protocol-payload';
+import { createGameClientInboundHandlers } from './gameclient-inbound-handlers';
+import {
+    createAggroAction,
+    createAttackAction,
+    createChatAction,
+    createCheckAction,
+    createHelloAction,
+    createHitAction,
+    createHurtAction,
+    createLootAction,
+    createLootMoveAction,
+    createMoveAction,
+    createOpenAction,
+    createTeleportAction,
+    createWhoAction,
+    createZoneAction,
+    toProtocolEntityId,
+} from './gameclient-outbound-actions';
 import type { TypedEventSource } from '../../shared/js/typed-event-emitter';
 import { Evented } from '../../shared/js/evented';
+import { decodeServerToClientProtocolActionBatch } from '../../shared/js/protocol-registry';
 import {
     DISPATCHER_CONNECT_STATUS,
     HANDSHAKE_CONTROL,
@@ -16,8 +34,18 @@ import type {
     ClientProtocolBatch,
 } from './client-boundary-types';
 
-type GameClientActionHandler = (data: unknown[]) => void;
 type EntityId = string | number;
+type InboundAction<Opcode extends ClientInboundProtocolAction[0]> = Extract<
+    ClientInboundProtocolAction,
+    [Opcode, ...unknown[]]
+>;
+type GameClientActionHandler = (data: ClientInboundProtocolAction) => void;
+type ClientPlayerLike = {
+    name: string;
+    getSpriteName(): string;
+    getWeaponName(): string;
+};
+type IdCarrier = { id: EntityId };
 
 export type GameClientEvents = {
     dispatched: [host: string, port: number];
@@ -59,392 +87,330 @@ class GameClient extends Evented<GameClientEvents> {
     port: number;
     isTimeout: boolean;
     isListening: boolean;
-    handlers: Array<GameClientActionHandler | undefined>;
+    handlers: Record<ClientInboundProtocolAction[0], GameClientActionHandler>;
 
-    constructor(host, port) {
+    constructor(host: string, port: number) {
         super();
         this.connection = null;
         this.host = host;
         this.port = port;
         this.isTimeout = false;
-    
-        this.handlers = [];
-        this.handlers[Types.Messages.WELCOME] = this.receiveWelcome;
-        this.handlers[Types.Messages.MOVE] = this.receiveMove;
-        this.handlers[Types.Messages.LOOTMOVE] = this.receiveLootMove;
-        this.handlers[Types.Messages.ATTACK] = this.receiveAttack;
-        this.handlers[Types.Messages.SPAWN] = this.receiveSpawn;
-        this.handlers[Types.Messages.DESPAWN] = this.receiveDespawn;
-        this.handlers[Types.Messages.HEALTH] = this.receiveHealth;
-        this.handlers[Types.Messages.CHAT] = this.receiveChat;
-        this.handlers[Types.Messages.EQUIP] = this.receiveEquipItem;
-        this.handlers[Types.Messages.DROP] = this.receiveDrop;
-        this.handlers[Types.Messages.TELEPORT] = this.receiveTeleport;
-        this.handlers[Types.Messages.DAMAGE] = this.receiveDamage;
-        this.handlers[Types.Messages.POPULATION] = this.receivePopulation;
-        this.handlers[Types.Messages.LIST] = this.receiveList;
-        this.handlers[Types.Messages.DESTROY] = this.receiveDestroy;
-        this.handlers[Types.Messages.KILL] = this.receiveKill;
-        this.handlers[Types.Messages.HP] = this.receiveHitPoints;
-        this.handlers[Types.Messages.BLINK] = this.receiveBlink;
-    
+        this.handlers = createGameClientInboundHandlers(this);
+
         this.enable();
     }
 
-    enable() {
+    enable(): void {
         this.isListening = true;
     }
 
-    disable() {
+    disable(): void {
         this.isListening = false;
     }
-    
-    connect(dispatcherMode = false) {
-        var scheme = window.location.protocol === "https:" ? "wss://" : "ws://",
-            url = scheme + this.host +":"+ this.port +"/",
+
+    connect(dispatcherMode = false): void {
+        var scheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://',
+            url = scheme + this.host + ':' + this.port + '/',
             self = this;
-        
-        log.info("Trying to connect to server : "+url);
+
+        log.info('Trying to connect to server : ' + url);
 
         this.connection = new WebSocket(url);
-        
-        if(dispatcherMode) {
-            this.connection.onmessage = function(e) {
+
+        if (dispatcherMode) {
+            this.connection.onmessage = function (e: MessageEvent) {
                 var reply = JSON.parse(e.data);
                 var status = reply?.status;
 
-                if(isDispatcherConnectStatus(status) && status === DISPATCHER_CONNECT_STATUS.OK) {
+                if (isDispatcherConnectStatus(status) && status === DISPATCHER_CONNECT_STATUS.OK) {
                     self.emit('dispatched', reply.host, reply.port);
-                } else if(isDispatcherConnectStatus(status) && status === DISPATCHER_CONNECT_STATUS.FULL) {
-                    alert("BrowserQuest is currently at maximum player population. Please retry later.");
+                } else if (isDispatcherConnectStatus(status) && status === DISPATCHER_CONNECT_STATUS.FULL) {
+                    alert('BrowserQuest is currently at maximum player population. Please retry later.');
                 } else {
-                    alert("Unknown error while connecting to BrowserQuest.");
+                    alert('Unknown error while connecting to BrowserQuest.');
                 }
             };
         } else {
-            this.connection.onopen = function(e) {
-                log.info("Connected to server "+self.host+":"+self.port);
+            this.connection.onopen = function (_e: Event) {
+                log.info('Connected to server ' + self.host + ':' + self.port);
             };
 
-            this.connection.onmessage = function(e) {
-                if(e.data === HANDSHAKE_CONTROL.GO) {
+            this.connection.onmessage = function (e: MessageEvent) {
+                if (e.data === HANDSHAKE_CONTROL.GO) {
                     self.emit('connected');
                     return;
                 }
-                if(e.data === HANDSHAKE_CONTROL.TIMEOUT) {
+                if (e.data === HANDSHAKE_CONTROL.TIMEOUT) {
                     self.isTimeout = true;
                     return;
                 }
-                
-                self.receiveMessage(e.data);
+
+                if (typeof e.data === 'string') {
+                    self.receiveMessage(e.data);
+                }
             };
 
-            this.connection.onerror = function(e) {
+            this.connection.onerror = function (e: Event) {
                 log.error(e, true);
             };
 
-            this.connection.onclose = function() {
-                log.debug("Connection closed");
+            this.connection.onclose = function () {
+                log.debug('Connection closed');
                 var container = document.getElementById('container');
-                if(container) {
+                if (container) {
                     container.classList.add('error');
                 }
-                
-                if(self.isTimeout) {
-                    self.emit('disconnected', "You have been disconnected for being inactive for too long");
+
+                if (self.isTimeout) {
+                    self.emit('disconnected', 'You have been disconnected for being inactive for too long');
                 } else {
-                    self.emit('disconnected', "The connection to BrowserQuest has been lost");
+                    self.emit('disconnected', 'The connection to BrowserQuest has been lost');
                 }
             };
         }
     }
 
-    sendMessage(json: ClientOutboundProtocolAction) {
+    sendMessage(json: ClientOutboundProtocolAction): void {
         var data;
-        if(this.connection.readyState === 1) {
+        if (this.connection.readyState === 1) {
             data = JSON.stringify(json);
             this.connection.send(data);
         }
     }
 
-    receiveMessage(message) {
-        var data, actions;
-    
-        if(this.isListening) {
-            data = JSON.parse(message);
+    receiveMessage(message: string): void {
+        var actions;
 
-            log.debug("data: " + message);
-            actions = normalizeProtocolActionBatch(data);
-            if(actions.length === 1) {
+        if (this.isListening) {
+            log.debug('data: ' + message);
+            actions = decodeServerToClientProtocolActionBatch(message);
+            if (actions.length === 1) {
                 this.receiveAction(actions[0]);
-            } else if(actions.length > 1) {
+            } else if (actions.length > 1) {
                 this.receiveActionBatch(actions);
             }
         }
     }
 
-    receiveAction(data: ClientInboundProtocolAction) {
-        var action = data[0];
-        if(this.handlers[action] && typeof this.handlers[action] === "function") {
-            this.handlers[action].call(this, data);
-        }
-        else {
-            log.error("Unknown action : " + action);
-        }
+    receiveAction(data: ClientInboundProtocolAction): void {
+        const action = data[0];
+        this.handlers[action](data);
     }
 
-    receiveActionBatch(actions: ClientProtocolBatch) {
+    receiveActionBatch(actions: ClientProtocolBatch): void {
         var self = this;
 
-        actions.forEach(function(action) {
+        actions.forEach(function (action: ClientInboundProtocolAction) {
             self.receiveAction(action);
         });
     }
 
-    receiveWelcome(data) {
-        var id = data[1],
-            name = data[2],
-            x = data[3],
-            y = data[4],
-            hp = data[5];
-
+    receiveWelcome(data: ClientInboundProtocolAction): void {
+        const [, id, name, x, y, hp] = data as InboundAction<typeof Types.Messages.WELCOME>;
         this.emit('welcome', id, name, x, y, hp);
     }
 
-    receiveMove(data) {
-        var id = data[1],
-            x = data[2],
-            y = data[3];
-
+    receiveMove(data: ClientInboundProtocolAction): void {
+        const [, id, x, y] = data as InboundAction<typeof Types.Messages.MOVE>;
         this.emit('entityMove', id, x, y);
     }
 
-    receiveLootMove(data) {
-        var id = data[1], 
-            item = data[2];
-
+    receiveLootMove(data: ClientInboundProtocolAction): void {
+        const [, id, item] = data as InboundAction<typeof Types.Messages.LOOTMOVE>;
         this.emit('playerMoveToItem', id, item);
     }
 
-    receiveAttack(data) {
-        var attacker = data[1], 
-            target = data[2];
-
+    receiveAttack(data: ClientInboundProtocolAction): void {
+        const [, attacker, target] = data as InboundAction<typeof Types.Messages.ATTACK>;
         this.emit('entityAttack', attacker, target);
     }
 
-    receiveSpawn(data) {
-        var id = data[1],
-            kind = data[2],
-            x = data[3],
-            y = data[4];
-    
-        if(Types.isItem(kind)) {
-            var item = EntityFactory.createEntity(kind, id);
+    receiveSpawn(data: ClientInboundProtocolAction): void {
+        const [, id, kind, x, y, ...spawnData] = data as InboundAction<typeof Types.Messages.SPAWN>;
 
+        if (Types.isItem(kind)) {
+            const item = EntityFactory.createEntity(kind, id);
             this.emit('spawnItem', item, x, y);
-        } else if(Types.isChest(kind)) {
-            var item = EntityFactory.createEntity(kind, id);
-
-            this.emit('spawnChest', item, x, y);
-        } else {
-            var name, orientation, target, weapon, armor;
-        
-            if(Types.isPlayer(kind)) {
-                name = data[5];
-                orientation = data[6];
-                armor = data[7];
-                weapon = data[8];
-                if(data.length > 9) {
-                    target = data[9];
-                }
-            }
-            else if(Types.isMob(kind)) {
-                orientation = data[5];
-                if(data.length > 6) {
-                    target = data[6];
-                }
-            }
-
-            var character = EntityFactory.createEntity(kind, id, name);
-        
-            if(Types.isPlayer(kind) && character) {
-                character.weaponName = Types.getKindAsString(weapon);
-                character.spriteName = Types.getKindAsString(armor);
-            }
-        
-            this.emit('spawnCharacter', character, x, y, orientation, target);
+            return;
         }
+
+        if (Types.isChest(kind)) {
+            const item = EntityFactory.createEntity(kind, id);
+            this.emit('spawnChest', item, x, y);
+            return;
+        }
+
+        let name: string | undefined;
+        let orientation: number | undefined;
+        let target: EntityId | undefined;
+        let weapon: EntityKind | undefined;
+        let armor: EntityKind | undefined;
+
+        if (Types.isPlayer(kind)) {
+            if (typeof spawnData[0] === 'string') {
+                name = spawnData[0];
+            }
+            if (typeof spawnData[1] === 'number') {
+                orientation = spawnData[1];
+            }
+            if (typeof spawnData[2] === 'number') {
+                armor = spawnData[2] as EntityKind;
+            }
+            if (typeof spawnData[3] === 'number') {
+                weapon = spawnData[3] as EntityKind;
+            }
+            if (typeof spawnData[4] === 'number' || typeof spawnData[4] === 'string') {
+                target = spawnData[4];
+            }
+        } else if (Types.isMob(kind)) {
+            if (typeof spawnData[0] === 'number') {
+                orientation = spawnData[0];
+            }
+            if (typeof spawnData[1] === 'number' || typeof spawnData[1] === 'string') {
+                target = spawnData[1];
+            }
+        }
+
+        const character = EntityFactory.createEntity(kind, id, name);
+
+        if (Types.isPlayer(kind) && character) {
+            character.weaponName = weapon !== undefined ? Types.getKindAsString(weapon) : undefined;
+            character.spriteName = armor !== undefined ? Types.getKindAsString(armor) : undefined;
+        }
+
+        this.emit('spawnCharacter', character, x, y, orientation, target);
     }
 
-    receiveDespawn(data) {
-        var id = data[1];
-
+    receiveDespawn(data: ClientInboundProtocolAction): void {
+        const [, id] = data as InboundAction<typeof Types.Messages.DESPAWN>;
         this.emit('despawnEntity', id);
     }
 
-    receiveHealth(data) {
-        var points = data[1],
-            isRegen = false;
-    
-        if(data[2]) {
-            isRegen = true;
-        }
-    
-        this.emit('playerChangeHealth', points, isRegen);
+    receiveHealth(data: ClientInboundProtocolAction): void {
+        const [, points, isRegenFlag] = data as InboundAction<typeof Types.Messages.HEALTH>;
+        this.emit('playerChangeHealth', points, isRegenFlag === 1);
     }
 
-    receiveChat(data) {
-        var id = data[1],
-            text = data[2];
-
+    receiveChat(data: ClientInboundProtocolAction): void {
+        const [, id, text] = data as InboundAction<typeof Types.Messages.CHAT>;
         this.emit('chatMessage', id, text);
     }
 
-    receiveEquipItem(data) {
-        var id = data[1],
-            itemKind = data[2];
-
+    receiveEquipItem(data: ClientInboundProtocolAction): void {
+        const [, id, itemKind] = data as InboundAction<typeof Types.Messages.EQUIP>;
         this.emit('playerEquipItem', id, itemKind);
     }
 
-    receiveDrop(data) {
-        var mobId = data[1],
-            id = data[2],
-            kind = data[3];
-    
-        var item = EntityFactory.createEntity(kind, id);
+    receiveDrop(data: ClientInboundProtocolAction): void {
+        const [, mobId, id, kind, playersInvolved] = data as InboundAction<typeof Types.Messages.DROP>;
+        const item = EntityFactory.createEntity(kind, id);
         item.wasDropped = true;
-        item.playersInvolved = data[4];
-    
+        item.playersInvolved = playersInvolved;
         this.emit('dropItem', item, mobId);
     }
 
-    receiveTeleport(data) {
-        var id = data[1],
-            x = data[2],
-            y = data[3];
-
+    receiveTeleport(data: ClientInboundProtocolAction): void {
+        const [, id, x, y] = data as InboundAction<typeof Types.Messages.TELEPORT>;
         this.emit('playerTeleport', id, x, y);
     }
 
-    receiveDamage(data) {
-        var id = data[1],
-            dmg = data[2];
-
+    receiveDamage(data: ClientInboundProtocolAction): void {
+        const [, id, dmg] = data as InboundAction<typeof Types.Messages.DAMAGE>;
         this.emit('playerDamageMob', id, dmg);
     }
 
-    receivePopulation(data) {
-        var worldPlayers = data[1],
-            totalPlayers = data[2];
-
+    receivePopulation(data: ClientInboundProtocolAction): void {
+        const [, worldPlayers, totalPlayers] = data as InboundAction<typeof Types.Messages.POPULATION>;
         this.emit('populationChange', worldPlayers, totalPlayers);
     }
 
-    receiveKill(data) {
-        var mobKind = data[1];
-
+    receiveKill(data: ClientInboundProtocolAction): void {
+        const [, mobKind] = data as InboundAction<typeof Types.Messages.KILL>;
         this.emit('playerKillMob', mobKind);
     }
 
-    receiveList(data) {
-        data.shift();
-
-        this.emit('entityList', data);
+    receiveList(data: ClientInboundProtocolAction): void {
+        const [, ...ids] = data as InboundAction<typeof Types.Messages.LIST>;
+        this.emit('entityList', ids);
     }
 
-    receiveDestroy(data) {
-        var id = data[1];
-
+    receiveDestroy(data: ClientInboundProtocolAction): void {
+        const [, id] = data as InboundAction<typeof Types.Messages.DESTROY>;
         this.emit('entityDestroy', id);
     }
 
-    receiveHitPoints(data) {
-        var maxHp = data[1];
-
+    receiveHitPoints(data: ClientInboundProtocolAction): void {
+        const [, maxHp] = data as InboundAction<typeof Types.Messages.HP>;
         this.emit('playerChangeMaxHitPoints', maxHp);
     }
 
-    receiveBlink(data) {
-        var id = data[1];
-
+    receiveBlink(data: ClientInboundProtocolAction): void {
+        const [, id] = data as InboundAction<typeof Types.Messages.BLINK>;
         this.emit('itemBlink', id);
     }
 
-    sendHello(player) {
-        this.sendMessage([Types.Messages.HELLO,
-                          player.name,
-                          Types.getKindFromString(player.getSpriteName()),
-                          Types.getKindFromString(player.getWeaponName())]);
+    sendHello(player: ClientPlayerLike): void {
+        const armorKind = Types.getKindFromString(player.getSpriteName());
+        const weaponKind = Types.getKindFromString(player.getWeaponName());
+
+        if (armorKind === undefined || weaponKind === undefined) {
+            log.error('Cannot send HELLO with unresolved equipment kinds');
+            return;
+        }
+
+        this.sendMessage(createHelloAction(player.name, armorKind, weaponKind));
     }
 
-    sendMove(x, y) {
-        this.sendMessage([Types.Messages.MOVE,
-                          x,
-                          y]);
+    sendMove(x: number, y: number): void {
+        this.sendMessage(createMoveAction(x, y));
     }
 
-    sendLootMove(item, x, y) {
-        this.sendMessage([Types.Messages.LOOTMOVE,
-                          x,
-                          y,
-                          item.id]);
+    sendLootMove(item: IdCarrier, x: number, y: number): void {
+        this.sendMessage(createLootMoveAction(x, y, toProtocolEntityId(item.id)));
     }
 
-    sendAggro(mob) {
-        this.sendMessage([Types.Messages.AGGRO,
-                          mob.id]);
+    sendAggro(mob: IdCarrier): void {
+        this.sendMessage(createAggroAction(toProtocolEntityId(mob.id)));
     }
 
-    sendAttack(mob) {
-        this.sendMessage([Types.Messages.ATTACK,
-                          mob.id]);
+    sendAttack(mob: IdCarrier): void {
+        this.sendMessage(createAttackAction(toProtocolEntityId(mob.id)));
     }
 
-    sendHit(mob) {
-        this.sendMessage([Types.Messages.HIT,
-                          mob.id]);
+    sendHit(mob: IdCarrier): void {
+        this.sendMessage(createHitAction(toProtocolEntityId(mob.id)));
     }
 
-    sendHurt(mob) {
-        this.sendMessage([Types.Messages.HURT,
-                          mob.id]);
+    sendHurt(mob: IdCarrier): void {
+        this.sendMessage(createHurtAction(toProtocolEntityId(mob.id)));
     }
 
-    sendChat(text) {
-        this.sendMessage([Types.Messages.CHAT,
-                          text]);
+    sendChat(text: string): void {
+        this.sendMessage(createChatAction(text));
     }
 
-    sendLoot(item) {
-        this.sendMessage([Types.Messages.LOOT,
-                          item.id]);
+    sendLoot(item: IdCarrier): void {
+        this.sendMessage(createLootAction(toProtocolEntityId(item.id)));
     }
 
-    sendTeleport(x, y) {
-        this.sendMessage([Types.Messages.TELEPORT,
-                          x,
-                          y]);
+    sendTeleport(x: number, y: number): void {
+        this.sendMessage(createTeleportAction(x, y));
     }
 
-    sendWho(ids) {
-        ids.unshift(Types.Messages.WHO);
-        this.sendMessage(ids);
+    sendWho(ids: number[]): void {
+        this.sendMessage(createWhoAction(ids));
     }
 
-    sendZone() {
-        this.sendMessage([Types.Messages.ZONE]);
+    sendZone(): void {
+        this.sendMessage(createZoneAction());
     }
 
-    sendOpen(chest) {
-        this.sendMessage([Types.Messages.OPEN,
-                          chest.id]);
+    sendOpen(chest: IdCarrier): void {
+        this.sendMessage(createOpenAction(toProtocolEntityId(chest.id)));
     }
 
-    sendCheck(id) {
-        this.sendMessage([Types.Messages.CHECK,
-                          id]);
+    sendCheck(id: number | string): void {
+        this.sendMessage(createCheckAction(id));
     }
 }
 

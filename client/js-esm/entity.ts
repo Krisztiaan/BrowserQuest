@@ -42,7 +42,7 @@ type GridEntityLike = {
 type DirtyRectLike = Record<string, number>;
 
 export type EntityEvents = {
-    dirty: [entity: Entity<any>];
+    dirty: [entity: Entity];
 };
 
 class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEvents> extends Evented<TEvents> {
@@ -301,7 +301,7 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
         this.startFadingTime = currentTime;
     }
 
-    blink(speed: number, _callback?: () => void): void {
+    blink(speed: number, _onBlinkComplete?: () => void): void {
         this.blinking = setInterval(() => {
             this.toggleVisibility();
         }, speed);

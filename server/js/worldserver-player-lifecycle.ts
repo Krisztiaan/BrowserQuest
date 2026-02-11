@@ -17,7 +17,7 @@ type EnteringPlayer = {
     group: string | number;
     hasEnteredGame: boolean;
     lastCheckpoint: { getRandomPosition(): Position } | null;
-    onRequestPosition(callback: () => Position): void;
+    setPositionResolver(resolver: () => Position): void;
     on(eventName: 'move', callback: (x: number, y: number) => void): void;
     on(eventName: 'lootMove', callback: (x: number, y: number) => void): void;
     on(eventName: 'zone', callback: () => void): void;
@@ -70,7 +70,7 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
     };
 
     world.on('playerConnect', function (player) {
-        player.onRequestPosition(function () {
+        player.setPositionResolver(function () {
             if (player.lastCheckpoint) {
                 return player.lastCheckpoint.getRandomPosition();
             }
@@ -89,7 +89,7 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
         world.pushToPlayer(player, new Messages.Population(world.playerCount));
         world.pushRelevantEntityListTo(player);
 
-        var move_callback = function (x, y) {
+        var onMove = function (x, y) {
             log.debug(player.name + ' is moving to (' + x + ', ' + y + ').');
 
             player.forEachAttacker(function (mob) {
@@ -107,8 +107,8 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
             });
         };
 
-        player.on('move', move_callback);
-        player.on('lootMove', move_callback);
+        player.on('move', onMove);
+        player.on('lootMove', onMove);
 
         player.on('zone', function () {
             var hasChangedGroups = world.handleEntityGroupMembership(player);

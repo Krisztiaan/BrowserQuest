@@ -70,20 +70,23 @@ export function installConnectSessionHandlersFromGame(host: ConnectSessionBuilde
     if (!game.client) {
         return;
     }
+    const bindGame = <T extends (...args: any[]) => any>(fn: T): T => fn.bind(game) as T;
+    const bindStorage = <T extends (...args: any[]) => any>(fn: T): T => fn.bind(game.storage) as T;
+    const bindAudio = <T extends (...args: any[]) => any>(fn: T): T => fn.bind(game.audioManager) as T;
+    const bindInfo = <T extends (...args: any[]) => any>(fn: T): T => fn.bind(game.infoManager) as T;
+    const playSound = bindAudio(game.audioManager.playSound);
 
     registerConnectSessionHandlers({
         client: game.client,
         playerId: game.playerId,
         player: game.player,
         previousClickPosition: game.previousClickPosition,
-        resolveEntity(entityId) {
-            return game.getEntityById(entityId);
-        },
+        resolveEntity: bindGame(game.getEntityById),
         clearPreviousClickPosition() {
             game.previousClickPosition = {};
         },
         describeKind(kind) {
-            return Types.getKindAsString(kind);
+            return Types.getKindAsString(kind) ?? 'unknown';
         },
         logInfo(message) {
             log.info(message);
@@ -91,71 +94,45 @@ export function installConnectSessionHandlersFromGame(host: ConnectSessionBuilde
         logDebug(message) {
             log.debug(message);
         },
-        removeItem(item) {
-            game.removeItem(item);
-        },
+        removeItem: bindGame(game.removeItem),
         removeEntity(entity) {
             host.removeEntity(entity);
         },
-        moveCharacterTo(character, x, y) {
-            game.makeCharacterGoTo(character, x, y);
-        },
-        createAttackLink(attacker, target) {
-            game.createAttackLink(attacker, target);
-        },
+        moveCharacterTo: bindGame(game.makeCharacterGoTo),
+        createAttackLink: bindGame(game.createAttackLink),
         schedule(callback, delayMs) {
-            setTimeout(function () {
-                callback();
-            }, delayMs);
+            setTimeout(callback, delayMs);
         },
-        addDamageInfo(value, x, y, kind) {
-            game.infoManager.addDamageInfo(value, x, y, kind);
-        },
+        addDamageInfo: bindInfo(game.infoManager.addDamageInfo),
         playHurtSound() {
-            game.audioManager.playSound('hurt');
+            playSound('hurt');
         },
         playChatSound() {
-            game.audioManager.playSound('chat');
+            playSound('chat');
         },
-        addStoredDamage(value) {
-            game.storage.addDamage(value);
-        },
+        addStoredDamage: bindStorage(game.storage.addDamage),
         unlockAchievement(achievementId) {
             game.tryUnlockingAchievement(achievementId);
         },
         onPlayerHurt() {
             game.emit('playerHurt');
         },
-        updateBars() {
-            game.updateBars();
-        },
+        updateBars: bindGame(game.updateBars),
         getItemName(kind) {
-            return Types.getKindAsString(kind);
+            return Types.getKindAsString(kind) ?? 'unknown';
         },
-        isArmor(kind) {
-            return Types.isArmor(kind);
-        },
-        isWeapon(kind) {
-            return Types.isWeapon(kind);
-        },
+        isArmor: Types.isArmor,
+        isWeapon: Types.isWeapon,
         getSprite(itemName) {
             return game.sprites[itemName];
         },
-        teleportCharacterTo(character, x, y) {
-            game.makeCharacterTeleportTo(character, x, y);
-        },
-        resolveDeadMobPosition(mobId) {
-            return game.getDeadMobPosition(mobId);
-        },
+        teleportCharacterTo: bindGame(game.makeCharacterTeleportTo),
+        resolveDeadMobPosition: bindGame(game.getDeadMobPosition),
         addItem(item, x, y) {
             game.addItem(item as Item, x, y);
         },
-        updateCursor() {
-            game.updateCursor();
-        },
-        createBubble(entityId, message) {
-            game.createBubble(entityId, message);
-        },
+        updateCursor: bindGame(game.updateCursor),
+        createBubble: bindGame(game.createBubble),
         assignBubbleTo(entity) {
             host.assignBubbleTo(entity);
         },
@@ -165,18 +142,10 @@ export function installConnectSessionHandlersFromGame(host: ConnectSessionBuilde
         onDisconnect(message) {
             game.emit('disconnect', message);
         },
-        showNotification(message) {
-            game.showNotification(message);
-        },
-        incrementTotalKills() {
-            game.storage.incrementTotalKills();
-        },
-        incrementRatCount() {
-            game.storage.incrementRatCount();
-        },
-        incrementSkeletonCount() {
-            game.storage.incrementSkeletonCount();
-        },
+        showNotification: bindGame(game.showNotification),
+        incrementTotalKills: bindStorage(game.storage.incrementTotalKills),
+        incrementRatCount: bindStorage(game.storage.incrementRatCount),
+        incrementSkeletonCount: bindStorage(game.storage.incrementSkeletonCount),
         isRat(kind) {
             return kind === Types.Entities.RAT;
         },

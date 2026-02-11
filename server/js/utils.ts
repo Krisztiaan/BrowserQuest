@@ -1,19 +1,19 @@
-import Types from '../../shared/js/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 
 const Utils = {
-    sanitize(string: string) {
+    sanitize(string: string): string {
         return this.escapeHTML(String(string ?? '')).replace(/[\u0000-\u001F\u007F]/g, '');
     },
 
-    utf8ByteLength(string: string) {
+    utf8ByteLength(string: string): number {
         return Buffer.byteLength(String(string ?? ''), 'utf8');
     },
 
-    hasMaxUtf8Bytes(string: string, maxBytes: number) {
+    hasMaxUtf8Bytes(string: string, maxBytes: number): boolean {
         return this.utf8ByteLength(string) <= maxBytes;
     },
 
-    limitUtf8Bytes(string: string, maxBytes: number) {
+    limitUtf8Bytes(string: string, maxBytes: number): string {
         const input = String(string ?? '');
         const outputChunks: string[] = [];
         let byteCount = 0;
@@ -30,7 +30,7 @@ const Utils = {
         return outputChunks.join('');
     },
 
-    limitCodePoints(string: string, maxCodePoints: number) {
+    limitCodePoints(string: string, maxCodePoints: number): string {
         const input = String(string ?? '');
         const outputChunks: string[] = [];
         let count = 0;
@@ -46,7 +46,7 @@ const Utils = {
         return outputChunks.join('');
     },
 
-    escapeHTML(string: string) {
+    escapeHTML(string: string): string {
         return String(string)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
@@ -55,19 +55,19 @@ const Utils = {
             .replace(/'/g, '&#39;');
     },
 
-    random(range: number) {
+    random(range: number): number {
         return Math.floor(Math.random() * range);
     },
 
-    randomRange(min: number, max: number) {
+    randomRange(min: number, max: number): number {
         return min + Math.random() * (max - min);
     },
 
-    randomInt(min: number, max: number) {
+    randomInt(min: number, max: number): number {
         return min + Math.floor(Math.random() * (max - min + 1));
     },
 
-    clamp(min: number, max: number, value: number) {
+    clamp(min: number, max: number, value: number): number {
         if (value < min) {
             return min;
         }
@@ -77,7 +77,7 @@ const Utils = {
         return value;
     },
 
-    randomOrientation() {
+    randomOrientation(): number {
         const r = this.random(4);
         if (r === 0) return Types.Orientations.LEFT;
         if (r === 1) return Types.Orientations.RIGHT;
@@ -85,7 +85,7 @@ const Utils = {
         return Types.Orientations.DOWN;
     },
 
-    Mixin(target: Record<string, unknown>, source: Record<string, unknown>) {
+    Mixin(target: Record<string, unknown>, source: Record<string, unknown>): Record<string, unknown> {
         if (source) {
             for (let key, keys = Object.keys(source), l = keys.length; l--; ) {
                 key = keys[l];
@@ -98,7 +98,7 @@ const Utils = {
         return target;
     },
 
-    distanceTo(x: number, y: number, x2: number, y2: number) {
+    distanceTo(x: number, y: number, x2: number, y2: number): number {
         const distX = Math.abs(x - x2);
         const distY = Math.abs(y - y2);
 

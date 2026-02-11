@@ -28,7 +28,7 @@ export function registerWelcomeSessionHandlersFromGame(game: Game, startedCallba
         return;
     }
 
-    client.on('welcome', function (id, name, x, y, hp) {
+    client.on('welcome', function (id: string | number, name: string, x: number, y: number, hp: number) {
         applyWelcomeBootstrap(
             {
                 player: game.player,
@@ -198,7 +198,7 @@ export function registerWelcomeSessionHandlersFromGame(game: Game, startedCallba
                 game.makeNpcTalk(npc);
             },
             scheduleUnlockCoward(delayMs) {
-                setTimeout(function () {
+                setTimeout(function (): void {
                     game.tryUnlockingAchievement('COWARD');
                 }, delayMs);
             },
@@ -229,7 +229,7 @@ export function registerWelcomeSessionHandlersFromGame(game: Game, startedCallba
                 game.player = null;
             },
             schedulePlayerDeathCallback(delayMs) {
-                setTimeout(function () {
+                setTimeout(function (): void {
                     game.emit('playerDeath');
                 }, delayMs);
             },

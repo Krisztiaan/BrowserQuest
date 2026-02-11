@@ -25,22 +25,22 @@ type CosmeticHost = {
 };
 
 export function installPlayerCosmeticHandlers(host: CosmeticHost): void {
-    host.player.on('hasMoved', function (player) {
+    host.player.on('hasMoved', function (player: MovedPlayerAnchor) {
         host.assignBubbleTo(player);
     });
 
-    host.player.on('armorLoot', function (armorName) {
+    host.player.on('armorLoot', function (armorName: string) {
         host.player.switchArmor(host.getSprite(armorName));
     });
 
-    host.player.on('switchItem', function () {
-        host.getPlayerImage(function (playerImage) {
+    host.player.on('switchItem', function (): void {
+        host.getPlayerImage(function (playerImage: string) {
             host.savePlayer(playerImage, host.player.getArmorName(), host.player.getWeaponName());
         });
         host.onEquipmentChanged();
     });
 
-    host.player.on('invincible', function () {
+    host.player.on('invincible', function (): void {
         host.onPlayerInvincible();
         host.player.switchArmor(host.getSprite('firefox'));
     });

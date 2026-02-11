@@ -3,7 +3,7 @@ import Area from './area';
 import type { AreaWorldContract } from './area';
 import Mob from './mob';
 import Utils from './utils';
-import Types from '../../shared/js/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 
 interface Position {
     x: number;

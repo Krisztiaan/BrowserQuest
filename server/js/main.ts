@@ -15,6 +15,7 @@ import {
     createPopulationCheckCleanup,
     createFatalReporter,
     installFatalHandlers,
+    installShutdownHandlers,
     triggerFatalTestEvent,
     createRuntimeCleanup,
 } from './main-runtime';
@@ -88,6 +89,7 @@ export {
     createPopulationCheckCleanup,
     createFatalReporter,
     installFatalHandlers,
+    installShutdownHandlers,
     triggerFatalTestEvent,
     createRuntimeCleanup,
 };
@@ -107,6 +109,7 @@ export default {
     createPopulationCheckCleanup,
     createFatalReporter,
     installFatalHandlers,
+    installShutdownHandlers,
     triggerFatalTestEvent,
     createRuntimeCleanup,
 };

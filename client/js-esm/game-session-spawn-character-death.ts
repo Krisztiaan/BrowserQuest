@@ -27,16 +27,16 @@ type SpawnCharacterDeathHost<TCharacter extends DeathCharacter> = {
 export function installSpawnedCharacterDeathHandler<TCharacter extends DeathCharacter>(
     host: SpawnCharacterDeathHost<TCharacter>
 ): void {
-    host.character.on('death', function () {
+    host.character.on('death', function (): void {
         host.onCharacterDeathStart(host.character);
 
         host.character.isDying = true;
         host.character.setSprite(host.getDeathSprite(host.character));
-        host.character.animate('death', 120, 1, function () {
+        host.character.animate('death', 120, 1, function (): void {
             host.onCharacterRemoved(host.character);
         });
 
-        host.character.forEachAttacker(function (attacker) {
+        host.character.forEachAttacker(function (attacker: DeathAttacker): void {
             attacker.disengage();
         });
 

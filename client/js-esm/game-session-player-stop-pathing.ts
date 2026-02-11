@@ -93,7 +93,7 @@ type StopPathingHost = {
 };
 
 export function installPlayerStopPathingHandler(host: StopPathingHost): void {
-    host.onStopPathing(function (x, y) {
+    host.onStopPathing(function (x: number, y: number): void {
         if (host.player.hasTarget()) {
             host.player.lookAtTarget();
         }
@@ -175,7 +175,7 @@ export function installPlayerStopPathingHandler(host: StopPathingHost): void {
                 host.scheduleUnlockCoward(500);
             }
 
-            host.player.forEachAttacker(function (attacker) {
+            host.player.forEachAttacker(function (attacker: StopPathingAttacker): void {
                 attacker.disengage();
                 attacker.idle();
             });
@@ -203,7 +203,7 @@ export function installPlayerStopPathingHandler(host: StopPathingHost): void {
             host.playSound('chest');
         }
 
-        host.player.forEachAttacker(function (attacker) {
+        host.player.forEachAttacker(function (attacker: StopPathingAttacker): void {
             if (!attacker.isAdjacentNonDiagonal(host.player)) {
                 attacker.follow(host.player);
             }

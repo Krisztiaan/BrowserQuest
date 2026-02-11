@@ -6,7 +6,7 @@ interface FormulasContract {
 }
 
 const Formulas: FormulasContract = {
-    dmg(weaponLevel, armorLevel) {
+    dmg(weaponLevel: number, armorLevel: number): number {
         const dealt = weaponLevel * Utils.randomInt(5, 10);
         const absorbed = armorLevel * Utils.randomInt(1, 3);
         const dmg = dealt - absorbed;
@@ -18,7 +18,7 @@ const Formulas: FormulasContract = {
         return dmg;
     },
 
-    hp(armorLevel) {
+    hp(armorLevel: number): number {
         return 80 + (armorLevel - 1) * 30;
     },
 };

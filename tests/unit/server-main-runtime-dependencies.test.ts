@@ -13,8 +13,12 @@ test('main runtime dependency helper uses injected boundaries when provided', ()
     class MultiVersionWebsocketServer implements RuntimeServer {
         constructor(_port: number) {}
 
-        onConnect(_callback: (connection: RuntimeConnection) => void): void {}
-        onError(_callback: (...args: unknown[]) => void): void {}
+        on(_eventName: 'connect', _callback: (connection: RuntimeConnection) => void): void;
+        on(_eventName: 'error', _callback: (...args: unknown[]) => void): void;
+        on(
+            _eventName: 'connect' | 'error',
+            _callback: ((...args: unknown[]) => void) | ((connection: RuntimeConnection) => void)
+        ): void {}
         onRequestStatus(_callback: () => string): void {}
     }
 

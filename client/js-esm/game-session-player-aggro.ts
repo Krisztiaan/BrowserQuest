@@ -31,15 +31,15 @@ type AggroHost = {
 };
 
 export function installPlayerAggroHandlers(host: AggroHost): void {
-    host.player.on('checkAggro', function () {
-        host.forEachMob(function (mob) {
+    host.player.on('checkAggro', function (): void {
+        host.forEachMob(function (mob: AggroMob): void {
             if (mob.isAggressive && !mob.isAttacking() && host.player.isNear(mob, mob.aggroRange)) {
                 host.player.aggro(mob);
             }
         });
     });
 
-    host.player.on('aggro', function (character) {
+    host.player.on('aggro', function (character: AggroCharacter): void {
         if (
             character.isWaitingToAttack
             && character.waitToAttack

@@ -81,8 +81,8 @@ export interface WebSocketRuntimeConnection {
 }
 
 export interface WebSocketRuntimeServer {
-    onConnect(callback: (connection: WebSocketRuntimeConnection) => void): void;
-    onError(callback: (...args: unknown[]) => void): void;
+    on(eventName: 'connect', callback: (connection: WebSocketRuntimeConnection) => void): void;
+    on(eventName: 'error', callback: (...args: unknown[]) => void): void;
     onRequestStatus(callback: () => string): void;
     broadcast(message: unknown): void;
 }

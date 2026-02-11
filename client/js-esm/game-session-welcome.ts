@@ -61,13 +61,13 @@ export function applyWelcomeBootstrap(game: WelcomeGameHost, payload: WelcomePay
     game.addPlayerEntity();
     game.player.dirtyRect = game.renderer.getPlayerBoundingRect();
 
-    setTimeout(function () {
+    setTimeout(function (): void {
         game.tryUnlockingAchievement('STILL_ALIVE');
     }, 1500);
 
     if (!game.storage.hasAlreadyPlayed()) {
         game.storage.initPlayer(game.player.name);
-        game.renderer.getPlayerImage(function (playerImage) {
+        game.renderer.getPlayerImage(function (playerImage: unknown) {
             game.storage.savePlayer(playerImage, game.player.getSpriteName(), game.player.getWeaponName());
         });
         game.showNotification('Welcome to BrowserQuest!');

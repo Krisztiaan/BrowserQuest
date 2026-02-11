@@ -7,8 +7,8 @@ import WsCloseCodes from '../../shared/js/ws-close-codes';
 const repoRoot = new URL('../..', import.meta.url).pathname;
 const CLOSE_INVALID_PAYLOAD = WsCloseCodes.INVALID_PAYLOAD;
 
-async function getFreePort() {
-    return await new Promise<number>((resolve, reject) => {
+function getFreePort() {
+    return new Promise<number>((resolve, reject) => {
         const server = net.createServer();
         server.once('error', reject);
         server.listen(0, '127.0.0.1', () => {
@@ -42,7 +42,7 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
 }
 
 async function waitForGo(ws: WebSocket, timeoutMs = 3000) {
-    return await new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for go')), timeoutMs);
 
         ws.on('message', (data) => {
@@ -59,7 +59,7 @@ async function waitForGo(ws: WebSocket, timeoutMs = 3000) {
 }
 
 async function waitForAnyJsonMessage(ws: WebSocket, timeoutMs = 3000) {
-    return await new Promise<void>((resolve, reject) => {
+    return new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for JSON message')), timeoutMs);
 
         ws.on('message', (data) => {
@@ -83,7 +83,7 @@ async function waitForAnyJsonMessage(ws: WebSocket, timeoutMs = 3000) {
 }
 
 async function waitForClose(ws: WebSocket, timeoutMs = 3000) {
-    return await new Promise<{ code: number; reason: string }>((resolve, reject) => {
+    return new Promise<{ code: number; reason: string }>((resolve, reject) => {
         if (ws.readyState === WebSocket.CLOSED) {
             resolve({ code: WebSocket.CLOSED, reason: '' });
             return;

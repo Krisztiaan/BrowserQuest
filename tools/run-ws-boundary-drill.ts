@@ -47,7 +47,7 @@ const forcedFailureCheck = process.env.BQ_WS_DRILL_FORCE_FAIL_CHECK;
 
 const results: CheckResult[] = [];
 
-function toTailHint(stdout, stderr) {
+function toTailHint(stdout: string, stderr: string) {
     const lines = `${stdout || ''}\n${stderr || ''}`
         .split('\n')
         .map((line) => line.trim())
@@ -64,7 +64,7 @@ function toTailHint(stdout, stderr) {
     return `${hint.slice(0, 217)}...`;
 }
 
-function toPreview(stdout, stderr) {
+function toPreview(stdout: string, stderr: string) {
     const output = `${stdout || ''}${stderr || ''}`.trim();
     if (!output) {
         return '';

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import Utils from '../../server/js/utils';
-import Types from '../../shared/js/gametypes';
+import Types from '../../shared/js/gametypes-browser';
 
 test('esm utils sanitize escapes html and strips control chars', () => {
     const sanitized = Utils.sanitize("<script>\u0000'x'</script>");

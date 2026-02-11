@@ -1,66 +1,7 @@
 /// <reference types="@mapeditor/tiled-api" />
 
-const ACTION_ID = "BrowserQuest.AutoMapSaveExport";
-const ACTION_TEXT = "BrowserQuest: AutoMap + Save + Export";
-const EXPORT_COMMAND_NAME = "BrowserQuest: Export Runtime Map JSON";
-
-function projectRootPath() {
-    const projectFile = tiled.project.fileName;
-    if (!projectFile) {
-        return "";
-    }
-    const projectDir = FileInfo.path(projectFile);
-    return FileInfo.cleanPath(FileInfo.joinPaths(projectDir, "..", "..", ".."));
-}
-
-function runExportFallback() {
-    const rootPath = projectRootPath();
-    if (!rootPath) {
-        tiled.alert("No Tiled project is open. Open browserquest.tiled-project first.", "BrowserQuest");
-        return false;
-    }
-
-    const process = new Process();
-    process.workingDirectory = rootPath;
-
-    let exitCode = -1;
-    try {
-        exitCode = process.exec("bun", ["run", "map:export"], false);
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        tiled.alert(`Failed to run Bun export fallback:\n${message}`, "BrowserQuest");
-        process.close();
-        return false;
-    }
-
-    const stdout = process.readStdOut().trim();
-    const stderr = process.readStdErr().trim();
-    process.close();
-
-    if (stdout) {
-        tiled.log(stdout);
-    }
-    if (stderr) {
-        tiled.warn(stderr);
-    }
-
-    if (exitCode !== 0) {
-        tiled.alert(`Bun export failed (exit code ${exitCode}). See Console for details.`, "BrowserQuest");
-        return false;
-    }
-    return true;
-}
-
-function runRuntimeExport() {
-    try {
-        tiled.executeCommand(EXPORT_COMMAND_NAME, false);
-        return true;
-    } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        tiled.warn(`[browserquest] ${EXPORT_COMMAND_NAME} is unavailable (${message}). Falling back to Process.exec.`);
-        return runExportFallback();
-    }
-}
+const ACTION_ID = "BrowserQuest.AutoMapSave";
+const ACTION_TEXT = "BrowserQuest: AutoMap + Save";
 
 function activeTileMap() {
     const asset = tiled.activeAsset;
@@ -73,7 +14,7 @@ function activeTileMap() {
 const action = tiled.registerAction(ACTION_ID, () => {
     const map = activeTileMap();
     if (!map) {
-        tiled.alert("Open a map before running BrowserQuest AutoMap + Save + Export.", "BrowserQuest");
+        tiled.alert("Open a map before running BrowserQuest AutoMap + Save.", "BrowserQuest");
         return;
     }
 
@@ -95,11 +36,7 @@ const action = tiled.registerAction(ACTION_ID, () => {
         return;
     }
 
-    if (!runRuntimeExport()) {
-        return;
-    }
-
-    tiled.log(`[browserquest] AutoMap + save + runtime export completed for ${map.fileName}`);
+    tiled.log(`[browserquest] AutoMap + save completed for ${map.fileName}`);
 });
 
 action.text = ACTION_TEXT;

@@ -1,8 +1,9 @@
 import Types from '../../../shared/js/gametypes-browser';
 import type { EntityCategory, EntityKind, EntityKindId, EntityKindName } from '../../../shared/js/entity-kind-domain';
+import type { MessageOpcodeMap } from '../../../shared/js/gametypes-browser';
 
 interface GametypesContract {
-    Messages: Record<string, number>;
+    Messages: MessageOpcodeMap & Record<string, number>;
     Entities: Record<string, EntityKindId>;
     Orientations: {
         UP: number;

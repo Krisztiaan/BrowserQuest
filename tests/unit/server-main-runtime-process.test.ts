@@ -148,6 +148,35 @@ test('main runtime fatal test trigger emits expected synthetic fatal labels', ()
     ]);
 });
 
+test('main runtime shutdown handler installer binds SIGTERM/SIGINT and cleans up listeners', () => {
+    const handlers: Record<string, () => void> = {};
+    const removed: string[] = [];
+    const calls: string[] = [];
+    const processObject = {
+        on(eventName: string, handler: () => void) {
+            handlers[eventName] = handler;
+        },
+        off(eventName: string) {
+            removed.push(eventName);
+            delete handlers[eventName];
+        },
+    };
+
+    const cleanup = MainRuntime.installShutdownHandlers(processObject, (signal: string) => {
+        calls.push(signal);
+    });
+
+    handlers.SIGTERM?.();
+    handlers.SIGINT?.();
+
+    expect(calls).toEqual(['SIGTERM', 'SIGINT']);
+
+    cleanup();
+    expect(removed).toEqual(['SIGTERM', 'SIGINT']);
+    expect(handlers.SIGTERM).toBeUndefined();
+    expect(handlers.SIGINT).toBeUndefined();
+});
+
 test('main runtime population cleanup delegates to provided clearInterval seam', () => {
     const cleared: unknown[] = [];
     const cleanup = MainRuntime.createPopulationCheckCleanup({ token: 'timer' }, (timerHandle: unknown) => {
