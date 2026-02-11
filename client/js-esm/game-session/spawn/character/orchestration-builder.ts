@@ -1,13 +1,13 @@
-import Character from './character';
-import Mob from './mob';
-import Player from './player';
-import { installSpawnedCharacterBubbleHandler } from './game-session-spawn-character-bubble';
-import { installSpawnedCharacterDeathHandler } from './game-session-spawn-character-death';
-import { installSpawnedMobTargetLink } from './game-session-spawn-character-mob-target-link';
-import { installSpawnedCharacterMotionHandlers } from './game-session-spawn-character-motion';
-import { orchestrateSpawnedCharacter } from './game-session-spawn-character-orchestration';
-import { installSpawnedCharacterPathRequestHandler } from './game-session-spawn-character-path-request';
-import { installSpawnedCharacterStopPathingHandler } from './game-session-spawn-character-stop-pathing';
+import Character from '../../../character';
+import Mob from '../../../mob';
+import Player from '../../../player';
+import { installSpawnedCharacterBubbleHandler } from './bubble';
+import { installSpawnedCharacterDeathHandler } from './death';
+import { installSpawnedMobTargetLink } from './mob-target-link';
+import { installSpawnedCharacterMotionHandlers } from './motion';
+import { orchestrateSpawnedCharacter } from './orchestration';
+import { installSpawnedCharacterPathRequestHandler } from './path-request';
+import { installSpawnedCharacterStopPathingHandler } from './stop-pathing';
 
 type GridDestination = {
     x: number;

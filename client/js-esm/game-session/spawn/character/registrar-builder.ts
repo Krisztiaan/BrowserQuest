@@ -1,11 +1,11 @@
-import Character from './character';
-import Mobs from './mobs';
-import log from './compat/log';
-import Types from '../../shared/js/gametypes-browser';
-import type { AudioSoundKey } from './asset-key-domain';
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import type { GameClientEventSource } from './gameclient';
-import { registerSpawnCharacterHandler } from './game-session-spawn-character-registrar';
+import Character from '../../../character';
+import Mobs from '../../../mobs';
+import log from '../../../compat/log';
+import Types from '../../../../../shared/js/gametypes-browser';
+import type { AudioSoundKey } from '../../../asset-key-domain';
+import type { EntityKind } from '../../../../../shared/js/entity-kind-domain';
+import type { GameClientEventSource } from '../../../gameclient';
+import { registerSpawnCharacterHandler } from './registrar';
 
 type EntityId = string | number;
 type GridPosition = { x: number; y: number };

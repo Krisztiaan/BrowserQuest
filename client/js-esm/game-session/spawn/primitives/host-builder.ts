@@ -1,9 +1,9 @@
-import Chest from './chest';
-import Item from './item';
-import log from './compat/log';
-import Types from '../../shared/js/gametypes-browser';
-import type { GameClientEventSource } from './gameclient';
-import { installSpawnPrimitiveHandlersFromHost } from './game-session-spawn-primitives-builder';
+import Chest from '../../../chest';
+import Item from '../../../item';
+import log from '../../../compat/log';
+import Types from '../../../../../shared/js/gametypes-browser';
+import type { GameClientEventSource } from '../../../gameclient';
+import { installSpawnPrimitiveHandlersFromHost } from './builder';
 
 type SpawnPrimitiveBuilderGame = {
     client: {

@@ -1,9 +1,9 @@
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import Character from './character';
-import type { GameClientEventSource } from './gameclient';
-import { handleSpawnCharacterEntry } from './game-session-spawn-character-entry';
-import { applySpawnedCharacterBootstrapFromHost } from './game-session-spawn-character-bootstrap-builder';
-import { installSpawnedCharacterOrchestration } from './game-session-spawn-character-orchestration-builder';
+import type { EntityKind } from '../../../../../shared/js/entity-kind-domain';
+import Character from '../../../character';
+import type { GameClientEventSource } from '../../../gameclient';
+import { handleSpawnCharacterEntry } from './entry';
+import { applySpawnedCharacterBootstrapFromHost } from './bootstrap-builder';
+import { installSpawnedCharacterOrchestration } from './orchestration-builder';
 
 type SpawnEntity = {
     kind: EntityKind;

@@ -1,5 +1,5 @@
-import { applySpawnedCharacterBootstrap } from './game-session-spawn-character-bootstrap';
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
+import { applySpawnedCharacterBootstrap } from './bootstrap';
+import type { EntityKind } from '../../../../../shared/js/entity-kind-domain';
 
 type SpawnBootstrapEntity = {
     kind: EntityKind;

@@ -1,4 +1,4 @@
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
+import type { EntityKind } from '../../../../../shared/js/entity-kind-domain';
 
 type SpawnedCharacterBootstrapEntity = {
     kind: EntityKind;

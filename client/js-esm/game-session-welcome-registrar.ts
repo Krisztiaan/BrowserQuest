@@ -9,8 +9,8 @@ import { installPlayerStartPathingHandler } from './game-session-player-pathing'
 import { installPlayerRequestPathHandler } from './game-session-player-request-path';
 import { installPlayerStepHandler } from './game-session-player-step';
 import { installPlayerStopPathingHandler } from './game-session-player-stop-pathing';
-import { installSpawnCharacterHandlerFromGame } from './game-session-spawn-character-registrar-builder';
-import { installSpawnPrimitiveHandlersFromGame } from './game-session-spawn-primitives-host-builder';
+import { installSpawnCharacterHandlerFromGame } from './game-session/spawn/character/registrar-builder';
+import { installSpawnPrimitiveHandlersFromGame } from './game-session/spawn/primitives/host-builder';
 import { applyWelcomeBootstrap } from './game-session-welcome';
 import log from './compat/log';
 import Types from '../../shared/js/gametypes-browser';

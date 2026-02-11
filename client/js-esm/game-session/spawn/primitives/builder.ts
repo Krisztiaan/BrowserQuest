@@ -1,6 +1,6 @@
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import { installSpawnPrimitiveHandlers } from './game-session-spawn-primitives';
-import type { GameClientEventSource } from './gameclient';
+import type { EntityKind } from '../../../../../shared/js/entity-kind-domain';
+import { installSpawnPrimitiveHandlers } from './handlers';
+import type { GameClientEventSource } from '../../../gameclient';
 
 type SpawnPrimitiveItem = {
     kind: EntityKind;
