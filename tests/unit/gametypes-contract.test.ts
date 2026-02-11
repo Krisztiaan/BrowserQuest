@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import Types from '../../shared/js/gametypes-browser';
+import Types from '../../shared/gametypes-browser';
 
 test('shared gametypes module sets global contract', () => {
     expect(Types).toBeDefined();
@@ -9,7 +9,7 @@ test('shared gametypes module sets global contract', () => {
 });
 
 test('shared browser gametypes module matches canonical contract values', async () => {
-    const browserModule = (await import('../../shared/js/gametypes-browser')) as {
+    const browserModule = (await import('../../shared/gametypes-browser')) as {
         default: typeof Types;
         Types: typeof Types;
     };

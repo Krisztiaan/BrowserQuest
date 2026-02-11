@@ -4,8 +4,8 @@ import type {
     RuntimeConnection,
     RuntimeServer,
     RuntimeWorld,
-} from '../../server/js/main-runtime-types';
-import * as MainRuntimeModule from '../../server/js/main-runtime';
+} from '../../server/main-runtime-types';
+import * as MainRuntimeModule from '../../server/main-runtime';
 
 const MainRuntime = MainRuntimeModule as any;
 

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import WSEsm, {
     createWebSocketRuntimeClasses as createWebSocketRuntimeClassesEsm,
-} from '../../server/js/ws-runtime-esm';
+} from '../../server/ws-runtime-esm';
 
 test('ws runtime boundary decision: ESM websocket seam contract remains stable', () => {
     expect(typeof createWebSocketRuntimeClassesEsm).toBe('function');

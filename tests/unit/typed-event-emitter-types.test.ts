@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import { Evented } from '../../shared/js/evented';
-import type { MergeEvents, NoEvents, TypedEventSource } from '../../shared/js/typed-event-emitter';
+import { Evented } from '../../shared/evented';
+import type { MergeEvents, NoEvents, TypedEventSource } from '../../shared/typed-event-emitter';
 
 type Assert<T extends true> = T;
 type IsEqual<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;

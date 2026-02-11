@@ -12,7 +12,7 @@
     "dev:client": "vite",
     "dev:server": "bun run start:server",
     "dev:vite:full": "bun run tools/dev-vite.ts",
-    "start:server": "bun server/js/main-esm.ts",
+    "start:server": "bun server/main-esm.ts",
     "content:mobs:generate": "bun tools/content-mob-properties.ts generate",
     "check:content:mobs": "bun tools/content-mob-properties.ts check",
     "content:item-loot:generate": "bun tools/content-item-loot-messages.ts generate",
@@ -45,9 +45,9 @@
     "verify:modern": "bun run check:runtime && bun run check:server-shadow-hardening && bun run check:package-mode-boundaries && bun run check:runtime-esm-require-free && bun run check:content:mobs && bun run check:content:item-loot && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:vite",
     "verify:modern:node22": "bun tools/node22-run.ts bun run verify:modern",
     "test": "bun test --timeout 20000",
-    "lint": "eslint \"client/js-esm/achievement-domain.ts\" \"client/js-esm/asset-key-domain.ts\" \"client/js-esm/client-boundary-types.ts\" \"shared/js/connection-status.ts\" \"shared/js/entity-kind-domain.ts\" \"shared/js/evented.ts\" \"shared/js/gametypes-browser.ts\" \"shared/js/protocol-contract-types.ts\" \"shared/js/protocol-contract.ts\" \"shared/js/protocol-schema.ts\" \"shared/js/typed-event-emitter.ts\" \"shared/js/ws-close-codes.ts\" \"server/js/character.ts\" \"server/js/item.ts\" \"server/js/message.ts\" \"server/js/mob.ts\" \"server/js/player-session-dispatch.ts\" \"server/js/player-session.ts\" \"server/js/player.ts\" \"server/js/properties.ts\" \"server/js/runtime-health-response.ts\" \"server/js/server-event-names.ts\" \"server/js/ws-runtime-class-factory-types.ts\" \"server/js/ws-runtime-class-factory.ts\" \"server/js/ws-runtime-esm.ts\"",
-    "format": "prettier --write \"server/js/{log.ts,utils.ts,format.ts}\" \"client/js-esm/compat/*.ts\" \"client/js-esm/preflight.ts\" \"shared/js/gametypes-browser.ts\" \"tests/**/*.ts\"",
-    "format:check": "prettier --check \"server/js/{log.ts,utils.ts,format.ts}\" \"client/js-esm/compat/*.ts\" \"client/js-esm/preflight.ts\" \"shared/js/gametypes-browser.ts\" \"tests/**/*.ts\""
+    "lint": "eslint \"client/achievement-domain.ts\" \"client/asset-key-domain.ts\" \"client/client-boundary-types.ts\" \"shared/connection-status.ts\" \"shared/entity-kind-domain.ts\" \"shared/evented.ts\" \"shared/gametypes-browser.ts\" \"shared/protocol-contract-types.ts\" \"shared/protocol-contract.ts\" \"shared/protocol-schema.ts\" \"shared/typed-event-emitter.ts\" \"shared/ws-close-codes.ts\" \"server/character.ts\" \"server/item.ts\" \"server/message.ts\" \"server/mob.ts\" \"server/player-session-dispatch.ts\" \"server/player-session.ts\" \"server/player.ts\" \"server/properties.ts\" \"server/runtime-health-response.ts\" \"server/server-event-names.ts\" \"server/ws-runtime-class-factory-types.ts\" \"server/ws-runtime-class-factory.ts\" \"server/ws-runtime-esm.ts\"",
+    "format": "prettier --write \"server/{log.ts,utils.ts,format.ts}\" \"client/compat/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"server/{log.ts,utils.ts,format.ts}\" \"client/compat/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\""
   },
   "dependencies": {
     "memcache": "^1.3.0"

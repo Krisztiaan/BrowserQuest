@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import Log from '../../server/js/log';
+import Log from '../../server/log';
 
 const originalConsoleInfo = console.info;
 const originalConsoleError = console.error;

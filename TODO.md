@@ -36,14 +36,14 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
 - Recent execution:
   - 2026-02-11 04:12 CET:
     - Completed 14.1-14.3:
-      - `shared/js/gametypes-browser.ts`:
+      - `shared/gametypes-browser.ts`:
         - Removed duplicated message opcode declarations by defining one `MESSAGE_OPCODES` runtime constant and deriving `MessageOpcodeMap` from it.
         - Removed duplicated armor iteration function bodies by sharing one implementation between `forEachArmor` and `forEachArmorKind`.
-      - `client/js-esm/client-boundary-types.ts`:
+      - `client/client-boundary-types.ts`:
         - Added `ClientInboundActionByOpcode<...>` helper type for opcode-specific inbound payload narrowing.
-      - `client/js-esm/gameclient-inbound-handlers.ts`:
+      - `client/gameclient-inbound-handlers.ts`:
         - Added typed inbound handler map keyed by opcode with opcode-specific payload signatures.
-      - `client/js-esm/gameclient.ts`:
+      - `client/gameclient.ts`:
         - Removed repeated per-handler `as InboundAction<...>` casts by using opcode-specific method signatures.
         - Kept one centralized dispatch cast boundary in `receiveAction(...)`.
         - Simplified batched inbound dispatch loop to direct `for..of`.
@@ -56,11 +56,11 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
   - 2026-02-11 04:09 CET:
     - Started Ticket 14 redundancy audit.
     - Identified highest-priority targets:
-      - Duplicated message opcode declarations in `shared/js/gametypes-browser.ts` (`MessageOpcodeMap` + runtime map values).
-      - Repeated `as InboundAction<...>` cast boilerplate in `client/js-esm/gameclient.ts` receive handlers.
+      - Duplicated message opcode declarations in `shared/gametypes-browser.ts` (`MessageOpcodeMap` + runtime map values).
+      - Repeated `as InboundAction<...>` cast boilerplate in `client/gameclient.ts` receive handlers.
     - Evidence:
       - `rg -n "gametypes"` (repo-wide import/usage audit).
-      - `rg -n "as InboundAction<" client/js-esm/gameclient.ts`.
+      - `rg -n "as InboundAction<" client/gameclient.ts`.
     - Next action:
       - Implement slice 14.1 (`gametypes` opcode-source canonicalization) and run `bun run typecheck`.
 
@@ -93,58 +93,58 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
 - Recent execution:
   - 2026-02-11 02:40 CET:
     - Completed 7.2 by finalizing additional `Game` subsystem boundary extraction seams:
-      - `client/js-esm/game-player-input.ts`
-      - `client/js-esm/game-mob-positioning.ts`
-      - `client/js-esm/game-visibility-iterators.ts`
+      - `client/game-player-input.ts`
+      - `client/game-mob-positioning.ts`
+      - `client/game-visibility-iterators.ts`
     - Ticket 7 acceptance validated via repeated parity and full verify-lane runs after each incremental seam extraction.
   - 2026-02-11 02:39 CET:
-    - Continued 7.2 render-loop traversal decomposition by extracting entity/tile visibility iterators from `client/js-esm/game.ts` into `client/js-esm/game-visibility-iterators.ts`.
+    - Continued 7.2 render-loop traversal decomposition by extracting entity/tile visibility iterators from `client/game.ts` into `client/game-visibility-iterators.ts`.
     - Reduced `Game.forEachEntity/forEachMob/forEachVisibleEntityByDepth/forEachVisibleTileIndex/forEachVisibleTile/forEachAnimatedTile` to thin orchestration wrappers.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:37 CET:
-    - Continued 7.2 combat/pathing decomposition by extracting mob unstacking and adjacent-tile positioning logic from `client/js-esm/game.ts` into `client/js-esm/game-mob-positioning.ts`.
+    - Continued 7.2 combat/pathing decomposition by extracting mob unstacking and adjacent-tile positioning logic from `client/game.ts` into `client/game-mob-positioning.ts`.
     - Reduced `Game.isMobOnSameTile/getFreeAdjacentNonDiagonalPosition/tryMovingToADifferentTile` to orchestration wrappers over the new helper module.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:36 CET:
-    - Continued 7.2 input/UI decomposition by extracting cursor-hover and click dispatch logic from `client/js-esm/game.ts` into `client/js-esm/game-player-input.ts`.
+    - Continued 7.2 input/UI decomposition by extracting cursor-hover and click dispatch logic from `client/game.ts` into `client/game-player-input.ts`.
     - Reduced `Game.movecursor()` and `Game.click()` to orchestration wrappers over the new helper module.
     - Verification evidence:
-      - `bun run typecheck` initially failed on highlightable-entity strict typing in `client/js-esm/game-player-input.ts` and passed after narrowing/assignment fixes.
+      - `bun run typecheck` initially failed on highlightable-entity strict typing in `client/game-player-input.ts` and passed after narrowing/assignment fixes.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:17 CET:
-    - Extracted game visual/runtime initialization responsibilities from `client/js-esm/game.ts` into `client/js-esm/game-visual-runtime.ts`.
+    - Extracted game visual/runtime initialization responsibilities from `client/game.ts` into `client/game-visual-runtime.ts`.
     - Reduced `Game.initShadows/initCursors/initAnimations/initHurtSprites/initSilhouettes` to orchestration wrappers.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:16 CET:
-    - Extracted sprite runtime orchestration from `client/js-esm/game.ts` into `client/js-esm/game-sprite-runtime.ts`.
+    - Extracted sprite runtime orchestration from `client/game.ts` into `client/game-sprite-runtime.ts`.
     - Reduced `Game.loadSpriteForScale/loadSpriteScale/setSpriteScale/loadSprites/spritesLoaded` to thin wrappers over the new helper.
     - Verification evidence:
-      - `bun run typecheck` initially failed on strict sprite entity typing in `client/js-esm/game-sprite-runtime.ts` and passed after explicit reloadable-entity boundary typing.
+      - `bun run typecheck` initially failed on strict sprite entity typing in `client/game-sprite-runtime.ts` and passed after explicit reloadable-entity boundary typing.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:15 CET:
     - Retired shadow-contract scaffolding:
-      - Removed `server/js/worldserver-types.ts`.
+      - Removed `server/worldserver-types.ts`.
       - Removed `tests/unit/worldserver-shadow-source-pre-slice.test.ts`.
-      - Removed legacy shadow inventory exports from `server/js/player-types.ts`.
+      - Removed legacy shadow inventory exports from `server/player-types.ts`.
       - Replaced `tests/unit/player-shadow-source-contract.test.ts` with focused seam typing coverage in `tests/unit/player-runtime-boundary-types.test.ts`.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:11 CET:
-    - Centralized map area/chest config guards and types into `server/js/worldserver-map-config.ts`.
-    - Removed duplicated inline map-config guard definitions from `server/js/worldserver.ts` and reused the shared module from world bootstrap seams.
+    - Centralized map area/chest config guards and types into `server/worldserver-map-config.ts`.
+    - Removed duplicated inline map-config guard definitions from `server/worldserver.ts` and reused the shared module from world bootstrap seams.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
@@ -152,60 +152,60 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
       - Applied `bun x prettier --write tests/unit/protocol-registry.test.ts`.
       - `bun run verify:modern:node22` passed after formatting fix.
   - 2026-02-11 02:09 CET:
-    - Extracted `World.run()` map-ready bootstrap orchestration into `server/js/worldserver-map-bootstrap.ts`.
-    - Reduced `server/js/worldserver.ts` runtime map-ready callback to dependency wiring (config filtering + area constructors).
+    - Extracted `World.run()` map-ready bootstrap orchestration into `server/worldserver-map-bootstrap.ts`.
+    - Reduced `server/worldserver.ts` runtime map-ready callback to dependency wiring (config filtering + area constructors).
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:07 CET:
-    - Extracted world tick/regen interval loop from `server/js/worldserver.ts` into `server/js/worldserver-update-loop.ts`.
+    - Extracted world tick/regen interval loop from `server/worldserver.ts` into `server/worldserver-update-loop.ts`.
     - Reduced `World.run()` to orchestration by delegating update-loop lifecycle startup.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:06 CET:
-    - Extracted constructor runtime event wiring (`entityAttack` + `regenTick`) from `server/js/worldserver.ts` into `server/js/worldserver-runtime-events.ts`.
+    - Extracted constructor runtime event wiring (`entityAttack` + `regenTick`) from `server/worldserver.ts` into `server/worldserver-runtime-events.ts`.
     - Reduced `World` constructor to orchestration-only wiring by delegating runtime listener installation.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:05 CET:
-    - Extracted entity/item tile lookup logic from `client/js-esm/game.ts` into `client/js-esm/game-entity-lookups.ts`.
+    - Extracted entity/item tile lookup logic from `client/game.ts` into `client/game-entity-lookups.ts`.
     - Reduced `Game.getEntityAt/getItemAt/getMobAt/getNpcAt/getChestAt` to thin orchestration wrappers.
     - Verification evidence:
-      - `bun run typecheck` initially failed with lookup return typing in `client/js-esm/game-entity-lookups.ts` and passed after return-type alignment.
+      - `bun run typecheck` initially failed with lookup return typing in `client/game-entity-lookups.ts` and passed after return-type alignment.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:03 CET:
-    - Extracted shared spatial-state orchestration into `client/js-esm/game-spatial-state.ts`.
-    - Reused the new helper in `client/js-esm/game-runtime-bootstrap.ts` and `client/js-esm/game.ts` (`restart`) to remove duplicated grid initialization flow.
-    - Fixed a strict dispatch typing regression by narrowing HELLO dispatch payload in `server/js/player-session-dispatch.ts`.
+    - Extracted shared spatial-state orchestration into `client/game-spatial-state.ts`.
+    - Reused the new helper in `client/game-runtime-bootstrap.ts` and `client/game.ts` (`restart`) to remove duplicated grid initialization flow.
+    - Fixed a strict dispatch typing regression by narrowing HELLO dispatch payload in `server/player-session-dispatch.ts`.
     - Verification evidence:
-      - `bun run typecheck` initially failed with HELLO payload narrowing error in `server/js/player-session-dispatch.ts:245`.
+      - `bun run typecheck` initially failed with HELLO payload narrowing error in `server/player-session-dispatch.ts:245`.
       - `bun run typecheck` passed after dispatch narrowing fix.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:00 CET:
-    - Extracted game runtime bootstrap orchestration from `client/js-esm/game.ts` into `client/js-esm/game-runtime-bootstrap.ts`.
+    - Extracted game runtime bootstrap orchestration from `client/game.ts` into `client/game-runtime-bootstrap.ts`.
     - Reduced `Game.run()` asset-ready callback to orchestration and removed temporary cast at bootstrap callsite.
-    - Fixed strict typing regression in `server/js/player-session-dispatch.ts` by explicit `EntityKind` conversion for HELLO equipment kinds.
+    - Fixed strict typing regression in `server/player-session-dispatch.ts` by explicit `EntityKind` conversion for HELLO equipment kinds.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` initially failed with `TS2345` in `server/js/player-session-dispatch.ts:48` and `server/js/player-session-dispatch.ts:49`.
+      - `bun run verify:modern:node22` initially failed with `TS2345` in `server/player-session-dispatch.ts:48` and `server/player-session-dispatch.ts:49`.
       - `bun run verify:modern:node22` passed after fixing the type regression.
   - 2026-02-11 01:49 CET:
-    - Extracted protocol action dispatch from `server/js/player-session.ts` into `server/js/player-session-dispatch.ts`.
+    - Extracted protocol action dispatch from `server/player-session.ts` into `server/player-session-dispatch.ts`.
     - Kept handshake validation/orchestration in `attachPlayerSession(...)` while moving opcode-specific behavior into dedicated handler functions.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun run test:modern-parity` passed.
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 01:51 CET:
-    - Extracted achievement domain definitions from `client/js-esm/game.ts` into `client/js-esm/game-achievements.ts`.
+    - Extracted achievement domain definitions from `client/game.ts` into `client/game-achievements.ts`.
     - Reduced `Game.initAchievements()` to orchestration (build + register + hydrate unlocked state).
     - Verification evidence:
       - `bun run typecheck` passed.
@@ -243,8 +243,8 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
 - Recent execution:
   - 2026-02-11 02:40 CET:
     - Completed 13.4 outbound serialization hardening:
-      - Extracted outbound client protocol action constructors into `client/js-esm/gameclient-outbound-actions.ts`.
-      - Reduced `client/js-esm/gameclient.ts` `send*` methods to typed builder usage with centralized protocol-id normalization.
+      - Extracted outbound client protocol action constructors into `client/gameclient-outbound-actions.ts`.
+      - Reduced `client/gameclient.ts` `send*` methods to typed builder usage with centralized protocol-id normalization.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun test tests/unit/client-boundary-types.test.ts tests/unit/protocol-registry.test.ts tests/smoke/server-payload-guards.test.ts` passed.
@@ -252,10 +252,10 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:27 CET:
     - Completed 13.5 protocol conformance guardrails:
-      - Added shared opcode inventories in `shared/js/protocol-handler-opcodes.ts`.
+      - Added shared opcode inventories in `shared/protocol-handler-opcodes.ts`.
       - Wired server/client dispatch modules to the shared opcode inventories:
-        - `server/js/player-session-dispatch.ts`
-        - `client/js-esm/gameclient-inbound-handlers.ts`
+        - `server/player-session-dispatch.ts`
+        - `client/gameclient-inbound-handlers.ts`
       - Added drift-guard tests in `tests/unit/protocol-registry.test.ts` to enforce registry/dispatch coverage parity.
     - Verification evidence:
       - `bun run typecheck` passed.
@@ -264,7 +264,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
       - Applied `bun x prettier --write tests/unit/protocol-registry.test.ts`.
       - `bun run verify:modern:node22` passed after formatting fix.
   - 2026-02-11 02:21 CET:
-    - Started 13.4 outbound typing hardening in `client/js-esm/gameclient.ts`:
+    - Started 13.4 outbound typing hardening in `client/gameclient.ts`:
       - Removed unsafe WHO outbound cast by constructing a typed `ClientOutboundProtocolAction` payload.
       - Added HELLO payload guard for unresolved equipment kind mapping before sending.
     - Verification evidence:
@@ -274,8 +274,8 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
     - Next action:
       - Continue 13.4 by reducing remaining outbound tuple inference/cast pressure across `send*` methods.
   - 2026-02-11 02:19 CET:
-    - Continued 13.3 by extracting client inbound opcode registry into `client/js-esm/gameclient-inbound-handlers.ts`.
-    - Hardened `client/js-esm/gameclient.ts` dispatch contract to an exhaustive typed handler map:
+    - Continued 13.3 by extracting client inbound opcode registry into `client/gameclient-inbound-handlers.ts`.
+    - Hardened `client/gameclient.ts` dispatch contract to an exhaustive typed handler map:
       - `handlers` is now `Record<opcode, handler>` (not `Partial`).
       - `receiveAction(...)` now performs direct typed dispatch without runtime optional-handler branch.
     - Verification evidence:
@@ -284,7 +284,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
       - `bun run verify:modern:node22` passed.
   - 2026-02-11 02:18 CET:
     - Started 13.3 by replacing `GameClient` opcode-indexed handler array with typed handler table:
-      - Updated `client/js-esm/gameclient.ts` to use `Partial<Record<opcode, handler>>`.
+      - Updated `client/gameclient.ts` to use `Partial<Record<opcode, handler>>`.
       - Removed `call(this, ...)` dispatch pattern in favor of bound arrow handlers.
     - Verification evidence:
       - `bun run typecheck` passed.
@@ -292,7 +292,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
     - Next action:
       - Continue 13.3 by reducing remaining inbound tuple casts in `GameClient.receive*` handlers.
   - 2026-02-11 02:17 CET:
-    - Continued 13.2 server inbound dispatch migration by replacing opcode control-flow block with a typed handler table in `server/js/player-session-dispatch.ts`.
+    - Continued 13.2 server inbound dispatch migration by replacing opcode control-flow block with a typed handler table in `server/player-session-dispatch.ts`.
     - Preserved existing opcode behavior while reducing dispatch boilerplate.
     - Verification evidence:
       - `bun run typecheck` passed.
@@ -301,19 +301,19 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
     - Next action:
       - Start 13.3 client inbound typed dispatch migration.
   - 2026-02-11 02:15 CET:
-    - Removed redundant client protocol wrapper module `client/js-esm/protocol-payload.ts`.
-    - Switched client runtime and tests to shared helpers in `shared/js/protocol-registry.ts`:
-      - `client/js-esm/gameclient.ts`
+    - Removed redundant client protocol wrapper module `client/protocol-payload.ts`.
+    - Switched client runtime and tests to shared helpers in `shared/protocol-registry.ts`:
+      - `client/gameclient.ts`
       - `tests/unit/client-boundary-types.test.ts`
     - Verification evidence:
       - `bun test tests/unit/client-boundary-types.test.ts tests/unit/protocol-registry.test.ts tests/smoke/server-payload-guards.test.ts tests/smoke/server-handshake.test.ts` passed.
       - `bun run typecheck` failed due pre-existing unrelated errors:
-        - `client/js-esm/game-sprite-runtime.ts(31,20): Property 'sprite' does not exist on type 'GridIndexedEntity'.`
-        - `client/js-esm/game-sprite-runtime.ts(32,50): Property 'getSpriteName' does not exist on type 'GridIndexedEntity'.`
+        - `client/game-sprite-runtime.ts(31,20): Property 'sprite' does not exist on type 'GridIndexedEntity'.`
+        - `client/game-sprite-runtime.ts(32,50): Property 'getSpriteName' does not exist on type 'GridIndexedEntity'.`
     - Next action:
       - Continue 13.2 dispatch cleanup and keep protocol boundary simplification slices independent from unrelated client type issues.
   - 2026-02-11 02:13 CET:
-    - Replaced the server inbound opcode `if` chain with `switch(action)` in `server/js/player-session-dispatch.ts`.
+    - Replaced the server inbound opcode `if` chain with `switch(action)` in `server/player-session-dispatch.ts`.
     - Kept message handling behavior unchanged; this is a structural dispatch refactor only.
     - Verification evidence:
       - `bun run typecheck` passed.
@@ -324,17 +324,17 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
     - Started 13.2 server inbound dispatch migration by simplifying dispatcher boundary:
       - `createPlayerSessionActionDispatcher(...)` now dispatches from `message[0]` internally.
       - Removed `WHO` payload mutation (`shift`) in favor of immutable destructuring.
-      - Updated `server/js/player-session.ts` to pass typed message directly.
+      - Updated `server/player-session.ts` to pass typed message directly.
     - Verification evidence:
       - `bun run typecheck` passed.
       - `bun test tests/smoke/server-payload-guards.test.ts tests/smoke/server-handshake.test.ts` passed.
     - Next action:
       - Continue 13.2 by replacing remaining opcode if-chain with typed handler map.
   - 2026-02-11 02:09 CET:
-    - Added shared registry + typed boundary helpers in `shared/js/protocol-registry.ts`.
+    - Added shared registry + typed boundary helpers in `shared/protocol-registry.ts`.
     - Wired protocol normalization/validation callers to registry helpers in:
-      - `client/js-esm/protocol-payload.ts`
-      - `server/js/format.ts`
+      - `client/protocol-payload.ts`
+      - `server/format.ts`
     - Added focused unit coverage in `tests/unit/protocol-registry.test.ts`.
     - Verification evidence:
       - `bun run typecheck` passed.
@@ -344,7 +344,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
   - 2026-02-11 02:08 CET:
     - Started Ticket 13.1 implementation.
     - Next action:
-      - Add `shared/js/protocol-registry.ts` and focused registry tests.
+      - Add `shared/protocol-registry.ts` and focused registry tests.
 
 ## Ticket 11: Operational Hardening + Runtime Health Surfaces
 
@@ -425,8 +425,8 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
     - Completed 8.4 with client item-loot message canonicalization:
       - Added canonical source: `assets/content/item-loot-messages.json`.
       - Added generator/check tooling: `tools/content-item-loot-messages.ts`.
-      - Added generated runtime artifact: `client/js-esm/item-loot-messages.generated.ts`.
-      - Refactored duplicated item class boilerplate in `client/js-esm/items.ts` to a data-driven constructor factory using generated content.
+      - Added generated runtime artifact: `client/item-loot-messages.generated.ts`.
+      - Refactored duplicated item class boilerplate in `client/items.ts` to a data-driven constructor factory using generated content.
       - Added content integrity tests in `tests/unit/content-item-loot-messages.test.ts`.
       - Wired drift-check into verification lane:
         - `package.json` scripts: `content:item-loot:generate`, `check:content:item-loot`.

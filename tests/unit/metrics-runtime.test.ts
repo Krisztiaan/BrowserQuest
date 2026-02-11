@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import Log from '../../server/js/log';
-import MetricsRuntime from '../../server/js/metrics-runtime';
+import Log from '../../server/log';
+import MetricsRuntime from '../../server/metrics-runtime';
 
 const originalConsoleError = console.error;
 const originalLogLevel = Log.getLogger().level;

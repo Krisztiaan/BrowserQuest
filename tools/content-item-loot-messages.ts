@@ -1,11 +1,11 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import Types from '../shared/js/gametypes-browser';
+import Types from '../shared/gametypes-browser';
 
 type ItemLootMessageMap = Record<string, string>;
 
 const CANONICAL_PATH = new URL('../assets/content/item-loot-messages.json', import.meta.url);
-const GENERATED_PATH = new URL('../client/js-esm/item-loot-messages.generated.ts', import.meta.url);
+const GENERATED_PATH = new URL('../client/item-loot-messages.generated.ts', import.meta.url);
 
 function fail(message: string): never {
     throw new Error(message);
@@ -74,7 +74,7 @@ async function check(): Promise<void> {
     const current = await fs.readFile(GENERATED_PATH, 'utf8').catch(() => '');
     if (current !== expected) {
         fail(
-            'Generated item loot messages are out of date. Run `bun run content:item-loot:generate` to refresh client/js-esm/item-loot-messages.generated.ts.'
+            'Generated item loot messages are out of date. Run `bun run content:item-loot:generate` to refresh client/item-loot-messages.generated.ts.'
         );
     }
     console.log('item-loot-messages generated artifact is up to date.');

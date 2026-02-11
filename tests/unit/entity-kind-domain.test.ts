@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import { ENTITY_KIND_DOMAIN } from '../../shared/js/entity-kind-domain';
-import Types from '../../shared/js/gametypes-browser';
+import { ENTITY_KIND_DOMAIN } from '../../shared/entity-kind-domain';
+import Types from '../../shared/gametypes-browser';
 
 test('entity kind domain stays aligned with shared runtime gametypes contract', () => {
     for (const [kindName, [kindId, category]] of Object.entries(ENTITY_KIND_DOMAIN)) {

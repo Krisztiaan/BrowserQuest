@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { runMainEsmBootEnvelope } from '../../server/js/main-esm-boot-envelope';
+import { runMainEsmBootEnvelope } from '../../server/main/boot-envelope';
 
 test('boot envelope resolves config and starts runtime when preflight succeeds', async () => {
     const activeConfig = { port: 8000 };

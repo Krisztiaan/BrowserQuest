@@ -127,12 +127,12 @@ export default [
         },
     },
     {
-        ignores: ['node_modules/**', 'dist/**', 'client/js-esm/lib/**', 'server/js/lib/**'],
+        ignores: ['node_modules/**', 'dist/**', 'client/lib/**', 'server/lib/**'],
     },
 
     // ── Server / shared JS (CJS) ──
     {
-        files: ['server/js/**/*.js', 'shared/js/**/*.js'],
+        files: ['server/**/*.js', 'shared/**/*.js'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'script',
@@ -146,7 +146,7 @@ export default [
 
     // ── Client JS (ESM, non-TS) ──
     {
-        files: ['client/js-esm/**/*.js'],
+        files: ['client/**/*.js'],
         languageOptions: {
             ecmaVersion: 'latest',
             sourceType: 'module',
@@ -163,7 +163,7 @@ export default [
 
     // ── Client TS (type-aware) ──
     {
-        files: ['server/js/**/*.ts', 'shared/js/**/*.ts'],
+        files: ['server/**/*.ts', 'shared/**/*.ts'],
         languageOptions: {
             parser: tsParser,
             parserOptions: {
@@ -185,7 +185,7 @@ export default [
 
     // ── Client TS (type-aware) ──
     {
-        files: ['client/js-esm/**/*.ts'],
+        files: ['client/**/*.ts'],
         languageOptions: {
             parser: tsParser,
             parserOptions: {

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { PlayerRuntimeConnection, PlayerRuntimeWorldServer } from '../../server/js/player-types';
+import type { PlayerRuntimeConnection, PlayerRuntimeWorldServer } from '../../server/player-types';
 
 test('player runtime seam interfaces accept compatibility shapes', () => {
     const connection: PlayerRuntimeConnection = {

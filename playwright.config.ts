@@ -29,7 +29,7 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "bun server/js/main.js server/config.json",
+      command: "bun server/main.js server/config.json",
       url: "http://127.0.0.1:8000/status",
       timeout: 120_000,
       reuseExistingServer: false,

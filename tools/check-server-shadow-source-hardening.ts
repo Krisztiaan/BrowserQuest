@@ -1,10 +1,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-const serverDir = path.join(process.cwd(), "server", "js");
+const serverDir = path.join(process.cwd(), "server");
 
 if (!fs.existsSync(serverDir)) {
-  console.error("server-shadow-hardening-check: missing server/js directory");
+  console.error("server-shadow-hardening-check: missing server directory");
   process.exit(1);
 }
 
@@ -53,7 +53,7 @@ if (nocheckFiles.length || mixedOutputFiles.length) {
   }
 
   if (mixedOutputFiles.length) {
-    console.error("server-shadow-hardening-check: build outputs mixed into server/js source tree:");
+    console.error("server-shadow-hardening-check: build outputs mixed into server source tree:");
     for (const file of mixedOutputFiles) {
       console.error(`  - ${file}`);
     }

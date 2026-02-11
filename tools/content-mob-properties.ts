@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import Types from '../shared/js/gametypes-browser';
+import Types from '../shared/gametypes-browser';
 
 type MobPropertyEntry = {
     drops: Record<string, number>;
@@ -12,7 +12,7 @@ type MobPropertyEntry = {
 type MobPropertyMap = Record<string, MobPropertyEntry>;
 
 const CANONICAL_PATH = new URL('../assets/content/mob-properties.json', import.meta.url);
-const GENERATED_PATH = new URL('../server/js/generated/mob-properties.generated.ts', import.meta.url);
+const GENERATED_PATH = new URL('../server/generated/mob-properties.generated.ts', import.meta.url);
 
 function fail(message: string): never {
     throw new Error(message);
@@ -141,7 +141,7 @@ async function check(): Promise<void> {
     const current = await fs.readFile(GENERATED_PATH, 'utf8').catch(() => '');
     if (current !== expected) {
         fail(
-            'Generated mob properties are out of date. Run `bun run content:mobs:generate` to refresh server/js/generated/mob-properties.generated.ts.'
+            'Generated mob properties are out of date. Run `bun run content:mobs:generate` to refresh server/generated/mob-properties.generated.ts.'
         );
     }
     console.log('mob-properties generated artifact is up to date.');

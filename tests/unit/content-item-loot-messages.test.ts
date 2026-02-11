@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import Types from '../../shared/js/gametypes-browser';
-import { ITEM_LOOT_MESSAGES } from '../../client/js-esm/item-loot-messages.generated';
+import Types from '../../shared/gametypes-browser';
+import { ITEM_LOOT_MESSAGES } from '../../client/item-loot-messages.generated';
 
 test('item loot message table is non-empty and keys map to known item kinds', () => {
     const itemNames = Object.keys(ITEM_LOOT_MESSAGES);

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import Types from '../../shared/js/gametypes-browser';
-import { MOB_PROPERTIES_DATA } from '../../server/js/generated/mob-properties.generated';
+import Types from '../../shared/gametypes-browser';
+import { MOB_PROPERTIES_DATA } from '../../server/generated/mob-properties.generated';
 
 test('mob content table is non-empty and maps only to known mob kinds', () => {
     const mobNames = Object.keys(MOB_PROPERTIES_DATA);

@@ -1,4 +1,4 @@
-import SharedProtocol from '../../shared/js/protocol-contract';
+import SharedProtocol from '../../shared/protocol-contract';
 import type {
     ClientToServerProtocolAction,
     ProtocolAction,
@@ -7,7 +7,7 @@ import type {
     ProtocolOpcode,
     ProtocolParsedAction,
     ServerToClientProtocolAction,
-} from '../../shared/js/protocol-contract-types';
+} from '../../shared/protocol-contract-types';
 
 const Protocol = SharedProtocol as ProtocolContract;
 

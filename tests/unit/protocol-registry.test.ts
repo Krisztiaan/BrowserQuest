@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
-import Types from '../../shared/js/gametypes-browser';
+import Types from '../../shared/gametypes-browser';
 import {
     GAMECLIENT_INBOUND_HANDLER_OPCODES,
     PLAYER_SESSION_DISPATCH_OPCODES,
-} from '../../shared/js/protocol-handler-opcodes';
-import { CLIENT_TO_SERVER_FORMAT_SCHEMA } from '../../shared/js/protocol-schema';
+} from '../../shared/protocol-handler-opcodes';
+import { CLIENT_TO_SERVER_FORMAT_SCHEMA } from '../../shared/protocol-schema';
 import {
     CLIENT_TO_SERVER_PROTOCOL_REGISTRY,
     SERVER_TO_CLIENT_PROTOCOL_REGISTRY,
@@ -16,7 +16,7 @@ import {
     encodeProtocolActionBatch,
     normalizeClientToServerProtocolActionBatch,
     normalizeServerToClientProtocolActionBatch,
-} from '../../shared/js/protocol-registry';
+} from '../../shared/protocol-registry';
 
 function sortedUnique(values: number[]): number[] {
     return [...new Set(values)].sort((a, b) => a - b);

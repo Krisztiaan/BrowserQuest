@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import Metrics from '../../server/js/metrics';
-import MetricsRuntime from '../../server/js/metrics-runtime';
+import Metrics from '../../server/metrics';
+import MetricsRuntime from '../../server/metrics-runtime';
 
 test('metrics source export keeps class contract', () => {
     expect(typeof Metrics).toBe('function');

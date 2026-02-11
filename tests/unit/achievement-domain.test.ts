@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { ACHIEVEMENT_ID_BY_KEY, isAchievementId } from '../../client/js-esm/achievement-domain';
+import { ACHIEVEMENT_ID_BY_KEY, isAchievementId } from '../../client/achievement-domain';
 
 test('achievement key/id domain remains stable and unique', () => {
     const ids = Object.values(ACHIEVEMENT_ID_BY_KEY);

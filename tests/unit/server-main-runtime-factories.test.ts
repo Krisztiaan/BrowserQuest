@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import * as MainRuntimeModule from '../../server/js/main-runtime';
+import * as MainRuntimeModule from '../../server/main-runtime';
 
 const MainRuntime = MainRuntimeModule as any;
 

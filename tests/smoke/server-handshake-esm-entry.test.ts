@@ -66,7 +66,7 @@ test("esm server entry sends initial 'go' handshake", async () => {
     );
 
     proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main-esm.ts', configPath],
+        cmd: ['bun', 'server/main-esm.ts', configPath],
         cwd: repoRoot,
         stdout: 'ignore',
         stderr: 'pipe',

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import * as MainModuleNs from '../../server/js/main';
-import * as MainRuntimeModuleNs from '../../server/js/main-runtime';
+import * as MainModuleNs from '../../server/main';
+import * as MainRuntimeModuleNs from '../../server/main-runtime';
 
 const MainModule = MainModuleNs as any;
 const MainRuntimeModule = MainRuntimeModuleNs as any;

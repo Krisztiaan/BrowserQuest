@@ -4,7 +4,7 @@ import {
     HANDSHAKE_CONTROL,
     isDispatcherConnectStatus,
     isHandshakeControl,
-} from '../../shared/js/connection-status';
+} from '../../shared/connection-status';
 
 test('shared handshake control constants and guards are stable', () => {
     expect(HANDSHAKE_CONTROL.GO).toBe('go');

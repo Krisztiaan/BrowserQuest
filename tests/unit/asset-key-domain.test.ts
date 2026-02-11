@@ -5,7 +5,7 @@ import {
     MUSIC_KEYS,
     POPUP_TYPES,
     SPRITE_KEYS,
-} from '../../client/js-esm/asset-key-domain';
+} from '../../client/asset-key-domain';
 
 test('asset key domain inventories are deterministic and non-empty', () => {
     expect(CURSOR_KEYS).toEqual(['hand', 'sword', 'loot', 'target', 'arrow', 'talk']);

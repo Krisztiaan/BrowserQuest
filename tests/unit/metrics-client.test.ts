@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import MetricsClient from '../../server/js/metrics-client';
+import MetricsClient from '../../server/metrics-client';
 
 type MetricsConfig = {
     memcached_host: string;

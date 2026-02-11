@@ -26,18 +26,18 @@
         "verbatimModuleSyntax": true
     },
     "include": [
-        "server/js/**/*.ts",
-        "shared/js/**/*.ts",
-        "client/js-esm/client-boundary-types.ts",
-        "client/js-esm/achievement-domain.ts",
-        "client/js-esm/asset-key-domain.ts"
+        "server/**/*.ts",
+        "shared/**/*.ts",
+        "client/client-boundary-types.ts",
+        "client/achievement-domain.ts",
+        "client/asset-key-domain.ts"
     ],
     "exclude": [
-        "server/js/worldserver.ts",
-        "server/js/worldserver-*.ts",
-        "server/js/main-runtime.ts",
-        "server/js/main.ts",
-        "server/js/main-esm.ts",
-        "server/js/main-esm-*.ts"
+        "server/worldserver.ts",
+        "server/worldserver-*.ts",
+        "server/main-runtime.ts",
+        "server/main.ts",
+        "server/main-esm.ts",
+        "server/main-esm-*.ts"
     ]
 }

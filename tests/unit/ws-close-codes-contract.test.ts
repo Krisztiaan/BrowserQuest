@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import CloseCodesEsm, { INVALID_PAYLOAD, NORMAL, UNSUPPORTED_DATA } from '../../shared/js/ws-close-codes';
-import WS from '../../server/js/ws-runtime-esm';
+import CloseCodesEsm, { INVALID_PAYLOAD, NORMAL, UNSUPPORTED_DATA } from '../../shared/ws-close-codes';
+import WS from '../../server/ws-runtime-esm';
 
 test('ws close code contract keeps shared/runtime parity', () => {
     expect(NORMAL).toBe(CloseCodesEsm.NORMAL);

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { TypedEventEmitter } from '../../shared/js/typed-event-emitter';
+import { TypedEventEmitter } from '../../shared/typed-event-emitter';
 
 type TestEvents = {
     connected: [];

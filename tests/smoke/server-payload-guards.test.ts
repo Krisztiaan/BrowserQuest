@@ -2,7 +2,7 @@ import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
 import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol';
-import WsCloseCodes from '../../shared/js/ws-close-codes';
+import WsCloseCodes from '../../shared/ws-close-codes';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 const CLOSE_INVALID_PAYLOAD = WsCloseCodes.INVALID_PAYLOAD;
@@ -127,7 +127,7 @@ async function startServer(): Promise<RunningServer> {
     );
 
     const proc = Bun.spawn({
-        cmd: ['bun', 'server/js/main-esm.ts', configPath],
+        cmd: ['bun', 'server/main-esm.ts', configPath],
         cwd: repoRoot,
         stdout: 'ignore',
         stderr: 'pipe',

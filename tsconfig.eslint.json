@@ -5,7 +5,7 @@
     "strict": false
   },
   "include": [
-    "client/js-esm/**/*.ts",
+    "client/**/*.ts",
     "tests/**/*.ts",
     "tests/support/**/*.ts"
   ]

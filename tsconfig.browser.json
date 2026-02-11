@@ -6,17 +6,17 @@
     "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-browser.tsbuildinfo"
   },
   "include": [
-    "client/js-esm/achievement-domain.ts",
-    "client/js-esm/asset-key-domain.ts",
-    "client/js-esm/client-boundary-types.ts",
-    "shared/js/entity-kind-domain.ts",
-    "shared/js/gametypes-browser.ts",
-    "shared/js/protocol-schema.ts",
-    "shared/js/protocol-contract.ts",
-    "shared/js/protocol-contract-types.ts",
-    "shared/js/connection-status.ts",
-    "shared/js/ws-close-codes.ts",
-    "shared/js/typed-event-emitter.ts",
-    "shared/js/evented.ts"
+    "client/achievement-domain.ts",
+    "client/asset-key-domain.ts",
+    "client/client-boundary-types.ts",
+    "shared/entity-kind-domain.ts",
+    "shared/gametypes-browser.ts",
+    "shared/protocol-schema.ts",
+    "shared/protocol-contract.ts",
+    "shared/protocol-contract-types.ts",
+    "shared/connection-status.ts",
+    "shared/ws-close-codes.ts",
+    "shared/typed-event-emitter.ts",
+    "shared/evented.ts"
   ]
 }

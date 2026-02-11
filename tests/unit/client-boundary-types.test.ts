@@ -6,11 +6,11 @@ import type {
     ClientProtocolBatch,
     EntityFactoryContract,
     GameClientProtocolBoundary,
-} from '../../client/js-esm/client-boundary-types';
+} from '../../client/client-boundary-types';
 import {
     decodeServerToClientProtocolAction,
     normalizeServerToClientProtocolActionBatch,
-} from '../../shared/js/protocol-registry';
+} from '../../shared/protocol-registry';
 
 test('client protocol payload helper normalizes protocol action batches', () => {
     const singleAction: ClientProtocolAction = [1, 7, 'hello', 10, 20, 100];

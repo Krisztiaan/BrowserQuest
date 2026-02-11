@@ -22,7 +22,7 @@ If your shell Node is not `22.x`, use wrapper commands, e.g. `bun run verify:mod
 Active Scripts
 --------------
 
-- `bun run dev`: full-stack dev (`server/js/main-esm.ts` + Vite)
+- `bun run dev`: full-stack dev (`server/main-esm.ts` + Vite)
 - `bun run dev:client`: Vite-only dev server
 - `bun run dev:server`: server-only runtime
 - `bun run start:server`: production-style server entry
@@ -53,9 +53,9 @@ Content Canonicalization (Current)
 ----------------------------------
 
 - Canonical mob balance source: `assets/content/mob-properties.json`
-- Generated runtime artifact: `server/js/generated/mob-properties.generated.ts`
+- Generated runtime artifact: `server/generated/mob-properties.generated.ts`
 - Canonical item-loot message source: `assets/content/item-loot-messages.json`
-- Generated runtime artifact: `client/js-esm/item-loot-messages.generated.ts`
+- Generated runtime artifact: `client/item-loot-messages.generated.ts`
 - Workflow:
   - Edit canonical JSON
   - Run the matching generator command (`content:mobs:generate` or `content:item-loot:generate`)
@@ -78,10 +78,10 @@ Current lint/format scope is intentionally bounded while legacy modules are incr
 
 - `lint` currently targets an explicit modern-runtime allowlist in `package.json` (server/shared/client boundary-critical modules).
 - `format`/`format:check` currently target:
-  - `server/js/{log.ts,utils.ts,format.ts}`
-  - `client/js-esm/compat/*.ts`
-  - `client/js-esm/preflight.ts`
-  - `shared/js/gametypes-browser.ts`
+  - `server/{log.ts,utils.ts,format.ts}`
+  - `client/compat/*.ts`
+  - `client/preflight.ts`
+  - `shared/gametypes-browser.ts`
   - `tests/**/*.ts`
 
 Unlisted runtime files are treated as explicit temporary exclusions and should be expanded via Ticket 9 follow-up slices, not ad-hoc.

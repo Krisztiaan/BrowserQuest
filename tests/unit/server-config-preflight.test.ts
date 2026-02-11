@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import ConfigPreflight from '../../server/js/config-preflight';
+import ConfigPreflight from '../../server/config-preflight';
 
 function createValidConfig() {
     return {

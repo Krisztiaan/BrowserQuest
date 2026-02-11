@@ -179,7 +179,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
         const events: EventRecord[] = [];
         recentStructuredLines.length = 0;
         proc = Bun.spawn({
-            cmd: ['bun', 'server/js/main-esm.ts', configPath],
+            cmd: ['bun', 'server/main-esm.ts', configPath],
             cwd: repoRoot,
             env: options?.fatalTrigger
                 ? {
