@@ -1,661 +1,376 @@
 # TODO Backlog (Open Tickets Only)
 
-Last updated: 2026-02-11 14:31 CET
-Status legend: `todo` | `in_progress` | `done` | `blocked`
+Last updated: 2026-02-11 16:05 CET
+Status legend: `todo` | `in_progress` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
 
-1. Ticket 21 (`in_progress`) - Core primitive reliability hardening
-2. Ticket 22 (`todo`) - Canonical domain manifest unification
-3. Ticket 23 (`todo`) - Item effect registry (server + client)
-4. Ticket 24 (`todo`) - Typed world core primitives
-5. Ticket 25 (`todo`) - Messaging boundary simplification
-6. Ticket 26 (`todo`) - Client session context consolidation
-7. Ticket 12 (`blocked`) - Rendering modernization (product-gated)
+1. Ticket 31 (`todo`) - Domain value objects and IDs
+2. Ticket 24 (`todo`) - ECS runtime core (server)
+3. Ticket 29 (`todo`) - ECS kernel and scheduling (server)
+4. Ticket 38 (`todo`) - Spatial index and interest management
+5. Ticket 33 (`todo`) - Command/event pipeline (server)
+6. Ticket 32 (`todo`) - Protocol manifest generation
+7. Ticket 25 (`todo`) - Messaging boundary simplification (event -> protocol)
+8. Ticket 28 (`todo`) - Replication + SPAWN snapshot contract
+9. Ticket 40 (`todo`) - Port gameplay systems to ECS
+10. Ticket 34 (`todo`) - Client ECS world state kernel
+11. Ticket 26 (`todo`) - Client runtime cutover (remove legacy session graph)
+12. Ticket 36 (`todo`) - Content-driven prefabs/components
+13. Ticket 37 (`todo`) - Mod/plugin API (ECS)
+14. Ticket 41 (`todo`) - Determinism/perf test harness
+15. Ticket 12 (`blocked`) - Rendering modernization (product-gated)
 
-## Ticket 21: Core Primitive Reliability Hardening
+## Ticket 31: Domain Value Objects and IDs
 
-- Status: `in_progress`
+- Status: `todo`
+- Priority: P1
+- Scope:
+  - Introduce branded/opaque value objects for ids and positions across server/client/shared.
+  - Replace `string | number` id unions in core runtime with explicit types and explicit boundary conversions.
+- Out of scope:
+  - Protocol redesign (wire ids remain numeric where required).
+- Acceptance criteria:
+  - `EntityId` is generational (prevents use-after-free) and not interchangeable with other ids.
+  - `GridPos` and `WorldPos` are distinct (no accidental mix of pixel/grid space).
+  - Protocol boundaries own all coercions (ex: `number` -> `EntityId`), core logic does not.
+- Verification plan:
+  - `bun run typecheck`
+  - Add focused unit tests for id/position conversions.
+- Dependencies/blockers:
+  - None.
+- Planned slices:
+  - 31.1 (`todo`) Add `shared/domain/ids.ts` (generational `EntityId`, specialized ids, safe parsing/formatting).
+  - 31.2 (`todo`) Add `shared/domain/positions.ts` (`GridPos`, `WorldPos`, helpers).
+  - 31.3 (`todo`) Migrate server world internals to branded ids/positions (boundary conversions only).
+  - 31.4 (`todo`) Migrate client state maps/lookups to branded ids/positions (boundary conversions only).
+
+## Ticket 24: ECS Runtime Core (Server)
+
+- Status: `todo`
 - Priority: P0
 - Scope:
-  - Fix reliability hazards in foundational world primitives (entity area removal, population totals, bounded position search).
-  - Add focused unit coverage for the failure classes fixed in this slice.
+  - Build a full ECS runtime for the authoritative server simulation:
+    - entity lifecycle (create/destroy, generational ids)
+    - component stores (SoA-first where meaningful; no `unknown`)
+    - archetype index + fast queries
+    - resource registry (singletons: map, rng, clock, config)
+- Out of scope:
+  - Moving rendering to ECS (client keeps render classes initially).
+  - Multi-threading/sharding.
+- Acceptance criteria:
+  - All server gameplay state is representable as ECS components/resources (no dependence on `Player/Mob/Item` class instances for simulation state).
+  - Queries are ergonomic and fast enough for tick-loop usage.
+  - ECS state is unit-testable without a websocket server.
+- Verification plan:
+  - `bun run typecheck`
+  - Add a new focused unit suite for ECS core invariants.
+- Dependencies/blockers:
+  - Depends on Ticket 31.
+- Planned slices:
+  - 24.1 (`todo`) Implement `EntityAllocator` (create/destroy, generation bump, reuse policy).
+  - 24.2 (`todo`) Implement component store interface (add/remove/has/get/set) with at least one SoA store example.
+  - 24.3 (`todo`) Implement archetype index and query iteration (`query(requiredComponents)` with stable iteration semantics).
+  - 24.4 (`todo`) Implement resources (`WorldResources`) and define core resources (time, rng, map handle, config).
+  - 24.5 (`todo`) Create a minimal `WorldState` facade for systems (world + resources + command/event queues).
+
+## Ticket 29: ECS Kernel and Scheduling (Server)
+
+- Status: `todo`
+- Priority: P0
+- Scope:
+  - Replace ad-hoc world orchestration with a staged ECS scheduler:
+    - ingest inbound commands
+    - run fixed tick stages
+    - emit domain events
+    - flush outbox (protocol actions) after simulation
+  - Make the tick deterministic under a seed for tests.
 - Out of scope:
   - Protocol redesign.
-  - Large architecture refactors (Tickets 22-26).
 - Acceptance criteria:
-  - Area removal does not delete the wrong entity when target is missing.
-  - Population broadcast preserves explicit total `0` values.
-  - Position selection loops have deterministic bounded behavior.
-  - New targeted tests cover each fixed defect class.
+  - One place defines tick order and system registration; systems do not reach into ambient globals.
+  - All randomness comes from injected deterministic rng resource.
+  - Tick loop produces identical outputs given identical `(initial state, command stream, seed)`.
 - Verification plan:
   - `bun run typecheck`
-  - `bun test tests/unit/server-world-primitives.test.ts --timeout 20000`
+  - Add deterministic tick unit tests (seeded).
 - Dependencies/blockers:
-  - None.
+  - Depends on Ticket 24.
 - Planned slices:
-  - 21.1 (`in_progress`) Patch reliability defects in `server/area.ts`, `server/world/population.ts`, `server/world/entity-utilities.ts`.
-  - 21.2 (`todo`) Add focused unit tests and verify.
-- Recent execution:
-  - 2026-02-11 14:26 CET:
-    - Started ticket and established implementation/verification plan from architecture audit.
-    - Evidence:
-      - Code-path inventory run across `server/world/*`, `server/world-server.ts`, `client/game-session/*`, and protocol boundary modules.
-    - Next action:
-      - Implement slice 21.1 code fixes.
+  - 29.1 (`todo`) Define `System` interface and scheduler stages (pre, sim, post).
+  - 29.2 (`todo`) Implement scheduler registration and execution with timing budgets and tracing hooks.
+  - 29.3 (`todo`) Wire scheduler into server entry/world composition root (keep network behavior unchanged).
 
-## Ticket 22: Canonical Domain Manifest Unification
+## Ticket 38: Spatial Index and Interest Management
+
+- Status: `todo`
+- Priority: P0
+- Scope:
+  - Replace the current “groups/adjacent groups + incoming queues” mechanism with an ECS-managed spatial index:
+    - spatial hashing or chunk grid keyed by `GridPos`
+    - efficient “nearby players/entities” queries for AI and replication
+    - interest sets per player for spawn/despawn/list diffs
+- Out of scope:
+  - Perfect occlusion/visibility culling (keep existing semantics first).
+- Acceptance criteria:
+  - Systems can query nearby entities without scanning global maps.
+  - Replication uses interest sets to decide who receives what; no bespoke queue logic per feature.
+- Verification plan:
+  - `bun run typecheck`
+  - Add unit tests for spatial index update/query and interest diff behavior.
+- Dependencies/blockers:
+  - Depends on Ticket 24 and Ticket 29.
+- Planned slices:
+  - 38.1 (`todo`) Define `Position` component and `SpatialIndex` resource.
+  - 38.2 (`todo`) Implement index maintenance system (position changes -> index updates).
+  - 38.3 (`todo`) Implement interest tracking per player (enter/leave sets) and expose query helpers.
+
+## Ticket 33: Server Command/Event Pipeline
 
 - Status: `todo`
 - Priority: P1
 - Scope:
-  - Consolidate entity-kind and message-opcode definitions into one canonical manifest source.
-  - Generate/update dependent runtime/type artifacts from that source.
+  - Model inbound protocol actions as typed commands and emit typed domain events from ECS systems.
+  - Keep protocol parsing/validation at the boundary and move gameplay branching out of boundary dispatchers.
 - Out of scope:
-  - Gameplay balance tuning.
-  - Wire opcode changes.
+  - Full rollback/netcode reconciliation.
 - Acceptance criteria:
-  - Entity/message constants are defined in one canonical source.
-  - Downstream consumers (`gametypes`, protocol maps/types, factory registries) derive from that source.
+  - WS boundary decodes and validates; it enqueues commands only.
+  - Simulation systems consume commands and emit domain events.
+  - One mapping layer translates domain events into protocol actions in the outbox.
 - Verification plan:
   - `bun run typecheck`
-  - Protocol and content drift checks in verify lane.
+  - Add focused unit tests for one end-to-end command path (MOVE recommended).
 - Dependencies/blockers:
-  - Prefer after Ticket 21.
+  - Depends on Ticket 29 and Ticket 38.
+- Planned slices:
+  - 33.1 (`todo`) Define command types and a `CommandQueue` resource (per-connection/player association explicit).
+  - 33.2 (`todo`) Define domain event types and an `EventQueue` resource.
+  - 33.3 (`todo`) Migrate one vertical slice end-to-end (MOVE) through commands -> ECS -> events -> outbox.
+  - 33.4 (`todo`) Incrementally migrate remaining inbound handlers; delete dead branching.
 
-## Ticket 23: Item Effect Registry (Server + Client)
+## Ticket 32: Protocol Manifest Generation
 
 - Status: `todo`
 - Priority: P1
 - Scope:
-  - Replace scattered item behavior branching with a registry-driven effect model shared by server and client boundaries.
+  - Define one canonical protocol manifest that derives:
+    - opcode registry (direction, keys)
+    - runtime validators
+    - TypeScript action unions and builder signatures
+  - Eliminate drift between `shared/protocol/registry.ts`, `shared/protocol/schema.ts`, and client/server action builders.
 - Out of scope:
-  - New item content additions.
+  - Opcode changes.
+  - Binary protocol.
 - Acceptance criteria:
-  - Firepotion/healing/equip flows resolve via registry entries, not hardcoded branch chains.
-  - Adding a new item effect requires registry extension only.
+  - One manifest defines every message shape; validators/builders are derived or mechanically checked against it.
+  - Boundary close decisions use derived validators (no duplicated ad-hoc checks).
 - Verification plan:
   - `bun run typecheck`
-  - Focused gameplay parity smoke.
+  - Protocol unit tests + `bun run test:modern-parity`
 - Dependencies/blockers:
-  - Depends on Ticket 22 canonical kind source.
+  - None (can land earlier), but easier after Ticket 33 shapes are stable.
+- Planned slices:
+  - 32.1 (`todo`) Introduce `shared/protocol/manifest.ts` and derive registry from it.
+  - 32.2 (`todo`) Derive client->server validation and server->client validators from manifest.
+  - 32.3 (`todo`) Derive typed builders (or assert existing unions/builders match manifest).
 
-## Ticket 24: Typed World Core Primitives
+## Ticket 25: Messaging Boundary Simplification (Event -> Protocol)
 
 - Status: `todo`
 - Priority: P1
 - Scope:
-  - Introduce typed world state primitives (`EntityRepo`, `SpatialGroups`, `Outbox`) and remove internal `unknown` usage in world domain modules.
+  - Remove server `Messages.*` wrapper classes and migrate all outbound traffic to typed protocol actions.
+  - Use ECS domain events as the single source of outbound behavior (event mapping decides protocol actions).
 - Out of scope:
-  - Transport/runtime backend changes.
+  - Protocol redesign.
 - Acceptance criteria:
-  - `server/world/*` core contracts are strongly typed end-to-end.
-  - `as unknown as` casts are eliminated from world-domain internals.
+  - No gameplay/system code constructs protocol tuples directly (builders/mappers only).
+  - No domain object returns “message objects” (ex: no `entity.spawn()` returning a network message).
+  - Outbox carries typed protocol actions, not `unknown[]`.
 - Verification plan:
   - `bun run typecheck`
-  - Focused world primitive tests.
+  - Focused unit coverage for event->protocol mapping + `bun run test:modern-parity`
 - Dependencies/blockers:
-  - Depends on Ticket 21.
+  - Depends on Ticket 33 (events) and Ticket 32 (builders/validators).
+- Planned slices:
+  - 25.1 (`todo`) Introduce server outbound builders and event->protocol mappers for low-risk actions (population/move/chat).
+  - 25.2 (`todo`) Remove `server/message.ts` usage progressively; delete file when no longer referenced.
+  - 25.3 (`todo`) Remove message construction methods from server entity classes (or delete those classes once ECS owns state).
 
-## Ticket 25: Messaging Boundary Simplification
+## Ticket 28: Replication + SPAWN Snapshot Contract
+
+- Status: `todo`
+- Priority: P1
+- Scope:
+  - Define a canonical replication model for ECS:
+    - how an entity is represented on the wire (spawn snapshot)
+    - what updates are emitted (move/health/equip/etc)
+    - how despawn is represented
+  - Keep it wire-compatible initially, then optionally evolve.
+- Out of scope:
+  - Full delta-compression/binary protocol.
+- Acceptance criteria:
+  - SPAWN payload is derived from components via one encoder and decoded by one decoder (no positional probing).
+  - Replicated components are explicit (whitelist) and versioned.
+- Verification plan:
+  - `bun run typecheck`
+  - Unit tests for spawn encode/decode and update events + `bun run test:modern-parity`
+- Dependencies/blockers:
+  - Depends on Tickets 33 and 25.
+- Planned slices:
+  - 28.1 (`todo`) Define `ReplicatedComponentSet` and `SpawnSnapshot` types.
+  - 28.2 (`todo`) Implement server encoders from ECS state to protocol SPAWN/update actions.
+  - 28.3 (`todo`) Implement client decoders to client ECS state and renderer adapters.
+
+## Ticket 40: Port Gameplay Systems to ECS
+
+- Status: `todo`
+- Priority: P1
+- Scope:
+  - Incrementally port gameplay logic from server classes + `server/world/*` modules into ECS systems.
+  - Delete old world mutation code paths after parity.
+- Out of scope:
+  - New gameplay features.
+- Acceptance criteria:
+  - Core gameplay runs entirely via ECS (movement, combat, loot, mobs, respawn, regen, chest behavior).
+  - Legacy world maps (`entities/players/mobs/items` dicts) are no longer sources of truth.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun run test:modern-parity`
+  - Add focused unit tests per migrated vertical slice.
+- Dependencies/blockers:
+  - Depends on Tickets 24/29/38/33/25/28.
+- Planned slices:
+  - 40.1 (`todo`) Movement + zoning + interest updates.
+  - 40.2 (`todo`) Combat (attack/hit/hurt/damage/kill/regen).
+  - 40.3 (`todo`) Loot + equip + drops.
+  - 40.4 (`todo`) Chests + item despawn/respawn.
+  - 40.5 (`todo`) Mob AI (aggro/hatelist/target selection/return-to-spawn).
+
+## Ticket 34: Client ECS World State Kernel
 
 - Status: `todo`
 - Priority: P2
 - Scope:
-  - Simplify and unify outbound message construction around typed protocol actions.
-  - Reduce class-wrapper indirection where not adding domain value.
+  - Introduce a client-side ECS store for world state and drive rendering/UX from it.
+  - Replace ad-hoc mutable maps in `client/game.ts` with a coherent state kernel.
 - Out of scope:
-  - Binary protocol migration.
+  - Rendering rewrite (Ticket 12).
 - Acceptance criteria:
-  - One consistent outbound action construction path exists at runtime boundaries.
-  - Message construction remains wire-compatible.
-- Verification plan:
-  - `bun run typecheck`
-  - Protocol registry/unit smoke coverage.
-- Dependencies/blockers:
-  - Prefer after Ticket 24.
-
-## Ticket 26: Client Session Context Consolidation
-
-- Status: `todo`
-- Priority: P2
-- Scope:
-  - Replace host/builder cast pyramids with cohesive typed session contexts in `client/game-session/*`.
-- Out of scope:
-  - Rendering/product redesign.
-- Acceptance criteria:
-  - Session wiring uses typed context objects with substantially fewer `unknown` casts.
-  - Spawn/connect/welcome flows remain behaviorally unchanged.
+  - Client inbound protocol actions update client ECS state via reducers/systems.
+  - Renderer consumes a stable view model derived from ECS state (adapter layer).
+  - Core state updates can be unit-tested without DOM/canvas.
 - Verification plan:
   - `bun run typecheck`
   - `bun run test:modern-parity`
 - Dependencies/blockers:
-  - Depends on Tickets 22-25 seams.
+  - Depends on Ticket 28 (spawn/update decode shape).
+- Planned slices:
+  - 34.1 (`todo`) Define client ECS store and migrate one inbound action (MOVE or POPULATION).
+  - 34.2 (`todo`) Migrate SPAWN/DESPAWN handling to populate client ECS state.
+  - 34.3 (`todo`) Add renderer adapter layer (ECS entity -> render entity instance).
 
-## Ticket 15: Tooling Modernization (Native Bun/TS/Workflow Lane)
+## Ticket 26: Client Runtime Cutover (Remove Legacy Session Graph)
 
-- Status: `done`
-- Priority: P1
+- Status: `todo`
+- Priority: P3
 - Scope:
-  - Remove legacy/redundant custom tool scripts that duplicate native workflow/Bun functionality.
-  - Keep only tools with active runtime/build/content value.
-  - Align scripts/workflows/docs with the simplified toolset.
+  - Remove `client/game-session/*` bind-heavy session plumbing and replace with kernel-based registration.
+  - Consolidate side effects (audio, UI notifications, storage) behind explicit effect handlers.
 - Out of scope:
-  - Broad lint warning cleanup outside this slice.
-  - Rendering/product changes (Ticket 12).
+  - Visual redesign.
 - Acceptance criteria:
-  - Removed obsolete tool scripts and script aliases.
-  - CI workflows no longer depend on removed tools and use current file paths.
-  - `bun run verify:modern` passes.
+  - Session wiring has no `as unknown as` cast pyramids.
+  - Adding a new client-side behavior is reducer/system + effect handler registration only.
 - Verification plan:
   - `bun run typecheck`
-  - `bun run test:ws:runtime:decision`
-  - `bun run test:ws:runtime:parity`
+  - `bun run test:modern-parity`
+- Dependencies/blockers:
+  - Depends on Ticket 34.
+- Planned slices:
+  - 26.1 (`todo`) Introduce effect handler API (audio/UI/storage) with typed context.
+  - 26.2 (`todo`) Migrate connect/welcome flows to kernel registration; delete legacy builders.
+  - 26.3 (`todo`) Migrate spawn/player handlers; delete remaining `client/game-session/*`.
+
+## Ticket 36: Content-Driven Prefabs/Components
+
+- Status: `todo`
+- Priority: P2
+- Scope:
+  - Define canonical content schemas for “prefabs” that instantiate ECS components for an entity kind.
+  - Generate validated runtime artifacts used by server and client.
+- Out of scope:
+  - New mechanics (this is plumbing/validation).
+- Acceptance criteria:
+  - Adding a new mob/item is primarily a content change (prefab + assets), not a code change.
+  - Prefabs can attach capabilities/tags and default component values.
+- Verification plan:
+  - `bun run typecheck`
   - `bun run verify:modern`
 - Dependencies/blockers:
-  - None.
-- Recent execution:
-  - 2026-02-11 14:31 CET:
-    - Tightened `tools/check-metrics-healthy-prereqs.ts` unknown-error handling (`toErrorMessage`) to remove unsafe-any lint warnings in the remaining toolset.
-    - Verification evidence:
-      - `bun x eslint tools/check-metrics-healthy-prereqs.ts` passed.
-      - `bun run typecheck` passed.
-    - Next action:
-      - Continue with remaining strict-lint warning reduction in runtime files when requested.
-  - 2026-02-11 14:26 CET:
-    - Removed deprecated tooling scripts:
-      - `tools/check-runtime.ts`
-      - `tools/check-server-shadow-source-hardening.ts`
-      - `tools/check-package-mode-boundaries.ts`
-      - `tools/check-browser-workflow-drift.ts`
-      - `tools/check-dependency-drift.ts`
-      - `tools/node22-run.ts`
-      - `tools/run-ws-boundary-drill.ts`
-    - Simplified `package.json` scripts by removing legacy check wrappers and shim wrappers.
-    - Added tool typecheck project (`tsconfig.tools.json`) and wired solution references (`tsconfig.json`).
-    - Updated workflows:
-      - `verify-dependency-drift.yml` now uses native `bun outdated` parsing.
-      - `verify-ws-boundary-drill.yml` now runs native ws runtime test scripts directly and writes simple artifacts.
-      - Updated stale ws-runtime path filters to current filenames.
-    - Updated docs:
-      - Removed Node22 wrapper command references from `README.md` and `client/README.md`.
-      - Corrected map JSON import path in `client/map-source.ts` to unblock Vite build.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:ws:runtime:decision` passed.
-      - `bun run test:ws:runtime:parity` passed.
-      - `bun run verify:modern` passed (lint warnings remain non-fatal).
-    - Next action:
-      - Return queue focus to Ticket 12 gate and next strict-lint hardening slice.
-
-## Ticket 14: Redundancy Cleanup Baseline (Shared Types + Client Boundary)
-
-- Status: `done`
-- Priority: P1
-- Scope:
-  - Remove remaining avoidable duplication around shared `gametypes` message constants/types.
-  - Reduce repetitive inbound action cast boilerplate in `GameClient` while preserving runtime behavior.
-  - Keep boundary typing strict and explicit (no JS fallback behavior changes).
-- Out of scope:
-  - Protocol opcode/value changes.
-  - Product-facing rendering work (Ticket 12).
-- Acceptance criteria:
-  - Shared message opcode typing is defined from one runtime source (no duplicated value maps).
-  - `GameClient` inbound handling no longer repeats per-method cast assertions for each opcode payload.
-  - Verify lane remains green.
-- Verification plan:
-  - Per slice: `bun run typecheck` + focused unit/smoke command.
-  - Ticket completion: `bun run verify:modern:node22`.
-- Dependencies/blockers:
-  - No functional blockers; executes before optional Ticket 12.
-- Discussion venue:
-  - Code review/PR comments for implementation details; architecture thread only if protocol contract shape changes (not planned).
+  - Depends on Ticket 24 and Ticket 28 shapes.
 - Planned slices:
-  - 14.1 (`done`) Canonicalize `gametypes` message opcode typing from runtime constant source.
-  - 14.2 (`done`) Consolidate `GameClient` inbound typing to remove repeated per-handler casts.
-  - 14.3 (`done`) Final redundancy sweep and cleanup of adjacent low-risk duplicates.
-- Recent execution:
-  - 2026-02-11 04:12 CET:
-    - Completed 14.1-14.3:
-      - `shared/gametypes-browser.ts`:
-        - Removed duplicated message opcode declarations by defining one `MESSAGE_OPCODES` runtime constant and deriving `MessageOpcodeMap` from it.
-        - Removed duplicated armor iteration function bodies by sharing one implementation between `forEachArmor` and `forEachArmorKind`.
-      - `client/client-boundary-types.ts`:
-        - Added `ClientInboundActionByOpcode<...>` helper type for opcode-specific inbound payload narrowing.
-      - `client/gameclient-inbound-handlers.ts`:
-        - Added typed inbound handler map keyed by opcode with opcode-specific payload signatures.
-      - `client/gameclient.ts`:
-        - Removed repeated per-handler `as InboundAction<...>` casts by using opcode-specific method signatures.
-        - Kept one centralized dispatch cast boundary in `receiveAction(...)`.
-        - Simplified batched inbound dispatch loop to direct `for..of`.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun test tests/unit/gametypes-contract.test.ts tests/unit/client-boundary-types.test.ts tests/unit/protocol-registry.test.ts --timeout 20000` passed.
-      - `bun run verify:modern:node22` passed.
-    - Next action:
-      - Return execution queue to Ticket 12 decision gate.
-  - 2026-02-11 04:09 CET:
-    - Started Ticket 14 redundancy audit.
-    - Identified highest-priority targets:
-      - Duplicated message opcode declarations in `shared/gametypes-browser.ts` (`MessageOpcodeMap` + runtime map values).
-      - Repeated `as InboundAction<...>` cast boilerplate in `client/gameclient.ts` receive handlers.
-    - Evidence:
-      - `rg -n "gametypes"` (repo-wide import/usage audit).
-      - `rg -n "as InboundAction<" client/gameclient.ts`.
-    - Next action:
-      - Implement slice 14.1 (`gametypes` opcode-source canonicalization) and run `bun run typecheck`.
+  - 36.1 (`todo`) Define prefab schema(s) and generator pipeline (JSON -> TS).
+  - 36.2 (`todo`) Migrate server spawning to prefab-based component instantiation.
+  - 36.3 (`todo`) Migrate client entity presentation metadata to prefabs (sprite/sound/UI strings).
 
-## Ticket 7: Server/Client Decomposition of God Objects
+## Ticket 37: Mod/Plugin API (ECS)
 
-- Status: `done`
-- Priority: P2
+- Status: `todo`
+- Priority: P3
 - Scope:
-  - Extract `Player` protocol/session handling into a dedicated session boundary.
-  - Continue reducing `WorldServer` and `Game` into orchestration roles.
-  - Decouple protocol payload construction from gameplay/domain logic.
-  - Retire now-redundant shadow-contract scaffolding.
+  - Provide a stable plugin API to register:
+    - components
+    - systems
+    - prefabs/content packs
+    - command handlers (optional)
+    - replication mappings (optional)
+  - Trusted plugins only initially.
 - Out of scope:
-  - Public protocol redesign.
+  - Security sandboxing for untrusted third-party code.
 - Acceptance criteria:
-  - Runtime behavior and public entrypoints remain unchanged.
-  - Core orchestrators become coordination-focused, with extracted subsystems owning behavior.
-  - Verify lane stays green after each slice.
-- Verification plan:
-  - Per slice: `bun run typecheck` + focused smoke/test command.
-  - Ticket completion: `bun run verify:modern:node22`.
-- Dependencies/blockers:
-  - Depends on already-completed cleanup tickets (3-5) and current modern lane.
-- Discussion venue:
-  - Architecture issue thread first; implementation details in PR comments.
-- Planned slices:
-  - 7.1 (`done`) Player session layer boundary extraction (first seam).
-  - 7.2 (`done`) Game subsystem boundaries (input/UI/network/render/audio).
-  - 7.3 (`done`) WorldServer orchestration-only pass + shadow-contract retirement.
-- Recent execution:
-  - 2026-02-11 02:40 CET:
-    - Completed 7.2 by finalizing additional `Game` subsystem boundary extraction seams:
-      - `client/game-player-input.ts`
-      - `client/game-mob-positioning.ts`
-      - `client/game-visibility-iterators.ts`
-    - Ticket 7 acceptance validated via repeated parity and full verify-lane runs after each incremental seam extraction.
-  - 2026-02-11 02:39 CET:
-    - Continued 7.2 render-loop traversal decomposition by extracting entity/tile visibility iterators from `client/game.ts` into `client/game-visibility-iterators.ts`.
-    - Reduced `Game.forEachEntity/forEachMob/forEachVisibleEntityByDepth/forEachVisibleTileIndex/forEachVisibleTile/forEachAnimatedTile` to thin orchestration wrappers.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:37 CET:
-    - Continued 7.2 combat/pathing decomposition by extracting mob unstacking and adjacent-tile positioning logic from `client/game.ts` into `client/game-mob-positioning.ts`.
-    - Reduced `Game.isMobOnSameTile/getFreeAdjacentNonDiagonalPosition/tryMovingToADifferentTile` to orchestration wrappers over the new helper module.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:36 CET:
-    - Continued 7.2 input/UI decomposition by extracting cursor-hover and click dispatch logic from `client/game.ts` into `client/game-player-input.ts`.
-    - Reduced `Game.movecursor()` and `Game.click()` to orchestration wrappers over the new helper module.
-    - Verification evidence:
-      - `bun run typecheck` initially failed on highlightable-entity strict typing in `client/game-player-input.ts` and passed after narrowing/assignment fixes.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:17 CET:
-    - Extracted game visual/runtime initialization responsibilities from `client/game.ts` into `client/game-visual-runtime.ts`.
-    - Reduced `Game.initShadows/initCursors/initAnimations/initHurtSprites/initSilhouettes` to orchestration wrappers.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:16 CET:
-    - Extracted sprite runtime orchestration from `client/game.ts` into `client/game-sprite-runtime.ts`.
-    - Reduced `Game.loadSpriteForScale/loadSpriteScale/setSpriteScale/loadSprites/spritesLoaded` to thin wrappers over the new helper.
-    - Verification evidence:
-      - `bun run typecheck` initially failed on strict sprite entity typing in `client/game-sprite-runtime.ts` and passed after explicit reloadable-entity boundary typing.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:15 CET:
-    - Retired shadow-contract scaffolding:
-      - Removed `server/worldserver-types.ts`.
-      - Removed `tests/unit/worldserver-shadow-source-pre-slice.test.ts`.
-      - Removed legacy shadow inventory exports from `server/player-types.ts`.
-      - Replaced `tests/unit/player-shadow-source-contract.test.ts` with focused seam typing coverage in `tests/unit/player-runtime-boundary-types.test.ts`.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:11 CET:
-    - Centralized map area/chest config guards and types into `server/worldserver-map-config.ts`.
-    - Removed duplicated inline map-config guard definitions from `server/world-server.ts` and reused the shared module from world bootstrap seams.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` initially failed due pre-existing formatting in `tests/unit/protocol-registry.test.ts`.
-      - Applied `bun x prettier --write tests/unit/protocol-registry.test.ts`.
-      - `bun run verify:modern:node22` passed after formatting fix.
-  - 2026-02-11 02:09 CET:
-    - Extracted `World.run()` map-ready bootstrap orchestration into `server/worldserver-map-bootstrap.ts`.
-    - Reduced `server/world-server.ts` runtime map-ready callback to dependency wiring (config filtering + area constructors).
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:07 CET:
-    - Extracted world tick/regen interval loop from `server/world-server.ts` into `server/worldserver-update-loop.ts`.
-    - Reduced `World.run()` to orchestration by delegating update-loop lifecycle startup.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:06 CET:
-    - Extracted constructor runtime event wiring (`entityAttack` + `regenTick`) from `server/world-server.ts` into `server/worldserver-runtime-events.ts`.
-    - Reduced `World` constructor to orchestration-only wiring by delegating runtime listener installation.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:05 CET:
-    - Extracted entity/item tile lookup logic from `client/game.ts` into `client/game-entity-lookups.ts`.
-    - Reduced `Game.getEntityAt/getItemAt/getMobAt/getNpcAt/getChestAt` to thin orchestration wrappers.
-    - Verification evidence:
-      - `bun run typecheck` initially failed with lookup return typing in `client/game-entity-lookups.ts` and passed after return-type alignment.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:03 CET:
-    - Extracted shared spatial-state orchestration into `client/game-spatial-state.ts`.
-    - Reused the new helper in `client/game-runtime-bootstrap.ts` and `client/game.ts` (`restart`) to remove duplicated grid initialization flow.
-    - Fixed a strict dispatch typing regression by narrowing HELLO dispatch payload in `server/player-session-dispatch.ts`.
-    - Verification evidence:
-      - `bun run typecheck` initially failed with HELLO payload narrowing error in `server/player-session-dispatch.ts:245`.
-      - `bun run typecheck` passed after dispatch narrowing fix.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:00 CET:
-    - Extracted game runtime bootstrap orchestration from `client/game.ts` into `client/game-runtime-bootstrap.ts`.
-    - Reduced `Game.run()` asset-ready callback to orchestration and removed temporary cast at bootstrap callsite.
-    - Fixed strict typing regression in `server/player-session-dispatch.ts` by explicit `EntityKind` conversion for HELLO equipment kinds.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` initially failed with `TS2345` in `server/player-session-dispatch.ts:48` and `server/player-session-dispatch.ts:49`.
-      - `bun run verify:modern:node22` passed after fixing the type regression.
-  - 2026-02-11 01:49 CET:
-    - Extracted protocol action dispatch from `server/player-session.ts` into `server/player-session-dispatch.ts`.
-    - Kept handshake validation/orchestration in `attachPlayerSession(...)` while moving opcode-specific behavior into dedicated handler functions.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 01:51 CET:
-    - Extracted achievement domain definitions from `client/game.ts` into `client/game-achievements.ts`.
-    - Reduced `Game.initAchievements()` to orchestration (build + register + hydrate unlocked state).
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-
-## Ticket 13: Typed Protocol Boundary Consolidation
-
-- Status: `done`
-- Priority: P1
-- Scope:
-  - Introduce a canonical shared protocol registry for opcodes and directions.
-  - Add typed decode/encode boundary helpers for protocol actions and batches.
-  - Incrementally migrate server/client protocol boundaries to registry-backed helpers.
-- Out of scope:
-  - Public wire protocol redesign (opcode changes).
-  - Transport codec migration (`json` to binary).
-- Acceptance criteria:
-  - One shared source of truth exists for protocol boundary contracts.
-  - Typed decode/encode helpers are available and covered by focused tests.
-  - Initial slice stays wire-compatible with existing runtime behavior.
-- Verification plan:
-  - Per slice: `bun run typecheck` + focused protocol test command.
-  - Ticket completion: `bun run verify:modern:node22`.
-- Dependencies/blockers:
-  - Depends on Ticket 7 decomposition seams for low-risk migration.
-- Discussion venue:
-  - Architecture issue thread first; implementation details in PR comments.
-- Planned slices:
-  - 13.1 (`done`) Shared protocol registry + typed codec boundary.
-  - 13.2 (`done`) Server inbound typed dispatch migration.
-  - 13.3 (`done`) Client inbound typed dispatch migration.
-  - 13.4 (`done`) Outbound serialization typing hardening.
-  - 13.5 (`done`) Protocol conformance guardrails and drift checks.
-- Recent execution:
-  - 2026-02-11 02:40 CET:
-    - Completed 13.4 outbound serialization hardening:
-      - Extracted outbound client protocol action constructors into `client/gameclient-outbound-actions.ts`.
-      - Reduced `client/gameclient.ts` `send*` methods to typed builder usage with centralized protocol-id normalization.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun test tests/unit/client-boundary-types.test.ts tests/unit/protocol-registry.test.ts tests/smoke/server-payload-guards.test.ts` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:27 CET:
-    - Completed 13.5 protocol conformance guardrails:
-      - Added shared opcode inventories in `shared/protocol-handler-opcodes.ts`.
-      - Wired server/client dispatch modules to the shared opcode inventories:
-        - `server/player-session-dispatch.ts`
-        - `client/gameclient-inbound-handlers.ts`
-      - Added drift-guard tests in `tests/unit/protocol-registry.test.ts` to enforce registry/dispatch coverage parity.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun test tests/unit/protocol-registry.test.ts tests/unit/protocol-contract-types.test.ts tests/smoke/server-payload-guards.test.ts` passed.
-      - `bun run verify:modern:node22` initially failed due formatting in `tests/unit/protocol-registry.test.ts`.
-      - Applied `bun x prettier --write tests/unit/protocol-registry.test.ts`.
-      - `bun run verify:modern:node22` passed after formatting fix.
-  - 2026-02-11 02:21 CET:
-    - Started 13.4 outbound typing hardening in `client/gameclient.ts`:
-      - Removed unsafe WHO outbound cast by constructing a typed `ClientOutboundProtocolAction` payload.
-      - Added HELLO payload guard for unresolved equipment kind mapping before sending.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-    - Next action:
-      - Continue 13.4 by reducing remaining outbound tuple inference/cast pressure across `send*` methods.
-  - 2026-02-11 02:19 CET:
-    - Continued 13.3 by extracting client inbound opcode registry into `client/gameclient-inbound-handlers.ts`.
-    - Hardened `client/gameclient.ts` dispatch contract to an exhaustive typed handler map:
-      - `handlers` is now `Record<opcode, handler>` (not `Partial`).
-      - `receiveAction(...)` now performs direct typed dispatch without runtime optional-handler branch.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:modern-parity` passed.
-      - `bun run verify:modern:node22` passed.
-  - 2026-02-11 02:18 CET:
-    - Started 13.3 by replacing `GameClient` opcode-indexed handler array with typed handler table:
-      - Updated `client/gameclient.ts` to use `Partial<Record<opcode, handler>>`.
-      - Removed `call(this, ...)` dispatch pattern in favor of bound arrow handlers.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun test tests/unit/client-boundary-types.test.ts tests/unit/protocol-registry.test.ts tests/smoke/server-handshake.test.ts` passed.
-    - Next action:
-      - Continue 13.3 by reducing remaining inbound tuple casts in `GameClient.receive*` handlers.
-  - 2026-02-11 02:17 CET:
-    - Continued 13.2 server inbound dispatch migration by replacing opcode control-flow block with a typed handler table in `server/player-session-dispatch.ts`.
-    - Preserved existing opcode behavior while reducing dispatch boilerplate.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun test tests/smoke/server-payload-guards.test.ts tests/smoke/server-handshake.test.ts` passed.
-      - `bun test tests/unit/protocol-registry.test.ts tests/unit/server-format.test.ts` passed.
-    - Next action:
-      - Start 13.3 client inbound typed dispatch migration.
-  - 2026-02-11 02:15 CET:
-    - Removed redundant client protocol wrapper module `client/protocol-payload.ts`.
-    - Switched client runtime and tests to shared helpers in `shared/protocol-registry.ts`:
-      - `client/gameclient.ts`
-      - `tests/unit/client-boundary-types.test.ts`
-    - Verification evidence:
-      - `bun test tests/unit/client-boundary-types.test.ts tests/unit/protocol-registry.test.ts tests/smoke/server-payload-guards.test.ts tests/smoke/server-handshake.test.ts` passed.
-      - `bun run typecheck` failed due pre-existing unrelated errors:
-        - `client/game-sprite-runtime.ts(31,20): Property 'sprite' does not exist on type 'GridIndexedEntity'.`
-        - `client/game-sprite-runtime.ts(32,50): Property 'getSpriteName' does not exist on type 'GridIndexedEntity'.`
-    - Next action:
-      - Continue 13.2 dispatch cleanup and keep protocol boundary simplification slices independent from unrelated client type issues.
-  - 2026-02-11 02:13 CET:
-    - Replaced the server inbound opcode `if` chain with `switch(action)` in `server/player-session-dispatch.ts`.
-    - Kept message handling behavior unchanged; this is a structural dispatch refactor only.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun test tests/smoke/server-payload-guards.test.ts tests/smoke/server-handshake.test.ts` passed.
-    - Next action:
-      - Continue 13.2 by introducing a typed handler map (or equivalent table-driven dispatch) behind the switch boundary.
-  - 2026-02-11 02:10 CET:
-    - Started 13.2 server inbound dispatch migration by simplifying dispatcher boundary:
-      - `createPlayerSessionActionDispatcher(...)` now dispatches from `message[0]` internally.
-      - Removed `WHO` payload mutation (`shift`) in favor of immutable destructuring.
-      - Updated `server/player-session.ts` to pass typed message directly.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun test tests/smoke/server-payload-guards.test.ts tests/smoke/server-handshake.test.ts` passed.
-    - Next action:
-      - Continue 13.2 by replacing remaining opcode if-chain with typed handler map.
-  - 2026-02-11 02:09 CET:
-    - Added shared registry + typed boundary helpers in `shared/protocol-registry.ts`.
-    - Wired protocol normalization/validation callers to registry helpers in:
-      - `client/protocol-payload.ts`
-      - `server/format.ts`
-    - Added focused unit coverage in `tests/unit/protocol-registry.test.ts`.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun test tests/unit/protocol-registry.test.ts tests/unit/protocol-contract-types.test.ts tests/unit/protocol-support-contract.test.ts` passed.
-    - Next action:
-      - Start 13.2 server inbound typed dispatch migration.
-  - 2026-02-11 02:08 CET:
-    - Started Ticket 13.1 implementation.
-    - Next action:
-      - Add `shared/protocol-registry.ts` and focused registry tests.
-
-## Ticket 11: Operational Hardening + Runtime Health Surfaces
-
-- Status: `done`
-- Priority: P2
-- Scope:
-  - Add graceful `SIGTERM`/`SIGINT` shutdown behavior.
-  - Add stable `/healthz` and `/version` endpoints (or promote `/status` contract explicitly).
-  - Ensure probes are stable for artifact/container runtime use.
-- Out of scope:
-  - Full orchestration platform migration.
-- Acceptance criteria:
-  - Controlled shutdown is documented and testable.
-  - Health/version probe contract is stable and explicit.
+  - Server loads plugins from config and installs them into the ECS kernel.
+  - A sample plugin can add a trivial new entity + behavior without patching core code.
 - Verification plan:
   - `bun run typecheck`
-  - `bun run test:server:shutdown`
-  - `bun run test:server:probes`
-  - `bun run verify:modern:node22`.
+  - `bun run test:modern-parity` with a sample plugin enabled.
 - Dependencies/blockers:
-  - None.
-- Discussion venue:
-  - Infra issue thread for runtime operability contract.
+  - Depends on Tickets 29/33/36.
 - Planned slices:
-  - 11.1 (`done`) Define endpoint and shutdown contract.
-  - 11.2 (`done`) Implement runtime hooks + probe endpoints.
-  - 11.3 (`done`) Add smoke tests + docs.
-- Recent execution:
-  - 2026-02-11 02:46 CET:
-    - Completed 11.1-11.3:
-      - Added stable runtime probes:
-        - `/healthz` -> `{ "status": "ok" }`
-        - `/version` -> `{ "version": "<value>" }`
-      - Added controlled shutdown handling for `SIGTERM` and `SIGINT` with runtime cleanup before exit.
-      - Added new smoke tests:
-        - `tests/smoke/server-health-version.test.ts`
-        - `tests/smoke/server-shutdown-signals.test.ts`
-      - Added package commands:
-        - `bun run test:server:probes`
-        - `bun run test:server:shutdown`
-      - Documented probe/shutdown contract in `README.md`.
-    - Verification evidence:
-      - `bun run typecheck` passed.
-      - `bun run test:server:probes` passed.
-      - `bun run test:server:shutdown` passed.
-      - `bun run verify:modern:node22` passed.
+  - 37.1 (`todo`) Define plugin API types and lifecycle (register/start/stop hooks).
+  - 37.2 (`todo`) Implement plugin loader and compatibility/version checks.
+  - 37.3 (`todo`) Add a sample plugin and minimal docs.
 
-## Ticket 8: Content Canonicalization + Data-Driven Authoring
+## Ticket 41: Determinism/Perf Test Harness
 
-- Status: `done`
+- Status: `todo`
 - Priority: P2
 - Scope:
-  - Define canonical content sources (entities/mobs/drops/balance values).
-  - Add generation + validation pipeline for runtime mappings.
-  - Move hardcoded balance/content tables into canonical data files.
-  - Add fast pre-runtime authoring validation checks.
+  - Add testing infrastructure to keep the ECS trustworthy:
+    - determinism tests (seed + command stream)
+    - invariants/property tests (no dangling ids, spatial index consistency)
+    - microbenchmarks for queries and tick loop
 - Out of scope:
-  - New gameplay mechanics.
+  - Full profiling suite.
 - Acceptance criteria:
-  - Adding an entity/mob is one canonical content edit plus generator run.
-  - Generated artifacts are deterministic and drift-checked in CI.
+  - Determinism test fails on nondeterministic sources (Math.random, Date.now in sim).
+  - Perf baselines exist for core queries and tick under representative load.
 - Verification plan:
   - `bun run typecheck`
-  - New generator/validation command(s) (to be added in this ticket).
-  - `bun run test:modern-parity`
-  - `bun run verify:modern:node22`.
+  - `bun test` (focused ECS suites) + `bun run test:modern-parity`
 - Dependencies/blockers:
-  - Benefits from canonical schema work already completed in Ticket 4.
-- Discussion venue:
-  - Content model issue thread before generator contract is frozen.
+  - Best after Ticket 29, but can start earlier for scaffolding.
 - Planned slices:
-  - 8.1 (`done`) Canonical schema and file layout decision (mob properties).
-  - 8.2 (`done`) Generator + validator implementation (mob properties).
-  - 8.3 (`done`) First data migration (mob drops/stats -> canonical JSON + generated server artifact).
-  - 8.4 (`done`) Second content-domain migration (client item loot-message content).
-- Recent execution:
-  - 2026-02-11 03:35 CET:
-    - Completed 8.4 with client item-loot message canonicalization:
-      - Added canonical source: `assets/content/item-loot-messages.json`.
-      - Added generator/check tooling: `tools/content-item-loot-messages.ts`.
-      - Added generated runtime artifact: `client/item-loot-messages.generated.ts`.
-      - Refactored duplicated item class boilerplate in `client/items.ts` to a data-driven constructor factory using generated content.
-      - Added content integrity tests in `tests/unit/content-item-loot-messages.test.ts`.
-      - Wired drift-check into verification lane:
-        - `package.json` scripts: `content:item-loot:generate`, `check:content:item-loot`.
-        - `verify:modern` now runs `check:content:item-loot`.
-    - Verification evidence:
-      - `bun run check:content:item-loot` passed.
-      - `bun test tests/unit/content-item-loot-messages.test.ts tests/unit/content-mob-properties.test.ts --timeout 20000` passed.
-      - `bun run build:vite` passed.
-      - `bun run verify:modern:node22` passed.
-    - Next action:
-      - Move execution queue to Ticket 12 decision gate.
-  - 2026-02-11 03:30 CET:
-    - Hardened Ticket 8 mob canonicalization flow:
-      - Added full mob-kind coverage enforcement to `tools/content-mob-properties.ts`.
-      - Added unit coverage guard in `tests/unit/content-mob-properties.test.ts` to assert canonical content includes all known mob kinds.
-      - Cleared strict baseline/blockers so full lane runs remain actionable (`vite build` failures from const-mutation regressions fixed in client runtime modules).
-    - Verification evidence:
-      - `bun run check:content:mobs` passed.
-      - `bun test tests/unit/content-mob-properties.test.ts --timeout 20000` passed.
-      - `bun run verify:modern:node22` passed.
-    - Next action:
-      - Execute 8.4 by selecting and migrating the next content-domain table to canonical source + generated artifact.
+  - 41.1 (`todo`) Determinism harness (seeded rng + fixed clock resource).
+  - 41.2 (`todo`) Spatial/index invariants tests.
+  - 41.3 (`todo`) Benchmark harness for ECS queries and tick.
 
 ## Ticket 12: Rendering Modernization Track (Optional Product Track)
 
 - Status: `blocked`
-- Priority: P2
+- Priority: P4
 - Scope:
-  - Modernize smoothing/scale detection and silhouette handling.
-  - Add renderer backend interface (Canvas baseline, optional GPU backend).
-  - Add optional Enhanced FX track (hurt flash/outline/particles).
-- Out of scope:
-  - Forced engine migration in one release.
-- Acceptance criteria:
-  - Classic mode parity preserved.
-  - Enhanced mode is optional and feature-flagged.
-- Verification plan:
-  - `bun run typecheck`
-  - `bun run test:modern-browser:node22`
-  - Visual/manual QA checklist.
+  - Product-gated rendering modernization (canvas renderer refactors, asset pipeline upgrades).
 - Dependencies/blockers:
-  - Blocked pending product/design decision issue.
-- Discussion venue:
-  - Product/design issue first; implementation in follow-up technical tickets.
-- Planned slices:
-  - 12.1 (`blocked`) Product decision: scope of Enhanced mode for this cycle.
-  - 12.2 (`todo`) Technical spike once 12.1 is resolved.
-
-## Discussion Checklist (Before/While Execution)
-
-1. Ticket 12: confirm whether this cycle includes any rendering track work at all.
+  - Blocked on product direction decisions.
