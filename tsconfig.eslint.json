@@ -1,12 +1,28 @@
 {
-  "extends": "./tsconfig.browser.json",
   "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["bun-types", "node"],
     "noEmit": true,
-    "strict": false
+    "strict": false,
+    "strictNullChecks": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true
   },
   "include": [
     "client/**/*.ts",
+    "server/**/*.ts",
+    "shared/**/*.ts",
+    "tools/**/*.ts",
     "tests/**/*.ts",
     "tests/support/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules/**",
+    "dist/**"
   ]
 }

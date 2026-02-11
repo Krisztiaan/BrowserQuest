@@ -88,6 +88,17 @@ const tsStrictRules = {
     '@typescript-eslint/only-throw-error': 'error',
     '@typescript-eslint/return-await': ['error', 'in-try-catch'],
     '@typescript-eslint/no-confusing-void-expression': ['warn', { ignoreArrowShorthand: true }],
+    'no-restricted-syntax': [
+        'error',
+        {
+            selector: "CallExpression[callee.name='require']",
+            message: 'Use ESM imports instead of require().',
+        },
+        {
+            selector: "ImportSpecifier[imported.name='createRequire']",
+            message: 'Do not use createRequire; use ESM import interop.',
+        },
+    ],
 };
 
 // Client-specific TS additions
@@ -219,6 +230,29 @@ export default [
             globals: {
                 ...globals.node,
                 ...globals.browser,
+                ...globals.es2024,
+                Bun: 'readonly',
+            },
+        },
+        plugins: {
+            '@typescript-eslint': tsPlugin,
+        },
+        rules: tsStrictRules,
+    },
+
+    // ── Tools TS (type-aware) ──
+    {
+        files: ['tools/**/*.ts'],
+        languageOptions: {
+            parser: tsParser,
+            parserOptions: {
+                ecmaVersion: 'latest',
+                sourceType: 'module',
+                project: './tsconfig.eslint.json',
+                tsconfigRootDir: import.meta.dirname,
+            },
+            globals: {
+                ...globals.node,
                 ...globals.es2024,
                 Bun: 'readonly',
             },

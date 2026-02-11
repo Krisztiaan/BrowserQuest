@@ -37,6 +37,6 @@
         "server/runtime.ts",
         "server/startup.ts",
         "server/entry.ts",
-        "server/main/*.ts"
+        "server/startup/*.ts"
     ]
 }

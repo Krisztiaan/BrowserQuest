@@ -1,11 +1,9 @@
-import { createRequire } from 'node:module';
+import * as memcacheModule from 'memcache';
 import MetricsClient from './metrics-client';
 import Log from './log';
 import { Evented } from '../shared/evented';
 
 const log = Log.getLogger();
-const MEMCACHE_MODULE_NAME = 'memcache';
-const require = createRequire(import.meta.url);
 
 interface MetricsConfig {
     memcached_host: string;
@@ -44,7 +42,6 @@ class Metrics extends Evented<MetricsEvents> {
         super();
         const self = this;
         const runtimeOptions = options || {};
-        const memcacheModule = require(MEMCACHE_MODULE_NAME);
 
         this.config = config;
         this.isEnabled = false;
@@ -106,7 +103,7 @@ class Metrics extends Evented<MetricsEvents> {
         this.on('ready', callback);
     }
 
-    setValue(key: string, value: unknown, callback?: ((ok: boolean) => void) | undefined): void {
+    setValue(key: string, value: unknown, callback?: (ok: boolean) => void): void {
         const done = typeof callback === 'function' ? callback : function () {};
 
         if (!this.isReady) {
@@ -117,7 +114,7 @@ class Metrics extends Evented<MetricsEvents> {
         this.client.set(key, value, done);
     }
 
-    getValue(key: string, callback?: ((result: unknown) => void) | undefined): void {
+    getValue(key: string, callback?: (result: unknown) => void): void {
         const done = typeof callback === 'function' ? callback : function () {};
 
         if (!this.isReady) {
@@ -128,7 +125,7 @@ class Metrics extends Evented<MetricsEvents> {
         this.client.get(key, done);
     }
 
-    updatePlayerCounters(worlds: WorldLike[], updatedCallback?: ((totalPlayers: number) => void) | undefined): void {
+    updatePlayerCounters(worlds: WorldLike[], updatedCallback?: (totalPlayers: number) => void): void {
         const self = this;
         const config = this.config;
         const gameServers = Array.isArray(config.game_servers) ? config.game_servers : [];

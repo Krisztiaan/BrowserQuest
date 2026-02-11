@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { createProbeEventEmitter, createStructuredEventEmitter } from '../../../../server/main/structured-event';
+import { createProbeEventEmitter, createStructuredEventEmitter } from '../../../../server/startup/structured-event';
 
 test('structured-event emitter writes non-error events to info channel with stable payload shape', () => {
     const infoLogs: string[] = [];
