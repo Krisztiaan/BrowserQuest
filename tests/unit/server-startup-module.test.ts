@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import * as MainModuleNs from '../../server/main';
+import * as MainModuleNs from '../../server/startup';
 import * as MainRuntimeModuleNs from '../../server/runtime';
 
 const MainModule = MainModuleNs as any;
