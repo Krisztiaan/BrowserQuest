@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import Area, { type AreaEntity, type AreaWorldContract } from '../../server/area';
-import { findWorldPositionNextTo } from '../../server/world/entity-utilities';
-import { notifyWorldPopulation } from '../../server/world/population';
+import { findWorldPositionNextTo } from '../../server/world/entity';
+import { notifyWorldPopulation } from '../../server/world/population-state';
 import Types from '../../shared/gametypes-browser';
 
 test('area removeFromArea ignores unknown entity ids', () => {

@@ -50,7 +50,7 @@ import {
     isWorldPositionValid,
     moveWorldEntity,
     selectDroppedItemForMob,
-} from './world/entity-utilities';
+} from './world/entity';
 import {
     forEachEntityInWorldMap,
     forEachWorldCharacter,
@@ -80,7 +80,7 @@ import {
     incrementWorldPlayerCount,
     notifyWorldPopulation,
     setWorldPlayerCount,
-} from './world/population';
+} from './world/population-state';
 import {
     pushSerializedToWorldAdjacentGroupsQueue,
     pushSerializedToWorldGroupQueue,
