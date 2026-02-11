@@ -1,11 +1,136 @@
 # TODO Backlog (Open Tickets Only)
 
-Last updated: 2026-02-11 14:26 CET
+Last updated: 2026-02-11 14:31 CET
 Status legend: `todo` | `in_progress` | `done` | `blocked`
 
 ## Execution Queue (Work Order)
 
-1. Ticket 12 (`blocked`) - Rendering modernization (product-gated)
+1. Ticket 21 (`in_progress`) - Core primitive reliability hardening
+2. Ticket 22 (`todo`) - Canonical domain manifest unification
+3. Ticket 23 (`todo`) - Item effect registry (server + client)
+4. Ticket 24 (`todo`) - Typed world core primitives
+5. Ticket 25 (`todo`) - Messaging boundary simplification
+6. Ticket 26 (`todo`) - Client session context consolidation
+7. Ticket 12 (`blocked`) - Rendering modernization (product-gated)
+
+## Ticket 21: Core Primitive Reliability Hardening
+
+- Status: `in_progress`
+- Priority: P0
+- Scope:
+  - Fix reliability hazards in foundational world primitives (entity area removal, population totals, bounded position search).
+  - Add focused unit coverage for the failure classes fixed in this slice.
+- Out of scope:
+  - Protocol redesign.
+  - Large architecture refactors (Tickets 22-26).
+- Acceptance criteria:
+  - Area removal does not delete the wrong entity when target is missing.
+  - Population broadcast preserves explicit total `0` values.
+  - Position selection loops have deterministic bounded behavior.
+  - New targeted tests cover each fixed defect class.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test tests/unit/server-world-primitives.test.ts --timeout 20000`
+- Dependencies/blockers:
+  - None.
+- Planned slices:
+  - 21.1 (`in_progress`) Patch reliability defects in `server/area.ts`, `server/world/population.ts`, `server/world/entity-utilities.ts`.
+  - 21.2 (`todo`) Add focused unit tests and verify.
+- Recent execution:
+  - 2026-02-11 14:26 CET:
+    - Started ticket and established implementation/verification plan from architecture audit.
+    - Evidence:
+      - Code-path inventory run across `server/world/*`, `server/world-server.ts`, `client/game-session/*`, and protocol boundary modules.
+    - Next action:
+      - Implement slice 21.1 code fixes.
+
+## Ticket 22: Canonical Domain Manifest Unification
+
+- Status: `todo`
+- Priority: P1
+- Scope:
+  - Consolidate entity-kind and message-opcode definitions into one canonical manifest source.
+  - Generate/update dependent runtime/type artifacts from that source.
+- Out of scope:
+  - Gameplay balance tuning.
+  - Wire opcode changes.
+- Acceptance criteria:
+  - Entity/message constants are defined in one canonical source.
+  - Downstream consumers (`gametypes`, protocol maps/types, factory registries) derive from that source.
+- Verification plan:
+  - `bun run typecheck`
+  - Protocol and content drift checks in verify lane.
+- Dependencies/blockers:
+  - Prefer after Ticket 21.
+
+## Ticket 23: Item Effect Registry (Server + Client)
+
+- Status: `todo`
+- Priority: P1
+- Scope:
+  - Replace scattered item behavior branching with a registry-driven effect model shared by server and client boundaries.
+- Out of scope:
+  - New item content additions.
+- Acceptance criteria:
+  - Firepotion/healing/equip flows resolve via registry entries, not hardcoded branch chains.
+  - Adding a new item effect requires registry extension only.
+- Verification plan:
+  - `bun run typecheck`
+  - Focused gameplay parity smoke.
+- Dependencies/blockers:
+  - Depends on Ticket 22 canonical kind source.
+
+## Ticket 24: Typed World Core Primitives
+
+- Status: `todo`
+- Priority: P1
+- Scope:
+  - Introduce typed world state primitives (`EntityRepo`, `SpatialGroups`, `Outbox`) and remove internal `unknown` usage in world domain modules.
+- Out of scope:
+  - Transport/runtime backend changes.
+- Acceptance criteria:
+  - `server/world/*` core contracts are strongly typed end-to-end.
+  - `as unknown as` casts are eliminated from world-domain internals.
+- Verification plan:
+  - `bun run typecheck`
+  - Focused world primitive tests.
+- Dependencies/blockers:
+  - Depends on Ticket 21.
+
+## Ticket 25: Messaging Boundary Simplification
+
+- Status: `todo`
+- Priority: P2
+- Scope:
+  - Simplify and unify outbound message construction around typed protocol actions.
+  - Reduce class-wrapper indirection where not adding domain value.
+- Out of scope:
+  - Binary protocol migration.
+- Acceptance criteria:
+  - One consistent outbound action construction path exists at runtime boundaries.
+  - Message construction remains wire-compatible.
+- Verification plan:
+  - `bun run typecheck`
+  - Protocol registry/unit smoke coverage.
+- Dependencies/blockers:
+  - Prefer after Ticket 24.
+
+## Ticket 26: Client Session Context Consolidation
+
+- Status: `todo`
+- Priority: P2
+- Scope:
+  - Replace host/builder cast pyramids with cohesive typed session contexts in `client/game-session/*`.
+- Out of scope:
+  - Rendering/product redesign.
+- Acceptance criteria:
+  - Session wiring uses typed context objects with substantially fewer `unknown` casts.
+  - Spawn/connect/welcome flows remain behaviorally unchanged.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun run test:modern-parity`
+- Dependencies/blockers:
+  - Depends on Tickets 22-25 seams.
 
 ## Ticket 15: Tooling Modernization (Native Bun/TS/Workflow Lane)
 
@@ -30,6 +155,13 @@ Status legend: `todo` | `in_progress` | `done` | `blocked`
 - Dependencies/blockers:
   - None.
 - Recent execution:
+  - 2026-02-11 14:31 CET:
+    - Tightened `tools/check-metrics-healthy-prereqs.ts` unknown-error handling (`toErrorMessage`) to remove unsafe-any lint warnings in the remaining toolset.
+    - Verification evidence:
+      - `bun x eslint tools/check-metrics-healthy-prereqs.ts` passed.
+      - `bun run typecheck` passed.
+    - Next action:
+      - Continue with remaining strict-lint warning reduction in runtime files when requested.
   - 2026-02-11 14:26 CET:
     - Removed deprecated tooling scripts:
       - `tools/check-runtime.ts`

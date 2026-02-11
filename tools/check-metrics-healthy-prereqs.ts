@@ -1,5 +1,12 @@
 import * as net from 'node:net';
 
+function toErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error);
+}
+
 function getHost() {
   return process.env.BQ_TEST_METRICS_HOST ?? "127.0.0.1";
 }
@@ -57,8 +64,8 @@ async function main() {
 
   try {
     await canReachMemcached(host, port, 1500);
-  } catch (err) {
-    const detail = err && err.message ? err.message : String(err);
+  } catch (error: unknown) {
+    const detail = toErrorMessage(error);
     throw new Error(
       `Memcached is not reachable at ${host}:${port} (${detail}). Start memcached or adjust BQ_TEST_METRICS_HOST/BQ_TEST_METRICS_PORT.`
     );
@@ -69,8 +76,8 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  const message = err && err.message ? err.message : String(err);
+main().catch((error: unknown) => {
+  const message = toErrorMessage(error);
   console.error(`metrics-healthy-prereqs: fail (${message})`);
   process.exit(1);
 });
