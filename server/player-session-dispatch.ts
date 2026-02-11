@@ -3,7 +3,8 @@ import Messages from './message';
 import Utils from './utils';
 import Formulas from './formulas';
 import Types from '../shared/gametypes-browser';
-import type { ClientToServerHelloAction, ClientToServerProtocolAction } from '../shared/protocol-contract-types';
+import { applyPlayerLootEffect } from './player-loot-effects';
+import type { ClientToServerHelloAction, ClientToServerProtocolAction } from '../shared/protocol/types';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type Player from './player';
 
@@ -194,39 +195,8 @@ function handleLoot(player: Player, message: ClientToServerProtocolAction): void
     player.broadcast(droppedItem.despawn());
     player.server.removeEntity(droppedItem);
 
-    if (kind === Types.Entities.FIREPOTION) {
-        player.updateHitPoints();
-        player.broadcast(player.equip(Types.Entities.FIREFOX));
-        player.firepotionTimeout = setTimeout(function () {
-            player.broadcast(player.equip(player.armor));
-            player.firepotionTimeout = null;
-        }, 15000);
-        player.send(new Messages.HitPoints(player.maxHitPoints).serialize());
+    if (applyPlayerLootEffect(player, droppedItem)) {
         return;
-    }
-
-    if (Types.isHealingItem(kind)) {
-        let amount = 0;
-
-        switch (kind) {
-            case Types.Entities.FLASK:
-                amount = 40;
-                break;
-            case Types.Entities.BURGER:
-                amount = 100;
-                break;
-        }
-
-        if (!player.hasFullHealth()) {
-            player.regenHealthBy(amount);
-            player.server.pushToPlayer(player, player.health());
-        }
-        return;
-    }
-
-    if (Types.isArmor(kind) || Types.isWeapon(kind)) {
-        player.equipItem(droppedItem);
-        player.broadcast(player.equip(kind));
     }
 }
 

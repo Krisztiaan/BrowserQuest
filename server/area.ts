@@ -42,20 +42,35 @@ class Area extends Evented<AreaEvents> {
 
     _getRandomPositionInsideArea(): { x: number; y: number } {
         const pos = { x: 0, y: 0 };
-        let valid = false;
+        const maxAttempts = Math.max(1, (this.width + 1) * (this.height + 1) * 4);
 
-        while (!valid) {
+        for (let attempts = 0; attempts < maxAttempts; attempts += 1) {
             pos.x = this.x + Utils.random(this.width + 1);
             pos.y = this.y + Utils.random(this.height + 1);
-            valid = this.world.isValidPosition(pos.x, pos.y);
+            if (this.world.isValidPosition(pos.x, pos.y)) {
+                return pos;
+            }
         }
-        return pos;
+
+        for (let y = this.y; y <= this.y + this.height; y += 1) {
+            for (let x = this.x; x <= this.x + this.width; x += 1) {
+                if (this.world.isValidPosition(x, y)) {
+                    return { x, y };
+                }
+            }
+        }
+
+        throw new Error('Could not find a valid position in area ' + this.id);
     }
 
     removeFromArea(entity: AreaEntity): void {
         const i = this.entities.findIndex((currentEntity) => {
             return currentEntity.id === entity.id;
         });
+
+        if (i === -1) {
+            return;
+        }
 
         this.entities.splice(i, 1);
 

@@ -36,6 +36,6 @@ export function decrementWorldPlayerCount(holder: PlayerCountHolder): void {
 }
 
 export function notifyWorldPopulation(host: PopulationNotifyHost, totalPlayers: number | null): void {
-    const resolvedTotalPlayers = totalPlayers ? totalPlayers : host.playerCount;
+    const resolvedTotalPlayers = totalPlayers ?? host.playerCount;
     host.pushBroadcast(new Messages.Population(host.playerCount, resolvedTotalPlayers));
 }

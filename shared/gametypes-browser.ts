@@ -1,7 +1,7 @@
-import type { EntityCategory, EntityKind, EntityKindId, EntityKindName } from './entity-kind-domain';
+import { ENTITY_KIND_DOMAIN, type EntityCategory, type EntityKind, type EntityKindId, type EntityKindName } from './entity-kind-domain';
 
 type KindType = EntityCategory;
-type KindEntry = [EntityKindId, KindType];
+type KindEntry = readonly [EntityKindId, KindType];
 
 const MESSAGE_OPCODES = {
     HELLO: 0,
@@ -33,67 +33,13 @@ const MESSAGE_OPCODES = {
     CHECK: 26,
 } as const;
 
-const ENTITY_IDS = {
-    WARRIOR: 1,
+type EntityIdsByUpperName = {
+    [K in EntityKindName as Uppercase<K>]: EntityKindId;
+};
 
-    // Mobs
-    RAT: 2,
-    SKELETON: 3,
-    GOBLIN: 4,
-    OGRE: 5,
-    SPECTRE: 6,
-    CRAB: 7,
-    BAT: 8,
-    WIZARD: 9,
-    EYE: 10,
-    SNAKE: 11,
-    SKELETON2: 12,
-    BOSS: 13,
-    DEATHKNIGHT: 14,
-
-    // Armors
-    FIREFOX: 20,
-    CLOTHARMOR: 21,
-    LEATHERARMOR: 22,
-    MAILARMOR: 23,
-    PLATEARMOR: 24,
-    REDARMOR: 25,
-    GOLDENARMOR: 26,
-
-    // Objects
-    FLASK: 35,
-    BURGER: 36,
-    CHEST: 37,
-    FIREPOTION: 38,
-    CAKE: 39,
-
-    // NPCs
-    GUARD: 40,
-    KING: 41,
-    OCTOCAT: 42,
-    VILLAGEGIRL: 43,
-    VILLAGER: 44,
-    PRIEST: 45,
-    SCIENTIST: 46,
-    AGENT: 47,
-    RICK: 48,
-    NYAN: 49,
-    SORCERER: 50,
-    BEACHNPC: 51,
-    FORESTNPC: 52,
-    DESERTNPC: 53,
-    LAVANPC: 54,
-    CODER: 55,
-
-    // Weapons
-    SWORD1: 60,
-    SWORD2: 61,
-    REDSWORD: 62,
-    GOLDENSWORD: 63,
-    MORNINGSTAR: 64,
-    AXE: 65,
-    BLUESWORD: 66,
-} as const satisfies Record<string, EntityKindId>;
+const ENTITY_IDS = Object.fromEntries(
+    Object.entries(ENTITY_KIND_DOMAIN).map(([kindName, [kindId]]) => [kindName.toUpperCase(), kindId])
+) as EntityIdsByUpperName;
 
 const ORIENTATION_IDS = {
     UP: 1,
@@ -140,62 +86,7 @@ const Types = {
     Orientations: ORIENTATION_IDS,
 } as unknown as TypesContract;
 
-const kinds: Record<EntityKindName, KindEntry> = {
-    warrior: [Types.Entities.WARRIOR, 'player'],
-
-    rat: [Types.Entities.RAT, 'mob'],
-    skeleton: [Types.Entities.SKELETON, 'mob'],
-    goblin: [Types.Entities.GOBLIN, 'mob'],
-    ogre: [Types.Entities.OGRE, 'mob'],
-    spectre: [Types.Entities.SPECTRE, 'mob'],
-    deathknight: [Types.Entities.DEATHKNIGHT, 'mob'],
-    crab: [Types.Entities.CRAB, 'mob'],
-    snake: [Types.Entities.SNAKE, 'mob'],
-    bat: [Types.Entities.BAT, 'mob'],
-    wizard: [Types.Entities.WIZARD, 'mob'],
-    eye: [Types.Entities.EYE, 'mob'],
-    skeleton2: [Types.Entities.SKELETON2, 'mob'],
-    boss: [Types.Entities.BOSS, 'mob'],
-
-    sword1: [Types.Entities.SWORD1, 'weapon'],
-    sword2: [Types.Entities.SWORD2, 'weapon'],
-    axe: [Types.Entities.AXE, 'weapon'],
-    redsword: [Types.Entities.REDSWORD, 'weapon'],
-    bluesword: [Types.Entities.BLUESWORD, 'weapon'],
-    goldensword: [Types.Entities.GOLDENSWORD, 'weapon'],
-    morningstar: [Types.Entities.MORNINGSTAR, 'weapon'],
-
-    firefox: [Types.Entities.FIREFOX, 'armor'],
-    clotharmor: [Types.Entities.CLOTHARMOR, 'armor'],
-    leatherarmor: [Types.Entities.LEATHERARMOR, 'armor'],
-    mailarmor: [Types.Entities.MAILARMOR, 'armor'],
-    platearmor: [Types.Entities.PLATEARMOR, 'armor'],
-    redarmor: [Types.Entities.REDARMOR, 'armor'],
-    goldenarmor: [Types.Entities.GOLDENARMOR, 'armor'],
-
-    flask: [Types.Entities.FLASK, 'object'],
-    cake: [Types.Entities.CAKE, 'object'],
-    burger: [Types.Entities.BURGER, 'object'],
-    chest: [Types.Entities.CHEST, 'object'],
-    firepotion: [Types.Entities.FIREPOTION, 'object'],
-
-    guard: [Types.Entities.GUARD, 'npc'],
-    villagegirl: [Types.Entities.VILLAGEGIRL, 'npc'],
-    villager: [Types.Entities.VILLAGER, 'npc'],
-    coder: [Types.Entities.CODER, 'npc'],
-    scientist: [Types.Entities.SCIENTIST, 'npc'],
-    priest: [Types.Entities.PRIEST, 'npc'],
-    king: [Types.Entities.KING, 'npc'],
-    rick: [Types.Entities.RICK, 'npc'],
-    nyan: [Types.Entities.NYAN, 'npc'],
-    sorcerer: [Types.Entities.SORCERER, 'npc'],
-    agent: [Types.Entities.AGENT, 'npc'],
-    octocat: [Types.Entities.OCTOCAT, 'npc'],
-    beachnpc: [Types.Entities.BEACHNPC, 'npc'],
-    forestnpc: [Types.Entities.FORESTNPC, 'npc'],
-    desertnpc: [Types.Entities.DESERTNPC, 'npc'],
-    lavanpc: [Types.Entities.LAVANPC, 'npc'],
-};
+const kinds: Record<EntityKindName, KindEntry> = ENTITY_KIND_DOMAIN;
 
 function getType(kind: EntityKind): KindType {
     const kindName = Types.getKindAsString(kind);

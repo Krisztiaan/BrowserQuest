@@ -88,6 +88,8 @@ type GridPosition = {
 };
 
 type PositionEntity = {
+    x: number;
+    y: number;
     getPositionNextTo(target: unknown): GridPosition;
 };
 
@@ -203,17 +205,16 @@ export function isWorldPositionValid(map: WorldMapCollisionCheck, x: unknown, y:
 }
 
 export function findWorldPositionNextTo(entity: PositionEntity, target: unknown, isValidPosition: PositionValidator): GridPosition {
-    let valid = false;
-    let position = entity.getPositionNextTo(target);
+    const maxAttempts = 32;
 
-    while (!valid) {
-        valid = isValidPosition(position.x, position.y);
-        if (!valid) {
-            position = entity.getPositionNextTo(target);
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        const position = entity.getPositionNextTo(target);
+        if (isValidPosition(position.x, position.y)) {
+            return position;
         }
     }
 
-    return position;
+    return { x: entity.x, y: entity.y };
 }
 
 export function moveWorldEntity({ entity, x, y, handleEntityGroupMembership }: MoveWorldEntityParams): void {

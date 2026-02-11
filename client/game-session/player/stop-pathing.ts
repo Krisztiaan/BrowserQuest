@@ -3,6 +3,7 @@ import Item from '../../item';
 import Npc from '../../npc';
 import Exceptions from '../../exceptions';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
+import { applyLootFeedback } from './loot-feedback';
 
 type EntityId = string | number;
 
@@ -110,28 +111,7 @@ export function installPlayerStopPathingHandler(host: StopPathingHost): void {
                     host.removeItem(item);
                     host.showNotification(item.getLootMessage());
 
-                    if (item.type === 'armor') {
-                        host.tryUnlockingAchievement('FAT_LOOT');
-                    }
-
-                    if (item.type === 'weapon') {
-                        host.tryUnlockingAchievement('A_TRUE_WARRIOR');
-                    }
-
-                    if (host.isCake(item.kind)) {
-                        host.tryUnlockingAchievement('FOR_SCIENCE');
-                    }
-
-                    if (host.isFirePotion(item.kind)) {
-                        host.tryUnlockingAchievement('FOXY');
-                        host.playSound('firefox');
-                    }
-
-                    if (host.isHealingItem(item.kind)) {
-                        host.playSound('heal');
-                    } else {
-                        host.playSound('loot');
-                    }
+                    applyLootFeedback(host, item);
 
                     const involvedPlayers = (
                         'playersInvolved' in item && Array.isArray(item.playersInvolved)
