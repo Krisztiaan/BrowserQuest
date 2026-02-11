@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { MSG_CHAT, parseProtocolActionBatch } from '../support/protocol';
+import { MSG_CHAT, parseProtocolActionBatch } from '../support/protocol/contract';
 
 type ProtocolObserverOptions = {
     wsUrlSubstring?: string;

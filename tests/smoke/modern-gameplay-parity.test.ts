@@ -18,7 +18,7 @@ import {
     MSG_ZONE,
     parseProtocolActionBatch,
     type ProtocolAction,
-} from '../support/protocol';
+} from '../support/protocol/contract';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 

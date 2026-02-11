@@ -10,7 +10,7 @@ import {
     MSG_MOVE,
     MSG_WELCOME,
     MSG_ZONE,
-} from '../support/protocol';
+} from '../support/protocol/contract';
 
 type ZoneMoveResult = {
     ok: boolean;

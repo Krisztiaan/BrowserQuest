@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { check, FormatChecker } from '../../server/format';
-import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_CHAT, MSG_HELLO, MSG_MOVE, MSG_WHO } from '../support/protocol';
+import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_CHAT, MSG_HELLO, MSG_MOVE, MSG_WHO } from '../support/protocol/contract';
 const originalConsoleError = console.error;
 
 beforeEach(() => {

@@ -1,7 +1,7 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
-import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol';
+import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol/contract';
 import WsCloseCodes from '../../shared/ws-close-codes';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;

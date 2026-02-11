@@ -14,7 +14,7 @@ import {
     MSG_WELCOME,
     MSG_WHO,
     MSG_ZONE,
-} from '../../support/protocol';
+} from '../../support/protocol/contract';
 import SharedTypes from '../../../shared/gametypes-browser';
 
 const Types = SharedTypes as {

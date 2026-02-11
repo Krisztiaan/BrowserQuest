@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { MSG_CHAT, MSG_HELLO, MSG_MOVE, MSG_WELCOME, MSG_ZONE } from '../support/protocol';
+import { MSG_CHAT, MSG_HELLO, MSG_MOVE, MSG_WELCOME, MSG_ZONE } from '../support/protocol/contract';
 
 type ReplayMode = 'positive' | 'invalid_move';
 
