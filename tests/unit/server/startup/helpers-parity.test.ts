@@ -13,25 +13,25 @@ import StructuredEventModule, {
 } from '../../../../server/startup/structured-event';
 import RuntimeOptionsModule, { resolveStartupRuntimeOptions } from '../../../../server/startup/runtime-options';
 
-test('startup-entry bridge probe helper exports stable named/default contract', () => {
+test('startup bridge probe helper exports stable named/default contract', () => {
     expect(typeof runWebSocketBridgeProbeIfEnabled).toBe('function');
     expect(typeof BridgeProbeModule).toBe('object');
     expect(BridgeProbeModule.runWebSocketBridgeProbeIfEnabled).toBe(runWebSocketBridgeProbeIfEnabled);
 });
 
-test('startup-entry boot-envelope helper exports stable named/default contract', () => {
+test('startup boot-envelope helper exports stable named/default contract', () => {
     expect(typeof runMainEntryBootEnvelope).toBe('function');
     expect(typeof BootEnvelopeModule).toBe('object');
     expect(BootEnvelopeModule.runMainEntryBootEnvelope).toBe(runMainEntryBootEnvelope);
 });
 
-test('startup-entry runtime-options helper exports stable named/default contract', () => {
+test('startup runtime-options helper exports stable named/default contract', () => {
     expect(typeof resolveStartupRuntimeOptions).toBe('function');
     expect(typeof RuntimeOptionsModule).toBe('object');
     expect(RuntimeOptionsModule.resolveStartupRuntimeOptions).toBe(resolveStartupRuntimeOptions);
 });
 
-test('startup-entry preflight-failures helper exports stable named/default contract', () => {
+test('startup preflight-failures helper exports stable named/default contract', () => {
     expect(typeof ensureConfigSourcePresent).toBe('function');
     expect(typeof ensureConfigPreflightValid).toBe('function');
     expect(typeof PreflightFailuresModule).toBe('object');
@@ -39,7 +39,7 @@ test('startup-entry preflight-failures helper exports stable named/default contr
     expect(PreflightFailuresModule.ensureConfigPreflightValid).toBe(ensureConfigPreflightValid);
 });
 
-test('startup-entry config-source helper exports stable named/default contract', () => {
+test('startup config-source helper exports stable named/default contract', () => {
     expect(typeof loadConfigFile).toBe('function');
     expect(typeof resolveActiveConfig).toBe('function');
     expect(typeof ConfigSourceModule).toBe('object');
@@ -47,13 +47,13 @@ test('startup-entry config-source helper exports stable named/default contract',
     expect(ConfigSourceModule.resolveActiveConfig).toBe(resolveActiveConfig);
 });
 
-test('startup-entry startup-runner helper exports stable named/default contract', () => {
+test('startup startup-runner helper exports stable named/default contract', () => {
     expect(typeof runStartupWithConfig).toBe('function');
     expect(typeof StartupRunnerModule).toBe('object');
     expect(StartupRunnerModule.runStartupWithConfig).toBe(runStartupWithConfig);
 });
 
-test('startup-entry structured-event helper exports stable named/default contract', () => {
+test('startup structured-event helper exports stable named/default contract', () => {
     expect(typeof createStructuredEventEmitter).toBe('function');
     expect(typeof createProbeEventEmitter).toBe('function');
     expect(typeof StructuredEventModule).toBe('object');
