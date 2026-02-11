@@ -34,10 +34,9 @@
     ],
     "exclude": [
         "server/world-server.ts",
-        "server/worldserver-*.ts",
         "server/main-runtime.ts",
         "server/main.ts",
         "server/entry.ts",
-        "server/main-esm-*.ts"
+        "server/main/*.ts"
     ]
 }
