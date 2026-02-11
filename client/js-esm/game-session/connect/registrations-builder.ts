@@ -1,10 +1,10 @@
-import Character from './character';
-import Item from './item';
-import log from './compat/log';
-import Types from '../../shared/js/gametypes-browser';
-import { registerConnectSessionHandlers } from './game-session-connect-registrations';
-import type { EntityKind } from '../../shared/js/entity-kind-domain';
-import type { GameClientEventSource } from './gameclient';
+import Character from '../../character';
+import Item from '../../item';
+import log from '../../compat/log';
+import Types from '../../../../shared/js/gametypes-browser';
+import { registerConnectSessionHandlers } from './registrations';
+import type { EntityKind } from '../../../../shared/js/entity-kind-domain';
+import type { GameClientEventSource } from '../../gameclient';
 
 type EntityId = string | number;
 type GridPosition = { x: number; y: number };

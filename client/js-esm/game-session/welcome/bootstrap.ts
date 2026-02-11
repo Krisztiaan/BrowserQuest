@@ -1,5 +1,5 @@
-import log from './compat/log';
-import type { AchievementKey } from './achievement-domain';
+import log from '../../compat/log';
+import type { AchievementKey } from '../../achievement-domain';
 
 type EntityId = string | number;
 

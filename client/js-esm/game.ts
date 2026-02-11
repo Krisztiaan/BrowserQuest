@@ -4,7 +4,7 @@ import Renderer from './renderer';
 import Map from './map';
 import type Animation from './animation';
 import type Sprite from './sprite';
-import { initializeGameSessionConnection } from './game-session-connect-initializer';
+import { initializeGameSessionConnection } from './game-session/connect/initializer';
 import { bootstrapGameRuntime } from './game-runtime-bootstrap';
 import { initializeGameSpatialState } from './game-spatial-state';
 import {
