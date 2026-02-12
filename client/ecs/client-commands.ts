@@ -4,7 +4,12 @@ import type { AudioSoundKey } from '../asset-key-domain';
 
 export type ClientCommand =
     | Readonly<{ type: 'stopPlayerCombat' }>
+    | Readonly<{ type: 'clientSendHello' }>
     | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
+    | Readonly<{ type: 'clientSendZone' }>
+    | Readonly<{ type: 'clientSendChat'; message: string }>
+    | Readonly<{ type: 'clientSendAttack'; mobId: EntityId }>
+    | Readonly<{ type: 'clientSendLootMove'; itemId: EntityId; x: number; y: number }>
     | Readonly<{ type: 'enqueueZoningFrom'; x: number; y: number }>
     | Readonly<{ type: 'setPlayerIsOnPlateau'; isOnPlateau: boolean }>
     | Readonly<{ type: 'setPlayerLastCheckpoint'; checkpoint: { id?: string | number } | null }>

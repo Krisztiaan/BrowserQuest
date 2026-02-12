@@ -134,8 +134,8 @@ const installTestApi = function (): void {
                 return { ok: false, reason: 'no_target' };
             }
 
-            game.client.sendMove(target.x, target.y);
-            game.client.sendZone();
+            game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: target.x, y: target.y });
+            game.kernel.enqueueClientCommand({ type: 'clientSendZone' });
 
             return {
                 ok: true,
@@ -191,9 +191,14 @@ const installTestApi = function (): void {
                 return { ok: false, reason: 'item_position_invalid', itemId: item.id };
             }
 
-            game.client.sendAttack(mob);
-            game.client.sendHit(mob);
-            game.client.sendLootMove(item, item.gridX, item.gridY);
+            game.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId: mob.id as never });
+            game.kernel.enqueueClientCommand({ type: 'clientSendHit', targetId: mob.id as never });
+            game.kernel.enqueueClientCommand({
+                type: 'clientSendLootMove',
+                itemId: item.id as never,
+                x: item.gridX,
+                y: item.gridY,
+            });
 
             return {
                 ok: true,

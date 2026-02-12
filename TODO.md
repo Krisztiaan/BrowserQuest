@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 16:09 UTC
+Last updated: 2026-02-12 16:19 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -44,7 +44,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 37. Ticket 74 (`done`) - Spatial sync emits commands only
 38. Ticket 75 (`done`) - Combat tick via ECS commands
 39. Ticket 76 (`done`) - Remove legacy player interaction helpers
-40. Ticket 77 (`todo`) - Protocol sends via ECS commands
+40. Ticket 77 (`done`) - Protocol sends via ECS commands
 
 ## Ticket 72: MOVE Outbox Emits Commands Only
 
@@ -230,7 +230,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 77: Protocol Sends Via ECS Commands
 
-- Status: `todo`
+- Status: `done`
 - Priority: P2
 - Scope:
   - Route remaining `GameClient.send*` calls (`sendHello`, `sendZone`, `sendChat`, test harness sends) through `ClientCommand` + command apply.
@@ -249,9 +249,20 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ### Progress log
 
-- Status: `todo`
+- Start: 2026-02-12 16:09 UTC
+- End: 2026-02-12 16:19 UTC
+- Status: `done`
+- Key actions:
+  - Added explicit client-send commands (`clientSendHello/Zone/Chat/Attack/LootMove`) and applied them in `runClientCommandApplySystem()`.
+  - Updated `Game` helpers to enqueue protocol sends instead of calling `game.client.send*` directly; moved `playerAttack` send into command apply.
+  - Updated the test harness API in `client/main.ts` to enqueue commands instead of directly sending protocol messages.
+  - Updated command apply to process commands enqueued during apply (bounded multi-pass drain).
+- Evidence:
+  - `rg "client\\.send"` shows no call sites outside `client/gameclient.ts` and `client/ecs/systems/client-command-apply-system.ts`.
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
-  - Add protocol send commands, migrate remaining send call sites, and verify.
+  - Final full verification sweep and ensure working tree is clean.
 
 ## Ticket 71: Replication Sync Emits Commands Only
 

@@ -831,7 +831,7 @@ class Game extends Evented<GameEvents> {
      * @see GameClient.sendHello
      */
     sendHello(): void {
-        this.client.sendHello(this.player);
+        this.kernel.enqueueClientCommand({ type: 'clientSendHello' });
     }
 
     /**
@@ -920,7 +920,6 @@ class Game extends Evented<GameEvents> {
      */
     makePlayerAttack(mob: Mob): void {
         this.createAttackLink(this.player, mob);
-        this.client?.sendAttack(mob);
     }
 
     /**
@@ -1151,7 +1150,7 @@ class Game extends Evented<GameEvents> {
             this.currentZoning = new Transition();
         }
         this.bubbleManager.clean();
-        this.client.sendZone();
+        this.kernel.enqueueClientCommand({ type: 'clientSendZone' });
     }
 
     enqueueZoningFrom(x: number, y: number): void {
@@ -1189,7 +1188,7 @@ class Game extends Evented<GameEvents> {
     }
 
     say(message: string): void {
-        this.client.sendChat(message);
+        this.kernel.enqueueClientCommand({ type: 'clientSendChat', message });
     }
 
     createBubble(id: EntityId, message: string): void {

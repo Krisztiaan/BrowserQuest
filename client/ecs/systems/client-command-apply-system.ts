@@ -47,8 +47,13 @@ export type ClientCommandApplySystemHost = {
     started: boolean;
     client:
         | {
+              sendHello(player: unknown): void;
               sendLoot(item: { id: EntityId }): void;
               sendMove(x: number, y: number): void;
+              sendZone(): void;
+              sendChat(text: string): void;
+              sendAttack(mob: { id: EntityId }): void;
+              sendLootMove(item: { id: EntityId }, x: number, y: number): void;
               sendCheck(id: string | number): void;
               sendOpen(chest: { id: EntityId }): void;
               sendHit(mob: { id: EntityId }): void;
@@ -286,17 +291,25 @@ function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: st
 }
 
 export function runClientCommandApplySystem(host: ClientCommandApplySystemHost): void {
-    const commands: ClientCommand[] = host.kernel.drainClientCommands();
-    if (commands.length === 0) {
-        return;
-    }
-
     const getKnownEntity = (id: EntityId): GridIndexedEntity | undefined => host.entities[String(id)];
+    const MAX_PASSES = 10;
+    for (let pass = 0; pass < MAX_PASSES; pass += 1) {
+        const commands: ClientCommand[] = host.kernel.drainClientCommands();
+        if (commands.length === 0) {
+            return;
+        }
 
-    for (const command of commands) {
-        switch (command.type) {
+        for (const command of commands) {
+            switch (command.type) {
             case 'stopPlayerCombat': {
                 host.stopPlayerCombat();
+                break;
+            }
+            case 'clientSendHello': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendHello(host.player as unknown);
                 break;
             }
             case 'clientSendMove': {
@@ -305,6 +318,40 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 }
                 host.client.sendMove(command.x, command.y);
                 host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                break;
+            }
+            case 'clientSendZone': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendZone();
+                break;
+            }
+            case 'clientSendChat': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendChat(command.message);
+                break;
+            }
+            case 'clientSendAttack': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                const mob = getKnownEntity(command.mobId);
+                if (mob instanceof Mob) {
+                    host.client.sendAttack(mob);
+                }
+                break;
+            }
+            case 'clientSendLootMove': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                const item = getKnownEntity(command.itemId);
+                if (item instanceof Item) {
+                    host.client.sendLootMove(item, command.x, command.y);
+                }
                 break;
             }
             case 'enqueueZoningFrom': {
@@ -449,7 +496,10 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             case 'playerAttack': {
                 const entity = getKnownEntity(command.targetId);
                 if (entity instanceof Mob) {
-                    host.makePlayerAttack(entity);
+                    host.createAttackLink(host.player as unknown, entity as unknown);
+                    if (host.started && host.client) {
+                        host.client.sendAttack(entity);
+                    }
                 }
                 break;
             }
@@ -737,6 +787,9 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 host.createAttackLink(attacker as unknown, target as unknown);
                 break;
             }
+            }
         }
     }
+
+    log.error('Client command apply exceeded max passes; possible command feedback loop');
 }
