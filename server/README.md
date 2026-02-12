@@ -35,8 +35,8 @@ Example (metrics disabled, default-safe):
 {
   "port": 8000,
   "debug_level": "info",
-  "nb_players_per_world": 200,
-  "nb_worlds": 5,
+  "nb_players_per_world": 2000,
+  "nb_worlds": 1,
   "map_filepath": "./assets/maps/tiled/world.json",
   "metrics_enabled": false
 }
@@ -48,8 +48,8 @@ Example (metrics enabled):
 {
   "port": 8000,
   "debug_level": "info",
-  "nb_players_per_world": 200,
-  "nb_worlds": 5,
+  "nb_players_per_world": 2000,
+  "nb_worlds": 1,
   "map_filepath": "./assets/maps/tiled/world.json",
   "metrics_enabled": true,
   "memcached_host": "127.0.0.1",
