@@ -1,4 +1,4 @@
-import type { EntityId } from '../../shared/domain/ids';
+import { entityIdToWire, type EntityId } from '../../shared/domain/ids';
 import { gridPosKey, type GridPos } from '../../shared/domain/positions';
 
 export class SpatialIndex {
@@ -52,8 +52,7 @@ export class SpatialIndex {
         }
 
         const ids = Array.from(result);
-        ids.sort((a, b) => (a as unknown as number) - (b as unknown as number));
+        ids.sort((a, b) => entityIdToWire(a) - entityIdToWire(b));
         return ids;
     }
 }
-

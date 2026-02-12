@@ -24,7 +24,10 @@ async function startModernSession(page: Page, name: string) {
     } catch (_) {
         // If the intro UI is still visible, one retry click is reasonable. Otherwise, the UI likely transitioned
         // and we're just waiting on slow map/sprite load or websocket handshake.
-        const playVisible = await page.locator('#createcharacter .play').isVisible().catch(() => false);
+        const playVisible = await page
+            .locator('#createcharacter .play')
+            .isVisible()
+            .catch(() => false);
         if (playVisible) {
             await page.click('#createcharacter .play');
         }

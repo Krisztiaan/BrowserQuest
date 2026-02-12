@@ -1,4 +1,4 @@
-import type { EntityId } from '../../shared/domain/ids';
+import { entityIdToWire, type EntityId } from '../../shared/domain/ids';
 
 export type InterestDiff = Readonly<{
     enter: EntityId[];
@@ -41,11 +41,10 @@ export class InterestTracker {
             }
         }
 
-        enter.sort((a, b) => (a as unknown as number) - (b as unknown as number));
-        leave.sort((a, b) => (a as unknown as number) - (b as unknown as number));
+        enter.sort((a, b) => entityIdToWire(a) - entityIdToWire(b));
+        leave.sort((a, b) => entityIdToWire(a) - entityIdToWire(b));
 
         this.#interestByObserver.set(observerId, next);
         return { enter, leave };
     }
 }
-

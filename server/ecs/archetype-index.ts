@@ -1,4 +1,4 @@
-import type { EntityId } from '../../shared/domain/ids';
+import { entityIdToWire, type EntityId } from '../../shared/domain/ids';
 
 export class ArchetypeIndex {
     #entitiesByMask = new Map<bigint, Set<EntityId>>();
@@ -38,8 +38,7 @@ export class ArchetypeIndex {
                 }
             }
         }
-        result.sort((a, b) => (a as unknown as number) - (b as unknown as number));
+        result.sort((a, b) => entityIdToWire(a) - entityIdToWire(b));
         return result;
     }
 }
-

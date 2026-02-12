@@ -215,15 +215,18 @@ export default function processMap(
 
                     if (mode === "client") {
                         if (name === "v") {
-                            map.high?.push(tilePropertyId);
+                            const high = (map.high ??= []);
+                            high.push(tilePropertyId);
                         }
                         if (name === "length") {
-                            map.animated![tilePropertyId] = map.animated![tilePropertyId] || {};
-                            map.animated![tilePropertyId].l = typeof value === "number" ? value : undefined;
+                            const animated = (map.animated ??= {});
+                            const entry = (animated[tilePropertyId] ??= {});
+                            entry.l = typeof value === "number" ? value : undefined;
                         }
                         if (name === "delay") {
-                            map.animated![tilePropertyId] = map.animated![tilePropertyId] || {};
-                            map.animated![tilePropertyId].d = typeof value === "number" ? value : undefined;
+                            const animated = (map.animated ??= {});
+                            const entry = (animated[tilePropertyId] ??= {});
+                            entry.d = typeof value === "number" ? value : undefined;
                         }
                     }
                 }
@@ -268,7 +271,7 @@ export default function processMap(
     for (const objectLayer of tiledLayers.filter(isObjectLayer)) {
         if (objectLayer.name === "roaming" && mode === "server") {
             log.info("Processing roaming areas...");
-            const roamingAreas = map.roamingAreas!;
+            const roamingAreas = (map.roamingAreas ??= []);
             for (const [i, area] of (objectLayer.objects ?? []).entries()) {
                 if (!area) {
                     continue;
@@ -289,7 +292,7 @@ export default function processMap(
 
         if (objectLayer.name === "chestareas" && mode === "server") {
             log.info("Processing chest areas...");
-            const chestAreas = map.chestAreas!;
+            const chestAreas = (map.chestAreas ??= []);
             for (const area of objectLayer.objects || []) {
                 const chestArea: Record<string, unknown> = {
                     x: area.x / map.tilesize,
@@ -317,7 +320,7 @@ export default function processMap(
 
         if (objectLayer.name === "chests" && mode === "server") {
             log.info("Processing static chests...");
-            const staticChests = map.staticChests!;
+            const staticChests = (map.staticChests ??= []);
             for (const chest of objectLayer.objects || []) {
                 const items = getPropertyValue(chest, "items") ?? getFirstPropertyValue(chest) ?? "";
                 staticChests.push({
@@ -341,7 +344,7 @@ export default function processMap(
 
         if (objectLayer.name === "music" && mode === "client") {
             log.info("Processing music areas...");
-            const musicAreas = map.musicAreas!;
+            const musicAreas = (map.musicAreas ??= []);
             for (const music of objectLayer.objects || []) {
                 const musicId = getPropertyValue(music, "id") ?? getFirstPropertyValue(music);
                 musicAreas.push({
@@ -385,7 +388,7 @@ export default function processMap(
     }
 
     if (mode === "client") {
-        const data = map.data!;
+        const data = (map.data ??= []);
         for (let i = 0; i < data.length; i += 1) {
             if (!data[i]) {
                 data[i] = 0;
@@ -400,12 +403,13 @@ export default function processMap(
 
         if (mode === "server" && layer.name === "entities") {
             log.info("Processing positions of static entities ...");
+            const staticEntities = (map.staticEntities ??= {});
             for (let i = 0; i < tiles.length; i += 1) {
                 const gid = (tiles[i] ?? 0) - mobsFirstgid + 1;
                 if (gid > 0) {
                     const entityKind = staticEntityKindsByTileId[gid];
                     if (entityKind) {
-                        map.staticEntities![i] = entityKind;
+                        staticEntities[i] = entityKind;
                     }
                 }
             }
@@ -414,10 +418,11 @@ export default function processMap(
 
         if (mode === "client" && layer.name === "blocking") {
             log.info("Processing blocking tiles...");
+            const blocking = (map.blocking ??= []);
             for (let i = 0; i < tiles.length; i += 1) {
                 const gid = tiles[i] ?? 0;
                 if (gid > 0) {
-                    map.blocking!.push(i);
+                    blocking.push(i);
                 }
             }
             return;
@@ -425,10 +430,11 @@ export default function processMap(
 
         if (mode === "client" && layer.name === "plateau") {
             log.info("Processing plateau tiles...");
+            const plateau = (map.plateau ??= []);
             for (let i = 0; i < tiles.length; i += 1) {
                 const gid = tiles[i] ?? 0;
                 if (gid > 0) {
-                    map.plateau!.push(i);
+                    plateau.push(i);
                 }
             }
             return;
@@ -444,7 +450,7 @@ export default function processMap(
             const gid = tiles[i] ?? 0;
 
             if (mode === "client" && gid > 0) {
-                const data = map.data!;
+                const data = (map.data ??= []);
                 const existing = data[i];
                 if (existing === undefined) {
                     data[i] = gid;

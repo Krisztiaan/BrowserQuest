@@ -63,7 +63,10 @@ async function startModernSession(page: Page, name: string, options?: { testMode
         await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
         return;
     } catch (_) {
-        const playVisible = await page.locator('#createcharacter .play').isVisible().catch(() => false);
+        const playVisible = await page
+            .locator('#createcharacter .play')
+            .isVisible()
+            .catch(() => false);
         if (playVisible) {
             await page.click('#createcharacter .play');
         }
