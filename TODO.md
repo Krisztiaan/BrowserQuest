@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:17 UTC
+Last updated: 2026-02-12 12:20 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -21,8 +21,43 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 14. Ticket 51 (`done`) - Extract client interaction intent system module
 15. Ticket 52 (`done`) - Remove loot-moving player flag
 16. Ticket 53 (`done`) - Client frame scheduler (staged systems)
-17. Ticket 54 (`in_progress`) - Client frame scheduler: time + start gating
-18. Ticket 55 (`todo`) - Stabilize smoke WS welcome timeouts
+17. Ticket 54 (`done`) - Client frame scheduler: time + start gating
+18. Ticket 55 (`done`) - Stabilize smoke WS welcome timeouts
+19. Ticket 56 (`done`) - Remove legacy wrapper methods (cursor/interaction)
+
+## Ticket 56: Remove Legacy Wrapper Methods (Cursor/Interaction)
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Remove legacy wrapper methods that only delegate to systems (`updateCursorLogic`, `runClientInteractionSystem`).
+  - Call ECS systems directly from scheduler and legacy event helpers.
+- Out of scope:
+  - Removing the `Game` class or converting all legacy event handlers to ECS.
+- Acceptance criteria:
+  - Cursor and interaction intent behavior unchanged.
+  - No remaining `updateCursorLogic` / `runClientInteractionSystem` methods.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:18 UTC
+- End: 2026-02-12 12:20 UTC
+- Status: `done`
+- Key actions:
+  - Removed `Game.updateCursorLogic()` and invoked `runClientCursorSystem()` directly from `updateCursor()`.
+  - Removed `Game.runClientInteractionSystem()` and invoked `runClientInteractionIntentSystem()` directly from the frame scheduler.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: remove remaining per-frame legacy methods by extracting more systems from `client/game.ts`.
 
 ## Ticket 45: Mobile Input + Item Loot Pickup
 

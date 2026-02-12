@@ -289,7 +289,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler.add('pre_update', (game) => runClientTimeSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
         this.frameScheduler.add('update', (game) => runClientUpdaterSystem(game));
-        this.frameScheduler.add('post_update', (game) => game.runClientInteractionSystem());
+        this.frameScheduler.add('post_update', (game) => runClientInteractionIntentSystem(game));
         this.frameScheduler.add('render', (game) => runClientRenderSystem(game));
         this.zoningOrientation = null;
         this.obsoleteEntities = null;
@@ -518,10 +518,6 @@ class Game extends Evented<GameEvents> {
         this.kernel.clearClientInteractionIntent();
     }
 
-    runClientInteractionSystem(): void {
-        runClientInteractionIntentSystem(this);
-    }
-
     stopPlayerCombat(): void {
         if (this.player.isAttacking() || this.player.followingMode || this.player.hasTarget()) {
             this.player.disengage();
@@ -660,10 +656,6 @@ class Game extends Evented<GameEvents> {
         } else {
             log.error('Unknown cursor name :' + name);
         }
-    }
-
-    updateCursorLogic(): void {
-        runClientCursorSystem(this);
     }
 
     focusPlayer(): void {
@@ -1544,7 +1536,7 @@ class Game extends Evented<GameEvents> {
      */
     updateCursor(): void {
         this.movecursor();
-        this.updateCursorLogic();
+        runClientCursorSystem(this);
     }
 
     /**
