@@ -1,5 +1,6 @@
 import type { EntityId } from '../../shared/domain/ids';
 import type { EntityKind } from '../../shared/entity-kind-domain';
+import type { AudioSoundKey } from '../asset-key-domain';
 
 export type ClientCommand =
     | Readonly<{ type: 'stopPlayerCombat' }>
@@ -45,6 +46,21 @@ export type ClientCommand =
     | Readonly<{ type: 'playerOpenChest'; chestId: EntityId }>
     | Readonly<{ type: 'clientSendOpen'; chestId: EntityId }>
     | Readonly<{ type: 'tryLoot'; itemId: EntityId }>
+    | Readonly<{ type: 'combatRelinkPreviousTarget'; attackerId: EntityId }>
+    | Readonly<{
+          type: 'combatRepositionAttacker';
+          attackerId: EntityId;
+          targetId: EntityId;
+          x: number;
+          y: number;
+          orientation: number;
+      }>
+    | Readonly<{ type: 'characterLookAtTarget'; entityId: EntityId }>
+    | Readonly<{ type: 'characterHit'; entityId: EntityId }>
+    | Readonly<{ type: 'characterFollow'; entityId: EntityId; targetId: EntityId }>
+    | Readonly<{ type: 'clientSendHit'; targetId: EntityId }>
+    | Readonly<{ type: 'clientSendHurt'; mobId: EntityId }>
+    | Readonly<{ type: 'audioPlaySound'; key: AudioSoundKey }>
     | Readonly<{ type: 'playerStop' }>
     | Readonly<{ type: 'playerDisengage' }>
     | Readonly<{ type: 'playerIdle' }>

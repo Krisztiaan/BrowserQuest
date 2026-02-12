@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 15:22 UTC
+Last updated: 2026-02-12 15:50 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -42,6 +42,9 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 35. Ticket 72 (`done`) - MOVE outbox emits commands only
 36. Ticket 73 (`done`) - Environment system emits commands only
 37. Ticket 74 (`done`) - Spatial sync emits commands only
+38. Ticket 75 (`done`) - Combat tick via ECS commands
+39. Ticket 76 (`todo`) - Remove legacy player interaction helpers
+40. Ticket 77 (`todo`) - Protocol sends via ECS commands
 
 ## Ticket 72: MOVE Outbox Emits Commands Only
 
@@ -149,6 +152,98 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Final audit for any remaining control/interaction legacy entrypoints and stage ordering traps.
+
+## Ticket 75: Combat Tick Via ECS Commands
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Replace legacy `Game.onCharacterUpdate` combat tick with an ECS combat system.
+  - Remove `Updater` → `Game.onCharacterUpdate` callback path.
+  - Route combat side effects (hit/follow/relink/reposition, protocol sends, sounds) through `ClientCommand` + `runClientCommandApplySystem()`.
+- Out of scope:
+  - Combat balance, damage formulas, or server protocol redesign.
+  - Rendering/animation refactors.
+- Acceptance criteria:
+  - `client/updater.ts` no longer calls `game.onCharacterUpdate`.
+  - `client/game.ts` no longer contains combat tick logic in `onCharacterUpdate`.
+  - Combat remains functional (player can attack, mobs can hit, stacking avoidance still works).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 68.
+  - Ticket 74 (spatial grids updated pre-hover/click).
+
+### Progress log
+
+- Start: 2026-02-12 15:40 UTC
+- End: 2026-02-12 15:50 UTC
+- Status: `done`
+- Key actions:
+  - Added `runClientCombatSystem()` and scheduled it in the ECS frame pipeline (combat is no longer driven by `Updater` calling `Game.onCharacterUpdate`).
+  - Centralized combat side effects (hit/follow/relink/reposition, sendHit/sendHurt, hit SFX) via `ClientCommand` + `runClientCommandApplySystem()`.
+  - Removed legacy combat tick + unused mob-positioning helpers (deleted `client/game-mob-positioning.ts`).
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (pass; 195 total: 194 pass, 1 skip, 0 fail)
+- Notes:
+  - `tests/smoke/modern-gameplay-parity.test.ts` can still flake under load (timeout); rerun passed.
+- Next action:
+  - Remove legacy `game-player-interactions` helper module and eliminate remaining non-ECS protocol send call sites.
+
+## Ticket 76: Remove Legacy Player Interaction Helpers
+
+- Status: `todo`
+- Priority: P2
+- Scope:
+  - Delete `client/game-player-interactions.ts` and migrate its behaviors into ECS command apply (or explicit ECS commands).
+  - Ensure navigating to an item no longer emits legacy `sendLootMove` behavior.
+- Out of scope:
+  - Reworking NPC dialogue content.
+- Acceptance criteria:
+  - `client/game-player-interactions.ts` is removed and has no remaining references.
+  - `sendLootMove` is not used by normal gameplay navigation/interaction paths.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 68.
+
+### Progress log
+
+- Status: `todo`
+- Next action:
+  - Inline player interaction side effects into command apply + delete legacy module.
+
+## Ticket 77: Protocol Sends Via ECS Commands
+
+- Status: `todo`
+- Priority: P2
+- Scope:
+  - Route remaining `GameClient.send*` calls (`sendHello`, `sendZone`, `sendChat`, test harness sends) through `ClientCommand` + command apply.
+  - Update test harness API in `client/main.ts` to enqueue commands rather than calling `game.client.send*` directly.
+- Out of scope:
+  - Server protocol changes.
+- Acceptance criteria:
+  - `rg "client\\.send"` finds no call sites outside `client/gameclient.ts` and `client/ecs/systems/client-command-apply-system.ts`.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 68.
+
+### Progress log
+
+- Status: `todo`
+- Next action:
+  - Add protocol send commands, migrate remaining send call sites, and verify.
 
 ## Ticket 71: Replication Sync Emits Commands Only
 

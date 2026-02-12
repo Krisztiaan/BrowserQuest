@@ -56,7 +56,6 @@ type UpdaterGame = {
     bubbleManager: { update(time: number): void };
     infoManager: { update(time: number): void };
     forEachEntity(callback: (entity: UpdaterEntity) => void): void;
-    onCharacterUpdate(character: Character): void;
     initAnimatedTiles(): void;
     endZoning(): void;
     forEachAnimatedTile(callback: (tile: AnimatedTileLike) => void): void;
@@ -92,7 +91,6 @@ class Updater {
             if (entity.isLoaded) {
                 if (entity instanceof Character) {
                     self.updateCharacter(entity);
-                    self.game.onCharacterUpdate(entity);
                 }
                 self.updateEntityFading(entity);
             }

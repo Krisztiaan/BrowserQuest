@@ -2,6 +2,7 @@ import Item from '../../item';
 import Mob from '../../mob';
 import Npc from '../../npc';
 import Chest from '../../chest';
+import Character from '../../character';
 import type Player from '../../player';
 import type { EntityId } from '../../../shared/domain/ids';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
@@ -50,6 +51,8 @@ export type ClientCommandApplySystemHost = {
               sendMove(x: number, y: number): void;
               sendCheck(id: string | number): void;
               sendOpen(chest: { id: EntityId }): void;
+              sendHit(mob: { id: EntityId }): void;
+              sendHurt(mob: { id: EntityId }): void;
               sendWho(ids: EntityId[]): void;
           }
         | null;
@@ -331,6 +334,10 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 host.audioManager?.updateMusic?.();
                 break;
             }
+            case 'audioPlaySound': {
+                host.audioManager?.playSound(command.key);
+                break;
+            }
             case 'setEntityNextGrid': {
                 const entity = host.entities[String(command.entityId)] as unknown as
                     | undefined
@@ -348,6 +355,86 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             }
             case 'spatialAddRecord': {
                 applySpatialAddRecord(host, command.entityId, command.record);
+                break;
+            }
+            case 'combatRelinkPreviousTarget': {
+                const attacker = getKnownEntity(command.attackerId);
+                if (!(attacker instanceof Mob) || attacker.isMoving() || !attacker.previousTarget) {
+                    break;
+                }
+                const prev = attacker.previousTarget as unknown as { id?: unknown };
+                if (typeof prev.id !== 'number') {
+                    attacker.previousTarget = null;
+                    break;
+                }
+                const target = getKnownEntity(prev.id as EntityId);
+                if (!(target instanceof Character)) {
+                    attacker.previousTarget = null;
+                    break;
+                }
+                attacker.previousTarget = null;
+                host.createAttackLink(attacker as unknown, target as unknown);
+                break;
+            }
+            case 'combatRepositionAttacker': {
+                const attacker = getKnownEntity(command.attackerId);
+                const target = getKnownEntity(command.targetId) as unknown as
+                    | undefined
+                    | { adjacentTiles?: Record<string, unknown> };
+                if (!(attacker instanceof Character) || !target || !(target instanceof Character)) {
+                    break;
+                }
+
+                attacker.previousTarget = target;
+                attacker.disengage();
+                attacker.idle?.();
+                host.makeCharacterGoTo(attacker as unknown, command.x, command.y);
+
+                if (target.adjacentTiles && typeof target.adjacentTiles === 'object') {
+                    target.adjacentTiles[String(command.orientation)] = true;
+                }
+                break;
+            }
+            case 'characterLookAtTarget': {
+                const entity = getKnownEntity(command.entityId);
+                if (entity instanceof Character && entity.hasTarget()) {
+                    entity.lookAtTarget();
+                }
+                break;
+            }
+            case 'characterHit': {
+                const entity = getKnownEntity(command.entityId);
+                if (entity instanceof Character) {
+                    entity.hit();
+                }
+                break;
+            }
+            case 'characterFollow': {
+                const entity = getKnownEntity(command.entityId);
+                const target = getKnownEntity(command.targetId);
+                if (entity instanceof Character && target instanceof Character) {
+                    entity.follow(target);
+                }
+                break;
+            }
+            case 'clientSendHit': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                const entity = getKnownEntity(command.targetId);
+                if (entity instanceof Mob) {
+                    host.client.sendHit(entity);
+                }
+                break;
+            }
+            case 'clientSendHurt': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                const mob = getKnownEntity(command.mobId);
+                if (mob instanceof Mob) {
+                    host.client.sendHurt(mob);
+                }
                 break;
             }
             case 'playerGoTo': {

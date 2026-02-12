@@ -15,11 +15,6 @@ import {
     movePlayerToItem,
 } from './game-player-interactions';
 import {
-    findFreeAdjacentNonDiagonalPosition,
-    hasMobOnTile,
-    tryMovingCharacterToDifferentTile,
-} from './game-mob-positioning';
-import {
     forEachAnimatedGameTile,
     forEachEntityByDepthInView,
     forEachGameEntity,
@@ -95,6 +90,7 @@ import { runClientSpatialSyncSystem } from './ecs/systems/client-spatial-sync-sy
 import { runClientTimeSystem } from './ecs/systems/client-time-system';
 import { runClientUpdaterSystem } from './ecs/systems/client-updater-system';
 import { runClientRenderSystem } from './ecs/systems/client-render-system';
+import { runClientCombatSystem } from './ecs/systems/client-combat-system';
 
 type GridPosition = { x: number; y: number };
 type GridIndexedEntity = {
@@ -304,6 +300,8 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler.add('pre_update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
         this.frameScheduler.add('update', (game) => runClientUpdaterSystem(game));
+        this.frameScheduler.add('update', (game) => runClientCombatSystem(game));
+        this.frameScheduler.add('update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('post_update', (game) => runClientSpatialSyncSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientPlayerMoveOutboxSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientEnvironmentSystem(game));
@@ -1061,94 +1059,6 @@ class Game extends Evented<GameEvents> {
     toggleDebugInfo(): void {
         if (this.renderer) {
             this.renderer.isDebugInfoVisible = !this.renderer.isDebugInfoVisible;
-        }
-    }
-
-    /**
-     *
-     */
-    isMobOnSameTile(mob: Character, x?: number, y?: number): boolean {
-        return hasMobOnTile(this, mob, x, y);
-    }
-
-    getFreeAdjacentNonDiagonalPosition(entity: Character): { x: number; y: number; o: number } | null {
-        return findFreeAdjacentNonDiagonalPosition(this, entity);
-    }
-
-    tryMovingToADifferentTile(character: Character): boolean {
-        return tryMovingCharacterToDifferentTile(this, character);
-    }
-
-    /**
-     *
-     */
-    onCharacterUpdate(character: Character): void {
-        const time = this.currentTime;
-
-        // Ensure the player stops attacking immediately when their target is dead or has despawned.
-        if (character.id === this.playerId && character.isAttacking() && character.target) {
-            const t = character.target as unknown;
-            if (t instanceof Character && t.isDead) {
-                this.stopPlayerCombat();
-                clearClientInteractionIntentWithSideEffects(this);
-                return;
-            }
-        }
-
-        // If mob has finished moving to a different tile in order to avoid stacking, attack again from the new position.
-        if (character.previousTarget && !character.isMoving() && character instanceof Mob) {
-            const t = character.previousTarget;
-
-            if (t instanceof Character && this.getEntityById(t.id)) {
-                // does it still exist?
-                character.previousTarget = null;
-                this.createAttackLink(character, t as unknown as Character);
-                return;
-            }
-        }
-
-        if (character.isAttacking() && !character.previousTarget) {
-            const isMoving = this.tryMovingToADifferentTile(character); // Don't let multiple mobs stack on the same tile when attacking a player.
-
-            if (character.canAttack(time)) {
-                if (!isMoving) {
-                    // don't hit target if moving to a different tile.
-                    if (
-                        character.hasTarget() &&
-                        character.getOrientationTo(character.target) !== character.orientation
-                    ) {
-                        character.lookAtTarget();
-                    }
-
-                    character.hit();
-
-                    if (character.id === this.playerId) {
-                        this.client.sendHit(character.target);
-                    }
-
-                    if (character instanceof Player && this.camera.isVisible(character)) {
-                        const hitSound: AudioSoundKey = Math.floor(Math.random() * 2 + 1) === 1 ? 'hit1' : 'hit2';
-                        this.audioManager.playSound(hitSound);
-                    }
-
-                    if (
-                        character.hasTarget() &&
-                        character.target.id === this.playerId &&
-                        !this.player.invincible
-                    ) {
-                        this.client.sendHurt(character);
-                    }
-                }
-            } else {
-                if (
-                    character.hasTarget() &&
-                    character.isDiagonallyAdjacent(character.target) &&
-                    character.target instanceof Player &&
-                    !character.target.isMoving()
-                ) {
-                    character.follow(character.target);
-                }
-            }
         }
     }
 
