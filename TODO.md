@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 13:44 UTC
+Last updated: 2026-02-12 13:54 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -35,7 +35,44 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 28. Ticket 65 (`done`) - ECS runtime event buffer (connection boundary)
 29. Ticket 66 (`done`) - Kernel-driven replication sync (reduce spawn/move handlers)
 30. Ticket 67 (`done`) - Remove movement step hooks (spatial sync system)
-31. Ticket 68 (`in_progress`) - Client ECS command buffer + apply system
+31. Ticket 68 (`done`) - Client ECS command buffer + apply system
+32. Ticket 69 (`done`) - Interaction intent executes via commands
+
+## Ticket 69: Interaction Intent Executes Via Commands
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Extend `ClientCommand` to cover interaction-side effects (attack/follow, talk/open sequences, loot attempt, server sendOpen/sendLoot, notifications).
+  - Update `runClientInteractionIntentSystem()` to enqueue commands only (no direct host method calls, no direct client calls).
+  - Centralize side effects in `runClientCommandApplySystem()`.
+- Out of scope:
+  - Refactoring combat math / balance.
+  - Replacing legacy entity classes with ECS-only data.
+- Acceptance criteria:
+  - `client/ecs/systems/client-interaction-intent-system.ts` contains no direct calls to `host.make*`, `host.client.*`, `host.emit('notification', ...)`, or `host.player.*` methods; it only updates kernel state + enqueues commands.
+  - Loot still only completes when explicitly targeted and standing on the item tile; exceptions still notify and clear intent.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 68.
+
+### Progress log
+
+- Start: 2026-02-12 13:47 UTC
+- End: 2026-02-12 13:54 UTC
+- Status: `done`
+- Key actions:
+  - Extended `ClientCommand` and centralized interaction side effects in `runClientCommandApplySystem()` (attack/follow, talk/open sequences, open/loot sends, loot exceptions).
+  - Updated `runClientInteractionIntentSystem()` to only update kernel + enqueue commands (no direct host method calls).
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Migrate remaining runtime side effects (welcome/equip/chat/drop/blink) to commands so *all* client systems become pure command emitters.
 
 ## Ticket 68: Client ECS Command Buffer + Apply System
 

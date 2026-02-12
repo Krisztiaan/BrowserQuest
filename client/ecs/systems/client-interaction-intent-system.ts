@@ -1,13 +1,13 @@
 import type { EntityId } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
 import type { ClientWorldKernel } from '../world-kernel';
+import type { ClientCommand } from '../client-commands';
 import Item from '../../item';
 import Mob from '../../mob';
 import Npc from '../../npc';
 import Player from '../../player';
 import Character from '../../character';
 import Chest from '../../chest';
-import Exceptions from '../../exceptions';
 import type { ClientCommand } from '../client-commands';
 
 export function clearClientInteractionIntentWithSideEffects(host: { kernel: ClientWorldKernel }): void {
@@ -24,23 +24,18 @@ export function clearClientInteractionIntentWithSideEffects(host: { kernel: Clie
 
 export type ClientInteractionIntentSystemHost = Readonly<{
     started: boolean;
-    client: { sendOpen(chest: { id: EntityId }): void; sendLoot(item: { id: EntityId }): void } | null;
     playerId: EntityId | null;
     player: Player;
     entities: Record<string, unknown>;
     kernel: ClientWorldKernel;
-    emit(eventName: 'notification', message: string): void;
-
-    stopPlayerCombat(): void;
-
-    makePlayerAttack(mob: Mob): void;
-    makePlayerTalkTo(npc: Npc): void;
-    makePlayerOpenChest(chest: Chest): void;
-    makeNpcTalk(npc: Npc): void;
 }>;
 
+function isAdjacentNonDiagonal(ax: number, ay: number, bx: number, by: number): boolean {
+    return Math.abs(ax - bx) + Math.abs(ay - by) === 1;
+}
+
 export function runClientInteractionIntentSystem(host: ClientInteractionIntentSystemHost): void {
-    if (!host.started || !host.client || !host.playerId) {
+    if (!host.started || !host.playerId) {
         return;
     }
     if (host.player.isDead) {
@@ -72,38 +67,23 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             clearClientInteractionIntentWithSideEffects(host);
             return;
         }
-        if (host.player.gridX === target.gridX && host.player.gridY === target.gridY) {
-            const x = host.player.gridX;
-            const y = host.player.gridY;
 
+        const playerX = host.player.gridX;
+        const playerY = host.player.gridY;
+        if (playerX === target.gridX && playerY === target.gridY) {
             const last = host.kernel.clientLootAttempt;
-            if (last && last.itemId === target.id && last.pos.x === x && last.pos.y === y) {
+            if (last && last.itemId === target.id && last.pos.x === playerX && last.pos.y === playerY) {
                 return;
             }
-            host.kernel.setClientLootAttempt(target.id, x, y);
-
-            try {
-                host.player.loot({
-                    id: target.id,
-                    kind: target.kind,
-                    type: target.type,
-                    onLoot: () => {},
-                });
-            } catch (err) {
-                if (err instanceof Exceptions.LootException) {
-                    host.emit('notification', err.message);
-                    clearClientInteractionIntentWithSideEffects(host);
-                    return;
-                }
-                throw err;
-            }
-
-            host.client.sendLoot(target);
-            clearClientInteractionIntentWithSideEffects(host);
+            host.kernel.setClientLootAttempt(target.id, playerX, playerY);
+            const cmd: ClientCommand = { type: 'tryLoot', itemId: target.id };
+            host.kernel.enqueueClientCommand(cmd);
             return;
         }
+
         // If pathing stopped early, cancel instead of auto-looting incidental items en route.
-        if (!host.player.isMoving()) {
+        const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
+        if (!isMoving) {
             clearClientInteractionIntentWithSideEffects(host);
         }
         return;
@@ -115,14 +95,18 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             return;
         }
         if (target instanceof Mob) {
-            if (host.player.isAdjacentNonDiagonal(target)) {
-                if (!host.player.hasTarget() || host.player.target?.id !== target.id) {
-                    host.makePlayerAttack(target);
+            const adjacent = isAdjacentNonDiagonal(host.player.gridX, host.player.gridY, target.gridX, target.gridY);
+            if (adjacent) {
+                if (host.player.target?.id !== target.id) {
+                    const cmd: ClientCommand = { type: 'playerAttack', targetId: target.id };
+                    host.kernel.enqueueClientCommand(cmd);
                 }
                 return;
             }
-            if (hasTargetMoved || !host.player.isMoving()) {
-                host.player.follow(target);
+            const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
+            if (hasTargetMoved || !isMoving) {
+                const cmd: ClientCommand = { type: 'playerFollow', targetId: target.id };
+                host.kernel.enqueueClientCommand(cmd);
             }
         }
         return;
@@ -133,16 +117,18 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             clearClientInteractionIntentWithSideEffects(host);
             return;
         }
-        if (host.player.isAdjacentNonDiagonal(target)) {
-            host.player.stop();
-            host.makeNpcTalk(target);
-            host.player.disengage();
-            host.player.idle();
+        const adjacent = isAdjacentNonDiagonal(host.player.gridX, host.player.gridY, target.gridX, target.gridY);
+        if (adjacent) {
+            host.kernel.enqueueClientCommand({ type: 'playerStop' });
+            host.kernel.enqueueClientCommand({ type: 'npcTalk', npcId: target.id });
+            host.kernel.enqueueClientCommand({ type: 'playerDisengage' });
+            host.kernel.enqueueClientCommand({ type: 'playerIdle' });
             clearClientInteractionIntentWithSideEffects(host);
             return;
         }
-        if (hasTargetMoved || !host.player.isMoving()) {
-            host.makePlayerTalkTo(target);
+        const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
+        if (hasTargetMoved || !isMoving) {
+            host.kernel.enqueueClientCommand({ type: 'playerTalkTo', npcId: target.id });
         }
         return;
     }
@@ -152,16 +138,18 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             clearClientInteractionIntentWithSideEffects(host);
             return;
         }
-        if (host.player.isAdjacentNonDiagonal(target)) {
-            host.player.stop();
-            host.client.sendOpen(target);
-            host.player.disengage();
-            host.player.idle();
+        const adjacent = isAdjacentNonDiagonal(host.player.gridX, host.player.gridY, target.gridX, target.gridY);
+        if (adjacent) {
+            host.kernel.enqueueClientCommand({ type: 'playerStop' });
+            host.kernel.enqueueClientCommand({ type: 'clientSendOpen', chestId: target.id });
+            host.kernel.enqueueClientCommand({ type: 'playerDisengage' });
+            host.kernel.enqueueClientCommand({ type: 'playerIdle' });
             clearClientInteractionIntentWithSideEffects(host);
             return;
         }
-        if (hasTargetMoved || !host.player.isMoving()) {
-            host.makePlayerOpenChest(target);
+        const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
+        if (hasTargetMoved || !isMoving) {
+            host.kernel.enqueueClientCommand({ type: 'playerOpenChest', chestId: target.id });
         }
         return;
     }
