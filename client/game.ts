@@ -546,44 +546,6 @@ class Game extends Evented<GameEvents> {
         });
     }
 
-    beginAttack(mob: Mob): void {
-        this.setClientInteractionIntent('attack', mob.id);
-        this.makePlayerAttack(mob);
-    }
-
-    beginLoot(item: Item): void {
-        this.setClientInteractionIntent('loot', item.id);
-        this.makePlayerGoToItem(item);
-    }
-
-    beginTalk(npc: Npc): void {
-        if (this.player.isAdjacentNonDiagonal(npc)) {
-            this.player.stop();
-            this.makeNpcTalk(npc);
-            this.player.disengage();
-            this.player.idle();
-            this.clearClientInteractionIntent();
-            return;
-        }
-        this.setClientInteractionIntent('talk', npc.id);
-        this.makePlayerTalkTo(npc);
-    }
-
-    beginOpenChest(chest: Chest): void {
-        if (this.player.isAdjacentNonDiagonal(chest)) {
-            this.player.stop();
-            if (this.client) {
-                this.client.sendOpen(chest);
-            }
-            this.player.disengage();
-            this.player.idle();
-            this.clearClientInteractionIntent();
-            return;
-        }
-        this.setClientInteractionIntent('open', chest.id);
-        this.makePlayerOpenChest(chest);
-    }
-
     initShadows(): void {
         initGameShadows(this);
     }

@@ -2,6 +2,7 @@ import Chest from '../../chest';
 import Item from '../../item';
 import Mob from '../../mob';
 import Npc from '../../npc';
+import type { EntityId } from '../../../shared/domain/ids';
 import type { ClientWorldKernel } from '../world-kernel';
 
 export type ClientClickIntentSystemHost = Readonly<{
@@ -14,10 +15,8 @@ export type ClientClickIntentSystemHost = Readonly<{
     isZoningTile(x: number, y: number): boolean;
     getEntityAt(x: number, y: number): unknown;
 
-    beginAttack(mob: Mob): void;
-    beginLoot(item: Item): void;
-    beginTalk(npc: Npc): void;
-    beginOpenChest(chest: Chest): void;
+    setClientInteractionIntent(kind: 'attack' | 'talk' | 'open' | 'loot', targetId: EntityId): void;
+    makePlayerGoToItem(item: Item | null): void;
 
     clearClientInteractionIntent(): void;
     makePlayerGoTo(x: number, y: number): void;
@@ -63,19 +62,20 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
 
     const entity = host.getEntityAt(x, y);
     if (entity instanceof Mob) {
-        host.beginAttack(entity);
+        host.setClientInteractionIntent('attack', entity.id);
         return;
     }
     if (entity instanceof Item) {
-        host.beginLoot(entity);
+        host.setClientInteractionIntent('loot', entity.id);
+        host.makePlayerGoToItem(entity);
         return;
     }
     if (entity instanceof Npc) {
-        host.beginTalk(entity);
+        host.setClientInteractionIntent('talk', entity.id);
         return;
     }
     if (entity instanceof Chest) {
-        host.beginOpenChest(entity);
+        host.setClientInteractionIntent('open', entity.id);
         return;
     }
 

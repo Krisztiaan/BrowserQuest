@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:40 UTC
+Last updated: 2026-02-12 12:43 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -28,6 +28,41 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 21. Ticket 58 (`done`) - ECS click intent system (remove processPlayerClick/Game.click)
 22. Ticket 59 (`done`) - ECS environment systems (plateau/checkpoint/music)
 23. Ticket 60 (`done`) - Move input/loot transient state into kernel
+24. Ticket 61 (`done`) - Remove begin* interaction methods
+
+## Ticket 61: Remove `begin*` Interaction Methods
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Handle interaction starts (attack/talk/open/loot) directly in the click intent system using kernel intents.
+  - Remove legacy `Game.beginAttack/beginLoot/beginTalk/beginOpenChest`.
+- Out of scope:
+  - Reworking interaction semantics (explicit loot, chase, death/despawn cancellation).
+- Acceptance criteria:
+  - Clicking mobs/NPCs/chests/items behaves the same.
+  - No remaining `beginAttack/beginLoot/beginTalk/beginOpenChest` methods.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:41 UTC
+- End: 2026-02-12 12:43 UTC
+- Status: `done`
+- Key actions:
+  - Moved interaction start handling into the click intent system (set interaction intent + loot pathing).
+  - Removed `Game.beginAttack/beginLoot/beginTalk/beginOpenChest`.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: remove `Game.setClientInteractionIntent`/`clearClientInteractionIntent` in favor of a command buffer system.
 
 ## Ticket 60: Move Input/Loot Transient State Into Kernel
 
