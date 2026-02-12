@@ -1,4 +1,6 @@
 import type { EntityId } from '../../../shared/domain/ids';
+import Types from '../../../shared/gametypes-browser';
+import type { ClientWorldKernel } from '../world-kernel';
 
 type HighlightableEntity = {
     isHighlighted?: boolean;
@@ -17,6 +19,8 @@ export type ClientHoverStateSystemHost = {
     player: { isOnPlateau: boolean } | null;
     renderer: { mobile: boolean; tablet: boolean; supportsSilhouettes: boolean };
     map: { isColliding(x: number, y: number): boolean; isPlateau(x: number, y: number): boolean } | null;
+    kernel: ClientWorldKernel;
+    entities: Record<string, unknown>;
 
     hoveringCollidingTile: boolean;
     hoveringPlateauTile: boolean;
@@ -27,11 +31,6 @@ export type ClientHoverStateSystemHost = {
     lastHovered: HighlightableEntity | null;
 
     getMouseGridPosition(): { x: number; y: number };
-    isMobAt(x: number, y: number): boolean;
-    isItemAt(x: number, y: number): boolean;
-    isNpcAt(x: number, y: number): boolean;
-    isChestAt(x: number, y: number): boolean;
-    getEntityAt(x: number, y: number): { id: EntityId } | null;
 };
 
 function clearHover(host: ClientHoverStateSystemHost): void {
@@ -60,13 +59,32 @@ export function runClientHoverStateSystem(host: ClientHoverStateSystemHost): voi
 
     host.hoveringCollidingTile = host.map.isColliding(x, y);
     host.hoveringPlateauTile = host.player.isOnPlateau ? !host.map.isPlateau(x, y) : host.map.isPlateau(x, y);
-    host.hoveringMob = host.isMobAt(x, y);
-    host.hoveringItem = host.isItemAt(x, y);
-    host.hoveringNpc = host.isNpcAt(x, y);
-    host.hoveringChest = host.isChestAt(x, y);
+    host.hoveringMob = false;
+    host.hoveringNpc = false;
+    host.hoveringChest = false;
+    host.hoveringItem = host.kernel.getClientItemIdsAt(x, y).length > 0;
+
+    let highlightId: EntityId | null = null;
+    const entityIds = host.kernel.getClientEntityIdsAt(x, y);
+    for (const id of entityIds) {
+        const record = host.kernel.clientSpatialRecords.get(id);
+        if (!record || record.isPlayer) {
+            continue;
+        }
+        if (Types.isMob(record.kind)) {
+            host.hoveringMob = true;
+            highlightId ??= id;
+        } else if (Types.isNpc(record.kind)) {
+            host.hoveringNpc = true;
+            highlightId ??= id;
+        } else if (Types.isChest(record.kind)) {
+            host.hoveringChest = true;
+            highlightId ??= id;
+        }
+    }
 
     if (host.hoveringMob || host.hoveringNpc || host.hoveringChest) {
-        const entity = host.getEntityAt(x, y);
+        const entity = highlightId !== null ? host.entities[String(highlightId)] : null;
         const highlightableEntity = entity && isHighlightableEntity(entity) ? entity : null;
 
         if (highlightableEntity && !highlightableEntity.isHighlighted && host.renderer.supportsSilhouettes) {
@@ -84,4 +102,3 @@ export function runClientHoverStateSystem(host: ClientHoverStateSystemHost): voi
         host.lastHovered = null;
     }
 }
-

@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 20:02 UTC
+Last updated: 2026-02-12 20:10 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -50,6 +50,47 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 43. Ticket 80 (`done`) - Burn down lint warnings to zero
 44. Ticket 81 (`done`) - Replace client updater loop with ECS systems
 45. Ticket 82 (`done`) - Client spatial index from kernel (remove legacy grids)
+46. Ticket 83 (`done`) - Client interaction systems use kernel spatial records
+
+## Ticket 83: Client Interaction Systems Use Kernel Spatial Records
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Update client ECS interaction systems to use kernel spatial records / indices instead of legacy entity-object `instanceof` checks:
+    - `runClientClickIntentSystem()`
+    - `runClientHoverStateSystem()`
+    - `runClientInteractionIntentSystem()`
+  - Keep highlight/animation side effects on entity objects only where required (silhouettes/highlight).
+- Out of scope:
+  - Removing entity objects entirely (renderer modernization).
+  - Adding a full kernel health/death component model (we may still consult entity objects for `isDead` where needed).
+- Acceptance criteria:
+  - The above systems no longer depend on `getEntityAt()/isMobAt()/isItemAt()` host helpers for decisions; they query `kernel.clientSpatialRecords` and kernel indices.
+  - `bun run lint` passes (0 warnings).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run lint`
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 82.
+
+### Progress log
+
+- Start: 2026-02-12 20:03 UTC
+- End: 2026-02-12 20:10 UTC
+- Status: `done`
+- Key actions:
+  - Refactored click/hover/interaction intent systems to branch on `kernel.clientSpatialRecords` + kernel indices (not legacy `getEntityAt/isMobAt` helpers).
+  - Kept silhouette highlighting as the only required entity-object dependency (lookup by id for `setHighlight`).
+- Evidence:
+  - `bun run lint` (pass; 0 warnings)
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Convert remaining client runtime systems to consume kernel views (reduce `instanceof` + direct `host.entities` reads).
 
 ## Ticket 82: Client Spatial Index From Kernel (Remove Legacy Grids)
 
