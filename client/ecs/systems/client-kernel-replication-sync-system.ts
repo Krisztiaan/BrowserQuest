@@ -80,4 +80,31 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         kernel.enqueueClientCommand({ type: 'createAttackLink', attackerId, targetId });
         kernel.clientReplicationLastTarget.set(attackerId, targetId);
     }
+
+    // Target removals: if an attacker previously had a target but no longer does, clear the combat link.
+    for (const [attackerId, lastTargetId] of kernel.clientReplicationLastTarget.entries()) {
+        if (!kernel.clientReplicationKnownAlive.has(attackerId)) {
+            continue;
+        }
+        if (!kernel.clientReplicationKnownAlive.has(lastTargetId)) {
+            // Target despawned; treat as a removal.
+            if (host.playerId !== null && attackerId === host.playerId) {
+                kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
+            } else {
+                kernel.enqueueClientCommand({ type: 'characterClearTarget', entityId: attackerId });
+            }
+            kernel.clientReplicationLastTarget.delete(attackerId);
+            continue;
+        }
+
+        const current = kernel.target.get(attackerId);
+        if (current === undefined) {
+            if (host.playerId !== null && attackerId === host.playerId) {
+                kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
+            } else {
+                kernel.enqueueClientCommand({ type: 'characterClearTarget', entityId: attackerId });
+            }
+            kernel.clientReplicationLastTarget.delete(attackerId);
+        }
+    }
 }

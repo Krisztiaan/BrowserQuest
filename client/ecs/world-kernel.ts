@@ -288,6 +288,17 @@ export class ClientWorldKernel {
         this.weapon.delete(id);
         this.target.delete(id);
 
+        // Clear inbound/outbound targeting edges that reference this entity.
+        for (const [attackerId, targetId] of this.target.entries()) {
+            if (targetId === id) {
+                this.target.delete(attackerId);
+            }
+        }
+
+        if (this.clientInteractionIntent?.targetId === id) {
+            this.clientInteractionIntent = null;
+        }
+
         this.clientReplicationKnownAlive.delete(id);
         this.clientReplicationLastPos.delete(id);
         this.clientReplicationLastTarget.delete(id);

@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 21:11 UTC
+Last updated: 2026-02-12 21:18 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -253,7 +253,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 87: Combat - Stop Dead-Target Attacking + Clear Targets
 
-- Status: `todo`
+- Status: `done`
 - Priority: P1
 - Scope:
   - Ensure attack intent/targets are cleared when a target dies or despawns (server authoritative + client intent cleanup).
@@ -272,6 +272,20 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000`
 - Dependencies/blockers:
   - Ticket 85.
+
+### Progress log
+
+- Start: 2026-02-12 21:12 UTC
+- End: 2026-02-12 21:18 UTC
+- Status: `done`
+- Key actions:
+  - Client: clear targeting edges when entities despawn (`client/ecs/world-kernel.ts`) and emit target-removal commands from replication sync (`client/ecs/systems/client-kernel-replication-sync-system.ts`).
+  - Client: added `characterClearTarget` command and apply handler to disengage/idle characters when the kernel target map clears.
+  - Server: on mob death, clear `Target` replication component for all attackers targeting the mob (`server/world/ecs-command-pipeline.ts`).
+- Evidence:
+  - `bun run lint` (pass; 0 warnings)
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 
 ## Ticket 81: Replace Client Updater Loop With ECS Systems
 

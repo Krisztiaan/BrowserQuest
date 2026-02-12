@@ -410,6 +410,30 @@ function applyHitCommand({
     state.events.push({ type: 'ENTITY_DAMAGED', entityId: mobId, damage: dmg, attackerId: player.id });
 
     if (nextMobHp <= 0) {
+        const Target = replication.Target;
+        const toClearTargets: EntityId[] = [];
+        Target.store.forEach((attackerId, targetId) => {
+            if (targetId === mobId) {
+                toClearTargets.push(attackerId);
+            }
+        });
+
+        for (let i = 0; i < toClearTargets.length; i += 1) {
+            const attackerId = toClearTargets[i];
+            if (attackerId === undefined) {
+                continue;
+            }
+            state.world.removeComponent(attackerId, Target);
+            const legacyAttacker = world.getEntityById(attackerId) as { clearTarget?: () => void; target?: EntityId | null } | null;
+            if (legacyAttacker) {
+                if (typeof legacyAttacker.clearTarget === 'function') {
+                    legacyAttacker.clearTarget();
+                } else if ('target' in legacyAttacker) {
+                    legacyAttacker.target = null;
+                }
+            }
+        }
+
         if (mobKind !== undefined) {
             state.events.push({ type: 'MOB_KILLED', mobId, mobKind, killerId: player.id });
         }

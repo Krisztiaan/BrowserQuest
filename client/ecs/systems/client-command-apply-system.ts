@@ -256,6 +256,16 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 host.stopPlayerCombat();
                 break;
             }
+            case 'characterClearTarget': {
+                const entity = getKnownEntity(command.entityId);
+                if (entity instanceof Character) {
+                    entity.disengage();
+                    entity.previousTarget = null;
+                    entity.unconfirmedTarget = null;
+                    entity.idle();
+                }
+                break;
+            }
             case 'clientSendHello': {
                 if (!host.started || !host.client) {
                     break;

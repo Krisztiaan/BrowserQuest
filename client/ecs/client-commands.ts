@@ -4,6 +4,7 @@ import type { AudioSoundKey } from '../asset-key-domain';
 
 export type ClientCommand =
     | Readonly<{ type: 'stopPlayerCombat' }>
+    | Readonly<{ type: 'characterClearTarget'; entityId: EntityId }>
     | Readonly<{ type: 'clientSendHello' }>
     | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
     | Readonly<{ type: 'clientSendZone' }>
