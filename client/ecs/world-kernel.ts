@@ -3,6 +3,7 @@ import type { EntityId } from '../../shared/domain/ids';
 import { entityIdFromWire } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
 import type { SpawnSnapshot } from '../../shared/replication/spawn-snapshot';
+import type { ClientCommand } from './client-commands';
 import type { ClientRuntimeEvent } from './runtime-events';
 
 export type KernelEntityType = 'player' | 'mob' | 'simple';
@@ -60,6 +61,7 @@ export class ClientWorldKernel {
     clientClickState: ClientClickState | null = null;
     clientLootAttempt: ClientLootAttempt | null = null;
     clientRuntimeEvents: ClientRuntimeEvent[] = [];
+    clientCommands: ClientCommand[] = [];
 
     // Client-only replication bookkeeping for kernel-driven sync systems.
     readonly clientReplicationKnownAlive = new Set<EntityId>();
@@ -176,6 +178,17 @@ export class ClientWorldKernel {
             return [];
         }
         return this.clientRuntimeEvents.splice(0, this.clientRuntimeEvents.length);
+    }
+
+    enqueueClientCommand(command: ClientCommand): void {
+        this.clientCommands.push(command);
+    }
+
+    drainClientCommands(): ClientCommand[] {
+        if (this.clientCommands.length === 0) {
+            return [];
+        }
+        return this.clientCommands.splice(0, this.clientCommands.length);
     }
 
     setClientInteractionIntent(intent: ClientInteractionIntent | null): void {

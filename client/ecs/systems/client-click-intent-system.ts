@@ -16,11 +16,6 @@ export type ClientClickIntentSystemHost = Readonly<{
     isZoning(): boolean;
     isZoningTile(x: number, y: number): boolean;
     getEntityAt(x: number, y: number): unknown;
-
-    makePlayerGoToItem(item: Item | null): void;
-    stopPlayerCombat(): void;
-
-    makePlayerGoTo(x: number, y: number): void;
 }>;
 
 export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): void {
@@ -63,7 +58,7 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
 
     const entity = host.getEntityAt(x, y);
     if (entity instanceof Mob) {
-        host.stopPlayerCombat();
+        host.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
         host.kernel.setClientInteractionIntent({
             kind: 'attack',
             targetId: entity.id,
@@ -72,18 +67,18 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
         return;
     }
     if (entity instanceof Item) {
-        host.stopPlayerCombat();
+        host.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
         host.kernel.clearClientLootAttempt();
         host.kernel.setClientInteractionIntent({
             kind: 'loot',
             targetId: entity.id,
             lastKnownTargetPos: gridPos(entity.gridX, entity.gridY),
         });
-        host.makePlayerGoToItem(entity);
+        host.kernel.enqueueClientCommand({ type: 'playerGoToItem', itemId: entity.id });
         return;
     }
     if (entity instanceof Npc) {
-        host.stopPlayerCombat();
+        host.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
         host.kernel.setClientInteractionIntent({
             kind: 'talk',
             targetId: entity.id,
@@ -92,7 +87,7 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
         return;
     }
     if (entity instanceof Chest) {
-        host.stopPlayerCombat();
+        host.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
         host.kernel.setClientInteractionIntent({
             kind: 'open',
             targetId: entity.id,
@@ -102,5 +97,5 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
     }
 
     clearClientInteractionIntentWithSideEffects(host);
-    host.makePlayerGoTo(x, y);
+    host.kernel.enqueueClientCommand({ type: 'playerGoTo', x, y });
 }

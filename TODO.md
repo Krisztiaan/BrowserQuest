@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 13:35 UTC
+Last updated: 2026-02-12 13:44 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -34,7 +34,46 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 27. Ticket 64 (`done`) - Inline loot completion into system
 28. Ticket 65 (`done`) - ECS runtime event buffer (connection boundary)
 29. Ticket 66 (`done`) - Kernel-driven replication sync (reduce spawn/move handlers)
-30. Ticket 67 (`in_progress`) - Remove movement step hooks (spatial sync system)
+30. Ticket 67 (`done`) - Remove movement step hooks (spatial sync system)
+31. Ticket 68 (`in_progress`) - Client ECS command buffer + apply system
+
+## Ticket 68: Client ECS Command Buffer + Apply System
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Introduce a typed `ClientCommand` queue as a kernel resource.
+  - Add an ECS system that drains and applies client-side commands (movement, stop combat, etc.) via the host surface.
+  - Migrate click intent + interaction-intent clear side effects to enqueue commands instead of calling host methods directly.
+- Out of scope:
+  - Fully eliminating all host calls across every system (follow-up tickets can migrate remaining systems).
+  - Server protocol changes.
+- Acceptance criteria:
+  - A command queue exists in `ClientWorldKernel` and is drained by a single apply system each frame.
+  - `runClientClickIntentSystem()` no longer calls `makePlayerGoTo*` or `stopPlayerCombat` directly.
+  - Clearing an `attack` interaction intent no longer calls `stopPlayerCombat` directly (uses command).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 13:42 UTC
+- End: 2026-02-12 13:44 UTC
+- Status: `done`
+- Key actions:
+  - Added `ClientCommand` queue to `ClientWorldKernel` and `runClientCommandApplySystem()` to apply side effects.
+  - Migrated click intent system to emit commands (`stopPlayerCombat`, `playerGoTo`, `playerGoToItem`) instead of calling host methods.
+  - Migrated `clearClientInteractionIntentWithSideEffects()` to enqueue stop-combat as a command instead of calling host.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Migrate remaining systems (interaction + runtime events + zoning) to emit commands exclusively.
 
 ## Ticket 67: Remove Movement Step Hooks (Spatial Sync System)
 

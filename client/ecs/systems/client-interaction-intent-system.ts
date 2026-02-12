@@ -8,14 +8,13 @@ import Player from '../../player';
 import Character from '../../character';
 import Chest from '../../chest';
 import Exceptions from '../../exceptions';
+import type { ClientCommand } from '../client-commands';
 
-export function clearClientInteractionIntentWithSideEffects(host: {
-    kernel: ClientWorldKernel;
-    stopPlayerCombat(): void;
-}): void {
+export function clearClientInteractionIntentWithSideEffects(host: { kernel: ClientWorldKernel }): void {
     const prev = host.kernel.clientInteractionIntent;
     if (prev?.kind === 'attack') {
-        host.stopPlayerCombat();
+        const cmd: ClientCommand = { type: 'stopPlayerCombat' };
+        host.kernel.enqueueClientCommand(cmd);
     }
     if (prev?.kind === 'loot') {
         host.kernel.clearClientLootAttempt();
@@ -56,9 +55,6 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
 
     const target = host.entities[intent.targetId];
     if (!target) {
-        if (intent.kind === 'attack') {
-            host.stopPlayerCombat();
-        }
         clearClientInteractionIntentWithSideEffects(host);
         return;
     }
@@ -115,7 +111,6 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
 
     if (intent.kind === 'attack') {
         if (target instanceof Character && target.isDead) {
-            host.stopPlayerCombat();
             clearClientInteractionIntentWithSideEffects(host);
             return;
         }
