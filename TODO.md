@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 16:19 UTC
+Last updated: 2026-02-12 16:26 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -45,6 +45,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 38. Ticket 75 (`done`) - Combat tick via ECS commands
 39. Ticket 76 (`done`) - Remove legacy player interaction helpers
 40. Ticket 77 (`done`) - Protocol sends via ECS commands
+41. Ticket 78 (`done`) - Stabilize smoke parity timeout
 
 ## Ticket 72: MOVE Outbox Emits Commands Only
 
@@ -263,6 +264,36 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Final full verification sweep and ensure working tree is clean.
+
+## Ticket 78: Stabilize Smoke Parity Timeout
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Increase timeout budget for `tests/smoke/modern-gameplay-parity.test.ts` to reduce load-related flake timeouts.
+- Out of scope:
+  - Refactoring server startup/teardown or websocket runtime implementation.
+- Acceptance criteria:
+  - `bun test --timeout 20000` passes reliably under typical dev load (no 60s test timeout failures).
+  - Timeout change is limited to the affected smoke test.
+- Verification plan:
+  - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 20000`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 16:22 UTC
+- End: 2026-02-12 16:26 UTC
+- Status: `done`
+- Key actions:
+  - Increased `tests/smoke/modern-gameplay-parity.test.ts` timeout budgets (per-wait and per-test) to reduce load-related flakes.
+- Evidence:
+  - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 20000` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Commit and run final repository audit.
 
 ## Ticket 71: Replication Sync Emits Commands Only
 
