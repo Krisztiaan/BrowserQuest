@@ -83,6 +83,7 @@ import { ClientWorldKernel, type ClientInteractionIntent, type ClientInteraction
 import { ClientFrameScheduler } from './ecs/frame-scheduler';
 import { runClientCursorSystem } from './ecs/systems/client-cursor-system';
 import { runClientInteractionIntentSystem } from './ecs/systems/client-interaction-intent-system';
+import { runClientTimeSystem } from './ecs/systems/client-time-system';
 import { runClientUpdaterSystem } from './ecs/systems/client-updater-system';
 import { runClientRenderSystem } from './ecs/systems/client-render-system';
 
@@ -285,6 +286,7 @@ class Game extends Evented<GameEvents> {
         this.client = null;
         this.kernel = new ClientWorldKernel();
         this.frameScheduler = new ClientFrameScheduler<Game>();
+        this.frameScheduler.add('pre_update', (game) => runClientTimeSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
         this.frameScheduler.add('update', (game) => runClientUpdaterSystem(game));
         this.frameScheduler.add('post_update', (game) => game.runClientInteractionSystem());
@@ -919,11 +921,7 @@ class Game extends Evented<GameEvents> {
     }
 
     tick(): void {
-        this.currentTime = new Date().getTime();
-
-        if (this.started) {
-            this.frameScheduler.runFrame(this);
-        }
+        this.frameScheduler.runFrame(this);
 
         if (!this.isStopped) {
             requestAnimFrame(() => this.tick());

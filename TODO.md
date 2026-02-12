@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:09 UTC
+Last updated: 2026-02-12 12:15 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -21,6 +21,8 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 14. Ticket 51 (`done`) - Extract client interaction intent system module
 15. Ticket 52 (`done`) - Remove loot-moving player flag
 16. Ticket 53 (`done`) - Client frame scheduler (staged systems)
+17. Ticket 54 (`in_progress`) - Client frame scheduler: time + start gating
+18. Ticket 55 (`todo`) - Stabilize smoke WS welcome timeouts
 
 ## Ticket 45: Mobile Input + Item Loot Pickup
 
@@ -336,6 +338,58 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Optional: migrate additional per-frame behaviors (plateau/checkpoint, cleanup) into staged systems.
+
+## Ticket 54: Client Frame Scheduler: Time + Start Gating
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Move frame time update (`currentTime`) into a pre-update system.
+  - Run the frame scheduler every animation frame and gate systems on `game.started`.
+  - Ensure connection startup path (game loop starts before handshake) continues to work.
+- Out of scope:
+  - Changing game startup/handshake sequencing.
+  - Converting non-per-frame logic into systems.
+- Acceptance criteria:
+  - `Game.tick()` no longer assigns `currentTime` directly.
+  - Cursor/updater/interaction/render systems no-op when `started === false`.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:13 UTC
+- End: 2026-02-12 12:15 UTC
+- Status: `done`
+- Key actions:
+  - Added pre-update time system (`currentTime = Date.now()`).
+  - Made updater/render systems gate on `started`, so the scheduler can run every animation frame safely.
+  - Refactored `Game.tick()` to only run the scheduler + schedule the next frame.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Implement Ticket 55 (smoke welcome timeout stabilization).
+
+## Ticket 55: Stabilize Smoke WS Welcome Timeouts
+
+- Status: `todo`
+- Priority: P2
+- Scope:
+  - Reduce flakes in `tests/smoke/server-payload-guards.test.ts` by increasing `WELCOME` wait timeout.
+- Out of scope:
+  - Larger smoke harness refactors or server startup performance work.
+- Acceptance criteria:
+  - `bun test --timeout 20000` passes repeatedly without `Timed out waiting for WELCOME`.
+- Verification plan:
+  - `bun test --timeout 20000` (run twice)
+- Dependencies/blockers:
+  - None.
 
 ## Ticket 44: Single-Port Dev Runtime (PORT + Vite Proxy)
 
