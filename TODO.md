@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:20 UTC
+Last updated: 2026-02-12 12:25 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -24,6 +24,43 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 17. Ticket 54 (`done`) - Client frame scheduler: time + start gating
 18. Ticket 55 (`done`) - Stabilize smoke WS welcome timeouts
 19. Ticket 56 (`done`) - Remove legacy wrapper methods (cursor/interaction)
+20. Ticket 57 (`done`) - ECS hover state system (remove movecursor/updateCursor)
+
+## Ticket 57: ECS Hover State System (Remove `movecursor`/`updateCursor`)
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Compute hover flags + silhouette highlight via an ECS-style pre-update system.
+  - Remove `Game.movecursor()` and `Game.updateCursor()` legacy methods and their call sites.
+  - Remove legacy `updatePlayerHoverState()` helper (or make it private/unused).
+- Out of scope:
+  - Reworking click/touch input semantics beyond hover.
+- Acceptance criteria:
+  - Hover/cursor behavior unchanged on desktop.
+  - No remaining references to `movecursor` / `updateCursor`.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:22 UTC
+- End: 2026-02-12 12:25 UTC
+- Status: `done`
+- Key actions:
+  - Added per-frame hover-state system that sets hover flags + silhouette highlight before cursor selection.
+  - Removed legacy `movecursor` / `updateCursor` methods and removed caller hooks (spawn handlers, mousemove).
+  - Removed legacy `updatePlayerHoverState()` helper (superseded by hover system).
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: migrate click handling to an intent/command resource + system.
 
 ## Ticket 56: Remove Legacy Wrapper Methods (Cursor/Interaction)
 

@@ -711,9 +711,6 @@ function initGame(): void {
 
             document.addEventListener('mousemove', function (event: MouseEvent) {
                 app.setMouseCoordinates(event);
-                if (game.started) {
-                    game.movecursor();
-                }
             });
 
             document.addEventListener('keydown', function (e: KeyboardEvent) {

@@ -14,7 +14,7 @@ import {
     makePlayerTalkToNpc,
     movePlayerToItem,
 } from './game-player-interactions';
-import { processPlayerClick, updatePlayerHoverState } from './game-player-input';
+import { processPlayerClick } from './game-player-input';
 import {
     findFreeAdjacentNonDiagonalPosition,
     hasMobOnTile,
@@ -82,6 +82,7 @@ import { gridPos, type GridPos } from '../shared/domain/positions';
 import { ClientWorldKernel, type ClientInteractionIntent, type ClientInteractionKind } from './ecs/world-kernel';
 import { ClientFrameScheduler } from './ecs/frame-scheduler';
 import { runClientCursorSystem } from './ecs/systems/client-cursor-system';
+import { runClientHoverStateSystem } from './ecs/systems/client-hover-state-system';
 import { runClientInteractionIntentSystem } from './ecs/systems/client-interaction-intent-system';
 import { runClientTimeSystem } from './ecs/systems/client-time-system';
 import { runClientUpdaterSystem } from './ecs/systems/client-updater-system';
@@ -287,6 +288,7 @@ class Game extends Evented<GameEvents> {
         this.kernel = new ClientWorldKernel();
         this.frameScheduler = new ClientFrameScheduler<Game>();
         this.frameScheduler.add('pre_update', (game) => runClientTimeSystem(game));
+        this.frameScheduler.add('pre_update', (game) => runClientHoverStateSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
         this.frameScheduler.add('update', (game) => runClientUpdaterSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientInteractionIntentSystem(game));
@@ -1194,10 +1196,6 @@ class Game extends Evented<GameEvents> {
     /**
      *
      */
-    movecursor(): void {
-        updatePlayerHoverState(this);
-    }
-
     /**
      * Processes game logic when the user triggers a click/touch event during the game.
      */
@@ -1526,17 +1524,6 @@ class Game extends Evented<GameEvents> {
             );
             this.obsoleteEntities = null;
         }
-    }
-
-    /**
-     * Fake a mouse move event in order to update the cursor.
-     *
-     * For instance, to get rid of the sword cursor in case the mouse is still hovering over a dying mob.
-     * Also useful when the mouse is hovering a tile where an item is appearing.
-     */
-    updateCursor(): void {
-        this.movecursor();
-        runClientCursorSystem(this);
     }
 
     /**

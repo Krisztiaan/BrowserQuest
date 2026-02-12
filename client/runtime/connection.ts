@@ -115,7 +115,6 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
             return;
         }
         game.addItem(item as Parameters<Game['addItem']>[0], x, y);
-        game.updateCursor();
     });
 
     effects.on('spawnChest', function ({ game }, chest: unknown, x: number, y: number) {
@@ -126,7 +125,6 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
         entity.setSprite(game.sprites[entity.getSpriteName()]);
         entity.setGridPosition(x, y);
         game.addEntity(entity as unknown as Parameters<Game['addEntity']>[0]);
-        game.updateCursor();
     });
 
     effects.on(
