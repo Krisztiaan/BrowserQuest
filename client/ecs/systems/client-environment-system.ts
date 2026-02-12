@@ -1,5 +1,8 @@
+import type { ClientWorldKernel } from '../world-kernel';
+
 export type ClientEnvironmentSystemHost = Readonly<{
     started: boolean;
+    kernel: ClientWorldKernel;
     map: {
         isPlateau(x: number, y: number): boolean;
         getCurrentCheckpoint(player: unknown): { id?: string | number } | null;
@@ -12,8 +15,6 @@ export type ClientEnvironmentSystemHost = Readonly<{
               lastCheckpoint: { id?: string | number } | null;
           })
         | null;
-    client: { sendCheck(id: number | string): void } | null;
-    audioManager: { updateMusic(): void } | null;
 }>;
 
 export function runClientEnvironmentSystem(host: ClientEnvironmentSystemHost): void {
@@ -21,19 +22,21 @@ export function runClientEnvironmentSystem(host: ClientEnvironmentSystemHost): v
         return;
     }
 
-    host.player.isOnPlateau = host.map.isPlateau(host.player.gridX, host.player.gridY);
+    const isOnPlateau = host.map.isPlateau(host.player.gridX, host.player.gridY);
+    if (host.player.isOnPlateau !== isOnPlateau) {
+        host.kernel.enqueueClientCommand({ type: 'setPlayerIsOnPlateau', isOnPlateau });
+    }
 
     const checkpoint = host.map.getCurrentCheckpoint(host.player);
     if (checkpoint) {
         const lastId = host.player.lastCheckpoint?.id;
         if (lastId !== checkpoint.id) {
-            host.player.lastCheckpoint = checkpoint;
+            host.kernel.enqueueClientCommand({ type: 'setPlayerLastCheckpoint', checkpoint });
             if (checkpoint.id !== undefined) {
-                host.client?.sendCheck(checkpoint.id);
+                host.kernel.enqueueClientCommand({ type: 'clientSendCheck', checkpointId: checkpoint.id });
             }
         }
     }
 
-    host.audioManager?.updateMusic();
+    host.kernel.enqueueClientCommand({ type: 'audioUpdateMusic' });
 }
-

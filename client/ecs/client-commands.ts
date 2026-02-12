@@ -5,6 +5,10 @@ export type ClientCommand =
     | Readonly<{ type: 'stopPlayerCombat' }>
     | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
     | Readonly<{ type: 'enqueueZoningFrom'; x: number; y: number }>
+    | Readonly<{ type: 'setPlayerIsOnPlateau'; isOnPlateau: boolean }>
+    | Readonly<{ type: 'setPlayerLastCheckpoint'; checkpoint: { id?: string | number } | null }>
+    | Readonly<{ type: 'clientSendCheck'; checkpointId: string | number }>
+    | Readonly<{ type: 'audioUpdateMusic' }>
     | Readonly<{ type: 'playerGoTo'; x: number; y: number }>
     | Readonly<{ type: 'playerGoToItem'; itemId: EntityId }>
     | Readonly<{ type: 'playerAttack'; targetId: EntityId }>

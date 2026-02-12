@@ -35,6 +35,7 @@ export type ClientCommandApplySystemHost = {
         | {
               sendLoot(item: { id: EntityId }): void;
               sendMove(x: number, y: number): void;
+              sendCheck(id: string | number): void;
               sendOpen(chest: { id: EntityId }): void;
               sendWho(ids: EntityId[]): void;
           }
@@ -75,7 +76,7 @@ export type ClientCommandApplySystemHost = {
     addEntity(entity: unknown): void;
     showNotification(message: string): void;
     tryUnlockingAchievement(key: string): void;
-    audioManager: { playSound(key: string): void } | null;
+    audioManager: { playSound(key: string): void; updateMusic?(): void } | null;
     createBubble(entityId: EntityId, text: string): void;
     sprites: Record<string, unknown>;
     entities: Record<string, GridIndexedEntity>;
@@ -160,6 +161,29 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             }
             case 'enqueueZoningFrom': {
                 host.enqueueZoningFrom(command.x, command.y);
+                break;
+            }
+            case 'setPlayerIsOnPlateau': {
+                host.player.isOnPlateau = command.isOnPlateau;
+                break;
+            }
+            case 'setPlayerLastCheckpoint': {
+                if (!command.checkpoint || command.checkpoint.id === undefined) {
+                    host.player.lastCheckpoint = null;
+                    break;
+                }
+                host.player.lastCheckpoint = { id: command.checkpoint.id };
+                break;
+            }
+            case 'clientSendCheck': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendCheck(command.checkpointId);
+                break;
+            }
+            case 'audioUpdateMusic': {
+                host.audioManager?.updateMusic?.();
                 break;
             }
             case 'playerGoTo': {

@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 15:12 UTC
+Last updated: 2026-02-12 15:16 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -40,7 +40,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 33. Ticket 70 (`done`) - Runtime events emit commands only
 34. Ticket 71 (`done`) - Replication sync emits commands only
 35. Ticket 72 (`done`) - MOVE outbox emits commands only
-36. Ticket 73 (`todo`) - Environment system emits commands only
+36. Ticket 73 (`done`) - Environment system emits commands only
 37. Ticket 74 (`todo`) - Spatial sync emits commands only
 
 ## Ticket 72: MOVE Outbox Emits Commands Only
@@ -80,7 +80,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 73: Environment System Emits Commands Only
 
-- Status: `todo`
+- Status: `done`
 - Priority: P3
 - Scope:
   - Extend `ClientCommand` with environment side effects (checkpoint check + music update).
@@ -101,9 +101,17 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ### Progress log
 
-- Status: `todo`
+- Start: 2026-02-12 15:12 UTC
+- End: 2026-02-12 15:16 UTC
+- Status: `done`
+- Key actions:
+  - Converted `runClientEnvironmentSystem()` to emit commands only (plateau state, checkpoint change, sendCheck, updateMusic).
+  - Centralized player env state updates + side effects in `runClientCommandApplySystem()`.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
-  - Add environment commands and migrate `client-environment-system`.
+  - Migrate spatial/grid sync system to emit commands only and apply before hover/click.
 
 ## Ticket 74: Spatial Sync Emits Commands Only
 
