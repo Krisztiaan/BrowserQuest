@@ -3,6 +3,7 @@ import Item from '../../item';
 import Mob from '../../mob';
 import Npc from '../../npc';
 import type { EntityId } from '../../../shared/domain/ids';
+import { gridPos } from '../../../shared/domain/positions';
 import type { ClientWorldKernel } from '../world-kernel';
 
 export type ClientClickIntentSystemHost = Readonly<{
@@ -15,8 +16,8 @@ export type ClientClickIntentSystemHost = Readonly<{
     isZoningTile(x: number, y: number): boolean;
     getEntityAt(x: number, y: number): unknown;
 
-    setClientInteractionIntent(kind: 'attack' | 'talk' | 'open' | 'loot', targetId: EntityId): void;
     makePlayerGoToItem(item: Item | null): void;
+    stopPlayerCombat(): void;
 
     clearClientInteractionIntent(): void;
     makePlayerGoTo(x: number, y: number): void;
@@ -62,20 +63,41 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
 
     const entity = host.getEntityAt(x, y);
     if (entity instanceof Mob) {
-        host.setClientInteractionIntent('attack', entity.id);
+        host.stopPlayerCombat();
+        host.kernel.setClientInteractionIntent({
+            kind: 'attack',
+            targetId: entity.id,
+            lastKnownTargetPos: gridPos(entity.gridX, entity.gridY),
+        });
         return;
     }
     if (entity instanceof Item) {
-        host.setClientInteractionIntent('loot', entity.id);
+        host.stopPlayerCombat();
+        host.kernel.clearClientLootAttempt();
+        host.kernel.setClientInteractionIntent({
+            kind: 'loot',
+            targetId: entity.id,
+            lastKnownTargetPos: gridPos(entity.gridX, entity.gridY),
+        });
         host.makePlayerGoToItem(entity);
         return;
     }
     if (entity instanceof Npc) {
-        host.setClientInteractionIntent('talk', entity.id);
+        host.stopPlayerCombat();
+        host.kernel.setClientInteractionIntent({
+            kind: 'talk',
+            targetId: entity.id,
+            lastKnownTargetPos: gridPos(entity.gridX, entity.gridY),
+        });
         return;
     }
     if (entity instanceof Chest) {
-        host.setClientInteractionIntent('open', entity.id);
+        host.stopPlayerCombat();
+        host.kernel.setClientInteractionIntent({
+            kind: 'open',
+            targetId: entity.id,
+            lastKnownTargetPos: gridPos(entity.gridX, entity.gridY),
+        });
         return;
     }
 

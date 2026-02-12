@@ -495,19 +495,6 @@ class Game extends Evented<GameEvents> {
         this.clearClientInteractionIntent();
     }
 
-    setClientInteractionIntent(kind: ClientInteractionKind, targetId: EntityId): void {
-        this.stopPlayerCombat();
-
-        const target = this.entities[targetId];
-        const lastKnownTargetPos: GridPos | undefined = target ? gridPos(target.gridX, target.gridY) : undefined;
-        const intent: ClientInteractionIntent = { kind, targetId, lastKnownTargetPos };
-        this.kernel.setClientInteractionIntent(intent);
-
-        if (kind === 'loot') {
-            this.kernel.clearClientLootAttempt();
-        }
-    }
-
     clearClientInteractionIntent(): void {
         const prev = this.kernel.clientInteractionIntent;
         if (prev?.kind === 'attack') {

@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:43 UTC
+Last updated: 2026-02-12 12:46 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -29,6 +29,41 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 22. Ticket 59 (`done`) - ECS environment systems (plateau/checkpoint/music)
 23. Ticket 60 (`done`) - Move input/loot transient state into kernel
 24. Ticket 61 (`done`) - Remove begin* interaction methods
+25. Ticket 62 (`done`) - Remove setClientInteractionIntent method
+
+## Ticket 62: Remove `setClientInteractionIntent` Method
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Inline interaction intent creation into the click intent system (stop combat + set kernel intent + clear loot attempt).
+  - Remove legacy `Game.setClientInteractionIntent`.
+- Out of scope:
+  - Removing `clearClientInteractionIntent` (handled separately).
+- Acceptance criteria:
+  - Clicking interactables behaves the same.
+  - No remaining `Game.setClientInteractionIntent`.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:44 UTC
+- End: 2026-02-12 12:46 UTC
+- Status: `done`
+- Key actions:
+  - Click intent system now builds kernel interaction intents directly (stop combat, set intent, clear loot attempt).
+  - Removed legacy `Game.setClientInteractionIntent`.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: similarly remove `clearClientInteractionIntent` by inlining clear semantics in systems.
 
 ## Ticket 61: Remove `begin*` Interaction Methods
 
