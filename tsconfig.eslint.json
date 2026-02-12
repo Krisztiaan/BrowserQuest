@@ -8,6 +8,7 @@
     "noEmit": true,
     "strict": false,
     "strictNullChecks": true,
+    "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,

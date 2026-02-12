@@ -1,22 +1,23 @@
 import type { WorldMessage } from './contracts';
+import type { EntityId } from '../../shared/domain/ids';
 
 type MobForHate = {
     hitPoints: number;
-    increaseHateFor(playerId: number, hatePoints: number): void;
+    increaseHateFor(playerId: EntityId, hatePoints: number): void;
 };
 
 type PlayerForHate = {
     addHater(mob: unknown): void;
 };
 
-type GetEntityByIdForHate = (id: string | number) => unknown;
+type GetEntityByIdForHate = (id: EntityId) => unknown;
 type IsPlayerForHate = (entity: unknown) => entity is PlayerForHate;
 type IsMobForHate = (entity: unknown) => entity is MobForHate;
 type ChooseMobTarget = (mob: MobForHate) => void;
 
 type HandleWorldMobHateParams = {
-    mobId: string | number;
-    playerId: string | number;
+    mobId: EntityId;
+    playerId: EntityId;
     hatePoints: number;
     getEntityById: GetEntityByIdForHate;
     isPlayerForHate: IsPlayerForHate;
@@ -25,11 +26,11 @@ type HandleWorldMobHateParams = {
 };
 
 type MobHateEntry = {
-    id: string | number;
+    id: EntityId;
 };
 
 type MobWithLinks = {
-    target: string | number | null;
+    target: EntityId | null;
     hatelist: MobHateEntry[];
 };
 
@@ -38,7 +39,7 @@ type PlayerEntity = {
     removeHater(mob: unknown): void;
 };
 
-type GetEntityByIdForLinks = (id: string | number) => unknown;
+type GetEntityByIdForLinks = (id: EntityId) => unknown;
 type IsPlayerEntity = (entity: unknown) => entity is PlayerEntity;
 
 type ClearMobAggroLinkParams = {
@@ -54,18 +55,18 @@ type ClearMobHateLinksParams = {
 };
 
 type MobAggroEntity = {
-    id: string | number;
-    getHatedPlayerId(hateRank: number | null): string | number | undefined;
+    id: EntityId;
+    getHatedPlayerId(hateRank: number | null): EntityId | undefined;
     setTarget(target: unknown): void;
 };
 
 type PlayerAggroTarget = {
-    id: string | number;
+    id: EntityId;
     attackers: Record<string, unknown>;
     addAttacker(mob: unknown): void;
 };
 
-type GetEntityByIdForTarget = (id: string | number | undefined) => unknown;
+type GetEntityByIdForTarget = (id: EntityId | undefined) => unknown;
 type IsPlayerAggroTarget = (entity: unknown) => entity is PlayerAggroTarget;
 type ClearMobAggroLink = (mob: MobAggroEntity) => void;
 type BroadcastAttacker = (mob: MobAggroEntity) => void;
@@ -109,9 +110,7 @@ export function handleWorldMobHate({
     const player = getEntityById(playerId);
 
     if (isPlayerForHate(player) && isMobForHate(mob)) {
-        if (typeof playerId === 'number') {
-            mob.increaseHateFor(playerId, hatePoints);
-        }
+        mob.increaseHateFor(playerId, hatePoints);
         player.addHater(mob);
 
         if (mob.hitPoints > 0) {

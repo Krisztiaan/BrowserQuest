@@ -30,6 +30,7 @@ class Sprite {
     image: HTMLImageElement;
     whiteSprite: SpriteRenderData | undefined;
     silhouetteSprite: SpriteRenderData | Sprite;
+    private loadTimeout: ReturnType<typeof setTimeout> | null;
 
     constructor(name: string, scale: number) {
         this.name = name;
@@ -47,6 +48,7 @@ class Sprite {
 
         this.image = new Image();
         this.silhouetteSprite = this;
+        this.loadTimeout = null;
 
         const spriteData = sprites[name];
         if (!spriteData) {
@@ -72,13 +74,29 @@ class Sprite {
         this.image.crossOrigin = 'Anonymous';
         this.image.src = this.filepath;
 
-        this.image.onload = () => {
-            this.isLoaded = true;
-
-            if (this.onload_func) {
-                this.onload_func();
+        const finalize = (result: 'loaded' | 'error' | 'timeout'): void => {
+            if (this.isLoaded) {
+                return;
             }
+            if (this.loadTimeout) {
+                clearTimeout(this.loadTimeout);
+                this.loadTimeout = null;
+            }
+
+            if (result !== 'loaded') {
+                // Ensure rendering doesn't crash on broken images by substituting a 1x1 transparent PNG.
+                log.error(`Failed to load sprite asset (${result}): ${this.filepath}`);
+                this.image.src =
+                    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO0f1eQAAAAASUVORK5CYII=';
+            }
+
+            this.isLoaded = true;
+            this.onload_func?.();
         };
+
+        this.image.onload = () => finalize('loaded');
+        this.image.onerror = () => finalize('error');
+        this.loadTimeout = setTimeout(() => finalize('timeout'), 15_000);
     }
 
     createAnimations(): Record<string, Animation> {
@@ -93,6 +111,10 @@ class Sprite {
     }
 
     createHurtSprite(): void {
+        if (!this.isLoaded || !this.image || !this.image.complete || this.image.naturalWidth === 0) {
+            return;
+        }
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         const width = this.image.width;
@@ -106,27 +128,20 @@ class Sprite {
         canvas.height = height;
         ctx.drawImage(this.image, 0, 0, width, height);
 
-        try {
-            const spriteData = ctx.getImageData(0, 0, width, height);
-            const data = spriteData.data;
+        // Avoid `getImageData` (tainted canvas in some browsers, and unnecessary).
+        ctx.globalCompositeOperation = 'source-in';
+        ctx.fillStyle = 'rgb(255, 75, 75)';
+        ctx.fillRect(0, 0, width, height);
+        ctx.globalCompositeOperation = 'source-over';
 
-            for (let i = 0; i < data.length; i += 4) {
-                data[i] = 255;
-                data[i + 1] = data[i + 2] = 75;
-            }
-            ctx.putImageData(spriteData, 0, 0);
-
-            this.whiteSprite = {
-                image: canvas,
-                isLoaded: true,
-                offsetX: this.offsetX,
-                offsetY: this.offsetY,
-                width: this.width,
-                height: this.height,
-            };
-        } catch (_e) {
-            log.error('Error getting image data for sprite : ' + this.name);
-        }
+        this.whiteSprite = {
+            image: canvas,
+            isLoaded: true,
+            offsetX: this.offsetX,
+            offsetY: this.offsetY,
+            width: this.width,
+            height: this.height,
+        };
     }
 
     getHurtSprite(): SpriteRenderData | undefined {

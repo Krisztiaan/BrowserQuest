@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { applyLootFeedback } from '../../client/game-session/player/loot-feedback';
+import { applyLootFeedback } from '../../client/runtime/player/loot-feedback';
 import Types from '../../shared/gametypes-browser';
 
 test('applyLootFeedback triggers achievements and sound for firepotion', () => {

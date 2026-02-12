@@ -12,11 +12,12 @@ import Item from './item';
 import MobArea from './mobarea';
 import ChestArea from './chestarea';
 import Chest from './chest';
-import Messages from './message';
-import Properties from './properties';
 import Utils from './utils';
+import {
+    buildListAction,
+    buildMoveAction,
+} from './protocol/outbound-actions';
 import { installWorldPlayerLifecycle } from './world/player-lifecycle';
-import { installWorldRuntimeEvents } from './world/runtime-events';
 import { startWorldUpdateLoop } from './world/update-loop';
 import { bootstrapWorldMapRuntime } from './world/map-bootstrap';
 import { isMapChestAreaConfig, isMapChestConfig, isMapMobAreaConfig } from './world/map-config';
@@ -36,26 +37,21 @@ import {
     createWorldChest,
     createWorldItem,
     handleEmptyChestAreaRefill,
-    handleOpenedChestOrchestration,
     spawnStaticEntitiesForWorld,
-    scheduleWorldItemDespawn,
 } from './world/chest-item-lifecycle';
-import { handleWorldHurtEntity } from './world/hurt-entity';
 import {
-    broadcastWorldAttacker,
     despawnWorldEntity,
-    findWorldPositionNextTo,
     getWorldEntityById,
-    handleWorldPlayerVanish,
     isWorldPositionValid,
     moveWorldEntity,
     selectDroppedItemForMob,
 } from './world/entity';
+import { requireMobPrefab } from '../shared/content/prefabs';
+import { SERVER_PLUGIN_API_VERSION, type ServerPlugin } from './plugins/contracts';
 import {
     forEachEntityInWorldMap,
     forEachWorldCharacter,
     initializeWorldZoneGroups,
-    processWorldGroups,
     processWorldOutgoingQueues,
     pushRelevantEntityListToPlayer,
     pushWorldSpawnsToPlayer,
@@ -68,10 +64,8 @@ import {
     removeEntityFromWorldGroups,
 } from './world/group-membership';
 import {
-    chooseWorldMobTarget,
     clearWorldMobAggroLink,
     clearWorldMobHateLinks,
-    handleWorldMobHate,
     handleWorldMobMoveCallback,
 } from './world/mob-orchestration';
 import {
@@ -93,14 +87,16 @@ import {
 } from './world/push';
 import Types from '../shared/gametypes-browser';
 import { Evented } from '../shared/evented';
+import type { EntityId } from '../shared/domain/ids';
+import { entityIdFromWire } from '../shared/domain/ids';
+import type { Command } from './ecs/commands';
+import { WorldEcsCommandPipeline } from './world/ecs-command-pipeline';
 const log = Log.getLogger();
 const logWorldQueueError = (errorMessage: string): void => {
     log.error(errorMessage);
 };
 
 // ======= GAME SERVER ========
-
-type EntityId = string | number;
 
 type WorldEntity = Entity;
 type WorldPlayer = Player;
@@ -124,11 +120,10 @@ type WorldMapLike = {
     staticChests?: unknown[];
 };
 type SpawnableEntity = {
-    id: number;
+    id: EntityId;
     x: number;
     y: number;
     kind: EntityKind;
-    getState(): Array<number | string>;
 };
 const isSpawnableEntity = (entity: unknown): entity is SpawnableEntity =>
     typeof entity === 'object' &&
@@ -136,15 +131,14 @@ const isSpawnableEntity = (entity: unknown): entity is SpawnableEntity =>
     typeof (entity as { id?: unknown }).id === 'number' &&
     typeof (entity as { x?: unknown }).x === 'number' &&
     typeof (entity as { y?: unknown }).y === 'number' &&
-    typeof (entity as { kind?: unknown }).kind === 'number' &&
-    typeof (entity as { getState?: unknown }).getState === 'function';
+    (typeof (entity as { kind?: unknown }).kind === 'number' || typeof (entity as { kind?: unknown }).kind === 'string');
 
 type WorldConnection = {
     send(payload: unknown): void;
 };
 
 type WorldServerLike = {
-    getConnection(id: string | number): WorldConnection | undefined;
+    getConnection(id: string): WorldConnection | undefined;
 };
 
 type WorldGroup = {
@@ -152,22 +146,14 @@ type WorldGroup = {
     players: EntityId[];
     incoming: WorldEntity[];
 };
-type WorldAttackEvent = {
-    id: string | number;
-    group: string;
-    attack(): WorldMessage;
-    target?: EntityId | null;
-    type?: string;
-};
 
 type WorldEvents = {
+    ready: [];
     init: [];
     playerConnect: [player: WorldPlayer];
     playerEnter: [player: WorldPlayer];
     playerAdded: [];
     playerRemoved: [];
-    regenTick: [];
-    entityAttack: [attacker: WorldAttackEvent];
 };
 
 class World extends Evented<WorldEvents> {
@@ -196,8 +182,12 @@ class World extends Evented<WorldEvents> {
     playerCount: number;
 
     zoneGroupsReady: boolean;
+    ecsPipeline: WorldEcsCommandPipeline;
+    pendingPlayers: Record<string, WorldPlayer>;
+    plugins: ServerPlugin[];
+    pluginsInstalled: boolean;
 
-    constructor(id: string, maxPlayers: number, websocketServer: WorldServerLike) {
+    constructor(id: string, maxPlayers: number, websocketServer: WorldServerLike, plugins?: readonly ServerPlugin[]) {
         super();
 
         this.id = id;
@@ -225,14 +215,70 @@ class World extends Evented<WorldEvents> {
         this.playerCount = 0;
 
         this.zoneGroupsReady = false;
+        this.pendingPlayers = {};
         installWorldPlayerLifecycle(this);
-        installWorldRuntimeEvents(this);
+        this.ecsPipeline = new WorldEcsCommandPipeline(this);
+        this.plugins = Array.isArray(plugins) ? [...plugins] : [];
+        this.pluginsInstalled = false;
+
+        this.on('playerConnect', (player) => {
+            const key = String(player.id);
+            this.pendingPlayers[key] = player;
+            player.on('exit', () => {
+                delete this.pendingPlayers[key];
+            });
+        });
+        this.on('playerEnter', (player) => {
+            delete this.pendingPlayers[String(player.id)];
+        });
+    }
+
+    enqueueCommand(command: Command): void {
+        this.ecsPipeline.enqueue(command);
+    }
+
+    getConnectionPlayerById(playerId: EntityId): Player | null {
+        const key = String(playerId);
+        const active = this.players[key];
+        if (active) {
+            return active;
+        }
+        return this.pendingPlayers[key] ?? null;
+    }
+
+    installPlugins(): void {
+        if (this.pluginsInstalled) {
+            return;
+        }
+        this.pluginsInstalled = true;
+
+        const ctx = Object.freeze({
+            apiVersion: SERVER_PLUGIN_API_VERSION,
+            world: this as unknown,
+            ecs: Object.freeze({
+                registerSystem: this.ecsPipeline.registerSystem.bind(this.ecsPipeline),
+            }),
+        });
+
+        for (let i = 0; i < this.plugins.length; i += 1) {
+            const plugin = this.plugins[i];
+            if (!plugin) {
+                continue;
+            }
+            try {
+                plugin.install(ctx);
+            } catch (err) {
+                log.error(`Plugin "${plugin.id}" failed to install: ${String(err)}`);
+                throw err;
+            }
+        }
     }
 
     run(mapFilePath: string) {
         const self = this;
 
         this.map = new Map(mapFilePath);
+        this.installPlugins();
 
         this.map.ready(function () {
             bootstrapWorldMapRuntime({
@@ -271,6 +317,7 @@ class World extends Evented<WorldEvents> {
         startWorldUpdateLoop(this, this.ups);
 
         log.info('' + this.id + ' created (capacity: ' + this.maxPlayers + ' players).');
+        this.emit('ready');
     }
 
     setUpdatesPerSecond(ups: number) {
@@ -283,12 +330,13 @@ class World extends Evented<WorldEvents> {
             groups: this.groups,
             pushToPlayer: this.pushToPlayer.bind(this),
             createListMessage(entityIds) {
-                return new Messages.List(entityIds);
+                return buildListAction(entityIds);
             },
         });
     }
 
-    pushSpawnsToPlayer(player: WorldPlayer, ids: string[]) {
+    pushSpawnsToPlayer(player: WorldPlayer, ids: EntityId[]) {
+        const pipeline = this.ecsPipeline;
         pushWorldSpawnsToPlayer({
             player,
             ids,
@@ -296,7 +344,7 @@ class World extends Evented<WorldEvents> {
             isSpawnableEntity,
             pushToPlayer: this.pushToPlayer.bind(this),
             createSpawnMessage(entity) {
-                return new Messages.Spawn(entity);
+                return pipeline.buildSpawnActionForLegacyEntity(entity);
             },
             logDebug(message) {
                 log.debug(message);
@@ -370,10 +418,18 @@ class World extends Evented<WorldEvents> {
     }
 
     processQueues() {
+        this.ecsPipeline.tick();
         processWorldOutgoingQueues(this.outgoingQueues, this.server.getConnection.bind(this.server));
     }
 
     addEntity(entity) {
+        if (isSpawnableEntity(entity)) {
+            try {
+                this.ecsPipeline.syncSpawnReplicationEntity(entity);
+            } catch (err) {
+                log.error('ecsPipeline.syncSpawnReplicationEntity failed: ' + String(err));
+            }
+        }
         addWorldEntity({
             entity,
             entities: this.entities,
@@ -395,6 +451,15 @@ class World extends Evented<WorldEvents> {
                 log.debug(message);
             },
         });
+
+        if (entity instanceof Item && entity.isStatic) {
+            this.ecsPipeline.scheduleStaticRespawn(entity);
+        }
+
+        if (entity && typeof entity === 'object' && typeof (entity as { id?: unknown }).id === 'number') {
+            const id = (entity as { id: EntityId }).id;
+            this.ecsPipeline.removeEntity(id);
+        }
     }
 
     addPlayer(player) {
@@ -405,10 +470,17 @@ class World extends Evented<WorldEvents> {
             outgoingQueues: this.outgoingQueues,
         });
 
+        try {
+            this.ecsPipeline.syncSpawnReplicationEntity(player);
+        } catch (err) {
+            log.error('ecsPipeline.syncSpawnReplicationEntity failed: ' + String(err));
+        }
+
         //log.info("Added player : " + player.id);
     }
 
     removePlayer(player) {
+        this.ecsPipeline.removeEntity(player.id);
         removeWorldPlayer({
             player,
             removeEntity: this.removeEntity.bind(this),
@@ -430,7 +502,8 @@ class World extends Evented<WorldEvents> {
             kind,
             x,
             y,
-            createNpc: (npcKind, npcX, npcY) => new Npc('8' + npcX + '' + npcY, npcKind, npcX, npcY),
+            createNpc: (npcKind, npcX, npcY) =>
+                new Npc(entityIdFromWire(Number('8' + npcX + '' + npcY)), npcKind, npcX, npcY),
             addEntity: this.addEntity.bind(this),
             npcs: this.npcs,
         });
@@ -450,7 +523,7 @@ class World extends Evented<WorldEvents> {
             x,
             y,
             chestKind: Types.Entities.CHEST,
-            nextItemId: () => '9' + this.itemCount++,
+            nextItemId: () => entityIdFromWire(Number('9' + this.itemCount++)),
             createChest: (id, chestX, chestY) => new Chest(id, chestX, chestY),
             createItem: (id, itemKind, itemX, itemY) => new Item(id, itemKind, itemX, itemY),
         });
@@ -530,38 +603,6 @@ class World extends Evented<WorldEvents> {
         });
     }
 
-    handleMobHate(mobId: EntityId, playerId: EntityId, hatePoints: number) {
-        handleWorldMobHate({
-            mobId,
-            playerId,
-            hatePoints,
-            getEntityById: this.getEntityById.bind(this),
-            isPlayerForHate(entity): entity is Player {
-                return entity instanceof Player;
-            },
-            isMobForHate(entity): entity is Mob {
-                return entity instanceof Mob;
-            },
-            chooseMobTarget: this.chooseMobTarget.bind(this),
-        });
-    }
-
-    chooseMobTarget(mob: Mob, hateRank: number | null = null) {
-        chooseWorldMobTarget({
-            mob,
-            hateRank,
-            getEntityById: this.getEntityById.bind(this),
-            isPlayerAggroTarget(entity): entity is Player {
-                return entity instanceof Player;
-            },
-            clearMobAggroLink: this.clearMobAggroLink.bind(this),
-            broadcastAttacker: this.broadcastAttacker.bind(this),
-            logDebug(message) {
-                log.debug(message);
-            },
-        });
-    }
-
     getEntityById(id) {
         return getWorldEntityById({
             entities: this.entities,
@@ -574,34 +615,6 @@ class World extends Evented<WorldEvents> {
 
     getPlayerCount() {
         return countPlayersInWorld(this.players);
-    }
-
-    broadcastAttacker(character) {
-        broadcastWorldAttacker(character, this.pushToAdjacentGroups.bind(this), (attacker) => {
-            if (attacker) {
-                this.emit('entityAttack', attacker);
-            }
-        });
-    }
-
-    handleHurtEntity(entity, attacker, damage) {
-        handleWorldHurtEntity({
-            entity,
-            attacker,
-            damage,
-            pushToPlayer: this.pushToPlayer.bind(this),
-            pushToAdjacentGroups: this.pushToAdjacentGroups.bind(this),
-            getDroppedItem: this.getDroppedItem.bind(this),
-            handleItemDespawn: this.handleItemDespawn.bind(this),
-            handlePlayerVanish: this.handlePlayerVanish.bind(this),
-            removeEntity: this.removeEntity.bind(this),
-            createDamageMessage(mob, hurtDamage) {
-                return new Messages.Damage(mob, hurtDamage);
-            },
-            createKillMessage(mob) {
-                return new Messages.Kill(mob);
-            },
-        });
     }
 
     despawn(entity) {
@@ -638,14 +651,6 @@ class World extends Evented<WorldEvents> {
         return isWorldPositionValid(this.map, x, y);
     }
 
-    handlePlayerVanish(player) {
-        handleWorldPlayerVanish({
-            player,
-            chooseMobTarget: this.chooseMobTarget.bind(this),
-            handleEntityGroupMembership: this.handleEntityGroupMembership.bind(this),
-        });
-    }
-
     setPlayerCount(count) {
         setWorldPlayerCount(this, count);
     }
@@ -659,11 +664,10 @@ class World extends Evented<WorldEvents> {
     }
 
     getDroppedItem(mob) {
+        const prefab = requireMobPrefab((mob as { kind: EntityKind }).kind);
         return selectDroppedItemForMob({
             mob,
-            propertiesByKind: Properties as Record<string, { drops?: Record<string, number> }>,
-            resolveKindAsString: Types.getKindAsString.bind(Types),
-            resolveKindFromString: Types.getKindFromString.bind(Types),
+            drops: prefab.drops,
             randomInt: Utils.random.bind(Utils),
             createAndAddDrop: (kind, x, y) => this.addItem(this.createItem(kind, x, y)),
         });
@@ -674,14 +678,10 @@ class World extends Evented<WorldEvents> {
             mob,
             pushToAdjacentGroups: this.pushToAdjacentGroups.bind(this),
             createMoveMessage(entity) {
-                return new Messages.Move(entity);
+                return buildMoveAction(entity.id as EntityId, entity.x as number, entity.y as number);
             },
             handleEntityGroupMembership: this.handleEntityGroupMembership.bind(this),
         });
-    }
-
-    findPositionNextTo(entity, target) {
-        return findWorldPositionNextTo(entity, target, this.isValidPosition.bind(this));
     }
 
     initZoneGroups() {
@@ -752,25 +752,16 @@ class World extends Evented<WorldEvents> {
     }
 
     processGroups() {
-        const self = this;
-        processWorldGroups({
-            zoneGroupsReady: self.zoneGroupsReady,
-            forEachGroup(callback) {
-                self.map.forEachGroup(callback);
-            },
-            getIncoming(groupId) {
-                return self.groups[groupId].incoming;
-            },
-            pushSpawnToGroup(groupId, entity, ignoredPlayerId) {
-                self.pushToGroup(
-                    groupId,
-                    new Messages.Spawn(entity as unknown as ConstructorParameters<typeof Messages.Spawn>[0]),
-                    ignoredPlayerId ?? null
-                );
-            },
-            isSpawnableEntity(entity) {
-                return isSpawnableEntity(entity);
-            },
+        // ECS interest replication owns SPAWN/DESPAWN now; legacy group "incoming" queues are drained
+        // only to keep memory bounded while migration completes.
+        if (!this.zoneGroupsReady) {
+            return;
+        }
+        this.map.forEachGroup((groupId) => {
+            const group = this.groups[groupId];
+            if (group && Array.isArray(group.incoming)) {
+                group.incoming.length = 0;
+            }
         });
     }
 
@@ -784,17 +775,15 @@ class World extends Evented<WorldEvents> {
     }
 
     handleItemDespawn(item) {
-        scheduleWorldItemDespawn(this, item);
+        if (item && typeof item === 'object' && typeof (item as { id?: unknown }).id === 'number') {
+            this.ecsPipeline.scheduleItemDespawn(item as { id: EntityId });
+        }
     }
 
     handleEmptyMobArea(area) {}
 
     handleEmptyChestArea(area) {
         handleEmptyChestAreaRefill(this, area);
-    }
-
-    handleOpenedChest(chest, player) {
-        handleOpenedChestOrchestration(this, chest);
     }
 
     tryAddingMobToChestArea(mob) {

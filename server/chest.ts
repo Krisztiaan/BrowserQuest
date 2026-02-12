@@ -1,4 +1,5 @@
 import type { EntityKindId } from '../shared/entity-kind-domain';
+import type { EntityId } from '../shared/domain/ids';
 
 import Utils from './utils';
 import Item from './item';
@@ -7,7 +8,7 @@ import Types from '../shared/gametypes-browser';
 class Chest extends Item {
     items: unknown[];
 
-    constructor(id: number | string, x: number, y: number) {
+    constructor(id: EntityId, x: number, y: number) {
         super(id, Types.Entities.CHEST, x, y);
         this.items = [];
     }

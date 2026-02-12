@@ -5,6 +5,10 @@
     "strict": false,
     "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-tools.tsbuildinfo"
   },
-  "include": ["tools/**/*.ts", "shared/gametypes-browser.ts", "shared/entity-kind-domain.ts"],
+  "include": [
+    "tools/**/*.ts",
+    "server/ecs/**/*.ts",
+    "shared/**/*.ts"
+  ],
   "exclude": ["node_modules/**", "dist/**"]
 }

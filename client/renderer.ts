@@ -218,8 +218,10 @@ class Renderer {
         this.initFont();
         this.initFPS();
 
-        if (!this.upscaledRendering && this.game.map.tilesets) {
-            this.setTileset(this.game.map.tilesets[this.scale - 1]);
+        const tilesets = (this.game as unknown as { map?: { tilesets?: Array<HTMLImageElement | undefined> } | null }).map
+            ?.tilesets;
+        if (!this.upscaledRendering && tilesets) {
+            this.setTileset(tilesets[this.scale - 1]);
         }
         if (this.game.renderer) {
             this.game.setSpriteScale(this.scale);

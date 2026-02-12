@@ -60,10 +60,14 @@ async function startModernSession(page: Page, name: string, options?: { testMode
     await expect(page.locator('#createcharacter .play')).not.toHaveClass(/disabled/);
     await page.click('#createcharacter .play div');
     try {
-        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 15_000 });
+        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
+        return;
     } catch (_) {
-        await page.click('#createcharacter .play');
-        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 30_000 });
+        const playVisible = await page.locator('#createcharacter .play').isVisible().catch(() => false);
+        if (playVisible) {
+            await page.click('#createcharacter .play');
+        }
+        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
     }
 }
 

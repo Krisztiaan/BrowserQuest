@@ -1,12 +1,21 @@
 import { runBridgeProbeIfEnabled } from './bridge-probe';
+import { runEcsSchedulerProbeIfEnabled } from './ecs-scheduler-probe';
 import { resolveRuntimeOptions } from './options';
+import { getPluginSpecsFromConfig, loadServerPlugins, wrapWorldServerConstructorWithPlugins } from '../plugins/loader';
+import type { RuntimeWorldServerConstructor } from '../runtime-types';
 
 type BridgeProbeParams = Parameters<typeof runBridgeProbeIfEnabled>[0];
+type EcsProbeParams = Parameters<typeof runEcsSchedulerProbeIfEnabled>[0];
 type StartupWsImport = () => Promise<{ default: unknown; [key: string]: unknown }>;
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 export async function runStartup({
     activeConfig,
     env,
+    cwd,
     emitStructuredEvent,
     emitProbeEvent,
     importWsRuntime,
@@ -14,10 +23,12 @@ export async function runStartup({
     startServer,
     fail,
     runBridgeProbeFn = runBridgeProbeIfEnabled,
+    runEcsSchedulerProbeFn = runEcsSchedulerProbeIfEnabled,
     resolveRuntimeOptionsFn = resolveRuntimeOptions,
 }: {
     activeConfig: object;
     env: NodeJS.ProcessEnv;
+    cwd?: string;
     emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
     emitProbeEvent: (level: string, fields: Record<string, unknown>) => void;
     importWsRuntime: StartupWsImport;
@@ -25,6 +36,7 @@ export async function runStartup({
     startServer: (config: object, runtimeOptions?: unknown) => void;
     fail: (code: number) => void;
     runBridgeProbeFn?: (params: BridgeProbeParams) => Promise<void>;
+    runEcsSchedulerProbeFn?: (params: EcsProbeParams) => Promise<void>;
     resolveRuntimeOptionsFn?: (params: {
         env: NodeJS.ProcessEnv;
         emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
@@ -40,6 +52,12 @@ export async function runStartup({
         fail,
     });
 
+    await runEcsSchedulerProbeFn({
+        env,
+        emitProbeEvent,
+        fail,
+    });
+
     const runtimeOptions = await resolveRuntimeOptionsFn({
         env,
         emitStructuredEvent,
@@ -48,9 +66,48 @@ export async function runStartup({
         fail,
     });
 
-    startServer(activeConfig, runtimeOptions);
+    const pluginSpecs = getPluginSpecsFromConfig(activeConfig);
+    let effectiveRuntimeOptions: unknown = runtimeOptions;
 
-    return { runtimeOptions };
+    if (pluginSpecs.length > 0) {
+        try {
+            const plugins = await loadServerPlugins(pluginSpecs, { baseDir: cwd ?? process.cwd() });
+
+            const optionsObject = isPlainObject(runtimeOptions) ? runtimeOptions : {};
+            const dependencies = isPlainObject(optionsObject.dependencies) ? optionsObject.dependencies : {};
+            const resolvedDependencies = createRuntimeDependencies(dependencies) as { WorldServer?: unknown };
+            const baseWorldServer = resolvedDependencies.WorldServer;
+            if (typeof baseWorldServer !== 'function') {
+                throw new Error('Runtime dependency seam did not provide a constructable WorldServer.');
+            }
+
+            effectiveRuntimeOptions = {
+                ...optionsObject,
+                dependencies: {
+                    ...dependencies,
+                    WorldServer: wrapWorldServerConstructorWithPlugins(
+                        baseWorldServer as unknown as RuntimeWorldServerConstructor,
+                        plugins
+                    ),
+                },
+            };
+
+            emitStructuredEvent('info', 'startup_plugins_loaded', {
+                plugins: plugins.map((plugin) => plugin.id),
+            });
+        } catch (err) {
+            emitStructuredEvent('error', 'startup_plugins_load_failed', {
+                specs: pluginSpecs,
+                error: String(err),
+            });
+            fail(1);
+            return { runtimeOptions };
+        }
+    }
+
+    startServer(activeConfig, effectiveRuntimeOptions);
+
+    return { runtimeOptions: effectiveRuntimeOptions };
 }
 
 export default {

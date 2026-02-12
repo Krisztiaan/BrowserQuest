@@ -45,6 +45,27 @@ export function createWebSocketRuntimeClasses({
         return typeof socket.remoteAddress === 'string' ? socket.remoteAddress : 'unknown';
     }
 
+    function formatCloseReason(error: unknown): string {
+        if (error === null || error === undefined) {
+            return '';
+        }
+        if (typeof error === 'string') {
+            return error;
+        }
+        if (typeof error === 'number' || typeof error === 'boolean' || typeof error === 'bigint') {
+            return String(error);
+        }
+        if (error instanceof Error) {
+            return error.message ? `${error.name}: ${error.message}` : error.name;
+        }
+        try {
+            const json = JSON.stringify(error);
+            return typeof json === 'string' ? json : 'unknown_error';
+        } catch (_) {
+            return 'unknown_error';
+        }
+    }
+
     class Server extends Evented<WebSocketRuntimeServerEvents> {
         port: number;
         _connections: Record<string, RuntimeConnection>;
@@ -127,7 +148,7 @@ export function createWebSocketRuntimeClasses({
         }
 
         close(logError: unknown, closeCode?: number) {
-            const reason = String(logError ?? '');
+            const reason = formatCloseReason(logError);
             const sanitizedReason = reason.length > 120 ? reason.slice(0, 117) + '...' : reason;
             const code = Number.isInteger(closeCode) ? closeCode : CLOSE_CODES.NORMAL;
             log.info('Closing connection to ' + this.remoteAddress + '. Error: ' + reason);

@@ -1,12 +1,13 @@
 import type { WorldMessage } from './contracts';
+import type { EntityId } from '../../shared/domain/ids';
 
 type AttackingCharacter = {
     group: string;
-    id: string | number;
+    id: EntityId;
     attack(): WorldMessage;
 };
 
-type PushToAdjacentGroupsWithIgnored = (groupId: string, message: WorldMessage, ignoredPlayer?: string | number | null) => void;
+type PushToAdjacentGroupsWithIgnored = (groupId: string, message: WorldMessage, ignoredPlayer?: EntityId | null) => void;
 type AttackCallback = (character: AttackingCharacter | null | undefined) => void;
 
 type MobForDrop = {
@@ -15,30 +16,29 @@ type MobForDrop = {
     y: number;
 };
 
-type PropertiesByKind = Record<string, { drops?: Record<string, number> }>;
-
-type ResolveKindAsString = (kind: number) => string | null;
-type ResolveKindFromString = (kindName: string) => number;
 type RandomInt = (max: number) => number;
 type CreateAndAddDrop = (kind: number, x: number, y: number) => unknown;
 
+type DropTableEntry = Readonly<{
+    kind: number;
+    chance: number;
+}>;
+
 type SelectDroppedItemForMobParams = {
     mob: MobForDrop;
-    propertiesByKind: PropertiesByKind;
-    resolveKindAsString: ResolveKindAsString;
-    resolveKindFromString: ResolveKindFromString;
+    drops: readonly DropTableEntry[];
     randomInt: RandomInt;
     createAndAddDrop: CreateAndAddDrop;
 };
 
 type DespawnableEntity = {
-    id: string | number;
+    id: EntityId;
     group: string;
     despawn(): WorldMessage;
 };
 
 type PushToAdjacentGroups = (groupId: string, message: WorldMessage) => void;
-type HasEntityFn = (entityId: string | number) => boolean;
+type HasEntityFn = (entityId: EntityId) => boolean;
 type RemoveEntityFn = (entity: DespawnableEntity) => void;
 
 type DespawnWorldEntityParams = {
@@ -50,11 +50,11 @@ type DespawnWorldEntityParams = {
 
 type AttackingMob = {
     clearTarget(): void;
-    forgetPlayer(playerId: string | number, timeoutMs: number): void;
+    forgetPlayer(playerId: EntityId, timeoutMs: number): void;
 };
 
 type VanishingPlayer = {
-    id: string | number;
+    id: EntityId;
     forEachAttacker(callback: (mob: AttackingMob) => void): void;
     removeAttacker(mob: AttackingMob): void;
 };
@@ -73,7 +73,7 @@ type LogError = (message: string) => void;
 
 type GetWorldEntityByIdParams = {
     entities: WorldEntities;
-    id: string | number;
+    id: EntityId;
     logError: LogError;
 };
 
@@ -112,7 +112,10 @@ export function broadcastWorldAttacker(
     onAttackCallback?: AttackCallback
 ): void {
     if (character) {
-        pushToAdjacentGroups(character.group, character.attack(), character.id);
+        const attackMessage = character.attack();
+        if (attackMessage) {
+            pushToAdjacentGroups(character.group, attackMessage, character.id);
+        }
     }
     if (onAttackCallback) {
         onAttackCallback(character);
@@ -121,27 +124,22 @@ export function broadcastWorldAttacker(
 
 export function selectDroppedItemForMob({
     mob,
-    propertiesByKind,
-    resolveKindAsString,
-    resolveKindFromString,
+    drops,
     randomInt,
     createAndAddDrop,
 }: SelectDroppedItemForMobParams): unknown {
-    const kind = resolveKindAsString(mob.kind);
-    if (!kind) {
-        return null;
-    }
-
-    const drops = propertiesByKind[kind]?.drops || {};
     const randomValue = randomInt(100);
     let threshold = 0;
     let item: unknown = null;
 
-    for (const itemName in drops) {
-        const percentage = drops[itemName] ?? 0;
-        threshold += percentage;
+    for (let i = 0; i < drops.length; i += 1) {
+        const entry = drops[i];
+        if (!entry) {
+            continue;
+        }
+        threshold += entry.chance;
         if (randomValue <= threshold) {
-            item = createAndAddDrop(resolveKindFromString(itemName), mob.x, mob.y);
+            item = createAndAddDrop(entry.kind, mob.x, mob.y);
             break;
         }
     }
@@ -184,8 +182,9 @@ export function handleWorldPlayerVanish({
 }
 
 export function getWorldEntityById({ entities, id, logError }: GetWorldEntityByIdParams): unknown {
-    if (id in entities) {
-        return entities[id];
+    const key = String(id);
+    if (key in entities) {
+        return entities[key];
     }
 
     logError('Unknown entity : ' + id);

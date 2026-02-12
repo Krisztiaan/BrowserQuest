@@ -1,9 +1,10 @@
 import type { EntityKind } from '../shared/entity-kind-domain';
 import { Evented } from '../shared/evented';
 import type { NoEvents, TypedEventMap } from '../shared/typed-event-emitter';
+import type { EntityId } from '../shared/domain/ids';
 
-import Messages from './message';
 import Utils from './utils';
+import { buildDespawnAction } from './protocol/outbound-actions';
 
 interface PositionLike {
     x: number;
@@ -11,15 +12,15 @@ interface PositionLike {
 }
 
 class Entity<TEvents extends TypedEventMap = NoEvents> extends Evented<TEvents> {
-    id: number;
+    id: EntityId;
     type: string;
     kind: EntityKind;
     x: number;
     y: number;
 
-    constructor(id: number | string, type: string, kind: EntityKind, x: number, y: number) {
+    constructor(id: EntityId, type: string, kind: EntityKind, x: number, y: number) {
         super();
-        this.id = Number.parseInt(String(id), 10);
+        this.id = id;
         this.type = type;
         this.kind = kind;
         this.x = x;
@@ -28,20 +29,8 @@ class Entity<TEvents extends TypedEventMap = NoEvents> extends Evented<TEvents> 
 
     destroy(): void {}
 
-    _getBaseState(): Array<number | string> {
-        return [this.id, this.kind, this.x, this.y];
-    }
-
-    getState(): Array<number | string> {
-        return this._getBaseState();
-    }
-
-    spawn(): unknown {
-        return new Messages.Spawn(this);
-    }
-
     despawn(): unknown {
-        return new Messages.Despawn(this.id);
+        return buildDespawnAction(this.id);
     }
 
     setPosition(x: number, y: number): void {

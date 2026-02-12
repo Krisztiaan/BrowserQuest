@@ -19,14 +19,9 @@ test('player runtime seam interfaces accept compatibility shapes', () => {
             return true;
         },
         getEntityById() {
-            return null;
+            return undefined;
         },
-        handleMobHate() {},
-        broadcastAttacker() {},
-        handleHurtEntity() {},
         removeEntity() {},
-        handleOpenedChest() {},
-        handlePlayerVanish() {},
         pushRelevantEntityListTo() {},
         pushToPlayer() {},
         map: {

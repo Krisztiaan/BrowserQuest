@@ -1,8 +1,11 @@
+import type { EntityId } from '../../shared/domain/ids';
+import type { ServerToClientProtocolAction } from '../../shared/protocol/types';
+
 export type WorldMessage = {
     serialize(): unknown;
-};
+} | ServerToClientProtocolAction;
 
-export type WorldEntityId = string | number;
+export type WorldEntityId = EntityId;
 export type IgnoredPlayer = WorldEntityId | null;
 
 export type QueuePlayer = {
@@ -14,7 +17,7 @@ export type QueueGroup = {
 };
 
 export type AdjacentGroupMap = {
-    forEachAdjacentGroup(groupId: WorldEntityId, callback: (id: string) => void): void;
+    forEachAdjacentGroup(groupId: string, callback: (id: string) => void): void;
 };
 
 export type OutgoingQueues = Record<string, unknown[]>;

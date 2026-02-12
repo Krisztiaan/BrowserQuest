@@ -11,21 +11,33 @@ export function getItemAtPosition(game: Game, x: number, y: number): GridEntity 
         return null;
     }
 
-    const items = game.itemGrid[y][x];
+    const row = game.itemGrid[y];
+    if (!row) {
+        return null;
+    }
+    const items = row[x];
     let item: GridEntity | null = null;
 
-    if (items && Object.keys(items).length > 0) {
+    if (items) {
+        const keys = Object.keys(items);
+        if (keys.length === 0) {
+            return null;
+        }
+
         // If there are potions/burgers stacked with equipment items on the same tile, always get expendable items first.
-        Object.keys(items).forEach(function (id: string) {
+        for (const id of keys) {
             const candidate = items[id];
-            if (Types.isExpendableItem(candidate.kind)) {
+            if (candidate && Types.isExpendableItem(candidate.kind)) {
                 item = candidate;
             }
-        });
+        }
 
         // Else, get the first item of the stack.
-        if (!item) {
-            item = items[Object.keys(items)[0]];
+        if (item === null) {
+            const firstKey = keys[0];
+            if (firstKey) {
+                item = items[firstKey] ?? null;
+            }
         }
     }
 
@@ -37,22 +49,34 @@ export function getEntityAtPosition(game: Game, x: number, y: number): GridEntit
         return null;
     }
 
-    const entities = game.entityGrid[y][x];
-    let entity: GridEntity | null = null;
-    if (entities && Object.keys(entities).length > 0) {
-        entity = entities[Object.keys(entities)[0]];
-    } else {
-        entity = getItemAtPosition(game, x, y);
+    const row = game.entityGrid[y];
+    if (!row) {
+        return null;
+    }
+    const entities = row[x];
+    if (!entities) {
+        return getItemAtPosition(game, x, y);
     }
 
-    return entity;
+    const keys = Object.keys(entities);
+    if (keys.length === 0) {
+        return getItemAtPosition(game, x, y);
+    }
+
+    const firstKey = keys[0];
+    const entity = firstKey ? (entities[firstKey] ?? null) : null;
+    if (entity) {
+        return entity;
+    }
+
+    return getItemAtPosition(game, x, y);
 }
 
 function getEntityOfType<T extends GridEntity>(
     game: Game,
     x: number,
     y: number,
-    ctor: new (...args: any[]) => T
+    ctor: new (...args: unknown[]) => T
 ): T | null {
     const entity = getEntityAtPosition(game, x, y);
     if (entity && entity instanceof ctor) {

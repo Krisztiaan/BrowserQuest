@@ -14,7 +14,8 @@ type SpriteJson = {
   animations: Record<string, SpriteAnimationData>;
 };
 
-const modules = import.meta.glob('../sprites/*.json', { eager: true });
+// Sprite JSON lives in `client/sprites/*.json` (not a top-level `sprites/` dir).
+const modules = import.meta.glob('./sprites/*.json', { eager: true });
 
 const sprites: Record<string, SpriteJson> = {};
 for (const mod of Object.values(modules)) {

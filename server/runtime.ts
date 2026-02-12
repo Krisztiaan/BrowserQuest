@@ -104,12 +104,16 @@ function createServerAndMetrics(
 function createWorlds(
     config: ServerConfig,
     server: RuntimeServer,
-    dependencies: MainRuntimeDependencies
+    dependencies: MainRuntimeDependencies,
+    onWorldReady: () => void = () => {}
 ): RuntimeWorld[] {
     const worlds: RuntimeWorld[] = [];
 
     for (let i = 0; i < config.nb_worlds; i += 1) {
         const world = new dependencies.WorldServer('world' + (i + 1), config.nb_players_per_world, server);
+        if (typeof world.on === 'function') {
+            world.on('ready', onWorldReady);
+        }
         world.run(config.map_filepath);
         worlds.push(world);
     }
@@ -391,12 +395,24 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
         },
         getWorldDistribution
     );
-    worlds = createWorlds(config, server, dependencies);
-    installWorldPopulationHooks(worlds, metrics, onPopulationChange);
+    let readyCount = 0;
+    const installStatusEndpoint = (): void => {
+        server.onRequestStatus(function () {
+            return JSON.stringify(getWorldDistribution(worlds));
+        });
+    };
 
-    server.onRequestStatus(function () {
-        return JSON.stringify(getWorldDistribution(worlds));
+    worlds = createWorlds(config, server, dependencies, function () {
+        readyCount += 1;
+        if (readyCount === config.nb_worlds) {
+            installStatusEndpoint();
+        }
     });
+    installWorldPopulationHooks(worlds, metrics, onPopulationChange);
+    // If worlds are already ready (unlikely), ensure /status exists.
+    if (config.nb_worlds === 0) {
+        installStatusEndpoint();
+    }
 
     initializeMetricsPopulation(metrics, onPopulationChange);
 

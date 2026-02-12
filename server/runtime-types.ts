@@ -8,7 +8,7 @@ export interface RuntimeLogger {
 
 export interface RuntimeWorld {
     playerCount: number;
-    on(eventName: 'playerAdded' | 'playerRemoved', callback: () => void): void;
+    on(eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void): void;
     emit(eventName: 'playerConnect', player: RuntimePlayer): void;
     run(mapFilePath: string): void;
     updatePopulation(totalPlayers?: number): void;
@@ -29,7 +29,7 @@ export interface RuntimeWsModule {
 }
 
 export interface RuntimeWorldServerConstructor {
-    new (id: string, capacity: number, server: RuntimeServer): RuntimeWorld;
+    new (id: string, capacity: number, server: RuntimeServer, plugins?: readonly unknown[]): RuntimeWorld;
 }
 
 export interface RuntimePlayerConstructor {
@@ -98,4 +98,5 @@ export interface ServerConfig {
     map_filepath: string;
     metrics_enabled: boolean;
     debug_level: 'error' | 'debug' | 'info';
+    plugins?: string[];
 }

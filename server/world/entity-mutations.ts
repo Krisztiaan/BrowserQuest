@@ -1,8 +1,9 @@
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { OutgoingQueues } from './contracts';
+import type { EntityId } from '../../shared/domain/ids';
 
 type IdentifiedEntity = {
-    id: string | number;
+    id: EntityId;
 };
 
 type EntityCollection = Record<string, unknown>;
@@ -140,7 +141,11 @@ export function addWorldStaticItem<TItem extends RespawnableStaticItem>({
     addItem: (item: TItem) => TItem;
 }): TItem {
     item.isStatic = true;
-    item.on('respawn', buildRespawnHandler(item));
+    const flagged = item as unknown as { __bqStaticRespawnBound?: boolean };
+    if (!flagged.__bqStaticRespawnBound) {
+        flagged.__bqStaticRespawnBound = true;
+        item.on('respawn', buildRespawnHandler(item));
+    }
     return addItem(item);
 }
 

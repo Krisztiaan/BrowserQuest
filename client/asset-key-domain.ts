@@ -33,6 +33,7 @@ export const SPRITE_KEYS = [
     'sword',
     'loot',
     'target',
+    'arrow',
     'talk',
     'sparks',
     'shadow16',

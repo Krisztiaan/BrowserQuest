@@ -47,3 +47,23 @@ test('config preflight allows metrics-enabled config to defer adapter-field vali
     expect(result.isValid).toBe(true);
     expect(result.errors).toEqual([]);
 });
+
+test('config preflight accepts optional plugin module list', () => {
+    const result = ConfigPreflight.validateConfig({
+        ...createValidConfig(),
+        plugins: ['./server/plugins/sample-spawner.plugin.ts'],
+    });
+
+    expect(result.isValid).toBe(true);
+    expect(result.errors).toEqual([]);
+});
+
+test('config preflight rejects invalid plugin module list', () => {
+    const result = ConfigPreflight.validateConfig({
+        ...createValidConfig(),
+        plugins: [null, 123],
+    });
+
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some((error: { field: string }) => error.field === 'plugins')).toBe(true);
+});

@@ -1,10 +1,10 @@
 import Log from './log';
 import FormatModule from './format';
-import { createPlayerSessionActionDispatcher } from './player-session-dispatch';
 import Types from '../shared/gametypes-browser';
 import type { ClientToServerProtocolAction } from '../shared/protocol/types';
 import { HANDSHAKE_CONTROL } from '../shared/connection-status';
 import type Player from './player';
+import { translateClientActionToCommand } from './player-session-command-translation';
 
 const check = FormatModule.check as (payload: ClientToServerProtocolAction) => boolean;
 const log = Log.getLogger();
@@ -17,7 +17,6 @@ export function attachPlayerSession(player: Player): void {
             player.connection.close(reason);
         }
     };
-    const dispatchAction = createPlayerSessionActionDispatcher(player, closeInvalidPayload);
 
     player.connection.listen((message: ClientToServerProtocolAction) => {
         const action = message[0];
@@ -39,8 +38,9 @@ export function attachPlayerSession(player: Player): void {
         }
 
         player.resetTimeout();
-        if (!dispatchAction(message)) {
-            player.emit('message', message);
+        const command = translateClientActionToCommand(player, message, closeInvalidPayload);
+        if (command) {
+            player.server.enqueueCommand(command);
         }
     });
 

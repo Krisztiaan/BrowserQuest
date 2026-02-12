@@ -41,7 +41,9 @@ test('notifyWorldPopulation preserves explicit zero totals', () => {
     const host: PopulationHost = {
         playerCount: 5,
         pushBroadcast(message) {
-            serialized = message.serialize() as unknown[];
+            serialized = (
+                Array.isArray(message) ? message : (message as { serialize?: () => unknown }).serialize?.()
+            ) as unknown[] | null;
         },
     };
 

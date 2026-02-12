@@ -1,4 +1,4 @@
-import Messages from '../message';
+import { buildPopulationAction } from '../protocol/outbound-actions';
 
 type PlayerMap = Record<string, unknown>;
 
@@ -8,7 +8,7 @@ type PlayerCountHolder = {
 
 type PopulationNotifyHost = {
     playerCount: number;
-    pushBroadcast(message: InstanceType<typeof Messages.Population>): void;
+    pushBroadcast(message: unknown): void;
 };
 
 export function countPlayersInWorld(playerMap: PlayerMap): number {
@@ -37,5 +37,5 @@ export function decrementWorldPlayerCount(holder: PlayerCountHolder): void {
 
 export function notifyWorldPopulation(host: PopulationNotifyHost, totalPlayers: number | null): void {
     const resolvedTotalPlayers = totalPlayers ?? host.playerCount;
-    host.pushBroadcast(new Messages.Population(host.playerCount, resolvedTotalPlayers));
+    host.pushBroadcast(buildPopulationAction(host.playerCount, resolvedTotalPlayers));
 }

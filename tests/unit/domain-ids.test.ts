@@ -1,6 +1,11 @@
 import { expect, test } from 'bun:test';
 import {
     ENTITY_ID_NONE,
+    ENTITY_ID_MAX_GENERATION,
+    ENTITY_ID_MAX_INDEX,
+    entityIdFromWire,
+    entityIdFromWireString,
+    entityIdToWire,
     entityIdGeneration,
     entityIdIndex,
     formatEntityId,
@@ -17,6 +22,14 @@ test('EntityId packs index and generation into a uint32', () => {
     expect(formatEntityId(id)).toBe('7:123');
 });
 
+test('EntityId wire conversions validate and round-trip', () => {
+    const id = entityIdFromWire(123);
+    expect(entityIdToWire(id)).toBe(123);
+    expect(entityIdFromWireString('123')).toBe(id);
+    expect(() => entityIdFromWireString('abc')).toThrow();
+    expect(() => entityIdFromWire(0xffff_ffff + 1)).toThrow();
+});
+
 test('ENTITY_ID_NONE is recognized', () => {
     expect(isNoneEntityId(ENTITY_ID_NONE)).toBe(true);
     expect(entityIdIndex(ENTITY_ID_NONE)).toBe(0);
@@ -26,7 +39,6 @@ test('ENTITY_ID_NONE is recognized', () => {
 test('makeEntityId rejects invalid inputs', () => {
     expect(() => makeEntityId(-1, 0)).toThrow();
     expect(() => makeEntityId(0, -1)).toThrow();
-    expect(() => makeEntityId(2 ** 20, 0)).toThrow();
-    expect(() => makeEntityId(0, 2 ** 12)).toThrow();
+    expect(() => makeEntityId(ENTITY_ID_MAX_INDEX + 1, 0)).toThrow();
+    expect(() => makeEntityId(0, ENTITY_ID_MAX_GENERATION + 1)).toThrow();
 });
-

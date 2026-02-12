@@ -1,9 +1,10 @@
 import type { EntityKind } from '../../shared/entity-kind-domain';
-import Messages from '../message';
+import type { EntityId } from '../../shared/domain/ids';
+import { entityIdFromWire } from '../../shared/domain/ids';
 
-type NextItemId = () => string;
-type CreateChest<TItem> = (id: string, x: number, y: number) => TItem;
-type CreateItem<TItem> = (id: string, kind: EntityKind, x: number, y: number) => TItem;
+type NextItemId = () => EntityId;
+type CreateChest<TItem> = (id: EntityId, x: number, y: number) => TItem;
+type CreateItem<TItem> = (id: EntityId, kind: EntityKind, x: number, y: number) => TItem;
 
 type CreateWorldItemParams<TItem> = {
     kind: EntityKind;
@@ -31,23 +32,6 @@ type CreateWorldChestParams<TItem, TChest extends TItem & ChestWithItems> = {
     isChest: IsChestFn<TItem, TChest>;
 };
 
-type ItemDespawnConfig = {
-    beforeBlinkDelay: number;
-    blinkCallback: () => void;
-    blinkingDuration: number;
-    despawnCallback: () => void;
-};
-
-type DespawnableItem = {
-    group: string;
-    handleDespawn(config: ItemDespawnConfig): void;
-};
-
-type ItemDespawnHost = {
-    pushToAdjacentGroups(groupId: string, message: unknown): void;
-    removeEntity(item: DespawnableItem): void;
-};
-
 type EmptyChestArea = {
     chestX: number;
     chestY: number;
@@ -58,21 +42,6 @@ type WorldChestAreaHost = {
     createChest(x: number, y: number, items: unknown[]): ChestEntity;
     addItem(chest: ChestEntity): ChestEntity;
     handleItemDespawn(item: ChestEntity): void;
-};
-
-type ChestLike = {
-    group: string;
-    x: number;
-    y: number;
-    despawn(): unknown;
-    getRandomItem(): unknown;
-};
-
-type OpenedChestHost = {
-    pushToAdjacentGroups(groupId: string, message: unknown): void;
-    removeEntity(entity: ChestLike): void;
-    addItemFromChest(kind: unknown, x: number, y: number): unknown;
-    handleItemDespawn(item: unknown): void;
 };
 
 type ChestEntity = unknown;
@@ -90,7 +59,7 @@ type GridPosition = {
 type StaticEntityMap = Record<string, string> | undefined;
 
 type SpawnMob = {
-    id: string | number;
+    id: EntityId;
     isDead: boolean;
     area?: unknown;
     on(eventName: 'respawn', callback: () => void): void;
@@ -109,7 +78,7 @@ type SpawnStaticEntitiesForWorldParams = {
     isMobKind(kind: EntityKind): boolean;
     isItemKind(kind: EntityKind): boolean;
     addNpc(kind: EntityKind, x: number, y: number): void;
-    createMob(id: string, kind: EntityKind, x: number, y: number): SpawnMob;
+    createMob(id: EntityId, kind: EntityKind, x: number, y: number): SpawnMob;
     addMob(mob: SpawnMob): void;
     isChestArea(area: unknown): area is SpawnChestAreaLike;
     addMobToContainingChestArea(mob: SpawnMob): void;
@@ -152,30 +121,6 @@ export function createWorldChest<TItem, TChest extends TItem & ChestWithItems>({
     return chest;
 }
 
-export function scheduleWorldItemDespawn(host: ItemDespawnHost, item: DespawnableItem | null | undefined): void {
-    if (!item) {
-        return;
-    }
-
-    item.handleDespawn({
-        beforeBlinkDelay: 10000,
-        blinkCallback: function () {
-            host.pushToAdjacentGroups(
-                item.group,
-                new Messages.Blink(item as unknown as ConstructorParameters<typeof Messages.Blink>[0])
-            );
-        },
-        blinkingDuration: 4000,
-        despawnCallback: function () {
-            host.pushToAdjacentGroups(
-                item.group,
-                new Messages.Destroy(item as unknown as ConstructorParameters<typeof Messages.Destroy>[0])
-            );
-            host.removeEntity(item);
-        },
-    });
-}
-
 export function handleEmptyChestAreaRefill(host: WorldChestAreaHost, area: EmptyChestArea | null | undefined): void {
     if (!area) {
         return;
@@ -183,17 +128,6 @@ export function handleEmptyChestAreaRefill(host: WorldChestAreaHost, area: Empty
 
     const chest = host.addItem(host.createChest(area.chestX, area.chestY, area.items));
     host.handleItemDespawn(chest);
-}
-
-export function handleOpenedChestOrchestration(host: OpenedChestHost, chest: ChestLike): void {
-    host.pushToAdjacentGroups(chest.group, chest.despawn());
-    host.removeEntity(chest);
-
-    const kind = chest.getRandomItem();
-    if (kind) {
-        const item = host.addItemFromChest(kind, chest.x, chest.y);
-        host.handleItemDespawn(item);
-    }
 }
 
 export function addMobToContainingChestAreas<TMob>(
@@ -240,7 +174,7 @@ export function spawnStaticEntitiesForWorld({
         }
 
         if (isMobKind(kind)) {
-            const mob = createMob('7' + kind + count++, kind, x, y);
+            const mob = createMob(entityIdFromWire(Number('7' + kind + count++)), kind, x, y);
             mob.on('respawn', () => {
                 mob.isDead = false;
                 addMob(mob);

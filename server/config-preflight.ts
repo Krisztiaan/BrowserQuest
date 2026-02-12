@@ -3,7 +3,8 @@ type ValidationErrorReason =
     | 'must_be_positive_integer'
     | 'must_be_error_info_or_debug'
     | 'must_be_non_empty_string'
-    | 'must_be_boolean';
+    | 'must_be_boolean'
+    | 'must_be_string_array';
 
 interface ValidationError {
     field: string;
@@ -17,6 +18,7 @@ interface CandidateConfig {
     nb_worlds?: unknown;
     map_filepath?: unknown;
     metrics_enabled?: unknown;
+    plugins?: unknown;
 }
 
 interface ValidationResult {
@@ -34,6 +36,10 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isPositiveInteger(value: unknown): value is number {
     return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function isStringArray(value: unknown): value is string[] {
+    return Array.isArray(value) && value.every((entry) => typeof entry === 'string' && entry.trim().length > 0);
 }
 
 function validateConfig(config: unknown): ValidationResult {
@@ -74,6 +80,9 @@ function validateConfig(config: unknown): ValidationResult {
     }
     if (typeof candidate.metrics_enabled !== 'boolean') {
         errors.push({ field: 'metrics_enabled', reason: 'must_be_boolean' });
+    }
+    if (candidate.plugins !== undefined && !isStringArray(candidate.plugins)) {
+        errors.push({ field: 'plugins', reason: 'must_be_string_array' });
     }
 
     return {

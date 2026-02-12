@@ -47,7 +47,7 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
             name: string;
             runPath: string | null;
             run: (path: string) => void;
-            on: (eventName: 'playerAdded' | 'playerRemoved', callback: () => void) => void;
+            on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
         },
         name: string,
         capacity: number,
@@ -59,7 +59,10 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
         this.run = (path: string) => {
             this.runPath = path;
         };
-        this.on = (eventName: 'playerAdded' | 'playerRemoved') => {
+        this.on = (eventName: 'ready' | 'playerAdded' | 'playerRemoved') => {
+            if (eventName === 'ready') {
+                return;
+            }
             if (eventName === 'playerAdded') {
                 onPlayerAddedCount += 1;
             } else {
@@ -75,7 +78,7 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
             name: string;
             runPath: string | null;
             run: (path: string) => void;
-            on: (eventName: 'playerAdded' | 'playerRemoved', callback: () => void) => void;
+            on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
         };
     };
     const dependencies = MainRuntime.createRuntimeDependencies({

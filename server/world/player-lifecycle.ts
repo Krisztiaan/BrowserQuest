@@ -1,20 +1,14 @@
 import Log from '../log';
-import Messages from '../message';
+import { buildDestroyAction, buildPopulationAction } from '../protocol/outbound-actions';
 import { WORLD_EVENT_NAMES } from '../server-event-names';
+import type { EntityId } from '../../shared/domain/ids';
 
 type Position = { x: number; y: number };
 
-type AttackerMob = {
-    target: string | number;
-    clearTarget(): void;
-    forgetEveryone(): void;
-    distanceToSpawningPoint(x: number, y: number): number;
-};
-
 type EnteringPlayer = {
-    id: number;
+    id: EntityId;
     name: string;
-    group: string | number;
+    group: string;
     hasEnteredGame: boolean;
     lastCheckpoint: { getRandomPosition(): Position } | null;
     setPositionResolver(resolver: () => Position): void;
@@ -24,8 +18,6 @@ type EnteringPlayer = {
     on(eventName: 'broadcast', callback: (message: unknown, ignoreSelf?: boolean) => void): void;
     on(eventName: 'broadcastZone', callback: (message: unknown, ignoreSelf?: boolean) => void): void;
     on(eventName: 'exit', callback: () => void): void;
-    forEachAttacker(callback: (mob: AttackerMob) => void): void;
-    removeAttacker(mob: AttackerMob): void;
 };
 
 type LifecycleWorld = {
@@ -42,13 +34,10 @@ type LifecycleWorld = {
     decrementPlayerCount(): void;
     pushToPlayer(player: EnteringPlayer, message: unknown): void;
     pushRelevantEntityListTo(player: EnteringPlayer): void;
-    getEntityById(id: string | number): { id?: string | number } | null | undefined;
-    findPositionNextTo(attacker: AttackerMob, target: { id?: string | number } | null | undefined): Position;
-    moveEntity(entity: AttackerMob, x: number, y: number): void;
     handleEntityGroupMembership(player: EnteringPlayer): boolean;
     pushToPreviousGroups(player: EnteringPlayer, message: unknown): void;
-    pushToAdjacentGroups(groupId: string | number, message: unknown, ignoredPlayer: string | number | null): void;
-    pushToGroup(groupId: string | number, message: unknown, ignoredPlayer: string | number | null): void;
+    pushToAdjacentGroups(groupId: string, message: unknown, ignoredPlayer: EntityId | null): void;
+    pushToGroup(groupId: string, message: unknown, ignoredPlayer: EntityId | null): void;
     removePlayer(player: EnteringPlayer): void;
 };
 
@@ -83,25 +72,11 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
             world.incrementPlayerCount();
         }
 
-        world.pushToPlayer(player, new Messages.Population(world.playerCount));
+        world.pushToPlayer(player, buildPopulationAction(world.playerCount));
         world.pushRelevantEntityListTo(player);
 
         const onMove = function (x: number, y: number) {
             log.debug(player.name + ' is moving to (' + x + ', ' + y + ').');
-
-            player.forEachAttacker(function (mob) {
-                const target = world.getEntityById(mob.target);
-                if (target) {
-                    const pos = world.findPositionNextTo(mob, target);
-                    if (mob.distanceToSpawningPoint(pos.x, pos.y) > 50) {
-                        mob.clearTarget();
-                        mob.forgetEveryone();
-                        player.removeAttacker(mob);
-                    } else {
-                        world.moveEntity(mob, pos.x, pos.y);
-                    }
-                }
-            });
         };
 
         player.on('move', onMove);
@@ -111,7 +86,7 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
             const hasChangedGroups = world.handleEntityGroupMembership(player);
 
             if (hasChangedGroups) {
-                world.pushToPreviousGroups(player, new Messages.Destroy(player));
+                world.pushToPreviousGroups(player, buildDestroyAction(player.id));
                 world.pushRelevantEntityListTo(player);
             }
         });

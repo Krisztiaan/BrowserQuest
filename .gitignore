@@ -9,3 +9,4 @@ generated
 *.swp
 .tmp
 *.tsbuildinfo
+server/.tmp-config.payload-*.json

@@ -14,7 +14,6 @@ import type {
     QueueGroup,
     QueuePlayer,
     TransportErrorLogger,
-    WorldEntityId,
 } from './contracts';
 
 type WorldGroups = Record<string, QueueGroup>;
@@ -41,7 +40,7 @@ type PreviousGroupsPlayer = {
 type PushSerializedToWorldGroupQueueParams = {
     groups: WorldGroups;
     outgoingQueues: OutgoingQueues;
-    groupId: WorldEntityId;
+    groupId: string;
     serializedMessage: unknown;
     ignoredPlayer?: IgnoredPlayer;
     getEntityById: GetEntityById;
@@ -52,7 +51,7 @@ type PushSerializedToWorldAdjacentGroupsQueueParams = {
     map: AdjacentGroupMap;
     groups: WorldGroups;
     outgoingQueues: OutgoingQueues;
-    groupId: WorldEntityId;
+    groupId: string;
     serializedMessage: unknown;
     ignoredPlayer?: IgnoredPlayer;
     getEntityById: GetEntityById;
@@ -88,7 +87,7 @@ export function pushWorldMessageToPlayer<TPlayer>({
     message: WorldMessage;
     pushSerializedToPlayer: PushSerializedToPlayer<TPlayer>;
 }): void {
-    pushSerializedToPlayer(player, message.serialize());
+    pushSerializedToPlayer(player, Array.isArray(message) ? message : message.serialize());
 }
 
 export function pushSerializedToWorldPlayerQueue(
@@ -148,7 +147,7 @@ export function pushWorldMessageToGroup({
     ignoredPlayer,
     pushSerializedToGroup,
 }: PushWorldMessageToGroupParams): void {
-    pushSerializedToGroup(groupId, message.serialize(), ignoredPlayer);
+    pushSerializedToGroup(groupId, Array.isArray(message) ? message : message.serialize(), ignoredPlayer);
 }
 
 export function pushWorldMessageToAdjacentGroups({
@@ -157,7 +156,7 @@ export function pushWorldMessageToAdjacentGroups({
     ignoredPlayer,
     pushSerializedToAdjacentGroups,
 }: PushWorldMessageToAdjacentGroupsParams): void {
-    pushSerializedToAdjacentGroups(groupId, message.serialize(), ignoredPlayer);
+    pushSerializedToAdjacentGroups(groupId, Array.isArray(message) ? message : message.serialize(), ignoredPlayer);
 }
 
 export function pushWorldMessageToPreviousGroups(
@@ -178,5 +177,5 @@ export function pushWorldBroadcastMessage({
     ignoredPlayer,
     outgoingQueues,
 }: PushWorldBroadcastMessageParams): void {
-    pushSerializedBroadcastQueue(outgoingQueues, message.serialize(), ignoredPlayer);
+    pushSerializedBroadcastQueue(outgoingQueues, Array.isArray(message) ? message : message.serialize(), ignoredPlayer);
 }

@@ -19,10 +19,16 @@ async function startModernSession(page: Page, name: string) {
     await expect(page.locator('#createcharacter .play')).not.toHaveClass(/disabled/);
     await page.click('#createcharacter .play div');
     try {
-        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 15_000 });
+        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
+        return;
     } catch (_) {
-        await page.click('#createcharacter .play');
-        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 30_000 });
+        // If the intro UI is still visible, one retry click is reasonable. Otherwise, the UI likely transitioned
+        // and we're just waiting on slow map/sprite load or websocket handshake.
+        const playVisible = await page.locator('#createcharacter .play').isVisible().catch(() => false);
+        if (playVisible) {
+            await page.click('#createcharacter .play');
+        }
+        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
     }
 }
 

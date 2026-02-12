@@ -29,16 +29,16 @@ export default defineConfig({
   ],
   webServer: [
     {
-      command: "bun server/main.js server/config.json",
+      command: "bun server/entry.ts server/config.json",
       url: "http://127.0.0.1:8000/status",
       timeout: 120_000,
-      reuseExistingServer: false,
+      reuseExistingServer: !isCI,
     },
     {
       command: "bunx vite --host 127.0.0.1 --port 4173 --strictPort",
       url: "http://127.0.0.1:4173/client/modern.html",
       timeout: 120_000,
-      reuseExistingServer: false,
+      reuseExistingServer: !isCI,
     },
   ],
 });

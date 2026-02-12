@@ -1,12 +1,14 @@
+import type { EntityId } from '../../shared/domain/ids';
+
 type GroupState = {
     entities: Record<string, unknown>;
-    players: Array<string | number>;
+    players: Array<EntityId>;
 };
 
 type GroupsById = Record<string, GroupState>;
 
 type GroupAssignableEntity = {
-    id: string | number;
+    id: EntityId;
     group: string | null;
 };
 
@@ -22,7 +24,7 @@ type AddEntityToWorldGroupParams = {
 };
 
 type IncomingEntity = {
-    id: string | number;
+    id: EntityId;
 };
 
 type IncomingGroupState = {
@@ -43,7 +45,7 @@ type AddEntityAsIncomingToGroupsParams = {
 };
 
 type GroupedEntity = {
-    id: string | number;
+    id: EntityId;
     group: string | null;
 };
 
@@ -97,7 +99,7 @@ export function addEntityToWorldGroup({
             if (!group) {
                 return;
             }
-            group.entities[entity.id] = entity;
+            group.entities[String(entity.id)] = entity;
             newGroups.push(adjacentGroupId);
         });
         entity.group = groupId;
@@ -128,7 +130,7 @@ export function addEntityAsIncomingToGroups({
 
             if (group) {
                 if (
-                    !(entity.id in group.entities)
+                    !(String(entity.id) in group.entities)
                     && (!isItemEntity || isChestEntity || (isItemEntity && !isDroppedItemEntity))
                 ) {
                     group.incoming.push(entity);
@@ -165,8 +167,9 @@ export function removeEntityFromWorldGroups({
             if (!adjacent) {
                 return;
             }
-            if (entity.id in adjacent.entities) {
-                delete adjacent.entities[entity.id];
+            const key = String(entity.id);
+            if (key in adjacent.entities) {
+                delete adjacent.entities[key];
                 oldGroups.push(groupId);
             }
         });

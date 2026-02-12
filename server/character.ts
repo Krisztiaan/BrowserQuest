@@ -1,26 +1,27 @@
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { NoEvents, TypedEventMap } from '../shared/typed-event-emitter';
+import type { EntityId } from '../shared/domain/ids';
 
 import Entity from './entity';
 import Log from './log';
-import Messages from './message';
 import Utils from './utils';
+import { buildAttackAction, buildHealthAction } from './protocol/outbound-actions';
 
 const log = Log.getLogger();
 
 interface AttackerLike {
-    id: number;
+    id: EntityId;
     clearTarget?(): void;
 }
 
 class Character<TEvents extends TypedEventMap = NoEvents> extends Entity<TEvents> {
     orientation: number;
-    attackers: Record<number, AttackerLike>;
-    target: number | null;
+    attackers: Record<string, AttackerLike>;
+    target: EntityId | null;
     maxHitPoints: number;
     hitPoints: number;
 
-    constructor(id: number | string, type: string, kind: EntityKind, x: number, y: number) {
+    constructor(id: EntityId, type: string, kind: EntityKind, x: number, y: number) {
         super(id, type, kind, x, y);
 
         this.orientation = Utils.randomOrientation();
@@ -28,18 +29,6 @@ class Character<TEvents extends TypedEventMap = NoEvents> extends Entity<TEvents
         this.target = null;
         this.maxHitPoints = 0;
         this.hitPoints = 0;
-    }
-
-    override getState(): Array<number | string> {
-        const basestate = this._getBaseState();
-        const state: number[] = [];
-
-        state.push(this.orientation);
-        if (this.target) {
-            state.push(this.target);
-        }
-
-        return basestate.concat(state);
     }
 
     resetHitPoints(maxHitPoints: number): void {
@@ -77,27 +66,31 @@ class Character<TEvents extends TypedEventMap = NoEvents> extends Entity<TEvents
     }
 
     attack(): unknown {
-        return new Messages.Attack(this.id, this.target);
+        if (!this.target) {
+            return null;
+        }
+        return buildAttackAction(this.id, this.target);
     }
 
     health(): unknown {
-        return new Messages.Health(this.hitPoints, false);
+        return buildHealthAction(this.hitPoints, false);
     }
 
     regen(): unknown {
-        return new Messages.Health(this.hitPoints, true);
+        return buildHealthAction(this.hitPoints, true);
     }
 
     addAttacker(entity: AttackerLike | null | undefined): void {
         if (entity) {
-            this.attackers[entity.id] = entity;
+            this.attackers[String(entity.id)] = entity;
         }
     }
 
     removeAttacker(entity: AttackerLike | null | undefined): void {
-        if (entity && entity.id in this.attackers) {
-            delete this.attackers[entity.id];
-            log.debug(this.id + ' REMOVED ATTACKER ' + entity.id);
+        const key = String(entity?.id ?? '');
+        if (key && key in this.attackers) {
+            delete this.attackers[key];
+            log.debug(this.id + ' REMOVED ATTACKER ' + (entity ? entity.id : 'unknown'));
         }
     }
 

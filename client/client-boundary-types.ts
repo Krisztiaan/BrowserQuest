@@ -3,6 +3,7 @@ import type {
     ServerToClientProtocolAction,
 } from '../shared/protocol/types';
 import type { EntityKind } from '../shared/entity-kind-domain';
+import type { EntityId } from '../shared/domain/ids';
 
 export type ClientInboundProtocolAction = ServerToClientProtocolAction;
 export type ClientOutboundProtocolAction = ClientToServerProtocolAction;
@@ -14,19 +15,19 @@ export type ClientProtocolAction = ClientInboundProtocolAction;
 export type ClientProtocolBatch = ClientProtocolAction[];
 
 export interface RuntimeEntity {
-    id?: string | number;
+    id?: EntityId;
     kind?: EntityKind;
     weaponName?: string | null;
     spriteName?: string;
     wasDropped?: boolean;
-    playersInvolved?: Array<string | number>;
+    playersInvolved?: Array<EntityId>;
 }
 
-export type EntityFactoryBuilder = (id: string | number, name?: string) => RuntimeEntity;
+export type EntityFactoryBuilder = (id: EntityId, name?: string) => RuntimeEntity;
 
 export interface EntityFactoryContract {
     builders: Array<EntityFactoryBuilder | undefined>;
-    createEntity(kind: EntityKind, id: string | number, name?: string): RuntimeEntity;
+    createEntity(kind: EntityKind, id: EntityId, name?: string): RuntimeEntity;
 }
 
 export interface GameClientProtocolBoundary {

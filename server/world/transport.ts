@@ -6,6 +6,7 @@ import type {
     TransportErrorLogger,
     WorldConnection,
 } from './contracts';
+import type { EntityId } from '../../shared/domain/ids';
 
 export function pushSerializedToPlayerQueue(
     outgoingQueues: OutgoingQueues,
@@ -13,8 +14,9 @@ export function pushSerializedToPlayerQueue(
     serializedMessage: unknown,
     logError: TransportErrorLogger
 ): void {
-    if (player && player.id in outgoingQueues) {
-        const queue = outgoingQueues[player.id];
+    const key = String(player?.id ?? '');
+    if (player && key in outgoingQueues) {
+        const queue = outgoingQueues[key];
         if (queue) {
             queue.push(serializedMessage);
         }
@@ -26,10 +28,10 @@ export function pushSerializedToPlayerQueue(
 type PushSerializedToGroupOptions = {
     groups: Record<string, QueueGroup>;
     outgoingQueues: OutgoingQueues;
-    groupId: string | number;
+    groupId: string;
     serializedMessage: unknown;
-    ignoredPlayer?: string | number | null;
-    getEntityById(id: string | number): QueuePlayer;
+    ignoredPlayer?: EntityId | null;
+    getEntityById(id: EntityId): QueuePlayer;
     logError: TransportErrorLogger;
 };
 
@@ -63,10 +65,10 @@ type PushSerializedToAdjacentGroupsOptions = {
     map: AdjacentGroupMap;
     groups: Record<string, QueueGroup>;
     outgoingQueues: OutgoingQueues;
-    groupId: string | number;
+    groupId: string;
     serializedMessage: unknown;
-    ignoredPlayer?: string | number | null;
-    getEntityById(id: string | number): QueuePlayer;
+    ignoredPlayer?: EntityId | null;
+    getEntityById(id: EntityId): QueuePlayer;
     logError: TransportErrorLogger;
 };
 
@@ -96,10 +98,11 @@ export function pushSerializedToAdjacentGroupsQueue({
 export function pushSerializedBroadcastQueue(
     outgoingQueues: OutgoingQueues,
     serializedMessage: unknown,
-    ignoredPlayer: string | number | null = null
+    ignoredPlayer: EntityId | null = null
 ): void {
+    const ignoredKey = ignoredPlayer === null ? null : String(ignoredPlayer);
     for (const id in outgoingQueues) {
-        if (id != ignoredPlayer) {
+        if (ignoredKey === null || id !== ignoredKey) {
             const queue = outgoingQueues[id];
             if (queue) {
                 queue.push(serializedMessage);
@@ -112,6 +115,8 @@ export function flushOutgoingQueues(
     outgoingQueues: OutgoingQueues,
     getConnection: (id: string) => WorldConnection | undefined
 ): void {
+    const MAX_BATCH_ACTIONS = 50;
+
     for (const id in outgoingQueues) {
         const queue = outgoingQueues[id];
         if (!queue || queue.length === 0) {
@@ -121,7 +126,13 @@ export function flushOutgoingQueues(
         if (!connection) {
             continue;
         }
-        connection.send(queue);
-        queue.length = 0;
+
+        // Avoid single huge JSON.stringify() calls that can stall the event loop (especially when a player
+        // receives many SPAWN actions at once). Chunk into smaller batches to keep handshake/ticks responsive.
+        while (queue.length > 0) {
+            const chunk = queue.length > MAX_BATCH_ACTIONS ? queue.splice(0, MAX_BATCH_ACTIONS) : queue.splice(0);
+            const payload = chunk.length === 1 ? chunk[0] : chunk;
+            connection.send(payload);
+        }
     }
 }

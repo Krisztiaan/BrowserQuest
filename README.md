@@ -30,10 +30,8 @@ Active Scripts
 - `bun run typecheck`: TypeScript solution build (`tsc -b tsconfig.json`)
 - `bun run typecheck:tools`: Type-check tooling scripts (`tools/**/*.ts`)
 - `bun run verify:modern`: canonical modern verify lane
-- `bun run content:mobs:generate`: regenerate mob balance artifact from canonical content
-- `bun run check:content:mobs`: verify generated mob balance artifact is up to date
-- `bun run content:item-loot:generate`: regenerate client item loot-message artifact from canonical content
-- `bun run check:content:item-loot`: verify generated item loot-message artifact is up to date
+- `bun run content:prefabs:generate`: regenerate prefab artifact from canonical content
+- `bun run check:content:prefabs`: verify generated prefab artifact is up to date
 Verification
 ------------
 
@@ -49,13 +47,21 @@ Content Canonicalization (Current)
 ----------------------------------
 
 - Canonical mob balance source: `assets/content/mob-properties.json`
-- Generated runtime artifact: `server/generated/mob-properties.generated.ts`
-- Canonical item-loot message source: `assets/content/item-loot-messages.json`
-- Generated runtime artifact: `client/item-loot-messages.generated.ts`
+- Canonical item loot-message source: `assets/content/item-loot-messages.json`
+- Generated prefab artifact: `shared/generated/prefabs.generated.ts`
 - Workflow:
   - Edit canonical JSON
-  - Run the matching generator command (`content:mobs:generate` or `content:item-loot:generate`)
-  - Validate with matching check command (both are enforced in `verify:modern`)
+  - Run `bun run content:prefabs:generate`
+  - Validate with `bun run check:content:prefabs` (enforced in `verify:modern`)
+
+Plugins (Server)
+----------------
+
+Server config can optionally load trusted plugins:
+
+- Config field: `"plugins": ["./server/plugins/sample-spawner.plugin.ts"]`
+- Plugins are ESM modules; paths are resolved relative to the server process cwd.
+- Plugin API version is enforced (`apiVersion: 1`).
 
 Runtime Probes and Shutdown
 ---------------------------

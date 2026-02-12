@@ -28,13 +28,16 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
         runBridgeProbeFn: async () => {
             calls.push('bridge');
         },
+        runEcsSchedulerProbeFn: async () => {
+            calls.push('ecs');
+        },
         resolveRuntimeOptionsFn: async () => {
             calls.push('runtime');
             return runtimeOptions;
         },
     });
 
-    expect(calls).toEqual(['bridge', 'runtime', 'start']);
+    expect(calls).toEqual(['bridge', 'ecs', 'runtime', 'start']);
     expect(startArgs).toEqual({ config: activeConfig, options: runtimeOptions });
     expect(result).toEqual({ runtimeOptions });
 });
@@ -61,6 +64,9 @@ test('startup runner passes undefined runtime options through to startServer whe
             // no-op
         },
         runBridgeProbeFn: async () => {
+            // no-op
+        },
+        runEcsSchedulerProbeFn: async () => {
             // no-op
         },
         resolveRuntimeOptionsFn: async () => undefined,

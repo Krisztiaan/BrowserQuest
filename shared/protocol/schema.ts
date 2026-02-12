@@ -1,5 +1,10 @@
-import Types from '../gametypes-browser';
 import type { ProtocolActionValue, ServerToClientProtocolAction } from './types';
+import {
+    CLIENT_TO_SERVER_PROTOCOL_MANIFEST,
+    SERVER_TO_CLIENT_PROTOCOL_MANIFEST,
+    type ClientToServerProtocolManifestEntry,
+    type ServerToClientProtocolManifestEntry,
+} from './manifest';
 
 type MessageTypeFormat = Array<'n' | 's'>;
 export type ClientToServerFormatSchema = Record<number, MessageTypeFormat>;
@@ -30,66 +35,162 @@ function isProtocolActionValue(value: unknown): value is ProtocolActionValue {
     );
 }
 
-export const CLIENT_TO_SERVER_FORMAT_SCHEMA: ClientToServerFormatSchema = {
-    [Types.Messages.HELLO]: ['s', 'n', 'n'],
-    [Types.Messages.MOVE]: ['n', 'n'],
-    [Types.Messages.LOOTMOVE]: ['n', 'n', 'n'],
-    [Types.Messages.AGGRO]: ['n'],
-    [Types.Messages.ATTACK]: ['n'],
-    [Types.Messages.HIT]: ['n'],
-    [Types.Messages.HURT]: ['n'],
-    [Types.Messages.CHAT]: ['s'],
-    [Types.Messages.LOOT]: ['n'],
-    [Types.Messages.TELEPORT]: ['n', 'n'],
-    [Types.Messages.ZONE]: [],
-    [Types.Messages.OPEN]: ['n'],
-    [Types.Messages.CHECK]: ['n'],
-};
+function validateClientToServerArg(kind: 'n' | 's', value: unknown): boolean {
+    switch (kind) {
+        case 'n':
+            return isFiniteInteger(value);
+        case 's':
+            return isString(value);
+    }
+}
 
-type ServerToClientActionValidator = (action: unknown[]) => boolean;
+function validateServerToClientArg(kind: 'n' | 's' | 'ns' | 'na' | 'pv' | 'lit1', value: unknown): boolean {
+    switch (kind) {
+        case 'n':
+            return isFiniteNumber(value);
+        case 's':
+            return isString(value);
+        case 'ns':
+            return isNumberOrString(value);
+        case 'na':
+            return isNumberArray(value);
+        case 'pv':
+            return isProtocolActionValue(value);
+        case 'lit1':
+            return value === 1;
+        default:
+            return false;
+    }
+}
 
-const SERVER_TO_CLIENT_FIXED_VALIDATORS: Record<number, ServerToClientActionValidator> = {
-    [Types.Messages.WELCOME]: (action) =>
-        action.length === 6 &&
-        isFiniteNumber(action[1]) &&
-        isString(action[2]) &&
-        isFiniteNumber(action[3]) &&
-        isFiniteNumber(action[4]) &&
-        isFiniteNumber(action[5]),
-    [Types.Messages.SPAWN]: (action) =>
-        action.length >= 5 &&
-        isFiniteNumber(action[1]) &&
-        isNumberOrString(action[2]) &&
-        isFiniteNumber(action[3]) &&
-        isFiniteNumber(action[4]) &&
-        action.slice(5).every(isProtocolActionValue),
-    [Types.Messages.DESPAWN]: (action) => action.length === 2 && isFiniteNumber(action[1]),
-    [Types.Messages.MOVE]: (action) =>
-        action.length === 4 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]) && isFiniteNumber(action[3]),
-    [Types.Messages.LOOTMOVE]: (action) =>
-        action.length === 3 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]),
-    [Types.Messages.ATTACK]: (action) => action.length === 3 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]),
-    [Types.Messages.HEALTH]: (action) =>
-        (action.length === 2 && isFiniteNumber(action[1])) ||
-        (action.length === 3 && isFiniteNumber(action[1]) && action[2] === 1),
-    [Types.Messages.CHAT]: (action) => action.length === 3 && isFiniteNumber(action[1]) && isString(action[2]),
-    [Types.Messages.EQUIP]: (action) => action.length === 3 && isFiniteNumber(action[1]) && isNumberOrString(action[2]),
-    [Types.Messages.DROP]: (action) =>
-        action.length === 5 &&
-        isFiniteNumber(action[1]) &&
-        isFiniteNumber(action[2]) &&
-        isNumberOrString(action[3]) &&
-        isNumberArray(action[4]),
-    [Types.Messages.TELEPORT]: (action) =>
-        action.length === 4 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]) && isFiniteNumber(action[3]),
-    [Types.Messages.DAMAGE]: (action) => action.length === 3 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]),
-    [Types.Messages.POPULATION]: (action) =>
-        action.length === 3 && isFiniteNumber(action[1]) && isFiniteNumber(action[2]),
-    [Types.Messages.KILL]: (action) => action.length === 2 && isNumberOrString(action[1]),
-    [Types.Messages.DESTROY]: (action) => action.length === 2 && isFiniteNumber(action[1]),
-    [Types.Messages.HP]: (action) => action.length === 2 && isFiniteNumber(action[1]),
-    [Types.Messages.BLINK]: (action) => action.length === 2 && isFiniteNumber(action[1]),
-};
+function validateClientToServerActionBySchema(entry: ClientToServerProtocolManifestEntry, action: unknown[]): boolean {
+    if (action.length === 0 || !isFiniteNumber(action[0])) {
+        return false;
+    }
+    const opcode = action[0];
+    if (opcode !== entry.opcode) {
+        return false;
+    }
+
+    const payload = action.slice(1);
+    const schema = entry.schema;
+    if (schema.kind === 'fixed') {
+        if (payload.length !== schema.args.length) {
+            return false;
+        }
+        for (let i = 0; i < schema.args.length; i += 1) {
+            const argKind = schema.args[i];
+            if (!argKind || !validateClientToServerArg(argKind, payload[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    if (schema.kind === 'varargs') {
+        if (payload.length < schema.minArgs) {
+            return false;
+        }
+        for (let i = 0; i < payload.length; i += 1) {
+            if (!validateClientToServerArg(schema.arg as 'n' | 's', payload[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    return false;
+}
+
+function validateServerToClientActionBySchema(entry: ServerToClientProtocolManifestEntry, action: unknown[]): boolean {
+    if (action.length === 0 || !isFiniteNumber(action[0])) {
+        return false;
+    }
+    const opcode = action[0];
+    if (opcode !== entry.opcode) {
+        return false;
+    }
+
+    const payload = action.slice(1);
+    const schema = entry.schema;
+    switch (schema.kind) {
+        case 'fixed': {
+            if (payload.length !== schema.args.length) {
+                return false;
+            }
+            for (let i = 0; i < schema.args.length; i += 1) {
+                const argKind = schema.args[i];
+                if (!argKind || !validateServerToClientArg(argKind, payload[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case 'varargs': {
+            if (payload.length < schema.minArgs) {
+                return false;
+            }
+            for (let i = 0; i < payload.length; i += 1) {
+                if (!validateServerToClientArg(schema.arg, payload[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case 'prefixRest': {
+            if (payload.length < schema.prefix.length) {
+                return false;
+            }
+            for (let i = 0; i < schema.prefix.length; i += 1) {
+                const argKind = schema.prefix[i];
+                if (!argKind || !validateServerToClientArg(argKind, payload[i])) {
+                    return false;
+                }
+            }
+            for (let i = schema.prefix.length; i < payload.length; i += 1) {
+                if (!validateServerToClientArg(schema.rest, payload[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case 'oneOf': {
+            for (let optIndex = 0; optIndex < schema.options.length; optIndex += 1) {
+                const opt = schema.options[optIndex];
+                if (opt?.args.length !== payload.length) {
+                    continue;
+                }
+                let ok = true;
+                for (let i = 0; i < opt.args.length; i += 1) {
+                    const argKind = opt.args[i];
+                    if (!argKind || !validateServerToClientArg(argKind, payload[i])) {
+                        ok = false;
+                        break;
+                    }
+                }
+                if (ok) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        default:
+            return false;
+    }
+}
+
+const CLIENT_TO_SERVER_ENTRY_BY_OPCODE = new Map<number, ClientToServerProtocolManifestEntry>(
+    CLIENT_TO_SERVER_PROTOCOL_MANIFEST.map((entry) => [entry.opcode, entry])
+);
+const SERVER_TO_CLIENT_ENTRY_BY_OPCODE = new Map<number, ServerToClientProtocolManifestEntry>(
+    SERVER_TO_CLIENT_PROTOCOL_MANIFEST.map((entry) => [entry.opcode, entry])
+);
+
+export const CLIENT_TO_SERVER_FORMAT_SCHEMA: ClientToServerFormatSchema = Object.fromEntries(
+    CLIENT_TO_SERVER_PROTOCOL_MANIFEST.flatMap((entry) =>
+        entry.schema.kind === 'fixed' ? [[entry.opcode, [...entry.schema.args] as MessageTypeFormat]] : []
+    )
+) as ClientToServerFormatSchema;
 
 export function isFixedClientToServerOpcode(type: number): boolean {
     return type in CLIENT_TO_SERVER_FORMAT_SCHEMA;
@@ -99,52 +200,24 @@ export function checkClientToServerProtocolAction(action: unknown[]): boolean {
     if (action.length === 0 || !isFiniteNumber(action[0])) {
         return false;
     }
-
     const opcode = action[0];
-    const payload = action.slice(1);
-
-    if (isFixedClientToServerOpcode(opcode)) {
-        const format = CLIENT_TO_SERVER_FORMAT_SCHEMA[opcode];
-        if (!format) {
-            return false;
-        }
-        if (payload.length !== format.length) {
-            return false;
-        }
-
-        for (let i = 0; i < payload.length; i += 1) {
-            if (format[i] === 'n' && !isFiniteInteger(payload[i])) {
-                return false;
-            }
-            if (format[i] === 's' && !isString(payload[i])) {
-                return false;
-            }
-        }
-        return true;
+    const entry = CLIENT_TO_SERVER_ENTRY_BY_OPCODE.get(opcode);
+    if (!entry) {
+        return false;
     }
-
-    if (opcode === Types.Messages.WHO) {
-        return payload.length > 0 && payload.every((entry) => isFiniteInteger(entry));
-    }
-
-    return false;
+    return validateClientToServerActionBySchema(entry, action);
 }
 
 export function isServerToClientProtocolAction(action: unknown): action is ServerToClientProtocolAction {
     if (!Array.isArray(action) || action.length === 0 || !isFiniteNumber(action[0])) {
         return false;
     }
-
     const opcode = action[0];
-    if (opcode === Types.Messages.LIST) {
-        return action.slice(1).every((entry) => isFiniteNumber(entry));
-    }
-
-    const validator = SERVER_TO_CLIENT_FIXED_VALIDATORS[opcode];
-    if (!validator) {
+    const entry = SERVER_TO_CLIENT_ENTRY_BY_OPCODE.get(opcode);
+    if (!entry) {
         return false;
     }
-    return validator(action);
+    return validateServerToClientActionBySchema(entry, action);
 }
 
 export default {

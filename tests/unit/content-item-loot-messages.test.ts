@@ -1,26 +1,36 @@
 import { expect, test } from 'bun:test';
 import Types from '../../shared/gametypes-browser';
-import { ITEM_LOOT_MESSAGES } from '../../client/item-loot-messages.generated';
+import { ITEM_PREFABS } from '../../shared/generated/prefabs.generated';
+import { requireItemPrefab } from '../../shared/content/prefabs';
 
-test('item loot message table is non-empty and keys map to known item kinds', () => {
-    const itemNames = Object.keys(ITEM_LOOT_MESSAGES);
-    expect(itemNames.length).toBeGreaterThan(0);
+test('item prefab table is non-empty and maps only to known item kinds', () => {
+    const itemPrefabs = Object.values(ITEM_PREFABS);
+    expect(itemPrefabs.length).toBeGreaterThan(0);
 
-    itemNames.forEach((itemName) => {
-        const kind = Types.getKindFromString(itemName);
-        expect(kind).not.toBeUndefined();
+    itemPrefabs.forEach((prefab) => {
+        const kind = prefab.kind;
         expect(Types.isItem(kind)).toBe(true);
+        const required = requireItemPrefab(kind);
+        expect(required.lootMessage).toBe(prefab.lootMessage);
     });
 });
 
-test('item loot message table values are non-empty strings', () => {
-    Object.values(ITEM_LOOT_MESSAGES).forEach((message) => {
+test('item prefab loot messages are non-empty strings', () => {
+    Object.values(ITEM_PREFABS).forEach((prefab) => {
+        const message = prefab.lootMessage;
         expect(typeof message).toBe('string');
         expect(message.trim().length).toBeGreaterThan(0);
     });
 });
 
-test('item loot message table preserves representative baseline values', () => {
-    expect(ITEM_LOOT_MESSAGES.sword2).toBe('You pick up a steel sword');
-    expect(ITEM_LOOT_MESSAGES.firepotion).toBe('You feel the power of Firefox!');
+test('item prefab loot message table preserves representative baseline values', () => {
+    const sword2Kind = Types.getKindFromString('sword2');
+    expect(sword2Kind).not.toBeUndefined();
+    expect(Types.isItem(sword2Kind)).toBe(true);
+    expect(requireItemPrefab(sword2Kind).lootMessage).toBe('You pick up a steel sword');
+
+    const firePotionKind = Types.getKindFromString('firepotion');
+    expect(firePotionKind).not.toBeUndefined();
+    expect(Types.isItem(firePotionKind)).toBe(true);
+    expect(requireItemPrefab(firePotionKind).lootMessage).toBe('You feel the power of Firefox!');
 });

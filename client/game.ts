@@ -4,7 +4,7 @@ import Renderer from './renderer';
 import Map from './map';
 import type Animation from './animation';
 import type Sprite from './sprite';
-import { initializeGameSessionConnection } from './game-session/connect/initializer';
+import { initializeGameConnection } from './runtime/connection';
 import { bootstrapGameRuntime } from './game-runtime-bootstrap';
 import { initializeGameSpatialState } from './game-spatial-state';
 import {
@@ -76,9 +76,10 @@ import type { AudioSoundKey, CursorKey, MusicKey, SpriteKey } from './asset-key-
 import type Storage from './storage';
 import { Evented } from '../shared/evented';
 import type { TypedEventSource } from '../shared/typed-event-emitter';
+import type { EntityId } from '../shared/domain/ids';
+import { ClientWorldKernel } from './ecs/world-kernel';
 
 type GridPosition = { x: number; y: number };
-type EntityId = string | number;
 type GridIndexedEntity = {
     id: EntityId;
     kind: EntityKind;
@@ -146,7 +147,7 @@ class Game extends Evented<GameEvents> {
     pathingGrid: number[][] | null;
     renderingGrid: EntityGrid | null;
     itemGrid: EntityGrid | null;
-    playerId: number | string | null;
+    playerId: EntityId | null;
     currentCursor: Sprite | null;
     currentCursorOrientation?: number | null;
     mouse: { x: number; y: number };
@@ -186,6 +187,7 @@ class Game extends Evented<GameEvents> {
     currentTime: number;
     isStopped: boolean;
     client: GameClient | null;
+    kernel: ClientWorldKernel;
     zoningOrientation: number | null;
     obsoleteEntities: GridIndexedEntity[] | null;
     drawTarget: boolean;
@@ -273,6 +275,7 @@ class Game extends Evented<GameEvents> {
         this.currentTime = 0;
         this.isStopped = false;
         this.client = null;
+        this.kernel = new ClientWorldKernel();
         this.zoningOrientation = null;
         this.obsoleteEntities = null;
         this.drawTarget = false;
@@ -309,6 +312,24 @@ class Game extends Evented<GameEvents> {
 
     setPathfinder(pathfinder: Pathfinder): void {
         this.pathfinder = pathfinder;
+
+        // Characters expect a path resolver callback; without it, clicks/moves log errors and do nothing.
+        const self = this;
+        const install = function (character: Character): void {
+            if (typeof (character as unknown as { setPathRequestResolver?: unknown }).setPathRequestResolver !== 'function') {
+                return;
+            }
+            character.setPathRequestResolver(function (x: number, y: number) {
+                return self.findPath(character, x, y, undefined);
+            });
+        };
+
+        install(this.player);
+        Object.values(this.entities).forEach(function (entity) {
+            if (entity instanceof Character) {
+                install(entity);
+            }
+        });
     }
 
     setChatInput(element: HTMLInputElement): void {
@@ -453,6 +474,11 @@ class Game extends Evented<GameEvents> {
             this.entities[entity.id] = entity;
             this.registerEntityPosition(entity);
 
+            // Ensure movement/pathfinding works for all spawned characters.
+            if (this.pathfinder && entity instanceof Character) {
+                this.setPathfinder(this.pathfinder);
+            }
+
             if (!(entity instanceof Item && entity.wasDropped) && !(this.renderer.mobile || this.renderer.tablet)) {
                 entity.fadeIn(this.currentTime);
             }
@@ -493,7 +519,7 @@ class Game extends Evented<GameEvents> {
             this.removeFromRenderingGrid(item, item.gridX, item.gridY);
             delete this.entities[item.id];
         } else {
-            log.error('Cannot remove item. Unknown ID : ' + item.id);
+            log.error('Cannot remove item. Unknown item reference.');
         }
     }
 
@@ -731,7 +757,7 @@ class Game extends Evented<GameEvents> {
     }
 
     connect(onStarted: () => void) {
-        initializeGameSessionConnection(this, onStarted);
+        initializeGameConnection(this, onStarted);
     }
 
     /**
@@ -1008,8 +1034,7 @@ class Game extends Evented<GameEvents> {
      *
      */
     onCharacterUpdate(character: Character): void {
-        const time = this.currentTime,
-            self = this;
+        const time = this.currentTime;
 
         // If mob has finished moving to a different tile in order to avoid stacking, attack again from the new position.
         if (character.previousTarget && !character.isMoving() && character instanceof Mob) {
@@ -1239,7 +1264,6 @@ class Game extends Evented<GameEvents> {
     resize(): void {
         const x = this.camera.x,
             y = this.camera.y,
-            currentScale = this.renderer.scale,
             newScale = this.renderer.getScaleFactor();
 
         this.renderer.rescale(newScale);
@@ -1289,7 +1313,7 @@ class Game extends Evented<GameEvents> {
 
         if (nb > 0) {
             obsoleteEntities.forEach(function (entity: GridIndexedEntity) {
-                if (entity.id != self.player.id) {
+                if (entity.id !== self.player.id) {
                     // never remove yourself
                     self.removeEntity(entity);
                 }

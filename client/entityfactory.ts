@@ -1,6 +1,7 @@
 import Chest from './chest';
 import type { EntityFactoryContract } from './client-boundary-types';
 import type { EntityKind } from '../shared/entity-kind-domain';
+import type { EntityId } from '../shared/domain/ids';
 import Types from '../shared/gametypes-browser';
 import type Entity from './entity';
 import Items from './items';
@@ -10,7 +11,7 @@ import Warrior from './warrior';
 
 const EntityFactory: EntityFactoryContract = {
     builders: [],
-    createEntity(kind: EntityKind, id: string | number, name?: string): Entity {
+    createEntity(kind: EntityKind, id: EntityId, name?: string): Entity {
         if (typeof EntityFactory.builders[kind] !== 'function') {
             throw Error(kind + ' is not a valid Entity type');
         }

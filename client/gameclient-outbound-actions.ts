@@ -1,13 +1,15 @@
 import Types from '../shared/gametypes-browser';
 import type { ClientOutboundProtocolAction } from './client-boundary-types';
+import type { EntityId } from '../shared/domain/ids';
+import { entityIdToWire } from '../shared/domain/ids';
 
 type OutboundAction<Opcode extends ClientOutboundProtocolAction[0]> = Extract<
     ClientOutboundProtocolAction,
     [Opcode, ...unknown[]]
 >;
 
-export function toProtocolEntityId(id: string | number): number {
-    return Number(id);
+export function toProtocolEntityId(id: EntityId): number {
+    return entityIdToWire(id);
 }
 
 export function createHelloAction(name: string, armorKind: number, weaponKind: number): OutboundAction<typeof Types.Messages.HELLO> {

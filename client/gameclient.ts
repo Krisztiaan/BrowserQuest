@@ -37,8 +37,24 @@ import type {
     ClientOutboundProtocolAction,
     ClientProtocolBatch,
 } from './client-boundary-types';
+import type { EntityId } from '../shared/domain/ids';
+import { entityIdFromWire } from '../shared/domain/ids';
+import { decodeSpawnAction } from '../shared/replication/spawn-snapshot';
+import { adaptKernelEntityForRendering } from './ecs/kernel-entity-adapter';
+import { ClientWorldKernel } from './ecs/world-kernel';
 
-type EntityId = string | number;
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function safeParseJson(payload: string): unknown {
+    try {
+        return JSON.parse(payload);
+    } catch (_) {
+        return null;
+    }
+}
+
 type ClientPlayerLike = {
     name: string;
     getSpriteName(): string;
@@ -87,13 +103,15 @@ class GameClient extends Evented<GameClientEvents> {
     isTimeout: boolean;
     isListening: boolean;
     handlers: GameClientInboundActionHandlerMap;
+    kernel: ClientWorldKernel;
 
-    constructor(host: string, port: number) {
+    constructor(host: string, port: number, kernel?: ClientWorldKernel) {
         super();
         this.connection = null;
         this.host = host;
         this.port = port;
         this.isTimeout = false;
+        this.kernel = kernel ?? new ClientWorldKernel();
         this.handlers = createGameClientInboundHandlers(this);
 
         this.enable();
@@ -118,11 +136,27 @@ class GameClient extends Evented<GameClientEvents> {
 
         if (dispatcherMode) {
             this.connection.onmessage = function (e: MessageEvent) {
-                const reply = JSON.parse(e.data);
-                const status = reply?.status;
+                if (typeof e.data !== 'string') {
+                    alert('Unknown error while connecting to BrowserQuest.');
+                    return;
+                }
+
+                const reply = safeParseJson(e.data);
+                if (!isRecord(reply)) {
+                    alert('Unknown error while connecting to BrowserQuest.');
+                    return;
+                }
+
+                const status = reply.status;
 
                 if (isDispatcherConnectStatus(status) && status === DISPATCHER_CONNECT_STATUS.OK) {
-                    self.emit('dispatched', reply.host, reply.port);
+                    const host = reply.host;
+                    const port = reply.port;
+                    if (typeof host !== 'string' || typeof port !== 'number' || !Number.isFinite(port)) {
+                        alert('Unknown error while connecting to BrowserQuest.');
+                        return;
+                    }
+                    self.emit('dispatched', host, port);
                 } else if (isDispatcherConnectStatus(status) && status === DISPATCHER_CONNECT_STATUS.FULL) {
                     alert('BrowserQuest is currently at maximum player population. Please retry later.');
                 } else {
@@ -170,31 +204,37 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     sendMessage(json: ClientOutboundProtocolAction): void {
-        let data;
-        if (this.connection.readyState === 1) {
-            data = JSON.stringify(json);
-            this.connection.send(data);
+        if (this.connection?.readyState !== WebSocket.OPEN) {
+            return;
         }
+        const data = JSON.stringify(json);
+        this.connection.send(data);
     }
 
     receiveMessage(message: string): void {
-        let actions;
+        if (!this.isListening) {
+            return;
+        }
 
-        if (this.isListening) {
-            log.debug('data: ' + message);
-            actions = decodeServerToClientProtocolActionBatch(message);
-            if (actions.length === 1) {
-                this.receiveAction(actions[0]);
-            } else if (actions.length > 1) {
-                this.receiveActionBatch(actions);
+        log.debug('data: ' + message);
+        const actions = decodeServerToClientProtocolActionBatch(message);
+        if (actions.length === 1) {
+            const action = actions[0];
+            if (action) {
+                this.receiveAction(action);
             }
+            return;
+        }
+
+        if (actions.length > 1) {
+            this.receiveActionBatch(actions);
         }
     }
 
     receiveAction(data: ClientInboundProtocolAction): void {
         const action = data[0];
-        const handler = this.handlers[action] as (payload: ClientInboundProtocolAction) => void;
-        handler(data);
+        const handler = this.handlers[action];
+        handler(data as never);
     }
 
     receiveActionBatch(actions: ClientProtocolBatch): void {
@@ -205,83 +245,59 @@ class GameClient extends Evented<GameClientEvents> {
 
     receiveWelcome(data: ClientInboundActionByOpcode<typeof Types.Messages.WELCOME>): void {
         const [, id, name, x, y, hp] = data;
-        this.emit('welcome', id, name, x, y, hp);
+        this.emit('welcome', entityIdFromWire(id), name, x, y, hp);
     }
 
     receiveMove(data: ClientInboundActionByOpcode<typeof Types.Messages.MOVE>): void {
         const [, id, x, y] = data;
-        this.emit('entityMove', id, x, y);
+        const entityId = entityIdFromWire(id);
+        this.kernel.setPosition(entityId, x, y);
+        this.emit('entityMove', entityId, x, y);
     }
 
     receiveLootMove(data: ClientInboundActionByOpcode<typeof Types.Messages.LOOTMOVE>): void {
         const [, id, item] = data;
-        this.emit('playerMoveToItem', id, item);
+        this.emit('playerMoveToItem', entityIdFromWire(id), entityIdFromWire(item));
     }
 
     receiveAttack(data: ClientInboundActionByOpcode<typeof Types.Messages.ATTACK>): void {
         const [, attacker, target] = data;
-        this.emit('entityAttack', attacker, target);
+        const attackerId = entityIdFromWire(attacker);
+        const targetId = entityIdFromWire(target);
+        this.kernel.setTarget(attackerId, targetId);
+        this.emit('entityAttack', attackerId, targetId);
     }
 
     receiveSpawn(data: ClientInboundActionByOpcode<typeof Types.Messages.SPAWN>): void {
-        const [, id, kind, x, y, ...spawnData] = data;
+        const snapshot = decodeSpawnAction(data);
+        const view = this.kernel.upsertFromSpawnSnapshot(snapshot);
+        const adapted = adaptKernelEntityForRendering(this.kernel, view.id);
 
-        if (Types.isItem(kind)) {
-            const item = EntityFactory.createEntity(kind, id);
-            this.emit('spawnItem', item, x, y);
+        if (adapted.type === 'item') {
+            this.emit('spawnItem', adapted.entity, view.position.x, view.position.y);
             return;
         }
 
-        if (Types.isChest(kind)) {
-            const item = EntityFactory.createEntity(kind, id);
-            this.emit('spawnChest', item, x, y);
+        if (adapted.type === 'chest') {
+            this.emit('spawnChest', adapted.entity, view.position.x, view.position.y);
             return;
         }
 
-        let name: string | undefined;
-        let orientation: number | undefined;
-        let target: EntityId | undefined;
-        let weapon: EntityKind | undefined;
-        let armor: EntityKind | undefined;
-
-        if (Types.isPlayer(kind)) {
-            if (typeof spawnData[0] === 'string') {
-                name = spawnData[0];
-            }
-            if (typeof spawnData[1] === 'number') {
-                orientation = spawnData[1];
-            }
-            if (typeof spawnData[2] === 'number') {
-                armor = spawnData[2] as EntityKind;
-            }
-            if (typeof spawnData[3] === 'number') {
-                weapon = spawnData[3] as EntityKind;
-            }
-            if (typeof spawnData[4] === 'number' || typeof spawnData[4] === 'string') {
-                target = spawnData[4];
-            }
-        } else if (Types.isMob(kind)) {
-            if (typeof spawnData[0] === 'number') {
-                orientation = spawnData[0];
-            }
-            if (typeof spawnData[1] === 'number' || typeof spawnData[1] === 'string') {
-                target = spawnData[1];
-            }
-        }
-
-        const character = EntityFactory.createEntity(kind, id, name);
-
-        if (Types.isPlayer(kind)) {
-            character.weaponName = weapon !== undefined ? Types.getKindAsString(weapon) : undefined;
-            character.spriteName = armor !== undefined ? Types.getKindAsString(armor) : undefined;
-        }
-
-        this.emit('spawnCharacter', character, x, y, orientation, target);
+        this.emit(
+            'spawnCharacter',
+            adapted.entity,
+            view.position.x,
+            view.position.y,
+            adapted.orientation,
+            adapted.targetId
+        );
     }
 
     receiveDespawn(data: ClientInboundActionByOpcode<typeof Types.Messages.DESPAWN>): void {
         const [, id] = data;
-        this.emit('despawnEntity', id);
+        const entityId = entityIdFromWire(id);
+        this.kernel.removeEntity(entityId);
+        this.emit('despawnEntity', entityId);
     }
 
     receiveHealth(data: ClientInboundActionByOpcode<typeof Types.Messages.HEALTH>): void {
@@ -291,34 +307,37 @@ class GameClient extends Evented<GameClientEvents> {
 
     receiveChat(data: ClientInboundActionByOpcode<typeof Types.Messages.CHAT>): void {
         const [, id, text] = data;
-        this.emit('chatMessage', id, text);
+        this.emit('chatMessage', entityIdFromWire(id), text);
     }
 
     receiveEquipItem(data: ClientInboundActionByOpcode<typeof Types.Messages.EQUIP>): void {
         const [, id, itemKind] = data;
-        this.emit('playerEquipItem', id, itemKind);
+        this.emit('playerEquipItem', entityIdFromWire(id), itemKind);
     }
 
     receiveDrop(data: ClientInboundActionByOpcode<typeof Types.Messages.DROP>): void {
         const [, mobId, id, kind, playersInvolved] = data;
-        const item = EntityFactory.createEntity(kind, id);
+        const item = EntityFactory.createEntity(kind, entityIdFromWire(id));
         item.wasDropped = true;
-        item.playersInvolved = playersInvolved;
-        this.emit('dropItem', item, mobId);
+        item.playersInvolved = playersInvolved.map(entityIdFromWire);
+        this.emit('dropItem', item, entityIdFromWire(mobId));
     }
 
     receiveTeleport(data: ClientInboundActionByOpcode<typeof Types.Messages.TELEPORT>): void {
         const [, id, x, y] = data;
-        this.emit('playerTeleport', id, x, y);
+        const entityId = entityIdFromWire(id);
+        this.kernel.setPosition(entityId, x, y);
+        this.emit('playerTeleport', entityId, x, y);
     }
 
     receiveDamage(data: ClientInboundActionByOpcode<typeof Types.Messages.DAMAGE>): void {
         const [, id, dmg] = data;
-        this.emit('playerDamageMob', id, dmg);
+        this.emit('playerDamageMob', entityIdFromWire(id), dmg);
     }
 
     receivePopulation(data: ClientInboundActionByOpcode<typeof Types.Messages.POPULATION>): void {
         const [, worldPlayers, totalPlayers] = data;
+        this.kernel.setPopulation(worldPlayers, totalPlayers);
         this.emit('populationChange', worldPlayers, totalPlayers);
     }
 
@@ -329,12 +348,12 @@ class GameClient extends Evented<GameClientEvents> {
 
     receiveList(data: ClientInboundActionByOpcode<typeof Types.Messages.LIST>): void {
         const [, ...ids] = data;
-        this.emit('entityList', ids);
+        this.emit('entityList', ids.map(entityIdFromWire));
     }
 
     receiveDestroy(data: ClientInboundActionByOpcode<typeof Types.Messages.DESTROY>): void {
         const [, id] = data;
-        this.emit('entityDestroy', id);
+        this.emit('entityDestroy', entityIdFromWire(id));
     }
 
     receiveHitPoints(data: ClientInboundActionByOpcode<typeof Types.Messages.HP>): void {
@@ -344,7 +363,7 @@ class GameClient extends Evented<GameClientEvents> {
 
     receiveBlink(data: ClientInboundActionByOpcode<typeof Types.Messages.BLINK>): void {
         const [, id] = data;
-        this.emit('itemBlink', id);
+        this.emit('itemBlink', entityIdFromWire(id));
     }
 
     sendHello(player: ClientPlayerLike): void {

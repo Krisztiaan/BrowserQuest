@@ -1,6 +1,7 @@
 import Player from '../player';
 import { flushOutgoingQueues } from './transport';
 import type { OutgoingQueues, WorldConnection } from './contracts';
+import type { EntityId } from '../../shared/domain/ids';
 
 type GroupEntities = Record<string, unknown>;
 
@@ -19,7 +20,7 @@ type IterateWorldCharactersParams<TCharacter> = {
 };
 
 type RelevantListPlayer = {
-    id: string | number;
+    id: EntityId;
     group: string;
 };
 
@@ -33,10 +34,10 @@ type PushRelevantEntityListToPlayerParams = {
     createListMessage: CreateListMessage;
 };
 
-type SpawnId = string | number;
+type SpawnId = EntityId;
 
 type SpawnListPlayer = {
-    id: string | number;
+    id: EntityId;
 };
 
 type PushSpawnEntitiesParams<TSpawnableEntity> = {
@@ -66,7 +67,8 @@ type WorldGroupsProcessHost = {
     zoneGroupsReady: boolean;
     forEachGroup(callback: (groupId: string) => void): void;
     getIncoming(groupId: string): unknown[];
-    pushSpawnToGroup(groupId: string, entity: unknown, ignoredPlayerId?: string | number): void;
+    getGroupPlayerCount(groupId: string): number;
+    pushSpawnToGroup(groupId: string, entity: unknown, ignoredPlayerId?: EntityId): void;
     isSpawnableEntity(entity: unknown): boolean;
 };
 
@@ -76,15 +78,15 @@ type ZoneGroupMap = {
 
 type ZoneGroupState = {
     entities: Record<string, unknown>;
-    players: Array<string | number>;
+    players: Array<EntityId>;
     incoming: unknown[];
 };
 
 type ZoneGroups = Record<string, ZoneGroupState>;
 
-type GetConnection = (id: string | number) => WorldConnection | undefined;
+type GetConnection = (id: string) => WorldConnection | undefined;
 
-export function collectRelevantEntityIds(groupEntities: GroupEntities, playerId: string | number): number[] {
+export function collectRelevantEntityIds(groupEntities: GroupEntities, playerId: EntityId): number[] {
     const entityIds: number[] = [];
     const localPlayerId = String(playerId);
 
@@ -193,6 +195,13 @@ export function processWorldGroups(host: WorldGroupsProcessHost): void {
     host.forEachGroup(function (groupId) {
         const incoming = host.getIncoming(groupId);
         if (incoming.length === 0) {
+            return;
+        }
+
+        // Avoid building/serializing SPAWN actions for empty groups. Future players joining the group
+        // will request entity state via LIST/WHO, so draining is safe and keeps the tick lean.
+        if (host.getGroupPlayerCount(groupId) === 0) {
+            incoming.length = 0;
             return;
         }
 

@@ -1,5 +1,6 @@
 import type { ClientToServerProtocolAction, ServerToClientProtocolAction } from '../shared/protocol/types';
 import type { EntityKind } from '../shared/entity-kind-domain';
+import type { EntityId } from '../shared/domain/ids';
 
 export interface PlayerRuntimeConnection {
     id: string;
@@ -12,7 +13,7 @@ export interface PlayerRuntimeConnection {
 }
 
 export interface PlayerRuntimeEntity {
-    id: string | number;
+    id: EntityId;
     kind?: EntityKind;
 }
 
@@ -21,20 +22,15 @@ export interface PlayerRuntimeMessage {
 }
 
 export interface PlayerRuntime {
-    id: string | number;
+    id: EntityId;
 }
 
 export interface PlayerRuntimeWorldServer {
     addPlayer(player: PlayerRuntime): void;
     emit(eventName: 'playerEnter', player: PlayerRuntime): void;
     isValidPosition(x: number, y: number): boolean;
-    getEntityById(id: string | number): PlayerRuntimeEntity | undefined;
-    handleMobHate(mobId: string | number, playerId: string | number, hatePoints: number): void;
-    broadcastAttacker(player: PlayerRuntime): void;
-    handleHurtEntity(entity: PlayerRuntimeEntity, attacker?: PlayerRuntimeEntity, damage?: number): void;
+    getEntityById(id: EntityId): PlayerRuntimeEntity | undefined;
     removeEntity(entity: PlayerRuntimeEntity): void;
-    handleOpenedChest(chest: PlayerRuntimeEntity, player: PlayerRuntime): void;
-    handlePlayerVanish(player: PlayerRuntime): void;
     pushRelevantEntityListTo(player: PlayerRuntime): void;
     pushToPlayer(player: PlayerRuntime, message: PlayerRuntimeMessage | ServerToClientProtocolAction): void;
     map: {

@@ -7,6 +7,7 @@ import type {
     EntityFactoryContract,
     GameClientProtocolBoundary,
 } from '../../client/client-boundary-types';
+import { entityIdFromWire } from '../../shared/domain/ids';
 import {
     decodeServerToClientProtocolAction,
     normalizeServerToClientProtocolActionBatch,
@@ -47,12 +48,12 @@ test('client boundary TypeScript contracts accept seam-compliant shapes', () => 
     const entityFactory: EntityFactoryContract = {
         builders: [],
         createEntity() {
-            return { id: 'entity' };
+            return { id: entityIdFromWire(1) };
         },
     };
 
     boundary.receiveAction(inboundAction);
     boundary.receiveActionBatch(protocolBatch);
     boundary.sendMessage(outboundAction);
-    expect(entityFactory.createEntity(1, 'abc')).toEqual({ id: 'entity' });
+    expect(entityFactory.createEntity(1, entityIdFromWire(123))).toEqual({ id: entityIdFromWire(1) });
 });

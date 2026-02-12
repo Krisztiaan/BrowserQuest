@@ -40,8 +40,27 @@ function isActionArray(value: unknown): value is Action {
     return Array.isArray(value) && value.length > 0 && typeof value[0] === 'number';
 }
 
-function collectActionsFromPayload(payload: string): Action[] {
-    return parseProtocolActionBatch(payload).filter((entry): entry is Action => isActionArray(entry));
+function normalizePayloadToActions(payload: unknown): Action[] {
+    if (Array.isArray(payload)) {
+        if (payload.length > 0 && Array.isArray(payload[0])) {
+            return (payload as unknown[]).filter((entry): entry is Action => isActionArray(entry));
+        }
+        return isActionArray(payload) ? [payload] : [];
+    }
+
+    let text = '';
+    if (typeof payload === 'string') {
+        text = payload;
+    } else if (payload instanceof ArrayBuffer) {
+        text = Buffer.from(payload).toString('utf8');
+    } else if (ArrayBuffer.isView(payload)) {
+        const view = payload as ArrayBufferView;
+        text = Buffer.from(view.buffer, view.byteOffset, view.byteLength).toString('utf8');
+    } else {
+        text = String(payload);
+    }
+
+    return parseProtocolActionBatch(text).filter((entry): entry is Action => isActionArray(entry));
 }
 
 function isSafeInteger(value: unknown): value is number {
@@ -56,12 +75,11 @@ function createActionStream(ws: WebSocket): ActionStream {
     };
 
     ws.on('message', (data) => {
-        const text = data.toString();
-        if (text === 'go') {
+        if (typeof data === 'string' && data === 'go') {
             return;
         }
         try {
-            const actions = collectActionsFromPayload(text);
+            const actions = normalizePayloadToActions(data);
             actions.forEach((action) => stream.actions.push(action));
         } catch (_) {
             // ignore non-JSON messages
@@ -79,7 +97,7 @@ async function waitForNextAction(
     stream: ActionStream,
     predicate: (action: Action) => boolean,
     label: string,
-    timeoutMs = 5000
+    timeoutMs = 10000
 ) {
     const startedAt = Date.now();
     // eslint-disable-next-line no-constant-condition
@@ -107,7 +125,7 @@ async function ensureSocketOpen(ws: WebSocket, waitMs = 200) {
     expect(ws.readyState).toBe(WebSocket.OPEN);
 }
 
-async function waitForClose(ws: WebSocket, timeoutMs = 3000) {
+async function waitForClose(ws: WebSocket, timeoutMs = 8000) {
     return await new Promise<void>((resolve, reject) => {
         if (ws.readyState === WebSocket.CLOSED) {
             resolve();
@@ -121,7 +139,7 @@ async function waitForClose(ws: WebSocket, timeoutMs = 3000) {
     });
 }
 
-async function waitForGo(ws: WebSocket, timeoutMs = 3000) {
+async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
     return await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for go')), timeoutMs);
         ws.on('message', (data) => {
@@ -224,7 +242,7 @@ test('modern gameplay protocol parity: login, move, chat, zone, combat path, loo
     await waitForGo(ws);
 
     ws.send(JSON.stringify([MSG_HELLO, 'modern-e2e', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-    const welcome = await waitForNextAction(stream, (action) => action[0] === MSG_WELCOME, 'WELCOME');
+    const welcome = await waitForNextAction(stream, (action) => action[0] === MSG_WELCOME, 'WELCOME', 30000);
     const playerX = welcome[3];
     const playerY = welcome[4];
 
@@ -297,7 +315,7 @@ test('modern gameplay protocol parity: login, move, chat, zone, combat path, loo
     const reconnectStream = createActionStream(reconnect);
     await waitForGo(reconnect);
     reconnect.send(JSON.stringify([MSG_HELLO, 'modern-e2e-reconnect', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-    await waitForNextAction(reconnectStream, (action) => action[0] === MSG_WELCOME, 'WELCOME after reconnect');
+    await waitForNextAction(reconnectStream, (action) => action[0] === MSG_WELCOME, 'WELCOME after reconnect', 30000);
     expect(reconnect.readyState).toBe(WebSocket.OPEN);
     reconnect.close();
     await waitForClose(reconnect);

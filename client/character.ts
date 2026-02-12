@@ -170,7 +170,14 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
 
     setOrientation(orientation?: number): void {
         if (orientation !== undefined && orientation !== null) {
-            this.orientation = orientation;
+            if (
+                orientation === Types.Orientations.UP ||
+                orientation === Types.Orientations.DOWN ||
+                orientation === Types.Orientations.LEFT ||
+                orientation === Types.Orientations.RIGHT
+            ) {
+                this.orientation = orientation;
+            }
         }
     }
 

@@ -1,4 +1,10 @@
-import { ENTITY_KIND_DOMAIN, type EntityCategory, type EntityKind, type EntityKindId, type EntityKindName } from './entity-kind-domain';
+import {
+    ENTITY_KIND_DOMAIN,
+    type EntityCategory,
+    type EntityKind,
+    type EntityKindId,
+    type EntityKindName,
+} from './entity-kind-domain';
 
 type KindType = EntityCategory;
 type KindEntry = readonly [EntityKindId, KindType];

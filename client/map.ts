@@ -113,17 +113,57 @@ class Map {
 
         if (useWorker) {
             log.info('Loading map with web worker.');
-            const worker = new Worker(new URL('./mapworker', import.meta.url), { type: 'module' });
-            worker.postMessage(1);
+            const worker = new Worker(new URL('./mapworker.ts', import.meta.url), { type: 'module' });
+            let settled = false;
+
+            const fallbackToMainThread = (reason: string): void => {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+                try {
+                    worker.terminate();
+                } catch (_e) {
+                    // ignore
+                }
+                log.error(`Map worker failed (${reason}); falling back to main-thread map load.`);
+                self._loadMap(false);
+            };
 
             worker.onmessage = function (event: MessageEvent<RuntimeMapPayload>) {
+                if (settled) {
+                    return;
+                }
+                settled = true;
+
                 const map = event.data;
                 self._initMap(map);
-                self.grid = map.grid;
-                self.plateauGrid = map.plateauGrid;
+                if (map.grid && map.plateauGrid) {
+                    self.grid = map.grid;
+                    self.plateauGrid = map.plateauGrid;
+                } else {
+                    self._generateCollisionGrid();
+                    self._generatePlateauGrid();
+                }
                 self.mapLoaded = true;
                 self._checkReady();
+
+                try {
+                    worker.terminate();
+                } catch (_e) {
+                    // ignore
+                }
             };
+
+            worker.onerror = function (event: Event) {
+                const message = event instanceof ErrorEvent ? event.message : 'unknown_error';
+                fallbackToMainThread(message);
+            };
+            worker.onmessageerror = function () {
+                fallbackToMainThread('message_error');
+            };
+
+            worker.postMessage(1);
         } else {
             log.info('Loading map via Tiled world JSON runtime transform.');
             fetchClientRuntimeMap()

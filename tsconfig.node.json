@@ -28,6 +28,7 @@
     "include": [
         "server/**/*.ts",
         "shared/**/*.ts",
+        "types/**/*.d.ts",
         "client/client-boundary-types.ts",
         "client/achievement-domain.ts",
         "client/asset-key-domain.ts"

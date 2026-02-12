@@ -7,7 +7,7 @@ import Utils from './utils';
 import { createRuntimeDependencies, main as startServer } from './runtime';
 
 const defaultConfigPath = './server/config.json';
-const customConfigPath = process.argv[2] || './server/config_local.json';
+const customConfigPath = process.argv[2] ?? './server/config_local.json';
 
 const emitStructuredEvent = createStructuredEventEmitter();
 const emitProbeEvent = createProbeEventEmitter({ emitStructuredEvent });

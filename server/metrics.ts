@@ -83,12 +83,12 @@ class Metrics extends Evented<MetricsEvents> {
                 });
             },
             onOperationError: function (details) {
-                const operation = details && details.operation ? String(details.operation) : 'unknown';
+                const operation = details.operation;
                 const reason = operation === 'read' ? 'read_failed' : 'write_failed';
                 reportUnavailable(reason, {
-                    operation: operation,
-                    key: details && details.key ? String(details.key) : undefined,
-                    error: details && details.error ? String(details.error) : 'unknown_error',
+                    operation,
+                    key: details.key,
+                    error: details.error,
                 });
             },
         });
@@ -142,7 +142,13 @@ class Metrics extends Evented<MetricsEvents> {
                 // Recalculate the total number of players and set it
                 gameServers.forEach(function (server) {
                     self.getValue('player_count_' + server.name, function (result) {
-                        const count = result ? Number.parseInt(String(result), 10) : 0;
+                        let count = 0;
+                        if (typeof result === 'number' && Number.isFinite(result)) {
+                            count = Math.trunc(result);
+                        } else if (typeof result === 'string') {
+                            const parsed = Number.parseInt(result, 10);
+                            count = Number.isFinite(parsed) ? parsed : 0;
+                        }
 
                         total_players += count;
                         numServers -= 1;

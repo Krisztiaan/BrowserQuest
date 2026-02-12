@@ -1,19 +1,20 @@
 import Character from './character';
 import { attachPlayerSession } from './player-session';
 import Log from './log';
-import Messages from './message';
-import Properties from './properties';
 import Formulas from './formulas';
 import Types from '../shared/gametypes-browser';
-import type Chest from './chest';
 import type { ClientToServerProtocolAction } from '../shared/protocol/types';
 import { HANDSHAKE_CONTROL } from '../shared/connection-status';
 import type { EntityKind } from '../shared/entity-kind-domain';
+import type { EntityId } from '../shared/domain/ids';
+import { entityIdFromWireString } from '../shared/domain/ids';
+import type { Command } from './ecs/commands';
+import { buildEquipAction, buildHpAction } from './protocol/outbound-actions';
 
 const log = Log.getLogger();
 
 type PlayerConnectionLike = {
-    id: number;
+    id: string;
     listen(callback: (message: ClientToServerProtocolAction) => void): void;
     onClose(callback: () => void): void;
     send(payload: unknown): void;
@@ -22,42 +23,15 @@ type PlayerConnectionLike = {
     closeInvalidPayload?(reason: string): void;
 };
 type HaterMob = {
-    id: number;
-    forgetPlayer(playerId: number): void;
-};
-type MobLike = {
-    id: number;
-    armorLevel: number;
-    weaponLevel: number;
-    receiveDamage(dmg: number, playerId: number): void;
-    clearTarget?(): void;
-};
-type LootEntity = {
-    id: number;
-    kind: EntityKind;
-    despawn(): unknown;
+    id: EntityId;
+    forgetPlayer(playerId: EntityId): void;
 };
 type CheckpointLike = { id?: string | number };
 type EquipableItem = {
     kind: EntityKind;
 };
 type PlayerServerLike = {
-    map: {
-        getCheckpoint(id: string | number): CheckpointLike | null;
-    };
-    addPlayer(player: Player): void;
-    emit(eventName: 'playerEnter', player: Player): void;
-    pushSpawnsToPlayer(player: Player, entities: Array<string | number>): void;
-    isValidPosition(x: number, y: number): boolean;
-    getEntityById(id: string | number): MobLike | LootEntity | Chest | null;
-    handleMobHate(mobId: number, playerId: number, hate: number): void;
-    broadcastAttacker(player: Player): void;
-    handleHurtEntity(entity: unknown, attacker?: Player, damage?: number): void;
-    pushToPlayer(player: Player, message: unknown): void;
-    removeEntity(entity: LootEntity): void;
-    handlePlayerVanish(player: Player): void;
-    pushRelevantEntityListTo(player: Player): void;
-    handleOpenedChest(chest: Chest, player: Player): void;
+    enqueueCommand(command: Command): void;
 };
 
 type PlayerEvents = {
@@ -88,7 +62,7 @@ class Player extends Character<PlayerEvents> {
     positionResolver: (() => { x: number; y: number }) | null;
 
     constructor(connection: PlayerConnectionLike, worldServer: PlayerServerLike) {
-        super(connection.id, 'player', Types.Entities.WARRIOR, 0, 0);
+        super(entityIdFromWireString(connection.id), 'player', Types.Entities.WARRIOR, 0, 0);
 
         this.server = worldServer;
         this.connection = connection;
@@ -109,30 +83,8 @@ class Player extends Character<PlayerEvents> {
     }
 
     override destroy(): void {
-        const self = this;
-
-        this.forEachAttacker(function (mob) {
-            if (typeof mob.clearTarget === 'function') {
-                mob.clearTarget();
-            }
-        });
         this.attackers = {};
-
-        this.forEachHater(function (mob) {
-            mob.forgetPlayer(self.id);
-        });
         this.haters = {};
-    }
-
-    override getState(): Array<number | string> {
-        const basestate = this._getBaseState(),
-            state = [this.name, this.orientation, this.armor, this.weapon];
-
-        if (this.target) {
-            state.push(this.target);
-        }
-
-        return basestate.concat(state);
     }
 
     send(message: unknown): void {
@@ -147,8 +99,8 @@ class Player extends Character<PlayerEvents> {
         this.emit('broadcastZone', message, ignoreSelf);
     }
 
-    equip(item: EntityKind): InstanceType<typeof Messages.EquipItem> {
-        return new Messages.EquipItem(this, item);
+    equip(item: EntityKind): unknown {
+        return buildEquipAction(this.id, item);
     }
 
     addHater(mob: HaterMob | null): void {
@@ -173,12 +125,20 @@ class Player extends Character<PlayerEvents> {
 
     equipArmor(kind: EntityKind): void {
         this.armor = kind;
-        this.armorLevel = Properties.getArmorLevel(kind);
+        try {
+            this.armorLevel = Types.getArmorRank(kind) + 1;
+        } catch (_) {
+            this.armorLevel = 1;
+        }
     }
 
     equipWeapon(kind: EntityKind): void {
         this.weapon = kind;
-        this.weaponLevel = Properties.getWeaponLevel(kind);
+        try {
+            this.weaponLevel = Types.getWeaponRank(kind) + 1;
+        } catch (_) {
+            this.weaponLevel = 1;
+        }
     }
 
     equipItem(item: EquipableItem | null | undefined): void {
@@ -188,7 +148,7 @@ class Player extends Character<PlayerEvents> {
             if (Types.isArmor(item.kind)) {
                 this.equipArmor(item.kind);
                 this.updateHitPoints();
-                this.send(new Messages.HitPoints(this.maxHitPoints).serialize());
+                this.send(buildHpAction(this.maxHitPoints));
             } else if (Types.isWeapon(item.kind)) {
                 this.equipWeapon(item.kind);
             }

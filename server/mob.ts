@@ -1,17 +1,18 @@
 import type { EntityKind } from '../shared/entity-kind-domain';
+import type { EntityId } from '../shared/domain/ids';
 
 import Character from './character';
-import Messages from './message';
-import Properties from './properties';
 import Utils from './utils';
+import { buildDropAction } from './protocol/outbound-actions';
+import { requireMobPrefab } from '../shared/content/prefabs';
 
 interface HateEntry {
-    id: number;
+    id: EntityId;
     hate: number;
 }
 
 interface DropItemLike {
-    id: number;
+    id: EntityId;
     kind: EntityKind;
 }
 
@@ -35,14 +36,15 @@ class Mob extends Character<MobEvents> {
     returnTimeout: ReturnType<typeof setTimeout> | null;
     area: MobAreaRespawnContract | null;
     isDead: boolean;
-    constructor(id: number | string, kind: EntityKind, x: number, y: number) {
+    constructor(id: EntityId, kind: EntityKind, x: number, y: number) {
         super(id, 'mob', kind, x, y);
 
         this.updateHitPoints();
         this.spawningX = x;
         this.spawningY = y;
-        this.armorLevel = Properties.getArmorLevel(this.kind);
-        this.weaponLevel = Properties.getWeaponLevel(this.kind);
+        const prefab = requireMobPrefab(this.kind);
+        this.armorLevel = prefab.combat.armorLevel;
+        this.weaponLevel = prefab.combat.weaponLevel;
         this.hatelist = [];
         this.respawnTimeout = null;
         this.returnTimeout = null;
@@ -60,17 +62,17 @@ class Mob extends Character<MobEvents> {
         this.handleRespawn();
     }
 
-    receiveDamage(points: number, _playerId: number): void {
+    receiveDamage(points: number, _playerId: EntityId): void {
         this.hitPoints -= points;
     }
 
-    hates(playerId: number): boolean {
+    hates(playerId: EntityId): boolean {
         return this.hatelist.some(function (obj) {
             return obj.id === playerId;
         });
     }
 
-    increaseHateFor(playerId: number, points: number): void {
+    increaseHateFor(playerId: EntityId, points: number): void {
         if (this.hates(playerId)) {
             const entry = this.hatelist.find(function (obj) {
                 return obj.id === playerId;
@@ -90,9 +92,9 @@ class Mob extends Character<MobEvents> {
         }
     }
 
-    getHatedPlayerId(hateRank?: number): number | undefined {
+    getHatedPlayerId(hateRank?: number): EntityId | undefined {
         let i: number;
-        let playerId: number | undefined;
+        let playerId: EntityId | undefined;
         const sorted = this.hatelist.slice().sort(function (a, b) {
             return a.hate - b.hate;
         });
@@ -128,7 +130,11 @@ class Mob extends Character<MobEvents> {
 
     drop(item: DropItemLike | null | undefined): unknown {
         if (item) {
-            return new Messages.Drop(this, item);
+            const haters: number[] = [];
+            for (const hateEntry of this.hatelist) {
+                haters.push(hateEntry.id as unknown as number);
+            }
+            return buildDropAction(this.id, item.id, item.kind, haters);
         }
     }
 
@@ -172,7 +178,8 @@ class Mob extends Character<MobEvents> {
     }
 
     updateHitPoints(): void {
-        this.resetHitPoints(Properties.getHitPoints(this.kind));
+        const prefab = requireMobPrefab(this.kind);
+        this.resetHitPoints(prefab.combat.maxHitPoints);
     }
 
     distanceToSpawningPoint(x: number, y: number): number {

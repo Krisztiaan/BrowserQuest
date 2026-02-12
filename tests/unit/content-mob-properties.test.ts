@@ -1,19 +1,8 @@
 import { expect, test } from 'bun:test';
 import Types from '../../shared/gametypes-browser';
-import { MOB_PROPERTIES_DATA } from '../../server/generated/mob-properties.generated';
+import { requireMobPrefab } from '../../shared/content/prefabs';
 
-test('mob content table is non-empty and maps only to known mob kinds', () => {
-    const mobNames = Object.keys(MOB_PROPERTIES_DATA);
-    expect(mobNames.length).toBeGreaterThan(0);
-
-    mobNames.forEach((mobName) => {
-        const kind = Types.getKindFromString(mobName);
-        expect(kind).not.toBeUndefined();
-        expect(Types.isMob(kind)).toBe(true);
-    });
-});
-
-test('mob content table covers all known mob kinds', () => {
+test('mob prefab table covers all known mob kinds', () => {
     const knownMobNames: string[] = [];
     Types.forEachKind((kind, kindName) => {
         if (Types.isMob(kind)) {
@@ -22,13 +11,36 @@ test('mob content table covers all known mob kinds', () => {
     });
     knownMobNames.sort();
 
-    const contentMobNames = Object.keys(MOB_PROPERTIES_DATA).sort();
-    expect(contentMobNames).toEqual(knownMobNames);
+    const prefabMobNames = knownMobNames.filter((mobName) => {
+        const kind = Types.getKindFromString(mobName);
+        expect(kind).not.toBeUndefined();
+        expect(Types.isMob(kind)).toBe(true);
+        requireMobPrefab(kind);
+        return true;
+    });
+
+    expect(prefabMobNames).toEqual(knownMobNames);
 });
 
-test('mob content table preserves representative baseline values', () => {
-    expect(MOB_PROPERTIES_DATA.rat.hp).toBe(25);
-    expect(MOB_PROPERTIES_DATA.rat.armor).toBe(1);
-    expect(MOB_PROPERTIES_DATA.rat.weapon).toBe(1);
-    expect(MOB_PROPERTIES_DATA.boss.drops.goldensword).toBe(100);
+test('mob prefab table preserves representative baseline values', () => {
+    const ratKind = Types.getKindFromString('rat');
+    expect(ratKind).not.toBeUndefined();
+    expect(Types.isMob(ratKind)).toBe(true);
+    const ratPrefab = requireMobPrefab(ratKind);
+    expect(ratPrefab.combat.maxHitPoints).toBe(25);
+    expect(ratPrefab.combat.armorLevel).toBe(1);
+    expect(ratPrefab.combat.weaponLevel).toBe(1);
+
+    const bossKind = Types.getKindFromString('boss');
+    expect(bossKind).not.toBeUndefined();
+    expect(Types.isMob(bossKind)).toBe(true);
+    const bossPrefab = requireMobPrefab(bossKind);
+
+    const goldenSwordKind = Types.getKindFromString('goldensword');
+    expect(goldenSwordKind).not.toBeUndefined();
+    expect(Types.isItem(goldenSwordKind)).toBe(true);
+
+    const goldenSwordDrop = bossPrefab.drops.find((drop) => drop.kind === goldenSwordKind);
+    expect(goldenSwordDrop).not.toBeUndefined();
+    expect(goldenSwordDrop?.chance).toBe(100);
 });

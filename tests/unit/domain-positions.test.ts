@@ -13,4 +13,3 @@ test('worldPos validates finite coordinates', () => {
     expect(isWorldPos(pos)).toBe(true);
     expect(() => worldPos(Number.NaN, 0)).toThrow();
 });
-

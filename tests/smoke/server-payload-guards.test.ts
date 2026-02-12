@@ -1,7 +1,15 @@
 import net from 'node:net';
-import { afterEach, expect, test } from 'bun:test';
+import { expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
-import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol/contract';
+import {
+    ENTITY_CLOTH_ARMOR,
+    ENTITY_SWORD_1,
+    MSG_HELLO,
+    MSG_MOVE,
+    MSG_WELCOME,
+    parseProtocolActionBatch,
+    type ProtocolAction,
+} from '../support/protocol/contract';
 import WsCloseCodes from '../../shared/ws-close-codes';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
@@ -58,19 +66,43 @@ async function waitForGo(ws: WebSocket, timeoutMs = 3000) {
     });
 }
 
-async function waitForAnyJsonMessage(ws: WebSocket, timeoutMs = 3000) {
+function normalizePayloadToActions(payload: unknown): ProtocolAction[] {
+    if (Array.isArray(payload)) {
+        if (payload.length > 0 && Array.isArray(payload[0])) {
+            return (payload as unknown[]).filter((entry): entry is ProtocolAction => Array.isArray(entry));
+        }
+        return [payload] as unknown as ProtocolAction[];
+    }
+
+    let text = '';
+    if (typeof payload === 'string') {
+        text = payload;
+    } else if (payload instanceof ArrayBuffer) {
+        text = Buffer.from(payload).toString('utf8');
+    } else if (ArrayBuffer.isView(payload)) {
+        const view = payload as ArrayBufferView;
+        text = Buffer.from(view.buffer, view.byteOffset, view.byteLength).toString('utf8');
+    } else {
+        text = String(payload);
+    }
+
+    return parseProtocolActionBatch(text);
+}
+
+async function waitForWelcome(ws: WebSocket, timeoutMs = 3000) {
     return new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timed out waiting for JSON message')), timeoutMs);
+        const timeout = setTimeout(() => reject(new Error('Timed out waiting for WELCOME')), timeoutMs);
 
         ws.on('message', (data) => {
-            const text = data.toString();
-            if (text === 'go') {
+            if (typeof data === 'string' && data === 'go') {
                 return;
             }
             try {
-                JSON.parse(text);
-                clearTimeout(timeout);
-                resolve();
+                const actions = normalizePayloadToActions(data);
+                if (actions.some((action) => Array.isArray(action) && action[0] === MSG_WELCOME)) {
+                    clearTimeout(timeout);
+                    resolve();
+                }
             } catch (_) {
                 // ignore non-JSON messages
             }
@@ -137,50 +169,51 @@ async function startServer(): Promise<RunningServer> {
     return { configPath, port, proc };
 }
 
-let server: RunningServer | null = null;
-
-afterEach(async () => {
+async function withServer(run: (server: RunningServer) => Promise<void>): Promise<void> {
+    const server = await startServer();
     try {
-        server?.proc.kill();
-    } catch (_) {
-        // ignore
-    }
-    if (server) {
+        await run(server);
+    } finally {
+        try {
+            server.proc.kill();
+        } catch (_) {
+            // ignore
+        }
         try {
             await Bun.file(server.configPath).delete();
         } catch (_) {
             // ignore
         }
     }
-    server = null;
-});
+}
 
 test('rejects HELLO payload with oversized UTF-8 name', async () => {
-    server = await startServer();
+    await withServer(async (server) => {
+        const ws = new WebSocket(`ws://127.0.0.1:${server.port}/`);
+        await waitForGo(ws);
 
-    const ws = new WebSocket(`ws://127.0.0.1:${server.port}/`);
-    await waitForGo(ws);
+        const oversizedName = '🚀'.repeat(40); // 160 bytes in UTF-8
+        ws.send(JSON.stringify([MSG_HELLO, oversizedName, ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
 
-    const oversizedName = '🚀'.repeat(40); // 160 bytes in UTF-8
-    ws.send(JSON.stringify([MSG_HELLO, oversizedName, ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-
-    const closed = await waitForClose(ws);
-    expect(ws.readyState).toBe(WebSocket.CLOSED);
-    expect(closed.code).toBe(CLOSE_INVALID_PAYLOAD);
+        const closed = await waitForClose(ws);
+        expect(ws.readyState).toBe(WebSocket.CLOSED);
+        expect(closed.code).toBe(CLOSE_INVALID_PAYLOAD);
+    });
 });
 
 test('rejects MOVE payload containing non-integer coordinates', async () => {
-    server = await startServer();
+    await withServer(async (server) => {
+        const ws = new WebSocket(`ws://127.0.0.1:${server.port}/`);
+        await waitForGo(ws);
 
-    const ws = new WebSocket(`ws://127.0.0.1:${server.port}/`);
-    await waitForGo(ws);
+        const welcome = waitForWelcome(ws, 8000);
+        ws.send(JSON.stringify([MSG_HELLO, 'guarded', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
+        await welcome;
 
-    ws.send(JSON.stringify([MSG_HELLO, 'guarded', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-    await waitForAnyJsonMessage(ws);
+        ws.send(JSON.stringify([MSG_MOVE, 10.5, 7]));
 
-    ws.send(JSON.stringify([MSG_MOVE, 10.5, 7]));
-
-    const closed = await waitForClose(ws);
-    expect(ws.readyState).toBe(WebSocket.CLOSED);
-    expect(closed.code).toBe(CLOSE_INVALID_PAYLOAD);
+        const closed = await waitForClose(ws);
+        expect(ws.readyState).toBe(WebSocket.CLOSED);
+        expect(closed.code).toBe(CLOSE_INVALID_PAYLOAD);
+    });
 });
