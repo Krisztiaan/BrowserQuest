@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 14:12 UTC
+Last updated: 2026-02-12 15:06 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -37,7 +37,45 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 30. Ticket 67 (`done`) - Remove movement step hooks (spatial sync system)
 31. Ticket 68 (`done`) - Client ECS command buffer + apply system
 32. Ticket 69 (`done`) - Interaction intent executes via commands
-33. Ticket 70 (`in_progress`) - Runtime events emit commands only
+33. Ticket 70 (`done`) - Runtime events emit commands only
+34. Ticket 71 (`in_progress`) - Replication sync emits commands only
+
+## Ticket 71: Replication Sync Emits Commands Only
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Extend `ClientCommand` with replication sync commands (spawn from kernel, remove by id, move character, create attack link).
+  - Update `runClientKernelReplicationSyncSystem()` to enqueue commands only (no direct host mutations).
+  - Apply replication commands in `runClientCommandApplySystem()` and ensure scheduler ordering applies spawns before spatial/hover/click systems.
+- Out of scope:
+  - Removing legacy renderer/updater entity objects.
+  - Reworking server replication protocol.
+- Acceptance criteria:
+  - `client/ecs/systems/client-kernel-replication-sync-system.ts` contains no direct calls to `addEntity/addItem/removeEntity/removeItem/makeCharacterGoTo/createAttackLink`.
+  - Spawn/despawn/move/retarget parity remains.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 68.
+
+### Progress log
+
+- Start: 2026-02-12 15:03 UTC
+- End: 2026-02-12 15:06 UTC
+- Status: `done`
+- Key actions:
+  - Added replication commands (`spawnEntityFromKernel`, `removeEntityById`, `characterGoTo`, `createAttackLink`) and applied them in `runClientCommandApplySystem()`.
+  - Updated `runClientKernelReplicationSyncSystem()` to emit commands only (no direct host mutation).
+  - Adjusted scheduler ordering to apply replication commands before spatial/hover/click systems.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Migrate spatial sync to command emission or replace legacy grids with an ECS spatial index queried by hover/click/pathing.
 
 ## Ticket 70: Runtime Events Emit Commands Only
 

@@ -296,6 +296,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler.add('pre_update', (game) => runClientRuntimeEventSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientKernelReplicationSyncSystem(game));
+        this.frameScheduler.add('pre_update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientSpatialSyncSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientHoverStateSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientClickIntentSystem(game));

@@ -10,6 +10,7 @@ import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 import type { ClientCommand } from '../client-commands';
 import type { ClientWorldKernel } from '../world-kernel';
+import { adaptKernelEntityForRendering } from '../kernel-entity-adapter';
 import Exceptions from '../../exceptions';
 
 type GridIndexedEntity = {
@@ -30,7 +31,13 @@ type GridIndexedEntity = {
 export type ClientCommandApplySystemHost = {
     kernel: ClientWorldKernel;
     started: boolean;
-    client: { sendLoot(item: { id: EntityId }): void; sendOpen(chest: { id: EntityId }): void } | null;
+    client:
+        | {
+              sendLoot(item: { id: EntityId }): void;
+              sendOpen(chest: { id: EntityId }): void;
+              sendWho(ids: EntityId[]): void;
+          }
+        | null;
     playerId: EntityId | null;
     player: Player;
     emit(eventName: 'notification', message: string): void;
@@ -43,6 +50,10 @@ export type ClientCommandApplySystemHost = {
     makePlayerGoToItem(item: Item | null): void;
     getEntityById(id: EntityId): unknown;
     makeCharacterTeleportTo(entity: unknown, x: number, y: number): void;
+    makeCharacterGoTo(entity: unknown, x: number, y: number): void;
+    createAttackLink(attacker: unknown, target: unknown): void;
+    removeItem(item: Item | null): void;
+    removeEntity(entity: unknown): void;
 
     makePlayerAttack(mob: Mob): void;
     makePlayerTalkTo(npc: Npc): void;
@@ -76,6 +87,15 @@ export type ClientCommandApplySystemHost = {
     setPlayerHealth(points: number): void;
     addItemFromUnknown(item: unknown, x: number, y: number): void;
 };
+
+function safeOrientation(orientation: number | undefined): number {
+    return orientation === Types.Orientations.UP ||
+        orientation === Types.Orientations.DOWN ||
+        orientation === Types.Orientations.LEFT ||
+        orientation === Types.Orientations.RIGHT
+        ? orientation
+        : Types.Orientations.DOWN;
+}
 
 function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: string, x: number, y: number, maxHp: number): void {
     log.info('Received player ID from server : ' + id);
@@ -120,6 +140,8 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
         return;
     }
 
+    const getKnownEntity = (id: EntityId): GridIndexedEntity | undefined => host.entities[String(id)];
+
     for (const command of commands) {
         switch (command.type) {
             case 'stopPlayerCombat': {
@@ -131,47 +153,47 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 break;
             }
             case 'playerGoToItem': {
-                const entity = host.getEntityById(command.itemId);
+                const entity = getKnownEntity(command.itemId);
                 host.makePlayerGoToItem(entity instanceof Item ? entity : null);
                 break;
             }
             case 'playerAttack': {
-                const entity = host.getEntityById(command.targetId);
+                const entity = getKnownEntity(command.targetId);
                 if (entity instanceof Mob) {
                     host.makePlayerAttack(entity);
                 }
                 break;
             }
             case 'playerFollow': {
-                const entity = host.getEntityById(command.targetId);
+                const entity = getKnownEntity(command.targetId);
                 if (entity && typeof (entity as { gridX?: unknown; gridY?: unknown }).gridX === 'number') {
                     host.player.follow(entity as never);
                 }
                 break;
             }
             case 'playerTalkTo': {
-                const entity = host.getEntityById(command.npcId);
+                const entity = getKnownEntity(command.npcId);
                 if (entity instanceof Npc) {
                     host.makePlayerTalkTo(entity);
                 }
                 break;
             }
             case 'npcTalk': {
-                const entity = host.getEntityById(command.npcId);
+                const entity = getKnownEntity(command.npcId);
                 if (entity instanceof Npc) {
                     host.makeNpcTalk(entity);
                 }
                 break;
             }
             case 'playerOpenChest': {
-                const entity = host.getEntityById(command.chestId);
+                const entity = getKnownEntity(command.chestId);
                 if (entity instanceof Chest) {
                     host.makePlayerOpenChest(entity);
                 }
                 break;
             }
             case 'clientSendOpen': {
-                const entity = host.getEntityById(command.chestId);
+                const entity = getKnownEntity(command.chestId);
                 if (host.started && host.client && entity instanceof Chest) {
                     host.client.sendOpen(entity);
                 }
@@ -186,7 +208,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     break;
                 }
 
-                const entity = host.getEntityById(command.itemId);
+                const entity = getKnownEntity(command.itemId);
                 if (!(entity instanceof Item)) {
                     host.kernel.clearClientLootAttempt();
                     host.kernel.clearClientInteractionIntent();
@@ -279,7 +301,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 break;
             }
             case 'teleportEntity': {
-                const entity = host.getEntityById(command.entityId);
+                const entity = getKnownEntity(command.entityId);
                 if (entity) {
                     // Use legacy immediate teleport effect when available.
                     host.makeCharacterTeleportTo(entity as unknown, command.x, command.y);
@@ -317,7 +339,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 break;
             }
             case 'equipItem': {
-                const entity = host.getEntityById(command.entityId) as
+                const entity = getKnownEntity(command.entityId) as
                     | undefined
                     | {
                           setSprite(sprite: unknown): void;
@@ -343,7 +365,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 break;
             }
             case 'dropItem': {
-                const mob = host.getEntityById(command.mobId) as GridIndexedEntity | undefined;
+                const mob = getKnownEntity(command.mobId);
                 if (!mob) {
                     break;
                 }
@@ -351,8 +373,79 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 break;
             }
             case 'itemBlink': {
-                const entity = host.getEntityById(command.entityId) as GridIndexedEntity | undefined;
+                const entity = getKnownEntity(command.entityId);
                 entity?.blink?.(150);
+                break;
+            }
+            case 'spawnEntityFromKernel': {
+                const id = command.entityId;
+                if (getKnownEntity(id)) {
+                    break;
+                }
+
+                const view = host.kernel.getEntityView(id);
+                const adapted = adaptKernelEntityForRendering(host.kernel, id);
+
+                if (adapted.type === 'item') {
+                    host.addItemFromUnknown(adapted.entity, view.position.x, view.position.y);
+                    break;
+                }
+
+                if (adapted.type === 'chest') {
+                    const entity = adapted.entity as unknown as GridIndexedEntity;
+                    entity.setSprite(host.sprites[entity.getSpriteName()] ?? null);
+                    entity.setGridPosition(view.position.x, view.position.y);
+                    host.addEntity(entity as unknown);
+                    break;
+                }
+
+                const character = adapted.entity as unknown as GridIndexedEntity;
+                character.setSprite(host.sprites[character.getSpriteName()] ?? null);
+                character.setGridPosition(view.position.x, view.position.y);
+                if (typeof character.setOrientation === 'function') {
+                    character.setOrientation(safeOrientation(adapted.orientation));
+                }
+                character.idle?.();
+                host.addEntity(character as unknown);
+
+                if (adapted.targetId !== undefined) {
+                    const target = getKnownEntity(adapted.targetId);
+                    if (target) {
+                        host.createAttackLink(character as unknown, target as unknown);
+                    }
+                }
+                break;
+            }
+            case 'removeEntityById': {
+                const entity = getKnownEntity(command.entityId);
+                if (!entity) {
+                    break;
+                }
+                if (entity instanceof Item) {
+                    host.removeItem(entity);
+                } else {
+                    host.removeEntity(entity);
+                }
+                break;
+            }
+            case 'characterGoTo': {
+                const entity = getKnownEntity(command.entityId);
+                if (!entity) {
+                    break;
+                }
+                if (entity instanceof Item || entity instanceof Chest) {
+                    break;
+                }
+                host.makeCharacterGoTo(entity as unknown, command.x, command.y);
+                break;
+            }
+            case 'createAttackLink': {
+                const attacker = getKnownEntity(command.attackerId);
+                const target = getKnownEntity(command.targetId);
+                if (!attacker || !target) {
+                    break;
+                }
+                host.createAttackLink(attacker as unknown, target as unknown);
                 break;
             }
         }

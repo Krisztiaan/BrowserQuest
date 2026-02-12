@@ -27,4 +27,8 @@ export type ClientCommand =
     | Readonly<{ type: 'chatMessage'; entityId: EntityId; text: string }>
     | Readonly<{ type: 'equipItem'; entityId: EntityId; itemKind: EntityKind }>
     | Readonly<{ type: 'dropItem'; item: unknown; mobId: EntityId }>
-    | Readonly<{ type: 'itemBlink'; entityId: EntityId }>;
+    | Readonly<{ type: 'itemBlink'; entityId: EntityId }>
+    | Readonly<{ type: 'spawnEntityFromKernel'; entityId: EntityId }>
+    | Readonly<{ type: 'removeEntityById'; entityId: EntityId }>
+    | Readonly<{ type: 'characterGoTo'; entityId: EntityId; x: number; y: number }>
+    | Readonly<{ type: 'createAttackLink'; attackerId: EntityId; targetId: EntityId }>;
