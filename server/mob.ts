@@ -16,11 +16,6 @@ interface DropItemLike {
     kind: EntityKind;
 }
 
-interface MobAreaRespawnContract {
-    respawnMob?(mob: Mob, delay: number): void;
-    removeFromArea?(mob: Mob): void;
-}
-
 export type MobEvents = {
     respawn: [];
     move: [mob: Mob];
@@ -32,9 +27,7 @@ class Mob extends Character<MobEvents> {
     armorLevel: number;
     weaponLevel: number;
     hatelist: HateEntry[];
-    respawnTimeout: ReturnType<typeof setTimeout> | null;
-    returnTimeout: ReturnType<typeof setTimeout> | null;
-    area: MobAreaRespawnContract | null;
+    area: unknown;
     isDead: boolean;
     constructor(id: EntityId, kind: EntityKind, x: number, y: number) {
         super(id, 'mob', kind, x, y);
@@ -46,8 +39,6 @@ class Mob extends Character<MobEvents> {
         this.armorLevel = prefab.combat.armorLevel;
         this.weaponLevel = prefab.combat.weaponLevel;
         this.hatelist = [];
-        this.respawnTimeout = null;
-        this.returnTimeout = null;
         this.area = null;
         this.isDead = false;
     }
@@ -56,10 +47,6 @@ class Mob extends Character<MobEvents> {
         this.isDead = true;
         this.hatelist = [];
         this.clearTarget();
-        this.updateHitPoints();
-        this.resetPosition();
-
-        this.handleRespawn();
     }
 
     receiveDamage(points: number, _playerId: EntityId): void {
@@ -82,13 +69,6 @@ class Mob extends Character<MobEvents> {
             }
         } else {
             this.hatelist.push({ id: playerId, hate: points });
-        }
-
-        if (this.returnTimeout) {
-            // Prevent the mob from returning to its spawning position
-            // since it has aggroed a new player
-            clearTimeout(this.returnTimeout);
-            this.returnTimeout = null;
         }
     }
 
@@ -113,19 +93,15 @@ class Mob extends Character<MobEvents> {
         return playerId;
     }
 
-    forgetPlayer(playerId: number, duration?: number): void {
+    forgetPlayer(playerId: number, _duration?: number): void {
         this.hatelist = this.hatelist.filter(function (obj) {
             return obj.id !== playerId;
         });
-
-        if (this.hatelist.length === 0) {
-            this.returnToSpawningPosition(duration);
-        }
     }
 
     forgetEveryone(): void {
         this.hatelist = [];
-        this.returnToSpawningPosition(1);
+        this.clearTarget();
     }
 
     drop(item: DropItemLike | null | undefined): unknown {
@@ -136,40 +112,6 @@ class Mob extends Character<MobEvents> {
             }
             return buildDropAction(this.id, item.id, item.kind, haters);
         }
-    }
-
-    handleRespawn(): void {
-        const delay = 30000;
-        const self = this;
-
-        if (this.area && typeof this.area.respawnMob === 'function') {
-            // Respawn inside the area if part of a MobArea
-            this.area.respawnMob(this, delay);
-        } else {
-            if (this.area && typeof this.area.removeFromArea === 'function') {
-                this.area.removeFromArea(this);
-            }
-
-            setTimeout(function () {
-                self.emit('respawn');
-            }, delay);
-        }
-    }
-
-    resetPosition(): void {
-        this.setPosition(this.spawningX, this.spawningY);
-    }
-
-    returnToSpawningPosition(waitDuration?: number): void {
-        const self = this;
-        const delay = waitDuration ?? 4000;
-
-        this.clearTarget();
-
-        this.returnTimeout = setTimeout(function () {
-            self.resetPosition();
-            self.move(self.x, self.y);
-        }, delay);
     }
 
     move(x: number, y: number): void {

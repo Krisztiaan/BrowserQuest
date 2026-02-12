@@ -374,6 +374,15 @@ class World extends Evented<WorldEvents> {
             },
         });
 
+        if (entity instanceof Mob) {
+            const area = (entity as unknown as { area?: unknown }).area;
+            const removeFromArea = (area as { removeFromArea?: (mob: unknown) => void } | null | undefined)?.removeFromArea;
+            if (typeof removeFromArea === 'function') {
+                removeFromArea(entity);
+            }
+            this.ecsPipeline.scheduleStaticRespawn(entity, 30);
+        }
+
         if (entity instanceof Item && entity.isStatic) {
             this.ecsPipeline.scheduleStaticRespawn(entity);
         }

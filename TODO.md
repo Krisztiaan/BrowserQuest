@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 21:18 UTC
+Last updated: 2026-02-12 21:24 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -53,7 +53,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 46. Ticket 83 (`done`) - Client interaction systems use kernel spatial records
 47. Ticket 84 (`done`) - Remove legacy client lookup/iterator modules
 48. Ticket 85 (`in_progress`) - Server: remove legacy zone groups + group messaging
-49. Ticket 86 (`todo`) - Server: ECS-native mob respawn (remove legacy timers)
+49. Ticket 86 (`done`) - Server: ECS-native mob respawn (remove legacy timers)
 50. Ticket 87 (`todo`) - Combat: stop dead-target attacking + clear targets
 
 ## Ticket 84: Remove Legacy Client Lookup/Iterator Modules
@@ -231,7 +231,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 86: Server - ECS-Native Mob Respawn (Remove Legacy Timers)
 
-- Status: `todo`
+- Status: `done`
 - Priority: P1
 - Scope:
   - Replace legacy mob respawn timeouts (`Mob.handleRespawn`) with ECS `RESPAWN_TASKS_RESOURCE` scheduling.
@@ -250,6 +250,19 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000`
 - Dependencies/blockers:
   - Ticket 85.
+
+### Progress log
+
+- Start: 2026-02-12 21:19 UTC
+- End: 2026-02-12 21:24 UTC
+- Status: `done`
+- Key actions:
+  - Removed timer-driven mob respawn logic from `server/mob.ts` (no `setTimeout` respawn/return timers in mob class).
+  - Bound MobArea respawn behavior to the mob’s `respawn` event (`server/mobarea.ts`) and scheduled mob respawns via ECS tick tasks in `server/world-server.ts`.
+- Evidence:
+  - `bun run lint` (pass; 0 warnings)
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 
 ## Ticket 87: Combat - Stop Dead-Target Attacking + Clear Targets
 

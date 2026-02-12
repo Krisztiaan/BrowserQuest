@@ -4,22 +4,15 @@ import { entityIdFromWire } from '../shared/domain/ids';
 import Area from './area';
 import type { AreaWorldContract } from './area';
 import Mob from './mob';
-import Utils from './utils';
 import Types from '../shared/gametypes-browser';
-
-interface Position {
-    x: number;
-    y: number;
-}
 
 interface MobAreaMobContract {
     id: EntityId;
-    x: number;
-    y: number;
     type: string;
     isDead: boolean;
-    hasTarget(): boolean;
-    move(x: number, y: number): void;
+    setPosition(x: number, y: number): void;
+    updateHitPoints(): void;
+    on(eventName: 'respawn', callback: () => void): void;
 }
 
 interface MobAreaWorldContract {
@@ -64,41 +57,15 @@ class MobArea extends Area {
         const pos = this._getRandomPositionInsideArea();
         const mob = new Mob(entityIdFromWire(Number('1' + this.id + '' + k + '' + this.entities.length)), k, pos.x, pos.y);
 
-        return mob;
-    }
-
-    respawnMob(mob: MobAreaMobContract, delay: number): void {
-        const self = this;
-
-        this.removeFromArea(mob);
-
-        setTimeout(function () {
-            const pos = self._getRandomPositionInsideArea();
-
-            mob.x = pos.x;
-            mob.y = pos.y;
+        mob.on('respawn', () => {
+            const nextPos = this._getRandomPositionInsideArea();
+            mob.setPosition(nextPos.x, nextPos.y);
             mob.isDead = false;
-            self.addToArea(mob);
-            self.world.addMob(mob);
-        }, delay);
-    }
+            mob.updateHitPoints();
+            this.addToArea(mob);
+        });
 
-    initRoaming(_mob?: MobAreaMobContract): void {
-        const self = this;
-
-        setInterval(function () {
-            (self.entities as MobAreaMobContract[]).forEach(function (mob) {
-                const canRoam = Utils.random(20) === 1;
-                let pos: Position;
-
-                if (canRoam) {
-                    if (!mob.hasTarget() && !mob.isDead) {
-                        pos = self._getRandomPositionInsideArea();
-                        mob.move(pos.x, pos.y);
-                    }
-                }
-            });
-        }, 500);
+        return mob;
     }
 
     createReward(): { x: number; y: number; kind: EntityKind } {
