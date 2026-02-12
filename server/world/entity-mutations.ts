@@ -10,12 +10,6 @@ type EntityCollection = Record<string, unknown>;
 
 type AddEntity<T extends IdentifiedEntity> = (entity: T) => void;
 type RemoveEntity<T extends IdentifiedEntity> = (entity: T) => void;
-type HandleEntityGroupMembership<T extends IdentifiedEntity> = (entity: T) => void;
-
-type RemovePlayerEntity = IdentifiedEntity & {
-    despawn(): unknown;
-    broadcast(message: unknown): void;
-};
 
 type RespawnableStaticItem = {
     isStatic: boolean;
@@ -36,21 +30,17 @@ type CreateItemFromKind<TItem extends ChestOriginItem> = (kind: EntityKind, x: n
 type CreateNpc<TNpc extends IdentifiedEntity> = (kind: EntityKind, x: number, y: number) => TNpc;
 
 type ClearMobLinks = (mob: RemovableEntity) => void;
-type RemoveFromGroups = (entity: RemovableEntity) => void;
 type ResolveKindAsString = (kind: EntityKind) => string;
 type LogDebug = (message: string) => void;
 
-export function addWorldEntity<T extends IdentifiedEntity>({
+export function addWorldEntity({
     entity,
     entities,
-    handleEntityGroupMembership,
 }: {
-    entity: T;
+    entity: IdentifiedEntity;
     entities: EntityCollection;
-    handleEntityGroupMembership: HandleEntityGroupMembership<T>;
 }): void {
     entities[entity.id] = entity;
-    handleEntityGroupMembership(entity);
 }
 
 export function addWorldPlayer<T extends IdentifiedEntity>({
@@ -69,7 +59,7 @@ export function addWorldPlayer<T extends IdentifiedEntity>({
     outgoingQueues[player.id] = [];
 }
 
-export function removeWorldPlayer<T extends RemovePlayerEntity>({
+export function removeWorldPlayer<T extends IdentifiedEntity>({
     player,
     removeEntity,
     players,
@@ -80,7 +70,6 @@ export function removeWorldPlayer<T extends RemovePlayerEntity>({
     players: EntityCollection;
     outgoingQueues: OutgoingQueues;
 }): void {
-    player.broadcast(player.despawn());
     removeEntity(player);
     delete players[player.id];
     delete outgoingQueues[player.id];
@@ -177,7 +166,6 @@ export function removeWorldEntity({
     items,
     clearMobAggroLink,
     clearMobHateLinks,
-    removeFromGroups,
     resolveKindAsString,
     logDebug,
 }: {
@@ -187,7 +175,6 @@ export function removeWorldEntity({
     items: EntityCollection;
     clearMobAggroLink: ClearMobLinks;
     clearMobHateLinks: ClearMobLinks;
-    removeFromGroups: RemoveFromGroups;
     resolveKindAsString: ResolveKindAsString;
     logDebug: LogDebug;
 }): void {
@@ -207,6 +194,5 @@ export function removeWorldEntity({
     }
 
     entity.destroy();
-    removeFromGroups(entity);
     logDebug('Removed ' + resolveKindAsString(entity.kind) + ' : ' + entity.id);
 }

@@ -1,5 +1,5 @@
 import Log from '../log';
-import { buildDestroyAction, buildPopulationAction } from '../protocol/outbound-actions';
+import { buildPopulationAction } from '../protocol/outbound-actions';
 import { WORLD_EVENT_NAMES } from '../server-event-names';
 import type { EntityId } from '../../shared/domain/ids';
 
@@ -8,15 +8,11 @@ type Position = { x: number; y: number };
 type EnteringPlayer = {
     id: EntityId;
     name: string;
-    group: string;
     hasEnteredGame: boolean;
     lastCheckpoint: { getRandomPosition(): Position } | null;
     setPositionResolver(resolver: () => Position): void;
     on(eventName: 'move', callback: (x: number, y: number) => void): void;
     on(eventName: 'lootMove', callback: (x: number, y: number) => void): void;
-    on(eventName: 'zone', callback: () => void): void;
-    on(eventName: 'broadcast', callback: (message: unknown, ignoreSelf?: boolean) => void): void;
-    on(eventName: 'broadcastZone', callback: (message: unknown, ignoreSelf?: boolean) => void): void;
     on(eventName: 'exit', callback: () => void): void;
 };
 
@@ -33,11 +29,6 @@ type LifecycleWorld = {
     incrementPlayerCount(): void;
     decrementPlayerCount(): void;
     pushToPlayer(player: EnteringPlayer, message: unknown): void;
-    pushRelevantEntityListTo(player: EnteringPlayer): void;
-    handleEntityGroupMembership(player: EnteringPlayer): boolean;
-    pushToPreviousGroups(player: EnteringPlayer, message: unknown): void;
-    pushToAdjacentGroups(groupId: string, message: unknown, ignoredPlayer: EntityId | null): void;
-    pushToGroup(groupId: string, message: unknown, ignoredPlayer: EntityId | null): void;
     removePlayer(player: EnteringPlayer): void;
 };
 
@@ -73,7 +64,6 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
         }
 
         world.pushToPlayer(player, buildPopulationAction(world.playerCount));
-        world.pushRelevantEntityListTo(player);
 
         const onMove = function (x: number, y: number) {
             log.debug(player.name + ' is moving to (' + x + ', ' + y + ').');
@@ -81,23 +71,6 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
 
         player.on('move', onMove);
         player.on('lootMove', onMove);
-
-        player.on('zone', function () {
-            const hasChangedGroups = world.handleEntityGroupMembership(player);
-
-            if (hasChangedGroups) {
-                world.pushToPreviousGroups(player, buildDestroyAction(player.id));
-                world.pushRelevantEntityListTo(player);
-            }
-        });
-
-        player.on('broadcast', function (message, ignoreSelf) {
-            world.pushToAdjacentGroups(player.group, message, ignoreSelf ? player.id : null);
-        });
-
-        player.on('broadcastZone', function (message, ignoreSelf) {
-            world.pushToGroup(player.group, message, ignoreSelf ? player.id : null);
-        });
 
         player.on('exit', function () {
             log.info(player.name + ' has left the game.');

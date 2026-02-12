@@ -62,9 +62,7 @@ type WorldCommandHost = Readonly<{
     handleItemDespawn(item: unknown): void;
     moveEntity(entity: unknown, x: number, y: number): void;
     removeEntity(entity: unknown): void;
-    pushRelevantEntityListTo(player: Player): void;
     addItemFromChest(kind: unknown, x: number, y: number): unknown;
-    pushToAdjacentGroups(groupId: string, message: unknown, ignoredPlayer: EntityId | null): void;
     pushToPlayer(player: Player, message: unknown): void;
 }>;
 
@@ -319,7 +317,13 @@ function applyLootMoveCommand({
     }
     player.clearTarget();
     state.world.removeComponent(cmd.source.playerId, Target);
-    player.broadcast(buildLootMoveAction(player.id, (item as { id: EntityId }).id));
+    const outbox = state.resources.require(OUTBOX_RESOURCE);
+    outbox.push({
+        kind: 'broadcast_nearby',
+        actorId: player.id,
+        ignoredPlayerId: player.id,
+        action: buildLootMoveAction(player.id, (item as { id: EntityId }).id),
+    });
     player.emit('lootMove', player.x, player.y);
 }
 
@@ -626,16 +630,17 @@ function applyTeleportCommand({
     if (!world.isValidPosition(cmd.to.x, cmd.to.y)) {
         return;
     }
-    const oldGroupId = world.map.getGroupIdFromPosition(player.x, player.y);
     player.setPosition(cmd.to.x, cmd.to.y);
     state.world.addComponent(cmd.source.playerId, Position, cmd.to);
     player.clearTarget();
     state.world.removeComponent(cmd.source.playerId, Target);
 
-    world.pushToAdjacentGroups(oldGroupId, buildTeleportAction(player.id, player.x, player.y), player.id);
-    world.moveEntity(player, player.x, player.y);
+    const teleport = buildTeleportAction(player.id, player.x, player.y);
+    const outbox = state.resources.require(OUTBOX_RESOURCE);
+    outbox.push({ kind: 'to_player', playerId: player.id, action: teleport });
+    outbox.push({ kind: 'broadcast_nearby', actorId: player.id, ignoredPlayerId: player.id, action: teleport });
+
     clearPlayerFromMobAggro({ state, mobAi, replication, world, playerId: player.id, tickNow: ctx.tick });
-    world.pushRelevantEntityListTo(player);
 }
 
 function applyOpenCommand(world: WorldCommandHost, player: Player, cmd: Extract<Command, { type: 'OPEN' }>): void {
@@ -657,9 +662,10 @@ function applyCheckCommand(world: WorldCommandHost, player: Player, cmd: Extract
     }
 }
 
-function applyChatCommand(world: WorldCommandHost, player: Player, cmd: Extract<Command, { type: 'CHAT' }>): void {
+function applyChatCommand(state: WorldState<Command, DomainEvent>, playerId: EntityId, cmd: Extract<Command, { type: 'CHAT' }>): void {
     if (cmd.message && cmd.message !== '') {
-        player.broadcastToZone(buildChatAction(player.id, cmd.message), false);
+        const outbox = state.resources.require(OUTBOX_RESOURCE);
+        outbox.push({ kind: 'broadcast_nearby', actorId: playerId, action: buildChatAction(playerId, cmd.message) });
     }
 }
 
@@ -716,7 +722,7 @@ function createApplyInboundCommandsSystem(
                     player.emit('zone');
                     break;
                 case 'CHAT':
-                    applyChatCommand(world, player, cmd);
+                    applyChatCommand(state, player.id, cmd);
                     break;
                 case 'MOVE':
                     applyMoveCommand({ state, Position, Target, world, player, cmd });

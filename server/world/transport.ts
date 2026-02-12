@@ -1,12 +1,4 @@
-import type {
-    AdjacentGroupMap,
-    OutgoingQueues,
-    QueueGroup,
-    QueuePlayer,
-    TransportErrorLogger,
-    WorldConnection,
-} from './contracts';
-import type { EntityId } from '../../shared/domain/ids';
+import type { OutgoingQueues, QueuePlayer, TransportErrorLogger, WorldConnection } from './contracts';
 
 export function pushSerializedToPlayerQueue(
     outgoingQueues: OutgoingQueues,
@@ -22,92 +14,6 @@ export function pushSerializedToPlayerQueue(
         }
     } else {
         logError('pushToPlayer: player was undefined');
-    }
-}
-
-type PushSerializedToGroupOptions = {
-    groups: Record<string, QueueGroup>;
-    outgoingQueues: OutgoingQueues;
-    groupId: string;
-    serializedMessage: unknown;
-    ignoredPlayer?: EntityId | null;
-    getEntityById(id: EntityId): QueuePlayer;
-    logError: TransportErrorLogger;
-};
-
-export function pushSerializedToGroupQueue({
-    groups,
-    outgoingQueues,
-    groupId,
-    serializedMessage,
-    ignoredPlayer = null,
-    getEntityById,
-    logError,
-}: PushSerializedToGroupOptions): void {
-        const group = groups[groupId];
-    if (group) {
-        group.players.forEach((playerId) => {
-            if (playerId !== ignoredPlayer) {
-                pushSerializedToPlayerQueue(
-                    outgoingQueues,
-                    getEntityById(playerId),
-                    serializedMessage,
-                    logError
-                );
-            }
-        });
-        return;
-    }
-    logError('groupId: ' + groupId + ' is not a valid group');
-}
-
-type PushSerializedToAdjacentGroupsOptions = {
-    map: AdjacentGroupMap;
-    groups: Record<string, QueueGroup>;
-    outgoingQueues: OutgoingQueues;
-    groupId: string;
-    serializedMessage: unknown;
-    ignoredPlayer?: EntityId | null;
-    getEntityById(id: EntityId): QueuePlayer;
-    logError: TransportErrorLogger;
-};
-
-export function pushSerializedToAdjacentGroupsQueue({
-    map,
-    groups,
-    outgoingQueues,
-    groupId,
-    serializedMessage,
-    ignoredPlayer = null,
-    getEntityById,
-    logError,
-}: PushSerializedToAdjacentGroupsOptions): void {
-    map.forEachAdjacentGroup(groupId, function (id) {
-        pushSerializedToGroupQueue({
-            groups,
-            outgoingQueues,
-            groupId: id,
-            serializedMessage,
-            ignoredPlayer,
-            getEntityById,
-            logError,
-        });
-    });
-}
-
-export function pushSerializedBroadcastQueue(
-    outgoingQueues: OutgoingQueues,
-    serializedMessage: unknown,
-    ignoredPlayer: EntityId | null = null
-): void {
-    const ignoredKey = ignoredPlayer === null ? null : String(ignoredPlayer);
-    for (const id in outgoingQueues) {
-        if (ignoredKey === null || id !== ignoredKey) {
-            const queue = outgoingQueues[id];
-            if (queue) {
-                queue.push(serializedMessage);
-            }
-        }
     }
 }
 
@@ -136,3 +42,4 @@ export function flushOutgoingQueues(
         }
     }
 }
+

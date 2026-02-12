@@ -63,7 +63,6 @@ type SpawnMob = {
     isDead: boolean;
     area?: unknown;
     on(eventName: 'respawn', callback: () => void): void;
-    on(eventName: 'move', callback: (mob: SpawnMob) => void): void;
 };
 
 type SpawnChestAreaLike = {
@@ -82,7 +81,6 @@ type SpawnStaticEntitiesForWorldParams = {
     addMob(mob: SpawnMob): void;
     isChestArea(area: unknown): area is SpawnChestAreaLike;
     addMobToContainingChestArea(mob: SpawnMob): void;
-    onMobMove(mob: SpawnMob): void;
     createItem(kind: EntityKind, x: number, y: number): unknown;
     addStaticItem(item: unknown): void;
 };
@@ -153,7 +151,6 @@ export function spawnStaticEntitiesForWorld({
     addMob,
     isChestArea,
     addMobToContainingChestArea,
-    onMobMove,
     createItem,
     addStaticItem,
     }: SpawnStaticEntitiesForWorldParams): void {
@@ -182,7 +179,6 @@ export function spawnStaticEntitiesForWorld({
                     mob.area.addToArea(mob);
                 }
             });
-            mob.on('move', onMobMove);
             addMob(mob);
             addMobToContainingChestArea(mob);
         }

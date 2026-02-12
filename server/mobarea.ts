@@ -20,11 +20,9 @@ interface MobAreaMobContract {
     isDead: boolean;
     hasTarget(): boolean;
     move(x: number, y: number): void;
-    on(eventName: 'move', callback: (mob: MobAreaMobContract) => void): void;
 }
 
 interface MobAreaWorldContract {
-    onMobMoveCallback: (mob: MobAreaMobContract) => void;
     addMob(mob: MobAreaMobContract): void;
     isValidPosition(x: number, y: number): boolean;
 }
@@ -65,8 +63,6 @@ class MobArea extends Area {
         const k = Types.getKindFromString(this.kind) as EntityKindId;
         const pos = this._getRandomPositionInsideArea();
         const mob = new Mob(entityIdFromWire(Number('1' + this.id + '' + k + '' + this.entities.length)), k, pos.x, pos.y);
-
-        mob.on('move', (m: MobAreaMobContract) => this.world.onMobMoveCallback(m));
 
         return mob;
     }

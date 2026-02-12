@@ -41,8 +41,6 @@ type PlayerEvents = {
     zone: [];
     orient: [];
     message: [message: ClientToServerProtocolAction];
-    broadcast: [message: unknown, ignoreSelf?: boolean];
-    broadcastZone: [message: unknown, ignoreSelf?: boolean];
 };
 
 class Player extends Character<PlayerEvents> {
@@ -89,14 +87,6 @@ class Player extends Character<PlayerEvents> {
 
     send(message: unknown): void {
         this.connection.send(message);
-    }
-
-    broadcast(message: unknown, ignoreSelf = true): void {
-        this.emit('broadcast', message, ignoreSelf);
-    }
-
-    broadcastToZone(message: unknown, ignoreSelf = true): void {
-        this.emit('broadcastZone', message, ignoreSelf);
     }
 
     equip(item: EntityKind): unknown {

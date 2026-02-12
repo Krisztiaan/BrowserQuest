@@ -17,7 +17,6 @@ type MapBootstrapWorld = {
     };
     mobAreas: RuntimeMobArea[];
     chestAreas: RuntimeChestArea[];
-    initZoneGroups(): void;
     handleEmptyMobArea(area: RuntimeMobArea): void;
     handleEmptyChestArea(area: RuntimeChestArea): void;
     createChest(x: number, y: number, items: unknown[]): unknown;
@@ -42,7 +41,6 @@ export function bootstrapWorldMapRuntime({
     createMobArea,
     createChestArea,
 }: MapBootstrapInput): void {
-    world.initZoneGroups();
     world.map.generateCollisionGrid();
 
     mobAreaConfigs.forEach(function (config) {

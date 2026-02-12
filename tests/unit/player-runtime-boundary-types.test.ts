@@ -22,7 +22,6 @@ test('player runtime seam interfaces accept compatibility shapes', () => {
             return undefined;
         },
         removeEntity() {},
-        pushRelevantEntityListTo() {},
         pushToPlayer() {},
         map: {
             getCheckpoint() {

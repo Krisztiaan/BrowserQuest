@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 20:18 UTC
+Last updated: 2026-02-12 21:11 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -52,6 +52,9 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 45. Ticket 82 (`done`) - Client spatial index from kernel (remove legacy grids)
 46. Ticket 83 (`done`) - Client interaction systems use kernel spatial records
 47. Ticket 84 (`done`) - Remove legacy client lookup/iterator modules
+48. Ticket 85 (`in_progress`) - Server: remove legacy zone groups + group messaging
+49. Ticket 86 (`todo`) - Server: ECS-native mob respawn (remove legacy timers)
+50. Ticket 87 (`todo`) - Combat: stop dead-target attacking + clear targets
 
 ## Ticket 84: Remove Legacy Client Lookup/Iterator Modules
 
@@ -174,6 +177,101 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Replace remaining legacy entity-object dependency in client ECS systems with kernel views/components (reduce `host.entities` reads).
+
+## Ticket 85: Server - Remove Legacy Zone Groups + Group Messaging
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Remove legacy server "zone group" system (`groups`, group membership, group push queues) now that ECS interest replication owns SPAWN/DESPAWN and outbox owns broadcast.
+  - Delete unused group modules:
+    - `server/world/group-flow.ts`
+    - `server/world/group-membership.ts`
+    - `server/world/push.ts`
+  - Replace remaining group-based sends with ECS outbox actions:
+    - remove `pushRelevantEntityListTo(...)`
+    - remove `pushToAdjacentGroups(...)` / `pushToGroup(...)` / `pushToPreviousGroups(...)`
+    - migrate `Player.broadcast*` usage in ECS command pipeline to outbox
+  - Simplify `server/world/update-loop.ts` to call `processQueues()` only (no legacy `processGroups()` stage).
+- Out of scope:
+  - Removing legacy server entity classes (`Player`, `Mob`, `Item`, `Chest`) entirely.
+  - Reworking spawn replication component set or protocol schema.
+- Acceptance criteria:
+  - No TS references remain to legacy group messaging APIs (`pushToAdjacentGroups`, `pushToGroup`, `pushRelevantEntityListTo`, `pushToPreviousGroups`).
+  - `server/world/group-flow.ts`, `server/world/group-membership.ts`, and `server/world/push.ts` are deleted.
+  - `bun run lint` passes (0 warnings).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run lint`
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 84.
+
+### Progress log
+
+- Start: 2026-02-12 20:42 UTC
+- End: 2026-02-12 21:11 UTC
+- Status: `done`
+- Key actions:
+  - Deleted legacy server zone group system (`server/world/group-flow.ts`, `server/world/group-membership.ts`, `server/world/push.ts`) and removed `groups`/membership plumbing from `server/world-server.ts`.
+  - Simplified update loop (`server/world/update-loop.ts`) to tick ECS + queues only.
+  - Replaced legacy broadcast/list flows with ECS outbox + interest replication:
+    - `server/world/ecs-command-pipeline.ts` (chat/lootmove/teleport now outbox-driven; no group pushes)
+    - `server/world/player-lifecycle.ts` (no LIST/group churn on enter/zone)
+  - Removed legacy `Player.broadcast*` events (`server/player.ts`) and redundant despawn broadcast (`server/world/entity-mutations.ts`).
+  - Trimmed world transport to player-queue flush only (`server/world/transport.ts`) and reintroduced `World.pushBroadcast(...)` for population updates.
+- Evidence:
+  - `bun run lint` (pass; 0 warnings)
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Ticket 87: clear dead targets and stop post-death attacking (server + client intent cleanup).
+
+## Ticket 86: Server - ECS-Native Mob Respawn (Remove Legacy Timers)
+
+- Status: `todo`
+- Priority: P1
+- Scope:
+  - Replace legacy mob respawn timeouts (`Mob.handleRespawn`) with ECS `RESPAWN_TASKS_RESOURCE` scheduling.
+  - Ensure mob respawns (including MobArea respawns) rehydrate required ECS replication/combat components.
+- Out of scope:
+  - Changing content drop tables or combat formulas.
+- Acceptance criteria:
+  - Server mob respawn no longer depends on `setTimeout` inside `server/mob.ts`.
+  - Respawn behavior remains functionally equivalent (delay, position, hit points restored).
+  - `bun run lint` passes (0 warnings).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run lint`
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 85.
+
+## Ticket 87: Combat - Stop Dead-Target Attacking + Clear Targets
+
+- Status: `todo`
+- Priority: P1
+- Scope:
+  - Ensure attack intent/targets are cleared when a target dies or despawns (server authoritative + client intent cleanup).
+  - Prevent repeated HIT/ATTACK attempts against dead/non-existent entities.
+- Out of scope:
+  - New combat mechanics (crit, stun, etc.).
+- Acceptance criteria:
+  - Client stops auto-attacking immediately once the target is dead/despawned.
+  - Server clears `Target` replication component for entities whose target is dead/despawned.
+  - `bun run lint` passes (0 warnings).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run lint`
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 85.
 
 ## Ticket 81: Replace Client Updater Loop With ECS Systems
 

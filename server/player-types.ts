@@ -31,7 +31,6 @@ export interface PlayerRuntimeWorldServer {
     isValidPosition(x: number, y: number): boolean;
     getEntityById(id: EntityId): PlayerRuntimeEntity | undefined;
     removeEntity(entity: PlayerRuntimeEntity): void;
-    pushRelevantEntityListTo(player: PlayerRuntime): void;
     pushToPlayer(player: PlayerRuntime, message: PlayerRuntimeMessage | ServerToClientProtocolAction): void;
     map: {
         getCheckpoint(id: string | number): { id?: string | number } | null | undefined;
