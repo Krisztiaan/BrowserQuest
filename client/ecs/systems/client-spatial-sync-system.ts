@@ -14,17 +14,10 @@ type GridIndexedEntity = {
     isDirty: boolean;
 };
 
-type EntityGridCell = Record<string, GridIndexedEntity>;
-type EntityGrid = EntityGridCell[][];
-
 export type ClientSpatialSyncSystemHost = {
     kernel: ClientWorldKernel;
     map: { grid: number[][]; isOutOfBounds(x: number, y: number): boolean } | null;
     entities: Record<string, GridIndexedEntity>;
-    entityGrid: EntityGrid | null;
-    itemGrid: EntityGrid | null;
-    renderingGrid: EntityGrid | null;
-    pathingGrid: number[][] | null;
 };
 
 function normalizeNextGrid(entity: GridIndexedEntity): { nextGridX: number; nextGridY: number } {
@@ -34,11 +27,12 @@ function normalizeNextGrid(entity: GridIndexedEntity): { nextGridX: number; next
 }
 
 export function runClientSpatialSyncSystem(host: ClientSpatialSyncSystemHost): void {
-    if (!host.map || !host.entityGrid || !host.renderingGrid || !host.pathingGrid) {
+    if (!host.map) {
         return;
     }
 
     const kernel = host.kernel;
+    kernel.ensureClientPathingGrid(host.map.grid);
 
     // Remove records for entities no longer present client-side.
     for (const id of Array.from(kernel.clientSpatialKnownIds)) {

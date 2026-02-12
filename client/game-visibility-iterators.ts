@@ -25,11 +25,12 @@ export function forEachEntityByDepthInView(game: Game, callback: (entity: GameEn
     game.camera.forEachVisiblePosition(
         function (x: number, y: number) {
             if (!map.isOutOfBounds(x, y)) {
-                const entities = game.renderingGrid?.[y]?.[x];
-                if (entities) {
-                    Object.keys(entities).forEach(function (id: string) {
-                        callback(entities[id]);
-                    });
+                const ids = game.kernel.getClientRenderIdsAt(x, y);
+                for (const id of ids) {
+                    const entity = game.entities[String(id)];
+                    if (entity) {
+                        callback(entity);
+                    }
                 }
             }
         },

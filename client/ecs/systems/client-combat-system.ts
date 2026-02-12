@@ -13,16 +13,12 @@ type GridIndexedEntity = {
     gridY: number;
 };
 
-type EntityGridCell = Record<string, unknown>;
-type EntityGrid = EntityGridCell[][];
-
 export type ClientCombatSystemHost = Readonly<{
     started: boolean;
     currentTime: number;
     playerId: EntityId | null;
     player: Player | null;
     entities: Record<string, unknown>;
-    entityGrid: EntityGrid | null;
     map: { isColliding(x: number, y: number): boolean } | null;
     camera: { isVisible(entity: unknown): boolean } | null;
     kernel: ClientWorldKernel;
@@ -46,11 +42,9 @@ function getPositionAheadOfTarget(target: Player): AdjacentPosition | null {
 }
 
 function hasMobAt(host: ClientCombatSystemHost, x: number, y: number, excludeId?: EntityId): boolean {
-    const cell = host.entityGrid?.[y]?.[x];
-    if (!cell) {
-        return false;
-    }
-    for (const entity of Object.values(cell)) {
+    const ids = host.kernel.getClientEntityIdsAt(x, y);
+    for (const id of ids) {
+        const entity = host.entities[String(id)];
         if (!(entity instanceof Mob)) {
             continue;
         }

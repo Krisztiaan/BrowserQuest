@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 19:28 UTC
+Last updated: 2026-02-12 20:02 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -49,6 +49,50 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 42. Ticket 79 (`done`) - Lint unused modules/exports
 43. Ticket 80 (`done`) - Burn down lint warnings to zero
 44. Ticket 81 (`done`) - Replace client updater loop with ECS systems
+45. Ticket 82 (`done`) - Client spatial index from kernel (remove legacy grids)
+
+## Ticket 82: Client Spatial Index From Kernel (Remove Legacy Grids)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Replace `Game`-owned `entityGrid` / `itemGrid` / `renderingGrid` / `pathingGrid` with kernel-owned spatial indices + pathing state.
+  - Update spatial record apply (`spatialAddRecord` / `spatialRemoveRecord`) to update kernel indices/pathing only (no legacy grid writes).
+  - Update entity lookups + depth iteration to use kernel indices (`getEntityAt/getMobAt/getItemAt`, rendering order iterator).
+  - Update pathfinding to use kernel pathing grid snapshot.
+  - Remove `client/game-spatial-state.ts` grid initialization and refactor restart/bootstrap accordingly.
+- Out of scope:
+  - Replacing legacy `Character` movement interpolation with an ECS movement component/system.
+  - Rendering modernization (sprite batching, WebGL, etc.).
+- Acceptance criteria:
+  - No `entityGrid`, `itemGrid`, `renderingGrid`, or `pathingGrid` fields exist on `client/game.ts`.
+  - `client/ecs/systems/client-spatial-sync-system.ts` no longer depends on legacy grids.
+  - Hover/click/entity lookup and render depth iteration use kernel indices.
+  - `bun run lint` passes (0 warnings).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run lint`
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 81.
+
+### Progress log
+
+- Start: 2026-02-12 19:30 UTC
+- End: 2026-02-12 20:02 UTC
+- Status: `done`
+- Key actions:
+  - Moved client spatial indices and pathing grid ownership into `ClientWorldKernel` and removed legacy Game grids.
+  - Cut over entity lookups, depth iteration, combat stacking checks, and pathing to use kernel indices/pathing.
+  - Hardened smoke-test server teardown (`killBunProcess`) with SIGKILL escalation to avoid suite flakes.
+- Evidence:
+  - `bun run lint` (pass; 0 warnings)
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Replace remaining legacy entity-object dependency in client ECS systems with kernel views/components (reduce `host.entities` reads).
 
 ## Ticket 81: Replace Client Updater Loop With ECS Systems
 

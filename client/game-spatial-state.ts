@@ -2,18 +2,15 @@ import type Game from './game';
 
 type SpatialStateOptions = {
     resetEntities?: boolean;
-    includeItemGrid?: boolean;
 };
 
 export function initializeGameSpatialState(game: Game, options?: SpatialStateOptions): void {
     if (options?.resetEntities) {
         game.entities = {};
     }
-
-    game.initEntityGrid();
-    if (options?.includeItemGrid) {
-        game.initItemGrid();
+    if (game.map) {
+        game.kernel.resetClientSpatialState(game.map.grid);
+    } else {
+        game.kernel.resetClientSpatialState();
     }
-    game.initPathingGrid();
-    game.initRenderingGrid();
 }

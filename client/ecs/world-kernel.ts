@@ -3,6 +3,7 @@ import type { EntityId } from '../../shared/domain/ids';
 import { entityIdFromWire } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
 import type { SpawnSnapshot } from '../../shared/replication/spawn-snapshot';
+import Types from '../../shared/gametypes-browser';
 import type { ClientCommand } from './client-commands';
 import type { ClientRuntimeEvent } from './runtime-events';
 
@@ -41,6 +42,50 @@ export type ClientLootAttempt = Readonly<{
     itemId: EntityId;
     pos: GridPos;
 }>;
+
+export type ClientSpatialRecord = Readonly<{
+    gridX: number;
+    gridY: number;
+    nextGridX: number;
+    nextGridY: number;
+    isMoving: boolean;
+    kind: EntityKind;
+    isPlayer: boolean;
+}>;
+
+function cellKey(x: number, y: number): string {
+    return `${x},${y}`;
+}
+
+function addToCellIndex(index: Map<string, EntityId[]>, x: number, y: number, id: EntityId): void {
+    const key = cellKey(x, y);
+    const list = index.get(key);
+    if (!list) {
+        index.set(key, [id]);
+        return;
+    }
+    if (list.includes(id)) {
+        return;
+    }
+    list.push(id);
+    list.sort((a, b) => a - b);
+}
+
+function removeFromCellIndex(index: Map<string, EntityId[]>, x: number, y: number, id: EntityId): void {
+    const key = cellKey(x, y);
+    const list = index.get(key);
+    if (!list) {
+        return;
+    }
+    const next = list.filter((existing) => existing !== id);
+    if (next.length === 0) {
+        index.delete(key);
+        return;
+    }
+    if (next.length !== list.length) {
+        index.set(key, next);
+    }
+}
 
 export class ClientWorldKernel {
     readonly alive = new Set<EntityId>();
@@ -83,7 +128,90 @@ export class ClientWorldKernel {
         }>
     >();
 
+    // Kernel-owned spatial indices derived from `clientSpatialRecords` (replaces legacy Game grids).
+    readonly clientSpatialEntityIndex = new Map<string, EntityId[]>();
+    readonly clientSpatialItemIndex = new Map<string, EntityId[]>();
+    readonly clientSpatialRenderIndex = new Map<string, EntityId[]>();
+
+    clientPathingGrid: number[][] | null = null;
+
     clientLastSentMovePos: GridPos | null = null;
+
+    ensureClientPathingGrid(mapGrid: number[][]): void {
+        const height = mapGrid.length;
+        const width = mapGrid[0]?.length ?? 0;
+        if (height === 0 || width === 0) {
+            return;
+        }
+
+        const existing = this.clientPathingGrid;
+        if (existing?.length === height && (existing[0]?.length ?? 0) === width) {
+            return;
+        }
+
+        const next: number[][] = [];
+        for (let y = 0; y < height; y += 1) {
+            next[y] = [];
+            for (let x = 0; x < width; x += 1) {
+                next[y][x] = mapGrid[y]?.[x] ?? 0;
+            }
+        }
+        this.clientPathingGrid = next;
+    }
+
+    resetClientSpatialState(mapGrid?: number[][]): void {
+        this.clientSpatialKnownIds.clear();
+        this.clientSpatialRecords.clear();
+        this.clientSpatialEntityIndex.clear();
+        this.clientSpatialItemIndex.clear();
+        this.clientSpatialRenderIndex.clear();
+        this.clientPathingGrid = null;
+        if (mapGrid) {
+            this.ensureClientPathingGrid(mapGrid);
+        }
+    }
+
+    applySpatialRemoveRecord(entityId: EntityId, record: ClientSpatialRecord): void {
+        removeFromCellIndex(this.clientSpatialRenderIndex, record.gridX, record.gridY, entityId);
+
+        if (!Types.isItem(record.kind)) {
+            if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
+                removeFromCellIndex(this.clientSpatialEntityIndex, record.nextGridX, record.nextGridY, entityId);
+            }
+            removeFromCellIndex(this.clientSpatialEntityIndex, record.gridX, record.gridY, entityId);
+        }
+        if (Types.isItem(record.kind)) {
+            removeFromCellIndex(this.clientSpatialItemIndex, record.gridX, record.gridY, entityId);
+        }
+    }
+
+    applySpatialAddRecord(entityId: EntityId, record: ClientSpatialRecord): void {
+        addToCellIndex(this.clientSpatialRenderIndex, record.gridX, record.gridY, entityId);
+
+        // Hit-test entities in both current and next cells while they are moving.
+        if (!Types.isItem(record.kind)) {
+            addToCellIndex(this.clientSpatialEntityIndex, record.gridX, record.gridY, entityId);
+            if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
+                addToCellIndex(this.clientSpatialEntityIndex, record.nextGridX, record.nextGridY, entityId);
+            }
+        }
+
+        if (Types.isItem(record.kind)) {
+            addToCellIndex(this.clientSpatialItemIndex, record.gridX, record.gridY, entityId);
+        }
+    }
+
+    getClientEntityIdsAt(x: number, y: number): EntityId[] {
+        return this.clientSpatialEntityIndex.get(cellKey(x, y)) ?? [];
+    }
+
+    getClientItemIdsAt(x: number, y: number): EntityId[] {
+        return this.clientSpatialItemIndex.get(cellKey(x, y)) ?? [];
+    }
+
+    getClientRenderIdsAt(x: number, y: number): EntityId[] {
+        return this.clientSpatialRenderIndex.get(cellKey(x, y)) ?? [];
+    }
 
     upsertFromSpawnSnapshot(snapshot: SpawnSnapshot): KernelEntityView {
         const id = entityIdFromWire(snapshot.id);
@@ -163,6 +291,35 @@ export class ClientWorldKernel {
         this.clientReplicationKnownAlive.delete(id);
         this.clientReplicationLastPos.delete(id);
         this.clientReplicationLastTarget.delete(id);
+    }
+
+    resetWorldState(): void {
+        this.alive.clear();
+        this.kind.clear();
+        this.position.clear();
+        this.name.clear();
+        this.orientation.clear();
+        this.armor.clear();
+        this.weapon.clear();
+        this.target.clear();
+
+        this.worldPlayers = 0;
+        this.totalPlayers = 0;
+
+        this.clientInteractionIntent = null;
+        this.clientClickIntent = null;
+        this.clientClickState = null;
+        this.clientLootAttempt = null;
+        this.clientRuntimeEvents = [];
+        this.clientCommands = [];
+
+        this.clientReplicationKnownAlive.clear();
+        this.clientReplicationLastPos.clear();
+        this.clientReplicationLastTarget.clear();
+
+        this.resetClientSpatialState();
+
+        this.clientLastSentMovePos = null;
     }
 
     setPopulation(worldPlayers: number, totalPlayers: number): void {

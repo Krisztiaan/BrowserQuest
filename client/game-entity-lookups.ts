@@ -7,37 +7,30 @@ import type Game from './game';
 type GridEntity = Game['entities'][string];
 
 export function getItemAtPosition(game: Game, x: number, y: number): GridEntity | null {
-    if (game.map.isOutOfBounds(x, y) || !game.itemGrid) {
+    if (!game.map || game.map.isOutOfBounds(x, y)) {
         return null;
     }
 
-    const row = game.itemGrid[y];
-    if (!row) {
-        return null;
-    }
-    const items = row[x];
+    const itemIds = game.kernel.getClientItemIdsAt(x, y);
     let item: GridEntity | null = null;
 
-    if (items) {
-        const keys = Object.keys(items);
-        if (keys.length === 0) {
-            return null;
-        }
+    if (itemIds.length === 0) {
+        return null;
+    }
 
-        // If there are potions/burgers stacked with equipment items on the same tile, always get expendable items first.
-        for (const id of keys) {
-            const candidate = items[id];
-            if (candidate && Types.isExpendableItem(candidate.kind)) {
-                item = candidate;
-            }
+    // If there are potions/burgers stacked with equipment items on the same tile, always get expendable items first.
+    for (const id of itemIds) {
+        const candidate = game.entities[String(id)];
+        if (candidate && Types.isExpendableItem(candidate.kind)) {
+            item = candidate;
         }
+    }
 
-        // Else, get the first item of the stack.
-        if (item === null) {
-            const firstKey = keys[0];
-            if (firstKey) {
-                item = items[firstKey] ?? null;
-            }
+    // Else, get the first item of the stack.
+    if (item === null) {
+        const firstId = itemIds[0];
+        if (firstId !== undefined) {
+            item = game.entities[String(firstId)] ?? null;
         }
     }
 
@@ -45,26 +38,17 @@ export function getItemAtPosition(game: Game, x: number, y: number): GridEntity 
 }
 
 export function getEntityAtPosition(game: Game, x: number, y: number): GridEntity | null {
-    if (game.map.isOutOfBounds(x, y) || !game.entityGrid) {
+    if (!game.map || game.map.isOutOfBounds(x, y)) {
         return null;
     }
 
-    const row = game.entityGrid[y];
-    if (!row) {
-        return null;
-    }
-    const entities = row[x];
-    if (!entities) {
+    const entityIds = game.kernel.getClientEntityIdsAt(x, y);
+    if (entityIds.length === 0) {
         return getItemAtPosition(game, x, y);
     }
 
-    const keys = Object.keys(entities);
-    if (keys.length === 0) {
-        return getItemAtPosition(game, x, y);
-    }
-
-    const firstKey = keys[0];
-    const entity = firstKey ? (entities[firstKey] ?? null) : null;
+    const firstId = entityIds[0];
+    const entity = firstId !== undefined ? (game.entities[String(firstId)] ?? null) : null;
     if (entity) {
         return entity;
     }

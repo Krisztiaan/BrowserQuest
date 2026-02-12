@@ -79,8 +79,7 @@ type RendererGameLike = {
     setSpriteScale(scale: number): void;
     getMouseGridPosition(): { x: number; y: number };
     getEntityAt(x: number, y: number): { x: number; y: number } | null;
-    entityGrid: unknown[][] | null;
-    pathingGrid: number[][] | null;
+    kernel: { clientPathingGrid: number[][] | null };
     debugPathing: boolean;
     camera: Camera;
     cursors: Record<string, RenderSprite>;
@@ -344,22 +343,8 @@ class Renderer {
         }
     }
 
-    drawOccupiedCells(): void {
-        const positions = this.game.entityGrid;
-
-        if (positions) {
-            for (let i = 0; i < positions.length; i += 1) {
-                for (let j = 0; j < positions[i].length; j += 1) {
-                    if (positions[i][j] !== null) {
-                        this.drawCellHighlight(i, j, 'rgba(50, 50, 255, 0.5)');
-                    }
-                }
-            }
-        }
-    }
-
     drawPathingCells(): void {
-        const grid = this.game.pathingGrid;
+        const grid = this.game.kernel.clientPathingGrid;
 
         if (grid && this.game.debugPathing) {
             for (let y = 0; y < grid.length; y += 1) {

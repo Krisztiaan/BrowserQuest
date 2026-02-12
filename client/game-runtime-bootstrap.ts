@@ -20,7 +20,7 @@ export function bootstrapGameRuntime(game: Game, onStarted: () => void): void {
         game.initSilhouettes();
     }
 
-    initializeGameSpatialState(game, { includeItemGrid: true });
+    initializeGameSpatialState(game);
 
     game.setPathfinder(new Pathfinder(game.map.width, game.map.height));
 

@@ -39,9 +39,6 @@ type SpatialRecord = Readonly<{
     isPlayer: boolean;
 }>;
 
-type EntityGridCell = Record<string, unknown>;
-type EntityGrid = EntityGridCell[][];
-
 export type ClientCommandApplySystemHost = {
     kernel: ClientWorldKernel;
     started: boolean;
@@ -102,10 +99,6 @@ export type ClientCommandApplySystemHost = {
     sprites: Record<string, unknown>;
     entities: Record<string, GridIndexedEntity>;
     map: { grid: number[][]; isOutOfBounds(x: number, y: number): boolean } | null;
-    entityGrid: EntityGrid | null;
-    itemGrid: EntityGrid | null;
-    renderingGrid: EntityGrid | null;
-    pathingGrid: number[][] | null;
     obsoleteEntities: GridIndexedEntity[] | null;
     removeObsoleteEntities(): void;
     connectionStartedCallback: (() => void) | null;
@@ -126,23 +119,19 @@ function safeOrientation(orientation: number | undefined): number {
         : Types.Orientations.DOWN;
 }
 
-function removeFromCell(cell: EntityGridCell | undefined, entityId: EntityId): void {
-    if (!cell) {
-        return;
-    }
-    if (cell[entityId]) {
-        delete cell[entityId];
-    }
-}
-
 function setPathingCell(host: ClientCommandApplySystemHost, x: number, y: number, value: number): void {
-    if (!host.map || !host.pathingGrid) {
+    if (!host.map) {
         return;
     }
     if (host.map.isOutOfBounds(x, y)) {
         return;
     }
-    host.pathingGrid[y][x] = value;
+    host.kernel.ensureClientPathingGrid(host.map.grid);
+    const grid = host.kernel.clientPathingGrid;
+    if (!grid) {
+        return;
+    }
+    grid[y][x] = value;
 }
 
 function basePathingValue(host: ClientCommandApplySystemHost, x: number, y: number): number {
@@ -164,24 +153,7 @@ function addDynamicPathing(host: ClientCommandApplySystemHost, x: number, y: num
 }
 
 function applySpatialRemoveRecord(host: ClientCommandApplySystemHost, entityId: EntityId, record: SpatialRecord): void {
-    const entityGrid = host.entityGrid;
-    const itemGrid = host.itemGrid;
-    const renderingGrid = host.renderingGrid;
-
-    if (entityGrid) {
-        removeFromCell(entityGrid[record.gridY]?.[record.gridX], entityId);
-        if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
-            removeFromCell(entityGrid[record.nextGridY]?.[record.nextGridX], entityId);
-        }
-    }
-
-    if (renderingGrid) {
-        removeFromCell(renderingGrid[record.gridY]?.[record.gridX], entityId);
-    }
-
-    if (itemGrid && Types.isItem(record.kind)) {
-        removeFromCell(itemGrid[record.gridY]?.[record.gridX], entityId);
-    }
+    host.kernel.applySpatialRemoveRecord(entityId, record);
 
     if (Types.isChest(record.kind)) {
         removeDynamicPathing(host, record.gridX, record.gridY);
@@ -205,32 +177,11 @@ function applySpatialRemoveRecord(host: ClientCommandApplySystemHost, entityId: 
 
 function applySpatialAddRecord(host: ClientCommandApplySystemHost, entityId: EntityId, record: SpatialRecord): void {
     const map = host.map;
-    const entity = host.entities[String(entityId)];
-    if (!map || !entity) {
+    if (!map) {
         return;
     }
-
-    const entityGrid = host.entityGrid;
-    const itemGrid = host.itemGrid;
-    const renderingGrid = host.renderingGrid;
-
-    if (entityGrid && !map.isOutOfBounds(record.gridX, record.gridY)) {
-        if (!Types.isItem(record.kind)) {
-            (entityGrid[record.gridY][record.gridX] as EntityGridCell)[entityId] = entity;
-            if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
-                if (!map.isOutOfBounds(record.nextGridX, record.nextGridY)) {
-                    (entityGrid[record.nextGridY][record.nextGridX] as EntityGridCell)[entityId] = entity;
-                }
-            }
-        }
-    }
-
-    if (itemGrid && Types.isItem(record.kind) && !map.isOutOfBounds(record.gridX, record.gridY)) {
-        (itemGrid[record.gridY][record.gridX] as EntityGridCell)[entityId] = entity;
-    }
-
-    if (renderingGrid && !map.isOutOfBounds(record.gridX, record.gridY)) {
-        (renderingGrid[record.gridY][record.gridX] as EntityGridCell)[entityId] = entity;
+    if (!map.isOutOfBounds(record.gridX, record.gridY)) {
+        host.kernel.applySpatialAddRecord(entityId, record);
     }
 
     if (Types.isChest(record.kind)) {

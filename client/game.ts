@@ -48,9 +48,8 @@ import type { AchievementDefinition } from './game-achievements';
 import Item from './item';
 import type Mob from './mob';
 import Npc from './npc';
-import Player from './player';
 import Character from './character';
-import Chest from './chest';
+import type Chest from './chest';
 import config from './config';
 import log from './platform/log';
 import Types from '../shared/gametypes-browser';
@@ -117,8 +116,6 @@ type AppLike = {
     initAchievementList(achievements: Record<string, AchievementDefinition>): void;
     initUnlockedAchievements(unlocked: AchievementId[]): void;
 };
-type EntityGridCell = Record<string, GridIndexedEntity>;
-type EntityGrid = EntityGridCell[][];
 type GameEvents = {
     gameStart: [];
     disconnect: [message: string];
@@ -147,10 +144,6 @@ class Game extends Evented<GameEvents> {
     player: Warrior;
     entities: Record<string, GridIndexedEntity>;
     deathpositions: Record<string, GridPosition>;
-    entityGrid: EntityGrid | null;
-    pathingGrid: number[][] | null;
-    renderingGrid: EntityGrid | null;
-    itemGrid: EntityGrid | null;
     playerId: EntityId | null;
     currentCursor: Sprite | null;
     currentCursorOrientation?: number | null;
@@ -225,10 +218,6 @@ class Game extends Evented<GameEvents> {
         // Game state
         this.entities = {};
         this.deathpositions = {};
-        this.entityGrid = null;
-        this.pathingGrid = null;
-        this.renderingGrid = null;
-        this.itemGrid = null;
         this.playerId = null;
         this.currentCursor = null;
         this.mouse = { x: 0, y: 0 };
@@ -501,7 +490,6 @@ class Game extends Evented<GameEvents> {
 
         if (this.entities[entity.id] === undefined) {
             this.entities[entity.id] = entity;
-            this.registerEntityPosition(entity);
 
             // Ensure movement/pathfinding works for all spawned characters.
             if (this.pathfinder && entity instanceof Character) {
@@ -528,7 +516,6 @@ class Game extends Evented<GameEvents> {
     removeEntity(entity: GridIndexedEntity): void {
         if (entity.id in this.entities) {
             this.onEntityRemoved(entity.id);
-            this.unregisterEntityPosition(entity);
             delete this.entities[entity.id];
         } else {
             log.error('Cannot remove entity. Unknown ID : ' + entity.id);
@@ -551,58 +538,11 @@ class Game extends Evented<GameEvents> {
     }
 
     removeItem(item: Item | null): void {
-        if (item) {
-            this.onEntityRemoved(item.id);
-            this.removeFromItemGrid(item, item.gridX, item.gridY);
-            this.removeFromRenderingGrid(item, item.gridX, item.gridY);
-            delete this.entities[item.id];
-        } else {
+        if (!item) {
             log.error('Cannot remove item. Unknown item reference.');
+            return;
         }
-    }
-
-    initPathingGrid(): void {
-        this.pathingGrid = [];
-        for (let i = 0; i < this.map.height; i += 1) {
-            this.pathingGrid[i] = [];
-            for (let j = 0; j < this.map.width; j += 1) {
-                this.pathingGrid[i][j] = this.map.grid[i][j];
-            }
-        }
-        log.info('Initialized the pathing grid with static colliding cells.');
-    }
-
-    initEntityGrid(): void {
-        this.entityGrid = [];
-        for (let i = 0; i < this.map.height; i += 1) {
-            this.entityGrid[i] = [];
-            for (let j = 0; j < this.map.width; j += 1) {
-                this.entityGrid[i][j] = {};
-            }
-        }
-        log.info('Initialized the entity grid.');
-    }
-
-    initRenderingGrid(): void {
-        this.renderingGrid = [];
-        for (let i = 0; i < this.map.height; i += 1) {
-            this.renderingGrid[i] = [];
-            for (let j = 0; j < this.map.width; j += 1) {
-                this.renderingGrid[i][j] = {};
-            }
-        }
-        log.info('Initialized the rendering grid.');
-    }
-
-    initItemGrid(): void {
-        this.itemGrid = [];
-        for (let i = 0; i < this.map.height; i += 1) {
-            this.itemGrid[i] = [];
-            for (let j = 0; j < this.map.width; j += 1) {
-                this.itemGrid[i][j] = {};
-            }
-        }
-        log.info('Initialized the item grid.');
+        this.removeEntity(item);
     }
 
     /**
@@ -626,93 +566,6 @@ class Game extends Evented<GameEvents> {
         //log.info("Initialized animated tiles.");
     }
 
-    addToRenderingGrid(entity: GridIndexedEntity, x: number, y: number): void {
-        if (!this.map.isOutOfBounds(x, y)) {
-            this.renderingGrid[y][x][entity.id] = entity;
-        }
-    }
-
-    removeFromRenderingGrid(entity: GridIndexedEntity | null, x: number, y: number): void {
-        if (entity && this.renderingGrid[y][x] && entity.id in this.renderingGrid[y][x]) {
-            delete this.renderingGrid[y][x][entity.id];
-        }
-    }
-
-    removeFromEntityGrid(entity: GridIndexedEntity, x: number, y: number): void {
-        if (this.entityGrid[y][x][entity.id]) {
-            delete this.entityGrid[y][x][entity.id];
-        }
-    }
-
-    removeFromItemGrid(item: Item | null, x: number, y: number): void {
-        if (item && this.itemGrid[y][x][item.id]) {
-            delete this.itemGrid[y][x][item.id];
-        }
-    }
-
-    removeFromPathingGrid(x: number, y: number): void {
-        this.pathingGrid[y][x] = 0;
-    }
-
-    /**
-     * Registers the entity at two adjacent positions on the grid at the same time.
-     * This situation is temporary and should only occur when the entity is moving.
-     * This is useful for the hit testing algorithm used when hovering entities with the mouse cursor.
-     */
-    registerEntityDualPosition(entity: GridIndexedEntity): void {
-        this.entityGrid[entity.gridY][entity.gridX][entity.id] = entity;
-
-        this.addToRenderingGrid(entity, entity.gridX, entity.gridY);
-
-        if (
-            entity.nextGridX !== undefined &&
-            entity.nextGridY !== undefined &&
-            entity.nextGridX >= 0 &&
-            entity.nextGridY >= 0
-        ) {
-            this.entityGrid[entity.nextGridY][entity.nextGridX][entity.id] = entity;
-            if (!(entity instanceof Player)) {
-                this.pathingGrid[entity.nextGridY][entity.nextGridX] = 1;
-            }
-        }
-    }
-
-    /**
-     * Clears the position(s) of this entity in the entity grid.
-     */
-    unregisterEntityPosition(entity: GridIndexedEntity): void {
-        this.removeFromEntityGrid(entity, entity.gridX, entity.gridY);
-        this.removeFromPathingGrid(entity.gridX, entity.gridY);
-
-        this.removeFromRenderingGrid(entity, entity.gridX, entity.gridY);
-
-        if (
-            entity.nextGridX !== undefined &&
-            entity.nextGridY !== undefined &&
-            entity.nextGridX >= 0 &&
-            entity.nextGridY >= 0
-        ) {
-            this.removeFromEntityGrid(entity, entity.nextGridX, entity.nextGridY);
-            this.removeFromPathingGrid(entity.nextGridX, entity.nextGridY);
-        }
-    }
-
-    registerEntityPosition(entity: GridIndexedEntity): void {
-        const x = entity.gridX,
-            y = entity.gridY;
-
-        if (entity instanceof Character || entity instanceof Chest) {
-            this.entityGrid[y][x][entity.id] = entity;
-            if (!(entity instanceof Player)) {
-                this.pathingGrid[y][x] = 1;
-            }
-        }
-        if (entity instanceof Item) {
-            this.itemGrid[y][x][entity.id] = entity;
-        }
-
-        this.addToRenderingGrid(entity, x, y);
-    }
 
     setServerOptions(wsUrl: string, username: string): void {
         this.wsUrl = wsUrl;
@@ -859,11 +712,8 @@ class Game extends Evented<GameEvents> {
      */
     makeCharacterTeleportTo(character: Character, x: number, y: number): void {
         if (!this.map.isOutOfBounds(x, y)) {
-            this.unregisterEntityPosition(character);
-
             character.setGridPosition(x, y);
 
-            this.registerEntityPosition(character);
             this.assignBubbleTo(character);
         } else {
             log.debug('Teleport out of bounds: ' + x + ', ' + y);
@@ -1037,11 +887,15 @@ class Game extends Evented<GameEvents> {
      * The path will pass through any entity present in the ignore list.
      */
     findPath(character: Character, x: number, y: number, ignoreList?: GridIndexedEntity[]): GridPath {
-        const self = this,
-            grid = this.pathingGrid;
+        const self = this;
         let path: GridPath = [];
 
         if (this.map.isColliding(x, y)) {
+            return path;
+        }
+
+        this.kernel.ensureClientPathingGrid(this.map.grid);
+        if (!this.kernel.clientPathingGrid) {
             return path;
         }
 
@@ -1052,7 +906,7 @@ class Game extends Evented<GameEvents> {
                 });
             }
 
-            path = this.pathfinder.findPath(grid, character, x, y, false);
+            path = this.pathfinder.findPath(this.kernel.clientPathingGrid, character, x, y, false);
 
             if (ignoreList) {
                 this.pathfinder.clearIgnoreList();
@@ -1228,6 +1082,7 @@ class Game extends Evented<GameEvents> {
     restart(): void {
         log.debug('Beginning restart');
 
+        this.kernel.resetWorldState();
         initializeGameSpatialState(this, { resetEntities: true });
 
         this.player = new Warrior('player', this.username);
@@ -1331,11 +1186,12 @@ class Game extends Evented<GameEvents> {
         for (let i = x - r, max_i = x + r; i <= max_i; i += 1) {
             for (let j = y - r, max_j = y + r; j <= max_j; j += 1) {
                 if (!this.map.isOutOfBounds(i, j)) {
-                    const entities = this.renderingGrid[j][i];
-                    if (entities) {
-                        Object.keys(entities).forEach(function (id: string) {
-                            callback(entities[id]);
-                        });
+                    const ids = this.kernel.getClientRenderIdsAt(i, j);
+                    for (const id of ids) {
+                        const entity = this.entities[String(id)];
+                        if (entity) {
+                            callback(entity);
+                        }
                     }
                 }
             }
