@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 19:17 UTC
+Last updated: 2026-02-12 19:28 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -48,6 +48,50 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 41. Ticket 78 (`done`) - Stabilize smoke parity timeout
 42. Ticket 79 (`done`) - Lint unused modules/exports
 43. Ticket 80 (`done`) - Burn down lint warnings to zero
+44. Ticket 81 (`done`) - Replace client updater loop with ECS systems
+
+## Ticket 81: Replace Client Updater Loop With ECS Systems
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Remove `client/updater.ts` and the `Game.updater` integration.
+  - Replace `runClientUpdaterSystem()` with an ECS system that performs the same per-frame responsibilities:
+    - zoning camera transitions
+    - character movement stepping + entity fading
+    - player aggro polling timer
+    - entity + FX animations, animated tiles, bubbles, and combat info updates
+  - Keep all side effects inside ECS scheduling (no direct calls from `Game.tick()` besides scheduler run).
+- Out of scope:
+  - Reworking movement/pathfinding math or interpolation model.
+  - Rendering modernization / sprite architecture rewrite.
+- Acceptance criteria:
+  - `client/game.ts` no longer imports or instantiates `Updater`.
+  - `client/updater.ts` is deleted.
+  - `bun run lint` passes (0 warnings).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run lint`
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 80.
+
+### Progress log
+
+- Start: 2026-02-12 19:17 UTC
+- End: 2026-02-12 19:28 UTC
+- Status: `done`
+- Key actions:
+  - Replaced `Updater` monolith with `runClientSimulationSystem()` scheduled by the ECS frame scheduler.
+  - Deleted `client/updater.ts` and `client/ecs/systems/client-updater-system.ts` and removed `Game.updater` plumbing.
+- Evidence:
+  - `bun run lint` (pass; 0 warnings)
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Identify remaining legacy runtime seams to convert to ECS-first systems (movement/pathing + renderer entity state).
 
 ## Ticket 72: MOVE Outbox Emits Commands Only
 

@@ -40,7 +40,6 @@ import AnimatedTile from './tile';
 import Warrior from './warrior';
 import type GameClient from './gameclient';
 import AudioManager from './audio';
-import Updater from './updater';
 import Transition from './transition';
 import type Pathfinder from './pathfinder';
 import type Camera from './camera';
@@ -80,9 +79,10 @@ import { runClientPlayerMoveOutboxSystem } from './ecs/systems/client-player-mov
 import { runClientRuntimeEventSystem } from './ecs/systems/client-runtime-event-system';
 import { runClientSpatialSyncSystem } from './ecs/systems/client-spatial-sync-system';
 import { runClientTimeSystem } from './ecs/systems/client-time-system';
-import { runClientUpdaterSystem } from './ecs/systems/client-updater-system';
 import { runClientRenderSystem } from './ecs/systems/client-render-system';
 import { runClientCombatSystem } from './ecs/systems/client-combat-system';
+import { runClientSimulationSystem } from './ecs/systems/client-simulation-system';
+import Timer from './timer';
 
 type GridPosition = { x: number; y: number };
 type GridIndexedEntity = {
@@ -140,7 +140,6 @@ class Game extends Evented<GameEvents> {
     started: boolean;
     hasNeverStarted: boolean;
     renderer: Renderer | null;
-    updater: Updater | null;
     pathfinder: Pathfinder | null;
     chatinput: HTMLInputElement | null;
     bubbleManager: BubbleManager | null;
@@ -188,6 +187,7 @@ class Game extends Evented<GameEvents> {
     username: string;
     camera!: Camera;
     currentTime: number;
+    playerAggroTimer: Timer;
     isStopped: boolean;
     client: GameClient | null;
     kernel: ClientWorldKernel;
@@ -214,7 +214,6 @@ class Game extends Evented<GameEvents> {
         this.hasNeverStarted = true;
 
         this.renderer = null;
-        this.updater = null;
         this.pathfinder = null;
         this.chatinput = null;
         this.bubbleManager = null;
@@ -276,6 +275,7 @@ class Game extends Evented<GameEvents> {
         this.wsUrl = '';
         this.username = '';
         this.currentTime = 0;
+        this.playerAggroTimer = new Timer(1000);
         this.isStopped = false;
         this.client = null;
         this.kernel = new ClientWorldKernel();
@@ -291,7 +291,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler.add('pre_update', (game) => runClientClickIntentSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
-        this.frameScheduler.add('update', (game) => runClientUpdaterSystem(game));
+        this.frameScheduler.add('update', (game) => runClientSimulationSystem(game));
         this.frameScheduler.add('update', (game) => runClientCombatSystem(game));
         this.frameScheduler.add('update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('post_update', (game) => runClientSpatialSyncSystem(game));
@@ -329,10 +329,6 @@ class Game extends Evented<GameEvents> {
 
     setRenderer(renderer: Renderer): void {
         this.renderer = renderer;
-    }
-
-    setUpdater(updater: Updater): void {
-        this.updater = updater;
     }
 
     setPathfinder(pathfinder: Pathfinder): void {
@@ -759,7 +755,6 @@ class Game extends Evented<GameEvents> {
         const self = this;
 
         this.loadSprites();
-        this.setUpdater(new Updater(this));
         this.camera = this.renderer.camera;
 
         this.setSpriteScale(this.renderer.scale);
