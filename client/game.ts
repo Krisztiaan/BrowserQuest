@@ -8,13 +8,6 @@ import { initializeGameConnection } from './runtime/connection';
 import { bootstrapGameRuntime } from './game-runtime-bootstrap';
 import { initializeGameSpatialState } from './game-spatial-state';
 import {
-    makeNpcDialogue,
-    makePlayerAttackMob,
-    makePlayerOpenChest,
-    makePlayerTalkToNpc,
-    movePlayerToItem,
-} from './game-player-interactions';
-import {
     forEachAnimatedGameTile,
     forEachEntityByDepthInView,
     forEachGameEntity,
@@ -66,7 +59,7 @@ import type { EntityKind } from '../shared/entity-kind-domain';
 import { requestAnimFrame } from './platform/util';
 import type { AchievementId, AchievementKey } from './achievement-domain';
 import { SPRITE_KEYS } from './asset-key-domain';
-import type { AudioSoundKey, CursorKey, MusicKey, SpriteKey } from './asset-key-domain';
+import type { CursorKey, MusicKey, SpriteKey } from './asset-key-domain';
 import type Storage from './storage';
 import { Evented } from '../shared/evented';
 import type { TypedEventSource } from '../shared/typed-event-emitter';
@@ -896,32 +889,63 @@ class Game extends Evented<GameEvents> {
      * @see makeCharacterGoTo
      */
     makePlayerGoToItem(item: Item | null): void {
-        movePlayerToItem(this, item);
+        if (!item) {
+            return;
+        }
+        // Navigation to items is movement only; explicit pickup happens via interaction intent + loot command.
+        this.makePlayerGoTo(item.gridX, item.gridY);
     }
 
     /**
      *
      */
     makePlayerTalkTo(npc: Npc | null): void {
-        makePlayerTalkToNpc(this, npc);
+        if (!npc) {
+            return;
+        }
+        this.player.setTarget(npc);
+        this.player.follow(npc);
     }
 
     makePlayerOpenChest(chest: Chest | null): void {
-        makePlayerOpenChest(this, chest);
+        if (!chest) {
+            return;
+        }
+        this.player.setTarget(chest);
+        this.player.follow(chest);
     }
 
     /**
      *
      */
     makePlayerAttack(mob: Mob): void {
-        makePlayerAttackMob(this, mob);
+        this.createAttackLink(this.player, mob);
+        this.client?.sendAttack(mob);
     }
 
     /**
      *
      */
     makeNpcTalk(npc: Npc | null): void {
-        makeNpcDialogue(this, npc);
+        if (!npc) {
+            return;
+        }
+
+        const message = npc.talk();
+        this.kernel.clearClientLastClickPos();
+        if (message) {
+            this.createBubble(npc.id, message);
+            this.assignBubbleTo(npc);
+            this.audioManager?.playSound('npc');
+        } else {
+            this.destroyBubble(npc.id);
+            this.audioManager?.playSound('npc-end');
+        }
+        this.tryUnlockingAchievement('SMALL_TALK');
+
+        if (npc.kind === Types.Entities.RICK) {
+            this.tryUnlockingAchievement('RICKROLLD');
+        }
     }
 
     /**

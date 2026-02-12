@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 15:50 UTC
+Last updated: 2026-02-12 16:09 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -43,7 +43,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 36. Ticket 73 (`done`) - Environment system emits commands only
 37. Ticket 74 (`done`) - Spatial sync emits commands only
 38. Ticket 75 (`done`) - Combat tick via ECS commands
-39. Ticket 76 (`todo`) - Remove legacy player interaction helpers
+39. Ticket 76 (`done`) - Remove legacy player interaction helpers
 40. Ticket 77 (`todo`) - Protocol sends via ECS commands
 
 ## Ticket 72: MOVE Outbox Emits Commands Only
@@ -196,7 +196,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 76: Remove Legacy Player Interaction Helpers
 
-- Status: `todo`
+- Status: `done`
 - Priority: P2
 - Scope:
   - Delete `client/game-player-interactions.ts` and migrate its behaviors into ECS command apply (or explicit ECS commands).
@@ -216,9 +216,17 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ### Progress log
 
-- Status: `todo`
+- Start: 2026-02-12 15:50 UTC
+- End: 2026-02-12 16:09 UTC
+- Status: `done`
+- Key actions:
+  - Deleted `client/game-player-interactions.ts` and inlined the logic into `Game` wrapper methods.
+  - Changed item navigation to be movement-only (no legacy `sendLootMove` emission when navigating to an item tile).
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
-  - Inline player interaction side effects into command apply + delete legacy module.
+  - Move remaining direct `game.client.send*` call sites (including test harness) into `ClientCommand` + command apply.
 
 ## Ticket 77: Protocol Sends Via ECS Commands
 
