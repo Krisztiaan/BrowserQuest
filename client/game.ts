@@ -87,6 +87,7 @@ import {
     clearClientInteractionIntentWithSideEffects,
     runClientInteractionIntentSystem,
 } from './ecs/systems/client-interaction-intent-system';
+import { runClientRuntimeEventSystem } from './ecs/systems/client-runtime-event-system';
 import { runClientTimeSystem } from './ecs/systems/client-time-system';
 import { runClientUpdaterSystem } from './ecs/systems/client-updater-system';
 import { runClientRenderSystem } from './ecs/systems/client-render-system';
@@ -204,6 +205,7 @@ class Game extends Evented<GameEvents> {
     drawTarget: boolean;
     lastHovered: GridIndexedEntity | null;
     characterMovementHooks: WeakSet<Character>;
+    connectionStartedCallback: (() => void) | null;
 
     constructor(
         app: AppLike,
@@ -288,6 +290,7 @@ class Game extends Evented<GameEvents> {
         this.kernel = new ClientWorldKernel();
         this.frameScheduler = new ClientFrameScheduler<Game>();
         this.frameScheduler.add('pre_update', (game) => runClientTimeSystem(game));
+        this.frameScheduler.add('pre_update', (game) => runClientRuntimeEventSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientHoverStateSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientClickIntentSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
@@ -300,6 +303,7 @@ class Game extends Evented<GameEvents> {
         this.drawTarget = false;
         this.lastHovered = null;
         this.characterMovementHooks = new WeakSet();
+        this.connectionStartedCallback = null;
         this.installCharacterMovementHooks(this.player);
 
         this.setBubbleManager(new BubbleManager(bubbleContainer));

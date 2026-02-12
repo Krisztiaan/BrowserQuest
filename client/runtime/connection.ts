@@ -1,64 +1,20 @@
 import log from '../platform/log';
-import Types from '../../shared/gametypes-browser';
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { EntityId } from '../../shared/domain/ids';
 import GameClient from '../gameclient';
 import type Game from '../game';
 import { GameClientEffectRegistry } from './effects-registry';
+import type { ClientRuntimeEvent } from '../ecs/runtime-events';
 
-type GridIndexedEntity = {
-    id: EntityId;
-    kind: EntityKind;
-    setSprite(sprite: unknown): void;
-    getSpriteName(): string;
-    setGridPosition(x: number, y: number): void;
-    setOrientation?(orientation: number): void;
-    idle?(): void;
-};
-
-function applyWelcome(game: Game, id: EntityId, name: string, x: number, y: number, maxHp: number): void {
-    log.info('Received player ID from server : ' + id);
-
-    game.player.id = id;
-    game.playerId = id;
-    game.player.name = name;
-    game.player.setGridPosition(x, y);
-    game.player.setMaxHitPoints(maxHp);
-
-    game.updateBars();
-    game.resetCamera();
-    // Plateau + music updates are handled by ECS post_update systems.
-
-    game.addEntity(game.player as unknown as Parameters<Game['addEntity']>[0]);
-    const renderer = game.renderer;
-    if (renderer) {
-        game.player.dirtyRect = renderer.getEntityBoundingRect(game.player);
-    }
-
-    setTimeout(function (): void {
-        game.tryUnlockingAchievement('STILL_ALIVE');
-    }, 1500);
-
-    if (!game.storage.hasAlreadyPlayed()) {
-        game.storage.initPlayer(game.player.name);
-        const renderer = game.renderer;
-        if (renderer) {
-            renderer.getPlayerImage(function (playerImage: unknown) {
-                game.storage.savePlayer(playerImage, game.player.getSpriteName(), game.player.getWeaponName());
-            });
-        }
-        game.showNotification('Welcome to BrowserQuest!');
-        return;
-    }
-
-    game.showNotification('Welcome back to BrowserQuest!');
-    game.storage.setPlayerName(name);
+function enqueue(game: Game, event: ClientRuntimeEvent): void {
+    game.kernel.enqueueClientRuntimeEvent(event);
 }
 
 export function initializeGameConnection(game: Game, onStarted: () => void): void {
     const runtimeConfig = game.app.config?.server ?? null;
     const client = new GameClient(game.wsUrl, game.kernel);
     game.client = client;
+    game.connectionStartedCallback = onStarted;
     const effects = new GameClientEffectRegistry({ game, client });
 
     effects.on('dispatched', function ({ client }, host: string, port: number) {
@@ -79,51 +35,23 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
     });
 
     effects.on('welcome', function ({ game }, id: EntityId, name: string, x: number, y: number, hp: number) {
-        applyWelcome(game, id, name, x, y, hp);
-        onStarted();
+        enqueue(game, { type: 'welcome', id, name, x, y, maxHp: hp });
     });
 
     effects.on('populationChange', function ({ game }, worldPlayers: number, totalPlayers: number) {
-        game.emit('nbPlayersChange', worldPlayers, totalPlayers);
+        enqueue(game, { type: 'populationChange', worldPlayers, totalPlayers });
     });
 
-    effects.on('entityList', function ({ game, client }, list: EntityId[]) {
-        const entityIds = Object.values(game.entities).map(function (entity) {
-            return entity.id;
-        });
-        const knownIds = entityIds.filter(function (id: EntityId) {
-            return list.includes(id);
-        });
-        const newIds = list.filter(function (id: EntityId) {
-            return !knownIds.includes(id);
-        });
-
-        game.obsoleteEntities = Object.values(game.entities).filter(function (entity) {
-            return !knownIds.includes(entity.id) && entity.id !== game.player.id;
-        });
-        game.removeObsoleteEntities();
-
-        if (newIds.length > 0) {
-            client.sendWho(newIds);
-        }
+    effects.on('entityList', function ({ game }, list: EntityId[]) {
+        enqueue(game, { type: 'entityList', list });
     });
 
     effects.on('spawnItem', function ({ game }, item: unknown, x: number, y: number) {
-        const entityId = (item as { id?: EntityId }).id;
-        if (entityId !== undefined && game.entityIdExists(entityId)) {
-            return;
-        }
-        game.addItem(item as Parameters<Game['addItem']>[0], x, y);
+        enqueue(game, { type: 'spawnItem', item, x, y });
     });
 
     effects.on('spawnChest', function ({ game }, chest: unknown, x: number, y: number) {
-        const entity = chest as GridIndexedEntity;
-        if (game.entityIdExists(entity.id)) {
-            return;
-        }
-        entity.setSprite(game.sprites[entity.getSpriteName()]);
-        entity.setGridPosition(x, y);
-        game.addEntity(entity as unknown as Parameters<Game['addEntity']>[0]);
+        enqueue(game, { type: 'spawnChest', chest, x, y });
     });
 
     effects.on(
@@ -136,159 +64,56 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
             orientation: number | undefined,
             targetId: EntityId | undefined
         ) {
-            const character = entity as GridIndexedEntity;
-            if (game.entityIdExists(character.id)) {
-                return;
-            }
-
-            const safeOrientation =
-                orientation === Types.Orientations.UP ||
-                orientation === Types.Orientations.DOWN ||
-                orientation === Types.Orientations.LEFT ||
-                orientation === Types.Orientations.RIGHT
-                    ? orientation
-                    : Types.Orientations.DOWN;
-
-            character.setSprite(game.sprites[character.getSpriteName()]);
-            character.setGridPosition(x, y);
-            if (typeof character.setOrientation === 'function') {
-                character.setOrientation(safeOrientation);
-            }
-            if (typeof character.idle === 'function') {
-                character.idle();
-            }
-
-            game.addEntity(character as unknown as Parameters<Game['addEntity']>[0]);
-
-            if (targetId !== undefined) {
-                const target = game.getEntityById(targetId) as unknown;
-                if (target && typeof (target as { id?: unknown }).id === 'number') {
-                    game.createAttackLink(
-                        character as unknown as Parameters<Game['createAttackLink']>[0],
-                        target as unknown as Parameters<Game['createAttackLink']>[1]
-                    );
-                }
-            }
+            enqueue(game, { type: 'spawnCharacter', character: entity, x, y, orientation, targetId });
         }
     );
 
     effects.on('despawnEntity', function ({ game }, entityId: EntityId) {
-        const entity = game.getEntityById(entityId);
-        if (!entity) {
-            return;
-        }
-        if (Types.isItem(entity.kind)) {
-            game.removeItem(entity as Parameters<Game['removeItem']>[0]);
-        } else {
-            game.removeEntity(entity);
-        }
+        enqueue(game, { type: 'despawnEntity', entityId });
     });
 
     effects.on('entityDestroy', function ({ game }, entityId: EntityId) {
-        const entity = game.getEntityById(entityId);
-        if (!entity) {
-            return;
-        }
-        if (Types.isItem(entity.kind)) {
-            game.removeItem(entity as Parameters<Game['removeItem']>[0]);
-        } else {
-            game.removeEntity(entity);
-        }
+        enqueue(game, { type: 'entityDestroy', entityId });
     });
 
     effects.on('entityMove', function ({ game }, entityId: EntityId, x: number, y: number) {
-        const entity = game.getEntityById(entityId);
-        if (!entity) {
-            return;
-        }
-        game.makeCharacterGoTo(entity as Parameters<Game['makeCharacterGoTo']>[0], x, y);
+        enqueue(game, { type: 'entityMove', entityId, x, y });
     });
 
     effects.on('playerTeleport', function ({ game }, entityId: EntityId, x: number, y: number) {
-        const entity = game.getEntityById(entityId);
-        if (!entity) {
-            return;
-        }
-        game.makeCharacterTeleportTo(entity as Parameters<Game['makeCharacterTeleportTo']>[0], x, y);
+        enqueue(game, { type: 'playerTeleport', entityId, x, y });
     });
 
     effects.on('entityAttack', function ({ game }, attackerId: EntityId, targetId: EntityId) {
-        const attacker = game.getEntityById(attackerId);
-        const target = game.getEntityById(targetId);
-        if (!attacker || !target) {
-            return;
-        }
-        game.createAttackLink(
-            attacker as Parameters<Game['createAttackLink']>[0],
-            target as Parameters<Game['createAttackLink']>[1]
-        );
+        enqueue(game, { type: 'entityAttack', attackerId, targetId });
     });
 
     effects.on('playerMoveToItem', function ({ game }, playerId: EntityId, itemId: EntityId) {
-        if (playerId !== game.playerId) {
-            return;
-        }
-        const item = game.getEntityById(itemId);
-        game.makePlayerGoToItem(item as Parameters<Game['makePlayerGoToItem']>[0]);
+        enqueue(game, { type: 'playerMoveToItem', playerId, itemId });
     });
 
     effects.on('playerChangeHealth', function ({ game }, points: number, isRegen: boolean) {
-        game.player.hitPoints = points;
-        game.updateBars();
-        if (!isRegen) {
-            game.emit('playerHurt');
-        }
+        enqueue(game, { type: 'playerChangeHealth', points, isRegen });
     });
 
     effects.on('playerChangeMaxHitPoints', function ({ game }, maxHp: number) {
-        game.player.setMaxHitPoints(maxHp);
-        game.updateBars();
+        enqueue(game, { type: 'playerChangeMaxHitPoints', maxHp });
     });
 
     effects.on('chatMessage', function ({ game }, entityId: EntityId, text: string) {
-        game.createBubble(entityId, text);
-        game.audioManager?.playSound('chat');
+        enqueue(game, { type: 'chatMessage', entityId, text });
     });
 
     effects.on('playerEquipItem', function ({ game }, entityId: EntityId, itemKind: EntityKind) {
-        const entity = game.getEntityById(entityId) as
-            | undefined
-            | {
-                  setSprite(sprite: unknown): void;
-                  setWeaponName?(name: string): void;
-              };
-        if (!entity) {
-            return;
-        }
-        if (Types.isArmor(itemKind)) {
-            const kindName = Types.getKindAsString(itemKind);
-            if (kindName) {
-                entity.setSprite(game.sprites[kindName] ?? null);
-            }
-        } else if (Types.isWeapon(itemKind)) {
-            const kindName = Types.getKindAsString(itemKind);
-            if (kindName) {
-                entity.setWeaponName?.(kindName);
-            }
-        }
-        if (entityId === game.playerId) {
-            game.emit('playerEquipmentChange');
-        }
+        enqueue(game, { type: 'playerEquipItem', entityId, itemKind });
     });
 
     effects.on('dropItem', function ({ game }, item: unknown, mobId: EntityId) {
-        const mob = game.getEntityById(mobId);
-        if (!mob) {
-            return;
-        }
-        game.addItem(item as Parameters<Game['addItem']>[0], mob.gridX, mob.gridY);
+        enqueue(game, { type: 'dropItem', item, mobId });
     });
 
     effects.on('itemBlink', function ({ game }, entityId: EntityId) {
-        const item = game.getEntityById(entityId);
-        if (item && typeof item.blink === 'function') {
-            item.blink(150);
-        }
+        enqueue(game, { type: 'itemBlink', entityId });
     });
 
     effects.on('disconnected', function ({ game }, reason: string) {

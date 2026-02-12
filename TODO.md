@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:58 UTC
+Last updated: 2026-02-12 13:14 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -32,6 +32,100 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 25. Ticket 62 (`done`) - Remove setClientInteractionIntent method
 26. Ticket 63 (`done`) - Remove clearClientInteractionIntent method
 27. Ticket 64 (`done`) - Inline loot completion into system
+28. Ticket 65 (`done`) - ECS runtime event buffer (connection boundary)
+29. Ticket 66 (`todo`) - Kernel-driven replication sync (reduce spawn/move handlers)
+30. Ticket 67 (`todo`) - Remove movement step hooks (spatial sync system)
+
+## Ticket 67: Remove Movement Step Hooks (Spatial Sync System)
+
+- Status: `todo`
+- Priority: P3
+- Scope:
+  - Replace `Character.on('step')` movement hooks used to maintain `entityGrid`/`renderingGrid` with an ECS system that updates spatial indices based on authoritative positions.
+  - Remove `Game.characterMovementHooks` and any remaining per-entity movement subscription logic.
+- Out of scope:
+  - Full rendering modernization (tile/sprite batching).
+  - Server protocol changes.
+- Acceptance criteria:
+  - No remaining `on('step')` subscriptions for core spatial indexing.
+  - Spatial grids remain correct during movement, teleport, zoning, and despawn.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 66 (kernel-driven movement authority) recommended but not strictly required.
+
+### Progress log
+
+- Status: `todo`
+- Next action:
+  - Identify current step-hook responsibilities and replace with a single spatial sync system.
+
+## Ticket 66: Kernel-Driven Replication Sync (Reduce Spawn/Move Handlers)
+
+- Status: `todo`
+- Priority: P3
+- Scope:
+  - Introduce a replication sync system that treats `ClientWorldKernel` as the authoritative world state and keeps legacy render entities in sync (create/destroy/move/target updates).
+  - Reduce reliance on per-message spawn/move handlers by deriving changes from kernel diffs.
+- Out of scope:
+  - Removing legacy `Renderer`/`Updater` internals.
+  - Reworking server replication protocol.
+- Acceptance criteria:
+  - Spawn/despawn/move/attack-link updates are driven by a single system pass over kernel state + diff state.
+  - `client/runtime/connection.ts` contains no world-mutation calls (kept in ECS systems).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 65.
+
+### Progress log
+
+- Status: `todo`
+- Next action:
+  - Implement kernel diff bookkeeping (alive set snapshots + per-entity position/target change detection).
+
+## Ticket 65: ECS Runtime Event Buffer (Connection Boundary)
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Convert `client/runtime/connection.ts` to enqueue typed runtime events into `ClientWorldKernel` rather than mutating `Game` directly for world replication side effects.
+  - Add an ECS system that consumes those events and applies the same side effects to the legacy runtime (`addEntity/addItem`, movement, attack links, equipment visuals, chat, etc.).
+  - Register the system in the staged client frame scheduler before the updater.
+- Out of scope:
+  - Rewriting `Updater`/`Renderer` into pure ECS.
+  - Server protocol changes.
+- Acceptance criteria:
+  - `client/runtime/connection.ts` no longer calls `game.addEntity`, `game.removeEntity`, `game.removeItem`, `game.makeCharacterGoTo`, `game.makeCharacterTeleportTo`, `game.createAttackLink`, `game.addItem`, etc.
+  - Gameplay parity: spawn/despawn/move/teleport/attack links, equipment updates, chat bubbles, population change, drop items, item blink.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 13:03 UTC
+- End: 2026-02-12 13:14 UTC
+- Status: `done`
+- Key actions:
+  - Added kernel-backed runtime event queue (`ClientRuntimeEvent`) and a `client-runtime-event-system` to apply replication side effects from queued events.
+  - Converted `client/runtime/connection.ts` handlers to enqueue-only (no direct world mutation calls).
+  - Registered runtime event system in the staged client frame scheduler (`pre_update`) before hover/click/cursor.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Ticket 66: introduce kernel-diff replication sync to further reduce per-message handler dependence.
 
 ## Ticket 64: Inline Loot Completion Into System
 

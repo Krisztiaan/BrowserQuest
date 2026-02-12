@@ -3,6 +3,7 @@ import type { EntityId } from '../../shared/domain/ids';
 import { entityIdFromWire } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
 import type { SpawnSnapshot } from '../../shared/replication/spawn-snapshot';
+import type { ClientRuntimeEvent } from './runtime-events';
 
 export type KernelEntityType = 'player' | 'mob' | 'simple';
 
@@ -58,6 +59,7 @@ export class ClientWorldKernel {
     clientClickIntent: ClientClickIntent | null = null;
     clientClickState: ClientClickState | null = null;
     clientLootAttempt: ClientLootAttempt | null = null;
+    clientRuntimeEvents: ClientRuntimeEvent[] = [];
 
     upsertFromSpawnSnapshot(snapshot: SpawnSnapshot): KernelEntityView {
         const id = entityIdFromWire(snapshot.id);
@@ -123,6 +125,17 @@ export class ClientWorldKernel {
     setPopulation(worldPlayers: number, totalPlayers: number): void {
         this.worldPlayers = worldPlayers;
         this.totalPlayers = totalPlayers;
+    }
+
+    enqueueClientRuntimeEvent(event: ClientRuntimeEvent): void {
+        this.clientRuntimeEvents.push(event);
+    }
+
+    drainClientRuntimeEvents(): ClientRuntimeEvent[] {
+        if (this.clientRuntimeEvents.length === 0) {
+            return [];
+        }
+        return this.clientRuntimeEvents.splice(0, this.clientRuntimeEvents.length);
     }
 
     setClientInteractionIntent(intent: ClientInteractionIntent | null): void {
