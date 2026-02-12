@@ -636,7 +636,8 @@ function initGame(): void {
                                 app.setMouseCoordinates(touch);
                             }
                             if (!touchHasMoved) {
-                                game.click();
+                                const pos = game.getMouseGridPosition();
+                                game.kernel.setClientClickIntent({ x: pos.x, y: pos.y });
                                 app.hideWindows();
                             }
                             event.preventDefault();
@@ -659,7 +660,8 @@ function initGame(): void {
                         app.center();
                         app.setMouseCoordinates(event);
                         if (game) {
-                            game.click();
+                            const pos = game.getMouseGridPosition();
+                            game.kernel.setClientClickIntent({ x: pos.x, y: pos.y });
                         }
                         app.hideWindows();
                     });
@@ -697,7 +699,8 @@ function initGame(): void {
                 }
 
                 if (game.started && !game.renderer.mobile && game.player && !hasClosedParchment) {
-                    game.click();
+                    const pos = game.getMouseGridPosition();
+                    game.kernel.setClientClickIntent({ x: pos.x, y: pos.y });
                 }
             };
 

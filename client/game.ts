@@ -14,7 +14,6 @@ import {
     makePlayerTalkToNpc,
     movePlayerToItem,
 } from './game-player-interactions';
-import { processPlayerClick } from './game-player-input';
 import {
     findFreeAdjacentNonDiagonalPosition,
     hasMobOnTile,
@@ -81,6 +80,7 @@ import type { EntityId } from '../shared/domain/ids';
 import { gridPos, type GridPos } from '../shared/domain/positions';
 import { ClientWorldKernel, type ClientInteractionIntent, type ClientInteractionKind } from './ecs/world-kernel';
 import { ClientFrameScheduler } from './ecs/frame-scheduler';
+import { runClientClickIntentSystem } from './ecs/systems/client-click-intent-system';
 import { runClientCursorSystem } from './ecs/systems/client-cursor-system';
 import { runClientHoverStateSystem } from './ecs/systems/client-hover-state-system';
 import { runClientInteractionIntentSystem } from './ecs/systems/client-interaction-intent-system';
@@ -289,6 +289,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler = new ClientFrameScheduler<Game>();
         this.frameScheduler.add('pre_update', (game) => runClientTimeSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientHoverStateSystem(game));
+        this.frameScheduler.add('pre_update', (game) => runClientClickIntentSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
         this.frameScheduler.add('update', (game) => runClientUpdaterSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientInteractionIntentSystem(game));
@@ -1196,13 +1197,6 @@ class Game extends Evented<GameEvents> {
     /**
      *
      */
-    /**
-     * Processes game logic when the user triggers a click/touch event during the game.
-     */
-    click(): void {
-        processPlayerClick(this);
-    }
-
     isMobOnSameTile(mob: Character, x?: number, y?: number): boolean {
         return hasMobOnTile(this, mob, x, y);
     }

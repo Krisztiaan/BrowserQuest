@@ -26,6 +26,11 @@ export type ClientInteractionIntent = Readonly<{
     lastKnownTargetPos?: GridPos;
 }>;
 
+export type ClientClickIntent = Readonly<{
+    x: number;
+    y: number;
+}>;
+
 export class ClientWorldKernel {
     readonly alive = new Set<EntityId>();
     readonly kind = new Map<EntityId, EntityKind>();
@@ -41,6 +46,7 @@ export class ClientWorldKernel {
     totalPlayers = 0;
 
     clientInteractionIntent: ClientInteractionIntent | null = null;
+    clientClickIntent: ClientClickIntent | null = null;
 
     upsertFromSpawnSnapshot(snapshot: SpawnSnapshot): KernelEntityView {
         const id = entityIdFromWire(snapshot.id);
@@ -114,6 +120,14 @@ export class ClientWorldKernel {
 
     clearClientInteractionIntent(): void {
         this.clientInteractionIntent = null;
+    }
+
+    setClientClickIntent(intent: ClientClickIntent | null): void {
+        this.clientClickIntent = intent;
+    }
+
+    clearClientClickIntent(): void {
+        this.clientClickIntent = null;
     }
 
     getEntityView(id: EntityId): KernelEntityView {

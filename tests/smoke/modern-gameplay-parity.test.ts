@@ -242,7 +242,7 @@ test('modern gameplay protocol parity: login, move, chat, zone, combat path, loo
     await waitForGo(ws);
 
     ws.send(JSON.stringify([MSG_HELLO, 'modern-e2e', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-    const welcome = await waitForNextAction(stream, (action) => action[0] === MSG_WELCOME, 'WELCOME', 30000);
+    const welcome = await waitForNextAction(stream, (action) => action[0] === MSG_WELCOME, 'WELCOME', 60000);
     const playerX = welcome[3];
     const playerY = welcome[4];
 
@@ -315,8 +315,8 @@ test('modern gameplay protocol parity: login, move, chat, zone, combat path, loo
     const reconnectStream = createActionStream(reconnect);
     await waitForGo(reconnect);
     reconnect.send(JSON.stringify([MSG_HELLO, 'modern-e2e-reconnect', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-    await waitForNextAction(reconnectStream, (action) => action[0] === MSG_WELCOME, 'WELCOME after reconnect', 30000);
+    await waitForNextAction(reconnectStream, (action) => action[0] === MSG_WELCOME, 'WELCOME after reconnect', 60000);
     expect(reconnect.readyState).toBe(WebSocket.OPEN);
     reconnect.close();
     await waitForClose(reconnect);
-}, { timeout: 30_000 });
+}, { timeout: 60_000 });

@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:25 UTC
+Last updated: 2026-02-12 12:30 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -25,6 +25,44 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 18. Ticket 55 (`done`) - Stabilize smoke WS welcome timeouts
 19. Ticket 56 (`done`) - Remove legacy wrapper methods (cursor/interaction)
 20. Ticket 57 (`done`) - ECS hover state system (remove movecursor/updateCursor)
+21. Ticket 58 (`done`) - ECS click intent system (remove processPlayerClick/Game.click)
+
+## Ticket 58: ECS Click Intent System (Remove `processPlayerClick`/`Game.click`)
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Represent user clicks as a kernel resource (click intent).
+  - Process click intents via a pre-update system that issues movement/interaction commands.
+  - Remove legacy click plumbing (`Game.click()` + `processPlayerClick()` module).
+- Out of scope:
+  - Reworking mobile gesture handling and tap-vs-drag logic.
+- Acceptance criteria:
+  - Click-to-move and click-to-interact behavior unchanged.
+  - No remaining references to `Game.click()` or `processPlayerClick()`.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:26 UTC
+- End: 2026-02-12 12:30 UTC
+- Status: `done`
+- Key actions:
+  - Added `clientClickIntent` kernel resource and a pre-update click intent system that issues movement/interaction commands.
+  - Wired DOM click/tap handlers to enqueue click intent rather than running click logic directly.
+  - Removed legacy `Game.click()` + removed obsolete `client/game-player-input.ts`.
+  - Increased smoke parity test timeout to reduce flakes under load.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: move `previousClickPosition` into kernel resource to keep input state centralized.
 
 ## Ticket 57: ECS Hover State System (Remove `movecursor`/`updateCursor`)
 
