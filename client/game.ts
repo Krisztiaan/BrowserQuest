@@ -84,7 +84,10 @@ import { runClientClickIntentSystem } from './ecs/systems/client-click-intent-sy
 import { runClientCursorSystem } from './ecs/systems/client-cursor-system';
 import { runClientEnvironmentSystem } from './ecs/systems/client-environment-system';
 import { runClientHoverStateSystem } from './ecs/systems/client-hover-state-system';
-import { runClientInteractionIntentSystem } from './ecs/systems/client-interaction-intent-system';
+import {
+    clearClientInteractionIntentWithSideEffects,
+    runClientInteractionIntentSystem,
+} from './ecs/systems/client-interaction-intent-system';
 import { runClientTimeSystem } from './ecs/systems/client-time-system';
 import { runClientUpdaterSystem } from './ecs/systems/client-updater-system';
 import { runClientRenderSystem } from './ecs/systems/client-render-system';
@@ -462,7 +465,7 @@ class Game extends Evented<GameEvents> {
         const item = this.getItemAt(x, y);
 
         if (!item) {
-            this.clearClientInteractionIntent();
+            clearClientInteractionIntentWithSideEffects(this);
             return;
         }
         if (item.id !== lootTargetId) {
@@ -485,25 +488,14 @@ class Game extends Evented<GameEvents> {
         } catch (err) {
             if (err instanceof Exceptions.LootException) {
                 this.emit('notification', err.message);
-                this.clearClientInteractionIntent();
+                clearClientInteractionIntentWithSideEffects(this);
                 return;
             }
             throw err;
         }
 
         this.client.sendLoot(item);
-        this.clearClientInteractionIntent();
-    }
-
-    clearClientInteractionIntent(): void {
-        const prev = this.kernel.clientInteractionIntent;
-        if (prev?.kind === 'attack') {
-            this.stopPlayerCombat();
-        }
-        if (prev?.kind === 'loot') {
-            this.kernel.clearClientLootAttempt();
-        }
-        this.kernel.clearClientInteractionIntent();
+        clearClientInteractionIntentWithSideEffects(this);
     }
 
     stopPlayerCombat(): void {
@@ -515,7 +507,7 @@ class Game extends Evented<GameEvents> {
 
     onEntityRemoved(removedId: EntityId): void {
         if (this.kernel.clientInteractionIntent?.targetId === removedId) {
-            this.clearClientInteractionIntent();
+            clearClientInteractionIntentWithSideEffects(this);
         }
 
         if (this.player.hasTarget() && this.player.target && this.player.target.id === removedId) {
@@ -1167,7 +1159,7 @@ class Game extends Evented<GameEvents> {
             const t = character.target as unknown;
             if (t instanceof Character && t.isDead) {
                 this.stopPlayerCombat();
-                this.clearClientInteractionIntent();
+                clearClientInteractionIntentWithSideEffects(this);
                 return;
             }
         }

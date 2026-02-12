@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:46 UTC
+Last updated: 2026-02-12 12:50 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -30,6 +30,41 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 23. Ticket 60 (`done`) - Move input/loot transient state into kernel
 24. Ticket 61 (`done`) - Remove begin* interaction methods
 25. Ticket 62 (`done`) - Remove setClientInteractionIntent method
+26. Ticket 63 (`done`) - Remove clearClientInteractionIntent method
+
+## Ticket 63: Remove `clearClientInteractionIntent` Method
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Replace `Game.clearClientInteractionIntent()` with a shared helper used by systems + game events.
+  - Update click/interaction systems to not depend on host methods for intent clearing.
+- Out of scope:
+  - Removing `stopPlayerCombat` (still a game-level side effect).
+- Acceptance criteria:
+  - No remaining `Game.clearClientInteractionIntent`.
+  - Interaction cancel/cleanup semantics remain (stop combat on attack intent; clear loot attempt on loot intent).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:47 UTC
+- End: 2026-02-12 12:50 UTC
+- Status: `done`
+- Key actions:
+  - Added `clearClientInteractionIntentWithSideEffects()` helper and used it across systems + game event handlers.
+  - Removed legacy `Game.clearClientInteractionIntent`.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: inline `tryLootAtPlayerPosition()` into the interaction system and remove the last legacy loot helper.
 
 ## Ticket 62: Remove `setClientInteractionIntent` Method
 

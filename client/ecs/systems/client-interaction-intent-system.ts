@@ -8,6 +8,20 @@ import Player from '../../player';
 import Character from '../../character';
 import Chest from '../../chest';
 
+export function clearClientInteractionIntentWithSideEffects(host: {
+    kernel: ClientWorldKernel;
+    stopPlayerCombat(): void;
+}): void {
+    const prev = host.kernel.clientInteractionIntent;
+    if (prev?.kind === 'attack') {
+        host.stopPlayerCombat();
+    }
+    if (prev?.kind === 'loot') {
+        host.kernel.clearClientLootAttempt();
+    }
+    host.kernel.clearClientInteractionIntent();
+}
+
 export type ClientInteractionIntentSystemHost = Readonly<{
     started: boolean;
     client: { sendOpen(chest: { id: EntityId }): void } | null;
@@ -18,7 +32,6 @@ export type ClientInteractionIntentSystemHost = Readonly<{
 
     tryLootAtPlayerPosition(): void;
     stopPlayerCombat(): void;
-    clearClientInteractionIntent(): void;
 
     makePlayerAttack(mob: Mob): void;
     makePlayerTalkTo(npc: Npc): void;
@@ -31,7 +44,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         return;
     }
     if (host.player.isDead) {
-        host.clearClientInteractionIntent();
+        clearClientInteractionIntentWithSideEffects(host);
         return;
     }
 
@@ -45,7 +58,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         if (intent.kind === 'attack') {
             host.stopPlayerCombat();
         }
-        host.clearClientInteractionIntent();
+        clearClientInteractionIntentWithSideEffects(host);
         return;
     }
 
@@ -59,7 +72,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
 
     if (intent.kind === 'loot') {
         if (!(target instanceof Item)) {
-            host.clearClientInteractionIntent();
+            clearClientInteractionIntentWithSideEffects(host);
             return;
         }
         if (host.player.gridX === target.gridX && host.player.gridY === target.gridY) {
@@ -68,7 +81,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         }
         // If pathing stopped early, cancel instead of auto-looting incidental items en route.
         if (!host.player.isMoving()) {
-            host.clearClientInteractionIntent();
+            clearClientInteractionIntentWithSideEffects(host);
         }
         return;
     }
@@ -76,7 +89,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
     if (intent.kind === 'attack') {
         if (target instanceof Character && target.isDead) {
             host.stopPlayerCombat();
-            host.clearClientInteractionIntent();
+            clearClientInteractionIntentWithSideEffects(host);
             return;
         }
         if (target instanceof Mob) {
@@ -95,7 +108,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
 
     if (intent.kind === 'talk') {
         if (!(target instanceof Npc)) {
-            host.clearClientInteractionIntent();
+            clearClientInteractionIntentWithSideEffects(host);
             return;
         }
         if (host.player.isAdjacentNonDiagonal(target)) {
@@ -103,7 +116,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             host.makeNpcTalk(target);
             host.player.disengage();
             host.player.idle();
-            host.clearClientInteractionIntent();
+            clearClientInteractionIntentWithSideEffects(host);
             return;
         }
         if (hasTargetMoved || !host.player.isMoving()) {
@@ -114,7 +127,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
 
     if (intent.kind === 'open') {
         if (!(target instanceof Chest)) {
-            host.clearClientInteractionIntent();
+            clearClientInteractionIntentWithSideEffects(host);
             return;
         }
         if (host.player.isAdjacentNonDiagonal(target)) {
@@ -122,7 +135,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             host.client.sendOpen(target);
             host.player.disengage();
             host.player.idle();
-            host.clearClientInteractionIntent();
+            clearClientInteractionIntentWithSideEffects(host);
             return;
         }
         if (hasTargetMoved || !host.player.isMoving()) {
@@ -131,4 +144,3 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         return;
     }
 }
-

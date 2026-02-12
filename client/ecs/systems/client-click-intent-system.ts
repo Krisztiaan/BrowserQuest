@@ -5,6 +5,7 @@ import Npc from '../../npc';
 import type { EntityId } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
 import type { ClientWorldKernel } from '../world-kernel';
+import { clearClientInteractionIntentWithSideEffects } from './client-interaction-intent-system';
 
 export type ClientClickIntentSystemHost = Readonly<{
     started: boolean;
@@ -19,7 +20,6 @@ export type ClientClickIntentSystemHost = Readonly<{
     makePlayerGoToItem(item: Item | null): void;
     stopPlayerCombat(): void;
 
-    clearClientInteractionIntent(): void;
     makePlayerGoTo(x: number, y: number): void;
 }>;
 
@@ -101,6 +101,6 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
         return;
     }
 
-    host.clearClientInteractionIntent();
+    clearClientInteractionIntentWithSideEffects(host);
     host.makePlayerGoTo(x, y);
 }
