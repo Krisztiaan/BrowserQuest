@@ -5,8 +5,7 @@ import {
     pushSerializedToPlayerQueue,
 } from './transport';
 import { pushMessageToPreviouslyLeftGroups } from './group-flow';
-import type { WorldMessage } from './contracts';
-import type {
+import type { WorldMessage ,
     AdjacentGroupMap,
     GetEntityById,
     IgnoredPlayer,

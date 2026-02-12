@@ -2,7 +2,6 @@ import Chest from '../../chest';
 import Item from '../../item';
 import Mob from '../../mob';
 import Npc from '../../npc';
-import type { EntityId } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
 import type { ClientWorldKernel } from '../world-kernel';
 import { clearClientInteractionIntentWithSideEffects } from './client-interaction-intent-system';

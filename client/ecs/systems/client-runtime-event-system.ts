@@ -1,6 +1,4 @@
-import type { EntityId } from '../../../shared/domain/ids';
 import type { ClientWorldKernel } from '../world-kernel';
-import type { ClientRuntimeEvent } from '../runtime-events';
 export type ClientRuntimeEventSystemHost = {
     kernel: ClientWorldKernel;
 };

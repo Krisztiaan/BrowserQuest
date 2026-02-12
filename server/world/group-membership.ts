@@ -148,7 +148,7 @@ export function removeEntityFromWorldGroups({
 }: RemoveEntityFromWorldGroupsParams): string[] {
     const oldGroups: string[] = [];
 
-    if (entity && entity.group) {
+    if (entity?.group) {
         const group = groups[entity.group];
         if (!group) {
             entity.group = null;

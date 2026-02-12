@@ -6,7 +6,7 @@ const Detect = {
     },
 
     userAgentContains: function (string: string): boolean {
-        if (!globalThis.navigator || !globalThis.navigator.userAgent) {
+        if (!globalThis.navigator?.userAgent) {
             return false;
         }
         return globalThis.navigator.userAgent.indexOf(string) !== -1;

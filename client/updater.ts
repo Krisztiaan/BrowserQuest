@@ -108,7 +108,7 @@ class Updater {
     }
 
     updateEntityFading(entity: UpdaterEntity): void {
-        if (entity && entity.isFading) {
+        if (entity?.isFading) {
             const duration = 1000,
                 t = this.game.currentTime,
                 dt = t - entity.startFadingTime;
@@ -148,16 +148,15 @@ class Updater {
     }
 
     updateZoning(): void {
-        let g = this.game,
+        const g = this.game,
             c = g.camera,
             z = g.currentZoning,
-            s = 3,
             ts = 16,
             speed = 500;
 
-        if (z && z.inProgress === false) {
-            let orientation = this.game.zoningOrientation,
-                startValue = 0,
+        if (z?.inProgress === false) {
+            const orientation = this.game.zoningOrientation;
+            let startValue = 0,
                 endValue = 0,
                 offset = 0,
                 updateFunc = null,
@@ -196,8 +195,6 @@ class Updater {
     }
 
     updateCharacter(c: UpdaterCharacter): void {
-        const self = this;
-
         // Estimate of the movement distance for one update
         const tick = Math.round(16 / Math.round(c.moveSpeed / (1000 / this.game.renderer.FPS)));
 

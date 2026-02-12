@@ -150,7 +150,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
         const orientation = this.orientation;
 
         // don't change animation if the character is dying
-        if (!(this.currentAnimation && this.currentAnimation.name === 'death')) {
+        if (!(this.currentAnimation?.name === 'death')) {
             this.flipSpriteX = false;
             this.flipSpriteY = false;
 

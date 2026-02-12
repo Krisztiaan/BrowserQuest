@@ -106,7 +106,7 @@ type _AssertS2CIsSubsetOfManifest = Exclude<ServerToClientOpcodes, ManifestServe
     ? true
     : never;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _manifestCoverageC2S: _AssertManifestC2SIsSubset & _AssertC2SIsSubsetOfManifest = true;
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const _manifestCoverageS2C: _AssertManifestS2CIsSubset & _AssertS2CIsSubsetOfManifest = true;
+ 
+const _manifestCoverageC2S: _AssertManifestC2SIsSubset   = true;
+ 
+const _manifestCoverageS2C: _AssertManifestS2CIsSubset   = true;

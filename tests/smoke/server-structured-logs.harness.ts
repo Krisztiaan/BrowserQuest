@@ -63,7 +63,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     }
 
     async function getFreePort() {
-        return await new Promise<number>((resolve, reject) => {
+        return new Promise<number>((resolve, reject) => {
             const server = net.createServer();
             server.once('error', reject);
             server.listen(0, '127.0.0.1', () => {
@@ -82,7 +82,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     async function waitForHttpOk(url: string, timeoutMs = 5000) {
         const start = Date.now();
         let lastError: unknown = null;
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
             try {
                 const res = await fetch(url);
@@ -102,7 +102,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     // Wait for a structured event name to appear in captured records.
     async function waitForEvent(events: EventRecord[], eventName: string, timeoutMs = 5000) {
         const start = Date.now();
-        // eslint-disable-next-line no-constant-condition
+         
         while (true) {
             const found = events.find((e) => e.event === eventName);
             if (found) {
@@ -124,7 +124,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
             return;
         }
         const reader = stream.getReader();
-        (async () => {
+        void (async () => {
             let carry = '';
             try {
                 while (true) {

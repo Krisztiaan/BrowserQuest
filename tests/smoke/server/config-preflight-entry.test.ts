@@ -3,7 +3,7 @@ import { afterEach, expect, test } from 'bun:test';
 const repoRoot = new URL('../../..', import.meta.url).pathname;
 
 async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs = 4000) {
-    return await new Promise<number>((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for server exit')), timeoutMs);
         proc.exited
             .then((code) => {
@@ -26,7 +26,7 @@ async function readStreamText(stream: ReadableStream<Uint8Array> | number | null
     const decoder = new TextDecoder();
     let output = '';
 
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;

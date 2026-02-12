@@ -46,7 +46,7 @@ const mapDefinitionCache = new globalThis.Map<string, Promise<MapDefinition | nu
 
 function cloneMapDefinition(mapDefinition: MapDefinition): MapDefinition {
     if (typeof structuredClone === 'function') {
-        return structuredClone(mapDefinition) as MapDefinition;
+        return structuredClone(mapDefinition);
     }
     return JSON.parse(JSON.stringify(mapDefinition)) as MapDefinition;
 }

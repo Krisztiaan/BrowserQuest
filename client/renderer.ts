@@ -206,7 +206,7 @@ class Renderer {
         return scale;
     }
 
-    rescale(factor: number): void {
+    rescale(_factor: number): void {
         this.scale = this.getScaleFactor();
 
         this.createCamera();
@@ -390,7 +390,7 @@ class Renderer {
                 }
             } else {
                 if (sprite && anim) {
-                    var frame = anim.currentFrame,
+                    const frame = anim.currentFrame,
                         s = this.scale,
                         frameX = frame.x * os,
                         frameY = frame.y * os,
@@ -424,7 +424,7 @@ class Renderer {
             os = this.upscaledRendering ? 1 : this.scale;
 
         this.context.save();
-        if (this.game.currentCursor && this.game.currentCursor.isLoaded) {
+        if (this.game.currentCursor?.isLoaded) {
             this.context.drawImage(this.game.currentCursor.image, 0, 0, 14 * os, 14 * os, mx, my, 14 * s, 14 * s);
         }
         this.context.restore();
@@ -505,7 +505,7 @@ class Renderer {
             ds = this.upscaledRendering ? this.scale : 1;
 
         if (anim && sprite) {
-            var frame = anim.currentFrame,
+            const frame = anim.currentFrame,
                 s = this.scale,
                 x = frame.x * os,
                 y = frame.y * os,
@@ -992,11 +992,11 @@ class Renderer {
     }
 }
 
-var getX = function (id: number, w: number): number {
-    if (id == 0) {
+const getX = function (id: number, w: number): number {
+    if (id === 0) {
         return 0;
     }
-    return id % w == 0 ? w - 1 : (id % w) - 1;
+    return id % w === 0 ? w - 1 : (id % w) - 1;
 };
 
 export default Renderer;

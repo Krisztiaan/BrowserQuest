@@ -132,7 +132,7 @@ function addMobHate({
     let matched = false;
     for (let i = 0; i < next.length; i += 1) {
         const entry = next[i];
-        if (entry && entry.id === playerId) {
+        if (entry?.id === playerId) {
             next[i] = { id: playerId, hate: entry.hate + hatePoints };
             matched = true;
             break;
@@ -750,7 +750,7 @@ function createApplyInboundCommandsSystem(
                     break;
                 default:
                     // Ensure exhaustive handling when new command types are introduced.
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                     
                     const _exhaustive: never = cmd;
                     break;
             }
@@ -902,7 +902,6 @@ export class WorldEcsCommandPipeline {
             const Kind = this.replication.Kind;
             const Position = this.Position;
             const Target = this.replication.Target;
-            const { HitPoints } = this.combat;
             const { MobSpawnPos, MobHate, MobReturnAtTick } = this.mobAi;
 
             const ups = Math.max(1, this.#world.ups);
@@ -1193,7 +1192,7 @@ export class WorldEcsCommandPipeline {
             }
 
             const player = this.#world.getConnectionPlayerById(observerId);
-            if (!player || !player.hasEnteredGame) {
+            if (!player?.hasEnteredGame) {
                 interest.clearObserver(observerId);
                 return;
             }
@@ -1260,7 +1259,7 @@ export class WorldEcsCommandPipeline {
                     continue;
                 }
                 const player = this.#world.getConnectionPlayerById(id);
-                if (!player || !player.hasEnteredGame) {
+                if (!player?.hasEnteredGame) {
                     continue;
                 }
                 this.#world.pushToPlayer(player, msg.action);

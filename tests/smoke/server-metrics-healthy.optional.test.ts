@@ -18,7 +18,7 @@ function startStructuredLogCapture(stream: ReadableStream<unknown> | number | nu
         return;
     }
 
-    (async () => {
+    void (async () => {
         let carry = '';
         while (true) {
             const { done, value } = await reader.read();
@@ -31,7 +31,7 @@ function startStructuredLogCapture(stream: ReadableStream<unknown> | number | nu
             carry = chunks.pop() || '';
             chunks.forEach((line) => {
                 const trimmed = line.trim();
-                if (!trimmed || !trimmed.startsWith('{')) {
+                if (!trimmed?.startsWith('{')) {
                     return;
                 }
                 try {
@@ -48,7 +48,7 @@ function startStructuredLogCapture(stream: ReadableStream<unknown> | number | nu
 }
 
 async function getFreePort() {
-    return await new Promise<number>((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
         const server = net.createServer();
         server.once('error', reject);
         server.listen(0, '127.0.0.1', () => {
@@ -65,7 +65,7 @@ async function getFreePort() {
 
 async function waitForHttpOk(url: string, timeoutMs = 8000) {
     const start = Date.now();
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         try {
             const res = await fetch(url);
@@ -83,7 +83,7 @@ async function waitForHttpOk(url: string, timeoutMs = 8000) {
 
 async function waitForCondition(check: () => boolean, timeoutMs: number, label: string) {
     const start = Date.now();
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         if (check()) return;
         if (Date.now() - start > timeoutMs) {
@@ -117,7 +117,7 @@ afterEach(async () => {
 });
 
 maybeTest('optional: healthy metrics path starts with memcache backend and no fallback event', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
+     
     const hasMemcacheDependency = (() => {
         try {
             require.resolve('memcache');

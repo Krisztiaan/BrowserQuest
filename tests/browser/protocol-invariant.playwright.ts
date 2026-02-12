@@ -66,7 +66,7 @@ async function replaySequence(page: Page, entryPath: '/client/modern.html', suff
                 }
             };
 
-            return await new Promise<ReplayResult>((resolve) => {
+            return new Promise<ReplayResult>((resolve) => {
                 let sentHello = false;
                 let sentChat = false;
                 let sentMove = false;

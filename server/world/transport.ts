@@ -44,10 +44,10 @@ export function pushSerializedToGroupQueue({
     getEntityById,
     logError,
 }: PushSerializedToGroupOptions): void {
-    const group = groups[groupId];
+        const group = groups[groupId];
     if (group) {
         group.players.forEach((playerId) => {
-            if (playerId != ignoredPlayer) {
+            if (playerId !== ignoredPlayer) {
                 pushSerializedToPlayerQueue(
                     outgoingQueues,
                     getEntityById(playerId),

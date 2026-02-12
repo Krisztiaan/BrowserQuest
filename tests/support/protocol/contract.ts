@@ -3,13 +3,12 @@ import type {
     ClientToServerProtocolAction,
     ProtocolAction,
     ProtocolActionValue,
-    ProtocolContract,
     ProtocolOpcode,
     ProtocolParsedAction,
     ServerToClientProtocolAction,
 } from '../../../shared/protocol/types';
 
-const Protocol = SharedProtocol as ProtocolContract;
+const Protocol = SharedProtocol;
 
 export const MSG_HELLO = Protocol.MSG_HELLO;
 export const MSG_WELCOME = Protocol.MSG_WELCOME;

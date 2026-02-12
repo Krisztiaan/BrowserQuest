@@ -54,7 +54,7 @@ function normalizePayloadToActions(payload: unknown): Action[] {
     } else if (payload instanceof ArrayBuffer) {
         text = Buffer.from(payload).toString('utf8');
     } else if (ArrayBuffer.isView(payload)) {
-        const view = payload as ArrayBufferView;
+        const view = payload;
         text = Buffer.from(view.buffer, view.byteOffset, view.byteLength).toString('utf8');
     } else {
         text = String(payload);
@@ -100,7 +100,7 @@ async function waitForNextAction(
     timeoutMs = 10000
 ) {
     const startedAt = Date.now();
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         for (let i = stream.cursor; i < stream.actions.length; i += 1) {
             const action = stream.actions[i];
@@ -126,7 +126,7 @@ async function ensureSocketOpen(ws: WebSocket, waitMs = 200) {
 }
 
 async function waitForClose(ws: WebSocket, timeoutMs = 8000) {
-    return await new Promise<void>((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
         if (ws.readyState === WebSocket.CLOSED) {
             resolve();
             return;
@@ -140,7 +140,7 @@ async function waitForClose(ws: WebSocket, timeoutMs = 8000) {
 }
 
 async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
-    return await new Promise<void>((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for go')), timeoutMs);
         ws.on('message', (data) => {
             if (data.toString() === 'go') {
@@ -157,7 +157,7 @@ async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
 
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         try {
             const res = await fetch(url);
@@ -174,7 +174,7 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
 }
 
 async function getFreePort() {
-    return await new Promise<number>((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
         const server = net.createServer();
         server.once('error', reject);
         server.listen(0, '127.0.0.1', () => {

@@ -1,6 +1,5 @@
 import { entityIdIndex, type EntityId } from '../../shared/domain/ids';
 import { ArchetypeIndex } from './archetype-index';
-import type { ComponentStore } from './component-store';
 import { ComponentRegistry, componentBit, type ComponentType } from './component-registry';
 import { EntityAllocator } from './entity-allocator';
 
@@ -60,7 +59,7 @@ export class EcsWorld {
         for (const type of this.components.all()) {
             const bit = componentBit(type);
             if ((mask & bit) !== 0n) {
-                (type.store as ComponentStore<unknown>).remove(id);
+                (type.store).remove(id);
             }
         }
 

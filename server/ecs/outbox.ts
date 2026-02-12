@@ -1,7 +1,7 @@
 import type { EntityId } from '../../shared/domain/ids';
 import type { ServerToClientProtocolAction } from '../../shared/protocol/types';
 import { createResourceKey } from './resources';
-import { Queue } from './queues';
+import type { Queue } from './queues';
 
 export type OutboxMessage =
     | Readonly<{

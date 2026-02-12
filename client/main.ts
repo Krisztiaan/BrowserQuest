@@ -252,7 +252,7 @@ const initApp = function (): void {
             resizeCheck = document.getElementById('resize-check');
 
         if (body) {
-            body.addEventListener('click', function (event: MouseEvent) {
+            body.addEventListener('click', function () {
                 if (parchment && parchment.classList.contains('credits')) {
                     app.toggleScrollContent('credits');
                 }
@@ -454,7 +454,7 @@ const initApp = function (): void {
         }
 
         document.querySelectorAll('.play div').forEach(function (element: Element) {
-            element.addEventListener('click', function (event: MouseEvent) {
+            element.addEventListener('click', function () {
                 const nameFromInput = nameInput ? nameInput.getAttribute('value') : '',
                     nameFromStorage = playerName ? playerName.innerHTML : '',
                     name = nameFromInput || nameFromStorage;
@@ -604,7 +604,7 @@ function initGame(): void {
                         function (event: TouchEvent) {
                             app.center();
                             touchHasMoved = false;
-                            const touch = event.touches && event.touches[0] ? event.touches[0] : null;
+                            const touch = event.touches?.[0] ? event.touches[0] : null;
                             if (touch) {
                                 touchStartX = touch.pageX;
                                 touchStartY = touch.pageY;
@@ -618,7 +618,7 @@ function initGame(): void {
                     foregroundEl.addEventListener(
                         'touchmove',
                         function (event: TouchEvent) {
-                            const touch = event.touches && event.touches[0] ? event.touches[0] : null;
+                            const touch = event.touches?.[0] ? event.touches[0] : null;
                             if (touch) {
                                 const dx = Math.abs(touch.pageX - touchStartX);
                                 const dy = Math.abs(touch.pageY - touchStartY);
@@ -636,7 +636,7 @@ function initGame(): void {
                         'touchend',
                         function (event: TouchEvent) {
                             const touch =
-                                event.changedTouches && event.changedTouches[0] ? event.changedTouches[0] : null;
+                                event.changedTouches?.[0] ? event.changedTouches[0] : null;
                             if (touch) {
                                 app.setMouseCoordinates(touch);
                             }
@@ -722,8 +722,7 @@ function initGame(): void {
             });
 
             document.addEventListener('keydown', function (e: KeyboardEvent) {
-                const key = e.which,
-                    chat = chatInput;
+                const key = e.which;
 
                 if (key === 13) {
                     if (chatBox && chatBox.classList.contains('active')) {

@@ -18,7 +18,7 @@ function startStructuredLogCapture(
         return;
     }
 
-    (async () => {
+    void (async () => {
         let carry = '';
         while (true) {
             const { done, value } = await reader.read();
@@ -34,7 +34,7 @@ function startStructuredLogCapture(
                 if (rawLines && trimmed) {
                     rawLines.push(trimmed);
                 }
-                if (!trimmed || !trimmed.startsWith('{')) {
+                if (!trimmed?.startsWith('{')) {
                     return;
                 }
                 try {
@@ -51,7 +51,7 @@ function startStructuredLogCapture(
 }
 
 async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs = 4000) {
-    return await new Promise<number>((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for server exit')), timeoutMs);
         proc.exited
             .then((code) => {

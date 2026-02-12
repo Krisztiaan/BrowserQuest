@@ -4,7 +4,7 @@ import { afterEach, expect, test } from 'bun:test';
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
 async function getFreePort() {
-    return await new Promise<number>((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
         const server = net.createServer();
         server.once('error', reject);
         server.listen(0, '127.0.0.1', () => {
@@ -21,7 +21,7 @@ async function getFreePort() {
 
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         try {
             const res = await fetch(url);

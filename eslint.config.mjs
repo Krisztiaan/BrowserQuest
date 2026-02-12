@@ -1,6 +1,7 @@
 import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
+import importPlugin from 'eslint-plugin-import';
 
 // ──────────────────────────────────────────────
 // Shared base rules (all file types)
@@ -31,11 +32,26 @@ const baseRules = {
     'no-var': 'error',
 };
 
+const importHygieneRules = {
+    'import/no-unused-modules': [
+        'error',
+        {
+            unusedExports: true,
+            missingExports: false,
+        },
+    ],
+    'import/no-duplicates': 'error',
+    'import/no-self-import': 'error',
+    'import/no-useless-path-segments': 'error',
+    'import/no-cycle': 'warn',
+};
+
 // ──────────────────────────────────────────────
 // TypeScript type-aware rules
 // ──────────────────────────────────────────────
 const tsStrictRules = {
     ...baseRules,
+    ...importHygieneRules,
 
     // Disable base rules superseded by TS equivalents
     'no-unused-vars': 'off',
@@ -190,6 +206,7 @@ export default [
         },
         plugins: {
             '@typescript-eslint': tsPlugin,
+            import: importPlugin,
         },
         rules: tsStrictRules,
     },
@@ -212,6 +229,7 @@ export default [
         },
         plugins: {
             '@typescript-eslint': tsPlugin,
+            import: importPlugin,
         },
         rules: clientTsRules,
     },
@@ -236,6 +254,7 @@ export default [
         },
         plugins: {
             '@typescript-eslint': tsPlugin,
+            import: importPlugin,
         },
         rules: tsStrictRules,
     },
@@ -259,6 +278,7 @@ export default [
         },
         plugins: {
             '@typescript-eslint': tsPlugin,
+            import: importPlugin,
         },
         rules: tsStrictRules,
     },

@@ -37,7 +37,7 @@
     "verify": "bun run verify:modern",
     "verify:modern": "bun run check:content:prefabs && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:vite",
     "test": "bun test --timeout 20000",
-    "lint": "eslint \"client/achievement-domain.ts\" \"client/asset-key-domain.ts\" \"client/client-boundary-types.ts\" \"shared/connection-status.ts\" \"shared/entity-kind-domain.ts\" \"shared/evented.ts\" \"shared/gametypes-browser.ts\" \"shared/protocol/types.ts\" \"shared/protocol/contract.ts\" \"shared/protocol/schema.ts\" \"shared/typed-event-emitter.ts\" \"shared/ws-close-codes.ts\" \"server/character.ts\" \"server/entry.ts\" \"server/item.ts\" \"server/metrics.ts\" \"server/mob.ts\" \"server/player-session.ts\" \"server/player-session-command-translation.ts\" \"server/player.ts\" \"server/runtime-health-response.ts\" \"server/server-event-names.ts\" \"server/startup/*.ts\" \"server/ws/runtime-types.ts\" \"server/ws/runtime-factory.ts\" \"server/ws/runtime.ts\" \"tools/**/*.ts\"",
+    "lint": "eslint \"client/**/*.ts\" \"server/**/*.ts\" \"shared/**/*.ts\" \"tools/**/*.ts\" \"tests/**/*.ts\"",
     "lint:client-runtime": "eslint \"client/runtime/connection.ts\" \"client/game.ts\" \"client/gameclient.ts\" \"client/game-entity-lookups.ts\"",
     "format": "prettier --write \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\"",
     "format:check": "prettier --check \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\""
@@ -46,13 +46,14 @@
     "memcache": "^1.3.0"
   },
   "devDependencies": {
-    "@eslint/js": "10.0.1",
+    "@eslint/js": "^9.0.0",
     "@playwright/test": "^1.58.2",
     "@types/node": "25.2.2",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
     "bun-types": "^1.3.8",
-    "eslint": "10.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-import": "^2.32.0",
     "globals": "^17.3.0",
     "prettier": "^3.8.1",
     "typescript": "5.9.3",

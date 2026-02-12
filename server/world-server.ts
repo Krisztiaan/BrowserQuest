@@ -1,8 +1,6 @@
-import type { RuntimeEventName } from './server-event-names';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { WorldMessage } from './world/contracts';
-import Entity from './entity';
-import Character from './character';
+import type Entity from './entity';
 import Log from './log';
 import Mob from './mob';
 import Map from './map';
@@ -780,7 +778,7 @@ class World extends Evented<WorldEvents> {
         }
     }
 
-    handleEmptyMobArea(area) {}
+    handleEmptyMobArea(_area) {}
 
     handleEmptyChestArea(area) {
         handleEmptyChestAreaRefill(this, area);

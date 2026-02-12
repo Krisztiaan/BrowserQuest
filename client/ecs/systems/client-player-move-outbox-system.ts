@@ -1,4 +1,3 @@
-import { gridPos } from '../../../shared/domain/positions';
 import type { EntityId } from '../../../shared/domain/ids';
 import type { ClientWorldKernel } from '../world-kernel';
 

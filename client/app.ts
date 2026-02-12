@@ -127,7 +127,7 @@ class App {
         this.supportsWorkers = false;
         this.messageTimer = null;
 
-        if (localStorage && localStorage.data) {
+        if (localStorage?.data) {
             this.frontPage = 'loadcharacter';
         }
     }
@@ -147,13 +147,13 @@ class App {
 
     canStartGame(): boolean {
         if (this.isDesktop) {
-            return !!(this.game && this.game.map && this.game.map.isLoaded);
+            return !!(this.game?.map?.isLoaded);
         } else {
             return !!this.game;
         }
     }
 
-    tryStartingGame(username: string, onStarting?: (() => void) | undefined) {
+    tryStartingGame(username: string, onStarting?: () => void): void {
         const self = this,
             playButton = this.playButtonEl || document.querySelector('#createcharacter .play');
 
@@ -185,7 +185,7 @@ class App {
         }
     }
 
-    startGame(username: string, onStarting?: (() => void) | undefined): void {
+    startGame(username: string, onStarting?: () => void): void {
         const self = this;
 
         if (onStarting) {
@@ -281,8 +281,7 @@ class App {
     }
 
     toggleButton(): void {
-        const nameInput = (this.parchmentNameInputEl ||
-                document.querySelector('#parchment input')) as HTMLInputElement | null,
+        const nameInput = this.parchmentNameInputEl ?? document.querySelector<HTMLInputElement>('#parchment input'),
             playButton = this.playButtonEl || document.querySelector('#createcharacter .play'),
             character = this.characterEl || document.getElementById('character'),
             name = nameInput ? nameInput.value : '';

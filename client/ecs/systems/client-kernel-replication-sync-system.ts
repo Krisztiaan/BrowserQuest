@@ -10,7 +10,7 @@ export type ClientKernelReplicationSyncSystemHost = {
 };
 
 function isSamePos(a: GridPos | undefined, b: GridPos): boolean {
-    return a !== undefined && a.x === b.x && a.y === b.y;
+    return a?.x === b.x && a.y === b.y;
 }
 
 function addSpawnedEntity(host: ClientKernelReplicationSyncSystemHost, view: KernelEntityView): void {

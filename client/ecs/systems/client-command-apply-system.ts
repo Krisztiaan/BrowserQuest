@@ -363,7 +363,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 break;
             }
             case 'setPlayerLastCheckpoint': {
-                if (!command.checkpoint || command.checkpoint.id === undefined) {
+                if (command.checkpoint?.id === undefined) {
                     host.player.lastCheckpoint = null;
                     break;
                 }
@@ -543,7 +543,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     break;
                 }
                 const intent = host.kernel.clientInteractionIntent;
-                if (!intent || intent.kind !== 'loot' || intent.targetId !== command.itemId) {
+                if (intent?.kind !== 'loot' || intent.targetId !== command.itemId) {
                     break;
                 }
 
@@ -731,14 +731,14 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 }
 
                 if (adapted.type === 'chest') {
-                    const entity = adapted.entity as unknown as GridIndexedEntity;
+                    const entity = adapted.entity as GridIndexedEntity;
                     entity.setSprite(host.sprites[entity.getSpriteName()] ?? null);
                     entity.setGridPosition(view.position.x, view.position.y);
                     host.addEntity(entity as unknown);
                     break;
                 }
 
-                const character = adapted.entity as unknown as GridIndexedEntity;
+                const character = adapted.entity as GridIndexedEntity;
                 character.setSprite(host.sprites[character.getSpriteName()] ?? null);
                 character.setGridPosition(view.position.x, view.position.y);
                 if (typeof character.setOrientation === 'function') {

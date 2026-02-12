@@ -26,7 +26,7 @@ export function entityIdFromWire(value: number): EntityId {
     if (!isEntityId(value)) {
         throw new Error(`Invalid wire EntityId: ${String(value)}`);
     }
-    return value as EntityId;
+    return value;
 }
 
 export function entityIdFromWireString(value: string): EntityId {

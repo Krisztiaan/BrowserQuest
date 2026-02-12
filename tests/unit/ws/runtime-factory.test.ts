@@ -7,7 +7,7 @@ type Handler = (...args: unknown[]) => void;
 function createSocketMock() {
     const handlers: Record<string, Handler> = {};
     let closed: { code: number; reason: string } | null = null;
-    let sent: string[] = [];
+    const sent: string[] = [];
 
     return {
         on(event: string, handler: Handler) {

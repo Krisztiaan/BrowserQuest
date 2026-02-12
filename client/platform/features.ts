@@ -21,7 +21,7 @@ const supportsLocalStorage = function (): boolean {
         globalThis.localStorage.setItem(FEATURE_TEST_KEY, FEATURE_TEST_KEY);
         globalThis.localStorage.removeItem(FEATURE_TEST_KEY);
         return true;
-    } catch (e) {
+    } catch {
         return false;
     }
 };

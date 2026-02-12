@@ -22,7 +22,7 @@ for (const mod of Object.values(modules)) {
   const sprite = (mod && typeof mod === 'object' && 'default' in mod ? mod.default : mod) as
     | SpriteJson
     | undefined;
-  if (sprite && sprite.id) {
+  if (sprite?.id) {
     sprites[sprite.id] = sprite;
   }
 }

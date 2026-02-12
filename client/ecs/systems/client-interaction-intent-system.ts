@@ -5,10 +5,9 @@ import type { ClientCommand } from '../client-commands';
 import Item from '../../item';
 import Mob from '../../mob';
 import Npc from '../../npc';
-import Player from '../../player';
+import type Player from '../../player';
 import Character from '../../character';
 import Chest from '../../chest';
-import type { ClientCommand } from '../client-commands';
 
 export function clearClientInteractionIntentWithSideEffects(host: { kernel: ClientWorldKernel }): void {
     const prev = host.kernel.clientInteractionIntent;
@@ -72,7 +71,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         const playerY = host.player.gridY;
         if (playerX === target.gridX && playerY === target.gridY) {
             const last = host.kernel.clientLootAttempt;
-            if (last && last.itemId === target.id && last.pos.x === playerX && last.pos.y === playerY) {
+            if (last?.itemId === target.id && last.pos.x === playerX && last.pos.y === playerY) {
                 return;
             }
             host.kernel.setClientLootAttempt(target.id, playerX, playerY);

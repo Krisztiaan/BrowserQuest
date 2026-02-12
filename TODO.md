@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 16:26 UTC
+Last updated: 2026-02-12 16:48 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -46,6 +46,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 39. Ticket 76 (`done`) - Remove legacy player interaction helpers
 40. Ticket 77 (`done`) - Protocol sends via ECS commands
 41. Ticket 78 (`done`) - Stabilize smoke parity timeout
+42. Ticket 79 (`done`) - Lint unused modules/exports
 
 ## Ticket 72: MOVE Outbox Emits Commands Only
 
@@ -294,6 +295,45 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Commit and run final repository audit.
+
+## Ticket 79: Lint Unused Modules/Exports
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Add `eslint-plugin-import` and enable `import/no-unused-modules` (and related import hygiene rules).
+  - Expand `bun run lint` to cover all TS sources so unused exports can be detected repo-wide.
+  - Remove/adjust any now-unused exports/files so lint passes.
+- Out of scope:
+  - Large-scale stylistic lint reformatting (e.g. ordering rules across the whole repo).
+- Acceptance criteria:
+  - `eslint.config.mjs` includes `import/no-unused-modules` and it is enforced (error).
+  - `bun run lint` runs across all TS sources.
+  - `bun run lint` passes.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run lint`
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 16:26 UTC
+- End: 2026-02-12 16:48 UTC
+- Status: `done`
+- Key actions:
+  - Added `eslint-plugin-import` and enabled `import/no-unused-modules` (plus import hygiene rules) under flat ESLint config.
+  - Expanded `bun run lint` to cover all TS sources.
+  - Fixed strict lint errors (unused vars, floating promises, eqeqeq/no-var) and removed unused `shared/protocol/types.d.ts`.
+- Evidence:
+  - `bun run lint` (pass; warnings only)
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: reduce warning budget or enforce `--max-warnings 0` once the repo is ready.
 
 ## Ticket 71: Replication Sync Emits Commands Only
 

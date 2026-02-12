@@ -1,4 +1,3 @@
-import type { EntityKindId } from '../shared/entity-kind-domain';
 import type { EntityId } from '../shared/domain/ids';
 
 import Utils from './utils';

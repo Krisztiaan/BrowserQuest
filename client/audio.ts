@@ -137,7 +137,13 @@ class AudioManager {
         const music = this.sounds[name]?.[0];
         if (music) {
             music.loop = true;
-            music.addEventListener('ended', function (): void { music.play(); }, false);
+            music.addEventListener(
+                'ended',
+                function (): void {
+                    void music.play();
+                },
+                false
+            );
         }
     }
 
@@ -157,7 +163,7 @@ class AudioManager {
     playSound(name: AudioSoundKey): void {
         const sound = this.enabled && this.getSound(name);
         if (sound) {
-            sound.play();
+            void sound.play();
         }
     }
 
@@ -195,7 +201,7 @@ class AudioManager {
     }
 
     isCurrentMusic(music: AreaMusic): boolean {
-        return !!(this.currentMusic && music.name === this.currentMusic.name);
+        return !!(music.name === this.currentMusic?.name);
     }
 
     playMusic(music: AreaMusic | null): void {
@@ -204,7 +210,7 @@ class AudioManager {
                 this.fadeInMusic(music);
             } else {
                 music.sound.volume = 1;
-                music.sound.play();
+                void music.sound.play();
             }
             this.currentMusic = music;
         }

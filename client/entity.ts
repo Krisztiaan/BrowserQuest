@@ -177,7 +177,7 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
 
     setAnimation(name: string, speed?: number, count?: number, onEndCount?: (() => void) | null): void {
         if (this.isLoaded) {
-            if (this.currentAnimation && this.currentAnimation.name === name) {
+            if (this.currentAnimation?.name === name) {
                 return;
             }
 

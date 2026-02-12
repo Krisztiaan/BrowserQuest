@@ -21,7 +21,7 @@ const tiledWorldMap = tiledWorldMapJson as Parameters<typeof processMap>[0];
 
 function cloneClientRuntimeMap(map: ClientRuntimeMap): ClientRuntimeMap {
   if (typeof structuredClone === 'function') {
-    return structuredClone(map) as ClientRuntimeMap;
+    return structuredClone(map);
   }
   return JSON.parse(JSON.stringify(map)) as ClientRuntimeMap;
 }

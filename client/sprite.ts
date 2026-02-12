@@ -173,13 +173,9 @@ class Sprite {
             };
 
             const getPosition = function (i: number): { x: number; y: number } {
-                let x;
-                let y;
-
-                i = (i / 4) + 1;
-                x = i % width;
-                y = ((i - x) / width) + 1;
-
+                const idx = (i / 4) + 1;
+                const x = idx % width;
+                const y = ((idx - x) / width) + 1;
                 return { x, y };
             };
 

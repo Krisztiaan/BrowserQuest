@@ -6,7 +6,7 @@ const repoRoot = new URL('../../..', import.meta.url).pathname;
 type EventRecord = Record<string, unknown>;
 
 async function getFreePort() {
-    return await new Promise<number>((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
         const server = net.createServer();
         server.once('error', reject);
         server.listen(0, '127.0.0.1', () => {
@@ -23,7 +23,7 @@ async function getFreePort() {
 
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         try {
             const res = await fetch(url);
@@ -41,7 +41,7 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
 
 async function waitForCondition(check: () => boolean, timeoutMs: number, label: string) {
     const start = Date.now();
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         if (check()) return;
         if (Date.now() - start > timeoutMs) {
@@ -52,7 +52,7 @@ async function waitForCondition(check: () => boolean, timeoutMs: number, label: 
 }
 
 async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs = 4000) {
-    return await new Promise<number>((resolve, reject) => {
+    return new Promise<number>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for server exit')), timeoutMs);
         proc.exited
             .then((code) => {
@@ -73,7 +73,7 @@ async function readStreamText(stream: ReadableStream<unknown> | number | null | 
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     let output = '';
-    // eslint-disable-next-line no-constant-condition
+     
     while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -90,7 +90,7 @@ function startStructuredCapture(stream: ReadableStream<unknown> | number | null 
         return;
     }
     const reader = stream.getReader();
-    (async () => {
+    void (async () => {
         let carry = '';
         while (true) {
             const { done, value } = await reader.read();

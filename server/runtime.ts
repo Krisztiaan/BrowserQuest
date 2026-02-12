@@ -18,11 +18,6 @@ import WsRuntimeModule from './ws/runtime';
 import WorldServer from './world-server';
 import Player from './player';
 
-interface ConfigValidationResult {
-    isValid: boolean;
-    errors: unknown[];
-}
-
 const WsRuntime = WsRuntimeModule as MainRuntimeDependencies['ws'];
 
 const log = Log.getLogger();
@@ -49,7 +44,7 @@ function createRuntimeDependencies(overrides?: MainRuntimeDependencyOverrides): 
         clearIntervalFn:
             injected.clearIntervalFn ||
             function (timerHandle) {
-                clearInterval(timerHandle as unknown as Parameters<typeof clearInterval>[0]);
+                clearInterval(timerHandle as Parameters<typeof clearInterval>[0]);
             },
     };
 }
@@ -298,7 +293,6 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
         return;
     }
 
-    const ws = dependencies.ws;
     const Player = dependencies.Player;
     const runtime = createServerAndMetrics(config, emitServerEvent, dependencies);
     const server = runtime.server;
