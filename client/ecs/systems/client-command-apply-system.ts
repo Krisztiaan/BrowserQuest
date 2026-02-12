@@ -28,6 +28,19 @@ type GridIndexedEntity = {
     dirtyRect?: unknown;
 };
 
+type SpatialRecord = Readonly<{
+    gridX: number;
+    gridY: number;
+    nextGridX: number;
+    nextGridY: number;
+    isMoving: boolean;
+    kind: EntityKind;
+    isPlayer: boolean;
+}>;
+
+type EntityGridCell = Record<string, unknown>;
+type EntityGrid = EntityGridCell[][];
+
 export type ClientCommandApplySystemHost = {
     kernel: ClientWorldKernel;
     started: boolean;
@@ -80,6 +93,11 @@ export type ClientCommandApplySystemHost = {
     createBubble(entityId: EntityId, text: string): void;
     sprites: Record<string, unknown>;
     entities: Record<string, GridIndexedEntity>;
+    map: { grid: number[][]; isOutOfBounds(x: number, y: number): boolean } | null;
+    entityGrid: EntityGrid | null;
+    itemGrid: EntityGrid | null;
+    renderingGrid: EntityGrid | null;
+    pathingGrid: number[][] | null;
     obsoleteEntities: GridIndexedEntity[] | null;
     removeObsoleteEntities(): void;
     connectionStartedCallback: (() => void) | null;
@@ -98,6 +116,133 @@ function safeOrientation(orientation: number | undefined): number {
         orientation === Types.Orientations.RIGHT
         ? orientation
         : Types.Orientations.DOWN;
+}
+
+function removeFromCell(cell: EntityGridCell | undefined, entityId: EntityId): void {
+    if (!cell) {
+        return;
+    }
+    if (cell[entityId]) {
+        delete cell[entityId];
+    }
+}
+
+function setPathingCell(host: ClientCommandApplySystemHost, x: number, y: number, value: number): void {
+    if (!host.map || !host.pathingGrid) {
+        return;
+    }
+    if (host.map.isOutOfBounds(x, y)) {
+        return;
+    }
+    host.pathingGrid[y][x] = value;
+}
+
+function basePathingValue(host: ClientCommandApplySystemHost, x: number, y: number): number {
+    if (!host.map) {
+        return 0;
+    }
+    if (host.map.isOutOfBounds(x, y)) {
+        return 0;
+    }
+    return host.map.grid[y]?.[x] ?? 0;
+}
+
+function removeDynamicPathing(host: ClientCommandApplySystemHost, x: number, y: number): void {
+    setPathingCell(host, x, y, basePathingValue(host, x, y));
+}
+
+function addDynamicPathing(host: ClientCommandApplySystemHost, x: number, y: number): void {
+    setPathingCell(host, x, y, 1);
+}
+
+function applySpatialRemoveRecord(host: ClientCommandApplySystemHost, entityId: EntityId, record: SpatialRecord): void {
+    const entityGrid = host.entityGrid;
+    const itemGrid = host.itemGrid;
+    const renderingGrid = host.renderingGrid;
+
+    if (entityGrid) {
+        removeFromCell(entityGrid[record.gridY]?.[record.gridX], entityId);
+        if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
+            removeFromCell(entityGrid[record.nextGridY]?.[record.nextGridX], entityId);
+        }
+    }
+
+    if (renderingGrid) {
+        removeFromCell(renderingGrid[record.gridY]?.[record.gridX], entityId);
+    }
+
+    if (itemGrid && Types.isItem(record.kind)) {
+        removeFromCell(itemGrid[record.gridY]?.[record.gridX], entityId);
+    }
+
+    if (Types.isChest(record.kind)) {
+        removeDynamicPathing(host, record.gridX, record.gridY);
+        return;
+    }
+
+    if (Types.isItem(record.kind)) {
+        return;
+    }
+
+    if (record.isPlayer) {
+        return;
+    }
+
+    if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
+        removeDynamicPathing(host, record.nextGridX, record.nextGridY);
+    } else {
+        removeDynamicPathing(host, record.gridX, record.gridY);
+    }
+}
+
+function applySpatialAddRecord(host: ClientCommandApplySystemHost, entityId: EntityId, record: SpatialRecord): void {
+    const map = host.map;
+    const entity = host.entities[String(entityId)];
+    if (!map || !entity) {
+        return;
+    }
+
+    const entityGrid = host.entityGrid;
+    const itemGrid = host.itemGrid;
+    const renderingGrid = host.renderingGrid;
+
+    if (entityGrid && !map.isOutOfBounds(record.gridX, record.gridY)) {
+        if (!Types.isItem(record.kind)) {
+            (entityGrid[record.gridY][record.gridX] as EntityGridCell)[entityId] = entity;
+            if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
+                if (!map.isOutOfBounds(record.nextGridX, record.nextGridY)) {
+                    (entityGrid[record.nextGridY][record.nextGridX] as EntityGridCell)[entityId] = entity;
+                }
+            }
+        }
+    }
+
+    if (itemGrid && Types.isItem(record.kind) && !map.isOutOfBounds(record.gridX, record.gridY)) {
+        (itemGrid[record.gridY][record.gridX] as EntityGridCell)[entityId] = entity;
+    }
+
+    if (renderingGrid && !map.isOutOfBounds(record.gridX, record.gridY)) {
+        (renderingGrid[record.gridY][record.gridX] as EntityGridCell)[entityId] = entity;
+    }
+
+    if (Types.isChest(record.kind)) {
+        addDynamicPathing(host, record.gridX, record.gridY);
+        return;
+    }
+
+    if (Types.isItem(record.kind)) {
+        return;
+    }
+
+    if (record.isPlayer) {
+        return;
+    }
+
+    if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
+        addDynamicPathing(host, record.nextGridX, record.nextGridY);
+    } else {
+        addDynamicPathing(host, record.gridX, record.gridY);
+    }
 }
 
 function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: string, x: number, y: number, maxHp: number): void {
@@ -184,6 +329,25 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             }
             case 'audioUpdateMusic': {
                 host.audioManager?.updateMusic?.();
+                break;
+            }
+            case 'setEntityNextGrid': {
+                const entity = host.entities[String(command.entityId)] as unknown as
+                    | undefined
+                    | { nextGridX?: number; nextGridY?: number };
+                if (!entity) {
+                    break;
+                }
+                entity.nextGridX = command.nextGridX;
+                entity.nextGridY = command.nextGridY;
+                break;
+            }
+            case 'spatialRemoveRecord': {
+                applySpatialRemoveRecord(host, command.entityId, command.record);
+                break;
+            }
+            case 'spatialAddRecord': {
+                applySpatialAddRecord(host, command.entityId, command.record);
                 break;
             }
             case 'playerGoTo': {

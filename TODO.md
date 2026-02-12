@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 15:16 UTC
+Last updated: 2026-02-12 15:22 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -41,7 +41,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 34. Ticket 71 (`done`) - Replication sync emits commands only
 35. Ticket 72 (`done`) - MOVE outbox emits commands only
 36. Ticket 73 (`done`) - Environment system emits commands only
-37. Ticket 74 (`todo`) - Spatial sync emits commands only
+37. Ticket 74 (`done`) - Spatial sync emits commands only
 
 ## Ticket 72: MOVE Outbox Emits Commands Only
 
@@ -115,7 +115,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 74: Spatial Sync Emits Commands Only
 
-- Status: `todo`
+- Status: `done`
 - Priority: P3
 - Scope:
   - Extend `ClientCommand` with spatial/grid sync commands (entity/item/render grids + dynamic pathing occupancy).
@@ -137,9 +137,18 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ### Progress log
 
-- Status: `todo`
+- Start: 2026-02-12 15:16 UTC
+- End: 2026-02-12 15:22 UTC
+- Status: `done`
+- Key actions:
+  - Converted `runClientSpatialSyncSystem()` to emit commands only (no direct grid/pathing writes).
+  - Applied spatial grid/pathing updates (plus nextGrid normalization) in `runClientCommandApplySystem()`.
+  - Adjusted `pre_update` scheduling to apply spatial sync commands before hover/click.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
-  - Add spatial sync commands and migrate `client-spatial-sync-system`.
+  - Final audit for any remaining control/interaction legacy entrypoints and stage ordering traps.
 
 ## Ticket 71: Replication Sync Emits Commands Only
 

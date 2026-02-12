@@ -79,6 +79,7 @@ export class ClientWorldKernel {
             nextGridY: number;
             isMoving: boolean;
             kind: EntityKind;
+            isPlayer: boolean;
         }>
     >();
 

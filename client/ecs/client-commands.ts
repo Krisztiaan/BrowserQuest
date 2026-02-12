@@ -9,6 +9,33 @@ export type ClientCommand =
     | Readonly<{ type: 'setPlayerLastCheckpoint'; checkpoint: { id?: string | number } | null }>
     | Readonly<{ type: 'clientSendCheck'; checkpointId: string | number }>
     | Readonly<{ type: 'audioUpdateMusic' }>
+    | Readonly<{ type: 'setEntityNextGrid'; entityId: EntityId; nextGridX: number; nextGridY: number }>
+    | Readonly<{
+          type: 'spatialRemoveRecord';
+          entityId: EntityId;
+          record: {
+              gridX: number;
+              gridY: number;
+              nextGridX: number;
+              nextGridY: number;
+              isMoving: boolean;
+              kind: EntityKind;
+              isPlayer: boolean;
+          };
+      }>
+    | Readonly<{
+          type: 'spatialAddRecord';
+          entityId: EntityId;
+          record: {
+              gridX: number;
+              gridY: number;
+              nextGridX: number;
+              nextGridY: number;
+              isMoving: boolean;
+              kind: EntityKind;
+              isPlayer: boolean;
+          };
+      }>
     | Readonly<{ type: 'playerGoTo'; x: number; y: number }>
     | Readonly<{ type: 'playerGoToItem'; itemId: EntityId }>
     | Readonly<{ type: 'playerAttack'; targetId: EntityId }>

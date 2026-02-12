@@ -1,10 +1,7 @@
-import Types from '../../../shared/gametypes-browser';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
 import type { EntityId } from '../../../shared/domain/ids';
 import type { ClientWorldKernel } from '../world-kernel';
 import Character from '../../character';
-import Chest from '../../chest';
-import Item from '../../item';
 import Player from '../../player';
 
 type GridIndexedEntity = {
@@ -30,135 +27,6 @@ export type ClientSpatialSyncSystemHost = {
     pathingGrid: number[][] | null;
 };
 
-function removeFromCell(cell: EntityGridCell | undefined, entityId: EntityId): void {
-    if (!cell) {
-        return;
-    }
-    if (cell[entityId]) {
-        delete cell[entityId];
-    }
-}
-
-function setPathingCell(
-    host: ClientSpatialSyncSystemHost,
-    x: number,
-    y: number,
-    value: number
-): void {
-    if (!host.map || !host.pathingGrid) {
-        return;
-    }
-    if (host.map.isOutOfBounds(x, y)) {
-        return;
-    }
-    host.pathingGrid[y][x] = value;
-}
-
-function basePathingValue(host: ClientSpatialSyncSystemHost, x: number, y: number): number {
-    if (!host.map) {
-        return 0;
-    }
-    if (host.map.isOutOfBounds(x, y)) {
-        return 0;
-    }
-    return host.map.grid[y]?.[x] ?? 0;
-}
-
-function removeDynamicPathing(host: ClientSpatialSyncSystemHost, x: number, y: number): void {
-    setPathingCell(host, x, y, basePathingValue(host, x, y));
-}
-
-function addDynamicPathing(host: ClientSpatialSyncSystemHost, x: number, y: number): void {
-    setPathingCell(host, x, y, 1);
-}
-
-function removeRecord(host: ClientSpatialSyncSystemHost, record: { gridX: number; gridY: number; nextGridX: number; nextGridY: number; isMoving: boolean; kind: EntityKind; id: EntityId }): void {
-    const { id } = record;
-    const entityGrid = host.entityGrid;
-    const itemGrid = host.itemGrid;
-    const renderingGrid = host.renderingGrid;
-
-    if (entityGrid) {
-        removeFromCell(entityGrid[record.gridY]?.[record.gridX], id);
-        if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
-            removeFromCell(entityGrid[record.nextGridY]?.[record.nextGridX], id);
-        }
-    }
-
-    if (renderingGrid) {
-        removeFromCell(renderingGrid[record.gridY]?.[record.gridX], id);
-    }
-
-    if (itemGrid && Types.isItem(record.kind)) {
-        removeFromCell(itemGrid[record.gridY]?.[record.gridX], id);
-    }
-
-    if (Types.isChest(record.kind)) {
-        removeDynamicPathing(host, record.gridX, record.gridY);
-        return;
-    }
-
-    if (Types.isItem(record.kind)) {
-        return;
-    }
-
-    // Characters: block on next while moving, or current while stationary, except players.
-    const entity = host.entities[String(id)];
-    if (entity instanceof Player) {
-        return;
-    }
-
-    if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
-        removeDynamicPathing(host, record.nextGridX, record.nextGridY);
-    } else {
-        removeDynamicPathing(host, record.gridX, record.gridY);
-    }
-}
-
-function addRecord(host: ClientSpatialSyncSystemHost, entity: GridIndexedEntity, record: { gridX: number; gridY: number; nextGridX: number; nextGridY: number; isMoving: boolean; kind: EntityKind }): void {
-    const entityGrid = host.entityGrid;
-    const itemGrid = host.itemGrid;
-    const renderingGrid = host.renderingGrid;
-
-    if (entityGrid && !host.map?.isOutOfBounds(record.gridX, record.gridY)) {
-        if (entity instanceof Character || entity instanceof Chest) {
-            entityGrid[record.gridY][record.gridX][entity.id] = entity;
-            if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
-                if (!host.map?.isOutOfBounds(record.nextGridX, record.nextGridY)) {
-                    entityGrid[record.nextGridY][record.nextGridX][entity.id] = entity;
-                }
-            }
-        }
-    }
-
-    if (itemGrid && entity instanceof Item && !host.map?.isOutOfBounds(record.gridX, record.gridY)) {
-        itemGrid[record.gridY][record.gridX][entity.id] = entity;
-    }
-
-    if (renderingGrid && !host.map?.isOutOfBounds(record.gridX, record.gridY)) {
-        renderingGrid[record.gridY][record.gridX][entity.id] = entity;
-    }
-
-    if (entity instanceof Chest) {
-        addDynamicPathing(host, record.gridX, record.gridY);
-        return;
-    }
-
-    if (entity instanceof Item) {
-        return;
-    }
-
-    if (entity instanceof Player) {
-        return;
-    }
-
-    if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
-        addDynamicPathing(host, record.nextGridX, record.nextGridY);
-    } else {
-        addDynamicPathing(host, record.gridX, record.gridY);
-    }
-}
-
 function normalizeNextGrid(entity: GridIndexedEntity): { nextGridX: number; nextGridY: number } {
     const nextGridX = entity.nextGridX ?? -1;
     const nextGridY = entity.nextGridY ?? -1;
@@ -179,7 +47,7 @@ export function runClientSpatialSyncSystem(host: ClientSpatialSyncSystemHost): v
         }
         const record = kernel.clientSpatialRecords.get(id);
         if (record) {
-            removeRecord(host, { ...record, id });
+            kernel.enqueueClientCommand({ type: 'spatialRemoveRecord', entityId: id, record });
         }
         kernel.clientSpatialKnownIds.delete(id);
         kernel.clientSpatialRecords.delete(id);
@@ -188,16 +56,17 @@ export function runClientSpatialSyncSystem(host: ClientSpatialSyncSystemHost): v
     // Upsert records for all active entities.
     for (const entity of Object.values(host.entities)) {
         const id = entity.id;
+        const isMoving = entity instanceof Character ? entity.isMoving() : false;
 
-        if (entity instanceof Character && !entity.isMoving()) {
-            if ((entity.nextGridX ?? -1) >= 0 || (entity.nextGridY ?? -1) >= 0) {
-                entity.nextGridX = -1;
-                entity.nextGridY = -1;
+        let { nextGridX, nextGridY } = normalizeNextGrid(entity);
+        if (entity instanceof Character && !isMoving) {
+            if (nextGridX >= 0 || nextGridY >= 0) {
+                nextGridX = -1;
+                nextGridY = -1;
+                kernel.enqueueClientCommand({ type: 'setEntityNextGrid', entityId: id, nextGridX, nextGridY });
             }
         }
 
-        const { nextGridX, nextGridY } = normalizeNextGrid(entity);
-        const isMoving = entity instanceof Character ? entity.isMoving() : false;
         const record = {
             gridX: entity.gridX,
             gridY: entity.gridY,
@@ -205,13 +74,14 @@ export function runClientSpatialSyncSystem(host: ClientSpatialSyncSystemHost): v
             nextGridY,
             isMoving,
             kind: entity.kind,
+            isPlayer: entity instanceof Player,
         } as const;
 
         const prev = kernel.clientSpatialRecords.get(id);
         if (!prev) {
             kernel.clientSpatialKnownIds.add(id);
             kernel.clientSpatialRecords.set(id, record);
-            addRecord(host, entity, record);
+            kernel.enqueueClientCommand({ type: 'spatialAddRecord', entityId: id, record });
             continue;
         }
 
@@ -221,14 +91,14 @@ export function runClientSpatialSyncSystem(host: ClientSpatialSyncSystemHost): v
             prev.nextGridX === record.nextGridX &&
             prev.nextGridY === record.nextGridY &&
             prev.isMoving === record.isMoving &&
-            prev.kind === record.kind
+            prev.kind === record.kind &&
+            prev.isPlayer === record.isPlayer
         ) {
             continue;
         }
 
-        removeRecord(host, { ...prev, id });
+        kernel.enqueueClientCommand({ type: 'spatialRemoveRecord', entityId: id, record: prev });
         kernel.clientSpatialRecords.set(id, record);
-        addRecord(host, entity, record);
+        kernel.enqueueClientCommand({ type: 'spatialAddRecord', entityId: id, record });
     }
 }
-
