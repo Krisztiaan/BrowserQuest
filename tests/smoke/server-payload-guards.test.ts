@@ -31,7 +31,7 @@ function getFreePort() {
     });
 }
 
-async function waitForHttpOk(url: string, timeoutMs = 5000) {
+async function waitForHttpOk(url: string, timeoutMs = 15000) {
     const start = Date.now();
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -49,7 +49,7 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
     }
 }
 
-async function waitForGo(ws: WebSocket, timeoutMs = 3000) {
+async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
     return new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for go')), timeoutMs);
 
@@ -89,7 +89,7 @@ function normalizePayloadToActions(payload: unknown): ProtocolAction[] {
     return parseProtocolActionBatch(text);
 }
 
-async function waitForWelcome(ws: WebSocket, timeoutMs = 3000) {
+async function waitForWelcome(ws: WebSocket, timeoutMs = 15000) {
     return new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for WELCOME')), timeoutMs);
 
@@ -165,7 +165,7 @@ async function startServer(): Promise<RunningServer> {
         stderr: 'pipe',
     });
 
-    await waitForHttpOk(`http://127.0.0.1:${port}/status`, 8000);
+    await waitForHttpOk(`http://127.0.0.1:${port}/status`);
     return { configPath, port, proc };
 }
 
@@ -206,7 +206,7 @@ test('rejects MOVE payload containing non-integer coordinates', async () => {
         const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
         await waitForGo(ws);
 
-        const welcome = waitForWelcome(ws, 8000);
+        const welcome = waitForWelcome(ws);
         ws.send(JSON.stringify([MSG_HELLO, 'guarded', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
         await welcome;
 

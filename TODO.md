@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:15 UTC
+Last updated: 2026-02-12 12:17 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -378,7 +378,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 55: Stabilize Smoke WS Welcome Timeouts
 
-- Status: `todo`
+- Status: `done`
 - Priority: P2
 - Scope:
   - Reduce flakes in `tests/smoke/server-payload-guards.test.ts` by increasing `WELCOME` wait timeout.
@@ -389,6 +389,19 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 - Verification plan:
   - `bun test --timeout 20000` (run twice)
 - Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:16 UTC
+- End: 2026-02-12 12:17 UTC
+- Status: `done`
+- Key actions:
+  - Increased websocket `go`/`WELCOME` wait timeouts and server `/status` readiness wait to reduce flakes under load.
+- Evidence:
+  - `bun test --timeout 20000` (pass)
+  - `bun test --timeout 20000` (pass, second run)
+- Next action:
   - None.
 
 ## Ticket 44: Single-Port Dev Runtime (PORT + Vite Proxy)
