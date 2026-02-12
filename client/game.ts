@@ -442,9 +442,6 @@ class Game extends Evented<GameEvents> {
         if (!intent || intent.kind !== 'loot') {
             return;
         }
-        if (!this.player.isLootMoving) {
-            return;
-        }
         const lootTargetId = intent.targetId;
 
         const x = this.player.gridX;
@@ -494,10 +491,7 @@ class Game extends Evented<GameEvents> {
         this.kernel.setClientInteractionIntent(intent);
 
         if (kind === 'loot') {
-            this.player.isLootMoving = true;
             this.lastLootAttempt = null;
-        } else {
-            this.player.isLootMoving = false;
         }
     }
 
@@ -507,7 +501,6 @@ class Game extends Evented<GameEvents> {
             this.stopPlayerCombat();
         }
         if (prev?.kind === 'loot') {
-            this.player.isLootMoving = false;
             this.lastLootAttempt = null;
         }
         this.kernel.clearClientInteractionIntent();

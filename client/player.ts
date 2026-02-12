@@ -37,7 +37,6 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
     isOnPlateau: boolean;
     lastCheckpoint: { id: string | number } | null;
 
-    isLootMoving: boolean;
     isSwitchingWeapon: boolean;
     isSwitchingArmor: boolean;
     switchingWeapon: boolean;
@@ -62,7 +61,6 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
         this.lastCheckpoint = null;
 
         // modes
-        this.isLootMoving = false;
         this.isSwitchingWeapon = true;
         this.isSwitchingArmor = false;
         this.switchingWeapon = false;
@@ -109,11 +107,6 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
             }
             item.onLoot(this);
         }
-    }
-
-    // Returns true if the character is currently walking towards an item in order to loot it.
-    isMovingToLoot(): boolean {
-        return this.isLootMoving;
     }
 
     getSpriteName(): string {

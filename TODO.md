@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 11:39 UTC
+Last updated: 2026-02-12 11:42 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -19,6 +19,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 12. Ticket 49 (`done`) - Client ECS interaction intent system
 13. Ticket 50 (`done`) - Client interaction system scheduling cleanup
 14. Ticket 51 (`done`) - Extract client interaction intent system module
+15. Ticket 52 (`done`) - Remove loot-moving player flag
 
 ## Ticket 45: Mobile Input + Item Loot Pickup
 
@@ -264,6 +265,39 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Optional: introduce a lightweight client scheduler to stage multiple systems.
+
+## Ticket 52: Remove Loot-Moving Player Flag
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Remove `Player.isLootMoving` / `Player.isMovingToLoot()` and drive “loot moving” purely from `kernel.clientInteractionIntent`.
+  - Keep explicit-loot semantics by validating the intent target id before sending `LOOT`.
+- Out of scope:
+  - Reworking loot retry throttling (`lastLootAttempt`) and server-side loot validation.
+- Acceptance criteria:
+  - Explicit loot only still holds (no incidental pickups en route).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 11:41 UTC
+- End: 2026-02-12 11:42 UTC
+- Status: `done`
+- Key actions:
+  - Removed `Player.isLootMoving` and derived loot navigation state from `kernel.clientInteractionIntent` only.
+  - Kept explicit-loot semantics by validating `intent.targetId` matches the item underfoot before sending `LOOT`.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: move `lastLootAttempt` into kernel resource to keep interaction state in one place.
 
 ## Ticket 44: Single-Port Dev Runtime (PORT + Vite Proxy)
 
