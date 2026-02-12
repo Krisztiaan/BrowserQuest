@@ -80,7 +80,11 @@ import type { TypedEventSource } from '../shared/typed-event-emitter';
 import type { EntityId } from '../shared/domain/ids';
 import { gridPos, type GridPos } from '../shared/domain/positions';
 import { ClientWorldKernel, type ClientInteractionIntent, type ClientInteractionKind } from './ecs/world-kernel';
+import { ClientFrameScheduler } from './ecs/frame-scheduler';
+import { runClientCursorSystem } from './ecs/systems/client-cursor-system';
 import { runClientInteractionIntentSystem } from './ecs/systems/client-interaction-intent-system';
+import { runClientUpdaterSystem } from './ecs/systems/client-updater-system';
+import { runClientRenderSystem } from './ecs/systems/client-render-system';
 
 type GridPosition = { x: number; y: number };
 type GridIndexedEntity = {
@@ -190,6 +194,7 @@ class Game extends Evented<GameEvents> {
     isStopped: boolean;
     client: GameClient | null;
     kernel: ClientWorldKernel;
+    frameScheduler: ClientFrameScheduler<Game>;
     zoningOrientation: number | null;
     obsoleteEntities: GridIndexedEntity[] | null;
     drawTarget: boolean;
@@ -279,6 +284,11 @@ class Game extends Evented<GameEvents> {
         this.isStopped = false;
         this.client = null;
         this.kernel = new ClientWorldKernel();
+        this.frameScheduler = new ClientFrameScheduler<Game>();
+        this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
+        this.frameScheduler.add('update', (game) => runClientUpdaterSystem(game));
+        this.frameScheduler.add('post_update', (game) => game.runClientInteractionSystem());
+        this.frameScheduler.add('render', (game) => runClientRenderSystem(game));
         this.zoningOrientation = null;
         this.obsoleteEntities = null;
         this.drawTarget = false;
@@ -651,29 +661,7 @@ class Game extends Evented<GameEvents> {
     }
 
     updateCursorLogic(): void {
-        if (this.hoveringCollidingTile && this.started) {
-            this.targetColor = 'rgba(255, 50, 50, 0.5)';
-        } else {
-            this.targetColor = 'rgba(255, 255, 255, 0.5)';
-        }
-
-        if (this.hoveringMob && this.started) {
-            this.setCursor('sword');
-            this.hoveringTarget = false;
-            this.targetCellVisible = false;
-        } else if (this.hoveringNpc && this.started) {
-            this.setCursor('talk');
-            this.hoveringTarget = false;
-            this.targetCellVisible = false;
-        } else if ((this.hoveringItem || this.hoveringChest) && this.started) {
-            this.setCursor('loot');
-            this.hoveringTarget = false;
-            this.targetCellVisible = true;
-        } else {
-            this.setCursor('hand');
-            this.hoveringTarget = false;
-            this.targetCellVisible = true;
-        }
+        runClientCursorSystem(this);
     }
 
     focusPlayer(): void {
@@ -934,10 +922,7 @@ class Game extends Evented<GameEvents> {
         this.currentTime = new Date().getTime();
 
         if (this.started) {
-            this.updateCursorLogic();
-            this.updater?.update();
-            this.runClientInteractionSystem();
-            this.renderer?.renderFrame();
+            this.frameScheduler.runFrame(this);
         }
 
         if (!this.isStopped) {

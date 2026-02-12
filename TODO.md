@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 11:42 UTC
+Last updated: 2026-02-12 12:09 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -20,6 +20,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 13. Ticket 50 (`done`) - Client interaction system scheduling cleanup
 14. Ticket 51 (`done`) - Extract client interaction intent system module
 15. Ticket 52 (`done`) - Remove loot-moving player flag
+16. Ticket 53 (`done`) - Client frame scheduler (staged systems)
 
 ## Ticket 45: Mobile Input + Item Loot Pickup
 
@@ -298,6 +299,43 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Optional: move `lastLootAttempt` into kernel resource to keep interaction state in one place.
+
+## Ticket 53: Client Frame Scheduler (Staged Systems)
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Add a lightweight client frame scheduler with ordered stages (pre-update, update, post-update, render).
+  - Convert the main game loop (`tick()`) to run the scheduler, not bespoke per-frame calls.
+  - Register existing per-frame behaviors as systems (cursor logic, updater, interaction intent, render).
+- Out of scope:
+  - A full client deterministic sim or authoritative rollback.
+  - Converting every gameplay behavior to ECS components/queries.
+- Acceptance criteria:
+  - `Game.tick()` delegates to the scheduler (no direct per-frame gameplay method calls).
+  - System ordering is explicit and stable; interaction intent runs post-update.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:04 UTC
+- End: 2026-02-12 12:09 UTC
+- Status: `done`
+- Key actions:
+  - Added `ClientFrameScheduler` with explicit stages (`pre_update` → `update` → `post_update` → `render`).
+  - Registered per-frame behaviors as systems (cursor, updater, interaction intent, render).
+  - Refactored `Game.tick()` to delegate to the scheduler.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: migrate additional per-frame behaviors (plateau/checkpoint, cleanup) into staged systems.
 
 ## Ticket 44: Single-Port Dev Runtime (PORT + Vite Proxy)
 
