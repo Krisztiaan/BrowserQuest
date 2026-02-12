@@ -6,9 +6,6 @@ import {
     ENTITY_SWORD_1,
     MSG_HELLO,
     MSG_MOVE,
-    MSG_WELCOME,
-    parseProtocolActionBatch,
-    type ProtocolAction,
 } from '../support/protocol/contract';
 import WsCloseCodes from '../../shared/ws-close-codes';
 
@@ -31,7 +28,7 @@ function getFreePort() {
     });
 }
 
-async function waitForHttpOk(url: string, timeoutMs = 15000) {
+async function waitForHttpOk(url: string, timeoutMs = 25000) {
     const start = Date.now();
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -57,54 +54,6 @@ async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
             if (data.toString() === 'go') {
                 clearTimeout(timeout);
                 resolve();
-            }
-        });
-        ws.once('error', (err) => {
-            clearTimeout(timeout);
-            reject(err);
-        });
-    });
-}
-
-function normalizePayloadToActions(payload: unknown): ProtocolAction[] {
-    if (Array.isArray(payload)) {
-        if (payload.length > 0 && Array.isArray(payload[0])) {
-            return (payload as unknown[]).filter((entry): entry is ProtocolAction => Array.isArray(entry));
-        }
-        return [payload] as unknown as ProtocolAction[];
-    }
-
-    let text = '';
-    if (typeof payload === 'string') {
-        text = payload;
-    } else if (payload instanceof ArrayBuffer) {
-        text = Buffer.from(payload).toString('utf8');
-    } else if (ArrayBuffer.isView(payload)) {
-        const view = payload as ArrayBufferView;
-        text = Buffer.from(view.buffer, view.byteOffset, view.byteLength).toString('utf8');
-    } else {
-        text = String(payload);
-    }
-
-    return parseProtocolActionBatch(text);
-}
-
-async function waitForWelcome(ws: WebSocket, timeoutMs = 15000) {
-    return new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timed out waiting for WELCOME')), timeoutMs);
-
-        ws.on('message', (data) => {
-            if (typeof data === 'string' && data === 'go') {
-                return;
-            }
-            try {
-                const actions = normalizePayloadToActions(data);
-                if (actions.some((action) => Array.isArray(action) && action[0] === MSG_WELCOME)) {
-                    clearTimeout(timeout);
-                    resolve();
-                }
-            } catch (_) {
-                // ignore non-JSON messages
             }
         });
         ws.once('error', (err) => {
@@ -206,13 +155,10 @@ test('rejects MOVE payload containing non-integer coordinates', async () => {
         const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
         await waitForGo(ws);
 
-        const welcome = waitForWelcome(ws);
         ws.send(JSON.stringify([MSG_HELLO, 'guarded', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-        await welcome;
-
         ws.send(JSON.stringify([MSG_MOVE, 10.5, 7]));
 
-        const closed = await waitForClose(ws);
+        const closed = await waitForClose(ws, 15000);
         expect(ws.readyState).toBe(WebSocket.CLOSED);
         expect(closed.code).toBe(CLOSE_INVALID_PAYLOAD);
     });

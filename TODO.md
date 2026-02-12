@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:50 UTC
+Last updated: 2026-02-12 12:58 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -31,6 +31,43 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 24. Ticket 61 (`done`) - Remove begin* interaction methods
 25. Ticket 62 (`done`) - Remove setClientInteractionIntent method
 26. Ticket 63 (`done`) - Remove clearClientInteractionIntent method
+27. Ticket 64 (`done`) - Inline loot completion into system
+
+## Ticket 64: Inline Loot Completion Into System
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Move explicit-loot completion (rank validation, throttle, send LOOT, notifications) into `runClientInteractionIntentSystem`.
+  - Remove legacy `Game.tryLootAtPlayerPosition`.
+- Out of scope:
+  - Server-side loot validation changes.
+- Acceptance criteria:
+  - Loot still only happens when explicitly targeting the item and arriving on its tile.
+  - Loot exceptions still surface as notifications and clear interaction intent.
+  - No remaining `Game.tryLootAtPlayerPosition`.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:51 UTC
+- End: 2026-02-12 12:58 UTC
+- Status: `done`
+- Key actions:
+  - Inlined loot completion (validation + throttle + `sendLoot` + notification on LootException) into `runClientInteractionIntentSystem()`.
+  - Removed legacy `Game.tryLootAtPlayerPosition`.
+  - Stabilized payload-guard smoke test by removing dependence on receiving `WELCOME` before sending invalid `MOVE`.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Next: decide scope of “no more legacy” for the remaining huge `client/game.ts` runtime (movement/render/entity model).
 
 ## Ticket 63: Remove `clearClientInteractionIntent` Method
 

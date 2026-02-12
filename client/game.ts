@@ -65,7 +65,6 @@ import Player from './player';
 import Character from './character';
 import Chest from './chest';
 import config from './config';
-import Exceptions from './exceptions';
 import log from './platform/log';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
@@ -441,61 +440,6 @@ class Game extends Evented<GameEvents> {
         this.player.idle();
 
         log.debug('Finished initPlayer');
-    }
-
-    tryLootAtPlayerPosition(): void {
-        if (!this.started || !this.client || !this.playerId) {
-            return;
-        }
-        if (!this.map || !this.itemGrid) {
-            return;
-        }
-        if (this.player.isDead) {
-            return;
-        }
-
-        const intent = this.kernel.clientInteractionIntent;
-        if (!intent || intent.kind !== 'loot') {
-            return;
-        }
-        const lootTargetId = intent.targetId;
-
-        const x = this.player.gridX;
-        const y = this.player.gridY;
-        const item = this.getItemAt(x, y);
-
-        if (!item) {
-            clearClientInteractionIntentWithSideEffects(this);
-            return;
-        }
-        if (item.id !== lootTargetId) {
-            return;
-        }
-
-        const last = this.kernel.clientLootAttempt;
-        if (last && last.itemId === item.id && last.pos.x === x && last.pos.y === y) {
-            return;
-        }
-        this.kernel.setClientLootAttempt(item.id, x, y);
-
-        try {
-            this.player.loot({
-                id: item.id,
-                kind: item.kind,
-                type: item.type,
-                onLoot: () => {},
-            });
-        } catch (err) {
-            if (err instanceof Exceptions.LootException) {
-                this.emit('notification', err.message);
-                clearClientInteractionIntentWithSideEffects(this);
-                return;
-            }
-            throw err;
-        }
-
-        this.client.sendLoot(item);
-        clearClientInteractionIntentWithSideEffects(this);
     }
 
     stopPlayerCombat(): void {

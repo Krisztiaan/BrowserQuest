@@ -7,6 +7,7 @@ import Npc from '../../npc';
 import Player from '../../player';
 import Character from '../../character';
 import Chest from '../../chest';
+import Exceptions from '../../exceptions';
 
 export function clearClientInteractionIntentWithSideEffects(host: {
     kernel: ClientWorldKernel;
@@ -24,13 +25,13 @@ export function clearClientInteractionIntentWithSideEffects(host: {
 
 export type ClientInteractionIntentSystemHost = Readonly<{
     started: boolean;
-    client: { sendOpen(chest: { id: EntityId }): void } | null;
+    client: { sendOpen(chest: { id: EntityId }): void; sendLoot(item: { id: EntityId }): void } | null;
     playerId: EntityId | null;
     player: Player;
     entities: Record<string, unknown>;
     kernel: ClientWorldKernel;
+    emit(eventName: 'notification', message: string): void;
 
-    tryLootAtPlayerPosition(): void;
     stopPlayerCombat(): void;
 
     makePlayerAttack(mob: Mob): void;
@@ -76,7 +77,33 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             return;
         }
         if (host.player.gridX === target.gridX && host.player.gridY === target.gridY) {
-            host.tryLootAtPlayerPosition();
+            const x = host.player.gridX;
+            const y = host.player.gridY;
+
+            const last = host.kernel.clientLootAttempt;
+            if (last && last.itemId === target.id && last.pos.x === x && last.pos.y === y) {
+                return;
+            }
+            host.kernel.setClientLootAttempt(target.id, x, y);
+
+            try {
+                host.player.loot({
+                    id: target.id,
+                    kind: target.kind,
+                    type: target.type,
+                    onLoot: () => {},
+                });
+            } catch (err) {
+                if (err instanceof Exceptions.LootException) {
+                    host.emit('notification', err.message);
+                    clearClientInteractionIntentWithSideEffects(host);
+                    return;
+                }
+                throw err;
+            }
+
+            host.client.sendLoot(target);
+            clearClientInteractionIntentWithSideEffects(host);
             return;
         }
         // If pathing stopped early, cancel instead of auto-looting incidental items en route.
