@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 13:24 UTC
+Last updated: 2026-02-12 13:35 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -34,11 +34,11 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 27. Ticket 64 (`done`) - Inline loot completion into system
 28. Ticket 65 (`done`) - ECS runtime event buffer (connection boundary)
 29. Ticket 66 (`done`) - Kernel-driven replication sync (reduce spawn/move handlers)
-30. Ticket 67 (`todo`) - Remove movement step hooks (spatial sync system)
+30. Ticket 67 (`in_progress`) - Remove movement step hooks (spatial sync system)
 
 ## Ticket 67: Remove Movement Step Hooks (Spatial Sync System)
 
-- Status: `todo`
+- Status: `done`
 - Priority: P3
 - Scope:
   - Replace `Character.on('step')` movement hooks used to maintain `entityGrid`/`renderingGrid` with an ECS system that updates spatial indices based on authoritative positions.
@@ -59,9 +59,18 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ### Progress log
 
-- Status: `todo`
+- Start: 2026-02-12 13:31 UTC
+- End: 2026-02-12 13:35 UTC
+- Status: `done`
+- Key actions:
+  - Added `runClientSpatialSyncSystem()` to keep `entityGrid`/`itemGrid`/`renderingGrid`/`pathingGrid` in sync without `Character.on('step')` hooks (including dual-position + pathing-block semantics).
+  - Added `runClientPlayerMoveOutboxSystem()` to send MOVE + trigger zoning when the player’s grid position changes (no Character event listeners).
+  - Removed all per-character movement subscriptions from `client/game.ts`.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
-  - Identify current step-hook responsibilities and replace with a single spatial sync system.
+  - Continue shrinking `client/game.ts` host surface by extracting remaining non-ECS responsibilities into systems/modules.
 
 ## Ticket 66: Kernel-Driven Replication Sync (Reduce Spawn/Move Handlers)
 

@@ -88,7 +88,9 @@ import {
     runClientInteractionIntentSystem,
 } from './ecs/systems/client-interaction-intent-system';
 import { runClientKernelReplicationSyncSystem } from './ecs/systems/client-kernel-replication-sync-system';
+import { runClientPlayerMoveOutboxSystem } from './ecs/systems/client-player-move-outbox-system';
 import { runClientRuntimeEventSystem } from './ecs/systems/client-runtime-event-system';
+import { runClientSpatialSyncSystem } from './ecs/systems/client-spatial-sync-system';
 import { runClientTimeSystem } from './ecs/systems/client-time-system';
 import { runClientUpdaterSystem } from './ecs/systems/client-updater-system';
 import { runClientRenderSystem } from './ecs/systems/client-render-system';
@@ -205,7 +207,6 @@ class Game extends Evented<GameEvents> {
     obsoleteEntities: GridIndexedEntity[] | null;
     drawTarget: boolean;
     lastHovered: GridIndexedEntity | null;
-    characterMovementHooks: WeakSet<Character>;
     connectionStartedCallback: (() => void) | null;
 
     constructor(
@@ -293,10 +294,13 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler.add('pre_update', (game) => runClientTimeSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientRuntimeEventSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientKernelReplicationSyncSystem(game));
+        this.frameScheduler.add('pre_update', (game) => runClientSpatialSyncSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientHoverStateSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientClickIntentSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
         this.frameScheduler.add('update', (game) => runClientUpdaterSystem(game));
+        this.frameScheduler.add('post_update', (game) => runClientSpatialSyncSystem(game));
+        this.frameScheduler.add('post_update', (game) => runClientPlayerMoveOutboxSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientEnvironmentSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientInteractionIntentSystem(game));
         this.frameScheduler.add('render', (game) => runClientRenderSystem(game));
@@ -304,9 +308,7 @@ class Game extends Evented<GameEvents> {
         this.obsoleteEntities = null;
         this.drawTarget = false;
         this.lastHovered = null;
-        this.characterMovementHooks = new WeakSet();
         this.connectionStartedCallback = null;
-        this.installCharacterMovementHooks(this.player);
 
         this.setBubbleManager(new BubbleManager(bubbleContainer));
         this.setRenderer(new Renderer(this, canvas, background, foreground));
@@ -349,64 +351,12 @@ class Game extends Evented<GameEvents> {
             character.setPathRequestResolver(function (x: number, y: number) {
                 return self.findPath(character, x, y, undefined);
             });
-
-            self.installCharacterMovementHooks(character);
         };
 
         install(this.player);
         Object.values(this.entities).forEach(function (entity) {
             if (entity instanceof Character) {
                 install(entity);
-            }
-        });
-    }
-
-    installCharacterMovementHooks(character: Character): void {
-        if (this.characterMovementHooks.has(character)) {
-            return;
-        }
-        this.characterMovementHooks.add(character);
-
-        character.on('beforeStep', () => {
-            if (!this.entityGrid || !this.pathingGrid || !this.renderingGrid) {
-                return;
-            }
-            this.unregisterEntityPosition(character);
-        });
-
-        character.on('step', () => {
-            if (!this.entityGrid || !this.pathingGrid || !this.renderingGrid) {
-                return;
-            }
-
-            this.registerEntityDualPosition(character);
-
-            if (this.started && this.client && character.id === this.playerId) {
-                this.client.sendMove(character.gridX, character.gridY);
-
-                if (!this.isZoning() && this.isZoningTile(character.gridX, character.gridY)) {
-                    this.enqueueZoningFrom(character.gridX, character.gridY);
-                }
-            }
-        });
-
-        character.on('stopPathing', (x: number, y: number) => {
-            if (!this.entityGrid || !this.pathingGrid || !this.renderingGrid) {
-                return;
-            }
-
-            // Clear any lingering dual-position state and stale nextGrid values (prevents "stuck at edge").
-            this.unregisterEntityPosition(character);
-            character.nextGridX = -1;
-            character.nextGridY = -1;
-            this.registerEntityPosition(character);
-
-            if (this.started && this.client && character.id === this.playerId) {
-                this.client.sendMove(x, y);
-
-                if (!this.isZoning() && this.isZoningTile(x, y)) {
-                    this.enqueueZoningFrom(x, y);
-                }
             }
         });
     }
@@ -565,10 +515,6 @@ class Game extends Evented<GameEvents> {
             if (this.pathfinder && entity instanceof Character) {
                 this.setPathfinder(this.pathfinder);
             }
-            if (entity instanceof Character) {
-                this.installCharacterMovementHooks(entity);
-            }
-
             if (!(entity instanceof Item && entity.wasDropped) && !(this.renderer.mobile || this.renderer.tablet)) {
                 entity.fadeIn(this.currentTime);
             }

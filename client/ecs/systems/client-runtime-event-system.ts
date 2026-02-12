@@ -77,6 +77,7 @@ function applyWelcome(host: ClientRuntimeEventSystemHost, id: EntityId, name: st
     // Plateau + music updates are handled by ECS post_update systems.
 
     host.addEntity(host.player as unknown);
+    host.kernel.clientLastSentMovePos = gridPos(x, y);
     const renderer = host.renderer;
     if (renderer) {
         host.player.dirtyRect = renderer.getEntityBoundingRect(host.player);
@@ -181,6 +182,9 @@ export function runClientRuntimeEventSystem(host: ClientRuntimeEventSystemHost):
                     host.makeCharacterTeleportTo(entity as unknown, event.x, event.y);
                 }
                 host.kernel.clientReplicationLastPos.set(event.entityId, gridPos(event.x, event.y));
+                if (event.entityId === host.playerId) {
+                    host.kernel.clientLastSentMovePos = gridPos(event.x, event.y);
+                }
                 break;
             }
             case 'playerMoveToItem': {

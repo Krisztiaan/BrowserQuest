@@ -66,6 +66,22 @@ export class ClientWorldKernel {
     readonly clientReplicationLastPos = new Map<EntityId, GridPos>();
     readonly clientReplicationLastTarget = new Map<EntityId, EntityId>();
 
+    // Client-only spatial bookkeeping for legacy grid sync without per-entity step hooks.
+    readonly clientSpatialKnownIds = new Set<EntityId>();
+    readonly clientSpatialRecords = new Map<
+        EntityId,
+        Readonly<{
+            gridX: number;
+            gridY: number;
+            nextGridX: number;
+            nextGridY: number;
+            isMoving: boolean;
+            kind: EntityKind;
+        }>
+    >();
+
+    clientLastSentMovePos: GridPos | null = null;
+
     upsertFromSpawnSnapshot(snapshot: SpawnSnapshot): KernelEntityView {
         const id = entityIdFromWire(snapshot.id);
         this.alive.add(id);
