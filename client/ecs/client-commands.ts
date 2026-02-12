@@ -3,6 +3,8 @@ import type { EntityKind } from '../../shared/entity-kind-domain';
 
 export type ClientCommand =
     | Readonly<{ type: 'stopPlayerCombat' }>
+    | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
+    | Readonly<{ type: 'enqueueZoningFrom'; x: number; y: number }>
     | Readonly<{ type: 'playerGoTo'; x: number; y: number }>
     | Readonly<{ type: 'playerGoToItem'; itemId: EntityId }>
     | Readonly<{ type: 'playerAttack'; targetId: EntityId }>

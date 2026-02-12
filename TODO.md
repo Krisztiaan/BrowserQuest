@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 15:06 UTC
+Last updated: 2026-02-12 15:12 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -38,7 +38,100 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 31. Ticket 68 (`done`) - Client ECS command buffer + apply system
 32. Ticket 69 (`done`) - Interaction intent executes via commands
 33. Ticket 70 (`done`) - Runtime events emit commands only
-34. Ticket 71 (`in_progress`) - Replication sync emits commands only
+34. Ticket 71 (`done`) - Replication sync emits commands only
+35. Ticket 72 (`done`) - MOVE outbox emits commands only
+36. Ticket 73 (`todo`) - Environment system emits commands only
+37. Ticket 74 (`todo`) - Spatial sync emits commands only
+
+## Ticket 72: MOVE Outbox Emits Commands Only
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Extend `ClientCommand` with move/zoning outbox commands.
+  - Update `runClientPlayerMoveOutboxSystem()` to enqueue commands only (no direct client sends, no direct zoning calls).
+  - Apply those commands in `runClientCommandApplySystem()`.
+- Out of scope:
+  - Refactoring zoning transitions/rendering.
+- Acceptance criteria:
+  - `client/ecs/systems/client-player-move-outbox-system.ts` contains no direct `client.sendMove` calls.
+  - Zoning still triggers when player reaches a zoning tile.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 68.
+
+### Progress log
+
+- Start: 2026-02-12 15:07 UTC
+- End: 2026-02-12 15:12 UTC
+- Status: `done`
+- Key actions:
+  - Added `clientSendMove` + `enqueueZoningFrom` commands and applied them in `runClientCommandApplySystem()`.
+  - Updated `runClientPlayerMoveOutboxSystem()` to enqueue commands only (no direct `client.sendMove` / `enqueueZoningFrom` calls) and moved `clientLastSentMovePos` updates into command apply.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Migrate `client-environment-system` side effects (checkpoint check + music update) into commands.
+
+## Ticket 73: Environment System Emits Commands Only
+
+- Status: `todo`
+- Priority: P3
+- Scope:
+  - Extend `ClientCommand` with environment side effects (checkpoint check + music update).
+  - Update `runClientEnvironmentSystem()` to enqueue commands only (no direct `client.sendCheck`, no direct `audioManager.updateMusic`, no direct player state mutation when avoidable).
+  - Apply those commands in `runClientCommandApplySystem()`.
+- Out of scope:
+  - Reworking audio manager or checkpoint data model.
+- Acceptance criteria:
+  - `client/ecs/systems/client-environment-system.ts` contains no direct calls to `client.sendCheck` and `audioManager.updateMusic`.
+  - Checkpoint changes still emit `sendCheck` when a new checkpoint is reached.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 68.
+
+### Progress log
+
+- Status: `todo`
+- Next action:
+  - Add environment commands and migrate `client-environment-system`.
+
+## Ticket 74: Spatial Sync Emits Commands Only
+
+- Status: `todo`
+- Priority: P3
+- Scope:
+  - Extend `ClientCommand` with spatial/grid sync commands (entity/item/render grids + dynamic pathing occupancy).
+  - Update `runClientSpatialSyncSystem()` to enqueue commands only (no direct grid/pathing mutation, no direct entity property mutation when avoidable).
+  - Apply those commands in `runClientCommandApplySystem()`.
+  - Adjust scheduler ordering so spatial sync commands are applied before hover/click queries in `pre_update`.
+- Out of scope:
+  - Replacing legacy grids with a new ECS-only spatial index (separate effort).
+- Acceptance criteria:
+  - `client/ecs/systems/client-spatial-sync-system.ts` performs no direct writes to `entityGrid`, `itemGrid`, `renderingGrid`, or `pathingGrid`.
+  - Hover/click targeting continues to work (grids are updated before those systems run).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 68.
+
+### Progress log
+
+- Status: `todo`
+- Next action:
+  - Add spatial sync commands and migrate `client-spatial-sync-system`.
 
 ## Ticket 71: Replication Sync Emits Commands Only
 

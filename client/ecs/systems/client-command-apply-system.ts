@@ -34,6 +34,7 @@ export type ClientCommandApplySystemHost = {
     client:
         | {
               sendLoot(item: { id: EntityId }): void;
+              sendMove(x: number, y: number): void;
               sendOpen(chest: { id: EntityId }): void;
               sendWho(ids: EntityId[]): void;
           }
@@ -54,6 +55,7 @@ export type ClientCommandApplySystemHost = {
     createAttackLink(attacker: unknown, target: unknown): void;
     removeItem(item: Item | null): void;
     removeEntity(entity: unknown): void;
+    enqueueZoningFrom(x: number, y: number): void;
 
     makePlayerAttack(mob: Mob): void;
     makePlayerTalkTo(npc: Npc): void;
@@ -146,6 +148,18 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
         switch (command.type) {
             case 'stopPlayerCombat': {
                 host.stopPlayerCombat();
+                break;
+            }
+            case 'clientSendMove': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendMove(command.x, command.y);
+                host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                break;
+            }
+            case 'enqueueZoningFrom': {
+                host.enqueueZoningFrom(command.x, command.y);
                 break;
             }
             case 'playerGoTo': {
