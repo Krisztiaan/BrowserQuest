@@ -10,8 +10,6 @@ export type ClientClickIntentSystemHost = Readonly<{
     player: { isDead: boolean; isOnPlateau: boolean; nextGridX?: number; nextGridY?: number } | null;
     map: { isColliding(x: number, y: number): boolean; isPlateau(x: number, y: number): boolean } | null;
 
-    previousClickPosition: Partial<{ x: number; y: number }>;
-
     isZoning(): boolean;
     isZoningTile(x: number, y: number): boolean;
     getEntityAt(x: number, y: number): unknown;
@@ -41,10 +39,11 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
     const x = intent.x;
     const y = intent.y;
 
-    if (x === host.previousClickPosition.x && y === host.previousClickPosition.y) {
+    const last = host.kernel.clientClickState?.lastClickPos ?? null;
+    if (last && last.x === x && last.y === y) {
         return;
     }
-    host.previousClickPosition = { x, y };
+    host.kernel.setClientLastClickPos(x, y);
 
     const nextX = host.player.nextGridX ?? -1;
     const nextY = host.player.nextGridY ?? -1;
@@ -83,4 +82,3 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
     host.clearClientInteractionIntent();
     host.makePlayerGoTo(x, y);
 }
-

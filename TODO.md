@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:35 UTC
+Last updated: 2026-02-12 12:40 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -26,7 +26,44 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 19. Ticket 56 (`done`) - Remove legacy wrapper methods (cursor/interaction)
 20. Ticket 57 (`done`) - ECS hover state system (remove movecursor/updateCursor)
 21. Ticket 58 (`done`) - ECS click intent system (remove processPlayerClick/Game.click)
-22. Ticket 59 (`in_progress`) - ECS environment systems (plateau/checkpoint/music)
+22. Ticket 59 (`done`) - ECS environment systems (plateau/checkpoint/music)
+23. Ticket 60 (`done`) - Move input/loot transient state into kernel
+
+## Ticket 60: Move Input/Loot Transient State Into Kernel
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Move `previousClickPosition` and `lastLootAttempt` from `Game` into `ClientWorldKernel` as resources/state.
+  - Update click and loot systems to use kernel state (and clear it when appropriate).
+- Out of scope:
+  - Reworking click de-dupe semantics or loot retry logic.
+- Acceptance criteria:
+  - No `Game.previousClickPosition` or `Game.lastLootAttempt` fields remain.
+  - Click de-dupe behavior remains.
+  - Loot retry throttling remains.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:37 UTC
+- End: 2026-02-12 12:40 UTC
+- Status: `done`
+- Key actions:
+  - Moved click de-dupe state (`lastClickPos`) and loot retry throttle (`clientLootAttempt`) into `ClientWorldKernel`.
+  - Updated click and loot flows to read/write kernel state; removed `Game.previousClickPosition` and `Game.lastLootAttempt`.
+  - Cleared click de-dupe when toggling NPC dialog.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: move remaining interaction helpers (`setClientInteractionIntent`) into a pure system/command path.
 
 ## Ticket 59: ECS Environment Systems (Plateau/Checkpoint/Music)
 

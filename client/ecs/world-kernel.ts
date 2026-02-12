@@ -31,6 +31,15 @@ export type ClientClickIntent = Readonly<{
     y: number;
 }>;
 
+export type ClientClickState = Readonly<{
+    lastClickPos: GridPos;
+}>;
+
+export type ClientLootAttempt = Readonly<{
+    itemId: EntityId;
+    pos: GridPos;
+}>;
+
 export class ClientWorldKernel {
     readonly alive = new Set<EntityId>();
     readonly kind = new Map<EntityId, EntityKind>();
@@ -47,6 +56,8 @@ export class ClientWorldKernel {
 
     clientInteractionIntent: ClientInteractionIntent | null = null;
     clientClickIntent: ClientClickIntent | null = null;
+    clientClickState: ClientClickState | null = null;
+    clientLootAttempt: ClientLootAttempt | null = null;
 
     upsertFromSpawnSnapshot(snapshot: SpawnSnapshot): KernelEntityView {
         const id = entityIdFromWire(snapshot.id);
@@ -128,6 +139,22 @@ export class ClientWorldKernel {
 
     clearClientClickIntent(): void {
         this.clientClickIntent = null;
+    }
+
+    setClientLastClickPos(x: number, y: number): void {
+        this.clientClickState = { lastClickPos: gridPos(x, y) };
+    }
+
+    clearClientLastClickPos(): void {
+        this.clientClickState = null;
+    }
+
+    setClientLootAttempt(itemId: EntityId, x: number, y: number): void {
+        this.clientLootAttempt = { itemId, pos: gridPos(x, y) };
+    }
+
+    clearClientLootAttempt(): void {
+        this.clientLootAttempt = null;
     }
 
     getEntityView(id: EntityId): KernelEntityView {

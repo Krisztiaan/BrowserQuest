@@ -41,7 +41,7 @@ export function makeNpcDialogue(game: Game, npc: Npc | null): void {
     }
 
     const message = npc.talk();
-    game.previousClickPosition = {};
+    game.kernel.clearClientLastClickPos();
     if (message) {
         game.createBubble(npc.id, message);
         game.assignBubbleTo(npc);

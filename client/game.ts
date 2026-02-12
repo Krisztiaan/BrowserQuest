@@ -162,7 +162,6 @@ class Game extends Evented<GameEvents> {
     currentCursorOrientation?: number | null;
     mouse: { x: number; y: number };
     zoningQueue: Array<{ x: number; y: number }>;
-    previousClickPosition: Partial<{ x: number; y: number }>;
     selectedX: number;
     selectedY: number;
     selectedCellVisible: boolean;
@@ -202,7 +201,6 @@ class Game extends Evented<GameEvents> {
     obsoleteEntities: GridIndexedEntity[] | null;
     drawTarget: boolean;
     lastHovered: GridIndexedEntity | null;
-    lastLootAttempt: { itemId: string | number; x: number; y: number } | null;
     characterMovementHooks: WeakSet<Character>;
 
     constructor(
@@ -241,7 +239,6 @@ class Game extends Evented<GameEvents> {
         this.currentCursor = null;
         this.mouse = { x: 0, y: 0 };
         this.zoningQueue = [];
-        this.previousClickPosition = {};
 
         this.selectedX = 0;
         this.selectedY = 0;
@@ -300,7 +297,6 @@ class Game extends Evented<GameEvents> {
         this.obsoleteEntities = null;
         this.drawTarget = false;
         this.lastHovered = null;
-        this.lastLootAttempt = null;
         this.characterMovementHooks = new WeakSet();
         this.installCharacterMovementHooks(this.player);
 
@@ -428,7 +424,7 @@ class Game extends Evented<GameEvents> {
     }
 
     initPlayer(): void {
-        this.lastLootAttempt = null;
+        this.kernel.clearClientLootAttempt();
 
         if (this.storage.hasAlreadyPlayed()) {
             const { armor, weapon } = this.storage.data.player;
@@ -473,11 +469,11 @@ class Game extends Evented<GameEvents> {
             return;
         }
 
-        const last = this.lastLootAttempt;
-        if (last && last.itemId === item.id && last.x === x && last.y === y) {
+        const last = this.kernel.clientLootAttempt;
+        if (last && last.itemId === item.id && last.pos.x === x && last.pos.y === y) {
             return;
         }
-        this.lastLootAttempt = { itemId: item.id, x, y };
+        this.kernel.setClientLootAttempt(item.id, x, y);
 
         try {
             this.player.loot({
@@ -508,7 +504,7 @@ class Game extends Evented<GameEvents> {
         this.kernel.setClientInteractionIntent(intent);
 
         if (kind === 'loot') {
-            this.lastLootAttempt = null;
+            this.kernel.clearClientLootAttempt();
         }
     }
 
@@ -518,7 +514,7 @@ class Game extends Evented<GameEvents> {
             this.stopPlayerCombat();
         }
         if (prev?.kind === 'loot') {
-            this.lastLootAttempt = null;
+            this.kernel.clearClientLootAttempt();
         }
         this.kernel.clearClientInteractionIntent();
     }
