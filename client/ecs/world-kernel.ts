@@ -18,6 +18,14 @@ export type KernelEntityView = Readonly<{
     targetId?: EntityId;
 }>;
 
+export type ClientInteractionKind = 'attack' | 'talk' | 'open' | 'loot';
+
+export type ClientInteractionIntent = Readonly<{
+    kind: ClientInteractionKind;
+    targetId: EntityId;
+    lastKnownTargetPos?: GridPos;
+}>;
+
 export class ClientWorldKernel {
     readonly alive = new Set<EntityId>();
     readonly kind = new Map<EntityId, EntityKind>();
@@ -31,6 +39,8 @@ export class ClientWorldKernel {
 
     worldPlayers = 0;
     totalPlayers = 0;
+
+    clientInteractionIntent: ClientInteractionIntent | null = null;
 
     upsertFromSpawnSnapshot(snapshot: SpawnSnapshot): KernelEntityView {
         const id = entityIdFromWire(snapshot.id);
@@ -96,6 +106,14 @@ export class ClientWorldKernel {
     setPopulation(worldPlayers: number, totalPlayers: number): void {
         this.worldPlayers = worldPlayers;
         this.totalPlayers = totalPlayers;
+    }
+
+    setClientInteractionIntent(intent: ClientInteractionIntent | null): void {
+        this.clientInteractionIntent = intent;
+    }
+
+    clearClientInteractionIntent(): void {
+        this.clientInteractionIntent = null;
     }
 
     getEntityView(id: EntityId): KernelEntityView {

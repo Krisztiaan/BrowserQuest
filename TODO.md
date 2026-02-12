@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-11 23:30 UTC
+Last updated: 2026-02-12 11:18 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -12,6 +12,188 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 5. Ticket 37 (`done`) - Mod/plugin API (ECS)
 6. Ticket 41 (`done`) - Determinism/perf test harness
 7. Ticket 12 (`deferred`) - Rendering modernization (product-gated)
+8. Ticket 45 (`done`) - Mobile input + item loot pickup
+9. Ticket 46 (`done`) - Movement sync + zoning camera
+10. Ticket 47 (`done`) - Explicit interactions + stop dead-target attack
+11. Ticket 48 (`done`) - Interaction state cleanup (loot/talk/open)
+12. Ticket 49 (`done`) - Client ECS interaction intent system
+
+## Ticket 45: Mobile Input + Item Loot Pickup
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Restore item pickup by looting items when the player steps onto them (client emits `LOOT`).
+  - Ensure the looting player receives EQUIP updates for self (armor/weapon/firepotion visuals).
+  - Prevent touch-driven scrolling/overscroll on the gameplay canvas from freezing the game loop.
+- Out of scope:
+  - Reworking LOOTMOVE authority/teleport semantics and related anti-cheat hardening.
+- Acceptance criteria:
+  - On mobile, tapping an item moves to it and the item is picked up (despawns) with visible equip/HP effects.
+  - Touch dragging on the gameplay canvas does not scroll/overscroll the page and does not stall movement/updates.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 01:45 UTC
+- End: 2026-02-12 01:52 UTC
+- Status: `done`
+- Key actions:
+  - Client: auto-loot on player `step`/`stopPathing` + immediate loot when already standing on an item tile.
+  - Server: send EQUIP actions to the looting player (armor/weapon/firepotion) and send firepotion revert EQUIP to self on expiry.
+  - Client: replace `touchstart` click with tap-vs-drag touch handlers on `#foreground` (preventDefault + passive:false) and disable canvas touch scrolling via CSS.
+  - Client: fix loot rank comparisons to handle rank `0` items correctly.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (194 pass, 1 skip, 0 fail)
+- Next action:
+  - None.
+
+## Ticket 46: Movement Sync + Zoning Camera
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Fix combat instability caused by stale client spatial state (entity grids/rendering grid not updated as characters move).
+  - Restore client -> server movement sync during walking so combat/aggro logic sees correct player position.
+  - Restore zoning camera panning when reaching the edge of the viewport (prevent "stuck at edge" freeze).
+- Out of scope:
+  - Server-side anti-cheat movement validation and authoritative pathfinding.
+  - Rendering modernization (Ticket 12).
+- Acceptance criteria:
+  - Attacking a mob does not cause persistent sprite flicker or frantic mob movement.
+  - After moving/attacking, mobs remain targetable and player can continue attacking.
+  - Walking to the edge of the screen triggers zoning camera pan; input remains responsive after.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Need local manual repro in dev client for UX validation.
+
+### Progress log
+
+- Start: 2026-02-12 10:27 UTC
+- End: 2026-02-12 10:29 UTC
+- Status: `done`
+- Key actions:
+  - Restored runtime spatial updates by installing per-character movement hooks that maintain `entityGrid`/`renderingGrid` during movement.
+  - Restored client -> server position sync by sending `MOVE` on each player step and final stop.
+  - Fixed edge-freeze by clearing stale `nextGridX/Y` on `stopPathing` and triggering zoning camera pan when stopping on a zoning tile.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: manual playtest (mobile + desktop) to confirm no remaining flicker/jitter.
+
+## Ticket 47: Explicit Interactions + Stop Dead-Target Attack
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Make interaction navigation explicit: only pick up an item if it was clicked/targeted.
+  - Persist interaction target while pathing: follow moving targets (mobs/NPCs/chests) and complete the interaction on arrival.
+  - Ensure the player stops attacking when the target dies/despawns.
+- Out of scope:
+  - Adding new UI/UX for target selection and canceling interactions.
+- Acceptance criteria:
+  - Walking over an item on the way to somewhere else does not pick it up.
+  - Clicking an item walks onto it and picks it up.
+  - Clicking a moving mob keeps the mob as the interaction target; player continues to chase/attack until it dies.
+  - When a target dies/despawns, the player stops attacking immediately.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Need local manual playtest for “moving target follow” feel.
+
+### Progress log
+
+- Start: 2026-02-12 10:36 UTC
+- End: 2026-02-12 10:47 UTC
+- Status: `done`
+- Key actions:
+  - Introduced explicit interaction state (`attack`/`talk`/`open`/`loot`) and completion checks on player step/stop.
+  - Disabled incidental item pickup by only looting when the clicked item is the active loot target.
+  - Added moving-target follow by re-following targets on their tile `step` events (avoids per-frame repath thrash).
+  - Stopped player/mob attack loops when a target dies or despawns (death hook + removal cleanup + player update guard).
+  - Ensured smoke suite reliability by giving `tests/smoke/modern-gameplay-parity.test.ts` a per-test timeout override (prevents rare 20s default-timeout flakes).
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: manual feel-tuning of follow repath frequency (if chase feels too “rubber bandy”).
+
+## Ticket 48: Interaction State Cleanup (Loot/ Talk/ Open)
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Ensure loot interactions clear client state when loot is blocked by client-side validation (LootException).
+  - Ensure talking/opening while already adjacent cancels combat/follow and idles the player, matching “arrive after walking” behavior.
+- Out of scope:
+  - Server-side loot validation / anti-cheat changes.
+  - New UX for canceling interactions.
+- Acceptance criteria:
+  - If looting fails with a LootException (e.g. worse/equal item), the client does not remain in loot-moving mode and a retry is possible.
+  - Clicking an adjacent NPC or chest stops combat/follow and the player idles while talking/opening.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 10:55 UTC
+- End: 2026-02-12 10:58 UTC
+- Status: `done`
+- Key actions:
+  - Client: on LootException, clear active interaction and defensively reset loot-moving state.
+  - Client: in adjacent talk/open flows, stop movement, disengage combat/follow, and idle before clearing interaction.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (194 pass, 1 skip, 0 fail)
+- Next action:
+  - None.
+
+## Ticket 49: Client ECS Interaction Intent System
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Move client interaction control state into the ECS-ish kernel as data (intent resource).
+  - Drive interactions via a per-tick “system” that reads intent + kernel/entity views and issues commands (follow, loot, open, talk, attack).
+  - Remove per-entity event subscriptions used to implement follow/death cleanup.
+- Out of scope:
+  - Full client rendering modernization and full deterministic client sim.
+- Acceptance criteria:
+  - Existing interaction behaviors remain: explicit loot only, follow moving targets, stop attacking on death/despawn.
+  - No interaction logic depends on subscribing to target events; it is derived from current kernel/entity state.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Need local manual playtest for moving-target chase feel.
+
+### Progress log
+
+- Start: 2026-02-12 11:09 UTC
+- End: 2026-02-12 11:18 UTC
+- Status: `done`
+- Key actions:
+  - Kernel: added `clientInteractionIntent` resource + setters/clearers.
+  - Client: replaced legacy active-interaction state with intent-driven per-tick `runClientInteractionSystem()`.
+  - Client: ensured interactions are derived from current kernel state (target alive/position), stop attacking on death/despawn, and keep explicit-loot semantics.
+  - Client: simplified click/move handlers to set/clear intent and let the system own “follow and act” behavior.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: manual playtest for chase “feel” + tuning (repath cadence / stop distances).
 
 ## Ticket 44: Single-Port Dev Runtime (PORT + Vite Proxy)
 

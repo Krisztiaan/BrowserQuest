@@ -589,14 +589,69 @@ function initGame(): void {
 
             if (game.renderer.mobile || game.renderer.tablet) {
                 if (foregroundEl) {
-                    foregroundEl.addEventListener('touchstart', function (event: TouchEvent) {
-                        app.center();
-                        if (event.touches && event.touches[0]) {
-                            app.setMouseCoordinates(event.touches[0]);
-                        }
-                        game.click();
-                        app.hideWindows();
-                    });
+                    let touchStartX = 0;
+                    let touchStartY = 0;
+                    let touchHasMoved = false;
+                    const tapMoveThresholdPx = 10;
+
+                    foregroundEl.addEventListener(
+                        'touchstart',
+                        function (event: TouchEvent) {
+                            app.center();
+                            touchHasMoved = false;
+                            const touch = event.touches && event.touches[0] ? event.touches[0] : null;
+                            if (touch) {
+                                touchStartX = touch.pageX;
+                                touchStartY = touch.pageY;
+                                app.setMouseCoordinates(touch);
+                            }
+                            event.preventDefault();
+                        },
+                        { passive: false }
+                    );
+
+                    foregroundEl.addEventListener(
+                        'touchmove',
+                        function (event: TouchEvent) {
+                            const touch = event.touches && event.touches[0] ? event.touches[0] : null;
+                            if (touch) {
+                                const dx = Math.abs(touch.pageX - touchStartX);
+                                const dy = Math.abs(touch.pageY - touchStartY);
+                                if (dx > tapMoveThresholdPx || dy > tapMoveThresholdPx) {
+                                    touchHasMoved = true;
+                                }
+                                app.setMouseCoordinates(touch);
+                            }
+                            event.preventDefault();
+                        },
+                        { passive: false }
+                    );
+
+                    foregroundEl.addEventListener(
+                        'touchend',
+                        function (event: TouchEvent) {
+                            const touch =
+                                event.changedTouches && event.changedTouches[0] ? event.changedTouches[0] : null;
+                            if (touch) {
+                                app.setMouseCoordinates(touch);
+                            }
+                            if (!touchHasMoved) {
+                                game.click();
+                                app.hideWindows();
+                            }
+                            event.preventDefault();
+                        },
+                        { passive: false }
+                    );
+
+                    foregroundEl.addEventListener(
+                        'touchcancel',
+                        function (event: TouchEvent) {
+                            touchHasMoved = true;
+                            event.preventDefault();
+                        },
+                        { passive: false }
+                    );
                 }
             } else {
                 if (foregroundEl) {

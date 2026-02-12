@@ -319,4 +319,4 @@ test('modern gameplay protocol parity: login, move, chat, zone, combat path, loo
     expect(reconnect.readyState).toBe(WebSocket.OPEN);
     reconnect.close();
     await waitForClose(reconnect);
-});
+}, { timeout: 30_000 });

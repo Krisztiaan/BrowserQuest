@@ -75,28 +75,25 @@ export function processPlayerClick(game: Game): void {
     const entity = game.getEntityAt(pos.x, pos.y);
 
     if (entity instanceof Mob) {
-        game.makePlayerAttack(entity);
+        game.beginAttack(entity);
         return;
     }
 
     if (entity instanceof Item) {
-        game.makePlayerGoToItem(entity);
+        game.beginLoot(entity);
         return;
     }
 
     if (entity instanceof Npc) {
-        if (!game.player.isAdjacentNonDiagonal(entity)) {
-            game.makePlayerTalkTo(entity);
-        } else {
-            game.makeNpcTalk(entity);
-        }
+        game.beginTalk(entity);
         return;
     }
 
     if (entity instanceof Chest) {
-        game.makePlayerOpenChest(entity);
+        game.beginOpenChest(entity);
         return;
     }
 
+    game.clearClientInteractionIntent();
     game.makePlayerGoTo(pos.x, pos.y);
 }

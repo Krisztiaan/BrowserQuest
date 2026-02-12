@@ -518,6 +518,11 @@ function applyLootCommand({
         state.world.removeComponent(player.id, effects.TempVisualEquip);
         outbox.push({ kind: 'to_player', playerId: player.id, action: buildHpAction(player.maxHitPoints) });
         outbox.push({
+            kind: 'to_player',
+            playerId: player.id,
+            action: buildEquipAction(player.id, Types.Entities.FIREFOX),
+        });
+        outbox.push({
             kind: 'broadcast_nearby',
             actorId: player.id,
             ignoredPlayerId: player.id,
@@ -562,6 +567,11 @@ function applyLootCommand({
         const outbox = state.resources.require(OUTBOX_RESOURCE);
         outbox.push({ kind: 'to_player', playerId: player.id, action: buildHpAction(player.maxHitPoints) });
         outbox.push({
+            kind: 'to_player',
+            playerId: player.id,
+            action: buildEquipAction(player.id, droppedItem.kind),
+        });
+        outbox.push({
             kind: 'broadcast_nearby',
             actorId: player.id,
             ignoredPlayerId: player.id,
@@ -577,6 +587,11 @@ function applyLootCommand({
         state.world.addComponent(player.id, combat.WeaponLevel, player.weaponLevel);
 
         const outbox = state.resources.require(OUTBOX_RESOURCE);
+        outbox.push({
+            kind: 'to_player',
+            playerId: player.id,
+            action: buildEquipAction(player.id, droppedItem.kind),
+        });
         outbox.push({
             kind: 'broadcast_nearby',
             actorId: player.id,
@@ -870,6 +885,11 @@ export class WorldEcsCommandPipeline {
                     continue;
                 }
                 state.world.removeComponent(entry.id, TempVisualEquip);
+                outbox.push({
+                    kind: 'to_player',
+                    playerId: entry.id,
+                    action: buildEquipAction(entry.id, entry.revertKind),
+                });
                 outbox.push({
                     kind: 'broadcast_nearby',
                     actorId: entry.id,

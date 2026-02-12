@@ -66,6 +66,7 @@ import Player from './player';
 import Character from './character';
 import Chest from './chest';
 import config from './config';
+import Exceptions from './exceptions';
 import log from './platform/log';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
@@ -77,7 +78,8 @@ import type Storage from './storage';
 import { Evented } from '../shared/evented';
 import type { TypedEventSource } from '../shared/typed-event-emitter';
 import type { EntityId } from '../shared/domain/ids';
-import { ClientWorldKernel } from './ecs/world-kernel';
+import { gridPos, type GridPos } from '../shared/domain/positions';
+import { ClientWorldKernel, type ClientInteractionIntent, type ClientInteractionKind } from './ecs/world-kernel';
 
 type GridPosition = { x: number; y: number };
 type GridIndexedEntity = {
@@ -191,6 +193,9 @@ class Game extends Evented<GameEvents> {
     obsoleteEntities: GridIndexedEntity[] | null;
     drawTarget: boolean;
     lastHovered: GridIndexedEntity | null;
+    lastLootAttempt: { itemId: string | number; x: number; y: number } | null;
+    characterMovementHooks: WeakSet<Character>;
+    lastIntentTick: number;
 
     constructor(
         app: AppLike,
@@ -278,6 +283,10 @@ class Game extends Evented<GameEvents> {
         this.obsoleteEntities = null;
         this.drawTarget = false;
         this.lastHovered = null;
+        this.lastLootAttempt = null;
+        this.characterMovementHooks = new WeakSet();
+        this.lastIntentTick = 0;
+        this.installCharacterMovementHooks(this.player);
 
         this.setBubbleManager(new BubbleManager(bubbleContainer));
         this.setRenderer(new Renderer(this, canvas, background, foreground));
@@ -320,12 +329,66 @@ class Game extends Evented<GameEvents> {
             character.setPathRequestResolver(function (x: number, y: number) {
                 return self.findPath(character, x, y, undefined);
             });
+
+            self.installCharacterMovementHooks(character);
         };
 
         install(this.player);
         Object.values(this.entities).forEach(function (entity) {
             if (entity instanceof Character) {
                 install(entity);
+            }
+        });
+    }
+
+    installCharacterMovementHooks(character: Character): void {
+        if (this.characterMovementHooks.has(character)) {
+            return;
+        }
+        this.characterMovementHooks.add(character);
+
+        character.on('beforeStep', () => {
+            if (!this.entityGrid || !this.pathingGrid || !this.renderingGrid) {
+                return;
+            }
+            this.unregisterEntityPosition(character);
+        });
+
+        character.on('step', () => {
+            if (!this.entityGrid || !this.pathingGrid || !this.renderingGrid) {
+                return;
+            }
+
+            this.registerEntityDualPosition(character);
+
+            if (this.started && this.client && character.id === this.playerId) {
+                this.client.sendMove(character.gridX, character.gridY);
+                this.runClientInteractionSystem();
+
+                if (!this.isZoning() && this.isZoningTile(character.gridX, character.gridY)) {
+                    this.enqueueZoningFrom(character.gridX, character.gridY);
+                }
+            }
+        });
+
+        character.on('stopPathing', (x: number, y: number) => {
+            if (!this.entityGrid || !this.pathingGrid || !this.renderingGrid) {
+                return;
+            }
+
+            // Clear any lingering dual-position state and stale nextGrid values (prevents "stuck at edge").
+            this.unregisterEntityPosition(character);
+            character.nextGridX = -1;
+            character.nextGridY = -1;
+            this.registerEntityPosition(character);
+
+            if (this.started && this.client && character.id === this.playerId) {
+                this.client.sendMove(x, y);
+                this.runClientInteractionSystem();
+
+                if (!this.isZoning() && this.isZoningTile(x, y)) {
+                    this.enqueueZoningFrom(x, y);
+                }
             }
         });
     }
@@ -351,6 +414,8 @@ class Game extends Evented<GameEvents> {
     }
 
     initPlayer(): void {
+        this.lastLootAttempt = null;
+
         if (this.storage.hasAlreadyPlayed()) {
             const { armor, weapon } = this.storage.data.player;
             if (armor && weapon) {
@@ -365,9 +430,275 @@ class Game extends Evented<GameEvents> {
         log.debug('Finished initPlayer');
     }
 
+    tryLootAtPlayerPosition(): void {
+        if (!this.started || !this.client || !this.playerId) {
+            return;
+        }
+        if (!this.map || !this.itemGrid) {
+            return;
+        }
+        if (this.player.isDead) {
+            return;
+        }
+
+        const intent = this.kernel.clientInteractionIntent;
+        if (!intent || intent.kind !== 'loot') {
+            return;
+        }
+        if (!this.player.isLootMoving) {
+            return;
+        }
+        const lootTargetId = intent.targetId;
+
+        const x = this.player.gridX;
+        const y = this.player.gridY;
+        const item = this.getItemAt(x, y);
+
+        if (!item) {
+            this.clearClientInteractionIntent();
+            return;
+        }
+        if (item.id !== lootTargetId) {
+            return;
+        }
+
+        const last = this.lastLootAttempt;
+        if (last && last.itemId === item.id && last.x === x && last.y === y) {
+            return;
+        }
+        this.lastLootAttempt = { itemId: item.id, x, y };
+
+        try {
+            this.player.loot({
+                id: item.id,
+                kind: item.kind,
+                type: item.type,
+                onLoot: () => {},
+            });
+        } catch (err) {
+            if (err instanceof Exceptions.LootException) {
+                this.emit('notification', err.message);
+                this.clearClientInteractionIntent();
+                return;
+            }
+            throw err;
+        }
+
+        this.client.sendLoot(item);
+        this.clearClientInteractionIntent();
+    }
+
+    setClientInteractionIntent(kind: ClientInteractionKind, targetId: EntityId): void {
+        this.stopPlayerCombat();
+
+        const target = this.entities[targetId];
+        const lastKnownTargetPos: GridPos | undefined = target ? gridPos(target.gridX, target.gridY) : undefined;
+        const intent: ClientInteractionIntent = { kind, targetId, lastKnownTargetPos };
+        this.kernel.setClientInteractionIntent(intent);
+        this.lastIntentTick = 0;
+
+        if (kind === 'loot') {
+            this.player.isLootMoving = true;
+            this.lastLootAttempt = null;
+        } else {
+            this.player.isLootMoving = false;
+        }
+    }
+
+    clearClientInteractionIntent(): void {
+        const prev = this.kernel.clientInteractionIntent;
+        if (prev?.kind === 'attack') {
+            this.stopPlayerCombat();
+        }
+        if (prev?.kind === 'loot') {
+            this.player.isLootMoving = false;
+            this.lastLootAttempt = null;
+        }
+        this.kernel.clearClientInteractionIntent();
+        this.lastIntentTick = 0;
+    }
+
+    runClientInteractionSystem(): void {
+        if (!this.started || !this.client || !this.playerId) {
+            return;
+        }
+        if (this.player.isDead) {
+            this.clearClientInteractionIntent();
+            return;
+        }
+
+        // De-dupe if called multiple times per render tick (tick + movement events).
+        if (this.lastIntentTick === this.currentTime) {
+            return;
+        }
+        this.lastIntentTick = this.currentTime;
+
+        const intent = this.kernel.clientInteractionIntent;
+        if (!intent) {
+            return;
+        }
+
+        const target = this.entities[intent.targetId];
+        if (!target) {
+            if (intent.kind === 'attack') {
+                this.stopPlayerCombat();
+            }
+            this.clearClientInteractionIntent();
+            return;
+        }
+
+        const targetPos = gridPos(target.gridX, target.gridY);
+        const lastPos = intent.lastKnownTargetPos;
+        const hasTargetMoved = !lastPos || lastPos.x !== targetPos.x || lastPos.y !== targetPos.y;
+
+        if (hasTargetMoved) {
+            this.kernel.setClientInteractionIntent({ ...intent, lastKnownTargetPos: targetPos });
+        }
+
+        if (intent.kind === 'loot') {
+            if (!(target instanceof Item)) {
+                this.clearClientInteractionIntent();
+                return;
+            }
+            if (this.player.gridX === target.gridX && this.player.gridY === target.gridY) {
+                this.tryLootAtPlayerPosition();
+                return;
+            }
+            // If pathing stopped early, cancel instead of auto-looting incidental items en route.
+            if (!this.player.isMoving()) {
+                this.clearClientInteractionIntent();
+            }
+            return;
+        }
+
+        if (intent.kind === 'attack') {
+            if (target instanceof Character && target.isDead) {
+                this.stopPlayerCombat();
+                this.clearClientInteractionIntent();
+                return;
+            }
+            if (target instanceof Mob) {
+                if (this.player.isAdjacentNonDiagonal(target)) {
+                    if (!this.player.hasTarget() || this.player.target?.id !== target.id) {
+                        this.makePlayerAttack(target);
+                    }
+                    return;
+                }
+                if (hasTargetMoved || !this.player.isMoving()) {
+                    this.player.follow(target);
+                }
+            }
+            return;
+        }
+
+        if (intent.kind === 'talk') {
+            if (!(target instanceof Npc)) {
+                this.clearClientInteractionIntent();
+                return;
+            }
+            if (this.player.isAdjacentNonDiagonal(target)) {
+                this.player.stop();
+                this.makeNpcTalk(target);
+                this.player.disengage();
+                this.player.idle();
+                this.clearClientInteractionIntent();
+                return;
+            }
+            if (hasTargetMoved || !this.player.isMoving()) {
+                this.makePlayerTalkTo(target);
+            }
+            return;
+        }
+
+        if (intent.kind === 'open') {
+            if (!(target instanceof Chest)) {
+                this.clearClientInteractionIntent();
+                return;
+            }
+            if (this.player.isAdjacentNonDiagonal(target)) {
+                this.player.stop();
+                this.client.sendOpen(target);
+                this.player.disengage();
+                this.player.idle();
+                this.clearClientInteractionIntent();
+                return;
+            }
+            if (hasTargetMoved || !this.player.isMoving()) {
+                this.makePlayerOpenChest(target);
+            }
+            return;
+        }
+    }
+
+    stopPlayerCombat(): void {
+        if (this.player.isAttacking() || this.player.followingMode || this.player.hasTarget()) {
+            this.player.disengage();
+            this.player.idle();
+        }
+    }
+
+    onEntityRemoved(removedId: EntityId): void {
+        if (this.kernel.clientInteractionIntent?.targetId === removedId) {
+            this.clearClientInteractionIntent();
+        }
+
+        if (this.player.hasTarget() && this.player.target && this.player.target.id === removedId) {
+            this.stopPlayerCombat();
+        }
+
+        Object.values(this.entities).forEach((entity) => {
+            if (!(entity instanceof Character)) {
+                return;
+            }
+            if (entity.hasTarget() && entity.target && entity.target.id === removedId) {
+                entity.disengage();
+                entity.idle();
+            }
+        });
+    }
+
+    beginAttack(mob: Mob): void {
+        this.setClientInteractionIntent('attack', mob.id);
+        this.makePlayerAttack(mob);
+    }
+
+    beginLoot(item: Item): void {
+        this.setClientInteractionIntent('loot', item.id);
+        this.makePlayerGoToItem(item);
+    }
+
+    beginTalk(npc: Npc): void {
+        if (this.player.isAdjacentNonDiagonal(npc)) {
+            this.player.stop();
+            this.makeNpcTalk(npc);
+            this.player.disengage();
+            this.player.idle();
+            this.clearClientInteractionIntent();
+            return;
+        }
+        this.setClientInteractionIntent('talk', npc.id);
+        this.makePlayerTalkTo(npc);
+    }
+
+    beginOpenChest(chest: Chest): void {
+        if (this.player.isAdjacentNonDiagonal(chest)) {
+            this.player.stop();
+            if (this.client) {
+                this.client.sendOpen(chest);
+            }
+            this.player.disengage();
+            this.player.idle();
+            this.clearClientInteractionIntent();
+            return;
+        }
+        this.setClientInteractionIntent('open', chest.id);
+        this.makePlayerOpenChest(chest);
+    }
+
     initShadows(): void {
         initGameShadows(this);
     }
+
 
     initCursors(): void {
         initGameCursors(this);
@@ -480,6 +811,9 @@ class Game extends Evented<GameEvents> {
             if (this.pathfinder && entity instanceof Character) {
                 this.setPathfinder(this.pathfinder);
             }
+            if (entity instanceof Character) {
+                this.installCharacterMovementHooks(entity);
+            }
 
             if (!(entity instanceof Item && entity.wasDropped) && !(this.renderer.mobile || this.renderer.tablet)) {
                 entity.fadeIn(this.currentTime);
@@ -501,6 +835,7 @@ class Game extends Evented<GameEvents> {
 
     removeEntity(entity: GridIndexedEntity): void {
         if (entity.id in this.entities) {
+            this.onEntityRemoved(entity.id);
             this.unregisterEntityPosition(entity);
             delete this.entities[entity.id];
         } else {
@@ -517,6 +852,7 @@ class Game extends Evented<GameEvents> {
 
     removeItem(item: Item | null): void {
         if (item) {
+            this.onEntityRemoved(item.id);
             this.removeFromItemGrid(item, item.gridX, item.gridY);
             this.removeFromRenderingGrid(item, item.gridX, item.gridY);
             delete this.entities[item.id];
@@ -719,6 +1055,7 @@ class Game extends Evented<GameEvents> {
 
         if (this.started) {
             this.updateCursorLogic();
+            this.runClientInteractionSystem();
             this.updater?.update();
             this.renderer?.renderFrame();
         }
@@ -1030,6 +1367,16 @@ class Game extends Evented<GameEvents> {
      */
     onCharacterUpdate(character: Character): void {
         const time = this.currentTime;
+
+        // Ensure the player stops attacking immediately when their target is dead or has despawned.
+        if (character.id === this.playerId && character.isAttacking() && character.target) {
+            const t = character.target as unknown;
+            if (t instanceof Character && t.isDead) {
+                this.stopPlayerCombat();
+                this.clearClientInteractionIntent();
+                return;
+            }
+        }
 
         // If mob has finished moving to a different tile in order to avoid stacking, attack again from the new position.
         if (character.previousTarget && !character.isMoving() && character instanceof Mob) {

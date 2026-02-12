@@ -95,7 +95,7 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
                 msg = 'You are wielding a better weapon';
             }
 
-            if (rank && currentRank) {
+            if (rank !== null && currentRank !== null) {
                 if (rank === currentRank) {
                     throw new Exceptions.LootException('You already have this ' + item.type);
                 } else if (rank <= currentRank) {

@@ -106,6 +106,8 @@ footer, header, hgroup, menu, nav, section {
     
     #foreground { 
        -webkit-tap-highlight-color:rgba(0,0,0,0);
+       touch-action: none;
+       overscroll-behavior: none;
        /* -webkit-touch-callout:none; */
        /* margin:0 auto;
        display:block;*/
