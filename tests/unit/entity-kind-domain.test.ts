@@ -17,7 +17,7 @@ test('entity kind domain stays aligned with shared runtime gametypes contract', 
             expect(Types.isWeapon(kindId)).toBe(true);
         } else if (category === 'armor') {
             expect(Types.isArmor(kindId)).toBe(true);
-        } else if (category === 'object') {
+        } else {
             expect(Types.isObject(kindId)).toBe(true);
         }
     }

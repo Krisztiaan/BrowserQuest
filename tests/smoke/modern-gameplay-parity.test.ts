@@ -1,6 +1,7 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
+import { killBunProcess } from '../support/process-cleanup';
 import {
     ENTITY_CLOTH_ARMOR,
     ENTITY_SWORD_1,
@@ -101,7 +102,7 @@ async function waitForNextAction(
 ) {
     const startedAt = Date.now();
      
-    while (true) {
+    for (;;) {
         for (let i = stream.cursor; i < stream.actions.length; i += 1) {
             const action = stream.actions[i];
             if (predicate(action)) {
@@ -143,14 +144,14 @@ async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
     await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for go')), timeoutMs);
         ws.on('message', (data) => {
-            if (data.toString() === 'go') {
+            if (typeof data === 'string' && data === 'go') {
                 clearTimeout(timeout);
                 resolve();
             }
         });
         ws.once('error', (err) => {
             clearTimeout(timeout);
-            reject(err);
+            reject(err instanceof Error ? err : new Error(String(err)));
         });
     });
 }
@@ -158,7 +159,7 @@ async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         try {
             const res = await fetch(url);
             if (res.ok) return;
@@ -219,11 +220,7 @@ async function startServer(): Promise<RunningServer> {
 let server: RunningServer | null = null;
 
 afterEach(async () => {
-    try {
-        server?.proc.kill();
-    } catch (_) {
-        // ignore
-    }
+    await killBunProcess(server?.proc);
     if (server) {
         try {
             await Bun.file(server.configPath).delete();

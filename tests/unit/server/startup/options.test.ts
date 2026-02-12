@@ -13,7 +13,7 @@ test('startup runtime options always inject runtime websocket runtime through de
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
         },
-        importWsRuntime: async () => ({ default: wsDefault }),
+        importWsRuntime: () => Promise.resolve({ default: wsDefault }),
         createRuntimeDependencies: (overrides) => {
             receivedOverrides = overrides as Record<string, unknown>;
             return runtimeDependencies;
@@ -46,7 +46,7 @@ test('startup runtime options ignore removed runtime-mode env toggles', async ()
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
         },
-        importWsRuntime: async () => ({ default: { id: 'ws-runtime-default' } }),
+        importWsRuntime: () => Promise.resolve({ default: { id: 'ws-runtime-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         fail: () => {
             // no-op
@@ -72,9 +72,7 @@ test('startup runtime options emit load-error diagnostics when runtime websocket
         emitStructuredEvent: (level, event, fields) => {
             events.push({ level, event, ...fields });
         },
-        importWsRuntime: async () => {
-            throw new Error('ws_import_failed');
-        },
+        importWsRuntime: () => Promise.reject(new Error('ws_import_failed')),
         createRuntimeDependencies: () => ({}),
         fail: (code) => {
             failCode = code;

@@ -1,9 +1,8 @@
 import Chest from './chest';
-import type { EntityFactoryContract } from './client-boundary-types';
+import type { EntityFactoryContract, RuntimeEntity } from './client-boundary-types';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { EntityId } from '../shared/domain/ids';
 import Types from '../shared/gametypes-browser';
-import type Entity from './entity';
 import Items from './items';
 import Mobs from './mobs';
 import NPCs from './npcs';
@@ -11,12 +10,18 @@ import Warrior from './warrior';
 
 const EntityFactory: EntityFactoryContract = {
     builders: [],
-    createEntity(kind: EntityKind, id: EntityId, name?: string): Entity {
-        if (typeof EntityFactory.builders[kind] !== 'function') {
-            throw Error(kind + ' is not a valid Entity type');
+    createEntity(kind: EntityKind, id: EntityId, name?: string): RuntimeEntity {
+        const kindId = typeof kind === 'number' ? kind : Types.getKindFromString(kind);
+        if (kindId === undefined) {
+            throw new Error(`${String(kind)} is not a valid Entity type`);
         }
 
-        return EntityFactory.builders[kind]?.(id, name);
+        const builder = EntityFactory.builders[kindId];
+        if (typeof builder !== 'function') {
+            throw new Error(`${String(kind)} is not a valid Entity type`);
+        }
+
+        return builder(id, name);
     },
 };
 

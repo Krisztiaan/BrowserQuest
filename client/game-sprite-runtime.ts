@@ -11,12 +11,8 @@ type SpriteReloadableEntity = {
 export function loadSpriteForScale(game: Game, name: SpriteKey, scale: number): void {
     const index = scale - 1;
 
-    if (!game.spritesets[index]) {
-        game.spritesets[index] = {};
-    }
-    if (!game.spritesets[index][name]) {
-        game.spritesets[index][name] = new Sprite(name, scale);
-    }
+    game.spritesets[index] ??= {};
+    game.spritesets[index][name] ??= new Sprite(name, scale);
 }
 
 export function loadSpriteScale(game: Game, scale: number): void {
@@ -27,10 +23,10 @@ export function loadSpriteScale(game: Game, scale: number): void {
 
 export function setSpriteScale(game: Game, scale: number): void {
     if (game.renderer.upscaledRendering) {
-        game.sprites = game.spritesets[0] || {};
+        game.sprites = game.spritesets[0] ?? {};
     } else {
         loadSpriteScale(game, scale);
-        game.sprites = game.spritesets[scale - 1] || {};
+        game.sprites = game.spritesets[scale - 1] ?? {};
 
         Object.keys(game.entities).forEach(function (id: string) {
             const entity = game.entities[id] as unknown as SpriteReloadableEntity;

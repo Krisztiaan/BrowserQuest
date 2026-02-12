@@ -1,5 +1,6 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
+import { killBunProcess } from '../support/process-cleanup';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
@@ -22,7 +23,7 @@ async function getFreePort() {
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         try {
             const res = await fetch(url);
             if (res.ok) return;
@@ -41,13 +42,8 @@ let proc: ReturnType<typeof Bun.spawn> | null = null;
 let configPath: string | null = null;
 
 afterEach(async () => {
-    try {
-        proc?.kill();
-    } catch (_) {
-        // ignore
-    } finally {
-        proc = null;
-    }
+    await killBunProcess(proc);
+    proc = null;
 
     if (configPath) {
         try {
@@ -93,5 +89,5 @@ test('server exposes stable /healthz and /version probe contracts', async () => 
     expect(versionResponse.status).toBe(200);
     const versionBody = (await versionResponse.json()) as { version?: string };
     expect(typeof versionBody.version).toBe('string');
-    expect((versionBody.version || '').length).toBeGreaterThan(0);
+    expect((versionBody.version ?? '').length).toBeGreaterThan(0);
 });

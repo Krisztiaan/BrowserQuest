@@ -8,12 +8,12 @@ export type ClientEnvironmentSystemHost = Readonly<{
         getCurrentCheckpoint(player: unknown): { id?: string | number } | null;
     } | null;
     player:
-        | (unknown & {
+        | {
               gridX: number;
               gridY: number;
               isOnPlateau: boolean;
               lastCheckpoint: { id?: string | number } | null;
-          })
+          }
         | null;
 }>;
 

@@ -41,9 +41,7 @@ function generateCollisionGrid(map: WorkerMap): void {
 
   for (const tileIndex of map.blocking) {
     const pos = tileIndexToGridPosition(tileIndex + 1, map.width);
-    if (grid[pos.y] !== undefined) {
-      grid[pos.y][pos.x] = 1;
-    }
+    grid[pos.y][pos.x] = 1;
   }
 
   map.grid = grid;
@@ -51,7 +49,7 @@ function generateCollisionGrid(map: WorkerMap): void {
 
 function generatePlateauGrid(map: WorkerMap): void {
   let tileIndex = 0;
-  const plateauSet = new Set(map.plateau || []);
+  const plateauSet = new Set(map.plateau ?? []);
   const plateauGrid = [];
 
   for (let i = 0; i < map.height; i += 1) {

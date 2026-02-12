@@ -19,9 +19,7 @@ class Bubble {
     }
 
     destroy(): void {
-        if (this.element && this.element.parentNode) {
-            this.element.parentNode.removeChild(this.element);
-        }
+        this.element.parentNode?.removeChild(this.element);
     }
 
     reset(time: number): void {
@@ -52,7 +50,7 @@ class BubbleManager {
     create(id: string, message: string, time: number): void {
         if (this.bubbles[id]) {
             const bubble = this.bubbles[id];
-            const bubbleText = bubble.element ? bubble.element.querySelector('p') : null;
+            const bubbleText = bubble.element.querySelector('p');
             bubble.reset(time);
             if (bubbleText) {
                 bubbleText.innerHTML = message;

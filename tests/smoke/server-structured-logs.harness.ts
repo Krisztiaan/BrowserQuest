@@ -1,4 +1,5 @@
 import net from 'node:net';
+import { killBunProcess } from '../support/process-cleanup';
 import WebSocket from '../support/ws-client';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
@@ -83,7 +84,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
         const start = Date.now();
         let lastError: unknown = null;
          
-        while (true) {
+        for (;;) {
             try {
                 const res = await fetch(url);
                 if (res.ok) return;
@@ -103,7 +104,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     async function waitForEvent(events: EventRecord[], eventName: string, timeoutMs = 5000) {
         const start = Date.now();
          
-        while (true) {
+        for (;;) {
             const found = events.find((e) => e.event === eventName);
             if (found) {
                 return found;
@@ -127,7 +128,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
         void (async () => {
             let carry = '';
             try {
-                while (true) {
+                for (;;) {
                     const { done, value } = await reader.read();
                     if (done) break;
                     if (!(value instanceof Uint8Array)) {
@@ -141,9 +142,9 @@ export function createStructuredLogHarness(): StructuredLogHarness {
                         if (!trimmed.startsWith('{')) continue;
                         pushRecentStructuredLine(`[${sourceLabel}] ${trimmed}`);
                         try {
-                            const parsed = JSON.parse(trimmed);
-                            if (parsed && typeof parsed === 'object' && parsed.event) {
-                                events.push(parsed);
+                            const parsed: unknown = JSON.parse(trimmed) as unknown;
+                            if (parsed && typeof parsed === 'object' && 'event' in parsed) {
+                                events.push(parsed as EventRecord);
                             }
                         } catch (_) {
                             // ignore non-json lines
@@ -160,7 +161,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     async function startServerWithEventCapture(
         options?: StartServerWithEventCaptureOptions
     ): Promise<StartServerWithEventCaptureResult> {
-        const suffix = options?.name || 'structured-logs';
+        const suffix = options?.name ?? 'structured-logs';
         const captureStderr = options?.captureStderr === true;
         const port = await getFreePort();
 
@@ -173,7 +174,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
             map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         };
-        const mergedConfig = Object.assign({}, baseConfig, options?.configOverrides || {});
+        const mergedConfig = Object.assign({}, baseConfig, options?.configOverrides ?? {});
         await Bun.write(configPath, JSON.stringify(mergedConfig));
 
         const events: EventRecord[] = [];
@@ -209,10 +210,10 @@ export function createStructuredLogHarness(): StructuredLogHarness {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 4000);
             ws.once('error', (err) => {
                 clearTimeout(timeout);
-                reject(err);
+                reject(err instanceof Error ? err : new Error(String(err)));
             });
             ws.on('message', (data) => {
-                if (data.toString() === 'go') {
+                if (typeof data === 'string' ? data === 'go' : false) {
                     clearTimeout(timeout);
                     resolve();
                 }
@@ -224,13 +225,8 @@ export function createStructuredLogHarness(): StructuredLogHarness {
 
     // Kill server process and remove temp config file after each test.
     async function cleanup() {
-        try {
-            proc?.kill();
-        } catch (_) {
-            // ignore
-        } finally {
-            proc = null;
-        }
+        await killBunProcess(proc);
+        proc = null;
 
         if (configPath) {
             try {

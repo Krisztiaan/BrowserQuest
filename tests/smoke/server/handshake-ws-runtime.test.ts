@@ -1,5 +1,6 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
+import { killBunProcess } from '../../support/process-cleanup';
 import WebSocket from '../../support/ws-client';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
@@ -24,7 +25,7 @@ async function getFreePort() {
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         try {
             const res = await fetch(url);
             if (res.ok) return;
@@ -42,7 +43,7 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
 async function waitForCondition(check: () => boolean, timeoutMs: number, label: string) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         if (check()) return;
         if (Date.now() - start > timeoutMs) {
             throw new Error(`Timed out waiting for ${label}`);
@@ -58,7 +59,7 @@ function startStructuredCapture(stream: ReadableStream<unknown> | number | null 
     const reader = stream.getReader();
     void (async () => {
         let carry = '';
-        while (true) {
+        for (;;) {
             const { done, value } = await reader.read();
             if (done) break;
             if (!(value instanceof Uint8Array)) {
@@ -66,16 +67,16 @@ function startStructuredCapture(stream: ReadableStream<unknown> | number | null 
             }
             carry += new TextDecoder().decode(value);
             const chunks = carry.split('\n');
-            carry = chunks.pop() || '';
+            carry = chunks.pop() ?? '';
             chunks.forEach((line) => {
                 const trimmed = line.trim();
                 if (!trimmed.startsWith('{')) {
                     return;
                 }
                 try {
-                    const parsed = JSON.parse(trimmed);
+                    const parsed: unknown = JSON.parse(trimmed) as unknown;
                     if (parsed && typeof parsed === 'object') {
-                        events.push(parsed);
+                        events.push(parsed as EventRecord);
                     }
                 } catch (_) {
                     // ignore
@@ -88,13 +89,8 @@ function startStructuredCapture(stream: ReadableStream<unknown> | number | null 
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 
 afterEach(async () => {
-    try {
-        proc?.kill();
-    } catch (_) {
-        // ignore
-    } finally {
-        proc = null;
-    }
+    await killBunProcess(proc);
+    proc = null;
 });
 
 test("server entry uses default websocket runtime and sends 'go' handshake", async () => {
@@ -139,11 +135,15 @@ test("server entry uses default websocket runtime and sends 'go' handshake", asy
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 3000);
         ws.once('error', (err) => {
             clearTimeout(timeout);
-            reject(err);
+            reject(err instanceof Error ? err : new Error(String(err)));
         });
         ws.once('message', (data) => {
             clearTimeout(timeout);
-            resolve(data.toString());
+            if (typeof data !== 'string') {
+                reject(new Error(`Expected string handshake, got ${typeof data}`));
+                return;
+            }
+            resolve(data);
             try {
                 ws.close();
             } catch (_) {

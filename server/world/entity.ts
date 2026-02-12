@@ -4,7 +4,7 @@ import type { EntityId } from '../../shared/domain/ids';
 type AttackingCharacter = {
     group: string;
     id: EntityId;
-    attack(): WorldMessage;
+    attack(): WorldMessage | null;
 };
 
 type PushToAdjacentGroupsWithIgnored = (groupId: string, message: WorldMessage, ignoredPlayer?: EntityId | null) => void;

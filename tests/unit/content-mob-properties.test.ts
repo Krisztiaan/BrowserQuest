@@ -11,12 +11,12 @@ test('mob prefab table covers all known mob kinds', () => {
     });
     knownMobNames.sort();
 
-    const prefabMobNames = knownMobNames.filter((mobName) => {
+    const prefabMobNames = knownMobNames.map((mobName) => {
         const kind = Types.getKindFromString(mobName);
         expect(kind).not.toBeUndefined();
         expect(Types.isMob(kind)).toBe(true);
         requireMobPrefab(kind);
-        return true;
+        return mobName;
     });
 
     expect(prefabMobNames).toEqual(knownMobNames);

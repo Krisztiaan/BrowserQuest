@@ -58,7 +58,7 @@ const getZoneGroupId = function (x: number, y: number): string {
 };
 
 const getTestEntities = function (): TestEntities {
-    if (!game?.entities || !game.player) {
+    if (!game?.entities || !game.started) {
         return { mobs: [], items: [] };
     }
 
@@ -95,7 +95,7 @@ const installTestApi = function (): void {
         },
 
         moveToDifferentZone: function () {
-            if (!game?.client || !game.map || !game.map.isLoaded || !game.player) {
+            if (!game?.client || !game.map?.isLoaded) {
                 return { ok: false, reason: 'not_ready' };
             }
 
@@ -107,30 +107,32 @@ const installTestApi = function (): void {
                 offsets = [28, -28, 56, -56, 84, -84, 112, -112],
                 yOffsets = [0, 12, -12, 24, -24, 36, -36];
             let target: ZoneTarget | null = null;
-
-            offsets.some(function (xOffset: number) {
-                return yOffsets.some(function (yOffset: number) {
-                    const x = currentX + xOffset,
-                        y = currentY + yOffset;
+            for (const xOffset of offsets) {
+                for (const yOffset of yOffsets) {
+                    const x = currentX + xOffset;
+                    const y = currentY + yOffset;
 
                     if (x <= 1 || y <= 1 || x >= width || y >= height) {
-                        return false;
+                        continue;
                     }
                     if (game.map.isColliding(x, y)) {
-                        return false;
+                        continue;
                     }
 
                     const group = getZoneGroupId(x, y);
                     if (group === currentGroup) {
-                        return false;
+                        continue;
                     }
 
-                    target = { x: x, y: y, group: group };
-                    return true;
-                });
-            });
+                    target = { x, y, group };
+                    break;
+                }
+                if (target) {
+                    break;
+                }
+            }
 
-            if (!target) {
+            if (target === null) {
                 return { ok: false, reason: 'no_target' };
             }
 
@@ -145,7 +147,7 @@ const installTestApi = function (): void {
         },
 
         getActionTargets: function () {
-            if (!game?.client || !game.map || !game.map.isLoaded || !game.player) {
+            if (!game?.client || !game.map?.isLoaded) {
                 return { ready: false, mobId: null, itemId: null, mobCount: 0, itemCount: 0 };
             }
 
@@ -163,7 +165,7 @@ const installTestApi = function (): void {
         },
 
         sendCombatLootProbe: function () {
-            if (!game?.client || !game.map || !game.map.isLoaded || !game.player) {
+            if (!game?.client || !game.map?.isLoaded) {
                 return { ok: false, reason: 'not_ready' };
             }
 
@@ -251,21 +253,19 @@ const initApp = function (): void {
             playerImage = document.getElementById('playerimage'),
             resizeCheck = document.getElementById('resize-check');
 
-        if (body) {
-            body.addEventListener('click', function () {
-                if (parchment && parchment.classList.contains('credits')) {
-                    app.toggleScrollContent('credits');
-                }
+        body.addEventListener('click', function () {
+            if (parchment?.classList.contains('credits')) {
+                app.toggleScrollContent('credits');
+            }
 
-                if (parchment && parchment.classList.contains('legal')) {
-                    app.toggleScrollContent('legal');
-                }
+            if (parchment?.classList.contains('legal')) {
+                app.toggleScrollContent('legal');
+            }
 
-                if (parchment && parchment.classList.contains('about')) {
-                    app.toggleScrollContent('about');
-                }
-            });
-        }
+            if (parchment?.classList.contains('about')) {
+                app.toggleScrollContent('about');
+            }
+        });
 
         document.querySelectorAll('.barbutton').forEach(function (button: Element) {
             button.addEventListener('click', function () {
@@ -285,7 +285,7 @@ const initApp = function (): void {
 
         if (helpButton) {
             helpButton.addEventListener('click', function () {
-                if (body && body.classList.contains('about')) {
+                if (body.classList.contains('about')) {
                     app.closeInGameScroll('about');
                     helpButton.classList.remove('active');
                 } else {
@@ -337,8 +337,8 @@ const initApp = function (): void {
         if (toggleLegal) {
             toggleLegal.addEventListener('click', function () {
                 app.toggleScrollContent('legal');
-                if (game && game.renderer && game.renderer.mobile) {
-                    if (parchment && parchment.classList.contains('legal')) {
+                if (game?.renderer?.mobile) {
+                    if (parchment?.classList.contains('legal')) {
                         toggleLegal.textContent = 'close';
                     } else {
                         toggleLegal.textContent = 'Privacy';
@@ -357,9 +357,7 @@ const initApp = function (): void {
             element.addEventListener('click', function () {
                 app.storage.clear();
                 app.animateParchment('confirmation', 'createcharacter');
-                if (body) {
-                    body.classList.remove('returning');
-                }
+                body.classList.remove('returning');
             });
         });
 
@@ -412,7 +410,7 @@ const initApp = function (): void {
         }
 
         if (notifications) {
-            notifications.addEventListener(TRANSITIONEND, app.resetMessagesPosition.bind(app));
+            notifications.addEventListener(TRANSITIONEND, () => app.resetMessagesPosition());
         }
 
         document.querySelectorAll('.close').forEach(function (element: Element) {
@@ -455,9 +453,9 @@ const initApp = function (): void {
 
         document.querySelectorAll('.play div').forEach(function (element: Element) {
             element.addEventListener('click', function () {
-                const nameFromInput = nameInput ? nameInput.getAttribute('value') : '',
-                    nameFromStorage = playerName ? playerName.innerHTML : '',
-                    name = nameFromInput || nameFromStorage;
+                const nameFromInput = nameInput?.getAttribute('value') ?? '';
+                const nameFromStorage = playerName?.innerHTML ?? '';
+                const name = nameFromInput !== '' ? nameFromInput : nameFromStorage;
 
                 app.tryStartingGame(name, undefined);
             });
@@ -466,7 +464,7 @@ const initApp = function (): void {
         document.addEventListener('touchstart', function () {}, false);
 
         if (resizeCheck) {
-            resizeCheck.addEventListener(TRANSITIONEND, app.resizeUi.bind(app));
+            resizeCheck.addEventListener(TRANSITIONEND, () => app.resizeUi());
         }
 
         log.info('App initialized.');
@@ -604,7 +602,7 @@ function initGame(): void {
                         function (event: TouchEvent) {
                             app.center();
                             touchHasMoved = false;
-                            const touch = event.touches?.[0] ? event.touches[0] : null;
+                            const touch = event.touches.item(0);
                             if (touch) {
                                 touchStartX = touch.pageX;
                                 touchStartY = touch.pageY;
@@ -618,7 +616,7 @@ function initGame(): void {
                     foregroundEl.addEventListener(
                         'touchmove',
                         function (event: TouchEvent) {
-                            const touch = event.touches?.[0] ? event.touches[0] : null;
+                            const touch = event.touches.item(0);
                             if (touch) {
                                 const dx = Math.abs(touch.pageX - touchStartX);
                                 const dy = Math.abs(touch.pageY - touchStartY);
@@ -635,8 +633,7 @@ function initGame(): void {
                     foregroundEl.addEventListener(
                         'touchend',
                         function (event: TouchEvent) {
-                            const touch =
-                                event.changedTouches?.[0] ? event.changedTouches[0] : null;
+                            const touch = event.changedTouches.item(0);
                             if (touch) {
                                 app.setMouseCoordinates(touch);
                             }
@@ -703,7 +700,7 @@ function initGame(): void {
                     }
                 }
 
-                if (game.started && !game.renderer.mobile && game.player && !hasClosedParchment) {
+                if (game.started && !game.renderer.mobile && !hasClosedParchment) {
                     const pos = game.getMouseGridPosition();
                     game.kernel.setClientClickIntent({ x: pos.x, y: pos.y });
                 }
@@ -725,7 +722,7 @@ function initGame(): void {
                 const key = e.which;
 
                 if (key === 13) {
-                    if (chatBox && chatBox.classList.contains('active')) {
+                    if (chatBox?.classList.contains('active')) {
                         app.hideChat();
                     } else {
                         app.showChat();
@@ -755,9 +752,7 @@ function initGame(): void {
 
                     if (key === 13) {
                         if (chatInput.value !== '') {
-                            if (game.player) {
-                                game.say(chatInput.value);
-                            }
+                            game.say(chatInput.value);
                             chatInput.value = '';
                             app.hideChat();
                             if (foregroundEl) {
@@ -783,7 +778,7 @@ function initGame(): void {
                     const placeholder = chatInput.getAttribute('placeholder');
 
                     if (!Detect.isFirefoxAndroid()) {
-                        chatInput.value = placeholder || '';
+                        chatInput.value = placeholder ?? '';
                     }
 
                     if (chatInput.value === placeholder) {

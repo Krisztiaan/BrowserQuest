@@ -50,7 +50,7 @@ async function replaySequence(page: Page, entryPath: '/client/modern.html', suff
 
             const parseActions = (raw: string): ReplayAction[] => {
                 try {
-                    const parsed = JSON.parse(raw);
+                    const parsed: unknown = JSON.parse(raw) as unknown;
                     if (!Array.isArray(parsed)) return [];
                     if (parsed.length > 0 && Array.isArray(parsed[0])) {
                         return parsed.filter(
@@ -154,7 +154,7 @@ async function replaySequence(page: Page, entryPath: '/client/modern.html', suff
                             return;
                         }
 
-                        if (mode === 'invalid_move' && !transcript.sentInvalidMove) {
+                        if (!transcript.sentInvalidMove) {
                             ws.send(JSON.stringify([types.MSG_MOVE, 10.5, 7]));
                             transcript.sent.push(types.MSG_MOVE);
                             transcript.sentInvalidMove = true;

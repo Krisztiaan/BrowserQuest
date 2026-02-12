@@ -22,7 +22,11 @@ test('logger emits structured JSON events', () => {
     log.event('info', 'test.event', { answer: 42 });
 
     expect(lines.length).toBe(1);
-    const record = JSON.parse(lines[0]);
+    const parsed: unknown = JSON.parse(lines[0]) as unknown;
+    if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Expected structured log JSON object');
+    }
+    const record = parsed as Record<string, unknown>;
     expect(record.level).toBe('info');
     expect(record.event).toBe('test.event');
     expect(record.answer).toBe(42);

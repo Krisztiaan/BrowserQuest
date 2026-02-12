@@ -208,9 +208,9 @@ class Map {
         this.height = map.height;
         this.tilesize = map.tilesize;
         this.data = map.data;
-        this.blocking = map.blocking || [];
-        this.plateau = map.plateau || [];
-        this.musicAreas = map.musicAreas || [];
+        this.blocking = map.blocking ?? [];
+        this.plateau = map.plateau ?? [];
+        this.musicAreas = map.musicAreas ?? [];
         this.collisions = map.collisions;
         this.high = map.high;
         this.animated = map.animated;
@@ -223,7 +223,7 @@ class Map {
         const doors: Record<number, DoorDestination> = {},
             self = this;
 
-        (map.doors || []).forEach(function (door: RawDoor) {
+        (map.doors ?? []).forEach(function (door: RawDoor) {
             let o = Types.Orientations.DOWN;
             const fromX = Number(door.x);
             const fromY = Number(door.y);
@@ -313,26 +313,34 @@ class Map {
     }
 
     isColliding(x: number, y: number): boolean {
-        if (this.isOutOfBounds(x, y) || !this.grid) {
+        if (this.isOutOfBounds(x, y)) {
             return false;
         }
-        return this.grid[y][x] === 1;
+        const row = this.grid[y];
+        if (!row) {
+            return false;
+        }
+        return row[x] === 1;
     }
 
     isPlateau(x: number, y: number): boolean {
-        if (this.isOutOfBounds(x, y) || !this.plateauGrid) {
+        if (this.isOutOfBounds(x, y)) {
             return false;
         }
-        return this.plateauGrid[y][x] === 1;
+        const row = this.plateauGrid[y];
+        if (!row) {
+            return false;
+        }
+        return row[x] === 1;
     }
 
     _generateCollisionGrid(): void {
         const self = this;
 
         this.grid = [];
-        for (let j, i = 0; i < this.height; i++) {
+        for (let i = 0; i < this.height; i++) {
             this.grid[i] = [];
-            for (j = 0; j < this.width; j++) {
+            for (let j = 0; j < this.width; j++) {
                 this.grid[i][j] = 0;
             }
         }
@@ -355,9 +363,9 @@ class Map {
         let tileIndex = 0;
 
         this.plateauGrid = [];
-        for (let j, i = 0; i < this.height; i++) {
+        for (let i = 0; i < this.height; i++) {
             this.plateauGrid[i] = [];
-            for (j = 0; j < this.width; j++) {
+            for (let j = 0; j < this.width; j++) {
                 if (this.plateau.includes(tileIndex)) {
                     this.plateauGrid[i][j] = 1;
                 } else {

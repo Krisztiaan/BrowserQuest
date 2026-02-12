@@ -16,7 +16,7 @@ const isPlayerSprite = (sprite: ReturnType<Character['getSprite']>): sprite is P
 type LootItem = {
     id: string | number;
     kind: EntityKind;
-    type: 'armor' | 'weapon' | 'object' | string;
+    type: 'armor' | 'weapon' | 'object' | (string & {});
     onLoot: (player: Player) => void;
 };
 
@@ -89,7 +89,7 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
                 msg = 'You are wearing a better armor';
             } else if (item.type === 'weapon') {
                 rank = Types.getWeaponRank(item.kind);
-                currentRank = Types.getWeaponRank(Types.getKindFromString(this.weaponName || 'sword1'));
+                currentRank = Types.getWeaponRank(Types.getKindFromString(this.weaponName ?? 'sword1'));
                 msg = 'You are wielding a better weapon';
             }
 

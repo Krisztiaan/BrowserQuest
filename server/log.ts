@@ -1,5 +1,3 @@
-import type { RuntimeEventName } from './server-event-names';
-
 type LogLevelName = 'error' | 'info' | 'debug';
 type ConsoleMethod = 'error' | 'info' | 'log';
 
@@ -12,7 +10,7 @@ type RuntimeLogger = {
     info(...args: unknown[]): void;
     debug(...args: unknown[]): void;
     error(...args: unknown[]): void;
-    event(levelName: string, eventName: RuntimeEventName | string, fields?: unknown): void;
+    event(levelName: string, eventName: string, fields?: unknown): void;
 };
 
 const LEVELS: Record<LogLevelName, number> = {
@@ -27,11 +25,11 @@ const METHODS: Record<LogLevelName, ConsoleMethod> = {
     debug: 'log',
 };
 
-function normalizeLevelName(levelName: string): LogLevelName | string {
+function normalizeLevelName(levelName: string): LogLevelName | null {
     if (levelName === 'error' || levelName === 'info' || levelName === 'debug') {
         return levelName;
     }
-    return levelName;
+    return null;
 }
 
 function write(method: ConsoleMethod, args: unknown[]): void {
@@ -62,15 +60,15 @@ const logger: RuntimeLogger = {
         }
     },
 
-    event(levelName: string, eventName: RuntimeEventName | string, fields?: unknown): void {
+    event(levelName: string, eventName: string, fields?: unknown): void {
         const resolvedLevelName = normalizeLevelName(levelName);
-        const level = LEVELS[resolvedLevelName as LogLevelName] ?? INFO;
+        const level = resolvedLevelName ? LEVELS[resolvedLevelName] : INFO;
 
         if (logger.level < level) {
             return;
         }
 
-        const method = METHODS[resolvedLevelName as LogLevelName] ?? 'info';
+        const method = resolvedLevelName ? METHODS[resolvedLevelName] : 'info';
         const payload: Record<string, unknown> = {
             ts: new Date().toISOString(),
             level: levelName || 'info',

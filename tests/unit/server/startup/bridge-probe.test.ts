@@ -43,9 +43,7 @@ test('bridge probe does nothing when probe mode is disabled', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        importWsRuntime: async () => {
-            throw new Error('should_not_import');
-        },
+        importWsRuntime: () => Promise.reject(new Error('should_not_import')),
         fail: (code) => {
             failCode = code;
         },
@@ -67,7 +65,7 @@ test('bridge probe emits success when bridge contract matches', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        importWsRuntime: async () => contracts.wsRuntime,
+        importWsRuntime: () => Promise.resolve(contracts.wsRuntime),
         fail: (code) => {
             failCode = code;
         },
@@ -95,7 +93,7 @@ test('bridge probe emits forced-failure diagnostics and exits', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        importWsRuntime: async () => contracts.wsRuntime,
+        importWsRuntime: () => Promise.resolve(contracts.wsRuntime),
         fail: (code) => {
             failCode = code;
         },
@@ -131,7 +129,7 @@ test('bridge probe emits contract mismatch diagnostics and exits', async () => {
         emitProbeEvent: (level, fields) => {
             events.push({ level, ...(fields as { status: string; reason?: string }) });
         },
-        importWsRuntime: async () => mismatchedEsm,
+        importWsRuntime: () => Promise.resolve(mismatchedEsm),
         fail: (code) => {
             failCode = code;
         },

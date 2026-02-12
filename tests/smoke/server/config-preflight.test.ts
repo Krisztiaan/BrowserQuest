@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+import { killBunProcess } from '../../support/process-cleanup';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
 
@@ -14,13 +15,10 @@ function startStructuredLogCapture(
     }
 
     const reader = stream.getReader();
-    if (!reader) {
-        return;
-    }
 
     void (async () => {
         let carry = '';
-        while (true) {
+        for (;;) {
             const { done, value } = await reader.read();
             if (done) break;
             if (!(value instanceof Uint8Array)) {
@@ -28,19 +26,19 @@ function startStructuredLogCapture(
             }
             carry += new TextDecoder().decode(value);
             const chunks = carry.split('\n');
-            carry = chunks.pop() || '';
+            carry = chunks.pop() ?? '';
             chunks.forEach((line) => {
                 const trimmed = line.trim();
                 if (rawLines && trimmed) {
                     rawLines.push(trimmed);
                 }
-                if (!trimmed?.startsWith('{')) {
+                if (!trimmed.startsWith('{')) {
                     return;
                 }
                 try {
-                    const parsed = JSON.parse(trimmed);
+                    const parsed: unknown = JSON.parse(trimmed) as unknown;
                     if (parsed && typeof parsed === 'object') {
-                        events.push(parsed);
+                        events.push(parsed as EventRecord);
                     }
                 } catch (_) {
                     // ignore
@@ -60,7 +58,7 @@ async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs 
             })
             .catch((error) => {
                 clearTimeout(timeout);
-                reject(error);
+                reject(error instanceof Error ? error : new Error(String(error)));
             });
     });
 }
@@ -69,13 +67,8 @@ let proc: ReturnType<typeof Bun.spawn> | null = null;
 let configPath: string | null = null;
 
 afterEach(async () => {
-    try {
-        proc?.kill();
-    } catch (_) {
-        // ignore
-    } finally {
-        proc = null;
-    }
+    await killBunProcess(proc);
+    proc = null;
 
     if (configPath) {
         try {

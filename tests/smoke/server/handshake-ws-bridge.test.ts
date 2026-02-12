@@ -1,9 +1,14 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
+import { killBunProcess } from '../../support/process-cleanup';
 import WebSocket from '../../support/ws-client';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
 type EventRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 async function getFreePort() {
     return new Promise<number>((resolve, reject) => {
@@ -24,7 +29,7 @@ async function getFreePort() {
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         try {
             const res = await fetch(url);
             if (res.ok) return;
@@ -42,7 +47,7 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
 async function waitForCondition(check: () => boolean, timeoutMs: number, label: string) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         if (check()) return;
         if (Date.now() - start > timeoutMs) {
             throw new Error(`Timed out waiting for ${label}`);
@@ -61,12 +66,12 @@ async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs 
             })
             .catch((error) => {
                 clearTimeout(timeout);
-                reject(error);
+                reject(error instanceof Error ? error : new Error(String(error)));
             });
     });
 }
 
-async function readStreamText(stream: ReadableStream<unknown> | number | null | undefined) {
+async function readStreamText(stream: ReadableStream<unknown> | number | null | undefined): Promise<string> {
     if (!stream || typeof stream === 'number') {
         return '';
     }
@@ -74,7 +79,7 @@ async function readStreamText(stream: ReadableStream<unknown> | number | null | 
     const decoder = new TextDecoder();
     let output = '';
      
-    while (true) {
+    for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         if (!(value instanceof Uint8Array)) {
@@ -92,7 +97,7 @@ function startStructuredCapture(stream: ReadableStream<unknown> | number | null 
     const reader = stream.getReader();
     void (async () => {
         let carry = '';
-        while (true) {
+        for (;;) {
             const { done, value } = await reader.read();
             if (done) break;
             if (!(value instanceof Uint8Array)) {
@@ -100,15 +105,15 @@ function startStructuredCapture(stream: ReadableStream<unknown> | number | null 
             }
             carry += new TextDecoder().decode(value);
             const chunks = carry.split('\n');
-            carry = chunks.pop() || '';
+            carry = chunks.pop() ?? '';
             chunks.forEach((line) => {
                 const trimmed = line.trim();
                 if (!trimmed.startsWith('{')) {
                     return;
                 }
                 try {
-                    const parsed = JSON.parse(trimmed);
-                    if (parsed && typeof parsed === 'object') {
+                    const parsed: unknown = JSON.parse(trimmed);
+                    if (isRecord(parsed)) {
                         events.push(parsed);
                     }
                 } catch (_) {
@@ -122,13 +127,8 @@ function startStructuredCapture(stream: ReadableStream<unknown> | number | null 
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 
 afterEach(async () => {
-    try {
-        proc?.kill();
-    } catch (_) {
-        // ignore
-    } finally {
-        proc = null;
-    }
+    await killBunProcess(proc);
+    proc = null;
 });
 
 test("server entry with websocket bridge probe sends initial 'go' handshake", async () => {
@@ -174,11 +174,20 @@ test("server entry with websocket bridge probe sends initial 'go' handshake", as
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 3000);
         ws.once('error', (err) => {
             clearTimeout(timeout);
-            reject(err);
+            reject(err instanceof Error ? err : new Error(String(err)));
         });
-        ws.once('message', (data) => {
+        ws.once('message', (data: unknown) => {
             clearTimeout(timeout);
-            resolve(data.toString());
+            if (typeof data !== 'string') {
+                reject(new Error('Unexpected websocket handshake payload type'));
+                try {
+                    ws.close();
+                } catch (_) {
+                    // ignore
+                }
+                return;
+            }
+            resolve(data);
             try {
                 ws.close();
             } catch (_) {

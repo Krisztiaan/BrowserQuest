@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import * as MainRuntimeModule from '../../../../server/runtime';
 
-const MainRuntime = MainRuntimeModule as any;
+const MainRuntime = MainRuntimeModule;
 
 test('main runtime population change handler updates counters, world population, and distribution', () => {
     const worldUpdates: number[] = [];

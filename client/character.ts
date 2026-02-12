@@ -169,15 +169,16 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     }
 
     setOrientation(orientation?: number): void {
-        if (orientation !== undefined && orientation !== null) {
-            if (
-                orientation === Types.Orientations.UP ||
-                orientation === Types.Orientations.DOWN ||
-                orientation === Types.Orientations.LEFT ||
-                orientation === Types.Orientations.RIGHT
-            ) {
-                this.orientation = orientation;
-            }
+        if (orientation === undefined) {
+            return;
+        }
+        if (
+            orientation === Types.Orientations.UP ||
+            orientation === Types.Orientations.DOWN ||
+            orientation === Types.Orientations.LEFT ||
+            orientation === Types.Orientations.RIGHT
+        ) {
+            this.orientation = orientation;
         }
     }
 
@@ -506,7 +507,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     hurt(): void {
         this.stopHurting();
         this.sprite = this.hurtSprite;
-        this.hurting = setTimeout(this.stopHurting.bind(this), 75);
+        this.hurting = setTimeout(() => this.stopHurting(), 75);
     }
 
     stopHurting(): void {

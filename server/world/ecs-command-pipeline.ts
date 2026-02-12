@@ -93,7 +93,7 @@ function findValidPositionNextTo({
 
 function syncLegacyMobHateList(mob: unknown, entries: MobHateEntry[]): void {
     const legacy = mob as { hatelist?: unknown };
-    if (!legacy || !Array.isArray(legacy.hatelist)) {
+    if (!Array.isArray(legacy.hatelist)) {
         return;
     }
     legacy.hatelist.length = 0;
@@ -915,7 +915,7 @@ export class WorldEcsCommandPipeline {
 
             const mobIds: EntityId[] = [];
             Kind.store.forEach((id, kind) => {
-                if (kind !== undefined && Types.isMob(kind)) {
+                if (Types.isMob(kind)) {
                     mobIds.push(id);
                 }
             });
@@ -1020,7 +1020,7 @@ export class WorldEcsCommandPipeline {
                 const pos = findValidPositionNextTo({
                     attacker: legacyMob,
                     target: targetEntity,
-                    isValidPosition: this.#world.isValidPosition.bind(this.#world),
+                    isValidPosition: (x, y) => this.#world.isValidPosition(x, y),
                 });
 
                 if (Utils.distanceTo(pos.x, pos.y, spawn.x, spawn.y) > leashDistance) {
@@ -1155,14 +1155,13 @@ export class WorldEcsCommandPipeline {
             }
             if (msg.kind === 'to_player') {
                 const player = this.#world.getConnectionPlayerById(msg.playerId);
-                if (player && player.hasEnteredGame) {
+                if (player?.hasEnteredGame) {
                     this.#world.pushToPlayer(player, msg.action);
                 }
                 continue;
             }
-            if (msg.kind === 'broadcast_nearby') {
-                this.#broadcastNearby(msg, idsByGroup);
-            }
+
+            this.#broadcastNearby(msg, idsByGroup);
         }
     }
 

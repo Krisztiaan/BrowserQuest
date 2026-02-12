@@ -63,8 +63,8 @@ class Sprite {
         this.animationData = data.animations;
         this.width = data.width;
         this.height = data.height;
-        this.offsetX = data.offset_x !== undefined ? data.offset_x : -16;
-        this.offsetY = data.offset_y !== undefined ? data.offset_y : -16;
+        this.offsetX = data.offset_x ?? -16;
+        this.offsetY = data.offset_y ?? -16;
 
         this.load();
     }
@@ -111,7 +111,7 @@ class Sprite {
     }
 
     createHurtSprite(): void {
-        if (!this.isLoaded || !this.image || !this.image.complete || this.image.naturalWidth === 0) {
+        if (!this.isLoaded || !this.image.complete || this.image.naturalWidth === 0) {
             return;
         }
 

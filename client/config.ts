@@ -4,7 +4,7 @@ type RuntimeServerConfig = {
 };
 
 function resolveRuntimeServerConfig(): RuntimeServerConfig {
-    if (typeof window === "undefined" || !window.location) {
+    if (typeof window === "undefined") {
         return {
             wsUrl: "ws://localhost/ws",
             dispatcher: false,
@@ -12,7 +12,7 @@ function resolveRuntimeServerConfig(): RuntimeServerConfig {
     }
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.host || "localhost";
+    const host = window.location.host.length > 0 ? window.location.host : "localhost";
     return {
         wsUrl: `${protocol}//${host}/ws`,
         dispatcher: false,

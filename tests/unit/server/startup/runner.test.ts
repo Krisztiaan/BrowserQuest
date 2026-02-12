@@ -16,7 +16,7 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
         emitProbeEvent: () => {
             // no-op
         },
-        importWsRuntime: async () => ({ default: { id: 'ws-runtime-default' } }),
+        importWsRuntime: () => Promise.resolve({ default: { id: 'ws-runtime-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         startServer: (config, options) => {
             calls.push('start');
@@ -25,15 +25,17 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
         fail: () => {
             // no-op
         },
-        runBridgeProbeFn: async () => {
+        runBridgeProbeFn: () => {
             calls.push('bridge');
+            return Promise.resolve();
         },
-        runEcsSchedulerProbeFn: async () => {
+        runEcsSchedulerProbeFn: () => {
             calls.push('ecs');
+            return Promise.resolve();
         },
-        resolveRuntimeOptionsFn: async () => {
+        resolveRuntimeOptionsFn: () => {
             calls.push('runtime');
-            return runtimeOptions;
+            return Promise.resolve(runtimeOptions);
         },
     });
 
@@ -55,7 +57,7 @@ test('startup runner passes undefined runtime options through to startServer whe
         emitProbeEvent: () => {
             // no-op
         },
-        importWsRuntime: async () => ({ default: { id: 'ws-runtime-default' } }),
+        importWsRuntime: () => Promise.resolve({ default: { id: 'ws-runtime-default' } }),
         createRuntimeDependencies: () => ({ id: 'runtime-deps' }),
         startServer: (_, options) => {
             startedOptions = options;
@@ -63,13 +65,9 @@ test('startup runner passes undefined runtime options through to startServer whe
         fail: () => {
             // no-op
         },
-        runBridgeProbeFn: async () => {
-            // no-op
-        },
-        runEcsSchedulerProbeFn: async () => {
-            // no-op
-        },
-        resolveRuntimeOptionsFn: async () => undefined,
+        runBridgeProbeFn: () => Promise.resolve(),
+        runEcsSchedulerProbeFn: () => Promise.resolve(),
+        resolveRuntimeOptionsFn: () => Promise.resolve(undefined),
     });
 
     expect(startedOptions).toBeUndefined();

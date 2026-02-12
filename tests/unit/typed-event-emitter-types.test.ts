@@ -3,7 +3,7 @@ import { Evented } from '../../shared/evented';
 import type { MergeEvents, NoEvents, TypedEventSource } from '../../shared/typed-event-emitter';
 
 type Assert<T extends true> = T;
-type IsEqual<A, B> = (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2 ? true : false;
+type IsEqual<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
 type CoreEvents = {
     connected: [];

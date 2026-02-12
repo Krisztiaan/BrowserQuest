@@ -145,7 +145,7 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
         this.normalSprite = this.sprite;
 
         if (Types.isMob(this.kind) || Types.isPlayer(this.kind)) {
-            this.hurtSprite = sprite.getHurtSprite() || this.sprite;
+            this.hurtSprite = sprite.getHurtSprite() ?? this.sprite;
         }
 
         this.animations = sprite.createAnimations();
@@ -189,8 +189,8 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
                     this.currentAnimation.reset();
                 }
                 this.currentAnimation.setSpeed(speed);
-                this.currentAnimation.setCount(count ? count : 0, onEndCount || (() => {
-                    this.idle?.();
+                this.currentAnimation.setCount(count ?? 0, onEndCount ?? (() => {
+                    this.idle();
                 }));
             }
         } else {

@@ -39,8 +39,8 @@ test('server emits structured metrics-unavailable event when metrics backend is 
 
     const metricsUnavailable = await harness.waitForEvent(events, 'server.metrics.unavailable');
 
-    expect(metricsUnavailable?.reason).toBe('connect_failed');
-    expect(typeof metricsUnavailable?.error).toBe('string');
+    expect(metricsUnavailable.reason).toBe('connect_failed');
+    expect(typeof metricsUnavailable.error).toBe('string');
 });
 
 test('server emits structured metrics-unavailable invalid-config event when metrics config is incomplete', async () => {
@@ -54,6 +54,6 @@ test('server emits structured metrics-unavailable invalid-config event when metr
 
     const metricsUnavailable = await harness.waitForEvent(events, 'server.metrics.unavailable');
 
-    expect(metricsUnavailable?.reason).toBe('invalid_config');
-    expect(Array.isArray(metricsUnavailable?.invalidFields)).toBe(true);
+    expect(metricsUnavailable.reason).toBe('invalid_config');
+    expect(Array.isArray(metricsUnavailable.invalidFields)).toBe(true);
 });

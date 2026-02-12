@@ -8,14 +8,14 @@ test('config source resolver prefers local config over default config', async ()
     const resolved = await resolveActiveConfig({
         defaultConfigPath: '/default.json',
         customConfigPath: '/local.json',
-        loadConfigFileFn: async (path) => {
+        loadConfigFileFn: (path) => {
             if (path === '/default.json') {
-                return defaultConfig;
+                return Promise.resolve(defaultConfig);
             }
             if (path === '/local.json') {
-                return localConfig;
+                return Promise.resolve(localConfig);
             }
-            return null;
+            return Promise.resolve(null);
         },
     });
 
@@ -30,11 +30,11 @@ test('config source resolver falls back to default config when local is missing'
     const resolved = await resolveActiveConfig({
         defaultConfigPath: '/default.json',
         customConfigPath: '/local.json',
-        loadConfigFileFn: async (path) => {
+        loadConfigFileFn: (path) => {
             if (path === '/default.json') {
-                return defaultConfig;
+                return Promise.resolve(defaultConfig);
             }
-            return null;
+            return Promise.resolve(null);
         },
     });
 
@@ -47,7 +47,7 @@ test('config source resolver returns null active config when both sources are mi
     const resolved = await resolveActiveConfig({
         defaultConfigPath: '/default.json',
         customConfigPath: '/local.json',
-        loadConfigFileFn: async () => null,
+        loadConfigFileFn: () => Promise.resolve(null),
     });
 
     expect(resolved.defaultConfig).toBeNull();
@@ -56,14 +56,12 @@ test('config source resolver returns null active config when both sources are mi
 });
 
 test('loadConfigFile parses valid json and returns null on read/parse failures', async () => {
-    const validConfig = await loadConfigFile('/valid.json', async () => '{"port":8000}');
+    const validConfig = await loadConfigFile('/valid.json', () => Promise.resolve('{"port":8000}'));
     expect(validConfig).toEqual({ port: 8000 });
 
-    const invalidConfig = await loadConfigFile('/invalid.json', async () => '{');
+    const invalidConfig = await loadConfigFile('/invalid.json', () => Promise.resolve('{'));
     expect(invalidConfig).toBeNull();
 
-    const missingConfig = await loadConfigFile('/missing.json', async () => {
-        throw new Error('ENOENT');
-    });
+    const missingConfig = await loadConfigFile('/missing.json', () => Promise.reject(new Error('ENOENT')));
     expect(missingConfig).toBeNull();
 });

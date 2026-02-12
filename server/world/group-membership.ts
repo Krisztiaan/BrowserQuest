@@ -129,10 +129,10 @@ export function addEntityAsIncomingToGroups({
             const group = groups[adjacentGroupId];
 
             if (group) {
-                if (
-                    !(String(entity.id) in group.entities)
-                    && (!isItemEntity || isChestEntity || (isItemEntity && !isDroppedItemEntity))
-                ) {
+                const isAlreadyKnown = String(entity.id) in group.entities;
+                const shouldAddIncoming = isItemEntity ? isChestEntity || !isDroppedItemEntity : true;
+
+                if (!isAlreadyKnown && shouldAddIncoming) {
                     group.incoming.push(entity);
                 }
             }

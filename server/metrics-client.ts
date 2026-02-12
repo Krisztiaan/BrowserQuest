@@ -39,18 +39,28 @@ interface MetricsClientAdapter {
 }
 
 function normalizeError(error: unknown): string {
-    if (!error) {
+    if (error == null) {
         return 'unknown_error';
     }
     if (
         typeof error === "object" &&
-        error !== null &&
         "message" in error &&
         typeof (error as { message?: unknown }).message === "string"
     ) {
-        return String((error as { message: string }).message);
+        return (error as { message: string }).message;
     }
-    return String(error);
+    if (typeof error === 'string') {
+        return error.length > 0 ? error : 'unknown_error';
+    }
+    if (typeof error === 'number' || typeof error === 'boolean' || typeof error === 'bigint') {
+        return String(error);
+    }
+    try {
+        return JSON.stringify(error);
+    } catch (_) {
+        const tag: unknown = Object.prototype.toString.call(error) as unknown;
+        return typeof tag === 'string' ? tag : 'unknown_error';
+    }
 }
 
 function createMetricsClient(
@@ -63,7 +73,7 @@ function createMetricsClient(
     const onOperationError =
         typeof hooks.onOperationError === 'function' ? hooks.onOperationError : () => {};
 
-    const ModernClient = memcacheModule?.Memcache || memcacheModule?.default;
+    const ModernClient = memcacheModule?.Memcache ?? memcacheModule?.default;
 
     if (typeof ModernClient !== "function") {
         throw new Error('Unsupported memcache client API');

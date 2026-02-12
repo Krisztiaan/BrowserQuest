@@ -48,7 +48,7 @@ function createFactoryDeps(overrideProtocolParser?: (payload: string) => Protoco
             random: () => 7,
         },
         Protocol: {
-            parseProtocolActionBatch: overrideProtocolParser || (() => []),
+            parseProtocolActionBatch: overrideProtocolParser ?? (() => []),
         },
         CLOSE_CODES: {
             NORMAL: 1000,

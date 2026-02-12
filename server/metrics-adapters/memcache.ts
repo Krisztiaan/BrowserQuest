@@ -18,7 +18,7 @@ function createMemcacheMetricsAdapter(
     config: Record<string, unknown>,
     options?: MemcacheAdapterOptions
 ): MetricsAdapter {
-    const adapterOptions = options || {};
+    const adapterOptions = options ?? {};
     const metrics = new Metrics(config, adapterOptions);
     metrics.isEnabled = true;
 

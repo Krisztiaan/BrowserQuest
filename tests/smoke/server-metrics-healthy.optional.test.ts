@@ -1,6 +1,7 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
+import { killBunProcess } from '../support/process-cleanup';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 const runHealthySmoke = process.env.BQ_TEST_METRICS_HEALTH === '1';
@@ -8,19 +9,20 @@ const maybeTest = runHealthySmoke ? test : test.skip;
 
 type EventRecord = Record<string, unknown>;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function startStructuredLogCapture(stream: ReadableStream<unknown> | number | null | undefined, events: EventRecord[]) {
     if (!stream || typeof stream === 'number') {
         return;
     }
 
     const reader = stream.getReader();
-    if (!reader) {
-        return;
-    }
 
     void (async () => {
         let carry = '';
-        while (true) {
+        for (;;) {
             const { done, value } = await reader.read();
             if (done) break;
             if (!(value instanceof Uint8Array)) {
@@ -28,15 +30,15 @@ function startStructuredLogCapture(stream: ReadableStream<unknown> | number | nu
             }
             carry += new TextDecoder().decode(value);
             const chunks = carry.split('\n');
-            carry = chunks.pop() || '';
+            carry = chunks.pop() ?? '';
             chunks.forEach((line) => {
                 const trimmed = line.trim();
-                if (!trimmed?.startsWith('{')) {
+                if (!trimmed.startsWith('{')) {
                     return;
                 }
                 try {
-                    const parsed = JSON.parse(trimmed);
-                    if (parsed && typeof parsed === 'object') {
+                    const parsed: unknown = JSON.parse(trimmed);
+                    if (isRecord(parsed)) {
                         events.push(parsed);
                     }
                 } catch (_) {
@@ -66,7 +68,7 @@ async function getFreePort() {
 async function waitForHttpOk(url: string, timeoutMs = 8000) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         try {
             const res = await fetch(url);
             if (res.ok) return;
@@ -84,7 +86,7 @@ async function waitForHttpOk(url: string, timeoutMs = 8000) {
 async function waitForCondition(check: () => boolean, timeoutMs: number, label: string) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         if (check()) return;
         if (Date.now() - start > timeoutMs) {
             throw new Error(`Timed out waiting for ${label}`);
@@ -97,13 +99,8 @@ let proc: ReturnType<typeof Bun.spawn> | null = null;
 let configPath: string | null = null;
 
 afterEach(async () => {
-    try {
-        proc?.kill();
-    } catch (_) {
-        // ignore
-    } finally {
-        proc = null;
-    }
+    await killBunProcess(proc);
+    proc = null;
 
     if (configPath) {
         try {
@@ -130,8 +127,14 @@ maybeTest('optional: healthy metrics path starts with memcache backend and no fa
     expect(hasMemcacheDependency).toBe(true);
 
     const port = await getFreePort();
-    const memcachedHost = process.env.BQ_TEST_METRICS_HOST || '127.0.0.1';
-    const memcachedPort = Number.parseInt(process.env.BQ_TEST_METRICS_PORT || '11211', 10);
+    const memcachedHostEnv = process.env.BQ_TEST_METRICS_HOST;
+    const memcachedHost =
+        memcachedHostEnv && memcachedHostEnv.trim() !== '' ? memcachedHostEnv : '127.0.0.1';
+    const memcachedPortEnv = process.env.BQ_TEST_METRICS_PORT;
+    const memcachedPort = Number.parseInt(
+        memcachedPortEnv && memcachedPortEnv.trim() !== '' ? memcachedPortEnv : '11211',
+        10
+    );
 
     configPath = `${repoRoot}/server/.tmp-config.metrics-healthy-${port}.json`;
     await Bun.write(
@@ -169,11 +172,16 @@ maybeTest('optional: healthy metrics path starts with memcache backend and no fa
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 4000);
         ws.once('error', (err) => {
             clearTimeout(timeout);
-            reject(err);
+            reject(err instanceof Error ? err : new Error(String(err)));
         });
-        ws.once('message', (data) => {
+        ws.once('message', (data: unknown) => {
             clearTimeout(timeout);
-            resolve(data.toString());
+            if (typeof data !== 'string') {
+                reject(new Error('Unexpected websocket handshake payload type'));
+                ws.close();
+                return;
+            }
+            resolve(data);
             ws.close();
         });
     });

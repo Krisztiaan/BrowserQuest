@@ -32,7 +32,7 @@ class AudioManager {
     sounds: Partial<Record<MusicKey | AudioSoundKey, ManagedAudio[]>>;
     game: AudioGame;
     currentMusic: AreaMusic | null;
-    areas: Array<Area & { musicName?: MusicKey }>;
+    areas: Array<Area & { musicName: MusicKey }>;
     musicNames: MusicKey[];
     soundNames: AudioSoundKey[];
 
@@ -151,7 +151,7 @@ class AudioManager {
         if (!this.sounds[name] || this.sounds[name].length === 0) {
             return null;
         }
-        let sound = this.sounds[name].find((entry) => entry.ended || entry.paused) || null;
+        let sound = this.sounds[name].find((entry) => entry.ended || entry.paused) ?? null;
         if (sound && sound.ended) {
             sound.currentTime = 0;
         } else {
@@ -168,7 +168,7 @@ class AudioManager {
     }
 
     addArea(x: number, y: number, width: number, height: number, musicName: MusicKey): void {
-        const area = new Area(x, y, width, height) as Area & { musicName?: MusicKey };
+        const area = new Area(x, y, width, height) as Area & { musicName: MusicKey };
         area.musicName = musicName;
         this.areas.push(area);
     }
@@ -177,7 +177,7 @@ class AudioManager {
         let music: AreaMusic | null = null;
         const area = this.areas.find((candidate) => candidate.contains(entity));
 
-        if (area && area.musicName) {
+        if (area) {
             music = { sound: this.getSound(area.musicName), name: area.musicName };
         }
         return music;
@@ -205,7 +205,7 @@ class AudioManager {
     }
 
     playMusic(music: AreaMusic | null): void {
-        if (this.enabled && music && music.sound) {
+        if (this.enabled && music?.sound) {
             if (music.sound.fadingOut) {
                 this.fadeInMusic(music);
             } else {

@@ -6,7 +6,7 @@ const canPlayMP3 = function (): boolean {
     }
 
     const audio = document.createElement('audio');
-    if (!audio || typeof audio.canPlayType !== 'function') {
+    if (typeof audio.canPlayType !== 'function') {
         return false;
     }
 
@@ -15,9 +15,6 @@ const canPlayMP3 = function (): boolean {
 
 const supportsLocalStorage = function (): boolean {
     try {
-        if (!globalThis.localStorage) {
-            return false;
-        }
         globalThis.localStorage.setItem(FEATURE_TEST_KEY, FEATURE_TEST_KEY);
         globalThis.localStorage.removeItem(FEATURE_TEST_KEY);
         return true;

@@ -37,7 +37,7 @@
     "verify": "bun run verify:modern",
     "verify:modern": "bun run check:content:prefabs && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:vite",
     "test": "bun test --timeout 20000",
-    "lint": "eslint \"client/**/*.ts\" \"server/**/*.ts\" \"shared/**/*.ts\" \"tools/**/*.ts\" \"tests/**/*.ts\"",
+    "lint": "eslint --max-warnings 0 \"client/**/*.ts\" \"server/**/*.ts\" \"shared/**/*.ts\" \"tools/**/*.ts\" \"tests/**/*.ts\"",
     "lint:client-runtime": "eslint \"client/runtime/connection.ts\" \"client/game.ts\" \"client/gameclient.ts\" \"client/game-entity-lookups.ts\"",
     "format": "prettier --write \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\"",
     "format:check": "prettier --check \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\" \"tests/**/*.ts\""

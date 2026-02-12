@@ -5,6 +5,7 @@ import {
     wrapWorldServerConstructorWithPlugins,
 } from '../../server/plugins/loader';
 import { SERVER_PLUGIN_API_VERSION, type ServerPlugin } from '../../server/plugins/contracts';
+import type { RuntimeWorldServerConstructor } from '../../server/runtime-types';
 
 test('getPluginSpecsFromConfig returns normalized plugin specs', () => {
     expect(getPluginSpecsFromConfig({})).toEqual([]);
@@ -48,7 +49,10 @@ test('wrapWorldServerConstructorWithPlugins passes plugins through constructor s
         install() {},
     };
 
-    const Wrapped = wrapWorldServerConstructorWithPlugins(BaseWorldServer as any, [plugin]);
+    const Wrapped = wrapWorldServerConstructorWithPlugins(
+        BaseWorldServer as unknown as RuntimeWorldServerConstructor,
+        [plugin]
+    );
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const instance = new Wrapped('world1', 5, {});
 

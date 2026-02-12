@@ -100,7 +100,7 @@ class Pathfinder {
             const x = entity.isMoving?.() ? (entity.nextGridX ?? entity.gridX) : entity.gridX;
             const y = entity.isMoving?.() ? (entity.nextGridY ?? entity.gridY) : entity.gridY;
 
-            if (x !== undefined && y !== undefined && x >= 0 && y >= 0) {
+            if (x >= 0 && y >= 0) {
                 self.grid[y][x] = ignored ? 0 : 1;
             }
         });

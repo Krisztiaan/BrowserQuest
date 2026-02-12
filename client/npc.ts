@@ -156,7 +156,11 @@ class Npc extends Character {
     }
 
     getTalkList(): readonly string[] {
-        return NpcTalk[this.itemKind as keyof typeof NpcTalk] ?? NpcTalk.othernpc;
+        const key = this.itemKind;
+        if (key in NpcTalk) {
+            return NpcTalk[key as keyof typeof NpcTalk];
+        }
+        return NpcTalk.othernpc;
     }
 
     talk(): string | null {

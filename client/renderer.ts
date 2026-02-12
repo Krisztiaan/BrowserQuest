@@ -299,10 +299,10 @@ class Renderer {
             if (centered) {
                 ctx.textAlign = 'center';
             }
-            ctx.strokeStyle = strokeColor || '#373737';
+            ctx.strokeStyle = strokeColor ?? '#373737';
             ctx.lineWidth = strokeSize;
             ctx.strokeText(label, x, y);
-            ctx.fillStyle = color || 'white';
+            ctx.fillStyle = color ?? 'white';
             ctx.fillText(label, x, y);
             ctx.restore();
         }
@@ -587,27 +587,34 @@ class Renderer {
             }
 
             if (entity instanceof Character && !entity.isDead && entity.hasWeapon()) {
-                const weapon = this.game.sprites[entity.getWeaponName()];
+                const weaponName = entity.getWeaponName();
+                if (typeof weaponName === 'string') {
+                    const weapon = this.game.sprites[weaponName];
+                    if (weapon) {
+                        const weaponAnimData = weapon.animationData[anim.name];
+                        if (weaponAnimData) {
+                            const index =
+                                frame.index < weaponAnimData.length
+                                    ? frame.index
+                                    : frame.index % weaponAnimData.length,
+                                wx = weapon.width * index * os,
+                                wy = weapon.height * anim.row * os,
+                                ww = weapon.width * os,
+                                wh = weapon.height * os;
 
-                if (weapon) {
-                    const weaponAnimData = weapon.animationData[anim.name],
-                        index = frame.index < weaponAnimData.length ? frame.index : frame.index % weaponAnimData.length,
-                        wx = weapon.width * index * os,
-                        wy = weapon.height * anim.row * os,
-                        ww = weapon.width * os,
-                        wh = weapon.height * os;
-
-                    this.context.drawImage(
-                        weapon.image,
-                        wx,
-                        wy,
-                        ww,
-                        wh,
-                        weapon.offsetX * s,
-                        weapon.offsetY * s,
-                        ww * ds,
-                        wh * ds
-                    );
+                            this.context.drawImage(
+                                weapon.image,
+                                wx,
+                                wy,
+                                ww,
+                                wh,
+                                weapon.offsetX * s,
+                                weapon.offsetY * s,
+                                ww * ds,
+                                wh * ds
+                            );
+                        }
+                    }
                 }
             }
 
@@ -725,8 +732,8 @@ class Renderer {
         const rect: BoundingRect = { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 },
             s = this.scale,
             ts = this.tilesize,
-            tx = x || this.game.selectedX,
-            ty = y || this.game.selectedY;
+            tx = x ?? this.game.selectedX,
+            ty = y ?? this.game.selectedY;
 
         rect.x = (tx * ts - this.camera.x) * s;
         rect.y = (ty * ts - this.camera.y) * s;
@@ -878,49 +885,58 @@ class Renderer {
     }
 
     getPlayerImage(callback?: (imageDataUrl: string) => void): void {
-        const canvas = document.createElement('canvas'),
-            ctx = canvas.getContext('2d'),
-            os = this.upscaledRendering ? 1 : this.scale,
-            player = this.game.player,
-            sprite = player.getArmorSprite(),
-            spriteAnim = sprite.animationData['idle_down'],
-            // character
-            row = spriteAnim.row,
-            w = sprite.width * os,
-            h = sprite.height * os,
-            y = row * h,
-            // weapon
-            weapon = this.game.sprites[player.getWeaponName()],
-            ww = weapon.width * os,
-            wh = weapon.height * os,
-            wy = wh * row,
-            offsetX = (weapon.offsetX - sprite.offsetX) * os,
-            offsetY = (weapon.offsetY - sprite.offsetY) * os,
-            // shadow
-            shadow = this.game.shadows['small'],
-            sw = shadow.width * os,
-            sh = shadow.height * os,
-            ox = -sprite.offsetX * os,
-            oy = -sprite.offsetY * os,
-            drawPlayerImage = function (
-                shadowImage: CanvasImageSource,
-                spriteImage: CanvasImageSource,
-                weaponImage: CanvasImageSource
-            ): void {
-                ctx.drawImage(shadowImage, 0, 0, sw, sh, ox, oy, sw, sh);
-                ctx.drawImage(spriteImage, 0, y, w, h, 0, 0, w, h);
-                ctx.drawImage(weaponImage, 0, wy, ww, wh, offsetX, offsetY, ww, wh);
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            return;
+        }
 
-                if (callback) {
-                    callback(canvas.toDataURL('image/png'));
-                }
-            };
+        const os = this.upscaledRendering ? 1 : this.scale;
+        const player = this.game.player;
+        const sprite = player.getArmorSprite();
+        const spriteAnim = sprite.animationData['idle_down'];
+        if (!spriteAnim) {
+            return;
+        }
+
+        const weaponName = player.getWeaponName();
+        if (typeof weaponName !== 'string') {
+            return;
+        }
+        const weapon = this.game.sprites[weaponName];
+        const shadow = this.game.shadows['small'];
+        if (!weapon || !shadow) {
+            return;
+        }
+
+        // character
+        const row = spriteAnim.row;
+        const w = sprite.width * os;
+        const h = sprite.height * os;
+        const y = row * h;
+
+        // weapon
+        const ww = weapon.width * os;
+        const wh = weapon.height * os;
+        const wy = wh * row;
+        const offsetX = (weapon.offsetX - sprite.offsetX) * os;
+        const offsetY = (weapon.offsetY - sprite.offsetY) * os;
+
+        // shadow
+        const sw = shadow.width * os;
+        const sh = shadow.height * os;
+        const ox = -sprite.offsetX * os;
+        const oy = -sprite.offsetY * os;
 
         canvas.width = w;
         canvas.height = h;
         ctx.clearRect(0, 0, w, h);
 
-        drawPlayerImage(shadow.image, sprite.image, weapon.image);
+        ctx.drawImage(shadow.image, 0, 0, sw, sh, ox, oy, sw, sh);
+        ctx.drawImage(sprite.image, 0, y, w, h, 0, 0, w, h);
+        ctx.drawImage(weapon.image, 0, wy, ww, wh, offsetX, offsetY, ww, wh);
+
+        callback?.(canvas.toDataURL('image/png'));
     }
 
     renderStaticCanvases(): void {

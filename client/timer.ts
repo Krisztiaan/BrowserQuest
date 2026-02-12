@@ -3,7 +3,7 @@ class Timer {
     duration: number;
 
     constructor(duration: number, startTime?: number) {
-        this.lastTime = startTime || 0;
+        this.lastTime = startTime ?? 0;
         this.duration = duration;
     }
 

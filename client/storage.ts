@@ -43,7 +43,7 @@ class Storage {
 
         try {
             this.data = JSON.parse(rawData) as StorageData;
-            if (!this.data?.achievements || !Array.isArray(this.data.achievements.unlocked)) {
+            if (!Array.isArray(this.data.achievements.unlocked)) {
                 this.resetData();
                 return;
             }

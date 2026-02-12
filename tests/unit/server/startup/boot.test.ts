@@ -17,7 +17,7 @@ test('boot envelope resolves config and starts runtime when preflight succeeds',
             // no-op
         },
         startupParams: { env: {} },
-        resolveActiveConfigFn: async () => ({ activeConfig }),
+        resolveActiveConfigFn: () => Promise.resolve({ activeConfig }),
         ensureConfigSourcePresentFn: ({ activeConfig: resolvedConfig }) => {
             calls.push('source');
             return Boolean(resolvedConfig);
@@ -26,9 +26,10 @@ test('boot envelope resolves config and starts runtime when preflight succeeds',
             calls.push('preflight');
             return Boolean(validatedConfig);
         },
-        runStartupFn: async ({ activeConfig: bootConfig }) => {
+        runStartupFn: ({ activeConfig: bootConfig }) => {
             calls.push('startup');
             expect(bootConfig).toBe(activeConfig);
+            return Promise.resolve();
         },
     });
 
@@ -51,7 +52,7 @@ test('boot envelope aborts before startup when no config is resolved', async () 
             // no-op
         },
         startupParams: {},
-        resolveActiveConfigFn: async () => ({ activeConfig: null }),
+        resolveActiveConfigFn: () => Promise.resolve({ activeConfig: null }),
         ensureConfigSourcePresentFn: () => {
             calls.push('source');
             return false;
@@ -60,8 +61,9 @@ test('boot envelope aborts before startup when no config is resolved', async () 
             calls.push('preflight');
             return true;
         },
-        runStartupFn: async () => {
+        runStartupFn: () => {
             calls.push('startup');
+            return Promise.resolve();
         },
     });
 
@@ -85,7 +87,7 @@ test('boot envelope aborts before startup when preflight validation fails', asyn
             // no-op
         },
         startupParams: {},
-        resolveActiveConfigFn: async () => ({ activeConfig }),
+        resolveActiveConfigFn: () => Promise.resolve({ activeConfig }),
         ensureConfigSourcePresentFn: () => {
             calls.push('source');
             return true;
@@ -94,8 +96,9 @@ test('boot envelope aborts before startup when preflight validation fails', asyn
             calls.push('preflight');
             return false;
         },
-        runStartupFn: async () => {
+        runStartupFn: () => {
             calls.push('startup');
+            return Promise.resolve();
         },
     });
 

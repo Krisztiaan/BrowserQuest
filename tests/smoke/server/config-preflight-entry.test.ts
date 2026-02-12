@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+import { killBunProcess } from '../../support/process-cleanup';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
 
@@ -12,7 +13,7 @@ async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs 
             })
             .catch((error) => {
                 clearTimeout(timeout);
-                reject(error);
+                reject(error instanceof Error ? error : new Error(String(error)));
             });
     });
 }
@@ -27,7 +28,7 @@ async function readStreamText(stream: ReadableStream<Uint8Array> | number | null
     let output = '';
 
      
-    while (true) {
+    for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         output += decoder.decode(value);
@@ -40,13 +41,8 @@ let proc: ReturnType<typeof Bun.spawn> | null = null;
 let configPath: string | null = null;
 
 afterEach(async () => {
-    try {
-        proc?.kill();
-    } catch (_) {
-        // ignore
-    } finally {
-        proc = null;
-    }
+    await killBunProcess(proc);
+    proc = null;
 
     if (configPath) {
         try {

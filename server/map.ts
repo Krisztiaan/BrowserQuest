@@ -293,7 +293,7 @@ class Map {
         ];
 
         // groups connected via doors
-        (this.connectedGroups[id] || []).forEach(function (position) {
+        (this.connectedGroups[id] ?? []).forEach(function (position) {
             // don't add a connected group if it's already part of the surrounding ones.
             if (
                 !list.some(function (groupPos) {
@@ -326,7 +326,7 @@ class Map {
         const self = this;
 
         this.connectedGroups = {};
-        (doors || []).forEach(function (door) {
+        (doors ?? []).forEach(function (door) {
             const groupId = self.getGroupIdFromPosition(door.x, door.y);
             const connectedGroupId = self.getGroupIdFromPosition(door.tx, door.ty);
             const connectedPosition = self.GroupIdToGroupPosition(connectedGroupId);
@@ -346,7 +346,7 @@ class Map {
         this.checkpoints = {};
         this.startingAreas = [];
 
-        (cpList || []).forEach(function (cp) {
+        (cpList ?? []).forEach(function (cp) {
             const checkpoint = new Checkpoint(cp.id, cp.x, cp.y, cp.w, cp.h);
             self.checkpoints[checkpoint.id] = checkpoint;
             if (cp.s === 1) {

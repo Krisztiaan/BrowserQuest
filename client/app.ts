@@ -64,7 +64,7 @@ class App {
     hitpointsEl: HTMLElement | null;
     parchmentNameInputEl: HTMLInputElement | null;
     populationEl: HTMLElement | null;
-    bodyEl: HTMLElement;
+    bodyEl: HTMLBodyElement;
     achievementsEl: HTMLElement | null;
     achievementsButtonEl: HTMLElement | null;
     instructionsEl: HTMLElement | null;
@@ -93,7 +93,7 @@ class App {
         this.ready = false;
         this.config = null;
         this.storage = new Storage();
-        this.watchNameInputInterval = setInterval(this.toggleButton.bind(this), 100);
+        this.watchNameInputInterval = setInterval(() => this.toggleButton(), 100);
         this.isStarting = false;
         this.playButtonEl = document.querySelector('#createcharacter .play');
         this.containerEl = document.getElementById('container');
@@ -127,7 +127,8 @@ class App {
         this.supportsWorkers = false;
         this.messageTimer = null;
 
-        if (localStorage?.data) {
+        const legacyStorage = (globalThis as unknown as { localStorage?: { data?: unknown } }).localStorage;
+        if (legacyStorage?.data) {
             this.frontPage = 'loadcharacter';
         }
     }
@@ -155,7 +156,7 @@ class App {
 
     tryStartingGame(username: string, onStarting?: () => void): void {
         const self = this,
-            playButton = this.playButtonEl || document.querySelector('#createcharacter .play');
+            playButton = this.playButtonEl ?? document.querySelector('#createcharacter .play');
 
         if (username === '' || this.isStarting) {
             return;
@@ -207,17 +208,14 @@ class App {
 
         if (username && !this.game.started) {
             const config = this.config;
-            const serverConfig =
-                config && config.server ? config.server : { wsUrl: 'ws://localhost/ws', dispatcher: false };
+            const serverConfig = config?.server ?? { wsUrl: 'ws://localhost/ws', dispatcher: false };
 
             log.debug('Starting game with runtime server config.');
             this.game.setServerOptions(serverConfig.wsUrl, username);
 
             this.center();
             this.game.run(function () {
-                if (self.bodyEl) {
-                    self.bodyEl.classList.add('started');
-                }
+                self.bodyEl.classList.add('started');
                 if (firstTimePlaying) {
                     self.toggleInstructions();
                 }
@@ -226,7 +224,7 @@ class App {
     }
 
     setMouseCoordinates(event: PointerPosition): void {
-        const container = this.containerEl || document.getElementById('container');
+        const container = this.containerEl ?? document.getElementById('container');
         if (!container) {
             return;
         }
@@ -254,8 +252,8 @@ class App {
 
     initHealthBar(): void {
         const scale = this.game.renderer.getScaleFactor(),
-            healthbar = this.healthbarEl || document.getElementById('healthbar'),
-            hitpoints = this.hitpointsEl || document.getElementById('hitpoints'),
+            healthbar = this.healthbarEl ?? document.getElementById('healthbar'),
+            hitpoints = this.hitpointsEl ?? document.getElementById('hitpoints'),
             healthMaxWidth = (healthbar ? healthbar.offsetWidth : 0) - 12 * scale;
 
         this.game.on('playerHealthChange', function (hp, maxHp) {
@@ -265,11 +263,11 @@ class App {
             }
         });
 
-        this.game.on('playerHurt', this.blinkHealthBar.bind(this));
+        this.game.on('playerHurt', () => this.blinkHealthBar());
     }
 
     blinkHealthBar(): void {
-        const hitpoints = this.hitpointsEl || document.getElementById('hitpoints');
+        const hitpoints = this.hitpointsEl ?? document.getElementById('hitpoints');
         if (!hitpoints) {
             return;
         }
@@ -282,8 +280,8 @@ class App {
 
     toggleButton(): void {
         const nameInput = this.parchmentNameInputEl ?? document.querySelector<HTMLInputElement>('#parchment input'),
-            playButton = this.playButtonEl || document.querySelector('#createcharacter .play'),
-            character = this.characterEl || document.getElementById('character'),
+            playButton = this.playButtonEl ?? document.querySelector('#createcharacter .play'),
+            character = this.characterEl ?? document.getElementById('character'),
             name = nameInput ? nameInput.value : '';
 
         if (name && name.length > 0) {
@@ -313,9 +311,9 @@ class App {
     }
 
     showChat(): void {
-        const chatbox = this.chatboxEl || document.getElementById('chatbox'),
-            chatinput = this.chatinputEl || document.getElementById('chatinput'),
-            chatbutton = this.chatbuttonEl || document.getElementById('chatbutton');
+        const chatbox = this.chatboxEl ?? document.getElementById('chatbox'),
+            chatinput = this.chatinputEl ?? document.getElementById('chatinput'),
+            chatbutton = this.chatbuttonEl ?? document.getElementById('chatbutton');
 
         if (this.game.started) {
             if (chatbox) {
@@ -331,9 +329,9 @@ class App {
     }
 
     hideChat(): void {
-        const chatbox = this.chatboxEl || document.getElementById('chatbox'),
-            chatinput = this.chatinputEl || document.getElementById('chatinput'),
-            chatbutton = this.chatbuttonEl || document.getElementById('chatbutton');
+        const chatbox = this.chatboxEl ?? document.getElementById('chatbox'),
+            chatinput = this.chatinputEl ?? document.getElementById('chatinput'),
+            chatbutton = this.chatbuttonEl ?? document.getElementById('chatbutton');
 
         if (this.game.started) {
             if (chatbox) {
@@ -349,11 +347,11 @@ class App {
     }
 
     toggleInstructions(): void {
-        const achievements = this.achievementsEl || document.getElementById('achievements'),
-            achievementsButton = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
-            instructions = this.instructionsEl || document.getElementById('instructions');
+        const achievements = this.achievementsEl ?? document.getElementById('achievements'),
+            achievementsButton = this.achievementsButtonEl ?? document.getElementById('achievementsbutton'),
+            instructions = this.instructionsEl ?? document.getElementById('instructions');
 
-        if (achievements && achievements.classList.contains('active')) {
+        if (achievements?.classList.contains('active')) {
             this.toggleAchievements();
             if (achievementsButton) {
                 achievementsButton.classList.remove('active');
@@ -365,11 +363,11 @@ class App {
     }
 
     toggleAchievements(): void {
-        const instructions = this.instructionsEl || document.getElementById('instructions'),
-            helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
-            achievements = this.achievementsEl || document.getElementById('achievements');
+        const instructions = this.instructionsEl ?? document.getElementById('instructions'),
+            helpButton = this.helpButtonEl ?? document.getElementById('helpbutton'),
+            achievements = this.achievementsEl ?? document.getElementById('achievements');
 
-        if (instructions && instructions.classList.contains('active')) {
+        if (instructions?.classList.contains('active')) {
             this.toggleInstructions();
             if (helpButton) {
                 helpButton.classList.remove('active');
@@ -383,9 +381,9 @@ class App {
 
     resetPage(): void {
         const self = this,
-            achievements = this.achievementsEl || document.getElementById('achievements');
+            achievements = this.achievementsEl ?? document.getElementById('achievements');
 
-        if (achievements && achievements.classList.contains('active')) {
+        if (achievements?.classList.contains('active')) {
             const onTransitionEnd = function () {
                 achievements.classList.remove('page' + self.currentPage);
                 achievements.classList.add('page1');
@@ -417,38 +415,38 @@ class App {
     }
 
     hideWindows(): void {
-        const achievements = this.achievementsEl || document.getElementById('achievements'),
-            achievementsButton = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
-            instructions = this.instructionsEl || document.getElementById('instructions'),
-            helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
-            body = this.bodyEl || document.body;
+        const achievements = this.achievementsEl ?? document.getElementById('achievements'),
+            achievementsButton = this.achievementsButtonEl ?? document.getElementById('achievementsbutton'),
+            instructions = this.instructionsEl ?? document.getElementById('instructions'),
+            helpButton = this.helpButtonEl ?? document.getElementById('helpbutton'),
+            body = this.bodyEl;
 
-        if (achievements && achievements.classList.contains('active')) {
+        if (achievements?.classList.contains('active')) {
             this.toggleAchievements();
             if (achievementsButton) {
                 achievementsButton.classList.remove('active');
             }
         }
-        if (instructions && instructions.classList.contains('active')) {
+        if (instructions?.classList.contains('active')) {
             this.toggleInstructions();
             if (helpButton) {
                 helpButton.classList.remove('active');
             }
         }
-        if (body && body.classList.contains('credits')) {
+        if (body.classList.contains('credits')) {
             this.closeInGameScroll('credits');
         }
-        if (body && body.classList.contains('legal')) {
+        if (body.classList.contains('legal')) {
             this.closeInGameScroll('legal');
         }
-        if (body && body.classList.contains('about')) {
+        if (body.classList.contains('about')) {
             this.closeInGameScroll('about');
         }
     }
 
     showAchievementNotification(id: AchievementId, name: string): void {
-        const notif = this.achievementNotificationEl || document.getElementById('achievement-notification'),
-            button = this.achievementsButtonEl || document.getElementById('achievementsbutton'),
+        const notif = this.achievementNotificationEl ?? document.getElementById('achievement-notification'),
+            button = this.achievementsButtonEl ?? document.getElementById('achievementsbutton'),
             nameEl = notif ? notif.querySelector('.name') : null;
 
         if (notif) {
@@ -497,8 +495,9 @@ class App {
         this.showAchievementNotification(id, name);
         this.displayUnlockedAchievement(id);
 
-        const unlockedAchievements = this.unlockedAchievementsEl || document.getElementById('unlocked-achievements'),
-            nb = parseInt(unlockedAchievements ? unlockedAchievements.textContent : '0', 10) || 0;
+        const unlockedAchievements = this.unlockedAchievementsEl ?? document.getElementById('unlocked-achievements');
+        const parsed = Number.parseInt(unlockedAchievements?.textContent ?? '0', 10);
+        const nb = Number.isFinite(parsed) ? parsed : 0;
         if (unlockedAchievements) {
             unlockedAchievements.textContent = String(nb + 1);
         }
@@ -570,7 +569,7 @@ class App {
         ids.forEach(function (id: AchievementId) {
             self.displayUnlockedAchievement(id);
         });
-        const unlockedAchievements = this.unlockedAchievementsEl || document.getElementById('unlocked-achievements');
+        const unlockedAchievements = this.unlockedAchievementsEl ?? document.getElementById('unlocked-achievements');
         if (unlockedAchievements) {
             unlockedAchievements.textContent = String(ids.length);
         }
@@ -591,24 +590,20 @@ class App {
     }
 
     toggleScrollContent(content: ScrollContent): void {
-        const parchment = this.parchmentEl || document.getElementById('parchment'),
-            body = this.bodyEl || document.body,
-            helpButton = this.helpButtonEl || document.getElementById('helpbutton'),
+        const parchment = this.parchmentEl ?? document.getElementById('parchment'),
+            body = this.bodyEl,
+            helpButton = this.helpButtonEl ?? document.getElementById('helpbutton'),
             currentState = parchment ? parchment.className : '';
 
         if (this.game.started) {
             if (parchment) {
                 parchment.className = content;
             }
-            if (body) {
-                body.classList.remove('credits', 'legal', 'about');
-                body.classList.toggle(content);
-            }
+            body.classList.remove('credits', 'legal', 'about');
+            body.classList.toggle(content);
 
             if (!this.game.player) {
-                if (body) {
-                    body.classList.toggle('death');
-                }
+                body.classList.toggle('death');
             }
 
             if (content !== 'about') {
@@ -628,20 +623,16 @@ class App {
     }
 
     closeInGameScroll(content: ScrollContent): void {
-        const body = this.bodyEl || document.body,
-            parchment = this.parchmentEl || document.getElementById('parchment'),
-            helpButton = this.helpButtonEl || document.getElementById('helpbutton');
+        const body = this.bodyEl,
+            parchment = this.parchmentEl ?? document.getElementById('parchment'),
+            helpButton = this.helpButtonEl ?? document.getElementById('helpbutton');
 
-        if (body) {
-            body.classList.remove(content);
-        }
+        body.classList.remove(content);
         if (parchment) {
             parchment.classList.remove(content);
         }
         if (!this.game.player) {
-            if (body) {
-                body.classList.add('death');
-            }
+            body.classList.add('death');
         }
         if (content === 'about') {
             if (helpButton) {
@@ -651,7 +642,7 @@ class App {
     }
 
     togglePopulationInfo(): void {
-        const population = this.populationEl || document.getElementById('population');
+        const population = this.populationEl ?? document.getElementById('population');
         if (population) {
             population.classList.toggle('visible');
         }
@@ -676,14 +667,12 @@ class App {
             'name',
             'height=' + popupHeight + ',width=' + popupWidth + ',top=' + top + ',left=' + left
         );
-        if (window.focus && newwindow) {
-            newwindow.focus();
-        }
+        newwindow?.focus();
     }
 
     animateParchment(origin: string, destination: string): void {
         const self = this,
-            parchment = this.parchmentEl || document.getElementById('parchment');
+            parchment = this.parchmentEl ?? document.getElementById('parchment');
         let duration = 1;
 
         if (!parchment) {
@@ -716,17 +705,17 @@ class App {
     }
 
     animateMessages(): void {
-        const messages = this.notificationWrapperEl || document.querySelector('#notifications div');
+        const messages = this.notificationWrapperEl ?? document.querySelector('#notifications div');
         if (messages) {
             messages.classList.add('top');
         }
     }
 
     resetMessagesPosition(): void {
-        const wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
-            message1 = this.message1El || document.getElementById('message1'),
-            message2 = this.message2El || document.getElementById('message2'),
-            message = message2 ? message2.textContent : '';
+        const wrapper = this.notificationWrapperEl ?? document.querySelector('#notifications div'),
+            message1 = this.message1El ?? document.getElementById('message1'),
+            message2 = this.message2El ?? document.getElementById('message2'),
+            message = message2 ? message2.textContent : null;
 
         if (wrapper) {
             wrapper.classList.remove('top');
@@ -735,13 +724,13 @@ class App {
             message2.textContent = '';
         }
         if (message1) {
-            message1.textContent = message || '';
+            message1.textContent = message ?? '';
         }
     }
 
     showMessage(message: string): void {
-        const wrapper = this.notificationWrapperEl || document.querySelector('#notifications div'),
-            messageEl = this.message2El || document.getElementById('message2');
+        const wrapper = this.notificationWrapperEl ?? document.querySelector('#notifications div'),
+            messageEl = this.message2El ?? document.getElementById('message2');
 
         this.animateMessages();
         if (messageEl) {

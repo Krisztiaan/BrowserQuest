@@ -29,18 +29,19 @@ test('metrics client uses modern Memcache API when available', async () => {
             }
         }
 
-        async connect() {
+        connect(): Promise<void> {
             this.connectHandler?.();
+            return Promise.resolve();
         }
 
-        async set(key: string, value: unknown) {
+        set(key: string, value: unknown): Promise<boolean> {
             keys.push(`${key}:${String(value)}`);
-            return true;
+            return Promise.resolve(true);
         }
 
-        async get(key: string) {
+        get(key: string): Promise<string> {
             keys.push(key);
-            return '9';
+            return Promise.resolve('9');
         }
     }
 
@@ -81,18 +82,19 @@ test('metrics client supports modern default export API and resolves connect/set
             }
         }
 
-        async connect() {
+        connect(): Promise<void> {
             this.connectHandler?.();
+            return Promise.resolve();
         }
 
-        async set(key: string, value: unknown) {
+        set(key: string, value: unknown): Promise<boolean> {
             keys.push(`${key}:${String(value)}`);
-            return true;
+            return Promise.resolve(true);
         }
 
-        async get(key: string) {
+        get(key: string): Promise<string> {
             keys.push(key);
-            return '9';
+            return Promise.resolve('9');
         }
     }
 
@@ -129,14 +131,14 @@ test('metrics client surfaces modern connect failures through onError hook', asy
     class ModernMemcacheClient {
         constructor(_endpoint: string) {}
         on(_event: string, _cb: () => void) {}
-        async connect() {
-            throw new Error('connect refused');
+        connect(): Promise<void> {
+            return Promise.reject(new Error('connect refused'));
         }
-        async set() {
-            return true;
+        set(): Promise<boolean> {
+            return Promise.resolve(true);
         }
-        async get() {
-            return '0';
+        get(): Promise<string> {
+            return Promise.resolve('0');
         }
     }
 
@@ -157,12 +159,14 @@ test('metrics client surfaces modern read/write operation failures through onOpe
     class ModernMemcacheClient {
         constructor(_endpoint: string) {}
         on(_event: string, _cb: () => void) {}
-        async connect() {}
-        async set() {
-            throw new Error('write timeout');
+        connect(): Promise<void> {
+            return Promise.resolve();
         }
-        async get() {
-            throw new Error('read timeout');
+        set(): Promise<boolean> {
+            return Promise.reject(new Error('write timeout'));
+        }
+        get(): Promise<string> {
+            return Promise.reject(new Error('read timeout'));
         }
     }
 

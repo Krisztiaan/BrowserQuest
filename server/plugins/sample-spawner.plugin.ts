@@ -34,7 +34,7 @@ const plugin: ServerPlugin = {
             }
 
             const ctx = rawCtx as { tick: number };
-            if (!ctx || typeof ctx.tick !== 'number' || ctx.tick <= 0) {
+            if (typeof ctx.tick !== 'number' || ctx.tick <= 0) {
                 return;
             }
 
@@ -59,4 +59,3 @@ const plugin: ServerPlugin = {
 };
 
 export default plugin;
-

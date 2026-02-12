@@ -1,5 +1,6 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
+import { killBunProcess } from '../../support/process-cleanup';
 import WebSocket from '../../support/ws-client';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
@@ -23,7 +24,7 @@ async function getFreePort() {
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         try {
             const res = await fetch(url);
             if (res.ok) return;
@@ -40,14 +41,9 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
 
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 
-afterEach(() => {
-    try {
-        proc?.kill();
-    } catch (_) {
-        // ignore
-    } finally {
-        proc = null;
-    }
+afterEach(async () => {
+    await killBunProcess(proc);
+    proc = null;
 });
 
 test("server entry sends initial 'go' handshake", async () => {
@@ -79,11 +75,15 @@ test("server entry sends initial 'go' handshake", async () => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 3000);
         ws.once('error', (err) => {
             clearTimeout(timeout);
-            reject(err);
+            reject(err instanceof Error ? err : new Error(String(err)));
         });
         ws.once('message', (data) => {
             clearTimeout(timeout);
-            resolve(data.toString());
+            if (typeof data !== 'string') {
+                reject(new Error(`Expected string handshake, got ${typeof data}`));
+                return;
+            }
+            resolve(data);
             try {
                 ws.close();
             } catch (_) {

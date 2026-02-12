@@ -29,12 +29,10 @@ function cloneClientRuntimeMap(map: ClientRuntimeMap): ClientRuntimeMap {
 let cachedClientRuntimeMap: ClientRuntimeMap | null = null;
 
 function loadClientRuntimeMap(): ClientRuntimeMap {
-  if (!cachedClientRuntimeMap) {
-    cachedClientRuntimeMap = processMap(tiledWorldMap, { mode: 'client', quiet: true }) as ClientRuntimeMap;
-  }
+  cachedClientRuntimeMap ??= processMap(tiledWorldMap, { mode: 'client', quiet: true }) as ClientRuntimeMap;
   return cloneClientRuntimeMap(cachedClientRuntimeMap);
 }
 
-export async function fetchClientRuntimeMap(): Promise<ClientRuntimeMap> {
-  return loadClientRuntimeMap();
+export function fetchClientRuntimeMap(): Promise<ClientRuntimeMap> {
+  return Promise.resolve(loadClientRuntimeMap());
 }

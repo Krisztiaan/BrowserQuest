@@ -156,10 +156,10 @@ export function spawnStaticEntitiesForWorld({
     onMobMove,
     createItem,
     addStaticItem,
-}: SpawnStaticEntitiesForWorldParams): void {
-    let count = 0;
+    }: SpawnStaticEntitiesForWorldParams): void {
+        let count = 0;
 
-    Object.keys(staticEntities || {}).forEach((tileId) => {
+    Object.keys(staticEntities ?? {}).forEach((tileId) => {
         const kindName = (staticEntities as Record<string, string>)[tileId];
         if (!kindName) {
             return;

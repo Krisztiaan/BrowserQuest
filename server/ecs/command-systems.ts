@@ -83,10 +83,6 @@ export function mapDomainEventToProtocolAction(event: DomainEvent): OutboxMessag
         return [{ kind: 'to_player', playerId: event.playerId, action }];
     }
 
-    if (event.type === 'MOB_KILLED') {
-        const action: ServerToClientProtocolAction = [Types.Messages.KILL, event.mobKind];
-        return [{ kind: 'to_player', playerId: event.killerId, action }];
-    }
-
-    return [];
+    const action: ServerToClientProtocolAction = [Types.Messages.KILL, event.mobKind];
+    return [{ kind: 'to_player', playerId: event.killerId, action }];
 }

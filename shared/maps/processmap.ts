@@ -273,9 +273,6 @@ export default function processMap(
             log.info("Processing roaming areas...");
             const roamingAreas = (map.roamingAreas ??= []);
             for (const [i, area] of (objectLayer.objects ?? []).entries()) {
-                if (!area) {
-                    continue;
-                }
                 const nb = getPropertyValue(area, "nb") ?? getFirstPropertyValue(area);
                 roamingAreas[i] = {
                     id: i,
@@ -293,7 +290,7 @@ export default function processMap(
         if (objectLayer.name === "chestareas" && mode === "server") {
             log.info("Processing chest areas...");
             const chestAreas = (map.chestAreas ??= []);
-            for (const area of objectLayer.objects || []) {
+            for (const area of objectLayer.objects ?? []) {
                 const chestArea: Record<string, unknown> = {
                     x: area.x / map.tilesize,
                     y: area.y / map.tilesize,
@@ -321,12 +318,14 @@ export default function processMap(
         if (objectLayer.name === "chests" && mode === "server") {
             log.info("Processing static chests...");
             const staticChests = (map.staticChests ??= []);
-            for (const chest of objectLayer.objects || []) {
+            for (const chest of objectLayer.objects ?? []) {
                 const items = getPropertyValue(chest, "items") ?? getFirstPropertyValue(chest) ?? "";
+                const itemsCsv =
+                    typeof items === "string" ? items : typeof items === "number" ? String(items) : "";
                 staticChests.push({
                     x: chest.x / map.tilesize,
                     y: chest.y / map.tilesize,
-                    i: String(items)
+                    i: itemsCsv
                         .split(",")
                         .map((name) => name.trim())
                         .filter(Boolean)
@@ -345,7 +344,7 @@ export default function processMap(
         if (objectLayer.name === "music" && mode === "client") {
             log.info("Processing music areas...");
             const musicAreas = (map.musicAreas ??= []);
-            for (const music of objectLayer.objects || []) {
+            for (const music of objectLayer.objects ?? []) {
                 const musicId = getPropertyValue(music, "id") ?? getFirstPropertyValue(music);
                 musicAreas.push({
                     x: music.x / map.tilesize,
@@ -361,7 +360,7 @@ export default function processMap(
         if (objectLayer.name === "checkpoints") {
             log.info("Processing check points...");
             let count = 0;
-            for (const checkpoint of objectLayer.objects || []) {
+            for (const checkpoint of objectLayer.objects ?? []) {
                 const cp: ExportedCheckpoint = {
                     id: ++count,
                     x: checkpoint.x / map.tilesize,
@@ -390,9 +389,7 @@ export default function processMap(
     if (mode === "client") {
         const data = (map.data ??= []);
         for (let i = 0; i < data.length; i += 1) {
-            if (!data[i]) {
-                data[i] = 0;
-            }
+            data[i] ??= 0;
         }
     }
 

@@ -6,19 +6,18 @@ class Logger {
     }
 
     info(message: unknown) {
-        if ((this.level === 'debug' || this.level === 'info') && globalThis.console) {
+        if (this.level === 'debug' || this.level === 'info') {
             console.info(message);
         }
     }
 
     debug(message: unknown) {
-        if (this.level === 'debug' && globalThis.console) {
+        if (this.level === 'debug') {
             console.log(message);
         }
     }
 
     error(message: unknown, stacktrace?: boolean) {
-        if (!globalThis.console) return;
         console.error(message);
         if (stacktrace === true) {
             console.error(new Error().stack);

@@ -108,7 +108,7 @@ class Updater {
     }
 
     updateEntityFading(entity: UpdaterEntity): void {
-        if (entity?.isFading) {
+        if ('isFading' in entity && entity.isFading) {
             const duration = 1000,
                 t = this.game.currentTime,
                 dt = t - entity.startFadingTime;
@@ -129,21 +129,16 @@ class Updater {
     updateTransitions(): void {
         const self = this,
             z = this.game.currentZoning;
-        let m = null;
 
         this.game.forEachEntity(function (entity) {
-            m = entity.movement;
-            if (m) {
-                if (m.inProgress) {
-                    m.step(self.game.currentTime);
-                }
+            const movement = entity.movement;
+            if (movement?.inProgress) {
+                movement.step(self.game.currentTime);
             }
         });
 
-        if (z) {
-            if (z.inProgress) {
-                z.step(this.game.currentTime);
-            }
+        if (z?.inProgress) {
+            z.step(this.game.currentTime);
         }
     }
 
@@ -166,7 +161,7 @@ class Updater {
                 offset = (c.gridW - 2) * ts;
                 startValue = orientation === Types.Orientations.LEFT ? c.x - ts : c.x + ts;
                 endValue = orientation === Types.Orientations.LEFT ? c.x - offset : c.x + offset;
-                updateFunc = function (x) {
+                updateFunc = function (x: number) {
                     c.setPosition(x, c.y);
                     g.initAnimatedTiles();
                     g.renderer.renderStaticCanvases();
@@ -179,7 +174,7 @@ class Updater {
                 offset = (c.gridH - 2) * ts;
                 startValue = orientation === Types.Orientations.UP ? c.y - ts : c.y + ts;
                 endValue = orientation === Types.Orientations.UP ? c.y - offset : c.y + offset;
-                updateFunc = function (y) {
+                updateFunc = function (y: number) {
                     c.setPosition(c.x, y);
                     g.initAnimatedTiles();
                     g.renderer.renderStaticCanvases();

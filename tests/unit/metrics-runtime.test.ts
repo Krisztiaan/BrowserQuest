@@ -5,6 +5,11 @@ import MetricsRuntime from '../../server/metrics-runtime';
 const originalConsoleError = console.error;
 const originalLogLevel = Log.getLogger().level;
 
+type NoopMetricsAdapter = {
+    isEnabled: false;
+    meta: Record<string, unknown>;
+};
+
 type BaseConfig = {
     metrics_enabled: boolean;
     memcached_host?: string;
@@ -12,6 +17,16 @@ type BaseConfig = {
     server_name?: string;
     game_servers?: Array<{ name: string }>;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function assertNoopMetricsAdapter(value: unknown): asserts value is NoopMetricsAdapter {
+    if (!isRecord(value) || value.isEnabled !== false || !isRecord(value.meta)) {
+        throw new Error('Expected noop metrics adapter shape');
+    }
+}
 
 function createValidConfig(): BaseConfig {
     return {
@@ -50,8 +65,9 @@ test('metrics runtime returns no-op adapter when metrics are disabled', () => {
                 },
             },
         }
-    ) as any;
+    );
 
+    assertNoopMetricsAdapter(result);
     expect(result.isEnabled).toBe(false);
     expect(result.meta.reason).toBe('disabled');
     expect(memcacheCalls).toBe(0);
@@ -76,8 +92,9 @@ test('metrics runtime emits invalid-config fallback and uses no-op adapter', () 
                 },
             },
         }
-    ) as any;
+    );
 
+    assertNoopMetricsAdapter(result);
     expect(result.isEnabled).toBe(false);
     expect(result.meta.reason).toBe('invalid_config');
     expect(Array.isArray(result.meta.invalidFields)).toBe(true);
@@ -104,8 +121,9 @@ test('metrics runtime emits init-failed fallback when memcache adapter throws', 
                 },
             },
         }
-    ) as any;
+    );
 
+    assertNoopMetricsAdapter(result);
     expect(result.isEnabled).toBe(false);
     expect(result.meta.reason).toBe('init_failed');
     expect(String(result.meta.error)).toContain('adapter unavailable');
@@ -128,7 +146,7 @@ test('metrics runtime returns memcache adapter when configuration is valid', () 
                 createMemcacheMetricsAdapter: () => expectedAdapter,
             },
         }
-    ) as any;
+    );
 
     expect(result).toBe(expectedAdapter);
     expect(emitted.length).toBe(0);
@@ -147,7 +165,7 @@ test('metrics runtime wires structured metrics-ready signal via memcache adapter
             adapters: {
                 createNoopMetricsAdapter: (meta: Record<string, unknown>) => ({ isEnabled: false, meta }),
                 createMemcacheMetricsAdapter: (_config: BaseConfig, options: { onReady?: () => void } | undefined) => {
-                    onReadyHook = options?.onReady || null;
+                    onReadyHook = options?.onReady ?? null;
                     return { isEnabled: true };
                 },
             },
@@ -179,7 +197,7 @@ test('metrics runtime forwards adapter unavailability signals with stable reason
                     _config: BaseConfig,
                     options: { onUnavailable?: (reason: string, details?: Record<string, unknown>) => void } | undefined
                 ) => {
-                    onUnavailableHook = options?.onUnavailable || null;
+                    onUnavailableHook = options?.onUnavailable ?? null;
                     return { isEnabled: true };
                 },
             },

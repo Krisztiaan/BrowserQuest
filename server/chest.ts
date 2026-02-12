@@ -16,9 +16,9 @@ class Chest extends Item {
         this.items = items;
     }
 
-    getRandomItem(): unknown | null {
+    getRandomItem(): unknown {
         const nbItems = this.items.length;
-        let item: unknown | null = null;
+        let item: unknown = null;
 
         if (nbItems > 0) {
             item = this.items[Utils.random(nbItems)];

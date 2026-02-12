@@ -98,11 +98,11 @@ function getInvalidFields(config: MetricsConfig): string[] {
 
 function createMetrics(
     config: MetricsConfig,
-    emitServerEvent?: EmitServerEvent | unknown,
+    emitServerEvent?: unknown,
     options?: RuntimeOptions
 ): unknown {
-    const runtimeOptions = options || {};
-    const adapters = runtimeOptions.adapters || {
+    const runtimeOptions = options ?? {};
+    const adapters = runtimeOptions.adapters ?? {
         createNoopMetricsAdapter: NoopAdapter.createNoopMetricsAdapter,
         createMemcacheMetricsAdapter: MemcacheAdapter.createMemcacheMetricsAdapter,
     };

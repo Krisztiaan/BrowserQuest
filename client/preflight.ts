@@ -10,10 +10,10 @@ if (!Detect.supportsWebSocket() && parchment) {
     parchment.className = 'error';
 }
 
-if (canvas && canvas.getContext) {
-    const ctx = canvas.getContext('2d');
-    const smoothingCtx = ctx as (CanvasRenderingContext2D & { mozImageSmoothingEnabled?: boolean }) | null;
-    if (smoothingCtx && smoothingCtx.mozImageSmoothingEnabled === undefined) {
+const ctx = canvas?.getContext('2d');
+if (ctx) {
+    const smoothingCtx = ctx as CanvasRenderingContext2D & { mozImageSmoothingEnabled?: boolean };
+    if (smoothingCtx.mozImageSmoothingEnabled === undefined) {
         document.body.className += ' upscaled';
     }
 }
@@ -28,7 +28,7 @@ if (!supportsLocalStorage()) {
     if (target) {
         document.body.insertBefore(alert, target);
     }
-} else if (globalThis.localStorage && globalThis.localStorage.getItem(STORAGE_KEY)) {
+} else if (globalThis.localStorage.getItem(STORAGE_KEY)) {
     document.body.className += ' returning';
     if (parchment) {
         parchment.className = 'loadcharacter';

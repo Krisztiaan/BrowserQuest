@@ -7,7 +7,7 @@ import type {
 } from '../../../../server/runtime-types';
 import * as MainRuntimeModule from '../../../../server/runtime';
 
-const MainRuntime = MainRuntimeModule as any;
+const MainRuntime = MainRuntimeModule;
 
 test('main runtime dependency helper uses injected boundaries when provided', () => {
     class MultiVersionWebsocketServer implements RuntimeServer {

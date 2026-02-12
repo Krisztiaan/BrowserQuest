@@ -23,26 +23,26 @@ const WsRuntime = WsRuntimeModule as MainRuntimeDependencies['ws'];
 const log = Log.getLogger();
 
 function createRuntimeDependencies(overrides?: MainRuntimeDependencyOverrides): MainRuntimeDependencies {
-    const injected = overrides || {};
+    const injected = overrides ?? {};
     return {
-        ws: injected.ws || WsRuntime,
-        WorldServer: injected.WorldServer || (WorldServer as unknown as MainRuntimeDependencies['WorldServer']),
-        Player: injected.Player || (Player as unknown as MainRuntimeDependencies['Player']),
-        metricsRuntime: injected.metricsRuntime || (MetricsRuntime as unknown as MainRuntimeDependencies['metricsRuntime']),
-        logger: injected.logger || log,
-        processObject: injected.processObject || (process as unknown as RuntimeProcessLike),
+        ws: injected.ws ?? WsRuntime,
+        WorldServer: injected.WorldServer ?? (WorldServer as unknown as MainRuntimeDependencies['WorldServer']),
+        Player: injected.Player ?? (Player as unknown as MainRuntimeDependencies['Player']),
+        metricsRuntime: injected.metricsRuntime ?? (MetricsRuntime as unknown as MainRuntimeDependencies['metricsRuntime']),
+        logger: injected.logger ?? log,
+        processObject: injected.processObject ?? (process as unknown as RuntimeProcessLike),
         setIntervalFn:
-            injected.setIntervalFn ||
+            injected.setIntervalFn ??
             function (handler, timeoutMs) {
                 return setInterval(handler, timeoutMs);
             },
         setTimeoutFn:
-            injected.setTimeoutFn ||
+            injected.setTimeoutFn ??
             function (handler, timeoutMs) {
                 return setTimeout(handler, timeoutMs);
             },
         clearIntervalFn:
-            injected.clearIntervalFn ||
+            injected.clearIntervalFn ??
             function (timerHandle) {
                 clearInterval(timerHandle as Parameters<typeof clearInterval>[0]);
             },
@@ -168,13 +168,28 @@ function createFatalReporter(
     };
 
     return function (label, err) {
-        const eventName = fatalEvents[label] || SERVER_EVENT_NAMES.FATAL_UNKNOWN;
+        const eventName = fatalEvents[label] ?? SERVER_EVENT_NAMES.FATAL_UNKNOWN;
         if (typeof err === 'object' && err !== null && 'stack' in err) {
+            const safeJson = (value: unknown): string => {
+                try {
+                    const json = JSON.stringify(value);
+                    return typeof json === 'string' ? json : String(Object.prototype.toString.call(value));
+                } catch {
+                    return String(Object.prototype.toString.call(value));
+                }
+            };
             const stack = String((err as { stack?: unknown }).stack);
+            const messageValue = 'message' in err ? (err as { message?: unknown }).message : undefined;
+            const message =
+                typeof messageValue === 'string'
+                    ? messageValue
+                    : messageValue !== undefined
+                        ? safeJson(messageValue)
+                        : safeJson(err);
             logger.error(label + ': ' + stack);
             emitServerEvent('error', eventName, {
                 source: label,
-                message: String((err as { message?: unknown }).message || err),
+                message: message,
                 stack: stack,
             });
         } else {
@@ -247,7 +262,7 @@ function triggerFatalTestEvent(
     setTimeoutFn: MainRuntimeDependencies['setTimeoutFn'],
     reportFatal: (label: string, err: unknown) => void
 ): void {
-    const runtimeEnv = env || {};
+    const runtimeEnv = env ?? {};
     const fatalTestTrigger = runtimeEnv.BQ_TEST_TRIGGER_FATAL_EVENT;
     if (fatalTestTrigger === 'unhandled_rejection') {
         setTimeoutFn(function () {
@@ -278,7 +293,7 @@ function createRuntimeCleanup(teardownHandlers?: unknown[]): () => void {
 }
 
 function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: () => void } | undefined {
-    const runtimeOptions = options || {};
+    const runtimeOptions = options ?? {};
     const validationResult = ConfigPreflight.validateConfig(config);
     const dependencies = createRuntimeDependencies(runtimeOptions.dependencies);
     const logger = dependencies.logger;

@@ -434,12 +434,10 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
 
                 attacker.previousTarget = target;
                 attacker.disengage();
-                attacker.idle?.();
+                attacker.idle();
                 host.makeCharacterGoTo(attacker as unknown, command.x, command.y);
 
-                if (target.adjacentTiles && typeof target.adjacentTiles === 'object') {
-                    target.adjacentTiles[String(command.orientation)] = true;
-                }
+                target.adjacentTiles[String(command.orientation)] = true;
                 break;
             }
             case 'characterLookAtTarget': {
@@ -741,10 +739,11 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 const character = adapted.entity as GridIndexedEntity;
                 character.setSprite(host.sprites[character.getSpriteName()] ?? null);
                 character.setGridPosition(view.position.x, view.position.y);
-                if (typeof character.setOrientation === 'function') {
-                    character.setOrientation(safeOrientation(adapted.orientation));
+                const maybeOrientable = character as unknown as { setOrientation?: (orientation: number) => void };
+                if (typeof maybeOrientable.setOrientation === 'function') {
+                    maybeOrientable.setOrientation(safeOrientation(adapted.orientation));
                 }
-                character.idle?.();
+                (character as unknown as { idle?: () => void }).idle?.();
                 host.addEntity(character as unknown);
 
                 if (adapted.targetId !== undefined) {

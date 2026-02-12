@@ -68,7 +68,7 @@ class Camera {
     }
 
     forEachVisiblePosition(callback: (x: number, y: number) => void, extra?: number): void {
-        const extraRange = extra || 0;
+        const extraRange = extra ?? 0;
         for (let y = this.gridY - extraRange, maxY = this.gridY + this.gridH + (extraRange * 2); y < maxY; y += 1) {
             for (let x = this.gridX - extraRange, maxX = this.gridX + this.gridW + (extraRange * 2); x < maxX; x += 1) {
                 callback(x, y);

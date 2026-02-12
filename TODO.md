@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 16:48 UTC
+Last updated: 2026-02-12 19:17 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -47,6 +47,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 40. Ticket 77 (`done`) - Protocol sends via ECS commands
 41. Ticket 78 (`done`) - Stabilize smoke parity timeout
 42. Ticket 79 (`done`) - Lint unused modules/exports
+43. Ticket 80 (`done`) - Burn down lint warnings to zero
 
 ## Ticket 72: MOVE Outbox Emits Commands Only
 
@@ -334,6 +335,43 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Optional: reduce warning budget or enforce `--max-warnings 0` once the repo is ready.
+
+## Ticket 80: Burn Down Lint Warnings To Zero
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Fix all remaining ESLint warnings across the TS codebase.
+  - Update `bun run lint` to fail on warnings (enforce `--max-warnings 0`) once warning count is zero.
+- Out of scope:
+  - Gameplay behavior changes (ECS/interaction logic correctness is covered by other tickets).
+- Acceptance criteria:
+  - `bun run lint` produces 0 warnings (clean output).
+  - `bun run lint` fails on future warnings (`--max-warnings 0` enforced).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run lint`
+  - `bun run lint --max-warnings 0`
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 79.
+
+### Progress log
+
+- Start: 2026-02-12 16:53 UTC
+- End: 2026-02-12 19:17 UTC
+- Status: `done`
+- Key actions:
+  - Burned down all remaining ESLint warnings across client/server/shared/tests and enforced `--max-warnings 0` in `bun run lint`.
+  - Fixed full-suite smoke test flake by awaiting Bun server process exits in teardown (`killBunProcess` helper + smoke test updates).
+- Evidence:
+  - `bun run lint` (pass; 0 warnings)
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Commit and begin legacy removal audit (focus: ECS-only control flow + delete unused modules).
 
 ## Ticket 71: Replication Sync Emits Commands Only
 

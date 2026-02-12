@@ -66,7 +66,7 @@ class MobArea extends Area {
         const pos = this._getRandomPositionInsideArea();
         const mob = new Mob(entityIdFromWire(Number('1' + this.id + '' + k + '' + this.entities.length)), k, pos.x, pos.y);
 
-        mob.on('move', this.world.onMobMoveCallback.bind(this.world));
+        mob.on('move', (m: MobAreaMobContract) => this.world.onMobMoveCallback(m));
 
         return mob;
     }

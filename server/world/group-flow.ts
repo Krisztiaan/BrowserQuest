@@ -163,7 +163,7 @@ export function pushWorldSpawnsToPlayer<TSpawnableEntity>({
     createSpawnMessage,
     logDebug,
 }: PushWorldSpawnsToPlayerParams<TSpawnableEntity>): void {
-    const spawnIds = ids || [];
+    const spawnIds = ids ?? [];
     pushSpawnEntitiesToPlayer({
         spawnIds,
         getEntityById,
@@ -177,7 +177,7 @@ export function pushWorldSpawnsToPlayer<TSpawnableEntity>({
 }
 
 export function pushMessageToPreviouslyLeftGroups(player: PreviousGroupsPlayer, pushToGroup: PushToGroupFn): void {
-    const previouslyLeftGroups = player.recentlyLeftGroups || [];
+    const previouslyLeftGroups = player.recentlyLeftGroups ?? [];
     for (let index = 0; index < previouslyLeftGroups.length; index += 1) {
         const groupId = previouslyLeftGroups[index];
         if (groupId !== undefined) {

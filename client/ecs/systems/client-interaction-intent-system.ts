@@ -132,24 +132,23 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         return;
     }
 
-    if (intent.kind === 'open') {
-        if (!(target instanceof Chest)) {
-            clearClientInteractionIntentWithSideEffects(host);
-            return;
-        }
-        const adjacent = isAdjacentNonDiagonal(host.player.gridX, host.player.gridY, target.gridX, target.gridY);
-        if (adjacent) {
-            host.kernel.enqueueClientCommand({ type: 'playerStop' });
-            host.kernel.enqueueClientCommand({ type: 'clientSendOpen', chestId: target.id });
-            host.kernel.enqueueClientCommand({ type: 'playerDisengage' });
-            host.kernel.enqueueClientCommand({ type: 'playerIdle' });
-            clearClientInteractionIntentWithSideEffects(host);
-            return;
-        }
-        const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
-        if (hasTargetMoved || !isMoving) {
-            host.kernel.enqueueClientCommand({ type: 'playerOpenChest', chestId: target.id });
-        }
+    // Remaining kind is 'open'.
+    if (!(target instanceof Chest)) {
+        clearClientInteractionIntentWithSideEffects(host);
         return;
     }
+    const adjacent = isAdjacentNonDiagonal(host.player.gridX, host.player.gridY, target.gridX, target.gridY);
+    if (adjacent) {
+        host.kernel.enqueueClientCommand({ type: 'playerStop' });
+        host.kernel.enqueueClientCommand({ type: 'clientSendOpen', chestId: target.id });
+        host.kernel.enqueueClientCommand({ type: 'playerDisengage' });
+        host.kernel.enqueueClientCommand({ type: 'playerIdle' });
+        clearClientInteractionIntentWithSideEffects(host);
+        return;
+    }
+    const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
+    if (hasTargetMoved || !isMoving) {
+        host.kernel.enqueueClientCommand({ type: 'playerOpenChest', chestId: target.id });
+    }
+    return;
 }

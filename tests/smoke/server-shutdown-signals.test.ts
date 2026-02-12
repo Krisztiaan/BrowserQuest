@@ -1,5 +1,6 @@
 import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
+import { killBunProcess } from '../support/process-cleanup';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
@@ -22,7 +23,7 @@ async function getFreePort() {
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
      
-    while (true) {
+    for (;;) {
         try {
             const res = await fetch(url);
             if (res.ok) return;
@@ -47,21 +48,16 @@ async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs 
             })
             .catch((error) => {
                 clearTimeout(timeout);
-                reject(error);
+                reject(error instanceof Error ? error : new Error(String(error)));
             });
     });
 }
 
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 
-afterEach(() => {
-    try {
-        proc?.kill();
-    } catch (_) {
-        // ignore
-    } finally {
-        proc = null;
-    }
+afterEach(async () => {
+    await killBunProcess(proc);
+    proc = null;
 });
 
 async function runSignalShutdownScenario(signal: 'SIGTERM' | 'SIGINT') {

@@ -25,7 +25,7 @@ class FormatChecker {
 
 const checker = new FormatChecker();
 
-const check = checker.check.bind(checker);
+const check = (msg: unknown[]): boolean => checker.check(msg);
 
 export { FormatChecker, check };
 export default { FormatChecker, check };

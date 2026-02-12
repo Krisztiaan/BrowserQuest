@@ -137,14 +137,10 @@ export function createAchievementDefinitions(storage: AchievementStorage): Recor
 
     Object.keys(achievements).forEach(function (key) {
         const achievement = achievements[key];
-        if (!achievement.isCompleted) {
-            achievement.isCompleted = function () {
-                return true;
-            };
-        }
-        if (!achievement.hidden) {
-            achievement.hidden = false;
-        }
+        achievement.isCompleted ??= function () {
+            return true;
+        };
+        achievement.hidden ??= false;
     });
 
     return achievements;

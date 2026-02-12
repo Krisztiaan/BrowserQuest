@@ -21,21 +21,19 @@ afterEach(() => {
 });
 
 test('format checker validates representative actions', () => {
-    const samples: unknown[][] = [
-        [MSG_HELLO, 'player', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1],
-        [MSG_MOVE, 12, 9],
-        [MSG_CHAT, 'hello'],
-        [MSG_WHO, 1001, 1002],
-        [MSG_WHO, 'bad'],
-        [MSG_MOVE, 12.5, 9],
-    ];
+    const hello: unknown[] = [MSG_HELLO, 'player', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1];
+    const moveOk: unknown[] = [MSG_MOVE, 12, 9];
+    const chat: unknown[] = [MSG_CHAT, 'hello'];
+    const whoOk: unknown[] = [MSG_WHO, 1001, 1002];
+    const whoBad: unknown[] = [MSG_WHO, 'bad'];
+    const moveBad: unknown[] = [MSG_MOVE, 12.5, 9];
 
-    expect(check(samples[0])).toBe(true);
-    expect(check(samples[1])).toBe(true);
-    expect(check(samples[2])).toBe(true);
-    expect(check(samples[3])).toBe(true);
-    expect(check(samples[4])).toBe(false);
-    expect(check(samples[5])).toBe(false);
+    expect(check(hello)).toBe(true);
+    expect(check(moveOk)).toBe(true);
+    expect(check(chat)).toBe(true);
+    expect(check(whoOk)).toBe(true);
+    expect(check(whoBad)).toBe(false);
+    expect(check(moveBad)).toBe(false);
 });
 
 test('format checker class instance validates payloads', () => {
