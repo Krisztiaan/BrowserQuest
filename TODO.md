@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 20:10 UTC
+Last updated: 2026-02-12 20:18 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -51,6 +51,46 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 44. Ticket 81 (`done`) - Replace client updater loop with ECS systems
 45. Ticket 82 (`done`) - Client spatial index from kernel (remove legacy grids)
 46. Ticket 83 (`done`) - Client interaction systems use kernel spatial records
+47. Ticket 84 (`done`) - Remove legacy client lookup/iterator modules
+
+## Ticket 84: Remove Legacy Client Lookup/Iterator Modules
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Remove `client/game-entity-lookups.ts` and `client/game-visibility-iterators.ts`.
+  - Inline/replace the remaining call sites in `client/game.ts` and `client/renderer.ts`.
+  - Remove unused `Game.getEntityAt/getMobAt/getItemAt/...` helpers now that ECS systems are kernel-driven.
+- Out of scope:
+  - Rendering modernization and entity-object removal.
+- Acceptance criteria:
+  - `client/game-entity-lookups.ts` and `client/game-visibility-iterators.ts` are deleted.
+  - `client/game.ts` no longer defines `getEntityAt/getMobAt/getItemAt/getNpcAt/getChestAt` and related `is*At` helpers.
+  - `bun run lint` passes (0 warnings).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run lint`
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 83.
+
+### Progress log
+
+- Start: 2026-02-12 20:11 UTC
+- End: 2026-02-12 20:18 UTC
+- Status: `done`
+- Key actions:
+  - Deleted `client/game-entity-lookups.ts` and `client/game-visibility-iterators.ts`.
+  - Inlined entity iteration, depth iteration, and visible tile iteration into `client/game.ts`.
+  - Removed unused renderer `getEntityAt` dependency and attack-target debug hook.
+- Evidence:
+  - `bun run lint` (pass; 0 warnings)
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Reduce remaining legacy `Game` surface area by moving more host methods behind commands + kernel views (renderer becomes the last legacy holdout).
 
 ## Ticket 83: Client Interaction Systems Use Kernel Spatial Records
 

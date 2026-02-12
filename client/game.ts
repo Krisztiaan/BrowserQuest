@@ -8,14 +8,6 @@ import { initializeGameConnection } from './runtime/connection';
 import { bootstrapGameRuntime } from './game-runtime-bootstrap';
 import { initializeGameSpatialState } from './game-spatial-state';
 import {
-    forEachAnimatedGameTile,
-    forEachEntityByDepthInView,
-    forEachGameEntity,
-    forEachGameMob,
-    forEachVisibleGameTile,
-    forEachVisibleGameTileIndex,
-} from './game-visibility-iterators';
-import {
     areSpritesLoaded,
     loadSpriteForScale as loadSpriteForScaleRuntime,
     loadSpriteScale as loadSpriteScaleRuntime,
@@ -29,13 +21,6 @@ import {
     initGameShadows,
     initGameSilhouettes,
 } from './game-visual-runtime';
-import {
-    getChestAtPosition,
-    getEntityAtPosition,
-    getItemAtPosition,
-    getMobAtPosition,
-    getNpcAtPosition,
-} from './game-entity-lookups';
 import AnimatedTile from './tile';
 import Warrior from './warrior';
 import type GameClient from './gameclient';
@@ -795,7 +780,9 @@ class Game extends Evented<GameEvents> {
      * Loops through all the entities currently present in the game.
      */
     forEachEntity(callback: (entity: GridIndexedEntity) => void) {
-        forEachGameEntity(this, callback);
+        Object.keys(this.entities).forEach((id: string) => {
+            callback(this.entities[id]);
+        });
     }
 
     /**
@@ -803,7 +790,12 @@ class Game extends Evented<GameEvents> {
      * @see forEachEntity
      */
     forEachMob(callback: (mob: Mob) => void) {
-        forEachGameMob(this, callback);
+        Object.keys(this.entities).forEach((id: string) => {
+            const entity = this.entities[id];
+            if (entity instanceof Mob) {
+                callback(entity);
+            }
+        });
     }
 
     /**
@@ -812,74 +804,76 @@ class Game extends Evented<GameEvents> {
      * Note: This is used by the Renderer to know in which order to render entities.
      */
     forEachVisibleEntityByDepth(callback: (entity: GridIndexedEntity) => void) {
-        forEachEntityByDepthInView(this, callback);
+        const map = this.map;
+        const renderer = this.renderer;
+        if (!map || !renderer) {
+            return;
+        }
+
+        this.camera.forEachVisiblePosition(
+            (x: number, y: number) => {
+                if (!map.isOutOfBounds(x, y)) {
+                    const ids = this.kernel.getClientRenderIdsAt(x, y);
+                    for (const id of ids) {
+                        const entity = this.entities[String(id)];
+                        if (entity) {
+                            callback(entity);
+                        }
+                    }
+                }
+            },
+            renderer.mobile ? 0 : 2
+        );
     }
 
     /**
      *
      */
     forEachVisibleTileIndex(callback: (tileIndex: number) => void, extra: number) {
-        forEachVisibleGameTileIndex(this, callback, extra);
+        const map = this.map;
+        if (!map) {
+            return;
+        }
+
+        this.camera.forEachVisiblePosition((x: number, y: number) => {
+            if (!map.isOutOfBounds(x, y)) {
+                callback(map.GridPositionToTileIndex(x, y) - 1);
+            }
+        }, extra);
     }
 
     /**
      *
      */
     forEachVisibleTile(callback: (tileId: number, tileIndex: number) => void, extra: number) {
-        forEachVisibleGameTile(this, callback, extra);
+        const map = this.map;
+        if (!map?.isLoaded) {
+            return;
+        }
+
+        this.forEachVisibleTileIndex((tileIndex: number) => {
+            const tileData = map.data[tileIndex];
+            if (Array.isArray(tileData)) {
+                tileData.forEach((id: number) => {
+                    callback(id - 1, tileIndex);
+                });
+                return;
+            }
+
+            if (!Number.isNaN(tileData - 1)) {
+                callback(tileData - 1, tileIndex);
+            }
+        }, extra);
     }
 
     /**
      *
      */
     forEachAnimatedTile(callback: (tile: DirtyAnimatedTile) => void) {
-        forEachAnimatedGameTile(this, callback);
-    }
-
-    /**
-     * Returns the entity located at the given position on the world grid.
-     */
-    getEntityAt(x: number, y: number): GridIndexedEntity | null {
-        return getEntityAtPosition(this, x, y);
-    }
-
-    getMobAt(x: number, y: number): Mob | null {
-        return getMobAtPosition(this, x, y);
-    }
-
-    getNpcAt(x: number, y: number): Npc | null {
-        return getNpcAtPosition(this, x, y);
-    }
-
-    getChestAt(x: number, y: number): Chest | null {
-        return getChestAtPosition(this, x, y);
-    }
-
-    getItemAt(x: number, y: number): Item | null {
-        return getItemAtPosition(this, x, y) as Item | null;
-    }
-
-    /**
-     * Returns true if an entity is located at the given position on the world grid.
-     */
-    isEntityAt(x: number, y: number): boolean {
-        return this.getEntityAt(x, y) !== null;
-    }
-
-    isMobAt(x: number, y: number): boolean {
-        return this.getMobAt(x, y) !== null;
-    }
-
-    isItemAt(x: number, y: number): boolean {
-        return this.getItemAt(x, y) !== null;
-    }
-
-    isNpcAt(x: number, y: number): boolean {
-        return this.getNpcAt(x, y) !== null;
-    }
-
-    isChestAt(x: number, y: number): boolean {
-        return this.getChestAt(x, y) !== null;
+        if (!this.animatedTiles) {
+            return;
+        }
+        this.animatedTiles.forEach((tile: DirtyAnimatedTile) => callback(tile));
     }
 
     /**

@@ -78,7 +78,6 @@ type RendererGameLike = {
     renderer?: Renderer;
     setSpriteScale(scale: number): void;
     getMouseGridPosition(): { x: number; y: number };
-    getEntityAt(x: number, y: number): { x: number; y: number } | null;
     kernel: { clientPathingGrid: number[][] | null };
     debugPathing: boolean;
     camera: Camera;
@@ -330,16 +329,6 @@ class Renderer {
 
         if (this.game.targetCellVisible && !(mouse.x === this.game.selectedX && mouse.y === this.game.selectedY)) {
             this.drawCellHighlight(mouse.x, mouse.y, this.game.targetColor);
-        }
-    }
-
-    drawAttackTargetCell(): void {
-        const mouse = this.game.getMouseGridPosition(),
-            entity = this.game.getEntityAt(mouse.x, mouse.y),
-            s = this.scale;
-
-        if (entity) {
-            this.drawCellRect(entity.x * s, entity.y * s, 'rgba(255, 0, 0, 0.5)');
         }
     }
 
