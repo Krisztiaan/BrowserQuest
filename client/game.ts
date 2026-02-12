@@ -80,6 +80,7 @@ import type { TypedEventSource } from '../shared/typed-event-emitter';
 import type { EntityId } from '../shared/domain/ids';
 import { gridPos, type GridPos } from '../shared/domain/positions';
 import { ClientWorldKernel, type ClientInteractionIntent, type ClientInteractionKind } from './ecs/world-kernel';
+import { runClientInteractionIntentSystem } from './ecs/systems/client-interaction-intent-system';
 
 type GridPosition = { x: number; y: number };
 type GridIndexedEntity = {
@@ -513,109 +514,7 @@ class Game extends Evented<GameEvents> {
     }
 
     runClientInteractionSystem(): void {
-        if (!this.started || !this.client || !this.playerId) {
-            return;
-        }
-        if (this.player.isDead) {
-            this.clearClientInteractionIntent();
-            return;
-        }
-
-        const intent = this.kernel.clientInteractionIntent;
-        if (!intent) {
-            return;
-        }
-
-        const target = this.entities[intent.targetId];
-        if (!target) {
-            if (intent.kind === 'attack') {
-                this.stopPlayerCombat();
-            }
-            this.clearClientInteractionIntent();
-            return;
-        }
-
-        const targetPos = gridPos(target.gridX, target.gridY);
-        const lastPos = intent.lastKnownTargetPos;
-        const hasTargetMoved = !lastPos || lastPos.x !== targetPos.x || lastPos.y !== targetPos.y;
-
-        if (hasTargetMoved) {
-            this.kernel.setClientInteractionIntent({ ...intent, lastKnownTargetPos: targetPos });
-        }
-
-        if (intent.kind === 'loot') {
-            if (!(target instanceof Item)) {
-                this.clearClientInteractionIntent();
-                return;
-            }
-            if (this.player.gridX === target.gridX && this.player.gridY === target.gridY) {
-                this.tryLootAtPlayerPosition();
-                return;
-            }
-            // If pathing stopped early, cancel instead of auto-looting incidental items en route.
-            if (!this.player.isMoving()) {
-                this.clearClientInteractionIntent();
-            }
-            return;
-        }
-
-        if (intent.kind === 'attack') {
-            if (target instanceof Character && target.isDead) {
-                this.stopPlayerCombat();
-                this.clearClientInteractionIntent();
-                return;
-            }
-            if (target instanceof Mob) {
-                if (this.player.isAdjacentNonDiagonal(target)) {
-                    if (!this.player.hasTarget() || this.player.target?.id !== target.id) {
-                        this.makePlayerAttack(target);
-                    }
-                    return;
-                }
-                if (hasTargetMoved || !this.player.isMoving()) {
-                    this.player.follow(target);
-                }
-            }
-            return;
-        }
-
-        if (intent.kind === 'talk') {
-            if (!(target instanceof Npc)) {
-                this.clearClientInteractionIntent();
-                return;
-            }
-            if (this.player.isAdjacentNonDiagonal(target)) {
-                this.player.stop();
-                this.makeNpcTalk(target);
-                this.player.disengage();
-                this.player.idle();
-                this.clearClientInteractionIntent();
-                return;
-            }
-            if (hasTargetMoved || !this.player.isMoving()) {
-                this.makePlayerTalkTo(target);
-            }
-            return;
-        }
-
-        if (intent.kind === 'open') {
-            if (!(target instanceof Chest)) {
-                this.clearClientInteractionIntent();
-                return;
-            }
-            if (this.player.isAdjacentNonDiagonal(target)) {
-                this.player.stop();
-                this.client.sendOpen(target);
-                this.player.disengage();
-                this.player.idle();
-                this.clearClientInteractionIntent();
-                return;
-            }
-            if (hasTargetMoved || !this.player.isMoving()) {
-                this.makePlayerOpenChest(target);
-            }
-            return;
-        }
+        runClientInteractionIntentSystem(this);
     }
 
     stopPlayerCombat(): void {

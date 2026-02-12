@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 11:36 UTC
+Last updated: 2026-02-12 11:39 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -18,6 +18,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 11. Ticket 48 (`done`) - Interaction state cleanup (loot/talk/open)
 12. Ticket 49 (`done`) - Client ECS interaction intent system
 13. Ticket 50 (`done`) - Client interaction system scheduling cleanup
+14. Ticket 51 (`done`) - Extract client interaction intent system module
 
 ## Ticket 45: Mobile Input + Item Loot Pickup
 
@@ -231,6 +232,38 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Optional: extract `runClientInteractionSystem()` into a standalone `client/ecs/systems/*` module.
+
+## Ticket 51: Extract Client Interaction Intent System Module
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Move the interaction intent “system” out of `client/game.ts` into a standalone `client/ecs/systems/*` module.
+  - Keep `Game.runClientInteractionSystem()` as a thin wrapper to preserve call sites.
+- Out of scope:
+  - Rewriting the system to be side-effect free (command queue) or introducing a full client ECS scheduler.
+- Acceptance criteria:
+  - No behavior changes; compilation and tests pass.
+  - `client/game.ts` no longer contains the system logic body (delegates to module).
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 11:37 UTC
+- End: 2026-02-12 11:39 UTC
+- Status: `done`
+- Key actions:
+  - Extracted interaction intent evaluation into `client/ecs/systems/client-interaction-intent-system.ts`.
+  - Left `Game.runClientInteractionSystem()` as a wrapper to preserve call sites and keep the refactor purely structural.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: introduce a lightweight client scheduler to stage multiple systems.
 
 ## Ticket 44: Single-Port Dev Runtime (PORT + Vite Proxy)
 
