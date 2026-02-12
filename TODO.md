@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 12:30 UTC
+Last updated: 2026-02-12 12:35 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -26,6 +26,46 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 19. Ticket 56 (`done`) - Remove legacy wrapper methods (cursor/interaction)
 20. Ticket 57 (`done`) - ECS hover state system (remove movecursor/updateCursor)
 21. Ticket 58 (`done`) - ECS click intent system (remove processPlayerClick/Game.click)
+22. Ticket 59 (`in_progress`) - ECS environment systems (plateau/checkpoint/music)
+
+## Ticket 59: ECS Environment Systems (Plateau/Checkpoint/Music)
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Add a post-update system to maintain player environment state:
+    - `player.isOnPlateau`
+    - checkpoint discovery + `sendCheck` when checkpoint changes
+    - music area updates via `audioManager.updateMusic()`
+  - Remove legacy `updatePlateauMode` / `updatePlayerCheckpoint` methods and their call sites.
+- Out of scope:
+  - Reworking checkpoint logic (server-side behavior) or music area definitions.
+- Acceptance criteria:
+  - Plateau highlighting/hover continues to work.
+  - Checkpoints update when player enters a new checkpoint region.
+  - Music updates when player moves between music areas.
+  - No remaining `updatePlateauMode` / `updatePlayerCheckpoint` methods.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 12:34 UTC
+- End: 2026-02-12 12:35 UTC
+- Status: `done`
+- Key actions:
+  - Added `runClientEnvironmentSystem()` (post-update) to update plateau state, checkpoint discovery (`sendCheck`), and music areas (`audioManager.updateMusic`).
+  - Removed legacy `Game.updatePlateauMode()` / `Game.updatePlayerCheckpoint()` and removed welcome-time call sites.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: move `lastCheckpoint` + plateau flag into kernel resources.
 
 ## Ticket 58: ECS Click Intent System (Remove `processPlayerClick`/`Game.click`)
 

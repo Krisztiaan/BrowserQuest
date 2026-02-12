@@ -82,6 +82,7 @@ import { ClientWorldKernel, type ClientInteractionIntent, type ClientInteraction
 import { ClientFrameScheduler } from './ecs/frame-scheduler';
 import { runClientClickIntentSystem } from './ecs/systems/client-click-intent-system';
 import { runClientCursorSystem } from './ecs/systems/client-cursor-system';
+import { runClientEnvironmentSystem } from './ecs/systems/client-environment-system';
 import { runClientHoverStateSystem } from './ecs/systems/client-hover-state-system';
 import { runClientInteractionIntentSystem } from './ecs/systems/client-interaction-intent-system';
 import { runClientTimeSystem } from './ecs/systems/client-time-system';
@@ -292,6 +293,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler.add('pre_update', (game) => runClientClickIntentSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
         this.frameScheduler.add('update', (game) => runClientUpdaterSystem(game));
+        this.frameScheduler.add('post_update', (game) => runClientEnvironmentSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientInteractionIntentSystem(game));
         this.frameScheduler.add('render', (game) => runClientRenderSystem(game));
         this.zoningOrientation = null;
@@ -1517,29 +1519,6 @@ class Game extends Evented<GameEvents> {
                         })
             );
             this.obsoleteEntities = null;
-        }
-    }
-
-    /**
-     * Change player plateau mode when necessary
-     */
-    updatePlateauMode(): void {
-        if (this.map.isPlateau(this.player.gridX, this.player.gridY)) {
-            this.player.isOnPlateau = true;
-        } else {
-            this.player.isOnPlateau = false;
-        }
-    }
-
-    updatePlayerCheckpoint(): void {
-        const checkpoint = this.map.getCurrentCheckpoint(this.player);
-
-        if (checkpoint) {
-            const lastId = this.player.lastCheckpoint?.id;
-            if (lastId !== checkpoint.id) {
-                this.player.lastCheckpoint = checkpoint;
-                this.client?.sendCheck(checkpoint.id);
-            }
         }
     }
 

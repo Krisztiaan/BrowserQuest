@@ -27,8 +27,7 @@ function applyWelcome(game: Game, id: EntityId, name: string, x: number, y: numb
 
     game.updateBars();
     game.resetCamera();
-    game.updatePlateauMode();
-    game.audioManager?.updateMusic();
+    // Plateau + music updates are handled by ECS post_update systems.
 
     game.addEntity(game.player as unknown as Parameters<Game['addEntity']>[0]);
     const renderer = game.renderer;
