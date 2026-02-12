@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 13:54 UTC
+Last updated: 2026-02-12 14:12 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -37,6 +37,44 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 30. Ticket 67 (`done`) - Remove movement step hooks (spatial sync system)
 31. Ticket 68 (`done`) - Client ECS command buffer + apply system
 32. Ticket 69 (`done`) - Interaction intent executes via commands
+33. Ticket 70 (`in_progress`) - Runtime events emit commands only
+
+## Ticket 70: Runtime Events Emit Commands Only
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Extend `ClientCommand` to cover remaining client runtime side effects currently performed in `client-runtime-event-system`.
+  - Update `runClientRuntimeEventSystem()` to enqueue commands only (no direct host method calls).
+  - Apply those commands in `runClientCommandApplySystem()` and ensure ordering applies welcome before kernel replication sync.
+- Out of scope:
+  - Removing kernel replication sync system.
+  - Refactoring storage/achievements beyond moving to command apply.
+- Acceptance criteria:
+  - `client/ecs/systems/client-runtime-event-system.ts` contains no direct calls to host gameplay methods (add/remove/move/teleport/bubbles/notifications/bars/music) and no direct client sends; it only enqueues commands + updates kernel state.
+  - Welcome path still initializes player, camera, storage, and notifications correctly.
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - Ticket 68.
+
+### Progress log
+
+- Start: 2026-02-12 14:08 UTC
+- End: 2026-02-12 14:12 UTC
+- Status: `done`
+- Key actions:
+  - Extended `ClientCommand` and centralized runtime side effects (welcome, entity list, population, teleport, health, chat, equip, drop, blink) in `runClientCommandApplySystem()`.
+  - Updated `runClientRuntimeEventSystem()` to enqueue commands only.
+  - Ensured command application runs immediately after runtime event ingestion (before kernel replication sync) via scheduler ordering.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Convert kernel replication sync + spatial sync to emit commands (remove direct host mutation from those systems).
 
 ## Ticket 69: Interaction Intent Executes Via Commands
 

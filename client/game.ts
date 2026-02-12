@@ -294,6 +294,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler = new ClientFrameScheduler<Game>();
         this.frameScheduler.add('pre_update', (game) => runClientTimeSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientRuntimeEventSystem(game));
+        this.frameScheduler.add('pre_update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientKernelReplicationSyncSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientSpatialSyncSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientHoverStateSystem(game));
@@ -553,6 +554,14 @@ class Game extends Evented<GameEvents> {
         this.addEntity(item);
     }
 
+    addItemFromUnknown(item: unknown, x: number, y: number): void {
+        if (item instanceof Item) {
+            this.addItem(item, x, y);
+            return;
+        }
+        log.error('Cannot add item. Unknown item reference.');
+    }
+
     removeItem(item: Item | null): void {
         if (item) {
             this.onEntityRemoved(item.id);
@@ -720,6 +729,27 @@ class Game extends Evented<GameEvents> {
     setServerOptions(wsUrl: string, username: string): void {
         this.wsUrl = wsUrl;
         this.username = username;
+    }
+
+    setPlayerId(id: EntityId): void {
+        this.player.id = id;
+        this.playerId = id;
+    }
+
+    setPlayerName(name: string): void {
+        this.player.name = name;
+    }
+
+    setPlayerGridPosition(x: number, y: number): void {
+        this.player.setGridPosition(x, y);
+    }
+
+    setPlayerMaxHitPoints(hp: number): void {
+        this.player.setMaxHitPoints(hp);
+    }
+
+    setPlayerHealth(points: number): void {
+        this.player.hitPoints = points;
     }
 
     loadAudio(): void {

@@ -4,28 +4,115 @@ import Npc from '../../npc';
 import Chest from '../../chest';
 import type Player from '../../player';
 import type { EntityId } from '../../../shared/domain/ids';
+import type { EntityKind } from '../../../shared/entity-kind-domain';
+import { gridPos } from '../../../shared/domain/positions';
+import log from '../../platform/log';
+import Types from '../../../shared/gametypes-browser';
 import type { ClientCommand } from '../client-commands';
 import type { ClientWorldKernel } from '../world-kernel';
 import Exceptions from '../../exceptions';
 
-export type ClientCommandApplySystemHost = Readonly<{
+type GridIndexedEntity = {
+    id: EntityId;
+    kind: EntityKind;
+    gridX: number;
+    gridY: number;
+    setSprite(sprite: unknown): void;
+    setWeaponName?(name: string): void;
+    getSpriteName(): string;
+    getWeaponName?(): string;
+    setGridPosition(x: number, y: number): void;
+    setMaxHitPoints?(hp: number): void;
+    blink?(speed: number): void;
+    dirtyRect?: unknown;
+};
+
+export type ClientCommandApplySystemHost = {
     kernel: ClientWorldKernel;
     started: boolean;
     client: { sendLoot(item: { id: EntityId }): void; sendOpen(chest: { id: EntityId }): void } | null;
     playerId: EntityId | null;
     player: Player;
     emit(eventName: 'notification', message: string): void;
+    emit(eventName: 'nbPlayersChange', worldPlayers: number, totalPlayers: number): void;
+    emit(eventName: 'playerHurt'): void;
+    emit(eventName: 'playerEquipmentChange'): void;
 
     stopPlayerCombat(): void;
     makePlayerGoTo(x: number, y: number): void;
     makePlayerGoToItem(item: Item | null): void;
     getEntityById(id: EntityId): unknown;
+    makeCharacterTeleportTo(entity: unknown, x: number, y: number): void;
 
     makePlayerAttack(mob: Mob): void;
     makePlayerTalkTo(npc: Npc): void;
     makePlayerOpenChest(chest: Chest): void;
     makeNpcTalk(npc: Npc): void;
-}>;
+
+    // Runtime/welcome side effects
+    renderer: { getEntityBoundingRect(entity: unknown): unknown; getPlayerImage(cb: (img: unknown) => void): void } | null;
+    storage: {
+        hasAlreadyPlayed(): boolean;
+        initPlayer(name: string): void;
+        savePlayer(playerImage: unknown, spriteName: string, weaponName: string): void;
+        setPlayerName(name: string): void;
+    };
+    updateBars(): void;
+    resetCamera(): void;
+    addEntity(entity: unknown): void;
+    showNotification(message: string): void;
+    tryUnlockingAchievement(key: string): void;
+    audioManager: { playSound(key: string): void } | null;
+    createBubble(entityId: EntityId, text: string): void;
+    sprites: Record<string, unknown>;
+    entities: Record<string, GridIndexedEntity>;
+    obsoleteEntities: GridIndexedEntity[] | null;
+    removeObsoleteEntities(): void;
+    connectionStartedCallback: (() => void) | null;
+    setPlayerId(id: EntityId): void;
+    setPlayerName(name: string): void;
+    setPlayerGridPosition(x: number, y: number): void;
+    setPlayerMaxHitPoints(hp: number): void;
+    setPlayerHealth(points: number): void;
+    addItemFromUnknown(item: unknown, x: number, y: number): void;
+};
+
+function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: string, x: number, y: number, maxHp: number): void {
+    log.info('Received player ID from server : ' + id);
+
+    host.setPlayerId(id);
+    host.setPlayerName(name);
+    host.setPlayerGridPosition(x, y);
+    host.setPlayerMaxHitPoints(maxHp);
+
+    host.kernel.clientLastSentMovePos = gridPos(x, y);
+
+    host.updateBars();
+    host.resetCamera();
+    host.addEntity(host.player as unknown);
+    const renderer = host.renderer;
+    if (renderer) {
+        (host.player as unknown as GridIndexedEntity).dirtyRect = renderer.getEntityBoundingRect(host.player);
+    }
+
+    setTimeout(function (): void {
+        host.tryUnlockingAchievement('STILL_ALIVE');
+    }, 1500);
+
+    if (!host.storage.hasAlreadyPlayed()) {
+        host.storage.initPlayer(host.player.name);
+        if (renderer) {
+            renderer.getPlayerImage(function (playerImage: unknown) {
+                host.storage.savePlayer(playerImage, host.player.getSpriteName(), host.player.getWeaponName());
+            });
+        }
+        host.showNotification('Welcome to BrowserQuest!');
+        return;
+    }
+
+    host.showNotification('Welcome back to BrowserQuest!');
+    host.storage.setPlayerName(name);
+}
 
 export function runClientCommandApplySystem(host: ClientCommandApplySystemHost): void {
     const commands: ClientCommand[] = host.kernel.drainClientCommands();
@@ -152,6 +239,120 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             }
             case 'emitNotification': {
                 host.emit('notification', command.message);
+                break;
+            }
+            case 'applyWelcome': {
+                applyWelcome(host, command.id, command.name, command.x, command.y, command.maxHp);
+                break;
+            }
+            case 'invokeConnectionStartedCallback': {
+                host.connectionStartedCallback?.();
+                host.connectionStartedCallback = null;
+                break;
+            }
+            case 'emitNbPlayersChange': {
+                host.emit('nbPlayersChange', command.worldPlayers, command.totalPlayers);
+                break;
+            }
+            case 'applyEntityList': {
+                if (!host.client || !host.playerId) {
+                    break;
+                }
+                const entityIds = Object.values(host.entities).map(function (entity) {
+                    return entity.id;
+                });
+                const knownIds = entityIds.filter(function (id: EntityId) {
+                    return command.list.includes(id);
+                });
+                const newIds = command.list.filter(function (id: EntityId) {
+                    return !knownIds.includes(id);
+                });
+
+                host.obsoleteEntities = Object.values(host.entities).filter(function (entity) {
+                    return !knownIds.includes(entity.id) && entity.id !== host.playerId;
+                });
+                host.removeObsoleteEntities();
+
+                if (newIds.length > 0) {
+                    host.client.sendWho(newIds);
+                }
+                break;
+            }
+            case 'teleportEntity': {
+                const entity = host.getEntityById(command.entityId);
+                if (entity) {
+                    // Use legacy immediate teleport effect when available.
+                    host.makeCharacterTeleportTo(entity as unknown, command.x, command.y);
+                }
+                host.kernel.clientReplicationLastPos.set(command.entityId, gridPos(command.x, command.y));
+                if (command.entityId === host.playerId) {
+                    host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                }
+                break;
+            }
+            case 'playerMoveToItem': {
+                if (command.playerId !== host.playerId) {
+                    break;
+                }
+                const entity = host.getEntityById(command.itemId);
+                host.makePlayerGoToItem(entity instanceof Item ? entity : null);
+                break;
+            }
+            case 'setPlayerHealth': {
+                host.setPlayerHealth(command.points);
+                host.updateBars();
+                if (!command.isRegen) {
+                    host.emit('playerHurt');
+                }
+                break;
+            }
+            case 'setPlayerMaxHitPoints': {
+                host.setPlayerMaxHitPoints(command.maxHp);
+                host.updateBars();
+                break;
+            }
+            case 'chatMessage': {
+                host.createBubble(command.entityId, command.text);
+                host.audioManager?.playSound('chat');
+                break;
+            }
+            case 'equipItem': {
+                const entity = host.getEntityById(command.entityId) as
+                    | undefined
+                    | {
+                          setSprite(sprite: unknown): void;
+                          setWeaponName?(name: string): void;
+                      };
+                if (!entity) {
+                    break;
+                }
+                if (Types.isArmor(command.itemKind)) {
+                    const kindName = Types.getKindAsString(command.itemKind);
+                    if (kindName) {
+                        entity.setSprite(host.sprites[kindName] ?? null);
+                    }
+                } else if (Types.isWeapon(command.itemKind)) {
+                    const kindName = Types.getKindAsString(command.itemKind);
+                    if (kindName) {
+                        entity.setWeaponName?.(kindName);
+                    }
+                }
+                if (command.entityId === host.playerId) {
+                    host.emit('playerEquipmentChange');
+                }
+                break;
+            }
+            case 'dropItem': {
+                const mob = host.getEntityById(command.mobId) as GridIndexedEntity | undefined;
+                if (!mob) {
+                    break;
+                }
+                host.addItemFromUnknown(command.item, mob.gridX, mob.gridY);
+                break;
+            }
+            case 'itemBlink': {
+                const entity = host.getEntityById(command.entityId) as GridIndexedEntity | undefined;
+                entity?.blink?.(150);
                 break;
             }
         }

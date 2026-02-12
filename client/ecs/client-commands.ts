@@ -1,4 +1,5 @@
 import type { EntityId } from '../../shared/domain/ids';
+import type { EntityKind } from '../../shared/entity-kind-domain';
 
 export type ClientCommand =
     | Readonly<{ type: 'stopPlayerCombat' }>
@@ -14,4 +15,16 @@ export type ClientCommand =
     | Readonly<{ type: 'playerStop' }>
     | Readonly<{ type: 'playerDisengage' }>
     | Readonly<{ type: 'playerIdle' }>
-    | Readonly<{ type: 'emitNotification'; message: string }>;
+    | Readonly<{ type: 'emitNotification'; message: string }>
+    | Readonly<{ type: 'applyWelcome'; id: EntityId; name: string; x: number; y: number; maxHp: number }>
+    | Readonly<{ type: 'invokeConnectionStartedCallback' }>
+    | Readonly<{ type: 'emitNbPlayersChange'; worldPlayers: number; totalPlayers: number }>
+    | Readonly<{ type: 'applyEntityList'; list: EntityId[] }>
+    | Readonly<{ type: 'teleportEntity'; entityId: EntityId; x: number; y: number }>
+    | Readonly<{ type: 'playerMoveToItem'; playerId: EntityId; itemId: EntityId }>
+    | Readonly<{ type: 'setPlayerHealth'; points: number; isRegen: boolean }>
+    | Readonly<{ type: 'setPlayerMaxHitPoints'; maxHp: number }>
+    | Readonly<{ type: 'chatMessage'; entityId: EntityId; text: string }>
+    | Readonly<{ type: 'equipItem'; entityId: EntityId; itemKind: EntityKind }>
+    | Readonly<{ type: 'dropItem'; item: unknown; mobId: EntityId }>
+    | Readonly<{ type: 'itemBlink'; entityId: EntityId }>;
