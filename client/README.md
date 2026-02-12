@@ -8,12 +8,12 @@ From the project root:
 
 - `bun install`
 - `bun run dev`
-- Open `http://localhost:5173/client/modern.html`
+- Open `http://localhost:8123/client/modern.html`
 
 Vite (modern tooling):
 
 - `bun run dev:vite:full`
-- Open `http://localhost:5173/client/modern.html`
+- Open `http://localhost:8123/client/modern.html`
 
 Build and verification
 ----------------------

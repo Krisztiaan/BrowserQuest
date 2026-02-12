@@ -13,7 +13,7 @@ type AchievementView = {
 };
 
 type RuntimeConfig = {
-    server: { host: string; port: number; dispatcher: boolean };
+    server: { wsUrl: string; dispatcher: boolean };
 };
 type ScrollContent = 'credits' | 'legal' | 'about';
 type PointerPosition = { pageX: number; pageY: number };
@@ -36,7 +36,7 @@ type AppGame = {
     } | null;
     storage: { getAchievementCount(): number };
     loadMap(): void;
-    setServerOptions(host: string, port: number, username: string): void;
+    setServerOptions(wsUrl: string, username: string): void;
     run(callback: () => void): void;
     on(eventName: 'playerHealthChange', callback: (hp: number, maxHp: number) => void): void;
     on(eventName: 'playerHurt', callback: () => void): void;
@@ -208,10 +208,10 @@ class App {
         if (username && !this.game.started) {
             const config = this.config;
             const serverConfig =
-                config && config.server ? config.server : { host: 'localhost', port: 8000, dispatcher: false };
+                config && config.server ? config.server : { wsUrl: 'ws://localhost/ws', dispatcher: false };
 
             log.debug('Starting game with runtime server config.');
-            this.game.setServerOptions(serverConfig.host, serverConfig.port, username);
+            this.game.setServerOptions(serverConfig.wsUrl, username);
 
             this.center();
             this.game.run(function () {

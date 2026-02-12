@@ -268,6 +268,7 @@ export function createWebSocketRuntimeClasses({
 
             this._wss = new WebSocket.WebSocketServer({
                 server: this._httpServer,
+                path: '/ws',
                 maxPayload: 64 * 1024,
                 perMessageDeflate: false,
             });

@@ -106,7 +106,7 @@ type GridPath = Array<[number, number]>;
 type DirtyRect = Record<string, number>;
 type DirtyRectSource = GridIndexedEntity | DirtyAnimatedTile | null;
 type BubbleAnchor = { id: EntityId; x: number; y: number };
-type RuntimeServerConfig = { host: string; port: number; dispatcher: boolean };
+type RuntimeServerConfig = { wsUrl: string; dispatcher: boolean };
 type AppLike = {
     config: { server?: RuntimeServerConfig } | null;
     initAchievementList(achievements: Record<string, AchievementDefinition>): void;
@@ -180,8 +180,7 @@ class Game extends Evented<GameEvents> {
     sparksAnimation: Animation | null;
     achievements: Record<string, AchievementDefinition>;
     spritesets: Array<Record<string, Sprite>>;
-    host: string;
-    port: number;
+    wsUrl: string;
     username: string;
     camera!: Camera;
     currentTime: number;
@@ -269,8 +268,7 @@ class Game extends Evented<GameEvents> {
         this.targetAnimation = null;
         this.sparksAnimation = null;
         this.achievements = {};
-        this.host = '';
-        this.port = 0;
+        this.wsUrl = '';
         this.username = '';
         this.currentTime = 0;
         this.isStopped = false;
@@ -353,14 +351,15 @@ class Game extends Evented<GameEvents> {
     }
 
     initPlayer(): void {
-        if (this.storage.hasAlreadyPlayed() && this.storage.data.player) {
-            if (this.storage.data.player.armor && this.storage.data.player.weapon) {
-                this.player.setSpriteName(this.storage.data.player.armor);
-                this.player.setWeaponName(this.storage.data.player.weapon);
+        if (this.storage.hasAlreadyPlayed()) {
+            const { armor, weapon } = this.storage.data.player;
+            if (armor && weapon) {
+                this.player.setSpriteName(armor);
+                this.player.setWeaponName(weapon);
             }
         }
 
-        this.player.setSprite(this.sprites[this.player.getSpriteName()]);
+        this.player.setSprite(this.sprites[this.player.getSpriteName()] ?? null);
         this.player.idle();
 
         log.debug('Finished initPlayer');
@@ -397,14 +396,17 @@ class Game extends Evented<GameEvents> {
     }
 
     getAchievementById(id: string | number): AchievementDefinition | null {
-        let found: AchievementDefinition | null = null;
-        Object.keys(this.achievements).forEach(function (key: string) {
+        const numericId = Number.parseInt(String(id), 10);
+        for (const key of Object.keys(this.achievements)) {
             const achievement = this.achievements[key];
-            if (achievement.id === parseInt(String(id), 10)) {
-                found = achievement;
+            if (!achievement) {
+                continue;
             }
-        }, this);
-        return found;
+            if (achievement.id === numericId) {
+                return achievement;
+            }
+        }
+        return null;
     }
 
     loadSpriteForScale(name: SpriteKey, scale: number): void {
@@ -622,21 +624,19 @@ class Game extends Evented<GameEvents> {
      * This is useful for the hit testing algorithm used when hovering entities with the mouse cursor.
      */
     registerEntityDualPosition(entity: GridIndexedEntity): void {
-        if (entity) {
-            this.entityGrid[entity.gridY][entity.gridX][entity.id] = entity;
+        this.entityGrid[entity.gridY][entity.gridX][entity.id] = entity;
 
-            this.addToRenderingGrid(entity, entity.gridX, entity.gridY);
+        this.addToRenderingGrid(entity, entity.gridX, entity.gridY);
 
-            if (
-                entity.nextGridX !== undefined &&
-                entity.nextGridY !== undefined &&
-                entity.nextGridX >= 0 &&
-                entity.nextGridY >= 0
-            ) {
-                this.entityGrid[entity.nextGridY][entity.nextGridX][entity.id] = entity;
-                if (!(entity instanceof Player)) {
-                    this.pathingGrid[entity.nextGridY][entity.nextGridX] = 1;
-                }
+        if (
+            entity.nextGridX !== undefined &&
+            entity.nextGridY !== undefined &&
+            entity.nextGridX >= 0 &&
+            entity.nextGridY >= 0
+        ) {
+            this.entityGrid[entity.nextGridY][entity.nextGridX][entity.id] = entity;
+            if (!(entity instanceof Player)) {
+                this.pathingGrid[entity.nextGridY][entity.nextGridX] = 1;
             }
         }
     }
@@ -645,21 +645,19 @@ class Game extends Evented<GameEvents> {
      * Clears the position(s) of this entity in the entity grid.
      */
     unregisterEntityPosition(entity: GridIndexedEntity): void {
-        if (entity) {
-            this.removeFromEntityGrid(entity, entity.gridX, entity.gridY);
-            this.removeFromPathingGrid(entity.gridX, entity.gridY);
+        this.removeFromEntityGrid(entity, entity.gridX, entity.gridY);
+        this.removeFromPathingGrid(entity.gridX, entity.gridY);
 
-            this.removeFromRenderingGrid(entity, entity.gridX, entity.gridY);
+        this.removeFromRenderingGrid(entity, entity.gridX, entity.gridY);
 
-            if (
-                entity.nextGridX !== undefined &&
-                entity.nextGridY !== undefined &&
-                entity.nextGridX >= 0 &&
-                entity.nextGridY >= 0
-            ) {
-                this.removeFromEntityGrid(entity, entity.nextGridX, entity.nextGridY);
-                this.removeFromPathingGrid(entity.nextGridX, entity.nextGridY);
-            }
+        if (
+            entity.nextGridX !== undefined &&
+            entity.nextGridY !== undefined &&
+            entity.nextGridX >= 0 &&
+            entity.nextGridY >= 0
+        ) {
+            this.removeFromEntityGrid(entity, entity.nextGridX, entity.nextGridY);
+            this.removeFromPathingGrid(entity.nextGridX, entity.nextGridY);
         }
     }
 
@@ -667,24 +665,21 @@ class Game extends Evented<GameEvents> {
         const x = entity.gridX,
             y = entity.gridY;
 
-        if (entity) {
-            if (entity instanceof Character || entity instanceof Chest) {
-                this.entityGrid[y][x][entity.id] = entity;
-                if (!(entity instanceof Player)) {
-                    this.pathingGrid[y][x] = 1;
-                }
+        if (entity instanceof Character || entity instanceof Chest) {
+            this.entityGrid[y][x][entity.id] = entity;
+            if (!(entity instanceof Player)) {
+                this.pathingGrid[y][x] = 1;
             }
-            if (entity instanceof Item) {
-                this.itemGrid[y][x][entity.id] = entity;
-            }
-
-            this.addToRenderingGrid(entity, x, y);
         }
+        if (entity instanceof Item) {
+            this.itemGrid[y][x][entity.id] = entity;
+        }
+
+        this.addToRenderingGrid(entity, x, y);
     }
 
-    setServerOptions(host: string, port: number, username: string): void {
-        this.host = host;
-        this.port = port;
+    setServerOptions(wsUrl: string, username: string): void {
+        this.wsUrl = wsUrl;
         this.username = username;
     }
 
@@ -729,7 +724,7 @@ class Game extends Evented<GameEvents> {
         }
 
         if (!this.isStopped) {
-            requestAnimFrame(this.tick.bind(this));
+            requestAnimFrame(() => this.tick());
         }
     }
 
@@ -970,7 +965,7 @@ class Game extends Evented<GameEvents> {
             return path;
         }
 
-        if (this.pathfinder && character) {
+        if (this.pathfinder) {
             if (ignoreList) {
                 ignoreList.forEach(function (entity: GridIndexedEntity) {
                     self.pathfinder.ignoreEntity(entity);
@@ -1043,7 +1038,7 @@ class Game extends Evented<GameEvents> {
             if (t instanceof Character && this.getEntityById(t.id)) {
                 // does it still exist?
                 character.previousTarget = null;
-                this.createAttackLink(character, t);
+                this.createAttackLink(character, t as unknown as Character);
                 return;
             }
         }
@@ -1075,7 +1070,6 @@ class Game extends Evented<GameEvents> {
                     if (
                         character.hasTarget() &&
                         character.target.id === this.playerId &&
-                        this.player &&
                         !this.player.invincible
                     ) {
                         this.client.sendHurt(character);
@@ -1211,7 +1205,7 @@ class Game extends Evented<GameEvents> {
     assignBubbleTo(character: BubbleAnchor): void {
         const bubble = this.bubbleManager.getBubbleById(String(character.id));
 
-        if (bubble && bubble.element) {
+        if (bubble) {
             const s = this.renderer.scale,
                 t = 16 * s, // tile size
                 x = (character.x - this.camera.x) * s,
@@ -1274,9 +1268,7 @@ class Game extends Evented<GameEvents> {
     }
 
     updateBars(): void {
-        if (this.player) {
-            this.emit('playerHealthChange', this.player.hitPoints, this.player.maxHitPoints);
-        }
+        this.emit('playerHealthChange', this.player.hitPoints, this.player.maxHitPoints);
     }
 
     getDeadMobPosition(mobId: EntityId): GridPosition | undefined {
@@ -1307,7 +1299,7 @@ class Game extends Evented<GameEvents> {
     }
 
     removeObsoleteEntities(): void {
-        const obsoleteEntities: GridIndexedEntity[] = this.obsoleteEntities || [],
+        const obsoleteEntities: GridIndexedEntity[] = this.obsoleteEntities ?? [],
             nb = obsoleteEntities.length,
             self = this;
 
@@ -1360,10 +1352,10 @@ class Game extends Evented<GameEvents> {
         const checkpoint = this.map.getCurrentCheckpoint(this.player);
 
         if (checkpoint) {
-            const lastCheckpoint = this.player.lastCheckpoint;
-            if (!lastCheckpoint || (lastCheckpoint && lastCheckpoint.id !== checkpoint.id)) {
+            const lastId = this.player.lastCheckpoint?.id;
+            if (lastId !== checkpoint.id) {
                 this.player.lastCheckpoint = checkpoint;
-                this.client.sendCheck(checkpoint.id);
+                this.client?.sendCheck(checkpoint.id);
             }
         }
     }

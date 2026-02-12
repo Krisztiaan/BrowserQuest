@@ -134,7 +134,7 @@ test("server entry uses default websocket runtime and sends 'go' handshake", asy
         'runtime websocket runtime mode event'
     );
 
-    const ws = new WebSocket(`ws://127.0.0.1:${port}/`);
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
     const message = await new Promise<string>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 3000);
         ws.once('error', (err) => {

@@ -74,7 +74,7 @@ test("server entry sends initial 'go' handshake", async () => {
 
     await waitForHttpOk(`http://127.0.0.1:${port}/status`, 8000);
 
-    const ws = new WebSocket(`ws://127.0.0.1:${port}/`);
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
     const message = await new Promise<string>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 3000);
         ws.once('error', (err) => {

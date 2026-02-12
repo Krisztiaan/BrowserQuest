@@ -131,12 +131,14 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                 if (requestPath === '/status' && this.statusProvider) {
                     return new Response(this.statusProvider(), { status: 200 });
                 }
-                if (
-                    (server as { upgrade: (request: Request, options?: unknown) => boolean }).upgrade(request, {
-                        data: { remoteAddress: this.#resolveRemoteAddress(server, request) },
-                    })
-                ) {
-                    return undefined;
+                if (requestPath === '/ws') {
+                    if (
+                        (server as { upgrade: (request: Request, options?: unknown) => boolean }).upgrade(request, {
+                            data: { remoteAddress: this.#resolveRemoteAddress(server, request) },
+                        })
+                    ) {
+                        return undefined;
+                    }
                 }
                 return new Response('Not Found', { status: 404 });
             },

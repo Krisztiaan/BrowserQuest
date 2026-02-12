@@ -98,18 +98,16 @@ export type GameClientEventSource = TypedEventSource<GameClientEvents>;
 
 class GameClient extends Evented<GameClientEvents> {
     connection: WebSocket | null;
-    host: string;
-    port: number;
+    wsUrl: string;
     isTimeout: boolean;
     isListening: boolean;
     handlers: GameClientInboundActionHandlerMap;
     kernel: ClientWorldKernel;
 
-    constructor(host: string, port: number, kernel?: ClientWorldKernel) {
+    constructor(wsUrl: string, kernel?: ClientWorldKernel) {
         super();
         this.connection = null;
-        this.host = host;
-        this.port = port;
+        this.wsUrl = wsUrl;
         this.isTimeout = false;
         this.kernel = kernel ?? new ClientWorldKernel();
         this.handlers = createGameClientInboundHandlers(this);
@@ -126,9 +124,8 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     connect(dispatcherMode = false): void {
-        const scheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://',
-            url = scheme + this.host + ':' + this.port + '/',
-            self = this;
+        const url = this.wsUrl;
+        const self = this;
 
         log.info('Trying to connect to server : ' + url);
 
@@ -165,7 +162,7 @@ class GameClient extends Evented<GameClientEvents> {
             };
         } else {
             this.connection.onopen = function (_e: Event) {
-                log.info('Connected to server ' + self.host + ':' + self.port);
+                log.info('Connected to server ' + self.wsUrl);
             };
 
             this.connection.onmessage = function (e: MessageEvent) {

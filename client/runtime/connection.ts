@@ -58,14 +58,14 @@ function applyWelcome(game: Game, id: EntityId, name: string, x: number, y: numb
 
 export function initializeGameConnection(game: Game, onStarted: () => void): void {
     const runtimeConfig = game.app.config?.server ?? null;
-    const client = new GameClient(game.host, game.port, game.kernel);
+    const client = new GameClient(game.wsUrl, game.kernel);
     game.client = client;
     const effects = new GameClientEffectRegistry({ game, client });
 
     effects.on('dispatched', function ({ client }, host: string, port: number) {
         log.debug('Dispatched to game server ' + host + ':' + port);
-        client.host = host;
-        client.port = port;
+        const scheme = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        client.wsUrl = `${scheme}${host}:${port}/ws`;
         client.connect();
     });
 
@@ -254,14 +254,25 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
     });
 
     effects.on('playerEquipItem', function ({ game }, entityId: EntityId, itemKind: EntityKind) {
-        const entity = game.getEntityById(entityId);
+        const entity = game.getEntityById(entityId) as
+            | undefined
+            | {
+                  setSprite(sprite: unknown): void;
+                  setWeaponName?(name: string): void;
+              };
         if (!entity) {
             return;
         }
-        if (game.isArmor(itemKind)) {
-            entity.setSprite(game.sprites[Types.getKindAsString(itemKind)]);
-        } else if (game.isWeapon(itemKind) && typeof entity.setWeaponName === 'function') {
-            entity.setWeaponName(Types.getKindAsString(itemKind));
+        if (Types.isArmor(itemKind)) {
+            const kindName = Types.getKindAsString(itemKind);
+            if (kindName) {
+                entity.setSprite(game.sprites[kindName] ?? null);
+            }
+        } else if (Types.isWeapon(itemKind)) {
+            const kindName = Types.getKindAsString(itemKind);
+            if (kindName) {
+                entity.setWeaponName?.(kindName);
+            }
         }
         if (entityId === game.playerId) {
             game.emit('playerEquipmentChange');

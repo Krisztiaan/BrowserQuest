@@ -189,7 +189,7 @@ async function withServer(run: (server: RunningServer) => Promise<void>): Promis
 
 test('rejects HELLO payload with oversized UTF-8 name', async () => {
     await withServer(async (server) => {
-        const ws = new WebSocket(`ws://127.0.0.1:${server.port}/`);
+        const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
         await waitForGo(ws);
 
         const oversizedName = '🚀'.repeat(40); // 160 bytes in UTF-8
@@ -203,7 +203,7 @@ test('rejects HELLO payload with oversized UTF-8 name', async () => {
 
 test('rejects MOVE payload containing non-integer coordinates', async () => {
     await withServer(async (server) => {
-        const ws = new WebSocket(`ws://127.0.0.1:${server.port}/`);
+        const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
         await waitForGo(ws);
 
         const welcome = waitForWelcome(ws, 8000);

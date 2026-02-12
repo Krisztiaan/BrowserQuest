@@ -118,3 +118,8 @@ The server has a status URL which can be used as a health check or simply as a w
 Send a GET request to: `http://[host]:[port]/status`
 
 It will return a JSON array containing the number of players in all instanced worlds on this game server.
+
+WebSocket gameplay endpoint
+---------------------------
+
+Clients connect to the game server via WebSocket at: `ws(s)://[host]:[port]/ws`

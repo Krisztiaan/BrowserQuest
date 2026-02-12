@@ -13,6 +13,46 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 6. Ticket 41 (`done`) - Determinism/perf test harness
 7. Ticket 12 (`deferred`) - Rendering modernization (product-gated)
 
+## Ticket 44: Single-Port Dev Runtime (PORT + Vite Proxy)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Single public dev port (default `8123`) for client + websocket gameplay.
+  - Use `.env` for dev defaults (`PORT`, `BQ_SERVER_PORT`).
+  - WebSocket endpoint path is `/ws` (no legacy root `/` websocket path).
+- Out of scope:
+  - Bun-only client bundling (remove Vite).
+  - Maintaining query-param host/port overrides for legacy ingress.
+- Acceptance criteria:
+  - `bun run dev` serves the client on `http://localhost:8123/`.
+  - Client gameplay websocket connects via `ws://<origin>/ws` (single-port; proxied in dev).
+  - Server websocket runtime only upgrades on `/ws`.
+  - Smoke websocket handshake tests pass against `/ws`.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000 tests/smoke/server/handshake.test.ts`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12
+- End: 2026-02-12
+- Status: `done`
+- Key actions:
+  - Standardized websocket path to `/ws` and removed client host/port override logic in favor of origin-derived `wsUrl`.
+  - Restricted server websocket upgrade to `/ws` (Bun runtime + Node ws runtime factory parity).
+  - Switched Vite dev server to `.env`-driven `PORT` (default `8123`) and added dev proxy rules for `/ws`, `/healthz`, `/version`, `/status` to the Bun server.
+  - Updated smoke + Playwright websocket URLs to use `/ws`.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000 tests/smoke/server/handshake.test.ts` (pass)
+  - `bun test --timeout 20000` (194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: add prod single-port static serving to Bun server (serve `dist/vite` or `dist/bundle/client`).
+
 ## Ticket 43: Modern Client Runtime Hardening (Typing + Safety)
 
 - Status: `in_progress`
@@ -44,7 +84,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - Tightened `sendMessage` guard and removed `any`-typed action flows by keeping decoded action batches typed.
   - Hardened grid/entity lookups to avoid unchecked indexing under `noUncheckedIndexedAccess`.
 - Evidence:
-  - `bun run lint:client-runtime` (exit 0; warnings remain in legacy-heavy files)
+  - `bun run lint:client-runtime` (exit 0; 0 warnings)
   - `bun run typecheck` (pass)
   - `bun test --timeout 20000` (pass)
 - Next action:

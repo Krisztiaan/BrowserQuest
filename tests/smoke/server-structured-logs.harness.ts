@@ -204,7 +204,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
 
     // Open and close a websocket session to trigger connection lifecycle events.
     async function openAndCloseWebSocketSession(port: number) {
-        const ws = new WebSocket(`ws://127.0.0.1:${port}/`);
+        const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
         await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 4000);
             ws.once('error', (err) => {

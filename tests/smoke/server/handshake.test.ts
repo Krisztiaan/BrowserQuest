@@ -74,7 +74,7 @@ async function runHandshakeScenario(config: {
 
     await waitForHttpOk(`http://127.0.0.1:${config.port}/status`, 8000);
 
-    const ws = new WebSocket(`ws://127.0.0.1:${config.port}/`);
+    const ws = new WebSocket(`ws://127.0.0.1:${config.port}/ws`);
     const message = await new Promise<string>((resolve, reject) => {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 3000);
         ws.once('error', (err) => {

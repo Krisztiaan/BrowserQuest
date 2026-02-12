@@ -237,7 +237,7 @@ afterEach(async () => {
 test('modern gameplay protocol parity: login, move, chat, zone, combat path, lootmove, reconnect', async () => {
     server = await startServer();
 
-    const ws = new WebSocket(`ws://127.0.0.1:${server.port}/`);
+    const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
     const stream = createActionStream(ws);
     await waitForGo(ws);
 
@@ -311,7 +311,7 @@ test('modern gameplay protocol parity: login, move, chat, zone, combat path, loo
     ws.close();
     await waitForClose(ws);
 
-    const reconnect = new WebSocket(`ws://127.0.0.1:${server.port}/`);
+    const reconnect = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
     const reconnectStream = createActionStream(reconnect);
     await waitForGo(reconnect);
     reconnect.send(JSON.stringify([MSG_HELLO, 'modern-e2e-reconnect', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
