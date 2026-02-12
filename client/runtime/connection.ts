@@ -46,46 +46,8 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
         enqueue(game, { type: 'entityList', list });
     });
 
-    effects.on('spawnItem', function ({ game }, item: unknown, x: number, y: number) {
-        enqueue(game, { type: 'spawnItem', item, x, y });
-    });
-
-    effects.on('spawnChest', function ({ game }, chest: unknown, x: number, y: number) {
-        enqueue(game, { type: 'spawnChest', chest, x, y });
-    });
-
-    effects.on(
-        'spawnCharacter',
-        function (
-            { game },
-            entity: unknown,
-            x: number,
-            y: number,
-            orientation: number | undefined,
-            targetId: EntityId | undefined
-        ) {
-            enqueue(game, { type: 'spawnCharacter', character: entity, x, y, orientation, targetId });
-        }
-    );
-
-    effects.on('despawnEntity', function ({ game }, entityId: EntityId) {
-        enqueue(game, { type: 'despawnEntity', entityId });
-    });
-
-    effects.on('entityDestroy', function ({ game }, entityId: EntityId) {
-        enqueue(game, { type: 'entityDestroy', entityId });
-    });
-
-    effects.on('entityMove', function ({ game }, entityId: EntityId, x: number, y: number) {
-        enqueue(game, { type: 'entityMove', entityId, x, y });
-    });
-
     effects.on('playerTeleport', function ({ game }, entityId: EntityId, x: number, y: number) {
         enqueue(game, { type: 'playerTeleport', entityId, x, y });
-    });
-
-    effects.on('entityAttack', function ({ game }, attackerId: EntityId, targetId: EntityId) {
-        enqueue(game, { type: 'entityAttack', attackerId, targetId });
     });
 
     effects.on('playerMoveToItem', function ({ game }, playerId: EntityId, itemId: EntityId) {

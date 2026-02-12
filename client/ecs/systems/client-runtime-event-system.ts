@@ -2,6 +2,7 @@ import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
 import type { EntityId } from '../../../shared/domain/ids';
+import { gridPos } from '../../../shared/domain/positions';
 import type { ClientWorldKernel } from '../world-kernel';
 import type { ClientRuntimeEvent } from '../runtime-events';
 
@@ -52,19 +53,14 @@ export type ClientRuntimeEventSystemHost = {
     updateBars(): void;
     resetCamera(): void;
     addEntity(entity: unknown): void;
-    addItem(item: unknown, x: number, y: number): void;
-    removeItem(item: unknown): void;
-    removeEntity(entity: unknown): void;
     getEntityById(id: EntityId): GridIndexedEntity | undefined;
-    entityIdExists(id: EntityId): boolean;
     removeObsoleteEntities(): void;
-    createAttackLink(attacker: unknown, target: unknown): void;
-    makeCharacterGoTo(entity: unknown, x: number, y: number): void;
     makeCharacterTeleportTo(entity: unknown, x: number, y: number): void;
     makePlayerGoToItem(item: unknown): void;
     createBubble(entityId: EntityId, text: string): void;
     showNotification(message: string): void;
     tryUnlockingAchievement(key: string): void;
+    addItem(item: unknown, x: number, y: number): void;
 };
 
 function applyWelcome(host: ClientRuntimeEventSystemHost, id: EntityId, name: string, x: number, y: number, maxHp: number): void {
@@ -104,79 +100,6 @@ function applyWelcome(host: ClientRuntimeEventSystemHost, id: EntityId, name: st
 
     host.showNotification('Welcome back to BrowserQuest!');
     host.storage.setPlayerName(name);
-}
-
-function safeOrientation(orientation: number | undefined): number {
-    return orientation === Types.Orientations.UP ||
-        orientation === Types.Orientations.DOWN ||
-        orientation === Types.Orientations.LEFT ||
-        orientation === Types.Orientations.RIGHT
-        ? orientation
-        : Types.Orientations.DOWN;
-}
-
-function getEntityIdFromUnknown(entity: unknown): EntityId | undefined {
-    const id = (entity as { id?: unknown } | null)?.id;
-    return typeof id === 'number' ? (id as EntityId) : undefined;
-}
-
-function runSpawnItem(host: ClientRuntimeEventSystemHost, event: Extract<ClientRuntimeEvent, { type: 'spawnItem' }>): void {
-    const entityId = getEntityIdFromUnknown(event.item);
-    if (entityId !== undefined && host.entityIdExists(entityId)) {
-        return;
-    }
-    host.addItem(event.item, event.x, event.y);
-}
-
-function runSpawnChest(host: ClientRuntimeEventSystemHost, event: Extract<ClientRuntimeEvent, { type: 'spawnChest' }>): void {
-    const entity = event.chest as GridIndexedEntity;
-    if (host.entityIdExists(entity.id)) {
-        return;
-    }
-    entity.setSprite(host.sprites[entity.getSpriteName()]);
-    entity.setGridPosition(event.x, event.y);
-    host.addEntity(entity as unknown);
-}
-
-function runSpawnCharacter(host: ClientRuntimeEventSystemHost, event: Extract<ClientRuntimeEvent, { type: 'spawnCharacter' }>): void {
-    const character = event.character as GridIndexedEntity;
-    if (host.entityIdExists(character.id)) {
-        return;
-    }
-
-    const orientation = safeOrientation(event.orientation);
-
-    character.setSprite(host.sprites[character.getSpriteName()]);
-    character.setGridPosition(event.x, event.y);
-    if (typeof character.setOrientation === 'function') {
-        character.setOrientation(orientation);
-    }
-    if (typeof character.idle === 'function') {
-        character.idle();
-    }
-
-    host.addEntity(character as unknown);
-
-    const targetId = event.targetId;
-    if (targetId === undefined) {
-        return;
-    }
-    const target = host.getEntityById(targetId) as unknown;
-    if (target && typeof (target as { id?: unknown }).id === 'number') {
-        host.createAttackLink(character as unknown, target as unknown);
-    }
-}
-
-function runDespawnOrDestroy(host: ClientRuntimeEventSystemHost, entityId: EntityId): void {
-    const entity = host.getEntityById(entityId);
-    if (!entity) {
-        return;
-    }
-    if (Types.isItem(entity.kind)) {
-        host.removeItem(entity as unknown);
-    } else {
-        host.removeEntity(entity as unknown);
-    }
 }
 
 function runEntityList(host: ClientRuntimeEventSystemHost, list: EntityId[]): void {
@@ -252,46 +175,12 @@ export function runClientRuntimeEventSystem(host: ClientRuntimeEventSystemHost):
                 runEntityList(host, event.list);
                 break;
             }
-            case 'spawnItem': {
-                runSpawnItem(host, event);
-                break;
-            }
-            case 'spawnChest': {
-                runSpawnChest(host, event);
-                break;
-            }
-            case 'spawnCharacter': {
-                runSpawnCharacter(host, event);
-                break;
-            }
-            case 'despawnEntity': {
-                runDespawnOrDestroy(host, event.entityId);
-                break;
-            }
-            case 'entityDestroy': {
-                runDespawnOrDestroy(host, event.entityId);
-                break;
-            }
-            case 'entityMove': {
-                const entity = host.getEntityById(event.entityId);
-                if (entity) {
-                    host.makeCharacterGoTo(entity as unknown, event.x, event.y);
-                }
-                break;
-            }
             case 'playerTeleport': {
                 const entity = host.getEntityById(event.entityId);
                 if (entity) {
                     host.makeCharacterTeleportTo(entity as unknown, event.x, event.y);
                 }
-                break;
-            }
-            case 'entityAttack': {
-                const attacker = host.getEntityById(event.attackerId);
-                const target = host.getEntityById(event.targetId);
-                if (attacker && target) {
-                    host.createAttackLink(attacker as unknown, target as unknown);
-                }
+                host.kernel.clientReplicationLastPos.set(event.entityId, gridPos(event.x, event.y));
                 break;
             }
             case 'playerMoveToItem': {
@@ -340,4 +229,3 @@ export function runClientRuntimeEventSystem(host: ClientRuntimeEventSystemHost):
         }
     }
 }
-

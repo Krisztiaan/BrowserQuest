@@ -314,10 +314,17 @@ class GameClient extends Evented<GameClientEvents> {
 
     receiveDrop(data: ClientInboundActionByOpcode<typeof Types.Messages.DROP>): void {
         const [, mobId, id, kind, playersInvolved] = data;
-        const item = EntityFactory.createEntity(kind, entityIdFromWire(id));
+        const mobEntityId = entityIdFromWire(mobId);
+        const itemEntityId = entityIdFromWire(id);
+        const mobPos = this.kernel.position.get(mobEntityId);
+        if (mobPos) {
+            this.kernel.upsertSimpleEntity(itemEntityId, kind, mobPos.x, mobPos.y);
+        }
+
+        const item = EntityFactory.createEntity(kind, itemEntityId);
         item.wasDropped = true;
         item.playersInvolved = playersInvolved.map(entityIdFromWire);
-        this.emit('dropItem', item, entityIdFromWire(mobId));
+        this.emit('dropItem', item, mobEntityId);
     }
 
     receiveTeleport(data: ClientInboundActionByOpcode<typeof Types.Messages.TELEPORT>): void {
@@ -350,7 +357,9 @@ class GameClient extends Evented<GameClientEvents> {
 
     receiveDestroy(data: ClientInboundActionByOpcode<typeof Types.Messages.DESTROY>): void {
         const [, id] = data;
-        this.emit('entityDestroy', entityIdFromWire(id));
+        const entityId = entityIdFromWire(id);
+        this.kernel.removeEntity(entityId);
+        this.emit('entityDestroy', entityId);
     }
 
     receiveHitPoints(data: ClientInboundActionByOpcode<typeof Types.Messages.HP>): void {

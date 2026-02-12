@@ -87,6 +87,7 @@ import {
     clearClientInteractionIntentWithSideEffects,
     runClientInteractionIntentSystem,
 } from './ecs/systems/client-interaction-intent-system';
+import { runClientKernelReplicationSyncSystem } from './ecs/systems/client-kernel-replication-sync-system';
 import { runClientRuntimeEventSystem } from './ecs/systems/client-runtime-event-system';
 import { runClientTimeSystem } from './ecs/systems/client-time-system';
 import { runClientUpdaterSystem } from './ecs/systems/client-updater-system';
@@ -291,6 +292,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler = new ClientFrameScheduler<Game>();
         this.frameScheduler.add('pre_update', (game) => runClientTimeSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientRuntimeEventSystem(game));
+        this.frameScheduler.add('pre_update', (game) => runClientKernelReplicationSyncSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientHoverStateSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientClickIntentSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));

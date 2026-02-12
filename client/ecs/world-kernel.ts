@@ -61,6 +61,11 @@ export class ClientWorldKernel {
     clientLootAttempt: ClientLootAttempt | null = null;
     clientRuntimeEvents: ClientRuntimeEvent[] = [];
 
+    // Client-only replication bookkeeping for kernel-driven sync systems.
+    readonly clientReplicationKnownAlive = new Set<EntityId>();
+    readonly clientReplicationLastPos = new Map<EntityId, GridPos>();
+    readonly clientReplicationLastTarget = new Map<EntityId, EntityId>();
+
     upsertFromSpawnSnapshot(snapshot: SpawnSnapshot): KernelEntityView {
         const id = entityIdFromWire(snapshot.id);
         this.alive.add(id);
@@ -93,6 +98,21 @@ export class ClientWorldKernel {
         return this.getEntityView(id);
     }
 
+    upsertSimpleEntity(id: EntityId, kind: EntityKind, x: number, y: number): KernelEntityView {
+        this.alive.add(id);
+        this.kind.set(id, kind);
+        this.position.set(id, gridPos(x, y));
+
+        // Clear optional components: this is a "simple" entity unless later promoted by spawn snapshots.
+        this.name.delete(id);
+        this.orientation.delete(id);
+        this.armor.delete(id);
+        this.weapon.delete(id);
+        this.target.delete(id);
+
+        return this.getEntityView(id);
+    }
+
     setPosition(id: EntityId, x: number, y: number): void {
         if (!this.alive.has(id)) {
             return;
@@ -120,6 +140,10 @@ export class ClientWorldKernel {
         this.armor.delete(id);
         this.weapon.delete(id);
         this.target.delete(id);
+
+        this.clientReplicationKnownAlive.delete(id);
+        this.clientReplicationLastPos.delete(id);
+        this.clientReplicationLastTarget.delete(id);
     }
 
     setPopulation(worldPlayers: number, totalPlayers: number): void {

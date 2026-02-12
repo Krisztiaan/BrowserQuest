@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 13:14 UTC
+Last updated: 2026-02-12 13:24 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -33,7 +33,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 26. Ticket 63 (`done`) - Remove clearClientInteractionIntent method
 27. Ticket 64 (`done`) - Inline loot completion into system
 28. Ticket 65 (`done`) - ECS runtime event buffer (connection boundary)
-29. Ticket 66 (`todo`) - Kernel-driven replication sync (reduce spawn/move handlers)
+29. Ticket 66 (`done`) - Kernel-driven replication sync (reduce spawn/move handlers)
 30. Ticket 67 (`todo`) - Remove movement step hooks (spatial sync system)
 
 ## Ticket 67: Remove Movement Step Hooks (Spatial Sync System)
@@ -65,7 +65,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 66: Kernel-Driven Replication Sync (Reduce Spawn/Move Handlers)
 
-- Status: `todo`
+- Status: `done`
 - Priority: P3
 - Scope:
   - Introduce a replication sync system that treats `ClientWorldKernel` as the authoritative world state and keeps legacy render entities in sync (create/destroy/move/target updates).
@@ -86,9 +86,18 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ### Progress log
 
-- Status: `todo`
+- Start: 2026-02-12 13:14 UTC
+- End: 2026-02-12 13:24 UTC
+- Status: `done`
+- Key actions:
+  - Added `runClientKernelReplicationSyncSystem()` to spawn/despawn/move/retarget entities from kernel diffs, with kernel-owned replication bookkeeping.
+  - Removed connection-layer spawn/move/attack/despawn/destroy handlers; gameplay replication now derives from `ClientWorldKernel` state.
+  - Updated `GameClient` to keep the kernel authoritative on `DESTROY` and `DROP` (drop upserts a simple entity at the mob’s kernel position).
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
-  - Implement kernel diff bookkeeping (alive set snapshots + per-entity position/target change detection).
+  - Ticket 67: remove `Character.on('step')` movement hooks via a spatial sync ECS system.
 
 ## Ticket 65: ECS Runtime Event Buffer (Connection Boundary)
 
