@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 11:18 UTC
+Last updated: 2026-02-12 11:36 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -17,6 +17,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 10. Ticket 47 (`done`) - Explicit interactions + stop dead-target attack
 11. Ticket 48 (`done`) - Interaction state cleanup (loot/talk/open)
 12. Ticket 49 (`done`) - Client ECS interaction intent system
+13. Ticket 50 (`done`) - Client interaction system scheduling cleanup
 
 ## Ticket 45: Mobile Input + Item Loot Pickup
 
@@ -194,6 +195,42 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
   - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
 - Next action:
   - Optional: manual playtest for chase “feel” + tuning (repath cadence / stop distances).
+
+## Ticket 50: Client Interaction System Scheduling Cleanup
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Ensure the client interaction intent system runs exactly once per render tick after movement updates, so it reads current positions and does not need ad-hoc callers.
+  - Remove redundant per-movement-hook invocations and tick-level de-dupe state.
+- Out of scope:
+  - Introducing a full client ECS scheduler/runtime (multi-system staging).
+  - Changing interaction semantics (explicit loot, chase, death/despawn cancellation).
+- Acceptance criteria:
+  - No gameplay interaction regressions compared to Ticket 49 behavior.
+  - Interaction intent system is invoked from a single place in the main loop (post-update).
+  - `bun run typecheck` passes.
+  - `bun test --timeout 20000` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test --timeout 20000`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 11:34 UTC
+- End: 2026-02-12 11:36 UTC
+- Status: `done`
+- Key actions:
+  - Moved interaction intent evaluation to run after `updater.update()` so it reads current movement state/positions.
+  - Removed redundant per-movement-hook and per-interaction helper calls into `runClientInteractionSystem()`.
+  - Removed tick-level de-dupe state (`lastIntentTick`) now that the system runs from a single place per frame.
+- Evidence:
+  - `bun run typecheck` (pass)
+  - `bun test --timeout 20000` (195 total: 194 pass, 1 skip, 0 fail)
+- Next action:
+  - Optional: extract `runClientInteractionSystem()` into a standalone `client/ecs/systems/*` module.
 
 ## Ticket 44: Single-Port Dev Runtime (PORT + Vite Proxy)
 

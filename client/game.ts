@@ -195,7 +195,6 @@ class Game extends Evented<GameEvents> {
     lastHovered: GridIndexedEntity | null;
     lastLootAttempt: { itemId: string | number; x: number; y: number } | null;
     characterMovementHooks: WeakSet<Character>;
-    lastIntentTick: number;
 
     constructor(
         app: AppLike,
@@ -285,7 +284,6 @@ class Game extends Evented<GameEvents> {
         this.lastHovered = null;
         this.lastLootAttempt = null;
         this.characterMovementHooks = new WeakSet();
-        this.lastIntentTick = 0;
         this.installCharacterMovementHooks(this.player);
 
         this.setBubbleManager(new BubbleManager(bubbleContainer));
@@ -363,7 +361,6 @@ class Game extends Evented<GameEvents> {
 
             if (this.started && this.client && character.id === this.playerId) {
                 this.client.sendMove(character.gridX, character.gridY);
-                this.runClientInteractionSystem();
 
                 if (!this.isZoning() && this.isZoningTile(character.gridX, character.gridY)) {
                     this.enqueueZoningFrom(character.gridX, character.gridY);
@@ -384,7 +381,6 @@ class Game extends Evented<GameEvents> {
 
             if (this.started && this.client && character.id === this.playerId) {
                 this.client.sendMove(x, y);
-                this.runClientInteractionSystem();
 
                 if (!this.isZoning() && this.isZoningTile(x, y)) {
                     this.enqueueZoningFrom(x, y);
@@ -495,7 +491,6 @@ class Game extends Evented<GameEvents> {
         const lastKnownTargetPos: GridPos | undefined = target ? gridPos(target.gridX, target.gridY) : undefined;
         const intent: ClientInteractionIntent = { kind, targetId, lastKnownTargetPos };
         this.kernel.setClientInteractionIntent(intent);
-        this.lastIntentTick = 0;
 
         if (kind === 'loot') {
             this.player.isLootMoving = true;
@@ -515,7 +510,6 @@ class Game extends Evented<GameEvents> {
             this.lastLootAttempt = null;
         }
         this.kernel.clearClientInteractionIntent();
-        this.lastIntentTick = 0;
     }
 
     runClientInteractionSystem(): void {
@@ -526,12 +520,6 @@ class Game extends Evented<GameEvents> {
             this.clearClientInteractionIntent();
             return;
         }
-
-        // De-dupe if called multiple times per render tick (tick + movement events).
-        if (this.lastIntentTick === this.currentTime) {
-            return;
-        }
-        this.lastIntentTick = this.currentTime;
 
         const intent = this.kernel.clientInteractionIntent;
         if (!intent) {
@@ -1055,8 +1043,8 @@ class Game extends Evented<GameEvents> {
 
         if (this.started) {
             this.updateCursorLogic();
-            this.runClientInteractionSystem();
             this.updater?.update();
+            this.runClientInteractionSystem();
             this.renderer?.renderFrame();
         }
 

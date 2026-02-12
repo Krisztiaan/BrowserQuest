@@ -12,14 +12,6 @@ export function movePlayerToItem(game: Game, item: Item | null): void {
 
     game.makePlayerGoTo(item.gridX, item.gridY);
     game.client.sendLootMove(item, item.gridX, item.gridY);
-
-    // If the player is already on the item tile (or pathfinding failed to start),
-    // give the interaction system a chance to complete immediately (explicit-loot mode).
-    if (!game.player.isMoving()) {
-        if (game.player.gridX === item.gridX && game.player.gridY === item.gridY) {
-            game.runClientInteractionSystem();
-        }
-    }
 }
 
 export function makePlayerTalkToNpc(game: Game, npc: Npc | null): void {
