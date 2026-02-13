@@ -69,7 +69,8 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
 
     // Target updates: maintain attack links based on kernel target map changes.
     for (const [attackerId, targetId] of kernel.target.entries()) {
-        if (!kernel.clientReplicationKnownAlive.has(attackerId) || !kernel.clientReplicationKnownAlive.has(targetId)) {
+        const targetIsLocalPlayer = host.playerId !== null && targetId === host.playerId;
+        if (!kernel.clientReplicationKnownAlive.has(attackerId) || (!targetIsLocalPlayer && !kernel.clientReplicationKnownAlive.has(targetId))) {
             continue;
         }
         const lastTargetId = kernel.clientReplicationLastTarget.get(attackerId);
@@ -86,7 +87,8 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         if (!kernel.clientReplicationKnownAlive.has(attackerId)) {
             continue;
         }
-        if (!kernel.clientReplicationKnownAlive.has(lastTargetId)) {
+        const lastTargetIsLocalPlayer = host.playerId !== null && lastTargetId === host.playerId;
+        if (!lastTargetIsLocalPlayer && !kernel.clientReplicationKnownAlive.has(lastTargetId)) {
             // Target despawned; treat as a removal.
             if (host.playerId !== null && attackerId === host.playerId) {
                 kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });

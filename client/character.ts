@@ -419,19 +419,15 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     // Registers a character as a current attacker of this one.
     addAttacker(character: Character): void {
         if (!this.isAttackedBy(character)) {
-            this.attackers[String(character.id)] = character;
-        } else {
-            log.error(this.id + ' is already attacked by ' + character.id);
-        }
+            this.attackers[String(character.id)] = character;        }
+
     }
 
     // Unregisters a character as a current attacker of this one.
     removeAttacker(character: CharacterLike): void {
         if (this.isAttackedBy(character)) {
-            delete this.attackers[String(character.id)];
-        } else {
-            log.error(this.id + ' is not attacked by ' + character.id);
-        }
+            delete this.attackers[String(character.id)];        }
+
     }
 
     // Loops through all the characters currently attacking this one.

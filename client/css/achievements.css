@@ -57,8 +57,6 @@
     #achievements li .coin {margin-right:45px;}
     #achievements li span {padding-top:27px;}
     .achievement-sharing {right:24px;top:24px;}
-    .achievement-sharing .facebook {height:33px;width:15px;background-position:-1116px -588px;}
-    .achievement-sharing .facebook:hover {background-position:-1116px -621px;}
     .achievement-sharing .twitter, .upscaled .achievement-sharing .twitter {height:33px;width:48px;background-position:-1131px -588px;margin-left:15px;}
     .achievement-sharing .twitter:hover, .upscaled .achievement-sharing .twitter:hover {background-position:-1131px -621px;}
     
@@ -123,8 +121,6 @@
     #achievements li .coin {margin-right:30px;}
     #achievements li span {padding-top:18px;}
     .achievement-sharing {right:16px;top:16px;}
-    .achievement-sharing .facebook {height:22px;width:10px;background-position:-744px -392px;}
-    .achievement-sharing .facebook:hover {background-position:-744px -414px;}
     .achievement-sharing .twitter, .upscaled .achievement-sharing .twitter {height:22px;width:32px;background-position:-754px -392px;margin-left:10px;}
     .achievement-sharing .twitter:hover, .upscaled .achievement-sharing .twitter:hover {background-position:-754px -414px;}
     
@@ -189,8 +185,6 @@
     #achievements li .coin {margin-right:30px;}
     #achievements li span {padding-top:18px;}
     .achievement-sharing {right:16px;top:16px;}
-    .achievement-sharing .facebook {height:22px;width:10px;background-position:-744px -392px;}
-    .achievement-sharing .facebook:hover {background-position:-744px -414px;}
     .achievement-sharing .twitter, .upscaled .achievement-sharing .twitter {height:22px;width:32px;background-position:-754px -392px;margin-left:10px;}
     .achievement-sharing .twitter:hover, .upscaled .achievement-sharing .twitter:hover {background-position:-754px -414px;}
     
@@ -255,8 +249,6 @@
     #achievements li .coin {margin-right:15px;}
     #achievements li span {padding-top:9px;}
     .achievement-sharing {right:8px;top:8px;}
-    .achievement-sharing .facebook {height:11px;width:5px;background-position:-372px -196px;}
-    .achievement-sharing .facebook:hover {background-position:-372px -207px;}
     .achievement-sharing .twitter, .upscaled .achievement-sharing .twitter {height:11px;width:16px;background-position:-377px -196px;margin-left:5px;}
     .achievement-sharing .twitter:hover, .upscaled .achievement-sharing .twitter:hover {background-position:-377px -207px;}
 

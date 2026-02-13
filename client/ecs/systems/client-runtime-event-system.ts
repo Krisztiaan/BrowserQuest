@@ -84,6 +84,33 @@ export function runClientRuntimeEventSystem(host: ClientRuntimeEventSystemHost):
                 host.kernel.enqueueClientCommand({ type: 'dropItem', item: event.item, mobId: event.mobId });
                 break;
             }
+            case 'playerDamageMob': {
+                host.kernel.enqueueClientCommand({
+                    type: 'applyDamageToMob',
+                    mobId: event.mobId,
+                    points: event.points,
+                });
+                break;
+            }
+            case 'playerKillMob': {
+                host.kernel.enqueueClientCommand({
+                    type: 'applyKillToAchievements',
+                    mobKind: event.kind,
+                });
+                break;
+            }
+            case 'achievementProgress': {
+                host.kernel.enqueueClientCommand({
+                    type: 'applyAchievementProgress',
+                    unlockedIds: event.unlockedIds,
+                    ratCount: event.ratCount,
+                    skeletonCount: event.skeletonCount,
+                    totalKills: event.totalKills,
+                    totalDmg: event.totalDmg,
+                    totalRevives: event.totalRevives,
+                });
+                break;
+            }
             case 'itemBlink': {
                 host.kernel.enqueueClientCommand({ type: 'itemBlink', entityId: event.entityId });
                 break;

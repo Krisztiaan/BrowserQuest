@@ -4,6 +4,7 @@ import type { EntityId } from '../../shared/domain/ids';
 import { entityIdToWire } from '../../shared/domain/ids';
 import type {
     ServerToClientAttackAction,
+    ServerToClientAchievementsAction,
     ServerToClientBlinkAction,
     ServerToClientChatAction,
     ServerToClientDamageAction,
@@ -107,6 +108,32 @@ export function buildHpAction(maxHitPoints: number): ServerToClientHitPointsActi
 
 export function buildBlinkAction(id: EntityId): ServerToClientBlinkAction {
     return [Types.Messages.BLINK, entityIdToWire(id)];
+}
+
+export function buildAchievementsAction({
+    unlockedIds,
+    ratCount,
+    skeletonCount,
+    totalKills,
+    totalDmg,
+    totalRevives,
+}: {
+    unlockedIds: number[];
+    ratCount: number;
+    skeletonCount: number;
+    totalKills: number;
+    totalDmg: number;
+    totalRevives: number;
+}): ServerToClientAchievementsAction {
+    return [
+        Types.Messages.ACHIEVEMENTS,
+        unlockedIds,
+        ratCount,
+        skeletonCount,
+        totalKills,
+        totalDmg,
+        totalRevives,
+    ];
 }
 
 export function asServerToClientProtocolAction(action: ServerToClientProtocolAction): ServerToClientProtocolAction {

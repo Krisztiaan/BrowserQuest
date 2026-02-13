@@ -64,6 +64,8 @@ const protocolContract: ProtocolContract = {
     MSG_BLINK: Types.Messages.BLINK,
     MSG_OPEN: Types.Messages.OPEN,
     MSG_CHECK: Types.Messages.CHECK,
+    MSG_ACHIEVEMENT: Types.Messages.ACHIEVEMENT,
+    MSG_ACHIEVEMENTS: Types.Messages.ACHIEVEMENTS,
     ENTITY_CLOTH_ARMOR: Types.Entities.CLOTHARMOR,
     ENTITY_SWORD_1: Types.Entities.SWORD1,
     parseProtocolActionBatch(payload: string): ProtocolParsedAction[] {
@@ -117,6 +119,8 @@ export const MSG_HP = protocolContract.MSG_HP;
 export const MSG_BLINK = protocolContract.MSG_BLINK;
 export const MSG_OPEN = protocolContract.MSG_OPEN;
 export const MSG_CHECK = protocolContract.MSG_CHECK;
+export const MSG_ACHIEVEMENT = protocolContract.MSG_ACHIEVEMENT;
+export const MSG_ACHIEVEMENTS = protocolContract.MSG_ACHIEVEMENTS;
 export const ENTITY_CLOTH_ARMOR = protocolContract.ENTITY_CLOTH_ARMOR;
 export const ENTITY_SWORD_1 = protocolContract.ENTITY_SWORD_1;
 export const parseProtocolActionBatch = protocolContract.parseProtocolActionBatch;

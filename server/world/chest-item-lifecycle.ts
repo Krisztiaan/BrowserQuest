@@ -61,7 +61,13 @@ type StaticEntityMap = Record<string, string> | undefined;
 type SpawnMob = {
     id: EntityId;
     isDead: boolean;
+    x?: number;
+    y?: number;
+    spawningX?: number;
+    spawningY?: number;
     area?: unknown;
+    setPosition?(x: number, y: number): void;
+    updateHitPoints?(): void;
     on(eventName: 'respawn', callback: () => void): void;
 };
 
@@ -173,7 +179,18 @@ export function spawnStaticEntitiesForWorld({
         if (isMobKind(kind)) {
             const mob = createMob(entityIdFromWire(Number('7' + kind + count++)), kind, x, y);
             mob.on('respawn', () => {
+                const spawnX = typeof mob.spawningX === 'number' ? mob.spawningX : x;
+                const spawnY = typeof mob.spawningY === 'number' ? mob.spawningY : y;
+                if (typeof mob.setPosition === 'function') {
+                    mob.setPosition(spawnX, spawnY);
+                } else {
+                    mob.x = spawnX;
+                    mob.y = spawnY;
+                }
                 mob.isDead = false;
+                if (typeof mob.updateHitPoints === 'function') {
+                    mob.updateHitPoints();
+                }
                 addMob(mob);
                 if (mob.area && isChestArea(mob.area)) {
                     mob.area.addToArea(mob);

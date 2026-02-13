@@ -6,7 +6,7 @@ async function startModernSession(page: Page, name: string) {
         window.localStorage.clear();
     });
 
-    await page.goto('/client/modern.html', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#nameinput')).toBeVisible();
     await page.fill('#nameinput', name);
     await page.evaluate((nextName: string) => {

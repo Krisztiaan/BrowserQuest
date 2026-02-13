@@ -13,6 +13,21 @@ export type HelloCommand = Readonly<{
     name: string;
     armorKind: EntityKind;
     weaponKind: EntityKind;
+    profile?: Readonly<{
+        nameKey: string;
+        displayName: string;
+        armorKind: EntityKind;
+        weaponKind: EntityKind;
+        checkpointId: number | null;
+        achievements: Readonly<{
+            unlockedIds: number[];
+            ratCount: number;
+            skeletonCount: number;
+            totalKills: number;
+            totalDmg: number;
+            totalRevives: number;
+        }>;
+    }>;
 }>;
 
 export type WhoCommand = Readonly<{
@@ -93,6 +108,12 @@ export type CheckCommand = Readonly<{
     checkpointId: number;
 }>;
 
+export type AchievementCommand = Readonly<{
+    type: 'ACHIEVEMENT';
+    source: CommandSource;
+    achievementId: number;
+}>;
+
 export type Command =
     | HelloCommand
     | WhoCommand
@@ -107,4 +128,5 @@ export type Command =
     | LootCommand
     | TeleportCommand
     | OpenCommand
-    | CheckCommand;
+    | CheckCommand
+    | AchievementCommand;

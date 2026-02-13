@@ -7,6 +7,7 @@ export type CombatComponents = Readonly<{
     MaxHitPoints: ComponentType<number>;
     ArmorLevel: ComponentType<number>;
     WeaponLevel: ComponentType<number>;
+    NextAttackTick: ComponentType<number>;
 }>;
 
 export function registerCombatComponents(world: EcsWorld): CombatComponents {
@@ -14,6 +15,6 @@ export function registerCombatComponents(world: EcsWorld): CombatComponents {
     const MaxHitPoints = world.components.register('MaxHitPoints', new SparseSetStore<number>());
     const ArmorLevel = world.components.register('ArmorLevel', new SparseSetStore<number>());
     const WeaponLevel = world.components.register('WeaponLevel', new SparseSetStore<number>());
-    return { HitPoints, MaxHitPoints, ArmorLevel, WeaponLevel };
+    const NextAttackTick = world.components.register('NextAttackTick', new SparseSetStore<number>());
+    return { HitPoints, MaxHitPoints, ArmorLevel, WeaponLevel, NextAttackTick };
 }
-

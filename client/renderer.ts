@@ -6,10 +6,9 @@ import Timer from './timer';
 import Detect from './platform/detect';
 import Types from '../shared/gametypes-browser';
 import log from './platform/log';
+import { disableCanvasImageSmoothing, type PixelArtCanvasContext } from './canvas-smoothing';
 
-type RendererContext2D = CanvasRenderingContext2D & {
-    mozImageSmoothingEnabled?: boolean;
-};
+type RendererContext2D = PixelArtCanvasContext;
 type BoundingRect = Record<string, number>;
 type RenderSprite = {
     image: CanvasImageSource;
@@ -104,6 +103,14 @@ type RendererGameLike = {
     currentTime: number;
     targetCellVisible: boolean;
 };
+
+type TerrainMapLike = Readonly<{
+    isHighTile(id: number): boolean;
+}>;
+
+export function shouldDrawTerrainTile(map: TerrainMapLike, id: number): boolean {
+    return !map.isHighTile(id);
+}
 
 class Renderer {
     game: RendererGameLike;
@@ -209,9 +216,9 @@ class Renderer {
 
         this.createCamera();
 
-        this.context.mozImageSmoothingEnabled = false;
-        this.background.mozImageSmoothingEnabled = false;
-        this.foreground.mozImageSmoothingEnabled = false;
+        disableCanvasImageSmoothing(this.context);
+        disableCanvasImageSmoothing(this.background);
+        disableCanvasImageSmoothing(this.foreground);
 
         this.initFont();
         this.initFPS();
@@ -751,8 +758,9 @@ class Renderer {
             tilesetwidth = this.tileset.width / m.tilesize;
 
         this.game.forEachVisibleTile(function (id: number, index: number) {
-            if (!m.isHighTile(id) && !m.isAnimatedTile(id)) {
-                // Don't draw unnecessary tiles
+            if (shouldDrawTerrainTile(m, id)) {
+                // Keep a base terrain underlay even for animated ground tiles.
+                // This prevents faint seams when animated frames contain transparent edge pixels.
                 self.drawTile(self.background, id, self.tileset, tilesetwidth, m.width, index);
             }
         }, 1);
@@ -864,6 +872,7 @@ class Renderer {
         if (!ctx) {
             return;
         }
+        disableCanvasImageSmoothing(ctx);
 
         const os = this.upscaledRendering ? 1 : this.scale;
         const player = this.game.player;

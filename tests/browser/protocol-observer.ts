@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { MSG_CHAT, parseProtocolActionBatch } from '../support/protocol/contract';
+import { MSG_CHAT, parseProtocolActionBatch, type ProtocolParsedAction } from '../support/protocol/contract';
 
 type ProtocolObserverOptions = {
     wsUrlSubstring?: string;
@@ -9,16 +9,22 @@ type ProtocolObserverOptions = {
 export type ProtocolObserver = {
     sentTypes: number[];
     receivedTypes: number[];
+    sentActions: ProtocolParsedAction[];
+    receivedActions: ProtocolParsedAction[];
     receivedChats: string[];
     getGoCount: () => number;
     getSocketCount: () => number;
 };
 
 export function attachProtocolObserver(page: Page, options?: ProtocolObserverOptions): ProtocolObserver {
-    const wsUrlSubstring = options?.wsUrlSubstring ?? ':8000';
+    // Default to matching the canonical `/ws` endpoint. In dev/Playwright, the browser connects to the Vite origin
+    // (and Vite proxies `/ws`), while in some runtimes it may connect directly to the server port — both include `/ws`.
+    const wsUrlSubstring = options?.wsUrlSubstring ?? '/ws';
     const trackChats = options?.trackChats === true;
     const sentTypes: number[] = [];
     const receivedTypes: number[] = [];
+    const sentActions: ProtocolParsedAction[] = [];
+    const receivedActions: ProtocolParsedAction[] = [];
     const receivedChats: string[] = [];
     let goCount = 0;
     let socketCount = 0;
@@ -32,7 +38,10 @@ export function attachProtocolObserver(page: Page, options?: ProtocolObserverOpt
         ws.on('framesent', ({ payload }) => {
             const text = typeof payload === 'string' ? payload : payload.toString();
             const actions = parseProtocolActionBatch(text);
-            actions.forEach((action) => sentTypes.push(action[0]));
+            actions.forEach((action) => {
+                sentTypes.push(action[0]);
+                sentActions.push(action);
+            });
         });
 
         ws.on('framereceived', ({ payload }) => {
@@ -45,6 +54,7 @@ export function attachProtocolObserver(page: Page, options?: ProtocolObserverOpt
             const actions = parseProtocolActionBatch(text);
             actions.forEach((action) => {
                 receivedTypes.push(action[0]);
+                receivedActions.push(action);
                 if (trackChats && action[0] === MSG_CHAT && typeof action[2] === 'string') {
                     receivedChats.push(action[2]);
                 }
@@ -55,6 +65,8 @@ export function attachProtocolObserver(page: Page, options?: ProtocolObserverOpt
     return {
         sentTypes,
         receivedTypes,
+        sentActions,
+        receivedActions,
         receivedChats,
         getGoCount: () => goCount,
         getSocketCount: () => socketCount,

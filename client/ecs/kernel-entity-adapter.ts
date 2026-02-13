@@ -1,5 +1,6 @@
 import EntityFactory from '../entityfactory';
 import Types from '../../shared/gametypes-browser';
+import { getMobPrefab } from '../../shared/content/prefabs';
 import type { EntityId } from '../../shared/domain/ids';
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { ClientWorldKernel, KernelEntityView } from './world-kernel';
@@ -44,6 +45,13 @@ export function adaptKernelEntityForRendering(kernel: ClientWorldKernel, id: Ent
     if (view.type === 'player') {
         character.weaponName = toKindName(view.weapon);
         character.spriteName = toKindName(view.armor);
+    }
+
+    if (Types.isMob(view.kind) && typeof (character as unknown as { setMaxHitPoints?: unknown }).setMaxHitPoints === 'function') {
+        const prefab = getMobPrefab(view.kind);
+        if (prefab) {
+            (character as unknown as { setMaxHitPoints: (hp: number) => void }).setMaxHitPoints(prefab.combat.maxHitPoints);
+        }
     }
 
     return {

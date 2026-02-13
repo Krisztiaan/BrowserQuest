@@ -136,6 +136,7 @@ export class ClientWorldKernel {
     clientPathingGrid: number[][] | null = null;
 
     clientLastSentMovePos: GridPos | null = null;
+    clientDoorTraversalArmed = false;
 
     ensureClientPathingGrid(mapGrid: number[][]): void {
         const height = mapGrid.length;
@@ -299,9 +300,6 @@ export class ClientWorldKernel {
             this.clientInteractionIntent = null;
         }
 
-        this.clientReplicationKnownAlive.delete(id);
-        this.clientReplicationLastPos.delete(id);
-        this.clientReplicationLastTarget.delete(id);
     }
 
     resetWorldState(): void {
@@ -331,6 +329,7 @@ export class ClientWorldKernel {
         this.resetClientSpatialState();
 
         this.clientLastSentMovePos = null;
+        this.clientDoorTraversalArmed = false;
     }
 
     setPopulation(worldPlayers: number, totalPlayers: number): void {

@@ -16,6 +16,7 @@ export const PLAYER_SESSION_DISPATCH_OPCODES = [
     Types.Messages.TELEPORT,
     Types.Messages.OPEN,
     Types.Messages.CHECK,
+    Types.Messages.ACHIEVEMENT,
 ] as const satisfies readonly ClientToServerProtocolAction[0][];
 
 export const GAMECLIENT_INBOUND_HANDLER_OPCODES = [
@@ -37,4 +38,5 @@ export const GAMECLIENT_INBOUND_HANDLER_OPCODES = [
     Types.Messages.KILL,
     Types.Messages.HP,
     Types.Messages.BLINK,
+    Types.Messages.ACHIEVEMENTS,
 ] as const satisfies readonly ServerToClientProtocolAction[0][];

@@ -24,6 +24,7 @@ type GameClientInboundReceiver = {
     receiveKill(data: ClientInboundActionByOpcode<typeof Types.Messages.KILL>): void;
     receiveHitPoints(data: ClientInboundActionByOpcode<typeof Types.Messages.HP>): void;
     receiveBlink(data: ClientInboundActionByOpcode<typeof Types.Messages.BLINK>): void;
+    receiveAchievements(data: ClientInboundActionByOpcode<typeof Types.Messages.ACHIEVEMENTS>): void;
 };
 
 export function createGameClientInboundHandlers(
@@ -48,5 +49,6 @@ export function createGameClientInboundHandlers(
         [Types.Messages.KILL]: (data) => receiver.receiveKill(data),
         [Types.Messages.HP]: (data) => receiver.receiveHitPoints(data),
         [Types.Messages.BLINK]: (data) => receiver.receiveBlink(data),
+        [Types.Messages.ACHIEVEMENTS]: (data) => receiver.receiveAchievements(data),
     };
 }

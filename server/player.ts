@@ -1,14 +1,11 @@
 import Character from './character';
-import { attachPlayerSession } from './player-session';
 import Log from './log';
 import Formulas from './formulas';
 import Types from '../shared/gametypes-browser';
 import type { ClientToServerProtocolAction } from '../shared/protocol/types';
-import { HANDSHAKE_CONTROL } from '../shared/connection-status';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { EntityId } from '../shared/domain/ids';
 import { entityIdFromWireString } from '../shared/domain/ids';
-import type { Command } from './ecs/commands';
 import { buildEquipAction, buildHpAction } from './protocol/outbound-actions';
 
 const log = Log.getLogger();
@@ -30,9 +27,6 @@ type CheckpointLike = { id?: string | number };
 type EquipableItem = {
     kind: EntityKind;
 };
-type PlayerServerLike = {
-    enqueueCommand(command: Command): void;
-};
 
 type PlayerEvents = {
     exit: [];
@@ -44,7 +38,6 @@ type PlayerEvents = {
 };
 
 class Player extends Character<PlayerEvents> {
-    server: PlayerServerLike;
     connection: PlayerConnectionLike;
     name: string;
     hasEnteredGame: boolean;
@@ -55,14 +48,12 @@ class Player extends Character<PlayerEvents> {
     weapon: EntityKind;
     weaponLevel: number;
     lastCheckpoint: CheckpointLike | null;
-    disconnectTimeout: ReturnType<typeof setTimeout> | null;
     firepotionTimeout: ReturnType<typeof setTimeout> | null;
     positionResolver: (() => { x: number; y: number }) | null;
 
-    constructor(connection: PlayerConnectionLike, worldServer: PlayerServerLike) {
+    constructor(connection: PlayerConnectionLike, _worldServer: unknown) {
         super(entityIdFromWireString(connection.id), 'player', Types.Entities.WARRIOR, 0, 0);
 
-        this.server = worldServer;
         this.connection = connection;
 
         this.name = '';
@@ -70,14 +61,12 @@ class Player extends Character<PlayerEvents> {
         this.isDead = false;
         this.haters = {};
         this.lastCheckpoint = null;
-        this.disconnectTimeout = null;
         this.firepotionTimeout = null;
         this.armor = 0 as EntityKind;
         this.armorLevel = 0;
         this.weapon = 0 as EntityKind;
         this.weaponLevel = 0;
         this.positionResolver = null;
-        attachPlayerSession(this);
     }
 
     override destroy(): void {
@@ -158,18 +147,6 @@ class Player extends Character<PlayerEvents> {
 
     setPositionResolver(resolver: () => { x: number; y: number }): void {
         this.positionResolver = resolver;
-    }
-
-    resetTimeout(): void {
-        if (this.disconnectTimeout) {
-            clearTimeout(this.disconnectTimeout);
-        }
-        this.disconnectTimeout = setTimeout(() => this.timeout(), 1000 * 60 * 15); // 15 min.
-    }
-
-    timeout(): void {
-        this.connection.sendUTF8(HANDSHAKE_CONTROL.TIMEOUT);
-        this.connection.close('Player was idle for too long');
     }
 }
 

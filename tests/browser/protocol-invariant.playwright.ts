@@ -26,7 +26,7 @@ type ReplayResult = {
 type ReplayActionValue = number | string | boolean | null;
 type ReplayAction = [number, ...ReplayActionValue[]];
 
-async function replaySequence(page: Page, entryPath: '/client/modern.html', suffix: string, mode: ReplayMode) {
+async function replaySequence(page: Page, entryPath: '/', suffix: string, mode: ReplayMode) {
     await page.addInitScript(() => {
         window.localStorage.clear();
     });
@@ -203,8 +203,8 @@ async function replaySequence(page: Page, entryPath: '/client/modern.html', suff
 }
 
 test('protocol replay invariants hold on modern entry path', async ({ page }) => {
-    const modern = await replaySequence(page, '/client/modern.html', `modern-${Date.now()}`, 'positive');
-    const modernInvalid = await replaySequence(page, '/client/modern.html', `modern-${Date.now()}`, 'invalid_move');
+    const modern = await replaySequence(page, '/', `modern-${Date.now()}`, 'positive');
+    const modernInvalid = await replaySequence(page, '/', `modern-${Date.now()}`, 'invalid_move');
 
     expect(modern.ok).toBe(true);
     expect(modernInvalid.ok).toBe(true);

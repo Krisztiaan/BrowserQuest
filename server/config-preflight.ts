@@ -19,6 +19,7 @@ interface CandidateConfig {
     map_filepath?: unknown;
     metrics_enabled?: unknown;
     plugins?: unknown;
+    player_db_path?: unknown;
 }
 
 interface ValidationResult {
@@ -83,6 +84,12 @@ function validateConfig(config: unknown): ValidationResult {
     }
     if (candidate.plugins !== undefined && !isStringArray(candidate.plugins)) {
         errors.push({ field: 'plugins', reason: 'must_be_string_array' });
+    }
+    if (candidate.player_db_path !== undefined && !isNonEmptyString(candidate.player_db_path)) {
+        errors.push({
+            field: 'player_db_path',
+            reason: 'must_be_non_empty_string',
+        });
     }
 
     return {

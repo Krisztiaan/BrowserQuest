@@ -2,7 +2,6 @@ import Storage from './storage';
 import log from './platform/log';
 import { TRANSITIONEND } from './platform/util';
 import type { AchievementId } from './achievement-domain';
-import type { PopupType } from './asset-key-domain';
 import { resolveImageAssetPath } from './image-assets';
 
 type AchievementView = {
@@ -127,8 +126,7 @@ class App {
         this.supportsWorkers = false;
         this.messageTimer = null;
 
-        const legacyStorage = (globalThis as unknown as { localStorage?: { data?: unknown } }).localStorage;
-        if (legacyStorage?.data) {
+        if (this.storage.hasAlreadyPlayed()) {
             this.frontPage = 'loadcharacter';
         }
     }
@@ -540,7 +538,7 @@ class App {
             achievementNode.querySelectorAll('a').forEach(function (link: Element) {
                 link.addEventListener('click', function (event: MouseEvent) {
                     const url = link.getAttribute('href');
-                    self.openPopup('twitter', url);
+                    self.openPopup(url);
                     event.preventDefault();
                     return false;
                 });
@@ -648,16 +646,11 @@ class App {
         }
     }
 
-    openPopup(type: PopupType, url: string): void {
+    openPopup(url: string): void {
         const h = window.innerHeight,
             w = window.innerWidth;
-        let popupHeight = 450;
-        let popupWidth = 550;
-
-        if (type === 'facebook') {
-            popupHeight = 400;
-            popupWidth = 580;
-        }
+        const popupHeight = 450;
+        const popupWidth = 550;
 
         const top = h / 2 - popupHeight / 2;
         const left = w / 2 - popupWidth / 2;

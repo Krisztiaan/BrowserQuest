@@ -17,6 +17,9 @@ import Log from './log';
 import WsRuntimeModule from './ws/runtime';
 import WorldServer from './world-server';
 import Player from './player';
+import { attachWorldConnectionSession } from './player-session';
+import { DEFAULT_PLAYER_DB_PATH, SqlitePlayerPersistence } from './player-persistence';
+import { createProfilePreviewJsonResponse, createProfilePreviewResponse } from './profile-preview';
 
 const WsRuntime = WsRuntimeModule as MainRuntimeDependencies['ws'];
 
@@ -100,12 +103,14 @@ function createWorlds(
     config: ServerConfig,
     server: RuntimeServer,
     dependencies: MainRuntimeDependencies,
-    onWorldReady: () => void = () => {}
+    onWorldReady: () => void = () => {},
+    onWorldCreated: (world: RuntimeWorld) => void = () => {}
 ): RuntimeWorld[] {
     const worlds: RuntimeWorld[] = [];
 
     for (let i = 0; i < config.nb_worlds; i += 1) {
         const world = new dependencies.WorldServer('world' + (i + 1), config.nb_players_per_world, server);
+        onWorldCreated(world);
         if (typeof world.on === 'function') {
             world.on('ready', onWorldReady);
         }
@@ -114,6 +119,21 @@ function createWorlds(
     }
 
     return worlds;
+}
+
+function resolvePlayerPersistencePath(config: ServerConfig): string {
+    if (typeof config.player_db_path !== 'string' || config.player_db_path.trim().length === 0) {
+        return DEFAULT_PLAYER_DB_PATH;
+    }
+    return config.player_db_path;
+}
+
+function parseRequestPathname(requestUrl: string | undefined): string {
+    try {
+        return new URL(requestUrl ?? '/', 'http://localhost').pathname;
+    } catch {
+        return '/';
+    }
 }
 
 function createPopulationChangeHandler(
@@ -313,6 +333,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     const server = runtime.server;
     const metrics = runtime.metrics;
     let worlds: RuntimeWorld[] = [];
+    const playerPersistence = new SqlitePlayerPersistence(resolvePlayerPersistencePath(config));
 
     const populationCheckTimer = createPopulationCheckTimer(
         metrics,
@@ -347,12 +368,35 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
         worlds: config.nb_worlds,
         worldCapacity: config.nb_players_per_world,
         metricsEnabled: !!config.metrics_enabled,
+        playerDbPath: playerPersistence.databasePath,
     });
+
+    if (typeof server.onRequestProfilePreview === 'function') {
+        server.onRequestProfilePreview(function (request: Request) {
+            const pathname = parseRequestPathname(request.url);
+            if (pathname === '/profile/preview.json') {
+                return createProfilePreviewJsonResponse({
+                    cookieHeader: request.headers.get('cookie'),
+                    profileLookup: playerPersistence,
+                });
+            }
+            return createProfilePreviewResponse({
+                cookieHeader: request.headers.get('cookie'),
+                profileLookup: playerPersistence,
+            });
+        });
+    }
 
     server.on('connect', function (connection) {
         const connect = function (world: RuntimeWorld | null | undefined) {
             if (world) {
-                world.emit('playerConnect', new Player(connection, world));
+                const player = new Player(connection, world);
+                world.emit('playerConnect', player);
+                attachWorldConnectionSession({
+                    connection: connection as unknown as Parameters<typeof attachWorldConnectionSession>[0]['connection'],
+                    world: world as unknown as Parameters<typeof attachWorldConnectionSession>[0]['world'],
+                    playerId: player.id as never,
+                });
                 return;
             }
             connection.close('Server is full.');
@@ -411,12 +455,23 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
         });
     };
 
-    worlds = createWorlds(config, server, dependencies, function () {
-        readyCount += 1;
-        if (readyCount === config.nb_worlds) {
-            installStatusEndpoint();
+    worlds = createWorlds(
+        config,
+        server,
+        dependencies,
+        function () {
+            readyCount += 1;
+            if (readyCount === config.nb_worlds) {
+                installStatusEndpoint();
+            }
+        },
+        function (world) {
+            const worldWithPersistence = world as RuntimeWorld & {
+                setPlayerPersistence?: (persistence: SqlitePlayerPersistence) => void;
+            };
+            worldWithPersistence.setPlayerPersistence?.(playerPersistence);
         }
-    });
+    );
     installWorldPopulationHooks(worlds, metrics, onPopulationChange);
     // If worlds are already ready (unlikely), ensure /status exists.
     if (config.nb_worlds === 0) {
@@ -427,7 +482,13 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
 
     const reportFatal = createFatalReporter(emitServerEvent, logger);
     const cleanupFatalHandlers = installFatalHandlers(dependencies.processObject, reportFatal);
-    const baseRuntimeCleanup = createRuntimeCleanup([cleanupPopulationCheckTimer, cleanupFatalHandlers]);
+    const baseRuntimeCleanup = createRuntimeCleanup([
+        cleanupPopulationCheckTimer,
+        cleanupFatalHandlers,
+        function () {
+            playerPersistence.close();
+        },
+    ]);
     let hasShutdownStarted = false;
     const cleanupShutdownHandlers = installShutdownHandlers(dependencies.processObject, function (signal) {
         if (hasShutdownStarted) {

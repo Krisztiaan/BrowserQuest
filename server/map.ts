@@ -186,10 +186,15 @@ class Map {
 
         if (this.ready_func) {
             this.ready_func();
+            this.ready_func = null;
         }
     }
 
     ready(f: () => void): void {
+        if (this.isLoaded) {
+            f();
+            return;
+        }
         this.ready_func = f;
     }
 

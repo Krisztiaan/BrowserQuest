@@ -28,7 +28,7 @@ async function getFreePort() {
 
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
-     
+
     for (;;) {
         try {
             const res = await fetch(url);
@@ -46,7 +46,7 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
 
 async function waitForCondition(check: () => boolean, timeoutMs: number, label: string) {
     const start = Date.now();
-     
+
     for (;;) {
         if (check()) return;
         if (Date.now() - start > timeoutMs) {
@@ -78,7 +78,7 @@ async function readStreamText(stream: ReadableStream<unknown> | number | null | 
     const reader = stream.getReader();
     const decoder = new TextDecoder();
     let output = '';
-     
+
     for (;;) {
         const { done, value } = await reader.read();
         if (done) break;

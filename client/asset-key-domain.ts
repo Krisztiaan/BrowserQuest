@@ -1,7 +1,7 @@
 export const CURSOR_KEYS = ['hand', 'sword', 'loot', 'target', 'arrow', 'talk'] as const;
 export type CursorKey = (typeof CURSOR_KEYS)[number];
 
-export const POPUP_TYPES = ['twitter', 'facebook'] as const;
+export const POPUP_TYPES = ['twitter'] as const;
 export type PopupType = (typeof POPUP_TYPES)[number];
 
 export const MUSIC_KEYS = ['village', 'beach', 'forest', 'cave', 'desert', 'lavaland', 'boss'] as const;

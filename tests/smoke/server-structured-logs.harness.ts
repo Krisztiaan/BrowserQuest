@@ -83,7 +83,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     async function waitForHttpOk(url: string, timeoutMs = 5000) {
         const start = Date.now();
         let lastError: unknown = null;
-         
+
         for (;;) {
             try {
                 const res = await fetch(url);
@@ -103,7 +103,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     // Wait for a structured event name to appear in captured records.
     async function waitForEvent(events: EventRecord[], eventName: string, timeoutMs = 5000) {
         const start = Date.now();
-         
+
         for (;;) {
             const found = events.find((e) => e.event === eventName);
             if (found) {

@@ -53,6 +53,7 @@ test('server-to-client protocol registry stays aligned with canonical opcode set
         Types.Messages.DESTROY,
         Types.Messages.HP,
         Types.Messages.BLINK,
+        Types.Messages.ACHIEVEMENTS,
     ]);
 
     expect(registryOpcodes).toEqual(expectedOpcodes);

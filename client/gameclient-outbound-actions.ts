@@ -71,3 +71,7 @@ export function createOpenAction(chestId: number): OutboundAction<typeof Types.M
 export function createCheckAction(id: number | string): OutboundAction<typeof Types.Messages.CHECK> {
     return [Types.Messages.CHECK, Number(id)];
 }
+
+export function createAchievementAction(id: number): OutboundAction<typeof Types.Messages.ACHIEVEMENT> {
+    return [Types.Messages.ACHIEVEMENT, id];
+}

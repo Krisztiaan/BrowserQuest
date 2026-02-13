@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => {
         "/healthz": { target: serverTargetHttp },
         "/version": { target: serverTargetHttp },
         "/status": { target: serverTargetHttp },
+        "/profile": { target: serverTargetHttp },
       },
     },
     build: {

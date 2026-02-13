@@ -7,6 +7,7 @@ import {
     type GameClientInboundActionHandlerMap,
 } from './gameclient-inbound-handlers';
 import {
+    createAchievementAction,
     createAggroAction,
     createAttackAction,
     createChatAction,
@@ -87,6 +88,14 @@ export type GameClientEvents = {
     dropItem: [item: unknown, mobId: EntityId];
     playerDamageMob: [mobId: EntityId, points: number];
     playerKillMob: [kind: EntityKind];
+    achievementProgress: [
+        unlockedIds: number[],
+        ratCount: number,
+        skeletonCount: number,
+        totalKills: number,
+        totalDmg: number,
+        totalRevives: number,
+    ];
     populationChange: [worldPlayers: number, totalPlayers: number];
     entityList: [list: EntityId[]];
     entityDestroy: [entityId: EntityId];
@@ -372,6 +381,11 @@ class GameClient extends Evented<GameClientEvents> {
         this.emit('itemBlink', entityIdFromWire(id));
     }
 
+    receiveAchievements(data: ClientInboundActionByOpcode<typeof Types.Messages.ACHIEVEMENTS>): void {
+        const [, unlockedIds, ratCount, skeletonCount, totalKills, totalDmg, totalRevives] = data;
+        this.emit('achievementProgress', unlockedIds, ratCount, skeletonCount, totalKills, totalDmg, totalRevives);
+    }
+
     sendHello(player: ClientPlayerLike): void {
         const armorKind = Types.getKindFromString(player.getSpriteName());
         const weaponKind = Types.getKindFromString(player.getWeaponName());
@@ -434,6 +448,10 @@ class GameClient extends Evented<GameClientEvents> {
 
     sendCheck(id: number | string): void {
         this.sendMessage(createCheckAction(id));
+    }
+
+    sendAchievement(id: number): void {
+        this.sendMessage(createAchievementAction(id));
     }
 }
 

@@ -12,4 +12,15 @@ export type ClientRuntimeEvent =
     | Readonly<{ type: 'chatMessage'; entityId: EntityId; text: string }>
     | Readonly<{ type: 'playerEquipItem'; entityId: EntityId; itemKind: EntityKind }>
     | Readonly<{ type: 'dropItem'; item: unknown; mobId: EntityId }>
-    | Readonly<{ type: 'itemBlink'; entityId: EntityId }>;
+    | Readonly<{ type: 'itemBlink'; entityId: EntityId }>
+    | Readonly<{ type: 'playerDamageMob'; mobId: EntityId; points: number }>
+    | Readonly<{ type: 'playerKillMob'; kind: EntityKind }>
+    | Readonly<{
+          type: 'achievementProgress';
+          unlockedIds: number[];
+          ratCount: number;
+          skeletonCount: number;
+          totalKills: number;
+          totalDmg: number;
+          totalRevives: number;
+      }>;

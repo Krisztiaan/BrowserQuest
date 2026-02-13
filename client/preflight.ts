@@ -1,7 +1,6 @@
 import Detect from './platform/detect';
 import { supportsLocalStorage } from './platform/features';
-
-const STORAGE_KEY = 'data';
+import Storage from './storage';
 
 const canvas = document.querySelector('canvas');
 const parchment = document.getElementById('parchment');
@@ -28,9 +27,12 @@ if (!supportsLocalStorage()) {
     if (target) {
         document.body.insertBefore(alert, target);
     }
-} else if (globalThis.localStorage.getItem(STORAGE_KEY)) {
-    document.body.className += ' returning';
-    if (parchment) {
-        parchment.className = 'loadcharacter';
+} else {
+    const storage = new Storage();
+    if (storage.hasAlreadyPlayed()) {
+        document.body.className += ' returning';
+        if (parchment) {
+            parchment.className = 'loadcharacter';
+        }
     }
 }

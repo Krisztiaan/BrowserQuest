@@ -64,6 +64,11 @@ import { entityIdFromWire } from '../shared/domain/ids';
 import type { Command } from './ecs/commands';
 import type { SchedulerStage } from './ecs/scheduler';
 import { WorldEcsCommandPipeline } from './world/ecs-command-pipeline';
+import type {
+    PersistedAchievementProgress,
+    PersistedPlayerProfile,
+    SqlitePlayerPersistence,
+} from './player-persistence';
 const log = Log.getLogger();
 const logWorldQueueError = (errorMessage: string): void => {
     log.error(errorMessage);
@@ -122,6 +127,17 @@ type WorldServerLike = {
     getConnection(id: string): WorldConnection | undefined;
 };
 
+type PlayerPersistence = Pick<
+    SqlitePlayerPersistence,
+    | 'claimPlayerSession'
+    | 'releasePlayerSession'
+    | 'persistEquipment'
+    | 'persistCheckpoint'
+    | 'persistAchievementUnlock'
+    | 'incrementAchievementCounters'
+    | 'getAchievementProgressByName'
+>;
+
 type WorldEvents = {
     ready: [];
     init: [];
@@ -159,6 +175,7 @@ class World extends Evented<WorldEvents> {
     pendingPlayers: Record<string, WorldPlayer>;
     plugins: ServerPlugin[];
     pluginsInstalled: boolean;
+    playerPersistence: PlayerPersistence | null;
 
     constructor(id: string, maxPlayers: number, websocketServer: WorldServerLike, plugins?: readonly ServerPlugin[]) {
         super();
@@ -191,6 +208,7 @@ class World extends Evented<WorldEvents> {
         this.ecsPipeline = new WorldEcsCommandPipeline(this);
         this.plugins = plugins ? [...plugins] : [];
         this.pluginsInstalled = false;
+        this.playerPersistence = null;
 
         this.on('playerConnect', (player) => {
             const key = String(player.id);
@@ -208,6 +226,10 @@ class World extends Evented<WorldEvents> {
         this.ecsPipeline.enqueue(command);
     }
 
+    setPlayerPersistence(playerPersistence: PlayerPersistence | null): void {
+        this.playerPersistence = playerPersistence;
+    }
+
     getConnectionPlayerById(playerId: EntityId): Player | null {
         const key = String(playerId);
         const active = this.players[key];
@@ -215,6 +237,119 @@ class World extends Evented<WorldEvents> {
             return active;
         }
         return this.pendingPlayers[key] ?? null;
+    }
+
+    resolveHelloProfile({
+        connectionId,
+        requestedName,
+    }: {
+        connectionId: string;
+        requestedName: string;
+    }): Readonly<{
+        accepted: boolean;
+        reason?: string;
+        profile?: PersistedPlayerProfile;
+    }> {
+        if (!this.playerPersistence) {
+            return { accepted: true };
+        }
+        const result = this.playerPersistence.claimPlayerSession({
+            connectionId,
+            requestedName,
+        });
+        if (!result.accepted) {
+            return {
+                accepted: false,
+                reason: result.reason,
+            };
+        }
+        return {
+            accepted: true,
+            profile: result.profile,
+        };
+    }
+
+    releaseSessionClaim(connectionId: string): void {
+        if (!this.playerPersistence) {
+            return;
+        }
+        this.playerPersistence.releasePlayerSession(connectionId);
+    }
+
+    persistPlayerEquipment(player: Player): void {
+        if (!this.playerPersistence) {
+            return;
+        }
+        this.playerPersistence.persistEquipment({
+            playerName: player.name,
+            armorKind: player.armor,
+            weaponKind: player.weapon,
+        });
+    }
+
+    persistPlayerCheckpoint(playerName: string, checkpointId: number): void {
+        if (!this.playerPersistence) {
+            return;
+        }
+        this.playerPersistence.persistCheckpoint({
+            playerName,
+            checkpointId,
+        });
+    }
+
+    persistPlayerAchievementUnlock(playerName: string, achievementId: number): void {
+        if (!this.playerPersistence) {
+            return;
+        }
+        this.playerPersistence.persistAchievementUnlock({
+            playerName,
+            achievementId,
+        });
+    }
+
+    recordPlayerMobKill(playerName: string, mobKind: EntityKind): void {
+        if (!this.playerPersistence) {
+            return;
+        }
+
+        this.playerPersistence.incrementAchievementCounters({
+            playerName,
+            killsDelta: 1,
+            ratDelta: mobKind === Types.Entities.RAT ? 1 : 0,
+            skeletonDelta:
+                mobKind === Types.Entities.SKELETON || mobKind === Types.Entities.SKELETON2 ? 1 : 0,
+        });
+    }
+
+    recordPlayerDamageTaken(playerName: string, damage: number): void {
+        if (!this.playerPersistence) {
+            return;
+        }
+        const safeDamage = Math.max(0, Math.trunc(damage));
+        if (safeDamage <= 0) {
+            return;
+        }
+        this.playerPersistence.incrementAchievementCounters({
+            playerName,
+            damageDelta: safeDamage,
+        });
+    }
+
+    recordPlayerRevive(playerName: string): void {
+        if (!this.playerPersistence) {
+            return;
+        }
+        this.playerPersistence.incrementAchievementCounters({
+            playerName,
+            revivesDelta: 1,
+        });
+    }
+
+    getPlayerAchievementProgress(playerName: string): PersistedAchievementProgress | null {
+        if (!this.playerPersistence) {
+            return null;
+        }
+        return this.playerPersistence.getAchievementProgressByName(playerName);
     }
 
     installPlugins(): void {
@@ -289,12 +424,12 @@ class World extends Evented<WorldEvents> {
                     );
                 },
             });
+
+            startWorldUpdateLoop(self, self.ups);
+
+            log.info('' + self.id + ' created (capacity: ' + self.maxPlayers + ' players).');
+            self.emit('ready');
         });
-
-        startWorldUpdateLoop(this, this.ups);
-
-        log.info('' + this.id + ' created (capacity: ' + this.maxPlayers + ' players).');
-        this.emit('ready');
     }
 
     setUpdatesPerSecond(ups: number) {
@@ -321,9 +456,48 @@ class World extends Evented<WorldEvents> {
         log.debug('Pushed ' + ids.length + ' new spawns to ' + player.id);
     }
 
+    isPlayerActive(playerId: EntityId): boolean {
+        const key = String(playerId);
+        return key in this.outgoingQueues;
+    }
+
+    pushSpawnsToPlayerId(playerId: EntityId, ids: EntityId[]): void {
+        if (!this.isPlayerActive(playerId)) {
+            return;
+        }
+
+        const pipeline = this.ecsPipeline;
+        for (let i = 0; i < ids.length; i += 1) {
+            const id = ids[i];
+            if (id === undefined) {
+                continue;
+            }
+            const entity = this.getEntityById(id);
+            if (!isSpawnableEntity(entity)) {
+                continue;
+            }
+            try {
+                this.pushToPlayerId(playerId, pipeline.buildSpawnActionForLegacyEntity(entity));
+            } catch (_) {
+                // Entity may have been destroyed or missing replication components.
+            }
+        }
+        log.debug('Pushed ' + ids.length + ' new spawns to ' + playerId);
+    }
+
     pushToPlayer(player: WorldPlayer, message: WorldMessage) {
         const serializedMessage = Array.isArray(message) ? message : message.serialize();
         pushSerializedToPlayerQueue(this.outgoingQueues, player, serializedMessage, logWorldQueueError);
+    }
+
+    pushToPlayerId(playerId: EntityId, message: WorldMessage): void {
+        const key = String(playerId);
+        const queue = this.outgoingQueues[key];
+        if (!queue) {
+            return;
+        }
+        const serializedMessage = Array.isArray(message) ? message : message.serialize();
+        queue.push(serializedMessage);
     }
 
     pushBroadcast(message: WorldMessage, ignoredPlayerId: EntityId | null = null): void {
@@ -354,6 +528,18 @@ class World extends Evented<WorldEvents> {
                 log.error('ecsPipeline.syncSpawnReplicationEntity failed: ' + String(err));
             }
         }
+
+        try {
+            this.ecsPipeline.syncCombatEntity(entity as unknown as {
+                id: EntityId;
+                hitPoints?: number;
+                maxHitPoints?: number;
+                armorLevel?: number;
+                weaponLevel?: number;
+            });
+        } catch (err) {
+            log.error('ecsPipeline.syncCombatEntity failed: ' + String(err));
+        }
         addWorldEntity({
             entity,
             entities: this.entities,
@@ -376,9 +562,8 @@ class World extends Evented<WorldEvents> {
 
         if (entity instanceof Mob) {
             const area = (entity as unknown as { area?: unknown }).area;
-            const removeFromArea = (area as { removeFromArea?: (mob: unknown) => void } | null | undefined)?.removeFromArea;
-            if (typeof removeFromArea === 'function') {
-                removeFromArea(entity);
+            if (area && typeof (area as { removeFromArea?: (mob: unknown) => void }).removeFromArea === 'function') {
+                (area as { removeFromArea: (mob: unknown) => void }).removeFromArea(entity);
             }
             this.ecsPipeline.scheduleStaticRespawn(entity, 30);
         }
@@ -538,7 +723,9 @@ class World extends Evented<WorldEvents> {
             entities: this.entities,
             id,
             logError(message) {
-                log.error(message);
+                // ECS-native flows may race legacy entity-map lookups during despawn/zone churn.
+                // Treat missing legacy entities as a debug signal (call sites already guard null).
+                log.debug(message);
             },
         });
     }

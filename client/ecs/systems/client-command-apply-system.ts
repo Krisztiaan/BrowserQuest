@@ -9,6 +9,7 @@ import type { EntityKind } from '../../../shared/entity-kind-domain';
 import { gridPos } from '../../../shared/domain/positions';
 import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
+import { getMobPrefab } from '../../../shared/content/prefabs';
 import type { ClientCommand } from '../client-commands';
 import type { ClientWorldKernel } from '../world-kernel';
 import { adaptKernelEntityForRendering } from '../kernel-entity-adapter';
@@ -49,6 +50,8 @@ export type ClientCommandApplySystemHost = {
               sendMove(x: number, y: number): void;
               sendZone(): void;
               sendChat(text: string): void;
+              sendAchievement(id: number): void;
+              sendAggro(mob: { id: EntityId }): void;
               sendAttack(mob: { id: EntityId }): void;
               sendLootMove(item: { id: EntityId }, x: number, y: number): void;
               sendCheck(id: string | number): void;
@@ -63,6 +66,7 @@ export type ClientCommandApplySystemHost = {
     emit(eventName: 'notification', message: string): void;
     emit(eventName: 'nbPlayersChange', worldPlayers: number, totalPlayers: number): void;
     emit(eventName: 'playerHurt'): void;
+    emit(eventName: 'playerDeath'): void;
     emit(eventName: 'playerEquipmentChange'): void;
 
     stopPlayerCombat(): void;
@@ -88,7 +92,25 @@ export type ClientCommandApplySystemHost = {
         initPlayer(name: string): void;
         savePlayer(playerImage: unknown, spriteName: string, weaponName: string): void;
         setPlayerName(name: string): void;
+        applyAchievementProgressSnapshot(snapshot: {
+            unlockedIds: number[];
+            ratCount: number;
+            skeletonCount: number;
+            totalKills: number;
+            totalDmg: number;
+            totalRevives: number;
+        }): void;
+        incrementTotalKills(): void;
+        incrementRatCount(): void;
+        incrementSkeletonCount(): void;
+        addDamage(damage: number): void;
+        data: {
+            achievements: {
+                unlocked: number[];
+            };
+        };
     };
+    app: { initUnlockedAchievements(unlocked: number[]): void };
     updateBars(): void;
     resetCamera(): void;
     addEntity(entity: unknown): void;
@@ -96,6 +118,7 @@ export type ClientCommandApplySystemHost = {
     tryUnlockingAchievement(key: string): void;
     audioManager: { playSound(key: string): void; updateMusic?(): void } | null;
     createBubble(entityId: EntityId, text: string): void;
+    infoManager: { addDamageInfo(value: number | string, x: number, y: number, type: 'received' | 'inflicted' | 'healed'): void };
     sprites: Record<string, unknown>;
     entities: Record<string, GridIndexedEntity>;
     map: { grid: number[][]; isOutOfBounds(x: number, y: number): boolean } | null;
@@ -117,6 +140,23 @@ function safeOrientation(orientation: number | undefined): number {
         orientation === Types.Orientations.RIGHT
         ? orientation
         : Types.Orientations.DOWN;
+}
+
+function resolveKillNotificationMobName(kind: EntityKind): string | null {
+    const mobName = Types.getKindAsString(kind);
+    if (!mobName) {
+        return null;
+    }
+    if (mobName === 'skeleton2') {
+        return 'greater skeleton';
+    }
+    if (mobName === 'eye') {
+        return 'evil eye';
+    }
+    if (mobName === 'deathknight') {
+        return 'death knight';
+    }
+    return mobName;
 }
 
 function setPathingCell(host: ClientCommandApplySystemHost, x: number, y: number, value: number): void {
@@ -295,6 +335,23 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 host.client.sendChat(command.message);
                 break;
             }
+            case 'clientSendAchievement': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendAchievement(command.achievementId);
+                break;
+            }
+            case 'clientSendAggro': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                const mob = getKnownEntity(command.mobId);
+                if (mob instanceof Mob) {
+                    host.client.sendAggro(mob);
+                }
+                break;
+            }
             case 'clientSendAttack': {
                 if (!host.started || !host.client) {
                     break;
@@ -431,6 +488,26 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (entity instanceof Mob) {
                     host.client.sendHit(entity);
                 }
+                break;
+            }
+            case 'applyDamageToMob': {
+                const entity = getKnownEntity(command.mobId);
+                if (!(entity instanceof Character) || !Types.isMob(entity.kind)) {
+                    break;
+                }
+
+                if (entity.maxHitPoints <= 0) {
+                    const prefab = getMobPrefab(entity.kind);
+                    if (prefab) {
+                        entity.setMaxHitPoints(prefab.combat.maxHitPoints);
+                    }
+                }
+
+                entity.hitPoints = Math.max(0, entity.hitPoints - command.points);
+                entity.hurt();
+                const x = typeof (entity as unknown as { x?: unknown }).x === 'number' ? (entity as unknown as { x: number }).x : entity.gridX * 16;
+                const y = typeof (entity as unknown as { y?: unknown }).y === 'number' ? (entity as unknown as { y: number }).y : entity.gridY * 16;
+                host.infoManager.addDamageInfo(command.points, x, y, 'inflicted');
                 break;
             }
             case 'clientSendHurt': {
@@ -606,6 +683,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 }
                 host.kernel.clientReplicationLastPos.set(command.entityId, gridPos(command.x, command.y));
                 if (command.entityId === host.playerId) {
+                    host.kernel.clientDoorTraversalArmed = false;
                     host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
                 }
                 break;
@@ -619,16 +697,78 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 break;
             }
             case 'setPlayerHealth': {
+                const previousPoints = host.player.hitPoints;
                 host.setPlayerHealth(command.points);
                 host.updateBars();
+
                 if (!command.isRegen) {
+                    const damage = Math.max(0, previousPoints - command.points);
+                    const healed = Math.max(0, command.points - previousPoints);
+                    if (damage > 0) {
+                        host.infoManager.addDamageInfo(damage, host.player.x, host.player.y - 15, 'received');
+                        host.audioManager?.playSound('hurt');
+                        host.storage.addDamage(damage);
+                        host.tryUnlockingAchievement('MEATSHIELD');
+                    } else if (healed > 0) {
+                        host.infoManager.addDamageInfo('+' + healed, host.player.x, host.player.y - 15, 'healed');
+                    }
                     host.emit('playerHurt');
+                }
+
+                if (command.points <= 0) {
+                    if (!host.player.isDead) {
+                        host.stopPlayerCombat();
+                        host.player.die();
+                        host.audioManager?.playSound('death');
+                        host.emit('playerDeath');
+                    }
+                    break;
                 }
                 break;
             }
             case 'setPlayerMaxHitPoints': {
                 host.setPlayerMaxHitPoints(command.maxHp);
                 host.updateBars();
+                break;
+            }
+            case 'applyAchievementProgress': {
+                host.storage.applyAchievementProgressSnapshot({
+                    unlockedIds: command.unlockedIds,
+                    ratCount: command.ratCount,
+                    skeletonCount: command.skeletonCount,
+                    totalKills: command.totalKills,
+                    totalDmg: command.totalDmg,
+                    totalRevives: command.totalRevives,
+                });
+                host.app.initUnlockedAchievements(host.storage.data.achievements.unlocked);
+                break;
+            }
+            case 'applyKillToAchievements': {
+                const mobName = resolveKillNotificationMobName(command.mobKind);
+                if (command.mobKind === Types.Entities.BOSS) {
+                    host.showNotification('You killed the skeleton king');
+                } else if (mobName) {
+                    const firstLetter = mobName[0]?.toLowerCase();
+                    const article = ['a', 'e', 'i', 'o', 'u'].includes(firstLetter) ? 'an' : 'a';
+                    host.showNotification(`You killed ${article} ${mobName}`);
+                }
+
+                host.storage.incrementTotalKills();
+                host.tryUnlockingAchievement('HUNTER');
+
+                if (command.mobKind === Types.Entities.RAT) {
+                    host.storage.incrementRatCount();
+                    host.tryUnlockingAchievement('ANGRY_RATS');
+                }
+
+                if (command.mobKind === Types.Entities.SKELETON || command.mobKind === Types.Entities.SKELETON2) {
+                    host.storage.incrementSkeletonCount();
+                    host.tryUnlockingAchievement('SKULL_COLLECTOR');
+                }
+
+                if (command.mobKind === Types.Entities.BOSS) {
+                    host.tryUnlockingAchievement('HERO');
+                }
                 break;
             }
             case 'chatMessage': {
@@ -650,6 +790,8 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     const kindName = Types.getKindAsString(command.itemKind);
                     if (kindName) {
                         entity.setSprite(host.sprites[kindName] ?? null);
+                        const armorEntity = entity as { setSpriteName?(name: string): void };
+                        armorEntity.setSpriteName?.(kindName);
                     }
                 } else if (Types.isWeapon(command.itemKind)) {
                     const kindName = Types.getKindAsString(command.itemKind);
@@ -729,13 +871,12 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             }
             case 'characterGoTo': {
                 const entity = getKnownEntity(command.entityId);
-                if (!entity) {
+                if (!host.map || host.map.isOutOfBounds(command.x, command.y)) {
                     break;
                 }
-                if (entity instanceof Item || entity instanceof Chest) {
-                    break;
+                if (entity instanceof Character) {
+                    entity.moveTo_(command.x, command.y);
                 }
-                host.makeCharacterGoTo(entity as unknown, command.x, command.y);
                 break;
             }
             case 'createAttackLink': {

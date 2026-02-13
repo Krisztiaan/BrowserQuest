@@ -3,9 +3,10 @@ import { attachProtocolObserver } from './protocol-observer';
 import {
     MSG_ATTACK,
     MSG_CHAT,
+    MSG_HEALTH,
     MSG_HELLO,
     MSG_HIT,
-    MSG_LIST,
+    MSG_HURT,
     MSG_LOOTMOVE,
     MSG_MOVE,
     MSG_WELCOME,
@@ -47,7 +48,7 @@ async function startModernSession(page: Page, name: string, options?: { testMode
         window.localStorage.clear();
     }, testMode);
 
-    await page.goto('/client/modern.html', { waitUntil: 'domcontentloaded' });
+    await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#nameinput')).toBeVisible();
     await page.fill('#nameinput', name);
     await page.evaluate((nextName: string) => {
@@ -110,7 +111,6 @@ test('modern browser emits MOVE and ZONE actions for deterministic cross-zone co
 
     const beforeMove = sentTypes.filter((type) => type === MSG_MOVE).length;
     const beforeZone = sentTypes.filter((type) => type === MSG_ZONE).length;
-    const beforeList = receivedTypes.filter((type) => type === MSG_LIST).length;
 
     const result = await page.evaluate(() => {
         type TestApi = {
@@ -138,9 +138,6 @@ test('modern browser emits MOVE and ZONE actions for deterministic cross-zone co
     await expect
         .poll(() => sentTypes.filter((type) => type === MSG_ZONE).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeZone);
-    await expect
-        .poll(() => receivedTypes.filter((type) => type === MSG_LIST).length, { timeout: 20_000 })
-        .toBeGreaterThan(beforeList);
 });
 
 test('modern browser reconnects and repeats go/HELLO/WELCOME after reload', async ({ page }) => {
@@ -226,4 +223,91 @@ test('modern browser emits ATTACK/HIT/LOOTMOVE via deterministic combat-loot tes
     await expect
         .poll(() => sentTypes.filter((type) => type === MSG_LOOTMOVE).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeLootMove);
+});
+
+test('modern browser emits HURT and receives HEALTH when a mob attacks the player', async ({ page }) => {
+    const observer = attachProtocolObserver(page);
+    const { sentTypes, receivedTypes } = observer;
+
+    await startModernSession(page, 'mob-hurt-smoke', { testMode: true });
+    await expect.poll(() => sentTypes.includes(MSG_HELLO), { timeout: 20_000 }).toBe(true);
+    await expect.poll(() => receivedTypes.includes(MSG_WELCOME), { timeout: 20_000 }).toBe(true);
+
+    const beforeAttack = receivedTypes.filter((type) => type === MSG_ATTACK).length;
+    const beforeHurt = sentTypes.filter((type) => type === MSG_HURT).length;
+    const beforeHealth = receivedTypes.filter((type) => type === MSG_HEALTH).length;
+    const beforeMove = receivedTypes.filter((type) => type === MSG_MOVE).length;
+
+    const result = await page.evaluate(() => {
+        type TestApi = {
+            isReady?: () => boolean;
+            sendAggroProbe?: () => { ok: boolean; reason?: string; mobId?: string | number };
+        };
+        const api = (window as unknown as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
+        if (!api || typeof api.isReady !== 'function' || typeof api.sendAggroProbe !== 'function') {
+            return { ok: false, reason: 'api_unavailable' };
+        }
+        if (!api.isReady()) {
+            return { ok: false, reason: 'api_not_ready' };
+        }
+        return api.sendAggroProbe();
+    });
+
+    expect(result.ok).toBe(true);
+    await expect
+        .poll(() => receivedTypes.filter((type) => type === MSG_ATTACK).length, { timeout: 20_000 })
+        .toBeGreaterThan(beforeAttack);
+
+    await expect
+        .poll(() => receivedTypes.filter((type) => type === MSG_MOVE).length, { timeout: 20_000 })
+        .toBeGreaterThan(beforeMove);
+
+    await expect
+        .poll(
+            () =>
+                page.evaluate(() => {
+                    type Status = {
+                        ready: boolean;
+                        mobId: string | number | null;
+                        dist: number | null;
+                        mobIsAttacking: boolean | null;
+                        mobIsMoving: boolean | null;
+                        mobHasTargetPlayer: boolean | null;
+                        mobIsAdjacentNonDiagonal: boolean | null;
+                    };
+                    type TestApi = {
+                        getAggroProbeStatus?: () => Status;
+                    };
+
+                    const api = (window as unknown as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
+                    if (!api || typeof api.getAggroProbeStatus !== 'function') {
+                        return {
+                            ready: false,
+                            mobId: null,
+                            dist: null,
+                            mobIsAttacking: null,
+                            mobIsMoving: null,
+                            mobHasTargetPlayer: null,
+                            mobIsAdjacentNonDiagonal: null,
+                        } satisfies Status;
+                    }
+
+                    return api.getAggroProbeStatus();
+                }),
+            { timeout: 30_000 }
+        )
+        .toMatchObject({
+            ready: true,
+            mobIsAttacking: true,
+            mobHasTargetPlayer: true,
+            mobIsAdjacentNonDiagonal: true,
+            mobIsMoving: false,
+        });
+
+    await expect
+        .poll(() => sentTypes.filter((type) => type === MSG_HURT).length, { timeout: 20_000 })
+        .toBeGreaterThan(beforeHurt);
+    await expect
+        .poll(() => receivedTypes.filter((type) => type === MSG_HEALTH).length, { timeout: 20_000 })
+        .toBeGreaterThan(beforeHealth);
 });

@@ -15,7 +15,7 @@ Quickstart
 
 1. Install dependencies: `bun install`
 2. Start full-stack dev: `bun run dev`
-3. Open `http://localhost:8123/` (redirects to `client/modern.html`)
+3. Open `http://localhost:8123/`
 
 Active Scripts
 --------------

@@ -37,6 +37,8 @@ const MESSAGE_OPCODES = {
     BLINK: 24,
     OPEN: 25,
     CHECK: 26,
+    ACHIEVEMENT: 27,
+    ACHIEVEMENTS: 28,
 } as const;
 
 type EntityIdsByUpperName = {

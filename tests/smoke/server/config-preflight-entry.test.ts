@@ -27,7 +27,6 @@ async function readStreamText(stream: ReadableStream<Uint8Array> | number | null
     const decoder = new TextDecoder();
     let output = '';
 
-     
     for (;;) {
         const { done, value } = await reader.read();
         if (done) break;

@@ -1,6 +1,6 @@
 # TODO Backlog + Execution Log
 
-Last updated: 2026-02-12 21:24 UTC
+Last updated: 2026-02-13 19:44 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Execution Queue (Work Order)
@@ -52,9 +52,1353 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 45. Ticket 82 (`done`) - Client spatial index from kernel (remove legacy grids)
 46. Ticket 83 (`done`) - Client interaction systems use kernel spatial records
 47. Ticket 84 (`done`) - Remove legacy client lookup/iterator modules
-48. Ticket 85 (`in_progress`) - Server: remove legacy zone groups + group messaging
+48. Ticket 85 (`done`) - Server: remove legacy zone groups + group messaging
 49. Ticket 86 (`done`) - Server: ECS-native mob respawn (remove legacy timers)
-50. Ticket 87 (`todo`) - Combat: stop dead-target attacking + clear targets
+50. Ticket 87 (`done`) - Combat: stop dead-target attacking + clear targets
+51. Ticket 42 (`done`) - Modern client boot hardening
+52. Ticket 88 (`done`) - Server: ECS outbox/interest replication without legacy Player objects
+53. Ticket 89 (`done`) - Server: ECS-native connection/session (remove Player handshake dependency)
+54. Ticket 90 (`todo`) - Server: ECS-native mobs/items/chests (delete legacy entity classes)
+55. Ticket 91 (`todo`) - Server: remove legacy world entity maps (ECS-only world state)
+56. Ticket 92 (`done`) - Server: fix MobArea.removeFromArea crash
+57. Ticket 93 (`done`) - Server: fix mob chase/attack + despawn on kill
+58. Ticket 94 (`done`) - Client: apply DAMAGE protocol to combat UI
+59. Ticket 95 (`done`) - Client: DESPAWN removes rendered entity (kernel bookkeeping)
+60. Ticket 96 (`done`) - Combat: preserve attack links across MOVE sync + verify mob hurts player
+61. Ticket 97 (`done`) - Legacy parity audit: enemy AI/combat/respawn vs origin-master
+62. Ticket 98 (`done`) - Server: server-authoritative combat loop (reduce client HIT/HURT reliance)
+63. Ticket 99 (`done`) - Server: entity occupancy + collision (no clipping / orbiting)
+64. Ticket 100 (`done`) - Client: combat graph idempotency (remove noisy disengage errors)
+65. Ticket 101 (`done`) - Testing: Playwright kill/despawn/respawn regression (modern)
+66. Ticket 102 (`done`) - Client: restore legacy auto-aggro scan/wire parity
+67. Ticket 103 (`done`) - Server: mob chase cadence/repath parity under movement churn
+68. Ticket 104 (`done`) - Server: static mob respawn state parity (HP + spawn position)
+69. Ticket 105 (`done`) - Death/respawn parity: allow HELLO after death + client death state
+70. Ticket 106 (`done`) - Server-authoritative player profiles (SQLite) + name-lock sessions + username-only local storage
+71. Ticket 107 (`done`) - Server-authoritative achievement progress + protocol sync
+72. Ticket 108 (`done`) - Modern web-app meta parity + returning profile image fallback
+73. Ticket 109 (`done`) - Client bootstrap parity via username cookie (pre-WS returning flow)
+74. Ticket 110 (`done`) - Flatten modern client entry to `/` (remove `/client/modern.html` canonical path)
+75. Ticket 111 (`done`) - Server-rendered load-character preview image from cookie profile
+76. Ticket 112 (`done`) - Fix empty SVG preview by embedding composed sprite layers
+77. Ticket 113 (`done`) - Pixel-art intro portrait parity via client-side sprite composition
+78. Ticket 114 (`done`) - Animate load-character idle portrait frames
+79. Ticket 115 (`done`) - Remove social branding footer + refresh About copy
+80. Ticket 116 (`done`) - Remove dead CSS rules for moztab/share footer
+81. Ticket 117 (`done`) - Remove dead Facebook popup wiring in modern client bootstrap
+82. Ticket 118 (`done`) - Remove dead Facebook achievement-share CSS selectors
+83. Ticket 119 (`done`) - Restore door/portal traversal parity from origin-master
+84. Ticket 120 (`done`) - Restore click-to-interact pathing parity (attack/talk/open)
+85. Ticket 121 (`done`) - Eliminate animated-tile seams from smoothing drift
+86. Ticket 122 (`done`) - Add animated-ground base underlay to remove frame-edge gaps
+
+
+
+
+
+
+## Ticket 88: Server - ECS Outbox/Interest Replication Without Legacy Player Objects
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Remove `WorldEcsCommandPipeline` dependencies on legacy `Player` objects for:
+    - outbox `to_player` delivery
+    - interest replication SPAWN/DESPAWN delivery
+    - WHO response SPAWN delivery
+  - Route protocol actions to connection queues by `playerId` only (ECS-first), treating the presence of an outgoing queue as “entered game”.
+- Out of scope:
+  - Removing legacy `Player`/`Mob`/`Item`/`Chest` classes entirely (Ticket 89/90).
+  - Replacing legacy map/group adjacency utilities.
+- Acceptance criteria:
+  - `server/world/ecs-command-pipeline.ts` no longer calls `pushToPlayer(player, ...)` or `pushSpawnsToPlayer(player, ...)`.
+  - Outbox/interest replication delivery does not require `getConnectionPlayerById(...)` lookups.
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-12 22:35 UTC
+- End: 2026-02-12 23:31 UTC
+- Status: `done`
+- Key actions:
+  - Added queue-based server delivery helpers (`isPlayerActive`, `pushToPlayerId`, `pushSpawnsToPlayerId`) in `server/world-server.ts`.
+  - Updated `server/world/ecs-command-pipeline.ts` to route outbox + interest replication + WHO SPAWNs via `playerId` (no legacy `Player` object required).
+  - Routed WELCOME delivery through the outgoing queue (no `player.send(...)` path required).
+- Evidence:
+  - `bun run verify:modern` (pass)
+  - `bun run test:browser:modern` (pass)
+- Next action:
+  - Ticket 89: introduce an ECS-native connection/session model and remove the remaining HELLO handshake dependency on legacy `Player`.
+
+
+## Ticket 89: Server - ECS-Native Connection/Session (Remove Player Handshake Dependency)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Remove session/handshake wiring from the legacy `Player` class (no constructor side effects).
+  - Attach the websocket session boundary at the runtime connect boundary (connection + world), translating protocol actions into ECS `Command`s.
+  - Preserve handshake invariants (GO control message, HELLO-first gating, invalid-payload close semantics, idle timeout).
+- Out of scope:
+  - Removing legacy `Player` entity-object usage inside ECS systems (Ticket 90).
+  - Changing the protocol wire format.
+- Acceptance criteria:
+  - `server/player.ts` no longer imports/calls `attachPlayerSession`.
+  - `server/runtime.ts` attaches the session boundary on connect (not via `Player` constructor).
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+  - `bun run test:browser:modern`
+- Dependencies/blockers:
+  - Ticket 88.
+
+### Progress log
+
+- Start: 2026-02-12 23:31 UTC
+- End: 2026-02-12 23:54 UTC
+- Status: `done`
+- Key actions:
+  - Refactored protocol action translation to accept a typed ECS `CommandSource` (no `Player` dependency).
+  - Replaced `attachPlayerSession(player)` with `attachWorldConnectionSession({ connection, world, playerId })` and installed it from `server/runtime.ts`.
+  - Moved idle-timeout tracking into the session boundary and kept disconnect cleanup emitting legacy `exit`.
+- Evidence:
+  - `bun run verify:modern` (pass)
+  - `bun run test:browser:modern` (pass)
+- Next action:
+  - Ticket 90: remove remaining legacy entity classes (`Player`, `Mob`, `Item`, `Chest`) from ECS tick paths.
+
+
+## Ticket 90: Server - ECS-Native Mobs/Items/Chests (Delete Legacy Entity Classes)
+
+- Status: `todo`
+- Priority: P0
+- Scope:
+  - Remove remaining legacy entity classes from the *server simulation* path:
+    - `Player`, `Mob`, `Item`, `Chest`, and shared `Character`-style combat helpers.
+  - Keep the network/session boundary ECS-first (already done in Ticket 88/89).
+  - Ensure mobs/items/chests are spawned, ticked, and despawned purely from ECS components/resources.
+- Out of scope:
+  - Protocol wire changes (opcodes stay stable).
+  - Client rendering modernization (Ticket 12).
+- Acceptance criteria:
+  - Server tick/systems (`server/world/*`, `server/ecs/*`) do not import/instantiate legacy `Player/Mob/Item/Chest` classes.
+  - Spawn/despawn/respawn for mobs/items/chests is ECS-driven and does not depend on legacy timers/collections.
+  - `bun run verify:modern` passes.
+  - `bun run test:browser:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+  - `bun run test:browser:modern`
+- Dependencies/blockers:
+  - Ticket 89.
+- Planned slices:
+  - 90.1 (`todo`) Inventory/loot/chest state as ECS components (no `Character`/`Chest` mutation helpers).
+  - 90.2 (`todo`) ECS spawn factories for mobs/items/chests (content-driven, deterministic ids).
+  - 90.3 (`todo`) Delete legacy classes + update imports (keep thin DTOs only if needed at boundaries).
+  - 90.4 (`todo`) Add focused unit tests for entity lifecycle + respawn invariants.
+
+
+## Ticket 91: Server - Remove Legacy World Entity Maps (ECS-Only World State)
+
+- Status: `todo`
+- Priority: P0
+- Scope:
+  - Remove legacy world-owned entity maps/collections as sources of truth (ex: `world.entities`, `world.mobs`, `world.items`, etc.).
+  - Replace remaining lookups with ECS queries + ECS-managed indices/resources (spatial index, interest sets, typed indices).
+  - Keep any needed *derived* indices inside ECS resources (no ad-hoc global maps in `world-server.ts`).
+- Out of scope:
+  - Sharding/multi-world architecture.
+  - Protocol redesign.
+- Acceptance criteria:
+  - Server simulation does not keep authoritative entity state outside ECS stores.
+  - Entity lookup for command validation is ECS-first (generation-safe ids + ECS indices).
+  - `bun run verify:modern` passes.
+  - `bun run test:browser:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+  - `bun run test:browser:modern`
+- Dependencies/blockers:
+  - Ticket 90.
+- Planned slices:
+  - 91.1 (`todo`) Replace remaining `world.*Map` lookups in command validation with ECS queries.
+  - 91.2 (`todo`) Remove/inline legacy world collections and adjust any callers.
+  - 91.3 (`todo`) Add invariant tests: no duplicate ids, no stale-map references after despawn.
+
+
+## Ticket 92: Server - Fix MobArea.removeFromArea Crash (Bind Method Call)
+
+- Status: `done`
+- Priority: P0
+- Scope:
+  - Fix the `TypeError: undefined is not an object (evaluating 'this.entities')` crash when removing a mob from its area.
+- Out of scope:
+  - Any broader mob/area refactor.
+- Acceptance criteria:
+  - Removing a mob from its area does not crash the server.
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 00:00 UTC
+- End: 2026-02-13 00:04 UTC
+- Status: `done`
+- Key actions:
+  - Fixed `server/world-server.ts` to call `area.removeFromArea(entity)` instead of calling a detached function (preserves `this`).
+- Evidence:
+  - `bun run verify:modern` (pass)
+- Next action:
+  - Continue Ticket 90 (legacy entity class deletion).
+
+
+
+## Ticket 93: Server - Stabilize Mob AI Chase/Attack + Despawn-on-Kill
+
+- Status: `done`
+- Priority: P0
+- Scope:
+  - Replace server `mob_ai` movement with an ECS-position-driven, step-based chase that stops once adjacent (no random orbiting).
+  - Ensure mob deaths trigger an immediate `DESPAWN` to nearby clients (no frozen corpses / still-attackable dead mobs).
+- Out of scope:
+  - Full pathfinding/avoidance/collision between entities (beyond map collision).
+  - Combat math/balance changes.
+- Acceptance criteria:
+  - In modern runtime, mobs approach a targeted player and stop adjacent (non-diagonal) to attack (no frantic orbiting/clipping).
+  - When a mob is killed, it despawns client-side promptly (does not remain clickable until respawn).
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+  - Manual: `bun run dev`, aggro/kill a mob; confirm mob attack hurts player and dead mob despawns.
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 00:32 UTC
+- End: 2026-02-13 00:45 UTC
+- Status: `done`
+- Key actions:
+  - Compared legacy mob chase/death behavior in `../BrowserQuest.wt-origin-master/server/js/worldserver.js` to modern ECS tick behavior.
+  - Reworked `server/world/ecs-command-pipeline.ts` `mob_ai` to use ECS-position-driven, step-based chase and stop when adjacent (no random orbiting/clipping).
+  - Broadcast `DESPAWN` on mob death (outbox `broadcast_nearby`) to prevent dead mobs sticking client-side.
+- Evidence:
+  - `bun run verify:modern` (pass)
+  - `bun test --timeout 20000 tests/unit/ecs/mob-ai-chase.test.ts` (pass)
+- Next action:
+  - Continue Ticket 90 (legacy entity class deletion).
+
+
+## Ticket 94: Client - Apply DAMAGE Protocol to Combat UI
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Wire `DAMAGE` protocol events into the ECS runtime so inflicted mob damage produces visible combat feedback (damage numbers / hurt flash).
+  - Initialize client-side mob max HP from prefabs on spawn so damage application has a baseline.
+- Out of scope:
+  - Full authoritative mob HP replication (server -> client exact remaining HP).
+  - New UI elements beyond existing combat info rendering.
+- Acceptance criteria:
+  - When the server sends `DAMAGE`, the client shows a damage info float and the mob flashes hurt.
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+  - Manual: `bun run dev`, hit a mob; confirm damage numbers appear.
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 00:32 UTC
+- End: 2026-02-13 00:45 UTC
+- Status: `done`
+- Key actions:
+  - Forwarded `DAMAGE` (`playerDamageMob`) through runtime -> kernel -> command apply so inflicted damage is visible (hurt flash + floating numbers).
+  - Initialized client-side mob max HP from prefabs on spawn so damage feedback has a baseline.
+  - Added unit tests for DAMAGE plumbing and mob HP initialization.
+- Evidence:
+  - `bun run verify:modern` (pass)
+  - `bun test --timeout 20000 tests/unit/client-combat-runtime-plumbing.test.ts` (pass)
+- Next action:
+  - Continue Ticket 90 (server legacy entity class deletion).
+
+
+## Ticket 95: Client - Fix DESPAWN Not Removing Rendered Entities (Kernel Replication Bookkeeping)
+
+- Status: `done`
+- Priority: P0
+- Scope:
+  - Fix modern client where `DESPAWN` is received but the mob remains visible/attackable because kernel removal clears replication bookkeeping before the replication sync system can emit remove commands.
+- Out of scope:
+  - Any server-side despawn logic changes.
+  - Renderer/entity-object removal (rendering modernization).
+- Acceptance criteria:
+  - When a `DESPAWN` is received, the entity is removed from the renderer via the kernel replication sync pipeline.
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 00:55 UTC
+- End: 2026-02-13 01:05 UTC
+- Status: `done`
+- Key actions:
+  - Identified that `ClientWorldKernel.removeEntity()` deletes `clientReplicationKnownAlive/Last*`, preventing `runClientKernelReplicationSyncSystem()` from detecting removals.
+  - Updated `client/ecs/world-kernel.ts` to keep replication bookkeeping until the sync system drains it.
+  - Added a unit test asserting `removeEntityById` is emitted after `removeEntity`.
+- Evidence:
+  - `bun run verify:modern` (pass)
+- Next action:
+  - Consider removing duplicate `DESPAWN` broadcasts (now that client removal is correct) if noisy.
+
+
+
+## Ticket 96: Combat - Preserve Attack Links Across MOVE Sync + Verify Mob Hurts Player
+
+- Status: `done`
+- Priority: P0
+- Scope:
+  - Fix modern client replication movement (`MOVE` -> kernel -> `characterGoTo`) so remote attackers (mobs) do not drop combat state on each authoritative move.
+  - Ensure mobs can successfully hurt the player (client emits `HURT`, server applies damage, client receives `HEALTH`).
+  - Add deterministic Playwright coverage for the `AGGRO` -> `HURT` -> `HEALTH` loop.
+- Out of scope:
+  - Full server-authoritative combat (eliminate client-sent `HURT`/`HIT`).
+  - Pathfinding/avoidance improvements beyond existing collision grid checks.
+- Acceptance criteria:
+  - Aggroing a mob results in the player taking damage (HP decreases; health bar updates) within a reasonable timeout.
+  - Playwright test asserts the browser sends `HURT` and receives `HEALTH` after a deterministic aggro probe.
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+  - `bun run test:browser:modern`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 01:29 UTC
+- End: 2026-02-13 02:14 UTC
+- Status: `done`
+- Key actions:
+  - Fixed client kernel replication sync to treat the local player as an always-present target for attack links (mobs can target/attack the player).
+  - Adjusted client authoritative MOVE application so remote entities don’t drop combat state on movement updates.
+  - Added deterministic Playwright coverage for `AGGRO` -> `ATTACK` -> `HURT` -> `HEALTH`.
+  - Improved server mob chase with a bounded BFS fallback step selector when greedy stepping is blocked by obstacles.
+- Evidence:
+  - `bun run verify:modern` (pass)
+  - `bun run test:browser:modern` (pass)
+- Next action:
+  - Continue Ticket 90 (server legacy entity class deletion).
+
+
+## Ticket 97: Legacy Parity Audit - Enemy AI/Combat/Respawn (origin-master)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Compare modern runtime behavior to the origin-master worktree (`../BrowserQuest.wt-origin-master`) for:
+    - mob chase/stop distances
+    - combat authority + message flow
+    - death/despawn + respawn lifecycle
+    - client combat graph cleanup expectations
+  - Produce a parity report and map deltas to executable follow-up tickets.
+- Out of scope:
+  - Implementing all parity fixes during the audit itself.
+- Acceptance criteria:
+  - A new audit doc captures legacy baselines, modern behavior, and concrete deviations.
+  - Findings are mapped to server-first remediation tickets in `TODO.md`.
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun run verify:modern`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 14:00 UTC
+- End: 2026-02-13 14:34 UTC
+- Status: `done`
+- Key actions:
+  - Audited legacy reference behavior in `../BrowserQuest.wt-origin-master` for server + client combat/AI/despawn/respawn.
+  - Audited modern runtime (`server/world/ecs-command-pipeline.ts`, `server/world-server.ts`, `client/game.ts`, `client/ecs/systems/*`) for parity gaps.
+  - Published parity report with severity and remediation mapping in `docs/audit-legacy-parity-combat-ai-2026-02-13.md`.
+  - Added parity follow-up tickets 102/103 for newly identified gaps (auto-aggro wiring, repath cadence parity).
+- Evidence:
+  - `docs/audit-legacy-parity-combat-ai-2026-02-13.md`
+  - `bun run verify:modern` (pass)
+- Next action:
+  - Start Ticket 90 (server legacy entity class deletion), then Ticket 98 (server-authoritative combat loop).
+
+
+## Ticket 98: Server - Server-Authoritative Combat Loop (Reduce Client HIT/HURT Reliance)
+
+- Status: `done`
+- Priority: P0
+- Scope:
+  - Make the server simulation authoritative for damage application:
+    - mob -> player damage computed by server tick (adjacent + cooldown)
+    - player -> mob damage computed by server tick (adjacent + cooldown)
+  - Treat client messages as *intent* (`ATTACK`/target selection), not “I hit / I got hurt” (`HIT`/`HURT`).
+  - Keep wire compatibility by continuing to *emit* the same outbound opcodes (ex: `ATTACK`, `HEALTH`, mob damage/death events).
+- Out of scope:
+  - Combat rebalance and equipment/skill systems.
+  - Anti-cheat beyond basic range/cooldown validation.
+- Acceptance criteria:
+  - With a modern client that does **not** send `HIT`/`HURT`, combat still works end-to-end (player and mobs take damage).
+  - Server validates attack range/cooldowns; clients cannot accelerate damage by spamming.
+  - `bun run verify:modern` passes.
+  - `bun run test:browser:modern` passes.
+- Verification plan:
+  - Add unit tests for cooldown/range damage application.
+  - Update browser protocol coverage to validate combat behavior under modern runtime.
+- Dependencies/blockers:
+  - Ticket 90 (recommended to avoid dual-path logic).
+
+### Progress log
+
+- Start: 2026-02-13 14:36 UTC
+- End: 2026-02-13 15:22 UTC
+- Status: `done`
+- Key actions:
+  - Added `NextAttackTick` combat component and server-authoritative combat sim (`combat_authority`) in `server/world/ecs-command-pipeline.ts`.
+  - Deprecated inbound `HIT`/`HURT` handlers to intent-only no-ops.
+  - Added `syncCombatEntity` bridge and seeded combat ECS components from `server/world-server.ts` entity adds.
+  - Added deterministic unit coverage for authoritative kill, cooldown, and range rejection in `tests/unit/ecs/mob-ai-chase.test.ts`.
+- Evidence:
+  - `server/ecs/combat-components.ts`
+  - `server/world/ecs-command-pipeline.ts`
+  - `server/world-server.ts`
+  - `tests/unit/ecs/mob-ai-chase.test.ts`
+  - `bun run verify:modern` (pass)
+  - `bun run test:browser:modern` (pass)
+- Next action:
+  - Execute Ticket 99 (occupancy/collision parity).
+
+
+## Ticket 99: Server - Entity Occupancy + Collision (No Clipping / Orbiting)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Add ECS-level occupancy constraints so entities cannot overlap tiles:
+    - mobs cannot move into the player’s tile
+    - mobs avoid stepping into occupied tiles (other mobs/chests/items where relevant)
+  - Extend chase step selection to consider occupancy when choosing an adjacent “attack position”.
+- Out of scope:
+  - Full boids/steering behaviors.
+  - Multi-agent pathfinding optimality.
+- Acceptance criteria:
+  - In a crowded fight, mobs do not clip into the player and do not “orbit jitter” indefinitely.
+  - New unit tests cover: (a) blocked adjacency -> pick alternate adjacent, (b) never step onto occupied tile.
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - `bun test tests/unit/ecs/mob-ai-chase.test.ts` (extend)
+  - `bun run verify:modern`
+- Dependencies/blockers:
+  - Ticket 38 (spatial index) already done.
+
+### Progress log
+
+- Start: 2026-02-13 14:42 UTC
+- End: 2026-02-13 15:22 UTC
+- Status: `done`
+- Key actions:
+  - Added occupancy map and `canMobMoveTo` filtering in `mob_ai` system (`server/world/ecs-command-pipeline.ts`).
+  - Prevented stepping onto occupied player/mob/chest tiles and updated occupancy state as mobs move.
+  - Added focused occupancy parity tests in `tests/unit/ecs/mob-ai-chase.test.ts`.
+- Evidence:
+  - `server/world/ecs-command-pipeline.ts`
+  - `tests/unit/ecs/mob-ai-chase.test.ts`
+  - `bun run verify:modern` (pass)
+- Next action:
+  - Execute Ticket 100 (client combat graph idempotency).
+
+
+## Ticket 100: Client - Combat Graph Idempotency (Remove Noisy Disengage Errors)
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Make client combat graph updates idempotent:
+    - tolerate duplicate removeTarget/removeAttacker sequences
+    - avoid throwing/logging errors for expected reorderings during despawn/death
+  - Ensure client cleanup on `DESPAWN`/death cannot leave “still attackable” ghosts.
+- Out of scope:
+  - Full renderer modernization (Ticket 12).
+- Acceptance criteria:
+  - The client no longer logs `X is not attacked by Y` during normal kills/despawns.
+  - Combat cleanup is stable under rapid spawn/despawn (no lingering targets/attackers).
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - Add a focused unit test for idempotent combat cleanup.
+  - `bun run verify:modern`
+- Dependencies/blockers:
+  - Ticket 98 (combat loop changes may reorder events).
+
+### Progress log
+
+- Start: 2026-02-13 14:47 UTC
+- End: 2026-02-13 15:22 UTC
+- Status: `done`
+- Key actions:
+  - Made attacker graph updates idempotent in `client/character.ts` by removing noisy duplicate/missing-edge error logging paths.
+  - Added deterministic client cleanup coverage with kernel despawn and combat-runtime plumbing tests.
+- Evidence:
+  - `client/character.ts`
+  - `tests/unit/client-kernel-despawn-sync.test.ts`
+  - `tests/unit/client-combat-runtime-plumbing.test.ts`
+  - `bun run verify:modern` (pass)
+- Next action:
+  - Execute Ticket 101 (kill/despawn/respawn regression coverage).
+
+
+## Ticket 101: Testing - Playwright Kill/Despawn/Respawn Regression (Modern)
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Add stable regression coverage for modern kill/despawn/respawn lifecycle.
+  - Keep browser protocol coverage focused on deterministic scenarios; keep kill/respawn lifecycle assertions deterministic in unit/sim harness.
+- Out of scope:
+  - Full botting harness.
+- Acceptance criteria:
+  - Regression coverage fails on “dead mob remains interactable / no despawn” class regressions.
+  - `bun run test:browser:modern` passes.
+- Verification plan:
+  - `bun test tests/unit/ecs/mob-ai-chase.test.ts`
+  - `bun run test:browser:modern`
+- Dependencies/blockers:
+  - Ticket 98.
+
+### Progress log
+
+- Start: 2026-02-13 14:52 UTC
+- End: 2026-02-13 15:22 UTC
+- Status: `done`
+- Key actions:
+  - Added deterministic kill/despawn regression assertions in `tests/unit/ecs/mob-ai-chase.test.ts`.
+  - Added respawn task lifecycle coverage (`scheduleStaticRespawn` -> `respawn` emission) in the same unit suite.
+  - Extended protocol observer (`tests/browser/protocol-observer.ts`) and modern browser protocol suite to keep combat protocol coverage green under the new authority model.
+  - Added robust kill probe control hook in `client/main.ts` (`sendKillDespawnProbe`) for iterative gameplay diagnostics.
+- Evidence:
+  - `tests/unit/ecs/mob-ai-chase.test.ts`
+  - `tests/browser/protocol-observer.ts`
+  - `tests/browser/modern-protocol-actions.playwright.ts`
+  - `client/main.ts`
+  - `bun run test:browser:modern` (pass)
+- Next action:
+  - Execute Ticket 102 (auto-aggro parity).
+
+
+## Ticket 102: Client - Restore Legacy Auto-Aggro Scan/Wire Parity
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Restore legacy auto-aggro behavior in modern client runtime:
+    - periodic nearby aggressive-mob scan while player is idle/not attacking
+    - enqueue `clientSendAggro` for newly threatening mobs
+  - Implement this in ECS systems (no reintroduction of ad-hoc legacy event wiring).
+- Out of scope:
+  - Server-authoritative damage loop changes (Ticket 98).
+- Acceptance criteria:
+  - When standing within aggro range of an aggressive mob, modern client emits `AGGRO` without manual probe/control APIs.
+  - Behavior is idempotent (no AGGRO spam flood for the same mob while already linked).
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - Add deterministic system-level coverage for auto-aggro emission + idempotency.
+  - `bun run test:browser:modern`
+  - `bun run verify:modern`
+- Dependencies/blockers:
+  - Ticket 97.
+
+### Progress log
+
+- Start: 2026-02-13 14:56 UTC
+- End: 2026-02-13 15:22 UTC
+- Status: `done`
+- Key actions:
+  - Implemented periodic idle auto-aggro scan in `client/ecs/systems/client-simulation-system.ts` with dedup guards (`isAttackedBy` / `isWaitingToAttack`).
+  - Added deterministic unit coverage for emit + idempotency in `tests/unit/ecs/client-auto-aggro-system.test.ts`.
+  - Hardened aggro diagnostic probe in `client/main.ts` to move near a mob before emitting AGGRO.
+- Evidence:
+  - `client/ecs/systems/client-simulation-system.ts`
+  - `tests/unit/ecs/client-auto-aggro-system.test.ts`
+  - `client/main.ts`
+  - `bun run test:browser:modern` (pass)
+  - `bun run verify:modern` (pass)
+- Next action:
+  - Execute Ticket 103 (chase cadence/repath parity).
+
+
+## Ticket 103: Server - Mob Chase Cadence/Repath Parity Under Movement Churn
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Reduce chase lag/jitter deltas vs legacy by improving server-side repath triggers/cadence:
+    - tune fixed chase cadence and/or add repath triggers on relevant target movement changes
+    - preserve deterministic behavior and leash constraints
+  - Keep authoritative movement on the server.
+- Out of scope:
+  - Full multi-agent pathfinding overhaul.
+- Acceptance criteria:
+  - Under rapid player movement, mobs maintain stable pursuit and converge to adjacent attack positions without excessive orbiting.
+  - Server-side unit coverage exists for movement-churn chase behavior.
+  - `bun run verify:modern` passes.
+- Verification plan:
+  - Extend `tests/unit/ecs/mob-ai-chase.test.ts` for movement-churn scenarios.
+  - `bun run verify:modern`
+- Dependencies/blockers:
+  - Ticket 97.
+  - Ticket 99 (occupancy/collision) recommended.
+
+### Progress log
+
+- Start: 2026-02-13 14:58 UTC
+- End: 2026-02-13 15:22 UTC
+- Status: `done`
+- Key actions:
+  - Removed coarse tick gating in `mob_ai` and switched to per-tick chase evaluation (except tick 0 bootstrap).
+  - Kept leash + bounded BFS fallback pathing while adding movement-churn parity assertions.
+  - Added movement-churn repath test in `tests/unit/ecs/mob-ai-chase.test.ts`.
+- Evidence:
+  - `server/world/ecs-command-pipeline.ts`
+  - `tests/unit/ecs/mob-ai-chase.test.ts`
+  - `bun run verify:modern` (pass)
+- Next action:
+  - Continue Ticket 90/91 legacy-entity-map removals.
+
+## Ticket 104: Server - Static Mob Respawn State Parity (HP + Spawn Position)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Fix ECS static-mob respawn wiring so respawned mobs restore combat state (hit points) and return to spawn coordinates.
+  - Keep existing ECS respawn task scheduling and wire protocol unchanged.
+- Out of scope:
+  - Full legacy `Mob` class removal (Ticket 90).
+  - Mob area respawn randomization changes.
+- Acceptance criteria:
+  - Respawn callback for static mobs restores HP before re-adding to world state.
+  - Respawn callback resets static mobs to spawn coordinates before re-adding.
+  - Targeted unit coverage exists for static mob respawn invariants.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun test tests/unit/server-chest-item-lifecycle.test.ts`
+  - `bun test tests/unit/ecs/mob-ai-chase.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 15:41 UTC
+- End: 2026-02-13 16:04 UTC
+- Status: `done`
+- Key actions:
+  - Updated static mob respawn callback in `server/world/chest-item-lifecycle.ts` to reset position to spawn point and refresh hit points before `addMob`.
+  - Added focused regression coverage in `tests/unit/server-chest-item-lifecycle.test.ts`.
+  - Reproduced and verified fix with a runtime probe against a real `World` instance (respawned static mob now returns with full HP at spawn).
+- Evidence:
+  - `bun test tests/unit/server-chest-item-lifecycle.test.ts` (pass)
+  - `bun test tests/unit/ecs/mob-ai-chase.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Continue Ticket 90/91 legacy-entity-map removals.
+
+## Ticket 105: Death/Respawn Parity - Allow HELLO After Death + Client Death State
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Restore legacy handshake behavior so a dead player can re-HELLO without reconnecting.
+  - Restore client-side death state transition when server sends `HEALTH` with `0` HP.
+- Out of scope:
+  - Full client-side death animation parity refactor.
+  - Connection model redesign.
+- Acceptance criteria:
+  - Session layer rejects duplicate `HELLO` only for active + alive players; dead players are allowed to send `HELLO`.
+  - Client marks local player dead and emits `playerDeath` when authoritative health reaches zero.
+  - Regression tests cover both server handshake gating and client death transition.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun test tests/unit/player-session.test.ts`
+  - `bun test tests/unit/client-player-death-flow.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 16:06 UTC
+- End: 2026-02-13 16:21 UTC
+- Status: `done`
+- Key actions:
+  - Updated `server/player-session.ts` handshake guard to allow `HELLO` while `player.isDead === true` (legacy parity).
+  - Updated `client/ecs/systems/client-command-apply-system.ts` `setPlayerHealth` handling to transition to dead state (`player.die()`, `playerDeath` emit, death sound) at `HP <= 0`.
+  - Added regression tests for both paths.
+- Evidence:
+  - `bun test tests/unit/player-session.test.ts` (pass)
+  - `bun test tests/unit/client-player-death-flow.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Continue Ticket 90/91 legacy-entity-map removals.
+
+## Ticket 106: Server-Authoritative Player Profiles (SQLite) + Name-Lock Sessions + Username-Only Local Storage
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Add server-side SQLite persistence for player profile essentials (name, armor, weapon, checkpoint).
+  - Enforce single active session per player name (first connected keeps the name lock; duplicates rejected).
+  - Apply persisted profile during `HELLO` so server is authoritative for loadout/spawn checkpoint.
+  - Persist equipment/checkpoint changes server-side from authoritative command pipeline.
+  - Reduce browser persistent storage to username-only.
+- Out of scope:
+  - Full account/auth system.
+  - Cross-device secure identity ownership (name-only identity remains spoofable while offline).
+  - New inventory model beyond current BrowserQuest equip/drop semantics.
+- Acceptance criteria:
+  - Server stores profile data in SQLite and restores armor/weapon/checkpoint on reconnect.
+  - Duplicate active name login is rejected while original connection remains active.
+  - On disconnect, name lock is released.
+  - Client localStorage persistent payload is username-only (no durable armor/weapon/achievements/profile blob).
+  - Targeted unit tests + typecheck pass.
+- Verification plan:
+  - `bun test tests/unit/player-session.test.ts`
+  - `bun test tests/unit/server-player-persistence.test.ts`
+  - `bun test tests/unit/client-storage.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 16:44 UTC
+- End: 2026-02-13 17:12 UTC
+- Status: `done`
+- Key actions:
+  - Added `server/player-persistence.ts` (SQLite profile/session store) with startup session cleanup and profile fields for name/equipment/checkpoint.
+  - Wired runtime/world integration so each world uses shared persistence and emits db-path in structured startup metadata.
+  - Updated session handshake (`server/player-session.ts`) to enforce single-active-name locks, attach persisted profile data to `HELLO`, and release claims on close.
+  - Updated server ECS command pipeline (`server/world/ecs-command-pipeline.ts`) to apply persisted profile data on `HELLO` and persist equipment/checkpoint changes.
+  - Updated client persistence (`client/storage.ts`) to username-only storage with legacy migration from `data`, and removed local armor/weapon restore behavior from `client/game.ts`.
+  - Added focused unit coverage for session handshake profile/name-lock behavior, SQLite persistence semantics, and username-only client storage.
+- Evidence:
+  - `bun test --timeout 20000 tests/unit/player-session.test.ts tests/unit/server-player-persistence.test.ts tests/unit/client-storage.test.ts tests/unit/server-config-preflight.test.ts` (pass)
+  - `bun test --timeout 20000 tests/unit/server/runtime/factories.test.ts tests/unit/server/runtime/source.test.ts tests/unit/server/runtime/dependencies.test.ts tests/unit/server/runtime/lifecycle.test.ts` (pass)
+  - `bun test --timeout 20000 tests/unit/server/startup/*.test.ts` (pass)
+  - `bun x eslint server/player-persistence.ts server/player-session.ts server/world-server.ts server/world/ecs-command-pipeline.ts server/runtime.ts server/config-preflight.ts client/storage.ts client/preflight.ts client/app.ts client/game.ts client/main.ts client/ecs/systems/client-command-apply-system.ts tests/unit/player-session.test.ts tests/unit/server-player-persistence.test.ts tests/unit/client-storage.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Continue Ticket 90/91 legacy-entity-map removals after validating gameplay parity for server-authoritative profile loading in live runs.
+
+## Ticket 107: Server-Authoritative Achievement Progress + Protocol Sync
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Add protocol support for server-to-client achievement progress snapshot and client-to-server unlocked-achievement acknowledgements.
+  - Persist achievement counters/unlocked IDs in SQLite under the same player profile identity used by Ticket 106.
+  - Update server combat/death hooks to persist kill/damage/revive counters.
+  - Hydrate client achievement state from server snapshot on login and report unlocks back to server.
+- Out of scope:
+  - Authentication/anti-spoof guarantees.
+  - Full achievement system redesign.
+- Acceptance criteria:
+  - Achievement progress survives reconnect without relying on browser localStorage.
+  - Server sends progress snapshot on login and client applies it to UI/state.
+  - Client reports unlocks and server persists unlocked IDs.
+  - Targeted unit/type checks pass.
+- Verification plan:
+  - `bun test tests/unit/server-player-persistence.test.ts`
+  - `bun test tests/unit/player-session.test.ts`
+  - `bun test tests/unit/client-storage.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - Ticket 106.
+
+### Progress log
+
+- Start: 2026-02-13 17:24 UTC
+- End: 2026-02-13 17:45 UTC
+- Status: `done`
+- Key actions:
+  - Added protocol opcodes/types/manifest/handler coverage for `ACHIEVEMENT` (client->server) and `ACHIEVEMENTS` (server->client snapshot).
+  - Extended SQLite persistence (`server/player-persistence.ts`) with normalized achievement progress/unlock tables and counter/unlock persistence APIs.
+  - Wired world/runtime server plumbing to persist unlocks, kill counters, damage-taken counters, and revive counters; login now sends an `ACHIEVEMENTS` snapshot after `WELCOME`.
+  - Added ECS command handling for inbound `ACHIEVEMENT` and hooked server-authoritative combat/death paths to persistence updates.
+  - Added client-side snapshot hydration + kill/achievement command handling and unlock reporting (`tryUnlockingAchievement` now sends `clientSendAchievement`).
+  - Restored legacy kill-achievement parity client behavior (`HUNTER`, `ANGRY_RATS`, `SKULL_COLLECTOR`, `HERO`, plus kill notifications) and damage-based `MEATSHIELD` progression.
+  - Added/updated unit coverage for player-session translation, server persistence counters/unlocks, storage snapshot hydration, and protocol registry opcode coverage.
+- Evidence:
+  - `bun test tests/unit/server-player-persistence.test.ts tests/unit/player-session.test.ts tests/unit/client-storage.test.ts tests/unit/client-player-death-flow.test.ts tests/unit/protocol/registry.test.ts` (pass)
+  - `bun run typecheck` (pass)
+  - `bun x eslint client/storage.ts client/game.ts client/ecs/systems/client-command-apply-system.ts server/player-persistence.ts server/world-server.ts server/world/ecs-command-pipeline.ts server/protocol/outbound-actions.ts server/player-session-command-translation.ts server/ecs/commands.ts tests/unit/player-session.test.ts tests/unit/server-player-persistence.test.ts tests/unit/client-storage.test.ts tests/unit/client-player-death-flow.test.ts tests/unit/protocol/registry.test.ts tests/support/protocol/contract.ts` (pass)
+  - `bun test tests/unit/protocol/support-contract.test.ts tests/unit/server-format.test.ts` (pass)
+  - `bun run test:modern-parity` (pass)
+- Next action:
+  - Resume Ticket 90/91 legacy world-state class/map removals in dependency order.
+
+## Ticket 108: Modern Web-App Meta Parity + Returning Profile Image Fallback
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Add `mobile-web-app-capable` meta compatibility tag to the modern client document.
+  - Remove empty-`src` broken-image behavior for returning-character portrait on modern entry.
+  - Add a deterministic fallback player image for username-only local persistence mode.
+- Out of scope:
+  - Reintroducing browser-side profile image persistence.
+  - UI redesign of intro/load-character screens.
+- Acceptance criteria:
+  - Browser console no longer reports deprecated-only web-app-capable meta warning on modern page.
+  - Returning profile page no longer renders a broken `<img id="playerimage">` icon when no stored profile image exists.
+  - `bun x eslint client/main.ts client/modern.html` passes.
+- Verification plan:
+  - `bun x eslint client/main.ts client/modern.html`
+- Dependencies/blockers:
+  - Ticket 106 (username-only local storage migration) acknowledged.
+
+### Progress log
+
+- Start: 2026-02-13 17:46 UTC
+- End: 2026-02-13 17:53 UTC
+- Status: `done`
+- Key actions:
+  - Added `mobile-web-app-capable` alongside existing Apple meta capability tag in `client/modern.html`.
+  - Replaced empty intro portrait `src` with a deterministic fallback image to prevent browser broken-image rendering.
+  - Added runtime fallback logic in `client/main.ts` to always initialize `#playerimage` to a deterministic default and recover from invalid legacy image URLs via `error` fallback.
+  - Follow-up fix: switched the fallback image from an armor spritesheet to `/img/common/thingy.png` so only a single static icon is rendered.
+  - Preserved legacy behavior of overriding the default portrait with stored image data when present.
+- Evidence:
+  - `bun x eslint client/main.ts` (pass)
+  - `bun x prettier --check client/modern.html` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Ticket 109: add cookie-backed returning bootstrap (pre-WS) to match new server-side profile persistence UX.
+
+## Ticket 109: Client Bootstrap Parity via Username Cookie (Pre-WS Returning Flow)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Add username cookie read/write/clear support in client storage.
+  - Make preflight/app bootstrap detect returning player from cookie before WebSocket connect.
+  - Keep browser-side persistence limited to username (no local profile blob resurrection).
+- Out of scope:
+  - Server-rendered HTML variants by cookie.
+  - Authentication/account model changes.
+- Acceptance criteria:
+  - On a fresh page load with username cookie and no WS connection yet, intro opens on `loadcharacter`.
+  - Clearing/resetting character clears both local username key and cookie.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test tests/unit/client-storage.test.ts`
+- Dependencies/blockers:
+  - Ticket 106 (username-only local persistence) done.
+
+### Progress log
+
+- Start: 2026-02-13 18:05 UTC
+- End: 2026-02-13 18:11 UTC
+- Status: `done`
+- Key actions:
+  - Added cookie-backed username helpers in `client/storage.ts` (`read/write/clear`) and integrated them into `save()`/`clear()` lifecycle so username persistence is mirrored to cookie storage.
+  - Updated storage bootstrap to read cookie fallback when localStorage username is absent, preserving username-only local persistence behavior.
+  - Updated `client/preflight.ts` and `client/app.ts` startup checks to use `Storage.hasAlreadyPlayed()` so pre-WS returning flow works with cookie-backed username.
+  - Added cookie-focused client storage unit coverage in `tests/unit/client-storage.test.ts`.
+- Evidence:
+  - `bun x eslint client/storage.ts client/app.ts client/preflight.ts tests/unit/client-storage.test.ts` (pass)
+  - `bun test tests/unit/client-storage.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Ticket 110: collapse canonical modern entry to `/` and keep compatibility redirect.
+
+## Ticket 110: Flatten Modern Client Entry to Root Path (`/`)
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Make `/` the canonical modern client entry (no root redirect hop).
+  - Keep `/client/modern.html` as compatibility shim redirecting to `/`.
+  - Update docs/tests/config expecting `/client/modern.html`.
+- Out of scope:
+  - Server static hosting redesign.
+  - Protocol/runtime changes.
+- Acceptance criteria:
+  - Visiting `/` directly loads the full modern app shell.
+  - Browser tests target `/` and pass.
+  - Legacy `/client/modern.html` links still reach the same app via redirect.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test tests/browser/modern-ui-smoke.playwright.ts`
+- Dependencies/blockers:
+  - Ticket 109 (for returning-screen bootstrap verification on canonical entry).
+
+### Progress log
+
+- Start: 2026-02-13 18:07 UTC
+- End: 2026-02-13 18:11 UTC
+- Status: `done`
+- Key actions:
+  - Promoted root `index.html` to the full modern app shell and rewired client asset/module paths to `/client/*`.
+  - Converted `client/modern.html` and `client/index.html` into compatibility redirects to `/`.
+  - Updated browser tests/config/docs to use `/` as canonical entry path while preserving `/client/modern.html` backward compatibility.
+- Evidence:
+  - `bun x eslint tests/browser/modern-ui-smoke.playwright.ts tests/browser/modern-protocol-actions.playwright.ts tests/browser/protocol-invariant.playwright.ts` (pass)
+  - `bun x prettier --check index.html client/modern.html client/index.html` (pass)
+  - `bun x playwright test --config=playwright.config.ts tests/browser/protocol-invariant.playwright.ts` (pass)
+  - `bun x playwright test --config=playwright.config.ts tests/browser/modern-protocol-actions.playwright.ts -g "HELLO and CHAT"` (pass)
+  - `bun x playwright test --config=playwright.config.ts tests/browser/modern-ui-smoke.playwright.ts` (1 pass, 1 timeout) then rerun `-g "modern jQuery-driven UI controls toggle expected classes in-session"` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 111: Server-Rendered Load-Character Preview Image from Cookie Profile
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Replace fallback down-arrow preview with a server-rendered portrait source that resolves from persisted profile data keyed by the username cookie.
+  - Add an HTTP preview route that resolves armor from SQLite profile and returns a cropped character portrait frame.
+  - Wire modern intro/load-character UI to request this route before websocket connect.
+- Out of scope:
+  - Full server-side HTML templating for intro page.
+  - Reintroducing client-side profile image dataURL persistence.
+- Acceptance criteria:
+  - Returning user on load-character screen sees a character portrait (not `/img/common/thingy.png`) before websocket connect.
+  - Portrait reflects persisted armor progression from server profile.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun test tests/unit/server-profile-preview.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - Ticket 109 (username cookie bootstrap) done.
+
+### Progress log
+
+- Start: 2026-02-13 18:17 UTC
+- End: 2026-02-13 18:20 UTC
+- Status: `done`
+- Key actions:
+  - Added `server/profile-preview.ts` to resolve username from cookie, look up persisted profile armor in SQLite, and return a server-rendered SVG portrait frame (`idle_down`) from the armor spritesheet.
+  - Extended websocket HTTP runtime with `/profile/preview.svg` route registration and wired it in `server/runtime.ts`.
+  - Added Vite dev proxy for `/profile/*` and switched intro load-character portrait source to `/profile/preview.svg`.
+  - Updated `client/main.ts` fallback logic to prefer server preview route and fall back to `/img/common/thingy.png` only if preview fails.
+  - Added focused unit coverage for cookie parsing/profile lookup rendering path in `tests/unit/server-profile-preview.test.ts`.
+- Evidence:
+  - `bun x eslint server/profile-preview.ts server/runtime.ts server/runtime-types.ts server/ws/runtime.ts client/main.ts tests/unit/server-profile-preview.test.ts` (pass)
+  - `bun test tests/unit/server-profile-preview.test.ts` (pass)
+  - `bun run typecheck` (pass)
+  - `bun x prettier --check index.html` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 112: Fix Empty SVG Preview by Embedding Composed Sprite Layers
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Replace external `/img/*` references inside preview SVG with embedded data URIs so browser `<img src="/profile/preview.svg">` renders reliably.
+  - Compose portrait layers (shadow + armor + weapon) using the same frame/offset model as client renderer.
+- Out of scope:
+  - Full PNG rasterization server-side.
+  - Intro template SSR.
+- Acceptance criteria:
+  - `/profile/preview.svg` response includes embedded image data and renders non-empty in `<img>`.
+  - Preview includes persisted armor/weapon selection metadata.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun test tests/unit/server-profile-preview.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - Ticket 111.
+
+### Progress log
+
+- Start: 2026-02-13 18:21 UTC
+- End: 2026-02-13 18:25 UTC
+- Status: `done`
+- Key actions:
+  - Reworked `server/profile-preview.ts` to load sprite JSON+PNG assets from repo, cache them, and emit a composed SVG with embedded `data:image/png;base64,...` layers.
+  - Added armor+weapon resolution and frame math (`idle_down` row + sprite offsets) to mirror the client portrait composition approach.
+  - Added unit coverage for persisted armor/weapon metadata composition in `tests/unit/server-profile-preview.test.ts`.
+  - Verified runtime route returns a non-empty SVG payload with embedded assets.
+- Evidence:
+  - `bun x eslint server/profile-preview.ts tests/unit/server-profile-preview.test.ts` (pass)
+  - `bun test tests/unit/server-profile-preview.test.ts` (pass)
+  - `bun run typecheck` (pass)
+  - Runtime check: `curl http://127.0.0.1:8000/profile/preview.svg` (200, non-empty SVG with embedded data URIs)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 113: Pixel-Art Intro Portrait Parity via Client-Side Sprite Composition
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Stop relying on browser SVG rasterization for intro portrait rendering.
+  - Fetch server profile preview metadata (armor/weapon names) and compose the portrait in-browser from existing sprite assets (shadow + armor + weapon), matching renderer layering math.
+  - Harden CSS image-rendering for pixel-art scaling.
+- Out of scope:
+  - Full server-rendered intro HTML.
+  - WS/session handshake changes.
+- Acceptance criteria:
+  - Load-character portrait renders as pixel-art (no blurred/antialiased look).
+  - Composition uses the same client sprite assets already shipped to browser.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun test tests/unit/server-profile-preview.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - Ticket 111/112.
+
+### Progress log
+
+- Start: 2026-02-13 18:27 UTC
+- End: 2026-02-13 18:32 UTC
+- Status: `done`
+- Key actions:
+  - Added profile preview JSON payload API in `server/profile-preview.ts` and routed `/profile/preview.json` through runtime.
+  - Updated `client/main.ts` to fetch preview metadata and compose portrait on a 32x32 canvas from `/img/1/{shadow16,armor,weapon}.png` using idle-down frame + offset math.
+  - Retained `/profile/preview.svg` as fallback path.
+  - Tightened `#playerimage` CSS with `image-rendering: pixelated`.
+  - Added unit coverage for preview JSON payload shape in `tests/unit/server-profile-preview.test.ts`.
+- Evidence:
+  - `bun x eslint server/profile-preview.ts server/runtime.ts server/ws/runtime.ts client/main.ts tests/unit/server-profile-preview.test.ts` (pass)
+  - `bun test tests/unit/server-profile-preview.test.ts` (pass)
+  - `bun run typecheck` (pass)
+  - Runtime probe: `curl /profile/preview.json` returns armor/weapon payload; `curl /profile/preview.svg` returns non-empty composed SVG.
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 114: Animate Load-Character Idle Portrait Frames
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Animate load-character portrait using idle animation frames from armor/weapon sprites.
+  - Keep composition client-side from existing sprite assets and server-provided preview metadata.
+- Out of scope:
+  - New animation assets or pose variants.
+  - Runtime/gameplay animation pipeline changes.
+- Acceptance criteria:
+  - Load-character portrait cycles through idle frames instead of static pose.
+  - Animation preserves pixel-art rendering.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun x eslint client/main.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - Ticket 113.
+
+### Progress log
+
+- Start: 2026-02-13 18:34 UTC
+- End: 2026-02-13 18:39 UTC
+- Status: `done`
+- Key actions:
+  - Refactored intro portrait composition in `client/main.ts` from one-shot static render to reusable runtime with idle frame metadata.
+  - Added frame-length extraction for `idle_down` and interval-driven frame cycling while on returning screen.
+  - Kept sprite layering parity (`shadow + armor + weapon`) and pixel-art draw settings.
+- Evidence:
+  - `bun x eslint client/main.ts server/profile-preview.ts server/runtime.ts server/ws/runtime.ts tests/unit/server-profile-preview.test.ts` (pass)
+  - `bun test tests/unit/server-profile-preview.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 115: Remove Social Branding Footer + Refresh About Copy
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Remove legacy `#moztab` anchor and “Share this on” footer block from the modern root entry UI.
+  - Update “What is BrowserQuest?” intro copy to reflect the modernized runtime (Bun/Vite/ECS/server-authoritative state).
+- Out of scope:
+  - CSS cleanup for now-unused selectors.
+  - Gameplay/mechanics changes.
+- Acceptance criteria:
+  - No `#moztab` element rendered.
+  - Footer no longer shows “Share this on”.
+  - About section text reflects current modern project direction.
+- Verification plan:
+  - `bun x prettier --check index.html`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 18:40 UTC
+- End: 2026-02-13 18:41 UTC
+- Status: `done`
+- Key actions:
+  - Removed the `#moztab` branding anchor from `index.html`.
+  - Removed the legacy “Share this on” footer block and normalized the Privacy footer entry after removing the lead dash.
+  - Rewrote the “What is BrowserQuest?” section copy to describe the current modernized runtime (Bun/Vite/TypeScript, ECS/server-authoritative simulation, server-side profile persistence).
+- Evidence:
+  - `bun x prettier --check index.html` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 116: Remove Dead CSS Rules for Moztab/Share Footer
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Remove stale CSS selectors/rules that only styled removed `#moztab` and `#sharing` UI blocks.
+  - Keep functional styles required for remaining UI/achievement sharing links intact.
+- Out of scope:
+  - Full stylesheet refactor/normalization.
+  - Gameplay UI redesign.
+- Acceptance criteria:
+  - `client/css/main.css` contains no `#moztab` or `#sharing` selectors.
+  - Background sprite selector lists no longer carry unused `.facebook/.twitter` entries tied to removed footer social icons.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `rg -n "#moztab|#sharing" client/css/main.css`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - Ticket 115.
+
+### Progress log
+
+- Start: 2026-02-13 18:44 UTC
+- End: 2026-02-13 18:47 UTC
+- Status: `done`
+- Key actions:
+  - Removed `#moztab` and `#sharing` style blocks and related responsive width/display toggles from `client/css/main.css`.
+  - Removed obsolete `.facebook/.twitter` entries from shared spritesheet background selector lists and upscaled variants.
+  - Preserved achievement-sharing CSS selectors (`.achievement-sharing a`) and active footer/legal styles.
+- Evidence:
+  - `rg -n "#moztab|#sharing|\\.upscaled .*\\.facebook|\\.upscaled .*\\.twitter" client/css/main.css` (no matches)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 117: Remove Dead Facebook Popup Wiring in Modern Client Bootstrap
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Remove no-op `.facebook` popup click wiring from `client/main.ts`.
+  - Remove directly-related unused popup type surface when no remaining caller requires Facebook popup behavior.
+- Out of scope:
+  - Broader social-share redesign.
+  - Gameplay systems and server ECS parity work.
+- Acceptance criteria:
+  - `client/main.ts` no longer registers `.facebook` click popup handlers.
+  - Popup type domain and popup sizing logic only include still-used popup types.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test tests/unit/asset-key-domain.test.ts`
+- Dependencies/blockers:
+  - Ticket 116.
+
+### Progress log
+
+- Start: 2026-02-13 18:49 UTC
+- End: 2026-02-13 18:50 UTC
+- Status: `done`
+- Key actions:
+  - Removed the `.facebook` popup click-handler registration from `client/main.ts`.
+  - Narrowed popup domain to active type only (`twitter`) and simplified popup sizing path in `client/app.ts`.
+  - Updated popup-domain unit expectations to match the active runtime surface.
+- Evidence:
+  - `bun test tests/unit/asset-key-domain.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 118: Remove Dead Facebook Achievement-Share CSS Selectors
+
+- Status: `done`
+- Priority: P3
+- Scope:
+  - Remove `.achievement-sharing .facebook` selectors that are now unreachable.
+  - Keep active `.achievement-sharing .twitter` styling unchanged.
+- Out of scope:
+  - Any gameplay or protocol changes.
+  - General stylesheet normalization.
+- Acceptance criteria:
+  - `client/css/achievements.css` contains no `.achievement-sharing .facebook` selectors.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `rg -n "\\.achievement-sharing \\.facebook" client/css/achievements.css`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - Ticket 117.
+
+### Progress log
+
+- Start: 2026-02-13 18:51 UTC
+- End: 2026-02-13 18:52 UTC
+- Status: `done`
+- Key actions:
+  - Removed all `.achievement-sharing .facebook` and hover variants from each responsive block in `client/css/achievements.css`.
+  - Kept active Twitter share selectors unchanged.
+- Evidence:
+  - `rg -n "\\.achievement-sharing \\.facebook" client/css/achievements.css` (no matches)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 119: Restore Door/Portal Traversal Parity from Origin-Master
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Compare modern client door/portal traversal flow against `../BrowserQuest.wt-origin-master/client/js/game.js`.
+  - Restore missing traversal behaviors when stopping on a door tile (teleport send, orientation/camera/audio parity, attacker disengage).
+- Out of scope:
+  - Reworking server map/group architecture.
+  - Non-door movement/pathfinding changes.
+- Acceptance criteria:
+  - Entering a door tile while not targeting an entity teleports the player to the configured destination and sends TELEPORT to server.
+  - Portal-specific feedback (teleport sound/bubble behavior) and music refresh behavior match legacy expectations.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun run typecheck`
+  - `bun test tests/unit/ecs/client-door-portal-system.test.ts`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 18:59 UTC
+- End: 2026-02-13 19:01 UTC
+- Status: `done`
+- Key actions:
+  - Diffed legacy door flow in `../BrowserQuest.wt-origin-master/client/js/game.js` against modern runtime and confirmed missing modern stop-pathing door traversal handling.
+  - Added `runClientDoorPortalSystem` and scheduled it in the post-update pipeline so door traversal is processed after movement completion.
+  - Restored legacy side effects for door traversal: local player teleport/orientation update, TELEPORT send, attacker disengage, portal sound/music refresh, mobile camera/clear-screen behavior.
+  - Added focused unit coverage for traversal gating and mobile camera branch.
+- Evidence:
+  - `bun test tests/unit/ecs/client-door-portal-system.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 120: Restore Click-to-Interact Pathing Parity (Attack/Talk/Open)
+
+- Status: `done`
+- Priority: P1
+- Scope:
+  - Audit modern click interaction pathing against origin-master for attack/talk/open flows.
+  - Restore legacy path-request ignore list semantics so clicking a non-adjacent entity initiates pathing toward interaction.
+- Out of scope:
+  - Combat tuning and server AI behavior.
+  - Non-interaction movement UX changes.
+- Acceptance criteria:
+  - Clicking a non-adjacent mob/npc/chest issues movement toward that entity (without needing a separate pre-move click).
+  - Pathing resolver includes self + current target ignore behavior matching origin-master intent.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun test tests/unit/client-pathing-ignore-list.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 19:19 UTC
+- End: 2026-02-13 19:20 UTC
+- Status: `done`
+- Key actions:
+  - Audited origin-master `client/js/game.js` and identified missing modern parity: legacy `onRequestPath` passed ignore list `[self, target]`, modern resolver passed `undefined`.
+  - Added `client/runtime/pathing-ignore-list.ts` and wired `Game.setPathfinder` path resolver to pass legacy-equivalent ignore lists for interaction-follow paths.
+  - Updated `Game.findPath` ignore-list typing to the pathfinder shape used at runtime.
+  - Added focused unit tests for ignore-list construction.
+- Evidence:
+  - `bun test tests/unit/client-pathing-ignore-list.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 121: Eliminate Animated-Tile Seams from Smoothing Drift
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Audit renderer setup for animated tile seam causes.
+  - Enforce cross-browser pixel-snap canvas smoothing settings for runtime render contexts.
+- Out of scope:
+  - Reauthoring tilesheets or map content.
+  - Full renderer pipeline redesign.
+- Acceptance criteria:
+  - Runtime renderer disables image smoothing via standard + vendor canvas flags.
+  - Animated tile rendering path no longer depends on Firefox-only `mozImageSmoothingEnabled`.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun test tests/unit/canvas-smoothing.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - None.
+
+### Progress log
+
+- Start: 2026-02-13 19:26 UTC
+- End: 2026-02-13 19:28 UTC
+- Status: `done`
+- Key actions:
+  - Audited tile rendering pipeline and identified likely seam source: smoothing disable path targeted only `mozImageSmoothingEnabled`, leaving smoothing enabled on Chromium/WebKit contexts.
+  - Added shared canvas utility (`client/canvas-smoothing.ts`) to disable standard + vendor smoothing flags.
+  - Updated renderer rescale path and intro player-image composition path to use the shared smoothing utility.
+  - Added focused unit coverage for smoothing flags.
+- Evidence:
+  - `bun test tests/unit/canvas-smoothing.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
+
+## Ticket 122: Add Animated-Ground Base Underlay to Remove Frame-Edge Gaps
+
+- Status: `done`
+- Priority: P2
+- Scope:
+  - Remove visible faint gaps around animated ground cells by ensuring the terrain layer keeps a base tile under animated overlays.
+  - Keep high-tile behavior unchanged.
+- Out of scope:
+  - Animated tileset/content reauthoring.
+  - Broader render pipeline redesign.
+- Acceptance criteria:
+  - Terrain pass draws all non-high tiles (including animated ids) onto background.
+  - Animated overlay pass remains active on the entity layer.
+  - `bun run typecheck` passes.
+- Verification plan:
+  - `bun test tests/unit/renderer-terrain.test.ts`
+  - `bun run typecheck`
+- Dependencies/blockers:
+  - Ticket 121.
+
+### Progress log
+
+- Start: 2026-02-13 19:39 UTC
+- End: 2026-02-13 19:44 UTC
+- Status: `done`
+- Key actions:
+  - Identified that animated tiles were excluded from terrain background draw, so transparent edge pixels in animated frames could reveal faint seams/gaps.
+  - Updated `Renderer.drawTerrain` to draw all non-high tiles and keep animated pass as overlay.
+  - Added `shouldDrawTerrainTile` helper and unit test coverage.
+- Evidence:
+  - `bun test tests/unit/renderer-terrain.test.ts tests/unit/canvas-smoothing.test.ts` (pass)
+  - `bun run typecheck` (pass)
+- Next action:
+  - Resume queued server ECS tickets (Ticket 90/91).
 
 ## Ticket 84: Remove Legacy Client Lookup/Iterator Modules
 
@@ -1666,7 +3010,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 43: Modern Client Runtime Hardening (Typing + Safety)
 
-- Status: `in_progress`
+- Status: `done`
 - Priority: P1
 - Scope:
   - Reduce `@typescript-eslint/no-unsafe-*` warnings in the modern client runtime boundary (dispatcher + protocol ingestion).
@@ -2287,7 +3631,7 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 ## Ticket 42: Modern Client Boot Hardening
 
-- Status: `in_progress`
+- Status: `done`
 - Priority: P1
 - Scope:
   - Remove broken legacy analytics snippet from `client/modern.html`.
@@ -2304,23 +3648,29 @@ Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 - Dependencies/blockers:
   - None.
 - Planned slices:
-  - 42.1 (`in_progress`) Remove legacy analytics snippet causing `_gaq` TDZ error.
-  - 42.2 (`in_progress`) Guard renderer rescale until map/tilesets exist.
-  - 42.3 (`in_progress`) Tighten Playwright smoke to fail on boot errors.
-  - 42.4 (`in_progress`) Fix sprite registry + hurt-sprite pipeline (no `getImageData`).
+  - 42.1 (`done`) Remove legacy analytics snippet causing `_gaq` TDZ error.
+  - 42.2 (`done`) Guard renderer rescale until map/tilesets exist.
+  - 42.3 (`done`) Tighten Playwright smoke to fail on boot errors.
+  - 42.4 (`done`) Fix sprite registry + hurt-sprite pipeline (no `getImageData`).
 
 ### Progress log
 
 - Start: 2026-02-11 23:35 UTC
-- Status: `in_progress`
+- End: 2026-02-12 22:35 UTC
+- Status: `done`
 - Key actions:
-  - (in progress) Repro boot crash via Playwright and patch modern boot path.
+  - Reproduced boot crash via Playwright and patched modern boot path.
   - Fixed sprite registry path so cursor sprites load (was pointing at missing `../sprites/*.json`).
   - Removed `getImageData` hurt-sprite generation (prevents noisy/fragile boot errors).
   - Added missing `arrow.png` assets to prevent sprite-load deadlock.
   - Sanitized spawn orientations (prevents `idle_undefined`) and made spawn handlers idempotent.
   - Wired character pathfinding resolver to `Game.findPath` so clicks/moves work.
+  - Hardened Playwright protocol observer to track `/ws` connections (works for direct server and Vite-proxied websockets).
+  - Removed stale expectations around legacy `LIST` flows in modern browser protocol tests.
+  - Fixed generated-prefabs drift in `verify:modern` by updating the generator (no unused `eslint-disable` directive) and regenerating output.
+  - Fixed a server readiness race where `/status` could be healthy before the world map finished loading, which could drop early HELLO/WELCOME in smoke lanes.
 - Evidence:
-  - (pending)
+  - `bun run test:browser:modern` (pass)
+  - `bun run verify:modern` (pass)
 - Next action:
-  - Verify `/client/modern.html` reaches `body.started` and `bun run test:browser:modern` passes.
+  - Start staging true "zero legacy" follow-ups (server: delete legacy entity-object seams; client: renderer modernization track is still deferred as Ticket 12).

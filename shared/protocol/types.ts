@@ -18,6 +18,7 @@ export type ClientToServerWhoAction = [typeof Types.Messages.WHO, ...number[]];
 export type ClientToServerZoneAction = [typeof Types.Messages.ZONE];
 export type ClientToServerOpenAction = [typeof Types.Messages.OPEN, number];
 export type ClientToServerCheckAction = [typeof Types.Messages.CHECK, number];
+export type ClientToServerAchievementAction = [typeof Types.Messages.ACHIEVEMENT, number];
 
 export type ClientToServerProtocolAction =
     | ClientToServerHelloAction
@@ -33,7 +34,8 @@ export type ClientToServerProtocolAction =
     | ClientToServerWhoAction
     | ClientToServerZoneAction
     | ClientToServerOpenAction
-    | ClientToServerCheckAction;
+    | ClientToServerCheckAction
+    | ClientToServerAchievementAction;
 
 export type ServerToClientWelcomeAction = [typeof Types.Messages.WELCOME, number, string, number, number, number];
 export type ServerToClientSpawnAction = [
@@ -60,6 +62,15 @@ export type ServerToClientListAction = [typeof Types.Messages.LIST, ...number[]]
 export type ServerToClientDestroyAction = [typeof Types.Messages.DESTROY, number];
 export type ServerToClientHitPointsAction = [typeof Types.Messages.HP, number];
 export type ServerToClientBlinkAction = [typeof Types.Messages.BLINK, number];
+export type ServerToClientAchievementsAction = [
+    typeof Types.Messages.ACHIEVEMENTS,
+    number[],
+    number,
+    number,
+    number,
+    number,
+    number,
+];
 
 export type ServerToClientProtocolAction =
     | ServerToClientWelcomeAction
@@ -79,7 +90,8 @@ export type ServerToClientProtocolAction =
     | ServerToClientListAction
     | ServerToClientDestroyAction
     | ServerToClientHitPointsAction
-    | ServerToClientBlinkAction;
+    | ServerToClientBlinkAction
+    | ServerToClientAchievementsAction;
 
 export type ProtocolAction = ClientToServerProtocolAction | ServerToClientProtocolAction;
 export type ProtocolOpcode = ProtocolAction[0];
@@ -112,6 +124,8 @@ export const PROTOCOL_CONTRACT_NUMERIC_KEYS = [
     'MSG_BLINK',
     'MSG_OPEN',
     'MSG_CHECK',
+    'MSG_ACHIEVEMENT',
+    'MSG_ACHIEVEMENTS',
     'ENTITY_CLOTH_ARMOR',
     'ENTITY_SWORD_1',
 ] as const;

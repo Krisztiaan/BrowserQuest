@@ -9,7 +9,9 @@ export type ClientCommand =
     | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
     | Readonly<{ type: 'clientSendZone' }>
     | Readonly<{ type: 'clientSendChat'; message: string }>
+    | Readonly<{ type: 'clientSendAchievement'; achievementId: number }>
     | Readonly<{ type: 'clientSendAttack'; mobId: EntityId }>
+    | Readonly<{ type: 'clientSendAggro'; mobId: EntityId }>
     | Readonly<{ type: 'clientSendLootMove'; itemId: EntityId; x: number; y: number }>
     | Readonly<{ type: 'enqueueZoningFrom'; x: number; y: number }>
     | Readonly<{ type: 'setPlayerIsOnPlateau'; isOnPlateau: boolean }>
@@ -66,6 +68,7 @@ export type ClientCommand =
     | Readonly<{ type: 'characterFollow'; entityId: EntityId; targetId: EntityId }>
     | Readonly<{ type: 'clientSendHit'; targetId: EntityId }>
     | Readonly<{ type: 'clientSendHurt'; mobId: EntityId }>
+    | Readonly<{ type: 'applyDamageToMob'; mobId: EntityId; points: number }>
     | Readonly<{ type: 'audioPlaySound'; key: AudioSoundKey }>
     | Readonly<{ type: 'playerStop' }>
     | Readonly<{ type: 'playerDisengage' }>
@@ -79,6 +82,16 @@ export type ClientCommand =
     | Readonly<{ type: 'playerMoveToItem'; playerId: EntityId; itemId: EntityId }>
     | Readonly<{ type: 'setPlayerHealth'; points: number; isRegen: boolean }>
     | Readonly<{ type: 'setPlayerMaxHitPoints'; maxHp: number }>
+    | Readonly<{
+          type: 'applyAchievementProgress';
+          unlockedIds: number[];
+          ratCount: number;
+          skeletonCount: number;
+          totalKills: number;
+          totalDmg: number;
+          totalRevives: number;
+      }>
+    | Readonly<{ type: 'applyKillToAchievements'; mobKind: EntityKind }>
     | Readonly<{ type: 'chatMessage'; entityId: EntityId; text: string }>
     | Readonly<{ type: 'equipItem'; entityId: EntityId; itemKind: EntityKind }>
     | Readonly<{ type: 'dropItem'; item: unknown; mobId: EntityId }>

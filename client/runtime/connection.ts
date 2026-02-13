@@ -78,6 +78,29 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
         enqueue(game, { type: 'itemBlink', entityId });
     });
 
+    effects.on('playerDamageMob', function ({ game }, mobId: EntityId, points: number) {
+        enqueue(game, { type: 'playerDamageMob', mobId, points });
+    });
+
+    effects.on('playerKillMob', function ({ game }, kind) {
+        enqueue(game, { type: 'playerKillMob', kind });
+    });
+
+    effects.on(
+        'achievementProgress',
+        function ({ game }, unlockedIds, ratCount, skeletonCount, totalKills, totalDmg, totalRevives) {
+            enqueue(game, {
+                type: 'achievementProgress',
+                unlockedIds,
+                ratCount,
+                skeletonCount,
+                totalKills,
+                totalDmg,
+                totalRevives,
+            });
+        }
+    );
+
     effects.on('disconnected', function ({ game }, reason: string) {
         game.emit('disconnect', reason);
     });

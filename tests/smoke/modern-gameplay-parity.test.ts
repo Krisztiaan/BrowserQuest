@@ -101,7 +101,7 @@ async function waitForNextAction(
     timeoutMs = 10000
 ) {
     const startedAt = Date.now();
-     
+
     for (;;) {
         for (let i = stream.cursor; i < stream.actions.length; i += 1) {
             const action = stream.actions[i];
@@ -158,7 +158,7 @@ async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
 
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
-     
+
     for (;;) {
         try {
             const res = await fetch(url);
@@ -231,89 +231,98 @@ afterEach(async () => {
     server = null;
 });
 
-test('modern gameplay protocol parity: login, move, chat, zone, combat path, lootmove, reconnect', async () => {
-    server = await startServer();
+test(
+    'modern gameplay protocol parity: login, move, chat, zone, combat path, lootmove, reconnect',
+    async () => {
+        server = await startServer();
 
-    const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
-    const stream = createActionStream(ws);
-    await waitForGo(ws);
+        const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
+        const stream = createActionStream(ws);
+        await waitForGo(ws);
 
-    ws.send(JSON.stringify([MSG_HELLO, 'modern-e2e', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-    const welcome = await waitForNextAction(stream, (action) => action[0] === MSG_WELCOME, 'WELCOME', 120000);
-    const playerX = welcome[3];
-    const playerY = welcome[4];
+        ws.send(JSON.stringify([MSG_HELLO, 'modern-e2e', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
+        const welcome = await waitForNextAction(stream, (action) => action[0] === MSG_WELCOME, 'WELCOME', 120000);
+        const playerX = welcome[3];
+        const playerY = welcome[4];
 
-    expect(typeof welcome[1]).toBe('number');
-    expect(typeof playerX).toBe('number');
-    expect(typeof playerY).toBe('number');
+        expect(typeof welcome[1]).toBe('number');
+        expect(typeof playerX).toBe('number');
+        expect(typeof playerY).toBe('number');
 
-    let nearbyEntityIds: number[] = [];
-    try {
-        const listAction = await waitForNextAction(stream, (action) => action[0] === MSG_LIST, 'LIST', 1500);
-        nearbyEntityIds = listAction.slice(1).filter((id): id is number => isSafeInteger(id));
-    } catch (_) {
-        nearbyEntityIds = [];
-    }
-
-    let combatTargetId: number | null = null;
-    if (nearbyEntityIds.length > 0) {
-        ws.send(JSON.stringify([MSG_WHO, ...nearbyEntityIds.slice(0, 30)]));
-        await waitForNextAction(stream, (action) => action[0] === MSG_SPAWN, 'SPAWN');
-
-        const spawns = stream.actions.filter((action) => action[0] === MSG_SPAWN);
-        const mobSpawn = spawns.find((action) => {
-            const kind = action[2];
-            return isSafeInteger(kind) && kind >= 2 && kind <= 14;
-        });
-        const fallbackSpawn = spawns.find((action) => isSafeInteger(action[1]));
-        const candidateTargetId = (mobSpawn ?? fallbackSpawn)?.[1];
-        combatTargetId = isSafeInteger(candidateTargetId) ? candidateTargetId : null;
-    }
-
-    ws.send(JSON.stringify([MSG_MOVE, playerX, playerY]));
-    await ensureSocketOpen(ws);
-
-    const chatMessage = 'modern-e2e-chat';
-    ws.send(JSON.stringify([MSG_CHAT, chatMessage]));
-    await ensureSocketOpen(ws);
-
-    ws.send(JSON.stringify([MSG_ZONE]));
-    await ensureSocketOpen(ws);
-
-    if (combatTargetId !== null) {
-        ws.send(JSON.stringify([MSG_ATTACK, combatTargetId]));
-        for (let i = 0; i < 6; i += 1) {
-            ws.send(JSON.stringify([MSG_HIT, combatTargetId]));
-        }
-
-        // Damage events are random; if one arrives, validate shape.
+        let nearbyEntityIds: number[] = [];
         try {
-            const damageAction = await waitForNextAction(
-                stream,
-                (action) => action[0] === MSG_DAMAGE,
-                'optional DAMAGE',
-                800
-            );
-            expect(typeof damageAction[1]).toBe('number');
-            expect(typeof damageAction[2]).toBe('number');
+            const listAction = await waitForNextAction(stream, (action) => action[0] === MSG_LIST, 'LIST', 1500);
+            nearbyEntityIds = listAction.slice(1).filter((id): id is number => isSafeInteger(id));
         } catch (_) {
-            // no damage event within timeout is acceptable, but socket must stay open
+            nearbyEntityIds = [];
         }
+
+        let combatTargetId: number | null = null;
+        if (nearbyEntityIds.length > 0) {
+            ws.send(JSON.stringify([MSG_WHO, ...nearbyEntityIds.slice(0, 30)]));
+            await waitForNextAction(stream, (action) => action[0] === MSG_SPAWN, 'SPAWN');
+
+            const spawns = stream.actions.filter((action) => action[0] === MSG_SPAWN);
+            const mobSpawn = spawns.find((action) => {
+                const kind = action[2];
+                return isSafeInteger(kind) && kind >= 2 && kind <= 14;
+            });
+            const fallbackSpawn = spawns.find((action) => isSafeInteger(action[1]));
+            const candidateTargetId = (mobSpawn ?? fallbackSpawn)?.[1];
+            combatTargetId = isSafeInteger(candidateTargetId) ? candidateTargetId : null;
+        }
+
+        ws.send(JSON.stringify([MSG_MOVE, playerX, playerY]));
         await ensureSocketOpen(ws);
 
-        ws.send(JSON.stringify([MSG_LOOTMOVE, playerX, playerY, combatTargetId]));
+        const chatMessage = 'modern-e2e-chat';
+        ws.send(JSON.stringify([MSG_CHAT, chatMessage]));
         await ensureSocketOpen(ws);
-    }
 
-    ws.close();
-    await waitForClose(ws);
+        ws.send(JSON.stringify([MSG_ZONE]));
+        await ensureSocketOpen(ws);
 
-    const reconnect = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
-    const reconnectStream = createActionStream(reconnect);
-    await waitForGo(reconnect);
-    reconnect.send(JSON.stringify([MSG_HELLO, 'modern-e2e-reconnect', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-    await waitForNextAction(reconnectStream, (action) => action[0] === MSG_WELCOME, 'WELCOME after reconnect', 120000);
-    expect(reconnect.readyState).toBe(WebSocket.OPEN);
-    reconnect.close();
-    await waitForClose(reconnect);
-}, { timeout: 180_000 });
+        if (combatTargetId !== null) {
+            ws.send(JSON.stringify([MSG_ATTACK, combatTargetId]));
+            for (let i = 0; i < 6; i += 1) {
+                ws.send(JSON.stringify([MSG_HIT, combatTargetId]));
+            }
+
+            // Damage events are random; if one arrives, validate shape.
+            try {
+                const damageAction = await waitForNextAction(
+                    stream,
+                    (action) => action[0] === MSG_DAMAGE,
+                    'optional DAMAGE',
+                    800
+                );
+                expect(typeof damageAction[1]).toBe('number');
+                expect(typeof damageAction[2]).toBe('number');
+            } catch (_) {
+                // no damage event within timeout is acceptable, but socket must stay open
+            }
+            await ensureSocketOpen(ws);
+
+            ws.send(JSON.stringify([MSG_LOOTMOVE, playerX, playerY, combatTargetId]));
+            await ensureSocketOpen(ws);
+        }
+
+        ws.close();
+        await waitForClose(ws);
+
+        const reconnect = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
+        const reconnectStream = createActionStream(reconnect);
+        await waitForGo(reconnect);
+        reconnect.send(JSON.stringify([MSG_HELLO, 'modern-e2e-reconnect', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
+        await waitForNextAction(
+            reconnectStream,
+            (action) => action[0] === MSG_WELCOME,
+            'WELCOME after reconnect',
+            120000
+        );
+        expect(reconnect.readyState).toBe(WebSocket.OPEN);
+        reconnect.close();
+        await waitForClose(reconnect);
+    },
+    { timeout: 180_000 }
+);

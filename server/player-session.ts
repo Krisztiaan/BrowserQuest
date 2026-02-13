@@ -3,22 +3,68 @@ import FormatModule from './format';
 import Types from '../shared/gametypes-browser';
 import type { ClientToServerProtocolAction } from '../shared/protocol/types';
 import { HANDSHAKE_CONTROL } from '../shared/connection-status';
-import type Player from './player';
+import type { EntityId } from '../shared/domain/ids';
 import { translateClientActionToCommand } from './player-session-command-translation';
+import type { Command } from './ecs/commands';
+import type { PersistedPlayerProfile } from './player-persistence';
 
 const check = FormatModule.check as (payload: ClientToServerProtocolAction) => boolean;
 const log = Log.getLogger();
 
-export function attachPlayerSession(player: Player): void {
+type SessionConnection = {
+    id: string;
+    listen(callback: (message: ClientToServerProtocolAction) => void): void;
+    onClose(callback: () => void): void;
+    sendUTF8(payload: string): void;
+    close(reason?: string): void;
+    closeInvalidPayload?(reason: string): void;
+};
+
+type SessionWorld = {
+    isPlayerActive(playerId: EntityId): boolean;
+    enqueueCommand(command: Command): void;
+    getConnectionPlayerById(playerId: EntityId): {
+        isDead?: boolean;
+        firepotionTimeout?: unknown;
+        emit(eventName: 'exit'): void;
+    } | null;
+    resolveHelloProfile?(params: {
+        connectionId: string;
+        requestedName: string;
+    }): Readonly<{ accepted: boolean; reason?: string; profile?: PersistedPlayerProfile }>;
+    releaseSessionClaim?(connectionId: string): void;
+};
+
+export function attachWorldConnectionSession({
+    connection,
+    world,
+    playerId,
+}: {
+    connection: SessionConnection;
+    world: SessionWorld;
+    playerId: EntityId;
+}): void {
     const closeInvalidPayload = (reason: string): void => {
-        if (typeof player.connection.closeInvalidPayload === 'function') {
-            player.connection.closeInvalidPayload(reason);
+        if (typeof connection.closeInvalidPayload === 'function') {
+            connection.closeInvalidPayload(reason);
         } else {
-            player.connection.close(reason);
+            connection.close(reason);
         }
     };
 
-    player.connection.listen((message: ClientToServerProtocolAction) => {
+    let disconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const resetTimeout = (): void => {
+        if (disconnectTimeout) {
+            clearTimeout(disconnectTimeout);
+        }
+        disconnectTimeout = setTimeout(() => {
+            connection.sendUTF8(HANDSHAKE_CONTROL.TIMEOUT);
+            connection.close('Player was idle for too long');
+        }, 1000 * 60 * 15);
+    };
+
+    connection.listen((message: ClientToServerProtocolAction) => {
         const action = message[0];
 
         log.debug('Received: ' + message);
@@ -27,32 +73,70 @@ export function attachPlayerSession(player: Player): void {
             return;
         }
 
-        if (!player.hasEnteredGame && action !== Types.Messages.HELLO) {
+        const hasEnteredGame = world.isPlayerActive(playerId);
+        const connectionPlayer = hasEnteredGame ? world.getConnectionPlayerById(playerId) : null;
+        const playerIsDead = connectionPlayer?.isDead === true;
+        if (!hasEnteredGame && action !== Types.Messages.HELLO) {
             closeInvalidPayload('Invalid handshake message: ' + message);
             return;
         }
 
-        if (player.hasEnteredGame && !player.isDead && action === Types.Messages.HELLO) {
+        if (hasEnteredGame && action === Types.Messages.HELLO && !playerIsDead) {
             closeInvalidPayload('Cannot initiate handshake twice: ' + message);
             return;
         }
 
-        player.resetTimeout();
-        const command = translateClientActionToCommand(player, message, closeInvalidPayload);
+        resetTimeout();
+        let command = translateClientActionToCommand(
+            { connectionId: connection.id, playerId },
+            message,
+            closeInvalidPayload
+        );
+        if (command?.type === 'HELLO') {
+            let resolved:
+                | Readonly<{ accepted: boolean; reason?: string; profile?: PersistedPlayerProfile }>
+                | undefined;
+            try {
+                resolved = world.resolveHelloProfile?.({
+                    connectionId: connection.id,
+                    requestedName: command.name,
+                });
+            } catch (error) {
+                log.error('Failed to resolve HELLO profile: ' + String(error));
+                connection.close('Unable to load player profile.');
+                return;
+            }
+            if (resolved && !resolved.accepted) {
+                connection.close(resolved.reason ?? 'Unable to enter world.');
+                return;
+            }
+            if (resolved?.profile) {
+                command = {
+                    ...command,
+                    profile: resolved.profile,
+                };
+            }
+        }
         if (command) {
-            player.server.enqueueCommand(command);
+            world.enqueueCommand(command);
         }
     });
 
-    player.connection.onClose(() => {
-        if (player.firepotionTimeout) {
-            clearTimeout(player.firepotionTimeout);
+    connection.onClose(() => {
+        world.releaseSessionClaim?.(connection.id);
+        if (disconnectTimeout) {
+            clearTimeout(disconnectTimeout);
+            disconnectTimeout = null;
         }
-        if (player.disconnectTimeout) {
-            clearTimeout(player.disconnectTimeout);
+
+        const player = world.getConnectionPlayerById(playerId);
+        if (player) {
+            if (player.firepotionTimeout) {
+                clearTimeout(player.firepotionTimeout as never);
+            }
+            player.emit('exit');
         }
-        player.emit('exit');
     });
 
-    player.connection.sendUTF8(HANDSHAKE_CONTROL.GO);
+    connection.sendUTF8(HANDSHAKE_CONTROL.GO);
 }

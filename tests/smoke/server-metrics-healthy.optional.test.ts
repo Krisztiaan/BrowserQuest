@@ -67,7 +67,7 @@ async function getFreePort() {
 
 async function waitForHttpOk(url: string, timeoutMs = 8000) {
     const start = Date.now();
-     
+
     for (;;) {
         try {
             const res = await fetch(url);
@@ -85,7 +85,7 @@ async function waitForHttpOk(url: string, timeoutMs = 8000) {
 
 async function waitForCondition(check: () => boolean, timeoutMs: number, label: string) {
     const start = Date.now();
-     
+
     for (;;) {
         if (check()) return;
         if (Date.now() - start > timeoutMs) {
@@ -114,7 +114,6 @@ afterEach(async () => {
 });
 
 maybeTest('optional: healthy metrics path starts with memcache backend and no fallback event', async () => {
-     
     const hasMemcacheDependency = (() => {
         try {
             require.resolve('memcache');
@@ -128,8 +127,7 @@ maybeTest('optional: healthy metrics path starts with memcache backend and no fa
 
     const port = await getFreePort();
     const memcachedHostEnv = process.env.BQ_TEST_METRICS_HOST;
-    const memcachedHost =
-        memcachedHostEnv && memcachedHostEnv.trim() !== '' ? memcachedHostEnv : '127.0.0.1';
+    const memcachedHost = memcachedHostEnv && memcachedHostEnv.trim() !== '' ? memcachedHostEnv : '127.0.0.1';
     const memcachedPortEnv = process.env.BQ_TEST_METRICS_PORT;
     const memcachedPort = Number.parseInt(
         memcachedPortEnv && memcachedPortEnv.trim() !== '' ? memcachedPortEnv : '11211',

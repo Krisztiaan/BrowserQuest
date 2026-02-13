@@ -6,6 +6,8 @@ import type { EntityKind } from '../shared/entity-kind-domain';
 import type { AchievementId } from './achievement-domain';
 import { TRANSITIONEND } from './platform/util';
 import type Game from './game';
+import Mob from './mob';
+import sprites from './sprites';
 
 type TestEntity = {
     id: string | number;
@@ -36,6 +38,47 @@ type TestApi = {
         itemX?: number;
         itemY?: number;
     };
+    sendAggroProbe: () => {
+        ok: boolean;
+        reason?: string;
+        mobId?: string | number;
+        mobCount?: number;
+    };
+    moveNearNearestMobProbe: () => {
+        ok: boolean;
+        reason?: string;
+        mobId?: string | number;
+        mobCount?: number;
+        targetX?: number;
+        targetY?: number;
+    };
+    getAggroProbeStatus: () => {
+        ready: boolean;
+        mobId: string | number | null;
+        dist: number | null;
+        mobIsAttacking: boolean | null;
+        mobIsMoving: boolean | null;
+        mobHasTargetPlayer: boolean | null;
+        mobIsAdjacentNonDiagonal: boolean | null;
+    };
+    sendKillDespawnProbe: () => {
+        ok: boolean;
+        reason?: string;
+        mobId?: string | number;
+        mobCount?: number;
+        targetX?: number;
+        targetY?: number;
+    };
+    getKillDespawnStatus: () => {
+        ready: boolean;
+        requestedMobId: string | number | null;
+        mobPresent: boolean;
+        mobId: string | number | null;
+        dist: number | null;
+        mobIsDead: boolean | null;
+        playerTargetId: string | number | null;
+        nearestMobId: string | number | null;
+    };
 };
 
 declare global {
@@ -49,6 +92,13 @@ let app: App | null = null,
     game: Game | null = null;
 const TEST_ZONE_WIDTH = 28;
 const TEST_ZONE_HEIGHT = 12;
+const SERVER_PLAYER_IMAGE_SRC = '/profile/preview.svg';
+const SERVER_PLAYER_PREVIEW_JSON_URL = '/profile/preview.json';
+const FALLBACK_PLAYER_IMAGE_SRC = '/img/common/thingy.png';
+const DEFAULT_ARMOR_SPRITE = 'clotharmor';
+const DEFAULT_WEAPON_SPRITE = 'sword1';
+const SHADOW_SPRITE = 'shadow16';
+const IDLE_ANIMATION_INTERVAL_MS = 260;
 
 const getZoneGroupId = function (x: number, y: number): string {
     const gx = Math.floor((x - 1) / TEST_ZONE_WIDTH),
@@ -84,10 +134,235 @@ const getTestEntities = function (): TestEntities {
     return { mobs: mobs, items: items };
 };
 
+type SpriteSpec = {
+    width: number;
+    height: number;
+    offset_x?: number;
+    offset_y?: number;
+    animations?: Record<string, { row: number; length: number }>;
+};
+type PreviewPayload = {
+    armorSpriteName?: unknown;
+    weaponSpriteName?: unknown;
+};
+type PreviewRuntime = {
+    armorSpec: SpriteSpec;
+    weaponSpec: SpriteSpec;
+    shadowSpec: SpriteSpec;
+    armorImage: HTMLImageElement;
+    weaponImage: HTMLImageElement;
+    shadowImage: HTMLImageElement;
+    armorIdleRow: number;
+    weaponIdleRow: number;
+    frameCount: number;
+};
+
+const getSpriteSpec = function (spriteName: string): SpriteSpec | null {
+    const spriteSpec = sprites[spriteName];
+    if (!spriteSpec) {
+        return null;
+    }
+    if (!Number.isFinite(spriteSpec.width) || !Number.isFinite(spriteSpec.height)) {
+        return null;
+    }
+    return spriteSpec as unknown as SpriteSpec;
+};
+
+const getSpriteOffset = function (spriteSpec: SpriteSpec): { x: number; y: number } {
+    return {
+        x: Number.isFinite(spriteSpec.offset_x) ? Number(spriteSpec.offset_x) : -16,
+        y: Number.isFinite(spriteSpec.offset_y) ? Number(spriteSpec.offset_y) : -16,
+    };
+};
+
+const getIdleDownRow = function (spriteSpec: SpriteSpec): number {
+    const row = spriteSpec.animations?.idle_down?.row;
+    if (typeof row !== 'number' || !Number.isFinite(row)) {
+        return 0;
+    }
+    return Math.max(0, row);
+};
+
+const getIdleDownLength = function (spriteSpec: SpriteSpec): number {
+    const length = spriteSpec.animations?.idle_down?.length;
+    if (typeof length !== 'number' || !Number.isFinite(length)) {
+        return 1;
+    }
+    return Math.max(1, Math.trunc(length));
+};
+
+const loadImageAsset = function (src: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.addEventListener('load', function () {
+            resolve(image);
+        });
+        image.addEventListener('error', function () {
+            reject(new Error(`Failed to load image asset: ${src}`));
+        });
+        image.src = src;
+    });
+};
+
+const resolveArmorSpriteName = function (raw: unknown): string {
+    if (typeof raw !== 'string') {
+        return DEFAULT_ARMOR_SPRITE;
+    }
+    const kind = Types.getKindFromString(raw);
+    if (typeof kind !== 'number' || !Types.isArmor(kind)) {
+        return DEFAULT_ARMOR_SPRITE;
+    }
+    return raw;
+};
+
+const resolveWeaponSpriteName = function (raw: unknown): string {
+    if (typeof raw !== 'string') {
+        return DEFAULT_WEAPON_SPRITE;
+    }
+    const kind = Types.getKindFromString(raw);
+    if (typeof kind !== 'number' || !Types.isWeapon(kind)) {
+        return DEFAULT_WEAPON_SPRITE;
+    }
+    return raw;
+};
+
+const loadLoadCharacterPreviewRuntime = async function (): Promise<PreviewRuntime | null> {
+    const payload: PreviewPayload = {};
+    try {
+        const response = await fetch(SERVER_PLAYER_PREVIEW_JSON_URL, {
+            method: 'GET',
+            credentials: 'same-origin',
+            cache: 'no-store',
+        });
+        if (response.ok) {
+            const parsed = (await response.json()) as PreviewPayload;
+            payload.armorSpriteName = parsed.armorSpriteName;
+            payload.weaponSpriteName = parsed.weaponSpriteName;
+        }
+    } catch {
+        // use defaults
+    }
+
+    const armorSpriteName = resolveArmorSpriteName(payload.armorSpriteName);
+    const weaponSpriteName = resolveWeaponSpriteName(payload.weaponSpriteName);
+
+    const armorSpec = getSpriteSpec(armorSpriteName) ?? getSpriteSpec(DEFAULT_ARMOR_SPRITE);
+    const weaponSpec = getSpriteSpec(weaponSpriteName) ?? getSpriteSpec(DEFAULT_WEAPON_SPRITE);
+    const shadowSpec = getSpriteSpec(SHADOW_SPRITE);
+    if (!armorSpec || !weaponSpec || !shadowSpec) {
+        return null;
+    }
+
+    let shadowImage: HTMLImageElement;
+    let armorImage: HTMLImageElement;
+    let weaponImage: HTMLImageElement;
+    try {
+        [shadowImage, armorImage, weaponImage] = await Promise.all([
+            loadImageAsset(`/img/1/${SHADOW_SPRITE}.png`),
+            loadImageAsset(`/img/1/${encodeURIComponent(armorSpriteName)}.png`),
+            loadImageAsset(`/img/1/${encodeURIComponent(weaponSpriteName)}.png`),
+        ]);
+    } catch {
+        return null;
+    }
+
+    return {
+        armorSpec,
+        weaponSpec,
+        shadowSpec,
+        armorImage,
+        weaponImage,
+        shadowImage,
+        armorIdleRow: getIdleDownRow(armorSpec),
+        weaponIdleRow: getIdleDownRow(weaponSpec),
+        frameCount: Math.max(getIdleDownLength(armorSpec), getIdleDownLength(weaponSpec)),
+    };
+};
+
+const hydrateLoadCharacterPreview = function (playerImage: HTMLImageElement): void {
+    void loadLoadCharacterPreviewRuntime().then((runtime) => {
+        if (!runtime) {
+            playerImage.src = SERVER_PLAYER_IMAGE_SRC;
+            return;
+        }
+
+        const previewCanvas = document.createElement('canvas');
+        previewCanvas.width = runtime.armorSpec.width;
+        previewCanvas.height = runtime.armorSpec.height;
+        const context = previewCanvas.getContext('2d');
+        if (!context) {
+            playerImage.src = SERVER_PLAYER_IMAGE_SRC;
+            return;
+        }
+
+        context.imageSmoothingEnabled = false;
+        const armorOffset = getSpriteOffset(runtime.armorSpec);
+        const weaponOffset = getSpriteOffset(runtime.weaponSpec);
+
+        const drawFrame = function (frameIndex: number): void {
+            const armorFrameIndex = frameIndex % getIdleDownLength(runtime.armorSpec);
+            const weaponFrameIndex = frameIndex % getIdleDownLength(runtime.weaponSpec);
+
+            context.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+            context.drawImage(
+                runtime.shadowImage,
+                0,
+                0,
+                runtime.shadowSpec.width,
+                runtime.shadowSpec.height,
+                -armorOffset.x,
+                -armorOffset.y,
+                runtime.shadowSpec.width,
+                runtime.shadowSpec.height
+            );
+            context.drawImage(
+                runtime.armorImage,
+                runtime.armorSpec.width * armorFrameIndex,
+                runtime.armorSpec.height * runtime.armorIdleRow,
+                runtime.armorSpec.width,
+                runtime.armorSpec.height,
+                0,
+                0,
+                runtime.armorSpec.width,
+                runtime.armorSpec.height
+            );
+            context.drawImage(
+                runtime.weaponImage,
+                runtime.weaponSpec.width * weaponFrameIndex,
+                runtime.weaponSpec.height * runtime.weaponIdleRow,
+                runtime.weaponSpec.width,
+                runtime.weaponSpec.height,
+                weaponOffset.x - armorOffset.x,
+                weaponOffset.y - armorOffset.y,
+                runtime.weaponSpec.width,
+                runtime.weaponSpec.height
+            );
+            playerImage.src = previewCanvas.toDataURL('image/png');
+        };
+
+        drawFrame(0);
+
+        if (runtime.frameCount > 1) {
+            let frameIndex = 1;
+            setInterval(function () {
+                if (!document.body.classList.contains('returning')) {
+                    return;
+                }
+                drawFrame(frameIndex);
+                frameIndex = (frameIndex + 1) % runtime.frameCount;
+            }, IDLE_ANIMATION_INTERVAL_MS);
+        }
+    });
+};
+
 const installTestApi = function (): void {
     if (!globalThis.__BQ_TEST_MODE__) {
         return;
     }
+
+    let lastAggroMobId: string | number | null = null;
+    let lastKillProbeMobId: string | number | null = null;
+    let killProbeInterval: ReturnType<typeof setInterval> | null = null;
 
     globalThis.__BQ_TEST_API = {
         isReady: function () {
@@ -210,6 +485,384 @@ const installTestApi = function (): void {
                 itemY: item.gridY,
             };
         },
+        sendAggroProbe: function () {
+            if (!game?.client || !game.map?.isLoaded) {
+                return { ok: false, reason: 'not_ready' };
+            }
+
+            const entities = getTestEntities();
+
+            const playerX = game.player.gridX;
+            const playerY = game.player.gridY;
+            let mob: TestEntity | null = null;
+            let bestDist = Number.POSITIVE_INFINITY;
+
+            for (const candidate of entities.mobs) {
+                if (!Number.isSafeInteger(candidate.gridX) || !Number.isSafeInteger(candidate.gridY)) {
+                    continue;
+                }
+                const dist = Math.abs(candidate.gridX - playerX) + Math.abs(candidate.gridY - playerY);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    mob = candidate;
+                }
+            }
+
+            if (!mob) {
+                return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
+            }
+
+            const candidateTiles = [
+                { x: (mob.gridX as number) - 1, y: mob.gridY as number },
+                { x: (mob.gridX as number) + 1, y: mob.gridY as number },
+                { x: mob.gridX as number, y: (mob.gridY as number) - 1 },
+                { x: mob.gridX as number, y: (mob.gridY as number) + 1 },
+            ].filter((tile) => !game.map.isOutOfBounds(tile.x, tile.y) && !game.map.isColliding(tile.x, tile.y));
+
+            candidateTiles.sort((a, b) => {
+                const da = Math.abs(a.x - playerX) + Math.abs(a.y - playerY);
+                const db = Math.abs(b.x - playerX) + Math.abs(b.y - playerY);
+                return da - db;
+            });
+
+            const tile = candidateTiles[0];
+            if (tile) {
+                game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
+            }
+
+            lastAggroMobId = mob.id;
+            game.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: mob.id as never });
+
+            return {
+                ok: true,
+                mobId: mob.id,
+                mobCount: entities.mobs.length,
+            };
+        },
+        getAggroProbeStatus: function () {
+            if (!game?.client || !game.map?.isLoaded) {
+                return {
+                    ready: false,
+                    mobId: null,
+                    dist: null,
+                    mobIsAttacking: null,
+                    mobIsMoving: null,
+                    mobHasTargetPlayer: null,
+                    mobIsAdjacentNonDiagonal: null,
+                };
+            }
+
+            const player = game.player;
+
+            let mob: Mob | null = null;
+
+            if (lastAggroMobId !== null) {
+                const entity = game.entities[String(lastAggroMobId)];
+                if (entity instanceof Mob) {
+                    mob = entity;
+                }
+            }
+
+            if (!mob) {
+                let bestDist = Number.POSITIVE_INFINITY;
+                for (const entity of Object.values(game.entities)) {
+                    if (!(entity instanceof Mob)) {
+                        continue;
+                    }
+                    if (entity.id === player.id) {
+                        continue;
+                    }
+                    const dist = Math.abs(entity.gridX - player.gridX) + Math.abs(entity.gridY - player.gridY);
+                    if (dist < bestDist) {
+                        bestDist = dist;
+                        mob = entity;
+                    }
+                }
+            }
+
+            if (!mob) {
+                return {
+                    ready: true,
+                    mobId: null,
+                    dist: null,
+                    mobIsAttacking: null,
+                    mobIsMoving: null,
+                    mobHasTargetPlayer: null,
+                    mobIsAdjacentNonDiagonal: null,
+                };
+            }
+
+            const dist = Math.abs(mob.gridX - player.gridX) + Math.abs(mob.gridY - player.gridY);
+            const hasTargetPlayer = Boolean(mob.target && mob.target.id === player.id);
+
+            return {
+                ready: true,
+                mobId: mob.id,
+                dist,
+                mobIsAttacking: mob.isAttacking(),
+                mobIsMoving: mob.isMoving(),
+                mobHasTargetPlayer: hasTargetPlayer,
+                mobIsAdjacentNonDiagonal: mob.isAdjacentNonDiagonal(player),
+            };
+        },
+        moveNearNearestMobProbe: function () {
+            if (!game?.client || !game.map?.isLoaded) {
+                return { ok: false, reason: 'not_ready' };
+            }
+
+            const entities = getTestEntities();
+            const player = game.player;
+            const rankMobForKillProbe = (entity: TestEntity): number => {
+                if (entity.kind === Types.Entities.RAT) {
+                    return 0;
+                }
+                if (entity.kind === Types.Entities.BAT) {
+                    return 1;
+                }
+                if (entity.kind === Types.Entities.GOBLIN) {
+                    return 2;
+                }
+                return 10;
+            };
+
+            let mob: TestEntity | null = null;
+            let bestRank = Number.POSITIVE_INFINITY;
+            let bestDist = Number.POSITIVE_INFINITY;
+
+            for (const candidate of entities.mobs) {
+                if (!Number.isSafeInteger(candidate.gridX) || !Number.isSafeInteger(candidate.gridY)) {
+                    continue;
+                }
+                const rank = rankMobForKillProbe(candidate);
+                const dist = Math.abs(candidate.gridX - player.gridX) + Math.abs(candidate.gridY - player.gridY);
+                if (rank < bestRank || (rank === bestRank && dist < bestDist)) {
+                    bestRank = rank;
+                    bestDist = dist;
+                    mob = candidate;
+                }
+            }
+
+            if (!mob) {
+                return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
+            }
+
+            const candidateTiles = [
+                { x: (mob.gridX as number) - 1, y: mob.gridY as number },
+                { x: (mob.gridX as number) + 1, y: mob.gridY as number },
+                { x: mob.gridX as number, y: (mob.gridY as number) - 1 },
+                { x: mob.gridX as number, y: (mob.gridY as number) + 1 },
+            ].filter((tile) => !game.map.isOutOfBounds(tile.x, tile.y) && !game.map.isColliding(tile.x, tile.y));
+
+            candidateTiles.sort((a, b) => {
+                const da = Math.abs(a.x - player.gridX) + Math.abs(a.y - player.gridY);
+                const db = Math.abs(b.x - player.gridX) + Math.abs(b.y - player.gridY);
+                return da - db;
+            });
+
+            const tile = candidateTiles[0];
+            if (!tile) {
+                return { ok: false, reason: 'no_adjacent_tile', mobId: mob.id };
+            }
+
+            lastAggroMobId = mob.id;
+            game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
+
+            return {
+                ok: true,
+                mobId: mob.id,
+                mobCount: entities.mobs.length,
+                targetX: tile.x,
+                targetY: tile.y,
+            };
+        },
+        sendKillDespawnProbe: function () {
+            if (!game?.client || !game.map?.isLoaded) {
+                return { ok: false, reason: 'not_ready' };
+            }
+
+            const entities = getTestEntities();
+            const player = game.player;
+
+            const rankMobForKillProbe = (entity: TestEntity): number => {
+                if (entity.kind === Types.Entities.RAT) {
+                    return 0;
+                }
+                if (entity.kind === Types.Entities.BAT) {
+                    return 1;
+                }
+                if (entity.kind === Types.Entities.GOBLIN) {
+                    return 2;
+                }
+                return 10;
+            };
+
+            let mob: TestEntity | null = null;
+            let bestRank = Number.POSITIVE_INFINITY;
+            let bestDist = Number.POSITIVE_INFINITY;
+
+            for (const candidate of entities.mobs) {
+                if (!Number.isSafeInteger(candidate.gridX) || !Number.isSafeInteger(candidate.gridY)) {
+                    continue;
+                }
+                const rank = rankMobForKillProbe(candidate);
+                const dist = Math.abs(candidate.gridX - player.gridX) + Math.abs(candidate.gridY - player.gridY);
+                if (rank < bestRank || (rank === bestRank && dist < bestDist)) {
+                    bestRank = rank;
+                    bestDist = dist;
+                    mob = candidate;
+                }
+            }
+
+            if (!mob) {
+                return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
+            }
+
+            const candidateTiles = [
+                { x: (mob.gridX as number) - 1, y: mob.gridY as number },
+                { x: (mob.gridX as number) + 1, y: mob.gridY as number },
+                { x: mob.gridX as number, y: (mob.gridY as number) - 1 },
+                { x: mob.gridX as number, y: (mob.gridY as number) + 1 },
+            ].filter((tile) => !game.map.isOutOfBounds(tile.x, tile.y) && !game.map.isColliding(tile.x, tile.y));
+
+            candidateTiles.sort((a, b) => {
+                const da = Math.abs(a.x - player.gridX) + Math.abs(a.y - player.gridY);
+                const db = Math.abs(b.x - player.gridX) + Math.abs(b.y - player.gridY);
+                return da - db;
+            });
+
+            const tile = candidateTiles[0];
+            if (!tile) {
+                return { ok: false, reason: 'no_adjacent_tile', mobId: mob.id };
+            }
+
+            lastKillProbeMobId = mob.id;
+
+            if (killProbeInterval) {
+                clearInterval(killProbeInterval);
+                killProbeInterval = null;
+            }
+
+            const killMobId = mob.id;
+            const runKillProbeTick = () => {
+                if (!game?.client || !game.map?.isLoaded) {
+                    if (killProbeInterval) {
+                        clearInterval(killProbeInterval);
+                        killProbeInterval = null;
+                    }
+                    return;
+                }
+
+                const liveMob = game.entities[String(killMobId)];
+                if (!(liveMob instanceof Mob) || liveMob.isDead) {
+                    if (killProbeInterval) {
+                        clearInterval(killProbeInterval);
+                        killProbeInterval = null;
+                    }
+                    return;
+                }
+
+                if (!liveMob.isAdjacentNonDiagonal(game.player)) {
+                    const chaseTiles = [
+                        { x: liveMob.gridX - 1, y: liveMob.gridY },
+                        { x: liveMob.gridX + 1, y: liveMob.gridY },
+                        { x: liveMob.gridX, y: liveMob.gridY - 1 },
+                        { x: liveMob.gridX, y: liveMob.gridY + 1 },
+                    ].filter((candidate) =>
+                        !game.map?.isOutOfBounds(candidate.x, candidate.y) && !game.map?.isColliding(candidate.x, candidate.y)
+                    );
+
+                    chaseTiles.sort((a, b) => {
+                        const da = Math.abs(a.x - game.player.gridX) + Math.abs(a.y - game.player.gridY);
+                        const db = Math.abs(b.x - game.player.gridX) + Math.abs(b.y - game.player.gridY);
+                        return da - db;
+                    });
+
+                    const chaseTile = chaseTiles[0];
+                    if (chaseTile) {
+                        game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: chaseTile.x, y: chaseTile.y });
+                    }
+                }
+
+                game.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId: killMobId as never });
+            };
+
+            runKillProbeTick();
+            killProbeInterval = setInterval(runKillProbeTick, 250);
+            setTimeout(() => {
+                if (killProbeInterval) {
+                    clearInterval(killProbeInterval);
+                    killProbeInterval = null;
+                }
+            }, 12_000);
+
+            return {
+                ok: true,
+                mobId: mob.id,
+                mobCount: entities.mobs.length,
+                targetX: tile.x,
+                targetY: tile.y,
+            };
+        },
+        getKillDespawnStatus: function () {
+            if (!game?.client || !game.map?.isLoaded) {
+                return {
+                    ready: false,
+                    requestedMobId: null,
+                    mobPresent: false,
+                    mobId: null,
+                    dist: null,
+                    mobIsDead: null,
+                    playerTargetId: null,
+                    nearestMobId: null,
+                };
+            }
+
+            const requestedMobId = lastKillProbeMobId;
+            const requestedMob =
+                requestedMobId !== null && game.entities[String(requestedMobId)] instanceof Mob
+                    ? (game.entities[String(requestedMobId)] as Mob)
+                    : null;
+
+            let nearestMobId: string | number | null = null;
+            let nearestDist = Number.POSITIVE_INFINITY;
+            for (const entity of Object.values(game.entities)) {
+                if (!(entity instanceof Mob)) {
+                    continue;
+                }
+                const dist = Math.abs(entity.gridX - game.player.gridX) + Math.abs(entity.gridY - game.player.gridY);
+                if (dist < nearestDist) {
+                    nearestDist = dist;
+                    nearestMobId = entity.id;
+                }
+            }
+
+            const playerTargetId = game.player.target ? game.player.target.id : null;
+
+            if (!requestedMob) {
+                return {
+                    ready: true,
+                    requestedMobId,
+                    mobPresent: false,
+                    mobId: null,
+                    dist: null,
+                    mobIsDead: null,
+                    playerTargetId,
+                    nearestMobId,
+                };
+            }
+
+            const dist = Math.abs(requestedMob.gridX - game.player.gridX) + Math.abs(requestedMob.gridY - game.player.gridY);
+            return {
+                ready: true,
+                requestedMobId,
+                mobPresent: true,
+                mobId: requestedMob.id,
+                dist,
+                mobIsDead: requestedMob.isDead,
+                playerTargetId,
+                nearestMobId,
+            };
+        },
     };
 };
 
@@ -250,8 +903,19 @@ const initApp = function (): void {
             lists = document.getElementById('lists'),
             notifications = document.querySelector('#notifications div'),
             playerName = document.getElementById('playername'),
-            playerImage = document.getElementById('playerimage'),
+            playerImage = document.getElementById('playerimage') as HTMLImageElement | null,
             resizeCheck = document.getElementById('resize-check');
+
+        if (playerImage) {
+            playerImage.src = FALLBACK_PLAYER_IMAGE_SRC;
+            playerImage.addEventListener('error', function () {
+                if (playerImage.src.endsWith(FALLBACK_PLAYER_IMAGE_SRC)) {
+                    return;
+                }
+                playerImage.src = FALLBACK_PLAYER_IMAGE_SRC;
+            });
+            hydrateLoadCharacterPreview(playerImage);
+        }
 
         body.addEventListener('click', function () {
             if (parchment?.classList.contains('credits')) {
@@ -423,17 +1087,7 @@ const initApp = function (): void {
             element.addEventListener('click', function (event: MouseEvent) {
                 const url = element.getAttribute('href');
 
-                app.openPopup('twitter', url);
-                event.preventDefault();
-                return false;
-            });
-        });
-
-        document.querySelectorAll('.facebook').forEach(function (element: Element) {
-            element.addEventListener('click', function (event: MouseEvent) {
-                const url = element.getAttribute('href');
-
-                app.openPopup('facebook', url);
+                app.openPopup(url);
                 event.preventDefault();
                 return false;
             });
@@ -445,8 +1099,8 @@ const initApp = function (): void {
                 if (playerName) {
                     playerName.innerHTML = data.player.name;
                 }
-                if (playerImage) {
-                    playerImage.setAttribute('src', data.player.image);
+                if (playerImage && data.player.image.trim().length > 0) {
+                    playerImage.src = data.player.image;
                 }
             }
         }

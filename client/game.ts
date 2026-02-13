@@ -7,6 +7,7 @@ import type Sprite from './sprite';
 import { initializeGameConnection } from './runtime/connection';
 import { bootstrapGameRuntime } from './game-runtime-bootstrap';
 import { initializeGameSpatialState } from './game-spatial-state';
+import { buildPathingIgnoreList, type PathingIgnoreEntity } from './runtime/pathing-ignore-list';
 import {
     areSpritesLoaded,
     loadSpriteForScale as loadSpriteForScaleRuntime,
@@ -60,6 +61,7 @@ import {
 } from './ecs/systems/client-interaction-intent-system';
 import { runClientKernelReplicationSyncSystem } from './ecs/systems/client-kernel-replication-sync-system';
 import { runClientPlayerMoveOutboxSystem } from './ecs/systems/client-player-move-outbox-system';
+import { runClientDoorPortalSystem } from './ecs/systems/client-door-portal-system';
 import { runClientRuntimeEventSystem } from './ecs/systems/client-runtime-event-system';
 import { runClientSpatialSyncSystem } from './ecs/systems/client-spatial-sync-system';
 import { runClientTimeSystem } from './ecs/systems/client-time-system';
@@ -268,6 +270,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler.add('update', (game) => runClientSimulationSystem(game));
         this.frameScheduler.add('update', (game) => runClientCombatSystem(game));
         this.frameScheduler.add('update', (game) => runClientCommandApplySystem(game));
+        this.frameScheduler.add('post_update', (game) => runClientDoorPortalSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientSpatialSyncSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientPlayerMoveOutboxSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientEnvironmentSystem(game));
@@ -315,7 +318,7 @@ class Game extends Evented<GameEvents> {
                 return;
             }
             character.setPathRequestResolver(function (x: number, y: number) {
-                return self.findPath(character, x, y, undefined);
+                return self.findPath(character, x, y, buildPathingIgnoreList(character));
             });
         };
 
@@ -349,14 +352,6 @@ class Game extends Evented<GameEvents> {
 
     initPlayer(): void {
         this.kernel.clearClientLootAttempt();
-
-        if (this.storage.hasAlreadyPlayed()) {
-            const { armor, weapon } = this.storage.data.player;
-            if (armor && weapon) {
-                this.player.setSpriteName(armor);
-                this.player.setWeaponName(weapon);
-            }
-        }
 
         this.player.setSprite(this.sprites[this.player.getSpriteName()] ?? null);
         this.player.idle();
@@ -651,7 +646,16 @@ class Game extends Evented<GameEvents> {
         if (attacker.hasTarget()) {
             attacker.removeTarget();
         }
-        attacker.engage(target);
+
+        // Only the local player should "follow" targets client-side. Remote entities (mobs/other players) move via
+        // authoritative replication, so an attack link should not start local pathing that fights server positions.
+        if (attacker.id === this.playerId) {
+            attacker.engage(target);
+        } else {
+            attacker.attackingMode = true;
+            attacker.followingMode = false;
+            attacker.setTarget(target);
+        }
 
         if (attacker.id !== this.playerId) {
             target.addAttacker(attacker);
@@ -880,7 +884,7 @@ class Game extends Evented<GameEvents> {
      * Finds a path to a grid position for the specified character.
      * The path will pass through any entity present in the ignore list.
      */
-    findPath(character: Character, x: number, y: number, ignoreList?: GridIndexedEntity[]): GridPath {
+    findPath(character: Character, x: number, y: number, ignoreList?: PathingIgnoreEntity[]): GridPath {
         const self = this;
         let path: GridPath = [];
 
@@ -1128,6 +1132,10 @@ class Game extends Evented<GameEvents> {
             achievement = this.achievements[name];
 
             if (achievement && achievement.isCompleted() && this.storage.unlockAchievement(achievement.id)) {
+                this.kernel.enqueueClientCommand({
+                    type: 'clientSendAchievement',
+                    achievementId: achievement.id,
+                });
                 this.emit('achievementUnlock', achievement.id, achievement.name, achievement.desc);
                 this.audioManager.playSound('achievement');
             }

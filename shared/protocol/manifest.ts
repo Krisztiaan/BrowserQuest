@@ -41,6 +41,7 @@ export const CLIENT_TO_SERVER_PROTOCOL_MANIFEST = [
     { key: 'ZONE', opcode: Types.Messages.ZONE, direction: 'client_to_server', schema: { kind: 'fixed', args: [] } },
     { key: 'OPEN', opcode: Types.Messages.OPEN, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'CHECK', opcode: Types.Messages.CHECK, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
+    { key: 'ACHIEVEMENT', opcode: Types.Messages.ACHIEVEMENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
 ] as const satisfies ReadonlyArray<ClientToServerProtocolManifestEntry>;
 
 export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
@@ -72,6 +73,12 @@ export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
     { key: 'DESTROY', opcode: Types.Messages.DESTROY, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'HP', opcode: Types.Messages.HP, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'BLINK', opcode: Types.Messages.BLINK, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n'] } },
+    {
+        key: 'ACHIEVEMENTS',
+        opcode: Types.Messages.ACHIEVEMENTS,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['na', 'n', 'n', 'n', 'n', 'n'] },
+    },
 ] as const satisfies ReadonlyArray<ServerToClientProtocolManifestEntry>;
 
 export const PROTOCOL_MANIFEST = [

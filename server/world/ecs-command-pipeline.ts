@@ -18,6 +18,7 @@ import Types from '../../shared/gametypes-browser';
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import Chest from '../chest';
 import {
+    buildAchievementsAction,
     buildBlinkAction,
     buildChatAction,
     buildDespawnAction,
@@ -56,37 +57,172 @@ type WorldCommandHost = Readonly<{
     getEntityById(id: EntityId): unknown;
     addPlayer(player: Player): void;
     emit(eventName: 'playerEnter', player: Player): void;
-    pushSpawnsToPlayer(player: Player, entities: EntityId[]): void;
+    isPlayerActive(playerId: EntityId): boolean;
+    pushSpawnsToPlayerId(playerId: EntityId, entities: EntityId[]): void;
     isValidPosition(x: number, y: number): boolean;
     getDroppedItem(mob: unknown): unknown;
     handleItemDespawn(item: unknown): void;
     moveEntity(entity: unknown, x: number, y: number): void;
     removeEntity(entity: unknown): void;
     addItemFromChest(kind: unknown, x: number, y: number): unknown;
-    pushToPlayer(player: Player, message: unknown): void;
+    pushToPlayerId(playerId: EntityId, message: unknown): void;
+    persistPlayerEquipment(player: Player): void;
+    persistPlayerCheckpoint(playerName: string, checkpointId: number): void;
+    persistPlayerAchievementUnlock(playerName: string, achievementId: number): void;
+    recordPlayerMobKill(playerName: string, mobKind: EntityKind): void;
+    recordPlayerDamageTaken(playerName: string, damage: number): void;
+    recordPlayerRevive(playerName: string): void;
 }>;
 
 function isPlayer(value: unknown): value is Player {
     return value instanceof Player;
 }
 
-function findValidPositionNextTo({
-    attacker,
-    target,
+function asGridPos(value: unknown): GridPos | null {
+    const obj = value as { x?: unknown; y?: unknown } | null;
+    if (!obj || typeof obj.x !== 'number' || typeof obj.y !== 'number') {
+        return null;
+    }
+    return gridPos(obj.x, obj.y);
+}
+
+function isAdjacentNonDiagonal(a: GridPos, b: GridPos): boolean {
+    const dx = Math.abs(a.x - b.x);
+    const dy = Math.abs(a.y - b.y);
+    return dx + dy === 1;
+}
+
+function chooseStepTowards({
+    from,
+    to,
     isValidPosition,
 }: {
-    attacker: { x: number; y: number; getPositionNextTo(target: unknown): { x: number; y: number } | null };
-    target: unknown;
+    from: GridPos;
+    to: GridPos;
     isValidPosition: (x: number, y: number) => boolean;
-}): { x: number; y: number } {
-    const maxAttempts = 32;
-    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-        const pos = attacker.getPositionNextTo(target);
-        if (pos && isValidPosition(pos.x, pos.y)) {
-            return pos;
+}): GridPos | null {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+
+    const stepX = dx === 0 ? 0 : dx > 0 ? 1 : -1;
+    const stepY = dy === 0 ? 0 : dy > 0 ? 1 : -1;
+
+    const candidates: GridPos[] = [];
+    if (Math.abs(dx) >= Math.abs(dy)) {
+        if (stepX !== 0) candidates.push(gridPos(from.x + stepX, from.y));
+        if (stepY !== 0) candidates.push(gridPos(from.x, from.y + stepY));
+    } else {
+        if (stepY !== 0) candidates.push(gridPos(from.x, from.y + stepY));
+        if (stepX !== 0) candidates.push(gridPos(from.x + stepX, from.y));
+    }
+
+    // If we're blocked, try perpendicular directions as a fallback.
+    candidates.push(gridPos(from.x + 1, from.y));
+    candidates.push(gridPos(from.x - 1, from.y));
+    candidates.push(gridPos(from.x, from.y + 1));
+    candidates.push(gridPos(from.x, from.y - 1));
+
+    for (let i = 0; i < candidates.length; i += 1) {
+        const next = candidates[i];
+        if (!next) {
+            continue;
+        }
+        // Never step onto the target's exact tile.
+        if (next.x === to.x && next.y === to.y) {
+            continue;
+        }
+        if (isValidPosition(next.x, next.y)) {
+            return next;
         }
     }
-    return { x: attacker.x, y: attacker.y };
+
+    return null;
+}
+
+
+function chooseStepTowardsAdjacentViaBfs({
+    from,
+    target,
+    spawn,
+    leashDistance,
+    isValidPosition,
+    maxNodes = 512,
+}: {
+    from: GridPos;
+    target: GridPos;
+    spawn: GridPos;
+    leashDistance: number;
+    isValidPosition: (x: number, y: number) => boolean;
+    maxNodes?: number;
+}): GridPos | null {
+    if (isAdjacentNonDiagonal(from, target)) {
+        return null;
+    }
+
+    const makeKey = (x: number, y: number) => `${x},${y}`;
+    const visited = new Set<string>();
+    visited.add(makeKey(from.x, from.y));
+
+    type Node = { x: number; y: number; first: GridPos };
+    const queue: Node[] = [];
+
+    const canVisit = (x: number, y: number) => {
+        if (x === target.x && y === target.y) {
+            return false;
+        }
+        if (!isValidPosition(x, y)) {
+            return false;
+        }
+        if (Utils.distanceTo(x, y, spawn.x, spawn.y) > leashDistance) {
+            return false;
+        }
+        return !visited.has(makeKey(x, y));
+    };
+
+    const enqueue = (x: number, y: number, first: GridPos) => {
+        visited.add(makeKey(x, y));
+        queue.push({ x, y, first });
+    };
+
+    // Seed the BFS frontier with the mob's immediate neighbors, storing their coordinate as the "first step".
+    const seeds: Array<[number, number]> = [
+        [from.x + 1, from.y],
+        [from.x - 1, from.y],
+        [from.x, from.y + 1],
+        [from.x, from.y - 1],
+    ];
+
+    for (const [x, y] of seeds) {
+        if (canVisit(x, y)) {
+            enqueue(x, y, gridPos(x, y));
+        }
+    }
+
+    while (queue.length > 0 && visited.size <= maxNodes) {
+        const node = queue.shift();
+        if (!node) {
+            continue;
+        }
+
+        if (isAdjacentNonDiagonal(gridPos(node.x, node.y), target)) {
+            return node.first;
+        }
+
+        const neighbors: Array<[number, number]> = [
+            [node.x + 1, node.y],
+            [node.x - 1, node.y],
+            [node.x, node.y + 1],
+            [node.x, node.y - 1],
+        ];
+
+        for (const [x, y] of neighbors) {
+            if (canVisit(x, y)) {
+                enqueue(x, y, node.first);
+            }
+        }
+    }
+
+    return null;
 }
 
 function syncLegacyMobHateList(mob: unknown, entries: MobHateEntry[]): void {
@@ -231,10 +367,30 @@ function applyHello({
     player: Player;
     cmd: Extract<Command, { type: 'HELLO' }>;
 }): void {
-    player.name = cmd.name;
+    const wasDead = player.isDead === true;
+    const resolvedName = cmd.profile?.displayName ?? cmd.name;
+    const resolvedArmorKind = cmd.profile?.armorKind ?? cmd.armorKind;
+    const resolvedWeaponKind = cmd.profile?.weaponKind ?? cmd.weaponKind;
+    const baseAchievements = cmd.profile?.achievements ?? {
+        unlockedIds: [] as number[],
+        ratCount: 0,
+        skeletonCount: 0,
+        totalKills: 0,
+        totalDmg: 0,
+        totalRevives: 0,
+    };
+
+    if (typeof cmd.profile?.checkpointId === 'number' && Number.isFinite(cmd.profile.checkpointId)) {
+        const checkpoint = world.map.getCheckpoint(cmd.profile.checkpointId);
+        if (checkpoint) {
+            player.lastCheckpoint = checkpoint as typeof player.lastCheckpoint;
+        }
+    }
+
+    player.name = resolvedName;
     player.kind = Types.Entities.WARRIOR;
-    player.equipArmor(cmd.armorKind);
-    player.equipWeapon(cmd.weaponKind);
+    player.equipArmor(resolvedArmorKind);
+    player.equipWeapon(resolvedWeaponKind);
     player.orientation = Utils.randomOrientation();
     player.updateHitPoints();
     player.updatePosition();
@@ -253,7 +409,8 @@ function applyHello({
     state.world.addComponent(player.id, combat.WeaponLevel, player.weaponLevel);
 
     world.addPlayer(player);
-    player.send(
+    world.pushToPlayerId(
+        player.id,
         buildWelcomeAction({
             id: player.id,
             name: player.name,
@@ -262,6 +419,20 @@ function applyHello({
             hp: player.hitPoints,
         })
     );
+    world.pushToPlayerId(player.id, buildEquipAction(player.id, player.armor));
+    world.pushToPlayerId(player.id, buildEquipAction(player.id, player.weapon));
+    if (wasDead) {
+        world.recordPlayerRevive(player.name);
+    }
+    world.pushToPlayerId(player.id, buildAchievementsAction({
+        unlockedIds: baseAchievements.unlockedIds,
+        ratCount: baseAchievements.ratCount,
+        skeletonCount: baseAchievements.skeletonCount,
+        totalKills: baseAchievements.totalKills,
+        totalDmg: baseAchievements.totalDmg,
+        totalRevives: wasDead ? Math.min(5, baseAchievements.totalRevives + 1) : baseAchievements.totalRevives,
+    }));
+    world.persistPlayerEquipment(player);
     world.emit('playerEnter', player);
     player.hasEnteredGame = true;
     player.isDead = false;
@@ -349,123 +520,203 @@ function applyAttackCommand({
     state.events.push({ type: 'ENTITY_ATTACKED', attackerId: cmd.source.playerId, targetId: cmd.targetId });
 }
 
-function applyHitCommand({
+function clearTargetsForDeadEntity({
     state,
-    combat,
-    mobAi,
     replication,
     world,
-    player,
-    cmd,
+    deadEntityId,
 }: {
     state: WorldState<Command, DomainEvent>;
-    combat: ReturnType<typeof registerCombatComponents>;
-    mobAi: ReturnType<typeof registerMobAiComponents>;
     replication: ReturnType<typeof registerSpawnReplicationComponents>;
     world: WorldCommandHost;
-    player: Player;
-    cmd: Extract<Command, { type: 'HIT' }>;
+    deadEntityId: EntityId;
 }): void {
-    const attackedMob = world.getEntityById(cmd.attackedMobId) as
-        | { id: EntityId; armorLevel: number }
+    const Target = replication.Target;
+    const toClearTargets: EntityId[] = [];
+
+    Target.store.forEach((attackerId, targetId) => {
+        if (targetId === deadEntityId) {
+            toClearTargets.push(attackerId);
+        }
+    });
+
+    for (let i = 0; i < toClearTargets.length; i += 1) {
+        const attackerId = toClearTargets[i];
+        if (attackerId === undefined) {
+            continue;
+        }
+
+        if (!state.world.entities.isAlive(attackerId)) {
+            continue;
+        }
+        state.world.removeComponent(attackerId, Target);
+        const legacyAttacker = world.getEntityById(attackerId) as { clearTarget?: () => void; target?: EntityId | null } | null;
+        if (!legacyAttacker) {
+            continue;
+        }
+
+        if (typeof legacyAttacker.clearTarget === 'function') {
+            legacyAttacker.clearTarget();
+        } else if ('target' in legacyAttacker) {
+            legacyAttacker.target = null;
+        }
+    }
+}
+
+function resolveAttackCooldownMs(kind: EntityKind): number {
+    if (Types.isPlayer(kind)) {
+        return 800;
+    }
+
+    switch (kind) {
+        case Types.Entities.SKELETON:
+        case Types.Entities.SKELETON2:
+            return 1300;
+        case Types.Entities.SPECTRE:
+            return 900;
+        case Types.Entities.GOBLIN:
+            return 700;
+        case Types.Entities.BOSS:
+            return 2000;
+        default:
+            return 800;
+    }
+}
+
+function resolveAttackCooldownTicks(kind: EntityKind, ups: number): number {
+    const ms = resolveAttackCooldownMs(kind);
+    return Math.max(1, Math.floor((ups * ms) / 1000));
+}
+
+function resolveCombatNumber({
+    state,
+    component,
+    entityId,
+    legacy,
+    key,
+    fallback,
+}: {
+    state: WorldState<Command, DomainEvent>;
+    component: ComponentType<number>;
+    entityId: EntityId;
+    legacy: unknown;
+    key: 'hitPoints' | 'maxHitPoints' | 'armorLevel' | 'weaponLevel';
+    fallback?: number;
+}): number {
+    const ecsValue = state.world.getComponent(entityId, component);
+    if (typeof ecsValue === 'number') {
+        return ecsValue;
+    }
+
+    const legacyValue = (legacy as Record<string, unknown> | null)?.[key];
+    if (typeof legacyValue === 'number') {
+        state.world.addComponent(entityId, component, legacyValue);
+        return legacyValue;
+    }
+
+    const value = typeof fallback === 'number' ? fallback : 0;
+    state.world.addComponent(entityId, component, value);
+    return value;
+}
+
+function handleMobDeath({
+    state,
+    replication,
+    world,
+    mobId,
+    killerId,
+    mobKind,
+}: {
+    state: WorldState<Command, DomainEvent>;
+    replication: ReturnType<typeof registerSpawnReplicationComponents>;
+    world: WorldCommandHost;
+    mobId: EntityId;
+    killerId: EntityId;
+    mobKind: EntityKind;
+}): void {
+    clearTargetsForDeadEntity({ state, replication, world, deadEntityId: mobId });
+
+    state.events.push({ type: 'MOB_KILLED', mobId, mobKind, killerId });
+
+    const outbox = state.resources.require(OUTBOX_RESOURCE);
+    const pos = state.world.getComponent(mobId, replication.Position);
+    const fallbackGroupId = pos !== undefined ? world.map.getGroupIdFromPosition(pos.x, pos.y) : undefined;
+
+    const legacyMob = world.getEntityById(mobId) as
+        | {
+              id: EntityId;
+              x: number;
+              y: number;
+              drop?: (item: unknown) => unknown;
+          }
         | null;
-    if (!attackedMob) {
-        return;
-    }
 
-    const mobId = attackedMob.id;
-    const mobKind = (attackedMob as { kind?: unknown }).kind as EntityKind | undefined;
-    const mobMaxHp = (attackedMob as { maxHitPoints?: unknown }).maxHitPoints as number | undefined;
-    const mobHp = (attackedMob as { hitPoints?: unknown }).hitPoints as number | undefined;
-
-    state.world.ensureEntity(mobId);
-    if (typeof mobHp === 'number') {
-        state.world.addComponent(mobId, combat.HitPoints, mobHp);
-    }
-    if (typeof mobMaxHp === 'number') {
-        state.world.addComponent(mobId, combat.MaxHitPoints, mobMaxHp);
-    }
-    if (typeof attackedMob.armorLevel === 'number') {
-        state.world.addComponent(mobId, combat.ArmorLevel, attackedMob.armorLevel);
-    }
-    state.world.addComponent(player.id, combat.WeaponLevel, player.weaponLevel);
-
-    const resolvedAttackerWeaponLevel = state.world.getComponent(player.id, combat.WeaponLevel) ?? player.weaponLevel;
-    const resolvedMobArmorLevel = state.world.getComponent(mobId, combat.ArmorLevel) ?? attackedMob.armorLevel;
-    const dmg = Formulas.dmg(resolvedAttackerWeaponLevel, resolvedMobArmorLevel);
-    if (dmg <= 0) {
-        return;
-    }
-
-    const resolvedMobHp = state.world.getComponent(mobId, combat.HitPoints) ?? mobHp ?? 0;
-    const nextMobHp = Math.max(0, resolvedMobHp - dmg);
-    state.world.addComponent(mobId, combat.HitPoints, nextMobHp);
-    const legacyMob = attackedMob as unknown as { hitPoints?: number };
-    if (typeof legacyMob.hitPoints === 'number') {
-        legacyMob.hitPoints = nextMobHp;
-    }
-
-    addMobHate({ state, mobAi, replication, world, mobId, playerId: player.id, hatePoints: dmg });
-
-    state.events.push({ type: 'ENTITY_DAMAGED', entityId: mobId, damage: dmg, attackerId: player.id });
-
-    if (nextMobHp <= 0) {
-        const Target = replication.Target;
-        const toClearTargets: EntityId[] = [];
-        Target.store.forEach((attackerId, targetId) => {
-            if (targetId === mobId) {
-                toClearTargets.push(attackerId);
-            }
-        });
-
-        for (let i = 0; i < toClearTargets.length; i += 1) {
-            const attackerId = toClearTargets[i];
-            if (attackerId === undefined) {
-                continue;
-            }
-            state.world.removeComponent(attackerId, Target);
-            const legacyAttacker = world.getEntityById(attackerId) as { clearTarget?: () => void; target?: EntityId | null } | null;
-            if (legacyAttacker) {
-                if (typeof legacyAttacker.clearTarget === 'function') {
-                    legacyAttacker.clearTarget();
-                } else if ('target' in legacyAttacker) {
-                    legacyAttacker.target = null;
-                }
-            }
-        }
-
-        if (mobKind !== undefined) {
-            state.events.push({ type: 'MOB_KILLED', mobId, mobKind, killerId: player.id });
-        }
-
-        const item = world.getDroppedItem(attackedMob);
+    if (legacyMob) {
+        const item = world.getDroppedItem(legacyMob);
         if (item) {
-            const dropMsg = (attackedMob as { drop?: (item: unknown) => unknown }).drop?.(item);
+            const dropMsg = legacyMob.drop?.(item);
             if (Array.isArray(dropMsg) && typeof dropMsg[0] === 'number') {
-                const action = dropMsg as unknown as ServerToClientProtocolAction;
-                const outbox = state.resources.require(OUTBOX_RESOURCE);
-                const x = (attackedMob as { x?: unknown }).x;
-                const y = (attackedMob as { y?: unknown }).y;
-                const fallbackGroupId =
-                    typeof x === 'number' && typeof y === 'number' ? world.map.getGroupIdFromPosition(x, y) : undefined;
-                outbox.push({ kind: 'broadcast_nearby', actorId: mobId, action, fallbackGroupId });
+                outbox.push({
+                    kind: 'broadcast_nearby',
+                    actorId: mobId,
+                    action: dropMsg as unknown as ServerToClientProtocolAction,
+                    fallbackGroupId,
+                });
             }
             world.handleItemDespawn(item);
         }
 
-        world.removeEntity(attackedMob);
+        outbox.push({ kind: 'broadcast_nearby', actorId: mobId, action: buildDespawnAction(mobId), fallbackGroupId });
+        world.removeEntity(legacyMob);
+        return;
+    }
+
+    outbox.push({ kind: 'broadcast_nearby', actorId: mobId, action: buildDespawnAction(mobId), fallbackGroupId });
+}
+
+function handlePlayerDeath({
+    state,
+    ctx,
+    mobAi,
+    replication,
+    world,
+    playerId,
+}: {
+    state: WorldState<Command, DomainEvent>;
+    ctx: SystemContext;
+    mobAi: ReturnType<typeof registerMobAiComponents>;
+    replication: ReturnType<typeof registerSpawnReplicationComponents>;
+    world: WorldCommandHost;
+    playerId: EntityId;
+}): void {
+    const legacyPlayer = world.getEntityById(playerId) as
+        | {
+              isDead?: boolean;
+              firepotionTimeout?: ReturnType<typeof setTimeout> | null;
+          }
+        | null;
+
+    if (legacyPlayer) {
+        legacyPlayer.isDead = true;
+        if (legacyPlayer.firepotionTimeout) {
+            clearTimeout(legacyPlayer.firepotionTimeout);
+        }
+    }
+
+    clearPlayerFromMobAggro({ state, mobAi, replication, world, playerId, tickNow: ctx.tick });
+
+    if (legacyPlayer) {
+        world.removeEntity(legacyPlayer);
     }
 }
 
-function applyHurtCommand({
+function runServerAuthoritativeCombatSystem({
     state,
     ctx,
     combat,
     mobAi,
     replication,
     world,
-    player,
-    cmd,
 }: {
     state: WorldState<Command, DomainEvent>;
     ctx: SystemContext;
@@ -473,35 +724,171 @@ function applyHurtCommand({
     mobAi: ReturnType<typeof registerMobAiComponents>;
     replication: ReturnType<typeof registerSpawnReplicationComponents>;
     world: WorldCommandHost;
-    player: Player;
-    cmd: Extract<Command, { type: 'HURT' }>;
 }): void {
-    const hurtingMob = world.getEntityById(cmd.hurtingMobId) as
-        | { id: EntityId; weaponLevel: number }
-        | null;
-    if (!hurtingMob || player.hitPoints <= 0) {
-        return;
-    }
+    const engagements: Array<{ attackerId: EntityId; targetId: EntityId }> = [];
+    replication.Target.store.forEach((attackerId, targetId) => {
+        engagements.push({ attackerId, targetId });
+    });
 
-    state.world.ensureEntity(player.id);
-    state.world.addComponent(player.id, combat.MaxHitPoints, player.maxHitPoints);
-    state.world.addComponent(player.id, combat.HitPoints, player.hitPoints);
-    state.world.addComponent(player.id, combat.ArmorLevel, player.armorLevel);
-    state.world.addComponent(hurtingMob.id, combat.WeaponLevel, hurtingMob.weaponLevel);
+    const ups = Math.max(1, world.ups);
 
-    const dmg = Formulas.dmg(hurtingMob.weaponLevel, player.armorLevel);
-    const nextHp = Math.max(0, player.hitPoints - dmg);
-    player.hitPoints = nextHp;
-    state.world.addComponent(player.id, combat.HitPoints, nextHp);
-    state.events.push({ type: 'PLAYER_HEALTH_CHANGED', playerId: player.id, hitPoints: nextHp, isRegen: false });
-
-    if (player.hitPoints <= 0) {
-        player.isDead = true;
-        if (player.firepotionTimeout) {
-            clearTimeout(player.firepotionTimeout);
+    for (let i = 0; i < engagements.length; i += 1) {
+        const engagement = engagements[i];
+        if (!engagement) {
+            continue;
         }
-        clearPlayerFromMobAggro({ state, mobAi, replication, world, playerId: player.id, tickNow: ctx.tick });
-        world.removeEntity(player);
+
+        const attackerAlive = state.world.entities.isAlive(engagement.attackerId);
+        const targetAlive = state.world.entities.isAlive(engagement.targetId);
+        if (!attackerAlive && !targetAlive) {
+            continue;
+        }
+        if (!attackerAlive) {
+            continue;
+        }
+        if (!targetAlive) {
+            state.world.removeComponent(engagement.attackerId, replication.Target);
+            continue;
+        }
+
+        const attackerKind = state.world.getComponent(engagement.attackerId, replication.Kind);
+        const targetKind = state.world.getComponent(engagement.targetId, replication.Kind);
+        if (attackerKind === undefined || targetKind === undefined) {
+            state.world.removeComponent(engagement.attackerId, replication.Target);
+            continue;
+        }
+
+        const isPlayerVsMob = Types.isPlayer(attackerKind) && Types.isMob(targetKind);
+        const isMobVsPlayer = Types.isMob(attackerKind) && Types.isPlayer(targetKind);
+        if (!isPlayerVsMob && !isMobVsPlayer) {
+            continue;
+        }
+
+        const attackerPos = state.world.getComponent(engagement.attackerId, replication.Position);
+        const targetPos = state.world.getComponent(engagement.targetId, replication.Position);
+        if (!attackerPos || !targetPos || !isAdjacentNonDiagonal(attackerPos, targetPos)) {
+            continue;
+        }
+
+        const nextAttackTick = state.world.getComponent(engagement.attackerId, combat.NextAttackTick) ?? 0;
+        if (ctx.tick < nextAttackTick) {
+            continue;
+        }
+
+        const legacyAttacker = world.getEntityById(engagement.attackerId);
+        const legacyTarget = world.getEntityById(engagement.targetId);
+
+        const attackerWeapon = resolveCombatNumber({
+            state,
+            component: combat.WeaponLevel,
+            entityId: engagement.attackerId,
+            legacy: legacyAttacker,
+            key: 'weaponLevel',
+            fallback: 1,
+        });
+        const targetArmor = resolveCombatNumber({
+            state,
+            component: combat.ArmorLevel,
+            entityId: engagement.targetId,
+            legacy: legacyTarget,
+            key: 'armorLevel',
+            fallback: 1,
+        });
+
+        const damage = Formulas.dmg(attackerWeapon, targetArmor);
+        const cooldownTicks = resolveAttackCooldownTicks(attackerKind, ups);
+        state.world.addComponent(engagement.attackerId, combat.NextAttackTick, ctx.tick + cooldownTicks);
+
+        if (damage <= 0) {
+            continue;
+        }
+
+        if (isPlayerVsMob) {
+            const mobHp = resolveCombatNumber({
+                state,
+                component: combat.HitPoints,
+                entityId: engagement.targetId,
+                legacy: legacyTarget,
+                key: 'hitPoints',
+                fallback: 1,
+            });
+            const nextMobHp = Math.max(0, mobHp - damage);
+            state.world.addComponent(engagement.targetId, combat.HitPoints, nextMobHp);
+
+            if (legacyTarget && typeof (legacyTarget as { hitPoints?: unknown }).hitPoints === 'number') {
+                (legacyTarget as { hitPoints: number }).hitPoints = nextMobHp;
+            }
+
+            addMobHate({
+                state,
+                mobAi,
+                replication,
+                world,
+                mobId: engagement.targetId,
+                playerId: engagement.attackerId,
+                hatePoints: damage,
+            });
+
+            state.events.push({
+                type: 'ENTITY_DAMAGED',
+                entityId: engagement.targetId,
+                damage,
+                attackerId: engagement.attackerId,
+            });
+
+            if (nextMobHp <= 0) {
+                const killerName = state.world.getComponent(engagement.attackerId, replication.Name);
+                if (typeof killerName === 'string' && killerName.length > 0) {
+                    world.recordPlayerMobKill(killerName, targetKind);
+                }
+                handleMobDeath({
+                    state,
+                    replication,
+                    world,
+                    mobId: engagement.targetId,
+                    killerId: engagement.attackerId,
+                    mobKind: targetKind,
+                });
+            }
+            continue;
+        }
+
+        const playerHp = resolveCombatNumber({
+            state,
+            component: combat.HitPoints,
+            entityId: engagement.targetId,
+            legacy: legacyTarget,
+            key: 'hitPoints',
+            fallback: 1,
+        });
+        const nextPlayerHp = Math.max(0, playerHp - damage);
+
+        state.world.addComponent(engagement.targetId, combat.HitPoints, nextPlayerHp);
+        state.events.push({
+            type: 'PLAYER_HEALTH_CHANGED',
+            playerId: engagement.targetId,
+            hitPoints: nextPlayerHp,
+            isRegen: false,
+        });
+
+        if (legacyTarget && typeof (legacyTarget as { hitPoints?: unknown }).hitPoints === 'number') {
+            (legacyTarget as { hitPoints: number }).hitPoints = nextPlayerHp;
+        }
+        const playerName = state.world.getComponent(engagement.targetId, replication.Name);
+        if (typeof playerName === 'string' && playerName.length > 0) {
+            world.recordPlayerDamageTaken(playerName, damage);
+        }
+
+        if (nextPlayerHp <= 0) {
+            handlePlayerDeath({
+                state,
+                ctx,
+                mobAi,
+                replication,
+                world,
+                playerId: engagement.targetId,
+            });
+        }
     }
 }
 
@@ -586,6 +973,7 @@ function applyLootCommand({
     if (Types.isArmor(droppedItem.kind)) {
         player.equipArmor(droppedItem.kind);
         player.updateHitPoints();
+        world.persistPlayerEquipment(player);
 
         state.world.addComponent(player.id, replication.Armor, player.armor);
         state.world.addComponent(player.id, combat.ArmorLevel, player.armorLevel);
@@ -610,6 +998,7 @@ function applyLootCommand({
 
     if (Types.isWeapon(droppedItem.kind)) {
         player.equipWeapon(droppedItem.kind);
+        world.persistPlayerEquipment(player);
 
         state.world.addComponent(player.id, replication.Weapon, player.weapon);
         state.world.addComponent(player.id, combat.WeaponLevel, player.weaponLevel);
@@ -683,6 +1072,7 @@ function applyCheckCommand(world: WorldCommandHost, player: Player, cmd: Extract
     const checkpoint = world.map.getCheckpoint(cmd.checkpointId);
     if (checkpoint) {
         player.lastCheckpoint = checkpoint;
+        world.persistPlayerCheckpoint(player.name, cmd.checkpointId);
     }
 }
 
@@ -740,7 +1130,7 @@ function createApplyInboundCommandsSystem(
 
             switch (cmd.type) {
                 case 'WHO':
-                    world.pushSpawnsToPlayer(player, [...cmd.entityIds]);
+                    world.pushSpawnsToPlayerId(cmd.source.playerId, [...cmd.entityIds]);
                     break;
                 case 'ZONE':
                     player.emit('zone');
@@ -761,10 +1151,10 @@ function createApplyInboundCommandsSystem(
                     applyAttackCommand({ state, Target, world, player, cmd });
                     break;
                 case 'HIT':
-                    applyHitCommand({ state, combat, mobAi, replication, world, player, cmd });
+                    // Deprecated: server-authoritative combat resolves damage in sim stage.
                     break;
                 case 'HURT':
-                    applyHurtCommand({ state, ctx, combat, mobAi, replication, world, player, cmd });
+                    // Deprecated: server-authoritative combat resolves damage in sim stage.
                     break;
                 case 'LOOT':
                     applyLootCommand({ state, ctx, combat, replication, effects, world, player, cmd });
@@ -777,6 +1167,9 @@ function createApplyInboundCommandsSystem(
                     break;
                 case 'CHECK':
                     applyCheckCommand(world, player, cmd);
+                    break;
+                case 'ACHIEVEMENT':
+                    world.persistPlayerAchievementUnlock(player.name, cmd.achievementId);
                     break;
                 default:
                     // Ensure exhaustive handling when new command types are introduced.
@@ -935,13 +1328,33 @@ export class WorldEcsCommandPipeline {
             const { MobSpawnPos, MobHate, MobReturnAtTick } = this.mobAi;
 
             const ups = Math.max(1, this.#world.ups);
-            const intervalTicks = Math.max(1, Math.floor(ups / 5));
-            if (ctx.tick === 0 || ctx.tick % intervalTicks !== 0) {
+            if (ctx.tick === 0) {
                 return;
             }
 
             const returnDelayTicks = ups * 4;
             const leashDistance = 50;
+            const positionKey = (x: number, y: number) => `${x},${y}`;
+            const occupiedBy = new Map<string, EntityId>();
+
+            Position.store.forEach((id, pos) => {
+                const kind = Kind.store.get(id);
+                if (kind === undefined) {
+                    return;
+                }
+                if (!Types.isPlayer(kind) && !Types.isMob(kind) && !Types.isChest(kind)) {
+                    return;
+                }
+                occupiedBy.set(positionKey(pos.x, pos.y), id);
+            });
+
+            const canMobMoveTo = (mobId: EntityId, x: number, y: number) => {
+                if (!this.#world.isValidPosition(x, y)) {
+                    return false;
+                }
+                const occupant = occupiedBy.get(positionKey(x, y));
+                return occupant === undefined || occupant === mobId;
+            };
 
             const mobIds: EntityId[] = [];
             Kind.store.forEach((id, kind) => {
@@ -965,7 +1378,6 @@ export class WorldEcsCommandPipeline {
                           spawningY?: number;
                           isDead?: boolean;
                           target?: EntityId | null;
-                          getPositionNextTo(target: unknown): { x: number; y: number } | null;
                       }
                     | null;
                 if (!legacyMob || legacyMob.isDead) {
@@ -984,11 +1396,29 @@ export class WorldEcsCommandPipeline {
                 if (hate.length === 0) {
                     const returnAtTick = MobReturnAtTick.store.get(mobId);
                     if (typeof returnAtTick === 'number' && ctx.tick >= returnAtTick) {
-                        state.world.removeComponent(mobId, MobReturnAtTick);
-                        if (legacyMob.x !== spawn.x || legacyMob.y !== spawn.y) {
-                            this.#world.moveEntity(legacyMob, spawn.x, spawn.y);
-                            state.world.addComponent(mobId, Position, gridPos(spawn.x, spawn.y));
-                            state.events.push({ type: 'ENTITY_MOVED', entityId: mobId, to: gridPos(spawn.x, spawn.y) });
+                        const currentPos = Position.store.get(mobId) ?? gridPos(legacyMob.x, legacyMob.y);
+                        if (!Position.store.has(mobId)) {
+                            state.world.addComponent(mobId, Position, currentPos);
+                        }
+
+                        if (currentPos.x === spawn.x && currentPos.y === spawn.y) {
+                            state.world.removeComponent(mobId, MobReturnAtTick);
+                        } else {
+                            const next = chooseStepTowards({
+                                from: currentPos,
+                                to: spawn,
+                                isValidPosition: (x, y) => canMobMoveTo(mobId, x, y),
+                            });
+                            if (next) {
+                                const oldKey = positionKey(currentPos.x, currentPos.y);
+                                if (occupiedBy.get(oldKey) === mobId) {
+                                    occupiedBy.delete(oldKey);
+                                }
+                                this.#world.moveEntity(legacyMob, next.x, next.y);
+                                state.world.addComponent(mobId, Position, next);
+                                occupiedBy.set(positionKey(next.x, next.y), mobId);
+                                state.events.push({ type: 'ENTITY_MOVED', entityId: mobId, to: next });
+                            }
                         }
                     }
                     continue;
@@ -1043,17 +1473,39 @@ export class WorldEcsCommandPipeline {
                 }
 
                 const targetEntity = this.#world.getEntityById(desiredTargetId);
-                if (!targetEntity) {
+                const targetPos = Position.store.get(desiredTargetId) ?? asGridPos(targetEntity);
+                if (!targetPos) {
                     continue;
                 }
 
-                const pos = findValidPositionNextTo({
-                    attacker: legacyMob,
-                    target: targetEntity,
-                    isValidPosition: (x, y) => this.#world.isValidPosition(x, y),
+                const currentPos = Position.store.get(mobId) ?? gridPos(legacyMob.x, legacyMob.y);
+                if (!Position.store.has(mobId)) {
+                    state.world.addComponent(mobId, Position, currentPos);
+                }
+
+                if (isAdjacentNonDiagonal(currentPos, targetPos)) {
+                    continue;
+                }
+
+                let next = chooseStepTowards({
+                    from: currentPos,
+                    to: targetPos,
+                    isValidPosition: (x, y) => canMobMoveTo(mobId, x, y),
                 });
 
-                if (Utils.distanceTo(pos.x, pos.y, spawn.x, spawn.y) > leashDistance) {
+                next ??= chooseStepTowardsAdjacentViaBfs({
+                    from: currentPos,
+                    target: targetPos,
+                    spawn,
+                    leashDistance,
+                    isValidPosition: (x, y) => canMobMoveTo(mobId, x, y),
+                });
+
+                if (!next) {
+                    continue;
+                }
+
+                if (Utils.distanceTo(next.x, next.y, spawn.x, spawn.y) > leashDistance) {
                     state.world.removeComponent(mobId, MobHate);
                     state.world.addComponent(mobId, MobReturnAtTick, ctx.tick + returnDelayTicks);
                     state.world.removeComponent(mobId, Target);
@@ -1062,13 +1514,25 @@ export class WorldEcsCommandPipeline {
                     continue;
                 }
 
-                const currentPos = Position.store.get(mobId) ?? gridPos(legacyMob.x, legacyMob.y);
-                if (currentPos.x !== pos.x || currentPos.y !== pos.y) {
-                    this.#world.moveEntity(legacyMob, pos.x, pos.y);
-                    state.world.addComponent(mobId, Position, gridPos(pos.x, pos.y));
-                    state.events.push({ type: 'ENTITY_MOVED', entityId: mobId, to: gridPos(pos.x, pos.y) });
+                const oldKey = positionKey(currentPos.x, currentPos.y);
+                if (occupiedBy.get(oldKey) === mobId) {
+                    occupiedBy.delete(oldKey);
                 }
+                this.#world.moveEntity(legacyMob, next.x, next.y);
+                state.world.addComponent(mobId, Position, next);
+                occupiedBy.set(positionKey(next.x, next.y), mobId);
+                state.events.push({ type: 'ENTITY_MOVED', entityId: mobId, to: next });
             }
+        });
+        this.#scheduler.register('sim', 'combat_authority', (state, ctx: SystemContext) => {
+            runServerAuthoritativeCombatSystem({
+                state,
+                ctx,
+                combat: this.combat,
+                mobAi: this.mobAi,
+                replication: this.replication,
+                world: this.#world,
+            });
         });
         this.#scheduler.register('sim', 'regen', (state, ctx: SystemContext) => {
             const intervalTicks = this.#world.ups * 2;
@@ -1154,6 +1618,31 @@ export class WorldEcsCommandPipeline {
         syncSpawnReplicationFromLegacyEntity(this.state.world, this.replication, entity);
     }
 
+    syncCombatEntity(
+        entity: Readonly<{
+            id: EntityId;
+            hitPoints?: number;
+            maxHitPoints?: number;
+            armorLevel?: number;
+            weaponLevel?: number;
+        }>
+    ): void {
+        this.state.world.ensureEntity(entity.id);
+
+        if (typeof entity.hitPoints === 'number') {
+            this.state.world.addComponent(entity.id, this.combat.HitPoints, entity.hitPoints);
+        }
+        if (typeof entity.maxHitPoints === 'number') {
+            this.state.world.addComponent(entity.id, this.combat.MaxHitPoints, entity.maxHitPoints);
+        }
+        if (typeof entity.armorLevel === 'number') {
+            this.state.world.addComponent(entity.id, this.combat.ArmorLevel, entity.armorLevel);
+        }
+        if (typeof entity.weaponLevel === 'number') {
+            this.state.world.addComponent(entity.id, this.combat.WeaponLevel, entity.weaponLevel);
+        }
+    }
+
     removeEntity(id: EntityId): void {
         this.state.resources.get(INTEREST_TRACKER_RESOURCE)?.clearObserver(id);
         if (this.state.world.entities.isAlive(id)) {
@@ -1184,10 +1673,7 @@ export class WorldEcsCommandPipeline {
                 continue;
             }
             if (msg.kind === 'to_player') {
-                const player = this.#world.getConnectionPlayerById(msg.playerId);
-                if (player?.hasEnteredGame) {
-                    this.#world.pushToPlayer(player, msg.action);
-                }
+                this.#world.pushToPlayerId(msg.playerId, msg.action);
                 continue;
             }
 
@@ -1220,8 +1706,7 @@ export class WorldEcsCommandPipeline {
                 return;
             }
 
-            const player = this.#world.getConnectionPlayerById(observerId);
-            if (!player?.hasEnteredGame) {
+            if (!this.#world.isPlayerActive(observerId)) {
                 interest.clearObserver(observerId);
                 return;
             }
@@ -1247,8 +1732,8 @@ export class WorldEcsCommandPipeline {
                     continue;
                 }
                 try {
-                    this.#world.pushToPlayer(
-                        player,
+                    this.#world.pushToPlayerId(
+                        observerId,
                         buildSpawnActionFromReplicationState(this.state.world, this.replication, id)
                     );
                 } catch (_) {
@@ -1260,7 +1745,7 @@ export class WorldEcsCommandPipeline {
                 if (id === undefined) {
                     continue;
                 }
-                this.#world.pushToPlayer(player, buildDespawnAction(id));
+                this.#world.pushToPlayerId(observerId, buildDespawnAction(id));
             }
         });
     }
@@ -1287,11 +1772,10 @@ export class WorldEcsCommandPipeline {
                 if (id === undefined || (msg.ignoredPlayerId !== undefined && id === msg.ignoredPlayerId)) {
                     continue;
                 }
-                const player = this.#world.getConnectionPlayerById(id);
-                if (!player?.hasEnteredGame) {
+                if (!this.#world.isPlayerActive(id)) {
                     continue;
                 }
-                this.#world.pushToPlayer(player, msg.action);
+                this.#world.pushToPlayerId(id, msg.action);
             }
         });
     }

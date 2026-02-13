@@ -24,7 +24,7 @@ async function getFreePort() {
 
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
-     
+
     for (;;) {
         try {
             const res = await fetch(url);
@@ -42,7 +42,7 @@ async function waitForHttpOk(url: string, timeoutMs = 5000) {
 
 async function waitForCondition(check: () => boolean, timeoutMs: number, label: string) {
     const start = Date.now();
-     
+
     for (;;) {
         if (check()) return;
         if (Date.now() - start > timeoutMs) {

@@ -23,7 +23,7 @@ async function getFreePort() {
 
 async function waitForHttpOk(url: string, timeoutMs = 5000) {
     const start = Date.now();
-     
+
     for (;;) {
         try {
             const res = await fetch(url);

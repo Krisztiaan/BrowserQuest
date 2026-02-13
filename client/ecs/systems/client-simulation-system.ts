@@ -1,7 +1,9 @@
 import Character from '../../character';
+import Mob from '../../mob';
 import type AnimatedTile from '../../tile';
 import type Timer from '../../timer';
 import Types from '../../../shared/gametypes-browser';
+import type { EntityId } from '../../../shared/domain/ids';
 
 type DirtyRect = Record<string, number>;
 type StepTransition = {
@@ -36,7 +38,10 @@ export type ClientSimulationSystemHost = Readonly<{
     started: boolean;
     currentTime: number;
     playerAggroTimer: Pick<Timer, 'isOver'>;
-    player: { isMoving(): boolean; isAttacking(): boolean; checkAggro(): void } | null;
+    player: Character | null;
+    kernel: {
+        enqueueClientCommand(command: { type: 'clientSendAggro'; mobId: EntityId }): void;
+    };
     renderer: {
         FPS: number;
         mobile: boolean;
@@ -241,10 +246,28 @@ function updatePlayerAggro(host: ClientSimulationSystemHost): void {
     const t = host.currentTime;
     const player = host.player;
 
-    // Check player aggro every 1s when not moving nor attacking
-    if (player && !player.isMoving() && !player.isAttacking() && host.playerAggroTimer.isOver(t)) {
-        player.checkAggro();
+    // Legacy parity: periodically probe nearby aggressive mobs and emit AGGRO intent.
+    if (!player || player.isMoving() || player.isAttacking() || !host.playerAggroTimer.isOver(t)) {
+        return;
     }
+
+    host.forEachEntity((entity) => {
+        if (!(entity instanceof Mob)) {
+            return;
+        }
+        if (!entity.isAggressive || entity.isAttacking()) {
+            return;
+        }
+        if (!player.isNear(entity, entity.aggroRange)) {
+            return;
+        }
+        if (player.isAttackedBy(entity) || entity.isWaitingToAttack(player)) {
+            return;
+        }
+
+        entity.waitToAttack(player);
+        host.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: entity.id as EntityId });
+    });
 }
 
 function updateTransitions(host: ClientSimulationSystemHost): void {

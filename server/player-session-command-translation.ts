@@ -6,7 +6,6 @@ import type { EntityId } from '../shared/domain/ids';
 import { entityIdFromWire } from '../shared/domain/ids';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import { gridPos } from '../shared/domain/positions';
-import type Player from './player';
 
 const NAME_MAX_UTF8_BYTES = 64;
 const NAME_MAX_CODEPOINTS = 15;
@@ -16,12 +15,8 @@ const WHO_MAX_IDS = 1000;
 
 type CloseInvalidPayload = (reason: string) => void;
 
-function makeSource(player: Player): CommandSource {
-    return { connectionId: player.connection.id, playerId: player.id };
-}
-
 function translateHello(
-    player: Player,
+    source: CommandSource,
     message: ClientToServerHelloAction,
     closeInvalidPayload: CloseInvalidPayload
 ): Command | null {
@@ -39,7 +34,7 @@ function translateHello(
 
     return {
         type: 'HELLO',
-        source: makeSource(player),
+        source,
         name: name === '' ? 'lorem ipsum' : name,
         armorKind,
         weaponKind,
@@ -47,15 +42,13 @@ function translateHello(
 }
 
 export function translateClientActionToCommand(
-    player: Player,
+    source: CommandSource,
     message: ClientToServerProtocolAction,
     closeInvalidPayload: CloseInvalidPayload
 ): Command | null {
-    const source = makeSource(player);
-
     switch (message[0]) {
         case Types.Messages.HELLO:
-            return translateHello(player, message, closeInvalidPayload);
+            return translateHello(source, message, closeInvalidPayload);
         case Types.Messages.WHO: {
             if (message.length - 1 > WHO_MAX_IDS) {
                 closeInvalidPayload('WHO message is too large.');
@@ -216,6 +209,19 @@ export function translateClientActionToCommand(
                 return null;
             }
             return { type: 'CHECK', source, checkpointId: checkpointId };
+        }
+        case Types.Messages.ACHIEVEMENT: {
+            const achievementId = message[1];
+            if (
+                typeof achievementId !== 'number'
+                || !Number.isFinite(achievementId)
+                || !Number.isSafeInteger(achievementId)
+                || achievementId <= 0
+            ) {
+                closeInvalidPayload('Invalid ACHIEVEMENT payload.');
+                return null;
+            }
+            return { type: 'ACHIEVEMENT', source, achievementId };
         }
         default:
             closeInvalidPayload(`Unsupported opcode: ${String(message[0])}`);

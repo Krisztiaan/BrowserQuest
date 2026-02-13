@@ -110,6 +110,7 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
     _socketAdapters: WeakMap<object, BunSocketAdapter>;
     _server: unknown;
     private statusProvider?: () => string;
+    private profilePreviewProvider?: (request: Request) => Response;
 
     constructor(port: number) {
         super();
@@ -130,6 +131,12 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                 }
                 if (requestPath === '/status' && this.statusProvider) {
                     return new Response(this.statusProvider(), { status: 200 });
+                }
+                if (
+                    (requestPath === '/profile/preview.svg' || requestPath === '/profile/preview.json')
+                    && this.profilePreviewProvider
+                ) {
+                    return this.profilePreviewProvider(request);
                 }
                 if (requestPath === '/ws') {
                     if (
@@ -207,6 +214,10 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
 
     onRequestStatus(statusProvider: () => string) {
         this.statusProvider = statusProvider;
+    }
+
+    onRequestProfilePreview(profilePreviewProvider: (request: Request) => Response) {
+        this.profilePreviewProvider = profilePreviewProvider;
     }
 
     forEachConnection(

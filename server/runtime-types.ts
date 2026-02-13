@@ -18,6 +18,7 @@ export interface RuntimeServer {
     on(eventName: 'connect', callback: (connection: RuntimeConnection) => void): void;
     on(eventName: 'error', callback: (...args: unknown[]) => void): void;
     onRequestStatus(callback: () => string): void;
+    onRequestProfilePreview?(callback: (request: Request) => Response): void;
 }
 
 export interface RuntimeConnection {
@@ -99,4 +100,5 @@ export interface ServerConfig {
     metrics_enabled: boolean;
     debug_level: 'error' | 'debug' | 'info';
     plugins?: string[];
+    player_db_path?: string;
 }
