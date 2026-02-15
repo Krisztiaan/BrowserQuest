@@ -5,8 +5,6 @@ import {
     verifyRegistrationResponse,
     type AuthenticationResponseJSON,
     type AuthenticatorTransportFuture,
-    type PublicKeyCredentialCreationOptionsJSON,
-    type PublicKeyCredentialRequestOptionsJSON,
     type RegistrationResponseJSON,
 } from '@simplewebauthn/server';
 import {
@@ -398,7 +396,7 @@ export async function createPasskeyAuthResponse({
         const normalizedName = normalizeIdentityKey(payload.username);
         const requestedDisplayName = payload.username.trim();
         const credentials = persistence.listPasskeyCredentialsByName(normalizedName);
-        const options = (await generateRegistrationOptionsFn({
+        const options = await generateRegistrationOptionsFn({
             rpName: resolveRelyingPartyName(),
             rpID: rpId,
             userName: normalizedName,
@@ -409,7 +407,7 @@ export async function createPasskeyAuthResponse({
                 transports: credential.transports,
             })),
             timeout: 60000,
-        })) as PublicKeyCredentialCreationOptionsJSON;
+        });
 
         setPendingChallenge({
             store: pendingRegisterChallenges,
@@ -444,7 +442,7 @@ export async function createPasskeyAuthResponse({
             });
         }
 
-        const options = (await generateAuthenticationOptionsFn({
+        const options = await generateAuthenticationOptionsFn({
             rpID: rpId,
             allowCredentials: credentials.map((credential) => ({
                 id: credential.credentialId,
@@ -452,7 +450,7 @@ export async function createPasskeyAuthResponse({
             })),
             timeout: 60000,
             userVerification: 'preferred',
-        })) as PublicKeyCredentialRequestOptionsJSON;
+        });
 
         setPendingChallenge({
             store: pendingLoginChallenges,
