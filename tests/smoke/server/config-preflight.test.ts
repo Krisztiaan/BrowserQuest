@@ -65,6 +65,7 @@ async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs 
 
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 let configPath: string | null = null;
+let mapPath: string | null = null;
 
 afterEach(async () => {
     await killBunProcess(proc);
@@ -77,6 +78,16 @@ afterEach(async () => {
             // ignore
         } finally {
             configPath = null;
+        }
+    }
+
+    if (mapPath) {
+        try {
+            await Bun.file(mapPath).delete();
+        } catch (_) {
+            // ignore
+        } finally {
+            mapPath = null;
         }
     }
 });
@@ -116,4 +127,32 @@ test('server fails fast with structured config-invalid event when config preflig
         line.includes('Startup preflight: invalid server configuration')
     );
     expect(Boolean(invalidEvent) || hasPreflightMessage).toBe(true);
+});
+
+test('server fails fast when startup preflight cannot read configured map file', async () => {
+    configPath = `${repoRoot}/server/.tmp-config.invalid-map-missing.json`;
+    await Bun.write(
+        configPath,
+        JSON.stringify({
+            port: 8000,
+            debug_level: 'info',
+            nb_players_per_world: 5,
+            nb_worlds: 1,
+            map_filepath: './assets/maps/tiled/does-not-exist.json',
+            metrics_enabled: false,
+        })
+    );
+
+    const stderrLines: string[] = [];
+    proc = Bun.spawn({
+        cmd: ['bun', 'server/entry.ts', configPath],
+        cwd: repoRoot,
+        stdout: 'pipe',
+        stderr: 'pipe',
+    });
+    startStructuredLogCapture(proc.stderr, [], stderrLines);
+
+    const code = await waitForProcessExit(proc, 4000);
+    expect(code).toBe(1);
+    expect(stderrLines.some((line) => line.includes('Startup preflight: map file missing or unreadable:'))).toBe(true);
 });

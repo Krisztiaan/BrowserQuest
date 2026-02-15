@@ -6,6 +6,7 @@ import type { SpawnSnapshot } from '../../shared/replication/spawn-snapshot';
 import Types from '../../shared/gametypes-browser';
 import type { ClientCommand } from './client-commands';
 import type { ClientRuntimeEvent } from './runtime-events';
+import { ClientChunkOverlayCache } from '../world/chunks/client-chunk-overlay-cache';
 
 export type KernelEntityType = 'player' | 'mob' | 'simple';
 
@@ -34,13 +35,28 @@ export type ClientClickIntent = Readonly<{
     y: number;
 }>;
 
-export type ClientClickState = Readonly<{
-    lastClickPos: GridPos;
-}>;
-
 export type ClientLootAttempt = Readonly<{
     itemId: EntityId;
     pos: GridPos;
+}>;
+
+export type ClientMovePlan = Readonly<{
+    target: GridPos;
+    steps: GridPos[];
+    nextStepIndex: number;
+    stopAdjacentToTarget: boolean;
+}>;
+
+export type ClientPendingDoorTraversal = Readonly<{
+    doorX: number;
+    doorY: number;
+    toX: number;
+    toY: number;
+    orientation: number;
+    portal: boolean;
+    cameraX?: number;
+    cameraY?: number;
+    requestedAtMs: number;
 }>;
 
 export type ClientSpatialRecord = Readonly<{
@@ -103,7 +119,6 @@ export class ClientWorldKernel {
 
     clientInteractionIntent: ClientInteractionIntent | null = null;
     clientClickIntent: ClientClickIntent | null = null;
-    clientClickState: ClientClickState | null = null;
     clientLootAttempt: ClientLootAttempt | null = null;
     clientRuntimeEvents: ClientRuntimeEvent[] = [];
     clientCommands: ClientCommand[] = [];
@@ -123,6 +138,7 @@ export class ClientWorldKernel {
             nextGridX: number;
             nextGridY: number;
             isMoving: boolean;
+            isDead: boolean;
             kind: EntityKind;
             isPlayer: boolean;
         }>
@@ -135,8 +151,15 @@ export class ClientWorldKernel {
 
     clientPathingGrid: number[][] | null = null;
 
+    clientMovePlan: ClientMovePlan | null = null;
     clientLastSentMovePos: GridPos | null = null;
+    readonly clientPendingMoveAcks: GridPos[] = [];
+    readonly clientPendingMoveSeqAcks: number[] = [];
+    clientMovementSuppressed = false;
     clientDoorTraversalArmed = false;
+    clientPendingDoorTraversal: ClientPendingDoorTraversal | null = null;
+    clientLocalPlayerDead = false;
+    readonly clientChunkOverlayCache = new ClientChunkOverlayCache();
 
     ensureClientPathingGrid(mapGrid: number[][]): void {
         const height = mapGrid.length;
@@ -170,6 +193,56 @@ export class ClientWorldKernel {
         if (mapGrid) {
             this.ensureClientPathingGrid(mapGrid);
         }
+    }
+
+    enqueueClientPendingMoveAck(x: number, y: number): void {
+        this.clientPendingMoveAcks.push(gridPos(x, y));
+    }
+
+    consumeClientPendingMoveAck(x: number, y: number): boolean {
+        if (this.clientPendingMoveAcks.length === 0) {
+            return false;
+        }
+
+        const matchedIndex = this.clientPendingMoveAcks.findIndex((entry) => entry.x === x && entry.y === y);
+        if (matchedIndex < 0) {
+            return false;
+        }
+
+        this.clientPendingMoveAcks.splice(0, matchedIndex + 1);
+        return true;
+    }
+
+    clearClientPendingMoveAcks(): void {
+        this.clientPendingMoveAcks.length = 0;
+    }
+
+    enqueueClientPendingMoveSeqAck(seq: number): void {
+        this.clientPendingMoveSeqAcks.push(seq);
+    }
+
+    consumeClientPendingMoveSeqAck(seq: number): boolean {
+        if (this.clientPendingMoveSeqAcks.length === 0) {
+            return false;
+        }
+        const matchedIndex = this.clientPendingMoveSeqAcks.indexOf(seq);
+        if (matchedIndex < 0) {
+            return false;
+        }
+        this.clientPendingMoveSeqAcks.splice(0, matchedIndex + 1);
+        return true;
+    }
+
+    clearClientPendingMoveSeqAcks(): void {
+        this.clientPendingMoveSeqAcks.length = 0;
+    }
+
+    setClientPendingDoorTraversal(pending: Omit<ClientPendingDoorTraversal, 'requestedAtMs'>): void {
+        this.clientPendingDoorTraversal = { ...pending, requestedAtMs: Date.now() };
+    }
+
+    clearClientPendingDoorTraversal(): void {
+        this.clientPendingDoorTraversal = null;
     }
 
     applySpatialRemoveRecord(entityId: EntityId, record: ClientSpatialRecord): void {
@@ -317,7 +390,6 @@ export class ClientWorldKernel {
 
         this.clientInteractionIntent = null;
         this.clientClickIntent = null;
-        this.clientClickState = null;
         this.clientLootAttempt = null;
         this.clientRuntimeEvents = [];
         this.clientCommands = [];
@@ -327,9 +399,15 @@ export class ClientWorldKernel {
         this.clientReplicationLastTarget.clear();
 
         this.resetClientSpatialState();
+        this.clientChunkOverlayCache.clear();
 
+        this.clientMovePlan = null;
         this.clientLastSentMovePos = null;
+        this.clearClientPendingMoveAcks();
+        this.clearClientPendingMoveSeqAcks();
         this.clientDoorTraversalArmed = false;
+        this.clientPendingDoorTraversal = null;
+        this.clientLocalPlayerDead = false;
     }
 
     setPopulation(worldPlayers: number, totalPlayers: number): void {
@@ -375,20 +453,25 @@ export class ClientWorldKernel {
         this.clientClickIntent = null;
     }
 
-    setClientLastClickPos(x: number, y: number): void {
-        this.clientClickState = { lastClickPos: gridPos(x, y) };
-    }
-
-    clearClientLastClickPos(): void {
-        this.clientClickState = null;
-    }
-
     setClientLootAttempt(itemId: EntityId, x: number, y: number): void {
         this.clientLootAttempt = { itemId, pos: gridPos(x, y) };
     }
 
     clearClientLootAttempt(): void {
         this.clientLootAttempt = null;
+    }
+
+    setClientMovePlan(plan: Omit<ClientMovePlan, 'nextStepIndex'>): void {
+        this.clientMovePlan = {
+            target: plan.target,
+            steps: plan.steps,
+            nextStepIndex: 0,
+            stopAdjacentToTarget: plan.stopAdjacentToTarget,
+        };
+    }
+
+    clearClientMovePlan(): void {
+        this.clientMovePlan = null;
     }
 
     getEntityView(id: EntityId): KernelEntityView {

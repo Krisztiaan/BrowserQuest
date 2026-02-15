@@ -8,6 +8,9 @@ import type {
 import { getHealthzResponseBody, getVersionResponseBody } from '../runtime-health-response';
 import { TypedEventEmitter } from '../../shared/typed-event-emitter';
 import { Evented } from '../../shared/evented';
+import { AUTH_SESSION_COOKIE_KEY } from '../../shared/auth/cookie-keys';
+import { ConnectionIdGenerator } from './connection-id';
+import { verifySignedAuthSessionToken } from '../auth-session';
 
 type WebSocketRuntimeServerEvents = {
     connect: [connection: WebSocketRuntimeConnection];
@@ -16,7 +19,7 @@ type WebSocketRuntimeServerEvents = {
 
 export function createWebSocketRuntimeClasses({
     log,
-    Utils,
+    Utils: _Utils,
     Protocol,
     CLOSE_CODES,
     WebSocket,
@@ -45,6 +48,43 @@ export function createWebSocketRuntimeClasses({
         return typeof socket.remoteAddress === 'string' ? socket.remoteAddress : 'unknown';
     }
 
+    function resolveAccountNameKeyFromRequest(request: unknown): string | null {
+        if (!request || typeof request !== 'object' || !('headers' in request)) {
+            return null;
+        }
+        const headers = request.headers;
+        if (!headers || typeof headers !== 'object') {
+            return null;
+        }
+        const cookieHeader = 'cookie' in headers ? headers.cookie : undefined;
+        if (typeof cookieHeader !== 'string' || cookieHeader.length === 0) {
+            return null;
+        }
+
+        const entries = cookieHeader.split(';');
+        for (const entry of entries) {
+            const separatorIndex = entry.indexOf('=');
+            if (separatorIndex <= 0) {
+                continue;
+            }
+            const key = entry.slice(0, separatorIndex).trim();
+            if (key !== AUTH_SESSION_COOKIE_KEY) {
+                continue;
+            }
+            const rawValue = entry.slice(separatorIndex + 1).trim();
+            if (!rawValue) {
+                return null;
+            }
+            try {
+                const decoded = decodeURIComponent(rawValue).trim();
+                return verifySignedAuthSessionToken({ token: decoded });
+            } catch (_) {
+                return null;
+            }
+        }
+        return null;
+    }
+
     function formatCloseReason(error: unknown): string {
         if (error === null || error === undefined) {
             return '';
@@ -69,7 +109,7 @@ export function createWebSocketRuntimeClasses({
     class Server extends Evented<WebSocketRuntimeServerEvents> {
         port: number;
         _connections: Record<string, RuntimeConnection>;
-        _counter: number;
+        _connectionIds: ConnectionIdGenerator;
         statusProvider?: () => string;
         _httpServer?: ReturnType<typeof createHttpServer>;
         _wss?: InstanceType<typeof WebSocket.WebSocketServer>;
@@ -78,7 +118,7 @@ export function createWebSocketRuntimeClasses({
             super();
             this.port = port;
             this._connections = {};
-            this._counter = 0;
+            this._connectionIds = new ConnectionIdGenerator();
         }
 
         broadcast(_message: unknown): void {
@@ -287,6 +327,11 @@ export function createWebSocketRuntimeClasses({
                     this,
                     remoteAddress
                 );
+                const accountNameKey = resolveAccountNameKeyFromRequest(req);
+                if (accountNameKey) {
+                    (wsConnection as wsWebSocketConnection & { accountNameKey?: string }).accountNameKey =
+                        accountNameKey;
+                }
 
                 this.emit('connect', wsConnection);
                 this.addConnection(wsConnection);
@@ -295,7 +340,7 @@ export function createWebSocketRuntimeClasses({
         }
 
         _createId(): string {
-            return '5' + Utils.random(99) + '' + this._counter++;
+            return this._connectionIds.nextId();
         }
 
         override broadcast(message: unknown): void {

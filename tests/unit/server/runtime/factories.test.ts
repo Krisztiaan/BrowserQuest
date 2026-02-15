@@ -40,6 +40,7 @@ test('main runtime createServerAndMetrics builds server and metrics via dependen
 
 test('main runtime createWorlds assembles worlds and runs configured map path', () => {
     const created: Array<{ name: string; capacity: number; server: unknown }> = [];
+    const receivedConfigs: unknown[] = [];
     let onPlayerAddedCount = 0;
     let onPlayerRemovedCount = 0;
     const FakeWorldServer = function FakeWorldServer(
@@ -48,6 +49,7 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
             runPath: string | null;
             run: (path: string) => void;
             on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
+            setServerConfig: (config: unknown) => void;
         },
         name: string,
         capacity: number,
@@ -69,6 +71,9 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
                 onPlayerRemovedCount += 1;
             }
         };
+        this.setServerConfig = (config) => {
+            receivedConfigs.push(config);
+        };
     } as unknown as {
         new (
             name: string,
@@ -79,6 +84,7 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
             runPath: string | null;
             run: (path: string) => void;
             on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
+            setServerConfig: (config: unknown) => void;
         };
     };
     const dependencies = MainRuntime.createRuntimeDependencies({
@@ -91,6 +97,7 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
         nb_worlds: 2,
         nb_players_per_world: 50,
         map_filepath: 'maps/world.json',
+        updates_per_second: 30,
     };
     const worlds = MainRuntime.createWorlds(config, { id: 'server' }, dependencies);
 
@@ -99,6 +106,7 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
     expect(created.map((entry) => entry.capacity)).toEqual([50, 50]);
     expect(worlds[0].runPath).toBe('maps/world.json');
     expect(worlds[1].runPath).toBe('maps/world.json');
+    expect(receivedConfigs).toEqual([config, config]);
     expect(onPlayerAddedCount).toBe(0);
     expect(onPlayerRemovedCount).toBe(0);
 });

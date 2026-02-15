@@ -1,5 +1,8 @@
 import processMap from '../shared/maps/processmap';
-import tiledWorldMapJson from '../assets/maps/tiled/world.json';
+
+// Keep the map URL explicit so Bun dev/prod serving paths work
+// without bundler-specific `?url` transforms.
+const tiledWorldMapUrl = '/assets/maps/tiled/world.json';
 import type { MusicKey } from './asset-key-domain';
 
 type ClientRuntimeMap = {
@@ -17,8 +20,6 @@ type ClientRuntimeMap = {
   checkpoints: Array<Record<string, unknown>>;
 };
 
-const tiledWorldMap = tiledWorldMapJson as Parameters<typeof processMap>[0];
-
 function cloneClientRuntimeMap(map: ClientRuntimeMap): ClientRuntimeMap {
   if (typeof structuredClone === 'function') {
     return structuredClone(map);
@@ -27,12 +28,32 @@ function cloneClientRuntimeMap(map: ClientRuntimeMap): ClientRuntimeMap {
 }
 
 let cachedClientRuntimeMap: ClientRuntimeMap | null = null;
+let pendingMapLoad: Promise<void> | null = null;
 
-function loadClientRuntimeMap(): ClientRuntimeMap {
-  cachedClientRuntimeMap ??= processMap(tiledWorldMap, { mode: 'client', quiet: true }) as ClientRuntimeMap;
-  return cloneClientRuntimeMap(cachedClientRuntimeMap);
+async function ensureClientRuntimeMapLoaded(): Promise<void> {
+  if (cachedClientRuntimeMap !== null) {
+    return;
+  }
+
+  if (pendingMapLoad === null) {
+    pendingMapLoad = (async () => {
+      const response = await fetch(tiledWorldMapUrl, { credentials: 'same-origin' });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch runtime map source (${response.status}).`);
+      }
+      const tiledWorldMap = (await response.json()) as Parameters<typeof processMap>[0];
+      cachedClientRuntimeMap = processMap(tiledWorldMap, { mode: 'client', quiet: true }) as ClientRuntimeMap;
+    })();
+  }
+
+  try {
+    await pendingMapLoad;
+  } finally {
+    pendingMapLoad = null;
+  }
 }
 
-export function fetchClientRuntimeMap(): Promise<ClientRuntimeMap> {
-  return Promise.resolve(loadClientRuntimeMap());
+export async function fetchClientRuntimeMap(): Promise<ClientRuntimeMap> {
+  await ensureClientRuntimeMapLoaded();
+  return cloneClientRuntimeMap(cachedClientRuntimeMap as ClientRuntimeMap);
 }

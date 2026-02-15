@@ -19,6 +19,7 @@ export interface RuntimeServer {
     on(eventName: 'error', callback: (...args: unknown[]) => void): void;
     onRequestStatus(callback: () => string): void;
     onRequestProfilePreview?(callback: (request: Request) => Response): void;
+    onRequestPasskeyAuth?(callback: (request: Request) => Response | Promise<Response>): void;
 }
 
 export interface RuntimeConnection {
@@ -100,5 +101,14 @@ export interface ServerConfig {
     metrics_enabled: boolean;
     debug_level: 'error' | 'debug' | 'info';
     plugins?: string[];
+    chunk_size?: number;
     player_db_path?: string;
+    chunk_overlay_db_path?: string;
+    claims_db_path?: string;
+    chunk_overlay_flush_interval_ms?: number;
+    chunk_overlay_flush_max_chunks?: number;
+    chunk_overlay_bootstrap_load_limit_chunks?: number;
+    chunk_snapshot_payload_max_utf8_bytes?: number;
+    chunk_snapshot_max_parts?: number;
+    updates_per_second?: number;
 }

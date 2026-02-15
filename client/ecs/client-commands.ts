@@ -7,6 +7,8 @@ export type ClientCommand =
     | Readonly<{ type: 'characterClearTarget'; entityId: EntityId }>
     | Readonly<{ type: 'clientSendHello' }>
     | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
+    | Readonly<{ type: 'clientSendChunkSubscribe'; chunkX: number; chunkY: number; radius: number }>
+    | Readonly<{ type: 'clientSendChunkUnsubscribe' }>
     | Readonly<{ type: 'clientSendZone' }>
     | Readonly<{ type: 'clientSendChat'; message: string }>
     | Readonly<{ type: 'clientSendAchievement'; achievementId: number }>
@@ -66,8 +68,6 @@ export type ClientCommand =
     | Readonly<{ type: 'characterLookAtTarget'; entityId: EntityId }>
     | Readonly<{ type: 'characterHit'; entityId: EntityId }>
     | Readonly<{ type: 'characterFollow'; entityId: EntityId; targetId: EntityId }>
-    | Readonly<{ type: 'clientSendHit'; targetId: EntityId }>
-    | Readonly<{ type: 'clientSendHurt'; mobId: EntityId }>
     | Readonly<{ type: 'applyDamageToMob'; mobId: EntityId; points: number }>
     | Readonly<{ type: 'audioPlaySound'; key: AudioSoundKey }>
     | Readonly<{ type: 'playerStop' }>

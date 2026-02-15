@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import Log from './log';
 import Utils from './utils';
 import Checkpoint from './checkpoint';
+import { getZoneGroupIdFromGrid, isOutOfBoundsGridPosition } from '../shared/world/coordinate-contract';
 
 interface Position {
     x: number;
@@ -111,7 +112,17 @@ function getMapDefinition(filepath: string): Promise<MapDefinition | null> {
         return cached;
     }
 
-    const pending = readAndNormalizeMapDefinition(filepath);
+    const pending = readAndNormalizeMapDefinition(filepath)
+        .then((mapDefinition) => {
+            if (mapDefinition === null) {
+                mapDefinitionCache.delete(filepath);
+            }
+            return mapDefinition;
+        })
+        .catch((error) => {
+            mapDefinitionCache.delete(filepath);
+            throw error;
+        });
     mapDefinitionCache.set(filepath, pending);
     return pending;
 }
@@ -125,6 +136,8 @@ class Map {
     chestAreas: unknown[];
     staticChests: unknown[];
     staticEntities: Record<string, string>;
+    doors: DoorDefinition[];
+    doorIndex: globalThis.Map<number, DoorDefinition>;
     zoneWidth: number;
     zoneHeight: number;
     groupWidth: number;
@@ -133,7 +146,7 @@ class Map {
     connectedGroups: Record<string, Position[]>;
     checkpoints: Record<string | number, CheckpointContract>;
     startingAreas: CheckpointContract[];
-    ready_func: (() => void) | null;
+    readyCallbacks: Array<() => void>;
 
     constructor(filepath: string) {
         this.isLoaded = false;
@@ -144,6 +157,8 @@ class Map {
         this.chestAreas = [];
         this.staticChests = [];
         this.staticEntities = {};
+        this.doors = [];
+        this.doorIndex = new globalThis.Map();
         this.zoneWidth = 0;
         this.zoneHeight = 0;
         this.groupWidth = 0;
@@ -152,7 +167,7 @@ class Map {
         this.connectedGroups = {};
         this.checkpoints = {};
         this.startingAreas = [];
-        this.ready_func = null;
+        this.readyCallbacks = [];
 
         void this.loadMap(filepath);
     }
@@ -175,6 +190,8 @@ class Map {
         this.staticEntities = map.staticEntities;
         this.isLoaded = true;
 
+        this.initDoors(map.doors);
+
         // zone groups
         this.zoneWidth = 28;
         this.zoneHeight = 12;
@@ -184,9 +201,16 @@ class Map {
         this.initConnectedGroups(map.doors);
         this.initCheckpoints(map.checkpoints);
 
-        if (this.ready_func) {
-            this.ready_func();
-            this.ready_func = null;
+        if (!Array.isArray(this.readyCallbacks)) {
+            this.readyCallbacks = [];
+        }
+
+        if (this.readyCallbacks.length > 0) {
+            const callbacks = this.readyCallbacks.slice();
+            this.readyCallbacks.length = 0;
+            for (let i = 0; i < callbacks.length; i += 1) {
+                callbacks[i]?.();
+            }
         }
     }
 
@@ -195,7 +219,31 @@ class Map {
             f();
             return;
         }
-        this.ready_func = f;
+        if (!Array.isArray(this.readyCallbacks)) {
+            this.readyCallbacks = [];
+        }
+        this.readyCallbacks.push(f);
+    }
+
+    initDoors(doors?: DoorDefinition[]): void {
+        this.doors = doors ?? [];
+        this.doorIndex = new globalThis.Map();
+
+        for (const door of this.doors) {
+            this.doorIndex.set(this.GridPositionToTileIndex(door.x, door.y), door);
+        }
+    }
+
+    isDoor(x: number, y: number): boolean {
+        return this.doorIndex.has(this.GridPositionToTileIndex(x, y));
+    }
+
+    getDoorDestination(x: number, y: number): Position | null {
+        const door = this.doorIndex.get(this.GridPositionToTileIndex(x, y));
+        if (!door) {
+            return null;
+        }
+        return { x: door.tx, y: door.ty };
     }
 
     tileIndexToGridPosition(tileNum: number): Position {
@@ -224,12 +272,13 @@ class Map {
         this.grid = [];
 
         if (this.isLoaded) {
+            const collisionSet = new Set(this.collisions);
             let tileIndex = 0;
             for (let i = 0; i < this.height; i++) {
                 const row: number[] = [];
                 this.grid[i] = row;
                 for (let j = 0; j < this.width; j++) {
-                    if (this.collisions.includes(tileIndex)) {
+                    if (collisionSet.has(tileIndex)) {
                         row[j] = 1;
                     } else {
                         row[j] = 0;
@@ -242,7 +291,7 @@ class Map {
     }
 
     isOutOfBounds(x: number, y: number): boolean {
-        return x <= 0 || x >= this.width || y <= 0 || y >= this.height;
+        return isOutOfBoundsGridPosition(x, y, this.width, this.height);
     }
 
     isColliding(x: number, y: number): boolean {
@@ -271,12 +320,7 @@ class Map {
     }
 
     getGroupIdFromPosition(x: number, y: number): string {
-        const w = this.zoneWidth;
-        const h = this.zoneHeight;
-        const gx = Math.floor((x - 1) / w);
-        const gy = Math.floor((y - 1) / h);
-
-        return gx + '-' + gy;
+        return getZoneGroupIdFromGrid(x, y, this.zoneWidth, this.zoneHeight);
     }
 
     getAdjacentGroupPositions(id: string): Position[] {
@@ -369,11 +413,36 @@ class Map {
         if (nbAreas === 0) {
             throw new Error('Map has no starting area.');
         }
-        const i = Utils.randomInt(0, nbAreas - 1);
+        const fixedIndexRaw = process.env.BQ_FIXED_START_AREA_INDEX;
+        const fixedIndex = typeof fixedIndexRaw === 'string' ? Number.parseInt(fixedIndexRaw, 10) : Number.NaN;
+        const i =
+            Number.isFinite(fixedIndex) && Number.isInteger(fixedIndex)
+                ? Utils.clamp(0, nbAreas - 1, fixedIndex)
+                : Utils.randomInt(0, nbAreas - 1);
         const area = this.startingAreas[i];
         if (!area) {
             throw new Error('Failed to resolve starting area.');
         }
+
+        if (process.env.BQ_FIXED_START_CENTER === '1') {
+            const anyArea = area as unknown as { x?: unknown; y?: unknown; width?: unknown; height?: unknown };
+            if (
+                typeof anyArea.x === 'number'
+                && typeof anyArea.y === 'number'
+                && typeof anyArea.width === 'number'
+                && typeof anyArea.height === 'number'
+                && Number.isFinite(anyArea.x)
+                && Number.isFinite(anyArea.y)
+                && Number.isFinite(anyArea.width)
+                && Number.isFinite(anyArea.height)
+            ) {
+                return {
+                    x: Math.floor(anyArea.x + anyArea.width / 2),
+                    y: Math.floor(anyArea.y + anyArea.height / 2),
+                };
+            }
+        }
+
         return area.getRandomPosition();
     }
 }

@@ -14,6 +14,7 @@ import type { ClientCommand } from '../client-commands';
 import type { ClientWorldKernel } from '../world-kernel';
 import { adaptKernelEntityForRendering } from '../kernel-entity-adapter';
 import Exceptions from '../../exceptions';
+import { debugMoves } from '../../debug-flags';
 
 type GridIndexedEntity = {
     id: EntityId;
@@ -36,6 +37,7 @@ type SpatialRecord = Readonly<{
     nextGridX: number;
     nextGridY: number;
     isMoving: boolean;
+    isDead: boolean;
     kind: EntityKind;
     isPlayer: boolean;
 }>;
@@ -48,6 +50,8 @@ export type ClientCommandApplySystemHost = {
               sendHello(player: unknown): void;
               sendLoot(item: { id: EntityId }): void;
               sendMove(x: number, y: number): void;
+              sendChunkSubscribe(chunkX: number, chunkY: number, radius: number): void;
+              sendChunkUnsubscribe(): void;
               sendZone(): void;
               sendChat(text: string): void;
               sendAchievement(id: number): void;
@@ -56,8 +60,6 @@ export type ClientCommandApplySystemHost = {
               sendLootMove(item: { id: EntityId }, x: number, y: number): void;
               sendCheck(id: string | number): void;
               sendOpen(chest: { id: EntityId }): void;
-              sendHit(mob: { id: EntityId }): void;
-              sendHurt(mob: { id: EntityId }): void;
               sendWho(ids: EntityId[]): void;
           }
         | null;
@@ -121,7 +123,7 @@ export type ClientCommandApplySystemHost = {
     infoManager: { addDamageInfo(value: number | string, x: number, y: number, type: 'received' | 'inflicted' | 'healed'): void };
     sprites: Record<string, unknown>;
     entities: Record<string, GridIndexedEntity>;
-    map: { grid: number[][]; isOutOfBounds(x: number, y: number): boolean } | null;
+    map: { grid: number[][]; isOutOfBounds(x: number, y: number): boolean; isColliding?(x: number, y: number): boolean } | null;
     obsoleteEntities: GridIndexedEntity[] | null;
     removeObsoleteEntities(): void;
     connectionStartedCallback: (() => void) | null;
@@ -140,6 +142,99 @@ function safeOrientation(orientation: number | undefined): number {
         orientation === Types.Orientations.RIGHT
         ? orientation
         : Types.Orientations.DOWN;
+}
+
+function startAuthoritativeAdjacentStep(entity: Character, x: number, y: number): boolean {
+    const distance = Math.abs(entity.gridX - x) + Math.abs(entity.gridY - y);
+    if (distance !== 1) {
+        return false;
+    }
+
+    entity.followPath([
+        [entity.gridX, entity.gridY],
+        [x, y],
+    ]);
+
+    return entity.isMoving();
+}
+
+function appendAuthoritativeAdjacentStep(entity: Character, x: number, y: number): boolean {
+    const path = entity.path;
+    if (!path || path.length === 0) {
+        return false;
+    }
+
+    const tail = path[path.length - 1];
+    if (!tail) {
+        return false;
+    }
+
+    const distance = Math.abs(tail[0] - x) + Math.abs(tail[1] - y);
+    if (distance !== 1) {
+        return false;
+    }
+
+    path.push([x, y]);
+    return true;
+}
+
+function hardStopCharacterMovement(entity: Character): void {
+    entity.stop();
+    entity.path = null;
+    entity.newDestination = null;
+    entity.destination = null;
+    entity.nextGridX = -1;
+    entity.nextGridY = -1;
+    entity.movement.stop();
+    entity.idle();
+}
+
+function planServerAuthoritativeMoveTo({
+    host,
+    toX,
+    toY,
+    stopAdjacentToTarget,
+}: {
+    host: ClientCommandApplySystemHost;
+    toX: number;
+    toY: number;
+    stopAdjacentToTarget: boolean;
+}): void {
+    if (!host.started || !host.client || !host.playerId || !host.map) {
+        return;
+    }
+    if (host.map.isOutOfBounds(toX, toY)) {
+        return;
+    }
+
+    // Cancel any local pathing/prediction immediately; local player only moves via server MOVE/TELEPORT now.
+    hardStopCharacterMovement(host.player);
+
+    // New plan supersedes old.
+    host.kernel.clearClientMovePlan();
+    host.kernel.clearClientPendingMoveAcks();
+    host.kernel.clearClientPendingMoveSeqAcks();
+    host.kernel.clientMovementSuppressed = false;
+
+    const path = host.player.requestPathfindingTo(toX, toY);
+    if (path.length <= 1) {
+        debugMoves('plan:none', { toX, toY, stopAdjacentToTarget, reason: 'no_path' });
+        return;
+    }
+    const rawSteps = stopAdjacentToTarget ? path.slice(1, -1) : path.slice(1);
+    if (rawSteps.length === 0) {
+        debugMoves('plan:none', { toX, toY, stopAdjacentToTarget, reason: 'no_steps' });
+        return;
+    }
+
+    const steps = rawSteps.map((entry) => gridPos(entry[0], entry[1]));
+    const target = steps[steps.length - 1]!;
+    debugMoves('plan:set', { toX, toY, stopAdjacentToTarget, steps: steps.length, target });
+    host.kernel.setClientMovePlan({
+        target,
+        steps,
+        stopAdjacentToTarget,
+    });
 }
 
 function resolveKillNotificationMobName(kind: EntityKind): string | null {
@@ -174,6 +269,22 @@ function setPathingCell(host: ClientCommandApplySystemHost, x: number, y: number
     grid[y][x] = value;
 }
 
+const DEFAULT_CHUNK_SUBSCRIBE_RADIUS = 3;
+const DEFAULT_CHUNK_SIZE_HINT = 32;
+
+function resolveChunkCenterFromTile(host: ClientCommandApplySystemHost, x: number, y: number): { chunkX: number; chunkY: number } {
+    const hintedChunkSize = host.kernel.clientChunkOverlayCache.chunkSize ?? DEFAULT_CHUNK_SIZE_HINT;
+    const chunkSize = Number.isSafeInteger(hintedChunkSize) && hintedChunkSize > 0 ? hintedChunkSize : DEFAULT_CHUNK_SIZE_HINT;
+    return {
+        chunkX: Math.floor(x / chunkSize),
+        chunkY: Math.floor(y / chunkSize),
+    };
+}
+
+function overlayValueToPathingValue(value: number): number {
+    return value === 0 ? 0 : 1;
+}
+
 function basePathingValue(host: ClientCommandApplySystemHost, x: number, y: number): number {
     if (!host.map) {
         return 0;
@@ -181,6 +292,15 @@ function basePathingValue(host: ClientCommandApplySystemHost, x: number, y: numb
     if (host.map.isOutOfBounds(x, y)) {
         return 0;
     }
+    if (typeof host.map.isColliding === 'function') {
+        return host.map.isColliding(x, y) ? 1 : 0;
+    }
+
+    const overlayValue = host.kernel.clientChunkOverlayCache.getGlobal(x, y);
+    if (overlayValue !== null) {
+        return overlayValueToPathingValue(overlayValue);
+    }
+
     return host.map.grid[y]?.[x] ?? 0;
 }
 
@@ -237,6 +357,10 @@ function applySpatialAddRecord(host: ClientCommandApplySystemHost, entityId: Ent
         return;
     }
 
+    if (record.isDead) {
+        return;
+    }
+
     if (record.isMoving && record.nextGridX >= 0 && record.nextGridY >= 0) {
         addDynamicPathing(host, record.nextGridX, record.nextGridY);
     } else {
@@ -251,8 +375,20 @@ function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: st
     host.setPlayerName(name);
     host.setPlayerGridPosition(x, y);
     host.setPlayerMaxHitPoints(maxHp);
+    host.kernel.upsertSimpleEntity(id, host.player.kind, x, y);
 
     host.kernel.clientLastSentMovePos = gridPos(x, y);
+    host.kernel.clearClientPendingMoveAcks();
+    host.kernel.clearClientPendingMoveSeqAcks();
+    host.kernel.clientMovementSuppressed = false;
+    host.kernel.clientLocalPlayerDead = false;
+    const chunkCenter = resolveChunkCenterFromTile(host, x, y);
+    host.kernel.enqueueClientCommand({
+        type: 'clientSendChunkSubscribe',
+        chunkX: chunkCenter.chunkX,
+        chunkY: chunkCenter.chunkY,
+        radius: DEFAULT_CHUNK_SUBSCRIBE_RADIUS,
+    });
 
     host.updateBars();
     host.resetCamera();
@@ -299,6 +435,10 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             case 'characterClearTarget': {
                 const entity = getKnownEntity(command.entityId);
                 if (entity instanceof Character) {
+                    entity.stop();
+                    entity.path = null;
+                    entity.nextGridX = -1;
+                    entity.nextGridY = -1;
                     entity.disengage();
                     entity.previousTarget = null;
                     entity.unconfirmedTarget = null;
@@ -319,6 +459,20 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 }
                 host.client.sendMove(command.x, command.y);
                 host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                break;
+            }
+            case 'clientSendChunkSubscribe': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendChunkSubscribe(command.chunkX, command.chunkY, command.radius);
+                break;
+            }
+            case 'clientSendChunkUnsubscribe': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendChunkUnsubscribe();
                 break;
             }
             case 'clientSendZone': {
@@ -476,17 +630,16 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 const entity = getKnownEntity(command.entityId);
                 const target = getKnownEntity(command.targetId);
                 if (entity instanceof Character && target instanceof Character) {
-                    entity.follow(target);
-                }
-                break;
-            }
-            case 'clientSendHit': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                const entity = getKnownEntity(command.targetId);
-                if (entity instanceof Mob) {
-                    host.client.sendHit(entity);
+                    // Movement is server-authoritative; only treat "follow" as a planning request for the local player.
+                    if (host.playerId !== null && command.entityId === host.playerId) {
+                        host.player.setTarget(target);
+                        planServerAuthoritativeMoveTo({
+                            host,
+                            toX: target.gridX,
+                            toY: target.gridY,
+                            stopAdjacentToTarget: true,
+                        });
+                    }
                 }
                 break;
             }
@@ -510,28 +663,37 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 host.infoManager.addDamageInfo(command.points, x, y, 'inflicted');
                 break;
             }
-            case 'clientSendHurt': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                const mob = getKnownEntity(command.mobId);
-                if (mob instanceof Mob) {
-                    host.client.sendHurt(mob);
-                }
-                break;
-            }
             case 'playerGoTo': {
-                host.makePlayerGoTo(command.x, command.y);
+                host.player.disengage();
+                planServerAuthoritativeMoveTo({
+                    host,
+                    toX: command.x,
+                    toY: command.y,
+                    stopAdjacentToTarget: false,
+                });
                 break;
             }
             case 'playerGoToItem': {
                 const entity = getKnownEntity(command.itemId);
-                host.makePlayerGoToItem(entity instanceof Item ? entity : null);
+                if (entity instanceof Item) {
+                    host.player.disengage();
+                    planServerAuthoritativeMoveTo({
+                        host,
+                        toX: entity.gridX,
+                        toY: entity.gridY,
+                        stopAdjacentToTarget: false,
+                    });
+                }
                 break;
             }
             case 'playerAttack': {
                 const entity = getKnownEntity(command.targetId);
                 if (entity instanceof Mob) {
+                    // Once in range, stop sending any queued steps; movement is server-authoritative.
+                    host.kernel.clearClientMovePlan();
+                    host.kernel.clearClientPendingMoveAcks();
+                    host.kernel.clearClientPendingMoveSeqAcks();
+
                     host.createAttackLink(host.player as unknown, entity as unknown);
                     if (host.started && host.client) {
                         host.client.sendAttack(entity);
@@ -542,14 +704,28 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             case 'playerFollow': {
                 const entity = getKnownEntity(command.targetId);
                 if (entity && typeof (entity as { gridX?: unknown; gridY?: unknown }).gridX === 'number') {
-                    host.player.follow(entity as never);
+                    if (entity instanceof Character) {
+                        host.player.setTarget(entity);
+                    }
+                    planServerAuthoritativeMoveTo({
+                        host,
+                        toX: (entity as { gridX: number }).gridX,
+                        toY: (entity as { gridY: number }).gridY,
+                        stopAdjacentToTarget: true,
+                    });
                 }
                 break;
             }
             case 'playerTalkTo': {
                 const entity = getKnownEntity(command.npcId);
                 if (entity instanceof Npc) {
-                    host.makePlayerTalkTo(entity);
+                    host.player.setTarget(entity);
+                    planServerAuthoritativeMoveTo({
+                        host,
+                        toX: entity.gridX,
+                        toY: entity.gridY,
+                        stopAdjacentToTarget: true,
+                    });
                 }
                 break;
             }
@@ -563,7 +739,13 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             case 'playerOpenChest': {
                 const entity = getKnownEntity(command.chestId);
                 if (entity instanceof Chest) {
-                    host.makePlayerOpenChest(entity);
+                    host.player.setTarget(entity);
+                    planServerAuthoritativeMoveTo({
+                        host,
+                        toX: entity.gridX,
+                        toY: entity.gridY,
+                        stopAdjacentToTarget: true,
+                    });
                 }
                 break;
             }
@@ -624,6 +806,9 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             }
             case 'playerStop': {
                 host.player.stop();
+                host.kernel.clearClientMovePlan();
+                host.kernel.clearClientPendingMoveAcks();
+                host.kernel.clearClientPendingMoveSeqAcks();
                 break;
             }
             case 'playerDisengage': {
@@ -678,13 +863,30 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             case 'teleportEntity': {
                 const entity = getKnownEntity(command.entityId);
                 if (entity) {
+                    if (entity instanceof Character) {
+                        // Server teleports/corrections must cancel local pathing; otherwise the client continues an
+                        // obsolete predicted path and fights the authoritative position.
+                        entity.path = null;
+                        entity.step = 0;
+                        entity.newDestination = null;
+                        entity.destination = null;
+                        entity.interrupted = false;
+                        entity.nextGridX = -1;
+                        entity.nextGridY = -1;
+                        entity.movement.stop();
+                        entity.idle();
+                    }
                     // Use legacy immediate teleport effect when available.
                     host.makeCharacterTeleportTo(entity as unknown, command.x, command.y);
                 }
                 host.kernel.clientReplicationLastPos.set(command.entityId, gridPos(command.x, command.y));
                 if (command.entityId === host.playerId) {
                     host.kernel.clientDoorTraversalArmed = false;
+                    host.kernel.clearClientMovePlan();
                     host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                    host.kernel.clearClientPendingMoveAcks();
+                    host.kernel.clearClientPendingMoveSeqAcks();
+                    host.kernel.clientMovementSuppressed = false;
                 }
                 break;
             }
@@ -699,6 +901,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             case 'setPlayerHealth': {
                 const previousPoints = host.player.hitPoints;
                 host.setPlayerHealth(command.points);
+                host.kernel.clientLocalPlayerDead = command.points <= 0;
                 host.updateBars();
 
                 if (!command.isRegen) {
@@ -875,7 +1078,46 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     break;
                 }
                 if (entity instanceof Character) {
-                    entity.moveTo_(command.x, command.y);
+                    if (entity.isMoving()) {
+                        const path = entity.path;
+                        const tail = path?.length ? path[path.length - 1] : null;
+                        if (tail !== null && tail[0] === command.x && tail[1] === command.y) {
+                            break;
+                        }
+                        if (appendAuthoritativeAdjacentStep(entity, command.x, command.y)) {
+                            break;
+                        }
+
+                        hardStopCharacterMovement(entity);
+                        if (host.playerId === command.entityId) {
+                            debugMoves('apply:teleport_fallback', {
+                                entityId: command.entityId,
+                                to: { x: command.x, y: command.y },
+                                reason: 'append_failed',
+                            });
+                        }
+                        host.makeCharacterTeleportTo(entity as unknown, command.x, command.y);
+                        break;
+                    }
+
+                    if (entity.gridX === command.x && entity.gridY === command.y) {
+                        break;
+                    }
+
+                    if (startAuthoritativeAdjacentStep(entity, command.x, command.y)) {
+                        break;
+                    }
+
+                    // Non-local replication gaps (e.g. zoning/interest reacquire) should snap to authoritative position.
+                    hardStopCharacterMovement(entity);
+                    if (host.playerId === command.entityId) {
+                        debugMoves('apply:teleport_fallback', {
+                            entityId: command.entityId,
+                            to: { x: command.x, y: command.y },
+                            reason: 'start_failed_or_non_adjacent',
+                        });
+                    }
+                    host.makeCharacterTeleportTo(entity as unknown, command.x, command.y);
                 }
                 break;
             }

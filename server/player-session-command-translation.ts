@@ -12,6 +12,10 @@ const NAME_MAX_CODEPOINTS = 15;
 const CHAT_MAX_UTF8_BYTES = 512;
 const CHAT_MAX_CODEPOINTS = 60;
 const WHO_MAX_IDS = 1000;
+const CAPABILITIES_JSON_MAX_UTF8_BYTES = 4096;
+const INTENT_TYPE_ID_MAX_UTF8_BYTES = 96;
+const CHUNK_COORD_ABS_MAX = 1_000_000;
+const CHUNK_RADIUS_MAX = 8;
 
 type CloseInvalidPayload = (reason: string) => void;
 
@@ -32,12 +36,31 @@ function translateHello(
     const armorKind = Number(message[2]) as EntityKind;
     const weaponKind = Number(message[3]) as EntityKind;
 
+    let protocolRevision: number | undefined;
+    let capabilitiesJson: string | undefined;
+    if (message.length >= 6) {
+        const candidateRevision = message[4];
+        const candidateCaps = message[5];
+        if (typeof candidateRevision === 'number' && Number.isFinite(candidateRevision) && Number.isSafeInteger(candidateRevision)) {
+            protocolRevision = candidateRevision;
+        }
+        if (typeof candidateCaps === 'string') {
+            if (!Utils.hasMaxUtf8Bytes(candidateCaps, CAPABILITIES_JSON_MAX_UTF8_BYTES)) {
+                closeInvalidPayload('Capabilities payload is too large.');
+                return null;
+            }
+            capabilitiesJson = candidateCaps;
+        }
+    }
+
     return {
         type: 'HELLO',
         source,
         name: name === '' ? 'lorem ipsum' : name,
         armorKind,
         weaponKind,
+        ...(typeof protocolRevision === 'number' ? { protocolRevision } : {}),
+        ...(typeof capabilitiesJson === 'string' ? { capabilitiesJson } : {}),
     };
 }
 
@@ -141,32 +164,6 @@ export function translateClientActionToCommand(
                 return null;
             }
         }
-        case Types.Messages.HIT: {
-            const attackedMobId = message[1];
-            if (typeof attackedMobId !== 'number') {
-                closeInvalidPayload('Invalid HIT payload.');
-                return null;
-            }
-            try {
-                return { type: 'HIT', source, attackedMobId: entityIdFromWire(attackedMobId) };
-            } catch (err) {
-                closeInvalidPayload(`Invalid HIT mob id: ${String(err)}`);
-                return null;
-            }
-        }
-        case Types.Messages.HURT: {
-            const hurtingMobId = message[1];
-            if (typeof hurtingMobId !== 'number') {
-                closeInvalidPayload('Invalid HURT payload.');
-                return null;
-            }
-            try {
-                return { type: 'HURT', source, hurtingMobId: entityIdFromWire(hurtingMobId) };
-            } catch (err) {
-                closeInvalidPayload(`Invalid HURT mob id: ${String(err)}`);
-                return null;
-            }
-        }
         case Types.Messages.LOOT: {
             const droppedItemId = message[1];
             if (typeof droppedItemId !== 'number') {
@@ -222,6 +219,59 @@ export function translateClientActionToCommand(
                 return null;
             }
             return { type: 'ACHIEVEMENT', source, achievementId };
+        }
+        case Types.Messages.INTENT: {
+            const seq = message[1];
+            const intentTypeId = message[2];
+            const payloadJson = message[3];
+
+            if (
+                typeof seq !== 'number'
+                || !Number.isFinite(seq)
+                || !Number.isSafeInteger(seq)
+                || seq < 0
+                || typeof intentTypeId !== 'string'
+                || !Utils.hasMaxUtf8Bytes(intentTypeId, INTENT_TYPE_ID_MAX_UTF8_BYTES)
+                || typeof payloadJson !== 'string'
+                || !Utils.hasMaxUtf8Bytes(payloadJson, CAPABILITIES_JSON_MAX_UTF8_BYTES)
+            ) {
+                closeInvalidPayload('Invalid INTENT payload.');
+                return null;
+            }
+
+            return {
+                type: 'INTENT',
+                source,
+                seq,
+                intentTypeId,
+                payloadJson,
+            };
+        }
+        case Types.Messages.CHUNK_SUBSCRIBE: {
+            const chunkX = message[1];
+            const chunkY = message[2];
+            const radius = message[3];
+
+            if (
+                typeof chunkX !== 'number'
+                || typeof chunkY !== 'number'
+                || typeof radius !== 'number'
+                || !Number.isSafeInteger(chunkX)
+                || !Number.isSafeInteger(chunkY)
+                || !Number.isSafeInteger(radius)
+                || Math.abs(chunkX) > CHUNK_COORD_ABS_MAX
+                || Math.abs(chunkY) > CHUNK_COORD_ABS_MAX
+                || radius < 0
+                || radius > CHUNK_RADIUS_MAX
+            ) {
+                closeInvalidPayload('Invalid CHUNK_SUBSCRIBE payload.');
+                return null;
+            }
+
+            return { type: 'CHUNK_SUBSCRIBE', source, chunkX, chunkY, radius };
+        }
+        case Types.Messages.CHUNK_UNSUBSCRIBE: {
+            return { type: 'CHUNK_UNSUBSCRIBE', source };
         }
         default:
             closeInvalidPayload(`Unsupported opcode: ${String(message[0])}`);

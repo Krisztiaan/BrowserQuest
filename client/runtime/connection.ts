@@ -35,6 +35,7 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
     });
 
     effects.on('welcome', function ({ game }, id: EntityId, name: string, x: number, y: number, hp: number) {
+        game.clearReviveWelcomeTimeout();
         enqueue(game, { type: 'welcome', id, name, x, y, maxHp: hp });
     });
 
@@ -102,6 +103,7 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
     );
 
     effects.on('disconnected', function ({ game }, reason: string) {
+        game.clearReviveWelcomeTimeout();
         game.emit('disconnect', reason);
     });
 

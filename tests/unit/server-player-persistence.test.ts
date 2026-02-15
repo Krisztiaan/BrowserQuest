@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+import { Database } from 'bun:sqlite';
 import { rmSync } from 'node:fs';
 import path from 'node:path';
 import Types from '../../shared/gametypes-browser';
@@ -7,7 +8,9 @@ import { SqlitePlayerPersistence } from '../../server/player-persistence';
 const tempDbPaths: string[] = [];
 
 function createPersistence(): SqlitePlayerPersistence {
-    const dbPath = path.resolve(`./server/.tmp-player-persistence-${Date.now()}-${Math.floor(Math.random() * 100000)}.sqlite`);
+    const dbPath = path.resolve(
+        `./server/.tmp-player-persistence-${Date.now()}-${Math.floor(Math.random() * 100000)}.sqlite`
+    );
     tempDbPaths.push(dbPath);
     return new SqlitePlayerPersistence(dbPath);
 }
@@ -130,6 +133,160 @@ test('player persistence stores and caps achievement counters + unlock ids', () 
     expect(progress?.totalDmg).toBe(5000);
     expect(progress?.totalRevives).toBe(5);
     expect(progress?.unlockedIds).toEqual([3, 13]);
+
+    persistence.close();
+});
+
+test('player persistence supports passkey registration and passkey authentication by account name key', () => {
+    const persistence = createPersistence();
+
+    const registered = persistence.registerPasskeyCredential({
+        requestedName: 'Hero',
+        credentialId: 'cred-hero-1',
+    });
+    expect(registered.accepted).toBe(true);
+    if (registered.accepted) {
+        expect(registered.accountNameKey).toBe('hero');
+        expect(registered.profile.accountNameKey).toBe('hero');
+    }
+
+    const authenticated = persistence.authenticatePasskeyCredential({
+        requestedName: 'hero',
+        credentialId: 'cred-hero-1',
+    });
+    expect(authenticated.accepted).toBe(true);
+    if (authenticated.accepted) {
+        expect(authenticated.accountNameKey).toBe('hero');
+        expect(authenticated.profile.nameKey).toBe('hero');
+    }
+
+    const rejected = persistence.authenticatePasskeyCredential({
+        requestedName: 'hero',
+        credentialId: 'cred-hero-mismatch',
+    });
+    expect(rejected.accepted).toBe(false);
+    if (!rejected.accepted) {
+        expect(rejected.reason).toContain('did not match');
+    }
+
+    persistence.close();
+});
+
+test('player session claiming is account-bound even if display name changes', () => {
+    const persistence = createPersistence();
+    const registration = persistence.registerPasskeyCredential({
+        requestedName: 'Hero',
+        credentialId: 'cred-account-1',
+    });
+    expect(registration.accepted).toBe(true);
+
+    const firstClaim = persistence.claimPlayerSession({
+        connectionId: 'conn-1',
+        requestedName: 'Hero Display One',
+        authenticatedAccountNameKey: 'hero',
+    });
+    expect(firstClaim.accepted).toBe(true);
+
+    const duplicateClaim = persistence.claimPlayerSession({
+        connectionId: 'conn-2',
+        requestedName: 'Hero Display Two',
+        authenticatedAccountNameKey: 'hero',
+    });
+    expect(duplicateClaim.accepted).toBe(false);
+
+    persistence.releasePlayerSession('conn-1');
+    const secondClaim = persistence.claimPlayerSession({
+        connectionId: 'conn-2',
+        requestedName: 'Hero Display Two',
+        authenticatedAccountNameKey: 'hero',
+    });
+    expect(secondClaim.accepted).toBe(true);
+    if (secondClaim.accepted) {
+        expect(secondClaim.profile.accountNameKey).toBe('hero');
+        expect(secondClaim.profile.nameKey).toBe('hero');
+        expect(secondClaim.profile.displayName).toBe('Hero Display Two');
+    }
+
+    persistence.persistCheckpoint({
+        playerName: 'hero',
+        checkpointId: 91,
+    });
+    const profile = persistence.getProfileByAccountNameKey('hero');
+    expect(profile?.checkpointId).toBe(91);
+    expect(persistence.getProfileByName('Hero Display Two')).toBeNull();
+
+    persistence.close();
+});
+
+test('player persistence round-trips progression state fields', () => {
+    const persistence = createPersistence();
+    const claim = persistence.claimPlayerSession({
+        connectionId: 'conn-progression',
+        requestedName: 'Farmer',
+    });
+    expect(claim.accepted).toBe(true);
+
+    persistence.persistProgression({
+        playerName: 'farmer',
+        progression: {
+            gold: 420,
+            farmingLevel: 5,
+            farmingXp: 1234,
+            homePlotClaimId: 7,
+            inventory: [
+                { itemKind: Types.Entities.FLASK, quantity: 3 },
+                { itemKind: Types.Entities.BURGER, quantity: 1 },
+            ],
+        },
+    });
+
+    const profile = persistence.getProfileByAccountNameKey('farmer');
+    expect(profile).not.toBeNull();
+    expect(profile?.progression.gold).toBe(420);
+    expect(profile?.progression.farmingLevel).toBe(5);
+    expect(profile?.progression.farmingXp).toBe(1234);
+    expect(profile?.progression.homePlotClaimId).toBe(7);
+    expect(profile?.progression.inventory).toEqual([
+        { itemKind: Types.Entities.FLASK, quantity: 3 },
+        { itemKind: Types.Entities.BURGER, quantity: 1 },
+    ]);
+
+    persistence.close();
+});
+
+test('player persistence migrates legacy players schema and applies progression defaults', () => {
+    const dbPath = path.resolve(
+        `./server/.tmp-player-persistence-legacy-${Date.now()}-${Math.floor(Math.random() * 100000)}.sqlite`
+    );
+    tempDbPaths.push(dbPath);
+
+    const legacyDb = new Database(dbPath, { create: true });
+    legacyDb.exec(`
+        CREATE TABLE IF NOT EXISTS players (
+            name_key TEXT PRIMARY KEY,
+            display_name TEXT NOT NULL,
+            armor_kind INTEGER NOT NULL,
+            weapon_kind INTEGER NOT NULL,
+            checkpoint_id INTEGER NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS active_sessions (
+            name_key TEXT PRIMARY KEY,
+            connection_id TEXT NOT NULL UNIQUE,
+            claimed_at INTEGER NOT NULL
+        );
+        INSERT INTO players (name_key, display_name, armor_kind, weapon_kind, checkpoint_id, created_at, updated_at)
+        VALUES ('legacy', 'Legacy', ${Types.Entities.CLOTHARMOR}, ${Types.Entities.SWORD1}, NULL, 1, 1);
+    `);
+    legacyDb.close();
+
+    const persistence = new SqlitePlayerPersistence(dbPath);
+    const profile = persistence.getProfileByName('legacy');
+    expect(profile).not.toBeNull();
+    expect(profile?.progression.gold).toBe(0);
+    expect(profile?.progression.farmingLevel).toBe(1);
+    expect(profile?.progression.inventory).toEqual([]);
 
     persistence.close();
 });

@@ -20,8 +20,14 @@ import type {
     ServerToClientMoveAction,
     ServerToClientPopulationAction,
     ServerToClientProtocolAction,
+    ServerToClientAckAction,
+    ServerToClientCorrectionAction,
+    ServerToClientRejectAction,
     ServerToClientTeleportAction,
     ServerToClientWelcomeAction,
+    ServerToClientChunkSnapshotAction,
+    ServerToClientChunkSnapshotPartAction,
+    ServerToClientChunkDeltaAction,
 } from '../../shared/protocol/types';
 
 export function buildWelcomeAction({
@@ -30,14 +36,63 @@ export function buildWelcomeAction({
     x,
     y,
     hp,
+    protocolRevision,
+    capabilitiesJson,
 }: {
     id: EntityId;
     name: string;
     x: number;
     y: number;
     hp: number;
+    protocolRevision?: number;
+    capabilitiesJson?: string;
 }): ServerToClientWelcomeAction {
+    if (typeof protocolRevision === 'number' && typeof capabilitiesJson === 'string') {
+        return [Types.Messages.WELCOME, entityIdToWire(id), name, x, y, hp, protocolRevision, capabilitiesJson];
+    }
     return [Types.Messages.WELCOME, entityIdToWire(id), name, x, y, hp];
+}
+
+export function buildRejectAction(seq: number, intentTypeId: string, reason: string): ServerToClientRejectAction {
+    return [Types.Messages.REJECT, seq, intentTypeId, reason];
+}
+
+export function buildAckAction(seq: number): ServerToClientAckAction {
+    return [Types.Messages.ACK, seq];
+}
+
+export function buildCorrectionMoveAction(seq: number, x: number, y: number): ServerToClientCorrectionAction {
+    return [Types.Messages.CORRECTION, seq, x, y];
+}
+
+export function buildChunkSnapshotAction(
+    chunkX: number,
+    chunkY: number,
+    version: number,
+    payloadJson: string
+): ServerToClientChunkSnapshotAction {
+    return [Types.Messages.CHUNK_SNAPSHOT, chunkX, chunkY, version, payloadJson];
+}
+
+export function buildChunkSnapshotPartAction(
+    chunkX: number,
+    chunkY: number,
+    version: number,
+    partIndex: number,
+    partCount: number,
+    payloadJson: string
+): ServerToClientChunkSnapshotPartAction {
+    return [Types.Messages.CHUNK_SNAPSHOT_PART, chunkX, chunkY, version, partIndex, partCount, payloadJson];
+}
+
+export function buildChunkDeltaAction(
+    chunkX: number,
+    chunkY: number,
+    fromVersion: number,
+    toVersion: number,
+    payloadJson: string
+): ServerToClientChunkDeltaAction {
+    return [Types.Messages.CHUNK_DELTA, chunkX, chunkY, fromVersion, toVersion, payloadJson];
 }
 
 export function buildDespawnAction(id: EntityId): ServerToClientDespawnAction {

@@ -14,6 +14,7 @@ type ProfileRow = {
     armor_kind: number;
     weapon_kind: number;
     checkpoint_id: number | null;
+    progression_json: string | null;
 };
 
 type AchievementProgressRow = {
@@ -36,6 +37,14 @@ type SessionByConnectionRow = {
     name_key: string;
 };
 
+type PasskeyCredentialByNameRow = {
+    credential_id: string;
+};
+
+type PasskeyCredentialByIdRow = {
+    name_key: string;
+};
+
 export type PersistedAchievementProgress = Readonly<{
     unlockedIds: number[];
     ratCount: number;
@@ -46,17 +55,40 @@ export type PersistedAchievementProgress = Readonly<{
 }>;
 
 export type PersistedPlayerProfile = Readonly<{
+    accountNameKey: string;
     nameKey: string;
     displayName: string;
     armorKind: EntityKind;
     weaponKind: EntityKind;
     checkpointId: number | null;
     achievements: PersistedAchievementProgress;
+    progression: PersistedProgressionState;
 }>;
 
 export type ClaimPlayerSessionResult =
     | Readonly<{ accepted: true; profile: PersistedPlayerProfile }>
     | Readonly<{ accepted: false; reason: string }>;
+
+export type PasskeyRegisterResult =
+    | Readonly<{ accepted: true; accountNameKey: string; profile: PersistedPlayerProfile }>
+    | Readonly<{ accepted: false; reason: string }>;
+
+export type PasskeyAuthenticateResult =
+    | Readonly<{ accepted: true; accountNameKey: string; profile: PersistedPlayerProfile }>
+    | Readonly<{ accepted: false; reason: string }>;
+
+export type PersistedInventoryEntry = Readonly<{
+    itemKind: EntityKind;
+    quantity: number;
+}>;
+
+export type PersistedProgressionState = Readonly<{
+    gold: number;
+    farmingLevel: number;
+    farmingXp: number;
+    homePlotClaimId: number | null;
+    inventory: PersistedInventoryEntry[];
+}>;
 
 function normalizePlayerName(name: string): string {
     return name.trim().toLowerCase();
@@ -73,14 +105,94 @@ function resolveDisplayName(name: string, normalizedName: string): string {
     return 'lorem ipsum';
 }
 
+function defaultProgressionState(): PersistedProgressionState {
+    return {
+        gold: 0,
+        farmingLevel: 1,
+        farmingXp: 0,
+        homePlotClaimId: null,
+        inventory: [],
+    };
+}
+
+function sanitizeProgressionState(candidate: unknown): PersistedProgressionState {
+    const fallback = defaultProgressionState();
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        return fallback;
+    }
+    const raw = candidate as Record<string, unknown>;
+    const gold = typeof raw.gold === 'number' && Number.isFinite(raw.gold) ? Math.max(0, Math.trunc(raw.gold)) : fallback.gold;
+    const farmingLevel =
+        typeof raw.farmingLevel === 'number' && Number.isFinite(raw.farmingLevel)
+            ? Math.max(1, Math.trunc(raw.farmingLevel))
+            : fallback.farmingLevel;
+    const farmingXp =
+        typeof raw.farmingXp === 'number' && Number.isFinite(raw.farmingXp)
+            ? Math.max(0, Math.trunc(raw.farmingXp))
+            : fallback.farmingXp;
+    const homePlotClaimId =
+        typeof raw.homePlotClaimId === 'number' && Number.isFinite(raw.homePlotClaimId)
+            ? Math.max(0, Math.trunc(raw.homePlotClaimId))
+            : null;
+    const inventory = Array.isArray(raw.inventory)
+        ? raw.inventory
+              .map((entry) => {
+                  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+                      return null;
+                  }
+                  const record = entry as Record<string, unknown>;
+                  const itemKind = record.itemKind;
+                  const quantity = record.quantity;
+                  if (
+                      (typeof itemKind !== 'number' && typeof itemKind !== 'string')
+                      || typeof quantity !== 'number'
+                      || !Number.isFinite(quantity)
+                  ) {
+                      return null;
+                  }
+                  const safeQuantity = Math.max(1, Math.trunc(quantity));
+                  return {
+                      itemKind: itemKind as EntityKind,
+                      quantity: safeQuantity,
+                  } satisfies PersistedInventoryEntry;
+              })
+              .filter((entry): entry is PersistedInventoryEntry => entry !== null)
+        : fallback.inventory;
+
+    return {
+        gold,
+        farmingLevel,
+        farmingXp,
+        homePlotClaimId,
+        inventory,
+    };
+}
+
+function decodeProgressionState(jsonText: string | null | undefined): PersistedProgressionState {
+    if (typeof jsonText !== 'string' || jsonText.trim().length === 0) {
+        return defaultProgressionState();
+    }
+    try {
+        return sanitizeProgressionState(JSON.parse(jsonText));
+    } catch (_) {
+        return defaultProgressionState();
+    }
+}
+
+function encodeProgressionState(state: PersistedProgressionState): string {
+    return JSON.stringify(state);
+}
+
 function asPersistedPlayerProfile(row: ProfileRow, achievements: PersistedAchievementProgress): PersistedPlayerProfile {
     return {
+        accountNameKey: row.name_key,
         nameKey: row.name_key,
         displayName: row.display_name,
         armorKind: row.armor_kind as EntityKind,
         weaponKind: row.weapon_kind as EntityKind,
         checkpointId: typeof row.checkpoint_id === 'number' ? row.checkpoint_id : null,
         achievements,
+        progression: decodeProgressionState(row.progression_json),
     };
 }
 
@@ -103,6 +215,7 @@ export class SqlitePlayerPersistence {
     #updateProfileDisplayName: ReturnType<Database['prepare']>;
     #upsertEquipment: ReturnType<Database['prepare']>;
     #upsertCheckpoint: ReturnType<Database['prepare']>;
+    #upsertProgression: ReturnType<Database['prepare']>;
     #selectSessionByName: ReturnType<Database['prepare']>;
     #selectSessionByConnection: ReturnType<Database['prepare']>;
     #insertSession: ReturnType<Database['prepare']>;
@@ -113,6 +226,11 @@ export class SqlitePlayerPersistence {
     #incrementAchievementProgress: ReturnType<Database['prepare']>;
     #selectUnlockedAchievements: ReturnType<Database['prepare']>;
     #insertUnlockedAchievement: ReturnType<Database['prepare']>;
+    #selectPasskeyCredentialByNameAndCredential: ReturnType<Database['prepare']>;
+    #selectPasskeyCredentialByCredential: ReturnType<Database['prepare']>;
+    #selectAnyPasskeyCredentialByName: ReturnType<Database['prepare']>;
+    #insertPasskeyCredential: ReturnType<Database['prepare']>;
+    #touchPasskeyCredentialUse: ReturnType<Database['prepare']>;
 
     constructor(configuredPath?: string | null) {
         this.databasePath = resolveDatabasePath(configuredPath);
@@ -129,6 +247,7 @@ export class SqlitePlayerPersistence {
                 armor_kind INTEGER NOT NULL,
                 weapon_kind INTEGER NOT NULL,
                 checkpoint_id INTEGER NULL,
+                progression_json TEXT NOT NULL DEFAULT '{}',
                 created_at INTEGER NOT NULL,
                 updated_at INTEGER NOT NULL
             );
@@ -155,22 +274,34 @@ export class SqlitePlayerPersistence {
                 PRIMARY KEY(name_key, achievement_id),
                 FOREIGN KEY(name_key) REFERENCES players(name_key) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS player_passkeys (
+                name_key TEXT NOT NULL,
+                credential_id TEXT NOT NULL UNIQUE,
+                created_at INTEGER NOT NULL,
+                last_used_at INTEGER NOT NULL,
+                PRIMARY KEY(name_key, credential_id),
+                FOREIGN KEY(name_key) REFERENCES players(name_key) ON DELETE CASCADE
+            );
+            CREATE INDEX IF NOT EXISTS player_passkeys_name_key ON player_passkeys(name_key);
         `);
+        this.#ensurePlayersTableColumns();
 
         this.#selectProfile = this.#db.prepare(
-            `SELECT name_key, display_name, armor_kind, weapon_kind, checkpoint_id
+            `SELECT name_key, display_name, armor_kind, weapon_kind, checkpoint_id, progression_json
              FROM players WHERE name_key = ?1`
         );
         this.#insertProfile = this.#db.prepare(
-            `INSERT INTO players (name_key, display_name, armor_kind, weapon_kind, checkpoint_id, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`
+            `INSERT INTO players
+                (name_key, display_name, armor_kind, weapon_kind, checkpoint_id, progression_json, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`
         );
         this.#updateProfileDisplayName = this.#db.prepare(
             `UPDATE players SET display_name = ?2, updated_at = ?3 WHERE name_key = ?1`
         );
         this.#upsertEquipment = this.#db.prepare(
-            `INSERT INTO players (name_key, display_name, armor_kind, weapon_kind, checkpoint_id, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6)
+            `INSERT INTO players
+                (name_key, display_name, armor_kind, weapon_kind, checkpoint_id, progression_json, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, NULL, ?5, ?6, ?7)
              ON CONFLICT(name_key) DO UPDATE SET
                 display_name = excluded.display_name,
                 armor_kind = excluded.armor_kind,
@@ -178,11 +309,21 @@ export class SqlitePlayerPersistence {
                 updated_at = excluded.updated_at`
         );
         this.#upsertCheckpoint = this.#db.prepare(
-            `INSERT INTO players (name_key, display_name, armor_kind, weapon_kind, checkpoint_id, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+            `INSERT INTO players
+                (name_key, display_name, armor_kind, weapon_kind, checkpoint_id, progression_json, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
              ON CONFLICT(name_key) DO UPDATE SET
                 display_name = excluded.display_name,
                 checkpoint_id = excluded.checkpoint_id,
+                updated_at = excluded.updated_at`
+        );
+        this.#upsertProgression = this.#db.prepare(
+            `INSERT INTO players
+                (name_key, display_name, armor_kind, weapon_kind, checkpoint_id, progression_json, created_at, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+             ON CONFLICT(name_key) DO UPDATE SET
+                display_name = excluded.display_name,
+                progression_json = excluded.progression_json,
                 updated_at = excluded.updated_at`
         );
         this.#selectSessionByName = this.#db.prepare(
@@ -228,8 +369,43 @@ export class SqlitePlayerPersistence {
             `INSERT OR IGNORE INTO player_achievement_unlocks (name_key, achievement_id, unlocked_at)
              VALUES (?1, ?2, ?3)`
         );
+        this.#selectPasskeyCredentialByNameAndCredential = this.#db.prepare(
+            `SELECT credential_id
+             FROM player_passkeys
+             WHERE name_key = ?1 AND credential_id = ?2`
+        );
+        this.#selectPasskeyCredentialByCredential = this.#db.prepare(
+            `SELECT name_key
+             FROM player_passkeys
+             WHERE credential_id = ?1`
+        );
+        this.#selectAnyPasskeyCredentialByName = this.#db.prepare(
+            `SELECT credential_id
+             FROM player_passkeys
+             WHERE name_key = ?1
+             LIMIT 1`
+        );
+        this.#insertPasskeyCredential = this.#db.prepare(
+            `INSERT INTO player_passkeys (name_key, credential_id, created_at, last_used_at)
+             VALUES (?1, ?2, ?3, ?4)`
+        );
+        this.#touchPasskeyCredentialUse = this.#db.prepare(
+            `UPDATE player_passkeys
+             SET last_used_at = ?3
+             WHERE name_key = ?1 AND credential_id = ?2`
+        );
 
         this.#clearSessions.run();
+    }
+
+    #ensurePlayersTableColumns(): void {
+        const columns = this.#db
+            .prepare(`PRAGMA table_info(players)`)
+            .all() as Array<{ name?: unknown }>;
+        const hasProgressionJson = columns.some((column) => column?.name === 'progression_json');
+        if (!hasProgressionJson) {
+            this.#db.exec(`ALTER TABLE players ADD COLUMN progression_json TEXT NOT NULL DEFAULT '{}'`);
+        }
     }
 
     #ensureAchievementProgress(nameKey: string): void {
@@ -258,19 +434,23 @@ export class SqlitePlayerPersistence {
     claimPlayerSession({
         connectionId,
         requestedName,
+        authenticatedAccountNameKey,
     }: {
         connectionId: string;
         requestedName: string;
+        authenticatedAccountNameKey?: string;
     }): ClaimPlayerSessionResult {
-        const normalizedName = normalizePlayerName(requestedName);
-        if (!normalizedName) {
+        const normalizedRequestedName = normalizePlayerName(requestedName);
+        const normalizedAuthenticatedName = normalizePlayerName(authenticatedAccountNameKey ?? '');
+        const accountNameKey = normalizedAuthenticatedName || normalizedRequestedName;
+        if (!accountNameKey) {
             return {
                 accepted: false,
                 reason: 'Invalid player name.',
             };
         }
 
-        const existingByName = this.#selectSessionByName.get(normalizedName) as SessionByNameRow | null;
+        const existingByName = this.#selectSessionByName.get(accountNameKey) as SessionByNameRow | null;
         if (existingByName && existingByName.connection_id !== connectionId) {
             return {
                 accepted: false,
@@ -279,29 +459,30 @@ export class SqlitePlayerPersistence {
         }
 
         const existingByConnection = this.#selectSessionByConnection.get(connectionId) as SessionByConnectionRow | null;
-        if (existingByConnection && existingByConnection.name_key !== normalizedName) {
+        if (existingByConnection && existingByConnection.name_key !== accountNameKey) {
             return {
                 accepted: false,
                 reason: 'Connection is already bound to a different player name.',
             };
         }
 
-        const displayName = resolveDisplayName(requestedName, normalizedName);
-        let row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const displayName = resolveDisplayName(requestedName, accountNameKey);
+        let row = this.#selectProfile.get(accountNameKey) as ProfileRow | null;
         const now = Date.now();
         if (!row) {
             this.#insertProfile.run(
-                normalizedName,
+                accountNameKey,
                 displayName,
                 Number(DEFAULT_ARMOR_KIND),
                 Number(DEFAULT_WEAPON_KIND),
                 null,
+                encodeProgressionState(defaultProgressionState()),
                 now,
                 now
             );
-            row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+            row = this.#selectProfile.get(accountNameKey) as ProfileRow | null;
         } else if (row.display_name !== displayName) {
-            this.#updateProfileDisplayName.run(normalizedName, displayName, now);
+            this.#updateProfileDisplayName.run(accountNameKey, displayName, now);
             row = {
                 ...row,
                 display_name: displayName,
@@ -309,7 +490,7 @@ export class SqlitePlayerPersistence {
         }
 
         if (!existingByName && !existingByConnection) {
-            this.#insertSession.run(normalizedName, connectionId, Date.now());
+            this.#insertSession.run(accountNameKey, connectionId, Date.now());
         }
 
         if (!row) {
@@ -319,7 +500,7 @@ export class SqlitePlayerPersistence {
             };
         }
 
-        const achievements = this.#getAchievementProgressByNameKey(normalizedName);
+        const achievements = this.#getAchievementProgressByNameKey(accountNameKey);
 
         return {
             accepted: true,
@@ -344,13 +525,15 @@ export class SqlitePlayerPersistence {
         if (!normalizedName) {
             return;
         }
-        const displayName = resolveDisplayName(playerName, normalizedName);
+        const existing = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const displayName = existing?.display_name ?? resolveDisplayName(playerName, normalizedName);
         const now = Date.now();
         this.#upsertEquipment.run(
             normalizedName,
             displayName,
             Number(armorKind),
             Number(weaponKind),
+            existing?.progression_json ?? encodeProgressionState(defaultProgressionState()),
             now,
             now
         );
@@ -367,8 +550,8 @@ export class SqlitePlayerPersistence {
         if (!normalizedName || !Number.isFinite(checkpointId)) {
             return;
         }
-        const displayName = resolveDisplayName(playerName, normalizedName);
         const existing = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const displayName = existing?.display_name ?? resolveDisplayName(playerName, normalizedName);
         const armorKind = existing ? existing.armor_kind : Number(DEFAULT_ARMOR_KIND);
         const weaponKind = existing ? existing.weapon_kind : Number(DEFAULT_WEAPON_KIND);
         const now = Date.now();
@@ -378,6 +561,44 @@ export class SqlitePlayerPersistence {
             armorKind,
             weaponKind,
             checkpointId,
+            existing?.progression_json ?? encodeProgressionState(defaultProgressionState()),
+            now,
+            now
+        );
+    }
+
+    persistProgression({
+        playerName,
+        progression,
+    }: {
+        playerName: string;
+        progression: Partial<PersistedProgressionState>;
+    }): void {
+        const normalizedName = normalizePlayerName(playerName);
+        if (!normalizedName) {
+            return;
+        }
+
+        const existing = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const displayName = existing?.display_name ?? resolveDisplayName(playerName, normalizedName);
+        const armorKind = existing ? existing.armor_kind : Number(DEFAULT_ARMOR_KIND);
+        const weaponKind = existing ? existing.weapon_kind : Number(DEFAULT_WEAPON_KIND);
+        const checkpointId = existing ? existing.checkpoint_id : null;
+        const existingProgression = decodeProgressionState(existing?.progression_json);
+        const mergedProgression = sanitizeProgressionState({
+            ...existingProgression,
+            ...progression,
+            inventory: progression.inventory ?? existingProgression.inventory,
+        });
+        const now = Date.now();
+
+        this.#upsertProgression.run(
+            normalizedName,
+            displayName,
+            armorKind,
+            weaponKind,
+            checkpointId,
+            encodeProgressionState(mergedProgression),
             now,
             now
         );
@@ -393,6 +614,10 @@ export class SqlitePlayerPersistence {
             return null;
         }
         return asPersistedPlayerProfile(row, this.#getAchievementProgressByNameKey(normalizedName));
+    }
+
+    getProfileByAccountNameKey(accountNameKey: string): PersistedPlayerProfile | null {
+        return this.getProfileByName(accountNameKey);
     }
 
     getAchievementProgressByName(playerName: string): PersistedAchievementProgress | null {
@@ -454,6 +679,111 @@ export class SqlitePlayerPersistence {
 
         this.#ensureAchievementProgress(normalizedName);
         this.#incrementAchievementProgress.run(normalizedName, rat, skeleton, kills, damage, revives, Date.now());
+    }
+
+    registerPasskeyCredential({
+        requestedName,
+        credentialId,
+    }: {
+        requestedName: string;
+        credentialId: string;
+    }): PasskeyRegisterResult {
+        const normalizedName = normalizePlayerName(requestedName);
+        const normalizedCredentialId = credentialId.trim();
+        if (!normalizedName) {
+            return { accepted: false, reason: 'Invalid username.' };
+        }
+        if (normalizedCredentialId.length === 0) {
+            return { accepted: false, reason: 'Invalid passkey credential id.' };
+        }
+
+        const credentialOwner = this.#selectPasskeyCredentialByCredential.get(normalizedCredentialId) as
+            | PasskeyCredentialByIdRow
+            | null;
+        if (credentialOwner && credentialOwner.name_key !== normalizedName) {
+            return { accepted: false, reason: 'Passkey credential is already bound to another account.' };
+        }
+
+        let row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const now = Date.now();
+        const displayName = row?.display_name ?? resolveDisplayName(requestedName, normalizedName);
+        if (!row) {
+            this.#insertProfile.run(
+                normalizedName,
+                displayName,
+                Number(DEFAULT_ARMOR_KIND),
+                Number(DEFAULT_WEAPON_KIND),
+                null,
+                encodeProgressionState(defaultProgressionState()),
+                now,
+                now
+            );
+            row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        }
+
+        const existingByName = this.#selectPasskeyCredentialByNameAndCredential.get(
+            normalizedName,
+            normalizedCredentialId
+        ) as PasskeyCredentialByNameRow | null;
+        if (!existingByName) {
+            this.#insertPasskeyCredential.run(normalizedName, normalizedCredentialId, now, now);
+        } else {
+            this.#touchPasskeyCredentialUse.run(normalizedName, normalizedCredentialId, now);
+        }
+
+        if (!row) {
+            return { accepted: false, reason: 'Unable to load player profile.' };
+        }
+
+        return {
+            accepted: true,
+            accountNameKey: normalizedName,
+            profile: asPersistedPlayerProfile(row, this.#getAchievementProgressByNameKey(normalizedName)),
+        };
+    }
+
+    authenticatePasskeyCredential({
+        requestedName,
+        credentialId,
+    }: {
+        requestedName: string;
+        credentialId: string;
+    }): PasskeyAuthenticateResult {
+        const normalizedName = normalizePlayerName(requestedName);
+        const normalizedCredentialId = credentialId.trim();
+        if (!normalizedName) {
+            return { accepted: false, reason: 'Invalid username.' };
+        }
+        if (normalizedCredentialId.length === 0) {
+            return { accepted: false, reason: 'Invalid passkey credential id.' };
+        }
+
+        const hasAnyCredential = this.#selectAnyPasskeyCredentialByName.get(normalizedName) as
+            | PasskeyCredentialByNameRow
+            | null;
+        if (!hasAnyCredential) {
+            return { accepted: false, reason: 'No passkey is registered for this account.' };
+        }
+
+        const credential = this.#selectPasskeyCredentialByNameAndCredential.get(normalizedName, normalizedCredentialId) as
+            | PasskeyCredentialByNameRow
+            | null;
+        if (!credential) {
+            return { accepted: false, reason: 'Passkey assertion did not match this account.' };
+        }
+
+        const now = Date.now();
+        this.#touchPasskeyCredentialUse.run(normalizedName, normalizedCredentialId, now);
+        const row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        if (!row) {
+            return { accepted: false, reason: 'Unable to load player profile.' };
+        }
+
+        return {
+            accepted: true,
+            accountNameKey: normalizedName,
+            profile: asPersistedPlayerProfile(row, this.#getAchievementProgressByNameKey(normalizedName)),
+        };
     }
 
     close(): void {

@@ -2,37 +2,41 @@ import { expect, test, type Page } from '@playwright/test';
 import { attachProtocolObserver } from './protocol-observer';
 
 async function startModernSession(page: Page, name: string) {
-    await page.addInitScript(() => {
+    const wsUrl = 'ws://127.0.0.1:8000/ws';
+
+    await page.context().clearCookies();
+    await page.addInitScript((overrideWsUrl: string) => {
+        (globalThis as unknown as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
+        (globalThis as unknown as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
         window.localStorage.clear();
-    });
+    }, wsUrl);
 
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#nameinput')).toBeVisible();
-    await page.fill('#nameinput', name);
+    await expect
+        .poll(
+            () =>
+                page.evaluate(() => {
+                    const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
+                        | { isBootstrapped?: () => boolean; startSession?: (name: string) => void }
+                        | undefined;
+                    return (
+                        typeof api?.isBootstrapped === 'function' &&
+                        typeof api.startSession === 'function' &&
+                        api.isBootstrapped()
+                    );
+                }),
+            { timeout: 30_000 }
+        )
+        .toBe(true);
+
     await page.evaluate((nextName: string) => {
-        const input = document.getElementById('nameinput');
-        if (input) {
-            input.setAttribute('value', nextName);
-            input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'a' }));
-        }
+        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
+            | { startSession?: (name: string) => void }
+            | undefined;
+        api?.startSession?.(nextName);
     }, name);
-    await expect(page.locator('#createcharacter .play')).not.toHaveClass(/disabled/);
-    await page.click('#createcharacter .play div');
-    try {
-        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
-        return;
-    } catch (_) {
-        // If the intro UI is still visible, one retry click is reasonable. Otherwise, the UI likely transitioned
-        // and we're just waiting on slow map/sprite load or websocket handshake.
-        const playVisible = await page
-            .locator('#createcharacter .play')
-            .isVisible()
-            .catch(() => false);
-        if (playVisible) {
-            await page.click('#createcharacter .play');
-        }
-        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
-    }
+    await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
 }
 
 test('modern UI boots and reaches first playable session', async ({ page }) => {

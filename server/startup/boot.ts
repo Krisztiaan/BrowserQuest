@@ -1,5 +1,5 @@
 import { resolveActiveConfig } from './config';
-import { ensureConfigPreflightValid, ensureConfigSourcePresent } from './preflight';
+import { ensureConfigPreflightValid, ensureConfigSourcePresent, ensureMapPreflightValid } from './preflight';
 import { runStartup } from './runner';
 
 export async function runEntryBoot<TStartupParams extends Record<string, unknown>>({
@@ -16,6 +16,7 @@ export async function runEntryBoot<TStartupParams extends Record<string, unknown
     runStartupFn = runStartup as unknown as (
         params: { activeConfig: object } & TStartupParams
     ) => Promise<unknown>,
+    ensureMapPreflightValidFn = ensureMapPreflightValid,
 }: {
     defaultConfigPath: string;
     customConfigPath: string;
@@ -41,6 +42,11 @@ export async function runEntryBoot<TStartupParams extends Record<string, unknown
         fail: (code: number) => void;
     }) => boolean;
     runStartupFn?: (params: { activeConfig: object } & TStartupParams) => Promise<unknown>;
+    ensureMapPreflightValidFn?: (params: {
+        activeConfig: object;
+        emitError: (message: string) => void;
+        fail: (code: number) => void;
+    }) => Promise<boolean>;
 }): Promise<{ activeConfig: object | null; started: boolean }> {
     const configSource = await resolveActiveConfigFn({
         defaultConfigPath,
@@ -69,6 +75,15 @@ export async function runEntryBoot<TStartupParams extends Record<string, unknown
         fail,
     });
     if (!hasValidConfig) {
+        return { activeConfig, started: false };
+    }
+
+    const hasValidMap = await ensureMapPreflightValidFn({
+        activeConfig,
+        emitError,
+        fail,
+    });
+    if (!hasValidMap) {
         return { activeConfig, started: false };
     }
 

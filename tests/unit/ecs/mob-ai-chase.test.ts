@@ -3,7 +3,7 @@ import Types from '../../../shared/gametypes-browser';
 import { entityIdFromWire } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
 import Player from '../../../server/player';
-import Mob from '../../../server/mob';
+import MobEntity from '../../../server/world/mob-entity';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 
 function createTestPlayer(wireId: number): Player {
@@ -45,17 +45,25 @@ function createPipelineFixture({
     player,
     entities,
     isValidPosition,
+    ups,
 }: {
     player: Player;
     entities: Map<number, unknown>;
     isValidPosition: (x: number, y: number) => boolean;
+    ups?: number;
 }): { pipeline: WorldEcsCommandPipeline; delivered: unknown[] } {
     const delivered: unknown[] = [];
 
     const host: Record<string, unknown> = {
-        ups: 5,
+        ups: typeof ups === 'number' ? ups : 5,
         map: {
             getCheckpoint() {
+                return null;
+            },
+            isDoor() {
+                return false;
+            },
+            getDoorDestination() {
                 return null;
             },
             getGroupIdFromPosition() {
@@ -68,11 +76,14 @@ function createPipelineFixture({
         getConnectionPlayerById(id: number) {
             return id === player.id ? player : null;
         },
+        removeEntityFromAreas() {},
+        scheduleMobRespawn() {},
+        scheduleStaticItemRespawn() {},
         getEntityById(id: number) {
             return entities.get(id) ?? null;
         },
         addPlayer() {},
-        emit() {},
+        emitPlayerEnter() {},
         isPlayerActive(id: number) {
             return id === player.id;
         },
@@ -93,6 +104,12 @@ function createPipelineFixture({
                 delivered.push(message);
             }
         },
+        persistPlayerEquipment() {},
+        persistPlayerCheckpoint() {},
+        persistPlayerAchievementUnlock() {},
+        recordPlayerMobKill() {},
+        recordPlayerDamageTaken() {},
+        recordPlayerRevive() {},
     };
 
     const pipeline = new WorldEcsCommandPipeline(host as never);
@@ -110,7 +127,7 @@ test('server mob_ai steps toward target and stops when adjacent', () => {
     player.setPosition(2, 0);
 
     const mobId = entityIdFromWire(7);
-    const mob = new Mob(mobId, Types.Entities.RAT, 0, 0);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 0, 0);
 
     const entities = new Map<number, unknown>([
         [player.id, player],
@@ -140,12 +157,52 @@ test('server mob_ai steps toward target and stops when adjacent', () => {
     expect(afterAdjacent).toEqual(gridPos(1, 0));
 });
 
+test('mob_ai respects per-kind movement cooldown at high UPS (no teleport-chase)', () => {
+    const player = createTestPlayer(168);
+    player.setPosition(10, 0);
+
+    const mobId = entityIdFromWire(2168);
+    const mob = new MobEntity(mobId, Types.Entities.SKELETON, 0, 0);
+
+    const entities = new Map<number, unknown>([
+        [player.id, player],
+        [mob.id, mob],
+    ]);
+
+    const { pipeline } = createPipelineFixture({
+        player,
+        entities,
+        ups: 50,
+        isValidPosition: (x, y) => Number.isInteger(x) && Number.isInteger(y),
+    });
+
+    seedEntity(pipeline, player);
+    seedEntity(pipeline, mob);
+    pipeline.state.world.addComponent(mob.id, pipeline.mobAi.MobHate, {
+        entries: [{ id: player.id, hate: 5 }],
+    });
+
+    // First tick has ctx.tick===0 gating, so movement begins on tick 1.
+    pipeline.tick();
+    pipeline.tick();
+    const afterFirstStep = pipeline.Position.store.get(mob.id);
+    expect(afterFirstStep).toEqual(gridPos(1, 0));
+
+    // Skeleton moveSpeed is ~350ms per tile; at UPS=50 that's ~18 ticks per step.
+    // Ensure it does not advance again within a short window.
+    for (let i = 0; i < 10; i += 1) {
+        pipeline.tick();
+    }
+    const afterBurstTicks = pipeline.Position.store.get(mob.id);
+    expect(afterBurstTicks).toEqual(gridPos(1, 0));
+});
+
 test('mob_ai avoids occupied direct lane and picks alternate adjacent approach', () => {
     const player = createTestPlayer(101);
     player.setPosition(2, 3);
 
     const mobId = entityIdFromWire(8);
-    const mob = new Mob(mobId, Types.Entities.RAT, 0, 2);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 0, 2);
     const blockingChest = {
         id: entityIdFromWire(900),
         kind: Types.Entities.CHEST,
@@ -180,12 +237,52 @@ test('mob_ai avoids occupied direct lane and picks alternate adjacent approach',
     expect(after).not.toEqual(gridPos(blockingChest.x, blockingChest.y));
 });
 
+test('mob_ai treats NPC tiles as occupied (prevents mob/NPC overlap)', () => {
+    const player = createTestPlayer(103);
+    player.setPosition(2, 3);
+
+    const mobId = entityIdFromWire(10);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 0, 2);
+    const blockingNpc = {
+        id: entityIdFromWire(902),
+        kind: Types.Entities.RICK,
+        x: 1,
+        y: 2,
+    };
+
+    const entities = new Map<number, unknown>([
+        [player.id, player],
+        [mob.id, mob],
+        [blockingNpc.id, blockingNpc],
+    ]);
+
+    const { pipeline } = createPipelineFixture({
+        player,
+        entities,
+        isValidPosition: (x, y) => Number.isInteger(x) && Number.isInteger(y),
+    });
+
+    seedEntity(pipeline, player);
+    seedEntity(pipeline, mob);
+    seedEntity(pipeline, blockingNpc);
+    pipeline.state.world.addComponent(mob.id, pipeline.mobAi.MobHate, {
+        entries: [{ id: player.id, hate: 5 }],
+    });
+
+    pipeline.tick();
+    pipeline.tick();
+
+    const after = pipeline.Position.store.get(mob.id);
+    expect(after).toEqual(gridPos(0, 3));
+    expect(after).not.toEqual(gridPos(blockingNpc.x, blockingNpc.y));
+});
+
 test('mob_ai never steps onto an occupied tile when lane is blocked', () => {
     const player = createTestPlayer(102);
     player.setPosition(2, 1);
 
     const mobId = entityIdFromWire(9);
-    const mob = new Mob(mobId, Types.Entities.RAT, 0, 1);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 0, 1);
     const blockingChest = {
         id: entityIdFromWire(901),
         kind: Types.Entities.CHEST,
@@ -220,12 +317,12 @@ test('mob_ai never steps onto an occupied tile when lane is blocked', () => {
     expect(after).toEqual(gridPos(0, 1));
 });
 
-test('mob_ai repaths every tick under movement churn (no long chase stall)', () => {
+test('mob_ai repaths under movement churn (no long chase stall beyond move cooldown)', () => {
     const player = createTestPlayer(103);
     player.setPosition(4, 0);
 
     const mobId = entityIdFromWire(10);
-    const mob = new Mob(mobId, Types.Entities.RAT, 0, 0);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 0, 0);
     const entities = new Map<number, unknown>([
         [player.id, player],
         [mob.id, mob],
@@ -251,6 +348,8 @@ test('mob_ai repaths every tick under movement churn (no long chase stall)', () 
     player.setPosition(4, 2);
     pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(player.x, player.y));
 
+    // Movement is cooldown-gated; ensure the mob advances once the move window re-opens.
+    pipeline.tick();
     pipeline.tick();
     const afterSecondChaseTick = pipeline.Position.store.get(mob.id);
     expect(afterSecondChaseTick).not.toEqual(afterFirstChaseTick);
@@ -260,13 +359,52 @@ test('mob_ai repaths every tick under movement churn (no long chase stall)', () 
     expect(dist2).toBeLessThan(dist1);
 });
 
+test('mob_ai returns to spawn tile and stops (no pacing oscillation)', () => {
+    const player = createTestPlayer(120);
+    player.setPosition(999, 999);
+
+    const mobId = entityIdFromWire(1200);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 2, 0);
+
+    const entities = new Map<number, unknown>([
+        [player.id, player],
+        [mob.id, mob],
+    ]);
+
+    const { pipeline } = createPipelineFixture({
+        player,
+        entities,
+        ups: 5,
+        isValidPosition: (x, y) => y === 0 && x >= 0 && x <= 3,
+    });
+
+    seedEntity(pipeline, player);
+    seedEntity(pipeline, mob);
+    pipeline.state.world.addComponent(mob.id, pipeline.mobAi.MobSpawnPos, gridPos(0, 0));
+    pipeline.state.world.addComponent(mob.id, pipeline.mobAi.MobReturnAtTick, 1);
+
+    pipeline.tick(); // ctx.tick === 0 gate
+    pipeline.tick(); // tick 1: step toward spawn
+    expect(pipeline.Position.store.get(mob.id)).toEqual(gridPos(1, 0));
+
+    pipeline.tick(); // tick 2: cooldown (rat move cooldown ~2 ticks at UPS=5)
+    pipeline.tick(); // tick 3: reach spawn
+    expect(pipeline.Position.store.get(mob.id)).toEqual(gridPos(0, 0));
+
+    pipeline.tick(); // tick 4: clear return component once at spawn
+    expect(pipeline.mobAi.MobReturnAtTick.store.get(mob.id)).toBeUndefined();
+
+    pipeline.tick();
+    expect(pipeline.Position.store.get(mob.id)).toEqual(gridPos(0, 0));
+});
+
 test('server-authoritative combat kills mob on ATTACK and emits DESPAWN', () => {
     const player = createTestPlayer(104);
     player.setPosition(5, 5);
     player.weaponLevel = 1;
 
     const mobId = entityIdFromWire(11);
-    const mob = new Mob(mobId, Types.Entities.RAT, 6, 5);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 6, 5);
     mob.armorLevel = 0;
     mob.maxHitPoints = 1;
     mob.hitPoints = 1;
@@ -289,13 +427,131 @@ test('server-authoritative combat kills mob on ATTACK and emits DESPAWN', () => 
         targetId: mob.id,
     });
 
-    pipeline.tick();
+    for (let i = 0; i < 50 && pipeline.state.world.entities.isAlive(mob.id); i += 1) {
+        pipeline.tick();
+    }
 
     const hasDespawn = delivered.some(
         (msg) => Array.isArray(msg) && msg[0] === Types.Messages.DESPAWN && msg[1] === mob.id
     );
     expect(hasDespawn).toBe(true);
-    expect(entities.has(mob.id)).toBe(false);
+    expect(pipeline.state.world.entities.isAlive(mob.id)).toBe(false);
+});
+
+test('MOVE command emits authoritative self-ack move to player', () => {
+    const player = createTestPlayer(166);
+    player.setPosition(5, 5);
+    const entities = new Map<number, unknown>([[player.id, player]]);
+    const { pipeline, delivered } = createPipelineFixture({
+        player,
+        entities,
+        isValidPosition: () => true,
+    });
+
+    seedEntity(pipeline, player);
+    pipeline.enqueue({
+        type: 'MOVE',
+        source: { connectionId: 'c', playerId: player.id },
+        to: gridPos(6, 5),
+    });
+
+    pipeline.tick();
+
+    const hasSelfMoveAck = delivered.some(
+        (msg) =>
+            Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[1] === player.id && msg[2] === 6 && msg[3] === 5
+    );
+    expect(hasSelfMoveAck).toBe(true);
+});
+
+test('invalid MOVE command emits corrective self TELEPORT to authoritative player position', () => {
+    const player = createTestPlayer(167);
+    player.setPosition(5, 5);
+    const entities = new Map<number, unknown>([[player.id, player]]);
+    const { pipeline, delivered } = createPipelineFixture({
+        player,
+        entities,
+        isValidPosition: (x, y) => x === 5 && y === 5,
+    });
+
+    seedEntity(pipeline, player);
+    pipeline.enqueue({
+        type: 'MOVE',
+        source: { connectionId: 'c', playerId: player.id },
+        to: gridPos(6, 5),
+    });
+
+    pipeline.tick();
+
+    const hasCorrectionAck = delivered.some(
+        (msg) =>
+            Array.isArray(msg) &&
+            msg[0] === Types.Messages.TELEPORT &&
+            msg[1] === player.id &&
+            msg[2] === 5 &&
+            msg[3] === 5
+    );
+    expect(hasCorrectionAck).toBe(true);
+    expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(5, 5));
+});
+
+test('server queues adjacent MOVE intents and applies them at move cadence', () => {
+    const player = createTestPlayer(170);
+    player.setPosition(5, 5);
+    const entities = new Map<number, unknown>([[player.id, player]]);
+
+    const { pipeline, delivered } = createPipelineFixture({
+        player,
+        entities,
+        ups: 50,
+        isValidPosition: (x, y) => Number.isInteger(x) && Number.isInteger(y),
+    });
+
+    seedEntity(pipeline, player);
+    pipeline.enqueue({
+        type: 'MOVE',
+        source: { connectionId: 'c', playerId: player.id },
+        to: gridPos(6, 5),
+    });
+    pipeline.enqueue({
+        type: 'MOVE',
+        source: { connectionId: 'c', playerId: player.id },
+        to: gridPos(7, 5),
+    });
+
+    pipeline.tick(); // tick 0 gate
+    pipeline.tick(); // applies first step
+    expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(6, 5));
+    expect(
+        delivered.some(
+            (msg) =>
+                Array.isArray(msg) &&
+                msg[0] === Types.Messages.MOVE &&
+                msg[1] === player.id &&
+                msg[2] === 6 &&
+                msg[3] === 5
+        )
+    ).toBe(true);
+
+    // Not enough ticks for the 120ms/player move cooldown at 50 UPS (~6 ticks).
+    for (let i = 0; i < 4; i += 1) {
+        pipeline.tick();
+    }
+    expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(6, 5));
+
+    pipeline.tick();
+    pipeline.tick();
+    expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(7, 5));
+    expect(
+        delivered.some(
+            (msg) =>
+                Array.isArray(msg) &&
+                msg[0] === Types.Messages.MOVE &&
+                msg[1] === player.id &&
+                msg[2] === 7 &&
+                msg[3] === 5
+        )
+    ).toBe(true);
 });
 
 test('server-authoritative combat enforces cooldown between consecutive hits', () => {
@@ -304,7 +560,7 @@ test('server-authoritative combat enforces cooldown between consecutive hits', (
     player.weaponLevel = 1;
 
     const mobId = entityIdFromWire(12);
-    const mob = new Mob(mobId, Types.Entities.RAT, 6, 5);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 6, 5);
     mob.armorLevel = 0;
     mob.maxHitPoints = 100;
     mob.hitPoints = 100;
@@ -328,16 +584,35 @@ test('server-authoritative combat enforces cooldown between consecutive hits', (
     });
 
     pipeline.tick();
+    const hpAfterWindupStart = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
+    expect(hpAfterWindupStart).toBe(100);
+
+    for (let i = 0; i < 50; i += 1) {
+        pipeline.tick();
+        const hp = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
+        if (hp < 100) {
+            break;
+        }
+    }
+
     const hpAfterFirstHit = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
     expect(hpAfterFirstHit).toBeLessThan(100);
 
-    pipeline.tick();
-    pipeline.tick();
-    pipeline.tick();
-    const hpBeforeCooldownExpires = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
-    expect(hpBeforeCooldownExpires).toBe(hpAfterFirstHit);
+    const nextAttackTick = pipeline.combat.NextAttackTick.store.get(player.id) ?? 0;
+    const hpAtCooldownStart = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
+    while (pipeline.getTick() < nextAttackTick) {
+        pipeline.tick();
+        expect(pipeline.combat.HitPoints.store.get(mob.id) ?? 0).toBe(hpAtCooldownStart);
+    }
 
-    pipeline.tick();
+    for (let i = 0; i < 100; i += 1) {
+        pipeline.tick();
+        const hp = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
+        if (hp < hpAfterFirstHit) {
+            break;
+        }
+    }
+
     const hpAfterCooldownExpires = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
     expect(hpAfterCooldownExpires).toBeLessThan(hpAfterFirstHit);
 });
@@ -348,7 +623,7 @@ test('server-authoritative combat rejects out-of-range ATTACK damage', () => {
     player.weaponLevel = 1;
 
     const mobId = entityIdFromWire(13);
-    const mob = new Mob(mobId, Types.Entities.RAT, 10, 10);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 10, 10);
     mob.armorLevel = 0;
     mob.maxHitPoints = 100;
     mob.hitPoints = 100;
@@ -374,12 +649,216 @@ test('server-authoritative combat rejects out-of-range ATTACK damage', () => {
     pipeline.tick();
     const hpAfterAttack = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
     expect(hpAfterAttack).toBe(100);
+    const hateEntries = pipeline.mobAi.MobHate.store.get(mob.id)?.entries ?? [];
+    expect(hateEntries.some((entry) => entry.id === player.id)).toBe(true);
+});
+
+test('server-authoritative combat allows extended line reach for large melee weapons', () => {
+    const player = createTestPlayer(164);
+    player.setPosition(0, 0);
+    player.weaponLevel = 10;
+
+    const mobId = entityIdFromWire(2165);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 2, 0);
+    mob.armorLevel = 0;
+    mob.maxHitPoints = 100;
+    mob.hitPoints = 100;
+
+    const entities = new Map<number, unknown>([
+        [player.id, player],
+        [mob.id, mob],
+    ]);
+    const { pipeline } = createPipelineFixture({
+        player,
+        entities,
+        isValidPosition: () => true,
+    });
+
+    seedEntity(pipeline, player);
+    seedEntity(pipeline, mob);
+    pipeline.state.world.addComponent(player.id, pipeline.replication.Weapon, Types.Entities.AXE);
+    pipeline.enqueue({
+        type: 'ATTACK',
+        source: { connectionId: 'c', playerId: player.id },
+        targetId: mob.id,
+    });
+
+    for (let i = 0; i < 50; i += 1) {
+        pipeline.tick();
+        const hp = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
+        if (hp < 100) {
+            break;
+        }
+    }
+    const hpAfterAttack = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
+    expect(hpAfterAttack).toBeLessThan(100);
+});
+
+test('extended melee reach stays directional (no diagonal hits)', () => {
+    const player = createTestPlayer(165);
+    player.setPosition(0, 0);
+    player.weaponLevel = 10;
+
+    const mobId = entityIdFromWire(2166);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 1, 1);
+    mob.armorLevel = 0;
+    mob.maxHitPoints = 100;
+    mob.hitPoints = 100;
+
+    const entities = new Map<number, unknown>([
+        [player.id, player],
+        [mob.id, mob],
+    ]);
+    const { pipeline } = createPipelineFixture({
+        player,
+        entities,
+        isValidPosition: () => true,
+    });
+
+    seedEntity(pipeline, player);
+    seedEntity(pipeline, mob);
+    pipeline.state.world.addComponent(mob.id, pipeline.mobAi.MobNextMoveTick, Number.MAX_SAFE_INTEGER);
+    pipeline.state.world.addComponent(player.id, pipeline.replication.Weapon, Types.Entities.AXE);
+    pipeline.enqueue({
+        type: 'ATTACK',
+        source: { connectionId: 'c', playerId: player.id },
+        targetId: mob.id,
+    });
+
+    for (let i = 0; i < 50; i += 1) {
+        pipeline.tick();
+    }
+    const hpAfterAttack = pipeline.combat.HitPoints.store.get(mob.id) ?? 0;
+    expect(hpAfterAttack).toBe(100);
+});
+
+test('server-authoritative combat rejects out-of-range mob damage', () => {
+    const player = createTestPlayer(160);
+    player.setPosition(0, 0);
+    player.resetHitPoints(100);
+    player.armorLevel = 1;
+
+    const mobId = entityIdFromWire(2160);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 10, 10);
+    mob.weaponLevel = 5;
+
+    const entities = new Map<number, unknown>([
+        [player.id, player],
+        [mob.id, mob],
+    ]);
+    const { pipeline } = createPipelineFixture({
+        player,
+        entities,
+        isValidPosition: () => true,
+    });
+
+    seedEntity(pipeline, player);
+    seedEntity(pipeline, mob);
+    pipeline.state.world.addComponent(mob.id, pipeline.replication.Target, player.id);
+    pipeline.state.world.addComponent(mob.id, pipeline.mobAi.MobHate, {
+        entries: [{ id: player.id, hate: 5 }],
+    });
+
+    pipeline.tick();
+
+    const hpAfterTick = pipeline.combat.HitPoints.store.get(player.id) ?? 0;
+    expect(hpAfterTick).toBe(100);
+});
+
+test('mob stops dealing damage after player leaves adjacency', () => {
+    const player = createTestPlayer(163);
+    player.setPosition(0, 0);
+    player.resetHitPoints(100);
+    player.armorLevel = 1;
+
+    const mobId = entityIdFromWire(2164);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 1, 0);
+    mob.weaponLevel = 5;
+
+    const entities = new Map<number, unknown>([
+        [player.id, player],
+        [mob.id, mob],
+    ]);
+    const { pipeline } = createPipelineFixture({
+        player,
+        entities,
+        isValidPosition: () => true,
+    });
+
+    seedEntity(pipeline, player);
+    seedEntity(pipeline, mob);
+    pipeline.state.world.addComponent(mob.id, pipeline.replication.Target, player.id);
+    pipeline.state.world.addComponent(mob.id, pipeline.mobAi.MobHate, {
+        entries: [{ id: player.id, hate: 5 }],
+    });
+
+    for (let i = 0; i < 50; i += 1) {
+        pipeline.tick();
+        const hp = pipeline.combat.HitPoints.store.get(player.id) ?? 0;
+        if (hp < 100) {
+            break;
+        }
+    }
+    const hpAfterFirstHit = pipeline.combat.HitPoints.store.get(player.id) ?? 0;
+    expect(hpAfterFirstHit).toBeLessThan(100);
+
+    player.setPosition(20, 20);
+    pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(20, 20));
+
+    for (let i = 0; i < 8; i += 1) {
+        pipeline.tick();
+    }
+
+    const hpAfterRetreat = pipeline.combat.HitPoints.store.get(player.id) ?? 0;
+    expect(hpAfterRetreat).toBe(hpAfterFirstHit);
+});
+
+test('server-authoritative mob damage uses ECS adjacency only', () => {
+    const player = createTestPlayer(161);
+    player.setPosition(0, 0);
+    player.resetHitPoints(100);
+    player.armorLevel = 1;
+
+    const mobId = entityIdFromWire(2161);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 1, 0);
+    mob.weaponLevel = 5;
+
+    const entities = new Map<number, unknown>([
+        [player.id, player],
+        [mob.id, mob],
+    ]);
+    const { pipeline } = createPipelineFixture({
+        player,
+        entities,
+        isValidPosition: () => true,
+    });
+
+    seedEntity(pipeline, player);
+    seedEntity(pipeline, mob);
+    pipeline.state.world.addComponent(mob.id, pipeline.replication.Target, player.id);
+    pipeline.state.world.addComponent(mob.id, pipeline.mobAi.MobHate, {
+        entries: [{ id: player.id, hate: 5 }],
+    });
+
+    player.setPosition(10, 10);
+    pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(0, 0));
+
+    for (let i = 0; i < 50; i += 1) {
+        pipeline.tick();
+        const hp = pipeline.combat.HitPoints.store.get(player.id) ?? 0;
+        if (hp < 100) {
+            break;
+        }
+    }
+
+    const hpAfterTick = pipeline.combat.HitPoints.store.get(player.id) ?? 0;
+    expect(hpAfterTick).toBeLessThan(100);
 });
 
 test('respawn task queue emits mob respawn event on schedule', () => {
     const player = createTestPlayer(107);
     const mobId = entityIdFromWire(14);
-    const mob = new Mob(mobId, Types.Entities.RAT, 10, 10);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 10, 10);
     const entities = new Map<number, unknown>([
         [player.id, player],
         [mob.id, mob],
@@ -412,7 +891,7 @@ test('server-authoritative combat tolerates stale target links after same-tick k
     playerB.weaponLevel = 100;
 
     const mobId = entityIdFromWire(15);
-    const mob = new Mob(mobId, Types.Entities.RAT, 6, 5);
+    const mob = new MobEntity(mobId, Types.Entities.RAT, 6, 5);
     mob.armorLevel = 0;
     mob.maxHitPoints = 1;
     mob.hitPoints = 1;
@@ -443,9 +922,54 @@ test('server-authoritative combat tolerates stale target links after same-tick k
         targetId: mob.id,
     });
 
-    pipeline.tick();
+    for (let i = 0; i < 50 && pipeline.state.world.entities.isAlive(mob.id); i += 1) {
+        pipeline.tick();
+    }
 
     expect(pipeline.state.world.entities.isAlive(mob.id)).toBe(false);
     expect(pipeline.replication.Target.store.has(playerA.id)).toBe(false);
     expect(pipeline.replication.Target.store.has(playerB.id)).toBe(false);
+});
+
+test('player death clears all mob target links in the same tick', () => {
+    const player = createTestPlayer(162);
+    player.setPosition(0, 0);
+    player.resetHitPoints(1);
+    player.armorLevel = 1;
+
+    const aggroMobId = entityIdFromWire(2162);
+    const aggroMob = new MobEntity(aggroMobId, Types.Entities.RAT, 1, 0);
+    aggroMob.weaponLevel = 5;
+
+    const staleMobId = entityIdFromWire(2163);
+    const staleMob = new MobEntity(staleMobId, Types.Entities.RAT, 0, 1);
+    staleMob.weaponLevel = 5;
+
+    const entities = new Map<number, unknown>([
+        [player.id, player],
+        [aggroMob.id, aggroMob],
+        [staleMob.id, staleMob],
+    ]);
+    const { pipeline } = createPipelineFixture({
+        player,
+        entities,
+        isValidPosition: () => true,
+    });
+
+    seedEntity(pipeline, player);
+    seedEntity(pipeline, aggroMob);
+    seedEntity(pipeline, staleMob);
+    pipeline.state.world.addComponent(aggroMob.id, pipeline.replication.Target, player.id);
+    pipeline.state.world.addComponent(aggroMob.id, pipeline.mobAi.MobHate, {
+        entries: [{ id: player.id, hate: 5 }],
+    });
+    pipeline.state.world.addComponent(staleMob.id, pipeline.replication.Target, player.id);
+
+    for (let i = 0; i < 50 && pipeline.state.world.entities.isAlive(player.id); i += 1) {
+        pipeline.tick();
+    }
+
+    expect(pipeline.state.world.entities.isAlive(player.id)).toBe(false);
+    expect(pipeline.replication.Target.store.has(aggroMob.id)).toBe(false);
+    expect(pipeline.replication.Target.store.has(staleMob.id)).toBe(false);
 });

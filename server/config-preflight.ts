@@ -1,6 +1,7 @@
 type ValidationErrorReason =
     | 'must_be_object'
     | 'must_be_positive_integer'
+    | 'must_be_chunk_size'
     | 'must_be_error_info_or_debug'
     | 'must_be_non_empty_string'
     | 'must_be_boolean'
@@ -19,7 +20,16 @@ interface CandidateConfig {
     map_filepath?: unknown;
     metrics_enabled?: unknown;
     plugins?: unknown;
+    chunk_size?: unknown;
     player_db_path?: unknown;
+    chunk_overlay_db_path?: unknown;
+    claims_db_path?: unknown;
+    chunk_overlay_flush_interval_ms?: unknown;
+    chunk_overlay_flush_max_chunks?: unknown;
+    chunk_overlay_bootstrap_load_limit_chunks?: unknown;
+    chunk_snapshot_payload_max_utf8_bytes?: unknown;
+    chunk_snapshot_max_parts?: unknown;
+    updates_per_second?: unknown;
 }
 
 interface ValidationResult {
@@ -37,6 +47,10 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isPositiveInteger(value: unknown): value is number {
     return typeof value === "number" && Number.isInteger(value) && value > 0;
+}
+
+function isChunkSize(value: unknown): value is number {
+    return isPositiveInteger(value) && value <= 256;
 }
 
 function isStringArray(value: unknown): value is string[] {
@@ -85,10 +99,67 @@ function validateConfig(config: unknown): ValidationResult {
     if (candidate.plugins !== undefined && !isStringArray(candidate.plugins)) {
         errors.push({ field: 'plugins', reason: 'must_be_string_array' });
     }
+    if (candidate.chunk_size !== undefined && !isChunkSize(candidate.chunk_size)) {
+        errors.push({ field: 'chunk_size', reason: 'must_be_chunk_size' });
+    }
     if (candidate.player_db_path !== undefined && !isNonEmptyString(candidate.player_db_path)) {
         errors.push({
             field: 'player_db_path',
             reason: 'must_be_non_empty_string',
+        });
+    }
+    if (candidate.chunk_overlay_db_path !== undefined && !isNonEmptyString(candidate.chunk_overlay_db_path)) {
+        errors.push({
+            field: 'chunk_overlay_db_path',
+            reason: 'must_be_non_empty_string',
+        });
+    }
+    if (candidate.claims_db_path !== undefined && !isNonEmptyString(candidate.claims_db_path)) {
+        errors.push({
+            field: 'claims_db_path',
+            reason: 'must_be_non_empty_string',
+        });
+    }
+    if (candidate.chunk_overlay_flush_interval_ms !== undefined && !isPositiveInteger(candidate.chunk_overlay_flush_interval_ms)) {
+        errors.push({
+            field: 'chunk_overlay_flush_interval_ms',
+            reason: 'must_be_positive_integer',
+        });
+    }
+    if (candidate.chunk_overlay_flush_max_chunks !== undefined && !isPositiveInteger(candidate.chunk_overlay_flush_max_chunks)) {
+        errors.push({
+            field: 'chunk_overlay_flush_max_chunks',
+            reason: 'must_be_positive_integer',
+        });
+    }
+    if (
+        candidate.chunk_overlay_bootstrap_load_limit_chunks !== undefined &&
+        !isPositiveInteger(candidate.chunk_overlay_bootstrap_load_limit_chunks)
+    ) {
+        errors.push({
+            field: 'chunk_overlay_bootstrap_load_limit_chunks',
+            reason: 'must_be_positive_integer',
+        });
+    }
+    if (
+        candidate.chunk_snapshot_payload_max_utf8_bytes !== undefined &&
+        !isPositiveInteger(candidate.chunk_snapshot_payload_max_utf8_bytes)
+    ) {
+        errors.push({
+            field: 'chunk_snapshot_payload_max_utf8_bytes',
+            reason: 'must_be_positive_integer',
+        });
+    }
+    if (candidate.chunk_snapshot_max_parts !== undefined && !isPositiveInteger(candidate.chunk_snapshot_max_parts)) {
+        errors.push({
+            field: 'chunk_snapshot_max_parts',
+            reason: 'must_be_positive_integer',
+        });
+    }
+    if (candidate.updates_per_second !== undefined && !isPositiveInteger(candidate.updates_per_second)) {
+        errors.push({
+            field: 'updates_per_second',
+            reason: 'must_be_positive_integer',
         });
     }
 

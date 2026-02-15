@@ -26,7 +26,7 @@ type AppGame = {
         getHeight(): number;
         rescale(scale: number): void;
     };
-    map?: { isLoaded: boolean };
+    map?: { isLoaded: boolean; getLoadError?: () => string | null };
     mouse: { x: number; y: number };
     started: boolean;
     player: {
@@ -36,7 +36,7 @@ type AppGame = {
     storage: { getAchievementCount(): number };
     loadMap(): void;
     setServerOptions(wsUrl: string, username: string): void;
-    run(callback: () => void): void;
+    run(callback: () => void, onFailed?: (reason: string) => void): void;
     on(eventName: 'playerHealthChange', callback: (hp: number, maxHp: number) => void): void;
     on(eventName: 'playerHurt', callback: () => void): void;
     getAchievementById(id: AchievementId): AchievementView | undefined;
@@ -133,11 +133,39 @@ class App {
 
     setGame(game: AppGame): void {
         this.game = game;
-        this.isMobile = this.game.renderer.mobile;
-        this.isTablet = this.game.renderer.tablet;
-        this.isDesktop = !(this.isMobile || this.isTablet);
+        this.updateDeviceClasses();
         this.supportsWorkers = !!window.Worker;
         this.ready = true;
+        this.syncPhoneViewport();
+    }
+
+    updateDeviceClasses(): void {
+        const renderer = this.game?.renderer;
+        if (!renderer) {
+            return;
+        }
+
+        this.isMobile = renderer.mobile;
+        this.isTablet = renderer.tablet;
+        this.isDesktop = !(this.isMobile || this.isTablet);
+
+        const isPhone = renderer.mobile && !renderer.tablet;
+        this.bodyEl.classList.toggle('tablet', renderer.tablet);
+        this.bodyEl.classList.toggle('phone', isPhone);
+    }
+
+    syncPhoneViewport(): void {
+        if (!this.bodyEl.classList.contains('phone')) {
+            return;
+        }
+
+        const foreground = document.getElementById('foreground') as HTMLCanvasElement | null;
+        if (!foreground || foreground.width <= 0 || foreground.height <= 0) {
+            return;
+        }
+
+        this.bodyEl.style.setProperty('--game-width', `${foreground.width}px`);
+        this.bodyEl.style.setProperty('--game-height', `${foreground.height}px`);
     }
 
     center(): void {
@@ -145,6 +173,10 @@ class App {
     }
 
     canStartGame(): boolean {
+        const mapLoadError = this.game?.map?.getLoadError?.() ?? null;
+        if (mapLoadError) {
+            return false;
+        }
         if (this.isDesktop) {
             return !!(this.game?.map?.isLoaded);
         } else {
@@ -155,6 +187,20 @@ class App {
     tryStartingGame(username: string, onStarting?: () => void): void {
         const self = this,
             playButton = this.playButtonEl ?? document.querySelector('#createcharacter .play');
+        const startAttemptAt = Date.now();
+        const maxStartWaitMs = 20_000;
+
+        const clearPlayLoading = (): void => {
+            if (!self.isMobile && playButton) {
+                playButton.classList.remove('loading');
+            }
+        };
+
+        const failStart = (message: string): void => {
+            clearPlayLoading();
+            self.isStarting = false;
+            self.showMessage(message);
+        };
 
         if (username === '' || this.isStarting) {
             return;
@@ -169,11 +215,20 @@ class App {
             }
             const watchCanStart = setInterval(function () {
                 log.debug('waiting...');
+                const mapLoadError = self.game?.map?.getLoadError?.() ?? null;
+                if (mapLoadError) {
+                    clearInterval(watchCanStart);
+                    failStart('Unable to load map data. Please reload the page.');
+                    return;
+                }
+                if (Date.now() - startAttemptAt >= maxStartWaitMs) {
+                    clearInterval(watchCanStart);
+                    failStart('Game start timed out while loading. Please reload the page.');
+                    return;
+                }
                 if (self.canStartGame()) {
                     setTimeout(function () {
-                        if (!self.isMobile && playButton) {
-                            playButton.classList.remove('loading');
-                        }
+                        clearPlayLoading();
                     }, 1500);
                     clearInterval(watchCanStart);
                     self.startGame(username, onStarting);
@@ -212,12 +267,19 @@ class App {
             this.game.setServerOptions(serverConfig.wsUrl, username);
 
             this.center();
-            this.game.run(function () {
-                self.bodyEl.classList.add('started');
-                if (firstTimePlaying) {
-                    self.toggleInstructions();
+            this.game.run(
+                function () {
+                    self.isStarting = false;
+                    self.bodyEl.classList.add('started');
+                    if (firstTimePlaying) {
+                        self.toggleInstructions();
+                    }
+                },
+                function (reason: string) {
+                    self.isStarting = false;
+                    self.showMessage(reason);
                 }
-            });
+            );
         }
     }
 
@@ -226,14 +288,24 @@ class App {
         if (!container) {
             return;
         }
-        const gamePos = container.getBoundingClientRect(),
-            scale = this.game.renderer.getScaleFactor(),
-            width = this.game.renderer.getWidth(),
-            height = this.game.renderer.getHeight(),
-            mouse = this.game.mouse;
+        const isPhone = !!this.game?.renderer.mobile && !this.game.renderer.tablet;
 
-        mouse.x = event.pageX - (gamePos.left + window.scrollX) - (this.isMobile ? 0 : 5 * scale);
-        mouse.y = event.pageY - (gamePos.top + window.scrollY) - (this.isMobile ? 0 : 7 * scale);
+        const scale = this.game.renderer.getScaleFactor();
+        const width = this.game.renderer.getWidth();
+        const height = this.game.renderer.getHeight();
+        const mouse = this.game.mouse;
+
+        if (isPhone) {
+            const viewport = document.getElementById('foreground');
+            const gamePos = (viewport ?? container).getBoundingClientRect();
+
+            mouse.x = event.pageX - (gamePos.left + window.scrollX);
+            mouse.y = event.pageY - (gamePos.top + window.scrollY);
+        } else {
+            const gamePos = container.getBoundingClientRect();
+            mouse.x = event.pageX - (gamePos.left + window.scrollX) - (this.isMobile ? 0 : 5 * scale);
+            mouse.y = event.pageY - (gamePos.top + window.scrollY) - (this.isMobile ? 0 : 7 * scale);
+        }
 
         if (mouse.x <= 0) {
             mouse.x = 0;
@@ -754,6 +826,8 @@ class App {
                 const newScale = this.game.renderer.getScaleFactor();
                 this.game.renderer.rescale(newScale);
             }
+            this.updateDeviceClasses();
+            this.syncPhoneViewport();
         }
     }
 }

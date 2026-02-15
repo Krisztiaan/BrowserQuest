@@ -14,7 +14,10 @@ Mozilla presents an HTML5 mini-MMORPG by Little Workshop http://www.littleworksh
     <head>
         <meta charset="utf-8" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+        />
         <link rel="icon" type="image/png" href="/img/common/favicon.png" />
         <meta property="og:title" content="BrowserQuest" />
         <meta property="og:type" content="website" />
@@ -173,7 +176,7 @@ Mozilla presents an HTML5 mini-MMORPG by Little Workshop http://www.littleworksh
                         <div class="left">
                             <div class="img"></div>
                             <p>
-                                The runtime keeps the original pixel-art world and feel while moving to a Bun + Vite +
+                                The runtime keeps the original pixel-art world and feel while moving to a Bun +
                                 TypeScript stack with deterministic systems and parity regression coverage.
                             </p>
                             <span class="link">
@@ -325,6 +328,7 @@ Mozilla presents an HTML5 mini-MMORPG by Little Workshop http://www.littleworksh
                     <div id="instance-population" class=""><span>0</span> <span>players</span> in your instance</div>
                     <div id="world-population" class=""><span>0</span> <span>players</span> total</div>
                 </div>
+                <button id="fullscreen-toggle" type="button" class="clickable">Fullscreen</button>
             </div>
         </div>
         <footer>

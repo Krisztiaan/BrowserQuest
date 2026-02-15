@@ -8,6 +8,11 @@
   "include": [
     "tools/**/*.ts",
     "server/ecs/**/*.ts",
+    "server/world/claims/**/*.ts",
+    "server/world/chunks/chunk-overlay-store.ts",
+    "client/client-boundary-types.ts",
+    "client/gameclient-outbound-actions.ts",
+    "client/world/chunks/client-chunk-overlay-cache.ts",
     "shared/**/*.ts"
   ],
   "exclude": ["node_modules/**", "dist/**"]

@@ -2,7 +2,9 @@ import log from './platform/log';
 
 type CameraRenderer = {
     mobile: boolean;
+    tablet: boolean;
     tilesize: number;
+    scale: number;
 };
 
 type CameraEntity = {
@@ -33,13 +35,27 @@ class Camera {
     }
 
     rescale(): void {
-        const factor = this.renderer.mobile ? 1 : 2;
+        const renderer = this.renderer;
+        const isPhone = renderer.mobile && !renderer.tablet;
 
-        this.gridW = 15 * factor;
-        this.gridH = 7 * factor;
+        if (isPhone) {
+            const tilePx = renderer.tilesize * renderer.scale;
+            const viewportW = window.innerWidth;
+            const viewportH = window.innerHeight;
+
+            const gridW = Math.floor(viewportW / tilePx);
+            const gridH = Math.floor(viewportH / tilePx);
+
+            this.gridW = Math.max(9, Math.min(29, gridW));
+            this.gridH = Math.max(7, Math.min(29, gridH));
+        } else {
+            const factor = 2;
+            this.gridW = 15 * factor;
+            this.gridH = 7 * factor;
+        }
 
         log.debug('---------');
-        log.debug('Factor:' + factor);
+        log.debug('Phone:' + isPhone);
         log.debug('W:' + this.gridW + ' H:' + this.gridH);
     }
 
@@ -98,7 +114,7 @@ class Camera {
         const x = Math.floor((entity.gridX - 1) / w) * w;
         const y = Math.floor((entity.gridY - 1) / h) * h;
 
-        this.setGridPosition(x, y);
+        this.setGridPosition(Math.max(0, x), Math.max(0, y));
     }
 }
 

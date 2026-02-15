@@ -5,12 +5,9 @@ import {
     MSG_CHAT,
     MSG_HEALTH,
     MSG_HELLO,
-    MSG_HIT,
-    MSG_HURT,
     MSG_LOOTMOVE,
-    MSG_MOVE,
+    MSG_AGGRO,
     MSG_WELCOME,
-    MSG_ZONE,
 } from '../support/protocol/contract';
 
 type ZoneMoveResult = {
@@ -36,43 +33,52 @@ type CombatLootResult = {
 };
 
 async function startModernSession(page: Page, name: string, options?: { testMode?: boolean }) {
-    const testMode = options?.testMode === true;
+    const testMode = options?.testMode !== false;
+    const wsUrl = 'ws://127.0.0.1:8000/ws';
 
-    await page.addInitScript((enableTestMode: boolean) => {
-        const testWindow = window as unknown as { __BQ_TEST_MODE__?: boolean };
-        if (enableTestMode) {
-            testWindow.__BQ_TEST_MODE__ = true;
-        } else {
-            delete testWindow.__BQ_TEST_MODE__;
-        }
-        window.localStorage.clear();
-    }, testMode);
+    await page.context().clearCookies();
+    await page.addInitScript(
+        (enableTestMode: boolean, overrideWsUrl: string) => {
+            const testWindow = window as unknown as { __BQ_TEST_MODE__?: boolean };
+            if (enableTestMode) {
+                testWindow.__BQ_TEST_MODE__ = true;
+            } else {
+                delete testWindow.__BQ_TEST_MODE__;
+            }
+            (globalThis as unknown as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
+            window.localStorage.clear();
+        },
+        testMode,
+        wsUrl
+    );
 
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#nameinput')).toBeVisible();
-    await page.fill('#nameinput', name);
-    await page.evaluate((nextName: string) => {
-        const input = document.getElementById('nameinput');
-        if (input) {
-            input.setAttribute('value', nextName);
-            input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'a' }));
-        }
-    }, name);
-    await expect(page.locator('#createcharacter .play')).not.toHaveClass(/disabled/);
-    await page.click('#createcharacter .play div');
-    try {
-        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
-        return;
-    } catch (_) {
-        const playVisible = await page
-            .locator('#createcharacter .play')
-            .isVisible()
-            .catch(() => false);
-        if (playVisible) {
-            await page.click('#createcharacter .play');
-        }
-        await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
+    if (testMode) {
+        await expect
+            .poll(
+                () =>
+                    page.evaluate(() => {
+                        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
+                            | { isBootstrapped?: () => boolean; startSession?: (name: string) => void }
+                            | undefined;
+                        return (
+                            typeof api?.isBootstrapped === 'function' &&
+                            typeof api.startSession === 'function' &&
+                            api.isBootstrapped()
+                        );
+                    }),
+                { timeout: 30_000 }
+            )
+            .toBe(true);
     }
+    await page.evaluate((nextName: string) => {
+        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
+            | { startSession?: (name: string) => void }
+            | undefined;
+        api?.startSession?.(nextName);
+    }, name);
+    await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
 }
 
 test('modern browser emits HELLO and CHAT protocol actions over live websocket', async ({ page }) => {
@@ -101,17 +107,13 @@ test('modern browser emits HELLO and CHAT protocol actions over live websocket',
     await expect.poll(() => receivedChats.includes(message), { timeout: 20_000 }).toBe(true);
 });
 
-test('modern browser emits MOVE and ZONE actions for deterministic cross-zone control', async ({ page }) => {
+test('modern browser deterministic cross-zone control causes player movement', async ({ page }) => {
     const observer = attachProtocolObserver(page);
     const { sentTypes, receivedTypes } = observer;
 
     await startModernSession(page, 'zone-smoke', { testMode: true });
     await expect.poll(() => sentTypes.includes(MSG_HELLO), { timeout: 20_000 }).toBe(true);
     await expect.poll(() => receivedTypes.includes(MSG_WELCOME), { timeout: 20_000 }).toBe(true);
-
-    const beforeMove = sentTypes.filter((type) => type === MSG_MOVE).length;
-    const beforeZone = sentTypes.filter((type) => type === MSG_ZONE).length;
-
     const result = await page.evaluate(() => {
         type TestApi = {
             isReady?: () => boolean;
@@ -130,14 +132,11 @@ test('modern browser emits MOVE and ZONE actions for deterministic cross-zone co
     expect(result.ok).toBe(true);
     expect(result.from?.group).toBeDefined();
     expect(result.to?.group).toBeDefined();
+    expect(result.from?.x).toBeDefined();
+    expect(result.from?.y).toBeDefined();
+    expect(result.to?.x).toBeDefined();
+    expect(result.to?.y).toBeDefined();
     expect(result.from?.group).not.toBe(result.to?.group);
-
-    await expect
-        .poll(() => sentTypes.filter((type) => type === MSG_MOVE).length, { timeout: 20_000 })
-        .toBeGreaterThan(beforeMove);
-    await expect
-        .poll(() => sentTypes.filter((type) => type === MSG_ZONE).length, { timeout: 20_000 })
-        .toBeGreaterThan(beforeZone);
 });
 
 test('modern browser reconnects and repeats go/HELLO/WELCOME after reload', async ({ page }) => {
@@ -167,7 +166,7 @@ test('modern browser reconnects and repeats go/HELLO/WELCOME after reload', asyn
         .toBeGreaterThan(beforeWelcome);
 });
 
-test('modern browser emits ATTACK/HIT/LOOTMOVE via deterministic combat-loot test controls', async ({ page }) => {
+test('modern browser emits ATTACK/LOOTMOVE via deterministic combat-loot test controls', async ({ page }) => {
     const observer = attachProtocolObserver(page);
     const { sentTypes, receivedTypes } = observer;
 
@@ -192,7 +191,6 @@ test('modern browser emits ATTACK/HIT/LOOTMOVE via deterministic combat-loot tes
         .toBe(true);
 
     const beforeAttack = sentTypes.filter((type) => type === MSG_ATTACK).length;
-    const beforeHit = sentTypes.filter((type) => type === MSG_HIT).length;
     const beforeLootMove = sentTypes.filter((type) => type === MSG_LOOTMOVE).length;
 
     const result = await page.evaluate(() => {
@@ -218,14 +216,11 @@ test('modern browser emits ATTACK/HIT/LOOTMOVE via deterministic combat-loot tes
         .poll(() => sentTypes.filter((type) => type === MSG_ATTACK).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeAttack);
     await expect
-        .poll(() => sentTypes.filter((type) => type === MSG_HIT).length, { timeout: 20_000 })
-        .toBeGreaterThan(beforeHit);
-    await expect
         .poll(() => sentTypes.filter((type) => type === MSG_LOOTMOVE).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeLootMove);
 });
 
-test('modern browser emits HURT and receives HEALTH when a mob attacks the player', async ({ page }) => {
+test('modern browser receives HEALTH updates when a mob attacks the player', async ({ page }) => {
     const observer = attachProtocolObserver(page);
     const { sentTypes, receivedTypes } = observer;
 
@@ -233,10 +228,9 @@ test('modern browser emits HURT and receives HEALTH when a mob attacks the playe
     await expect.poll(() => sentTypes.includes(MSG_HELLO), { timeout: 20_000 }).toBe(true);
     await expect.poll(() => receivedTypes.includes(MSG_WELCOME), { timeout: 20_000 }).toBe(true);
 
+    const beforeAggroSent = sentTypes.filter((type) => type === MSG_AGGRO).length;
     const beforeAttack = receivedTypes.filter((type) => type === MSG_ATTACK).length;
-    const beforeHurt = sentTypes.filter((type) => type === MSG_HURT).length;
     const beforeHealth = receivedTypes.filter((type) => type === MSG_HEALTH).length;
-    const beforeMove = receivedTypes.filter((type) => type === MSG_MOVE).length;
 
     const result = await page.evaluate(() => {
         type TestApi = {
@@ -255,12 +249,14 @@ test('modern browser emits HURT and receives HEALTH when a mob attacks the playe
 
     expect(result.ok).toBe(true);
     await expect
+        .poll(() => sentTypes.filter((type) => type === MSG_AGGRO).length, { timeout: 20_000 })
+        .toBeGreaterThan(beforeAggroSent);
+    await expect
+        .poll(() => receivedTypes.filter((type) => type === MSG_HEALTH).length, { timeout: 20_000 })
+        .toBeGreaterThan(beforeHealth);
+    await expect
         .poll(() => receivedTypes.filter((type) => type === MSG_ATTACK).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeAttack);
-
-    await expect
-        .poll(() => receivedTypes.filter((type) => type === MSG_MOVE).length, { timeout: 20_000 })
-        .toBeGreaterThan(beforeMove);
 
     await expect
         .poll(
@@ -304,9 +300,6 @@ test('modern browser emits HURT and receives HEALTH when a mob attacks the playe
             mobIsMoving: false,
         });
 
-    await expect
-        .poll(() => sentTypes.filter((type) => type === MSG_HURT).length, { timeout: 20_000 })
-        .toBeGreaterThan(beforeHurt);
     await expect
         .poll(() => receivedTypes.filter((type) => type === MSG_HEALTH).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeHealth);

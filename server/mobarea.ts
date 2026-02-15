@@ -3,7 +3,7 @@ import type { EntityId } from '../shared/domain/ids';
 import { entityIdFromWire } from '../shared/domain/ids';
 import Area from './area';
 import type { AreaWorldContract } from './area';
-import Mob from './mob';
+import MobEntity from './world/mob-entity';
 import Types from '../shared/gametypes-browser';
 
 interface MobAreaMobContract {
@@ -55,7 +55,12 @@ class MobArea extends Area {
     _createMobInsideArea(): MobAreaMobContract {
         const k = Types.getKindFromString(this.kind) as EntityKindId;
         const pos = this._getRandomPositionInsideArea();
-        const mob = new Mob(entityIdFromWire(Number('1' + this.id + '' + k + '' + this.entities.length)), k, pos.x, pos.y);
+        const mob = new MobEntity(
+            entityIdFromWire(Number('1' + this.id + '' + k + '' + this.entities.length)),
+            k,
+            pos.x,
+            pos.y
+        );
 
         mob.on('respawn', () => {
             const nextPos = this._getRandomPositionInsideArea();

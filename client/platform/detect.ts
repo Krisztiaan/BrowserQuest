@@ -8,9 +8,31 @@ function userAgentContains(value: string): boolean {
     return globalThis.navigator.userAgent.indexOf(value) !== -1;
 }
 
+function isPhone(): boolean {
+    if (userAgentContains('iPad')) {
+        return false;
+    }
+    if (userAgentContains('iPhone')) {
+        return true;
+    }
+    if (userAgentContains('Android') && userAgentContains('Mobile')) {
+        return true;
+    }
+    if (userAgentContains('Mobile')) {
+        return true;
+    }
+    return false;
+}
+
 function isTablet(screenWidth: number): boolean {
     if (screenWidth > 640) {
-        if ((userAgentContains('Android') && userAgentContains('Firefox')) || userAgentContains('Mobile')) {
+        if (userAgentContains('iPad')) {
+            return true;
+        }
+        if (userAgentContains('Android') && !userAgentContains('Mobile')) {
+            return true;
+        }
+        if (userAgentContains('Android') && userAgentContains('Firefox') && !userAgentContains('Mobile')) {
             return true;
         }
     }
@@ -28,6 +50,7 @@ function isFirefoxAndroid(): boolean {
 const Detect = {
     supportsWebSocket,
     userAgentContains,
+    isPhone,
     isTablet,
     isWindows,
     canPlayMP3,

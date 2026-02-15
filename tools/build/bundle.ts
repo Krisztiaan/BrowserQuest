@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const repoRoot = path.resolve(import.meta.dir, '..', '..');
 const serverArtifactRoot = path.join(repoRoot, 'dist', 'server');
-const clientArtifactRoot = path.join(repoRoot, 'dist', 'vite');
+const clientArtifactRoot = path.join(repoRoot, 'dist', 'client');
 const bundleRoot = path.join(repoRoot, 'dist', 'bundle');
 
 async function pathExists(targetPath: string): Promise<boolean> {
@@ -38,7 +38,7 @@ async function main(): Promise<void> {
     }
 
     if (!(await pathExists(clientArtifactRoot))) {
-        throw new Error('dist/vite is missing. Run `bun run build:vite` first.');
+        throw new Error('dist/client is missing. Run `bun run build:client` first.');
     }
 
     await fs.rm(bundleRoot, { recursive: true, force: true });

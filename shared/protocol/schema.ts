@@ -99,6 +99,45 @@ function validateClientToServerActionBySchema(entry: ClientToServerProtocolManif
         return true;
     }
 
+    if (schema.kind === 'prefixRest') {
+        if (payload.length < schema.prefix.length) {
+            return false;
+        }
+        for (let i = 0; i < schema.prefix.length; i += 1) {
+            const argKind = schema.prefix[i];
+            if (!argKind || !validateClientToServerArg(argKind, payload[i])) {
+                return false;
+            }
+        }
+        for (let i = schema.prefix.length; i < payload.length; i += 1) {
+            if (!validateClientToServerArg(schema.rest as 'n' | 's', payload[i])) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    if (schema.kind === 'oneOf') {
+        for (let optIndex = 0; optIndex < schema.options.length; optIndex += 1) {
+            const opt = schema.options[optIndex];
+            if (opt?.args.length !== payload.length) {
+                continue;
+            }
+            let ok = true;
+            for (let i = 0; i < opt.args.length; i += 1) {
+                const argKind = opt.args[i];
+                if (!argKind || !validateClientToServerArg(argKind, payload[i])) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (ok) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     return false;
 }
 
@@ -194,6 +233,10 @@ export const CLIENT_TO_SERVER_FORMAT_SCHEMA: ClientToServerFormatSchema = Object
 
 export function isFixedClientToServerOpcode(type: number): boolean {
     return type in CLIENT_TO_SERVER_FORMAT_SCHEMA;
+}
+
+export function isKnownClientToServerOpcode(type: number): boolean {
+    return CLIENT_TO_SERVER_ENTRY_BY_OPCODE.has(type);
 }
 
 export function checkClientToServerProtocolAction(action: unknown[]): boolean {

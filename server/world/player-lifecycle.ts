@@ -35,6 +35,8 @@ type LifecycleWorld = {
 const log = Log.getLogger();
 
 export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
+    const lifecycleBoundPlayers = new WeakSet<object>();
+
     const logPlayerEvent = (
         eventName: typeof WORLD_EVENT_NAMES.PLAYER_JOIN | typeof WORLD_EVENT_NAMES.PLAYER_LEAVE,
         player: EnteringPlayer
@@ -65,21 +67,24 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
 
         world.pushToPlayer(player, buildPopulationAction(world.playerCount));
 
-        const onMove = function (x: number, y: number) {
-            log.debug(player.name + ' is moving to (' + x + ', ' + y + ').');
-        };
+        if (!lifecycleBoundPlayers.has(player as unknown as object)) {
+            const onMove = function (x: number, y: number) {
+                log.debug(player.name + ' is moving to (' + x + ', ' + y + ').');
+            };
 
-        player.on('move', onMove);
-        player.on('lootMove', onMove);
+            player.on('move', onMove);
+            player.on('lootMove', onMove);
 
-        player.on('exit', function () {
-            log.info(player.name + ' has left the game.');
-            logPlayerEvent(WORLD_EVENT_NAMES.PLAYER_LEAVE, player);
-            world.removePlayer(player);
-            world.decrementPlayerCount();
+            player.on('exit', function () {
+                log.info(player.name + ' has left the game.');
+                logPlayerEvent(WORLD_EVENT_NAMES.PLAYER_LEAVE, player);
+                world.removePlayer(player);
+                world.decrementPlayerCount();
+                world.emit('playerRemoved');
+            });
 
-            world.emit('playerRemoved');
-        });
+            lifecycleBoundPlayers.add(player as unknown as object);
+        }
 
         world.emit('playerAdded');
     });

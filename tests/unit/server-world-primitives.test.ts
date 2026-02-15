@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import Area, { type AreaEntity, type AreaWorldContract } from '../../server/area';
 import { findWorldPositionNextTo } from '../../server/world/entity';
 import { notifyWorldPopulation } from '../../server/world/population-state';
+import { flushOutgoingQueues } from '../../server/world/transport';
 import Types from '../../shared/gametypes-browser';
 
 test('area removeFromArea ignores unknown entity ids', () => {
@@ -93,4 +94,51 @@ test('findWorldPositionNextTo falls back to current entity position after bounde
 
     expect(position).toEqual({ x: 7, y: 9 });
     expect(attempts).toBe(32);
+});
+
+test('flushOutgoingQueues preserves order and bounded batch sizing while draining queues', () => {
+    const sentPayloads: unknown[] = [];
+    const playerQueue = Array.from({ length: 120 }, (_, index) => index + 1);
+    const outgoingQueues = {
+        player1: playerQueue,
+    };
+
+    flushOutgoingQueues(outgoingQueues, () => ({
+        send(payload: unknown) {
+            sentPayloads.push(payload);
+        },
+    }));
+
+    expect(sentPayloads.length).toBe(3);
+    expect(Array.isArray(sentPayloads[0])).toBe(true);
+    expect(Array.isArray(sentPayloads[1])).toBe(true);
+    expect(Array.isArray(sentPayloads[2])).toBe(true);
+    expect((sentPayloads[0] as unknown[]).length).toBe(50);
+    expect((sentPayloads[1] as unknown[]).length).toBe(50);
+    expect((sentPayloads[2] as unknown[]).length).toBe(20);
+    expect((sentPayloads[0] as number[])[0]).toBe(1);
+    expect((sentPayloads[1] as number[])[0]).toBe(51);
+    expect((sentPayloads[2] as number[])[0]).toBe(101);
+    expect(playerQueue.length).toBe(0);
+});
+
+test('flushOutgoingQueues avoids front-splice churn and still flushes payloads', () => {
+    const sentPayloads: unknown[] = [];
+    const playerQueue = [1, 2, 3] as number[] & { splice?: (...args: unknown[]) => never };
+    playerQueue.splice = () => {
+        throw new Error('splice should not be used during queue flush');
+    };
+
+    const outgoingQueues = {
+        player1: playerQueue as unknown as number[],
+    };
+
+    flushOutgoingQueues(outgoingQueues, () => ({
+        send(payload: unknown) {
+            sentPayloads.push(payload);
+        },
+    }));
+
+    expect(sentPayloads).toEqual([[1, 2, 3]]);
+    expect(playerQueue.length).toBe(0);
 });

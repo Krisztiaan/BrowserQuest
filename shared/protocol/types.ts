@@ -4,13 +4,13 @@ import type Types from '../gametypes-browser';
 export type ProtocolActionValue = number | string | boolean | null | number[];
 export type ProtocolParsedAction = [number, ...ProtocolActionValue[]];
 
-export type ClientToServerHelloAction = [typeof Types.Messages.HELLO, string, number, number];
+export type ClientToServerHelloAction =
+    | [typeof Types.Messages.HELLO, string, number, number]
+    | [typeof Types.Messages.HELLO, string, number, number, number, string];
 export type ClientToServerMoveAction = [typeof Types.Messages.MOVE, number, number];
 export type ClientToServerLootMoveAction = [typeof Types.Messages.LOOTMOVE, number, number, number];
 export type ClientToServerAggroAction = [typeof Types.Messages.AGGRO, number];
 export type ClientToServerAttackAction = [typeof Types.Messages.ATTACK, number];
-export type ClientToServerHitAction = [typeof Types.Messages.HIT, number];
-export type ClientToServerHurtAction = [typeof Types.Messages.HURT, number];
 export type ClientToServerChatAction = [typeof Types.Messages.CHAT, string];
 export type ClientToServerLootAction = [typeof Types.Messages.LOOT, number];
 export type ClientToServerTeleportAction = [typeof Types.Messages.TELEPORT, number, number];
@@ -19,6 +19,9 @@ export type ClientToServerZoneAction = [typeof Types.Messages.ZONE];
 export type ClientToServerOpenAction = [typeof Types.Messages.OPEN, number];
 export type ClientToServerCheckAction = [typeof Types.Messages.CHECK, number];
 export type ClientToServerAchievementAction = [typeof Types.Messages.ACHIEVEMENT, number];
+export type ClientToServerIntentAction = [typeof Types.Messages.INTENT, number, string, string];
+export type ClientToServerChunkSubscribeAction = [typeof Types.Messages.CHUNK_SUBSCRIBE, number, number, number];
+export type ClientToServerChunkUnsubscribeAction = [typeof Types.Messages.CHUNK_UNSUBSCRIBE];
 
 export type ClientToServerProtocolAction =
     | ClientToServerHelloAction
@@ -26,8 +29,6 @@ export type ClientToServerProtocolAction =
     | ClientToServerLootMoveAction
     | ClientToServerAggroAction
     | ClientToServerAttackAction
-    | ClientToServerHitAction
-    | ClientToServerHurtAction
     | ClientToServerChatAction
     | ClientToServerLootAction
     | ClientToServerTeleportAction
@@ -35,9 +36,14 @@ export type ClientToServerProtocolAction =
     | ClientToServerZoneAction
     | ClientToServerOpenAction
     | ClientToServerCheckAction
-    | ClientToServerAchievementAction;
+    | ClientToServerAchievementAction
+    | ClientToServerIntentAction
+    | ClientToServerChunkSubscribeAction
+    | ClientToServerChunkUnsubscribeAction;
 
-export type ServerToClientWelcomeAction = [typeof Types.Messages.WELCOME, number, string, number, number, number];
+export type ServerToClientWelcomeAction =
+    | [typeof Types.Messages.WELCOME, number, string, number, number, number]
+    | [typeof Types.Messages.WELCOME, number, string, number, number, number, number, string];
 export type ServerToClientSpawnAction = [
     typeof Types.Messages.SPAWN,
     number,
@@ -71,6 +77,30 @@ export type ServerToClientAchievementsAction = [
     number,
     number,
 ];
+export type ServerToClientOutcomeAction = [typeof Types.Messages.OUTCOME, number, string, string];
+export type ServerToClientRejectAction = [typeof Types.Messages.REJECT, number, string, string];
+export type ServerToClientAckAction = [typeof Types.Messages.ACK, number];
+export type ServerToClientCorrectionAction =
+    | [typeof Types.Messages.CORRECTION, number, number, number]
+    | [typeof Types.Messages.CORRECTION, number, string, string];
+export type ServerToClientChunkSnapshotAction = [typeof Types.Messages.CHUNK_SNAPSHOT, number, number, number, string];
+export type ServerToClientChunkSnapshotPartAction = [
+    typeof Types.Messages.CHUNK_SNAPSHOT_PART,
+    number,
+    number,
+    number,
+    number,
+    number,
+    string,
+];
+export type ServerToClientChunkDeltaAction = [
+    typeof Types.Messages.CHUNK_DELTA,
+    number,
+    number,
+    number,
+    number,
+    string,
+];
 
 export type ServerToClientProtocolAction =
     | ServerToClientWelcomeAction
@@ -91,7 +121,14 @@ export type ServerToClientProtocolAction =
     | ServerToClientDestroyAction
     | ServerToClientHitPointsAction
     | ServerToClientBlinkAction
-    | ServerToClientAchievementsAction;
+    | ServerToClientAchievementsAction
+    | ServerToClientOutcomeAction
+    | ServerToClientRejectAction
+    | ServerToClientAckAction
+    | ServerToClientCorrectionAction
+    | ServerToClientChunkSnapshotAction
+    | ServerToClientChunkSnapshotPartAction
+    | ServerToClientChunkDeltaAction;
 
 export type ProtocolAction = ClientToServerProtocolAction | ServerToClientProtocolAction;
 export type ProtocolOpcode = ProtocolAction[0];

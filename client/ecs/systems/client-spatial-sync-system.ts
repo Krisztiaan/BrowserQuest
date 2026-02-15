@@ -51,6 +51,7 @@ export function runClientSpatialSyncSystem(host: ClientSpatialSyncSystemHost): v
     for (const entity of Object.values(host.entities)) {
         const id = entity.id;
         const isMoving = entity instanceof Character ? entity.isMoving() : false;
+        const isDead = entity instanceof Character ? entity.isDead : false;
 
         let { nextGridX, nextGridY } = normalizeNextGrid(entity);
         if (entity instanceof Character && !isMoving) {
@@ -67,6 +68,7 @@ export function runClientSpatialSyncSystem(host: ClientSpatialSyncSystemHost): v
             nextGridX,
             nextGridY,
             isMoving,
+            isDead,
             kind: entity.kind,
             isPlayer: entity instanceof Player,
         } as const;
@@ -85,6 +87,7 @@ export function runClientSpatialSyncSystem(host: ClientSpatialSyncSystemHost): v
             prev.nextGridX === record.nextGridX &&
             prev.nextGridY === record.nextGridY &&
             prev.isMoving === record.isMoving &&
+            prev.isDead === record.isDead &&
             prev.kind === record.kind &&
             prev.isPlayer === record.isPlayer
         ) {

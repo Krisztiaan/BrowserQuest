@@ -4,6 +4,14 @@ type RuntimeServerConfig = {
 };
 
 function resolveRuntimeServerConfig(): RuntimeServerConfig {
+    const override = (globalThis as unknown as { __BQ_WS_URL__?: unknown }).__BQ_WS_URL__;
+    if (typeof override === "string" && override.trim().length > 0) {
+        return {
+            wsUrl: override,
+            dispatcher: false,
+        };
+    }
+
     if (typeof window === "undefined") {
         return {
             wsUrl: "ws://localhost/ws",

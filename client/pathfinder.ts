@@ -19,6 +19,7 @@ class Pathfinder {
     grid: number[][] | null;
     blankGrid: number[][];
     ignored: PathEntity[];
+    ignoredOriginalValues: Map<string, number>;
 
     constructor(width: number, height: number) {
         this.width = width;
@@ -27,6 +28,7 @@ class Pathfinder {
         this.blankGrid = [];
         this.initBlankGrid_();
         this.ignored = [];
+        this.ignoredOriginalValues = new Map();
     }
 
     initBlankGrid_(): void {
@@ -41,11 +43,10 @@ class Pathfinder {
     findPath(grid: number[][], entity: PathEntity, x: number, y: number, findIncomplete: boolean): GridPath {
         const start: GridPoint = [entity.gridX, entity.gridY],
             end: GridPoint = [x, y];
-        let path = toGridPath(AStar(grid, start, end));
 
         this.grid = grid;
         this.applyIgnoreList_(true);
-        path = toGridPath(AStar(this.grid, start, end));
+        let path = toGridPath(AStar(this.grid, start, end));
 
         if (path.length === 0 && findIncomplete === true) {
             // If no path was found, try and find an incomplete one
@@ -90,20 +91,60 @@ class Pathfinder {
     }
 
     applyIgnoreList_(ignored: boolean): void {
-        const self = this;
-
         if (!this.grid) {
             return;
         }
 
-        this.ignored.forEach(function (entity) {
-            const x = entity.isMoving?.() ? (entity.nextGridX ?? entity.gridX) : entity.gridX;
-            const y = entity.isMoving?.() ? (entity.nextGridY ?? entity.gridY) : entity.gridY;
-
-            if (x >= 0 && y >= 0) {
-                self.grid[y][x] = ignored ? 0 : 1;
+        if (!ignored) {
+            for (const [key, original] of this.ignoredOriginalValues.entries()) {
+                const [xs, ys] = key.split(',');
+                const x = Number(xs);
+                const y = Number(ys);
+                if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) {
+                    continue;
+                }
+                if (this.grid[y]?.[x] === undefined) {
+                    continue;
+                }
+                this.grid[y][x] = original;
             }
-        });
+            this.ignoredOriginalValues.clear();
+            return;
+        }
+
+        // Defensive: if a caller forgot to restore, restore now before applying again.
+        if (this.ignoredOriginalValues.size > 0) {
+            this.applyIgnoreList_(false);
+        }
+
+        for (const entity of this.ignored) {
+            const positions: Array<{ x: number; y: number }> = [{ x: entity.gridX, y: entity.gridY }];
+            if (entity.isMoving?.()) {
+                const nx = entity.nextGridX ?? entity.gridX;
+                const ny = entity.nextGridY ?? entity.gridY;
+                if (nx !== entity.gridX || ny !== entity.gridY) {
+                    positions.push({ x: nx, y: ny });
+                }
+            }
+
+            for (const pos of positions) {
+                const x = pos.x;
+                const y = pos.y;
+                if (x < 0 || y < 0) {
+                    continue;
+                }
+                const row = this.grid[y];
+                if (!row || row[x] === undefined) {
+                    continue;
+                }
+
+                const key = `${x},${y}`;
+                if (!this.ignoredOriginalValues.has(key)) {
+                    this.ignoredOriginalValues.set(key, row[x] ?? 0);
+                }
+                row[x] = 0;
+            }
+        }
     }
 
     clearIgnoreList(): void {

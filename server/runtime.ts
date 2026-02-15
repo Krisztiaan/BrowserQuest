@@ -20,6 +20,7 @@ import Player from './player';
 import { attachWorldConnectionSession } from './player-session';
 import { DEFAULT_PLAYER_DB_PATH, SqlitePlayerPersistence } from './player-persistence';
 import { createProfilePreviewJsonResponse, createProfilePreviewResponse } from './profile-preview';
+import { createPasskeyAuthResponse } from './passkey-auth';
 
 const WsRuntime = WsRuntimeModule as MainRuntimeDependencies['ws'];
 
@@ -110,6 +111,8 @@ function createWorlds(
 
     for (let i = 0; i < config.nb_worlds; i += 1) {
         const world = new dependencies.WorldServer('world' + (i + 1), config.nb_players_per_world, server);
+        const worldWithConfig = world as RuntimeWorld & { setServerConfig?: (config: ServerConfig) => void };
+        worldWithConfig.setServerConfig?.(config);
         onWorldCreated(world);
         if (typeof world.on === 'function') {
             world.on('ready', onWorldReady);
@@ -126,6 +129,32 @@ function resolvePlayerPersistencePath(config: ServerConfig): string {
         return DEFAULT_PLAYER_DB_PATH;
     }
     return config.player_db_path;
+}
+
+function flushWorldPersistenceOnShutdown(worlds: RuntimeWorld[]): void {
+    for (const world of worlds) {
+        const flushable = world as RuntimeWorld & { flushPersistenceOnShutdown?: () => void };
+        if (typeof flushable.flushPersistenceOnShutdown === 'function') {
+            try {
+                flushable.flushPersistenceOnShutdown();
+            } catch (_) {
+                // ignore best-effort persistence flush failures during shutdown
+            }
+        }
+    }
+}
+
+function closeWorldPersistenceOnShutdown(worlds: RuntimeWorld[]): void {
+    for (const world of worlds) {
+        const closeable = world as RuntimeWorld & { closePersistence?: () => void };
+        if (typeof closeable.closePersistence === 'function') {
+            try {
+                closeable.closePersistence();
+            } catch (_) {
+                // ignore close failures during shutdown
+            }
+        }
+    }
 }
 
 function parseRequestPathname(requestUrl: string | undefined): string {
@@ -386,8 +415,26 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
             });
         });
     }
+    if (typeof server.onRequestPasskeyAuth === 'function') {
+        server.onRequestPasskeyAuth(function (request: Request) {
+            return createPasskeyAuthResponse({
+                request,
+                persistence: playerPersistence,
+            });
+        });
+    }
+
+    let runtimeReady = config.nb_worlds === 0;
 
     server.on('connect', function (connection) {
+        if (!runtimeReady) {
+            connection.close('Server world is still starting up.');
+            emitServerEvent('info', SERVER_EVENT_NAMES.CONNECT_REJECTED, {
+                reason: 'world_not_ready',
+            });
+            return;
+        }
+
         const connect = function (world: RuntimeWorld | null | undefined) {
             if (world) {
                 const player = new Player(connection, world);
@@ -462,6 +509,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
         function () {
             readyCount += 1;
             if (readyCount === config.nb_worlds) {
+                runtimeReady = true;
                 installStatusEndpoint();
             }
         },
@@ -475,6 +523,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     installWorldPopulationHooks(worlds, metrics, onPopulationChange);
     // If worlds are already ready (unlikely), ensure /status exists.
     if (config.nb_worlds === 0) {
+        runtimeReady = true;
         installStatusEndpoint();
     }
 
@@ -507,7 +556,9 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
             }
         }
 
+        flushWorldPersistenceOnShutdown(worlds);
         baseRuntimeCleanup();
+        closeWorldPersistenceOnShutdown(worlds);
         dependencies.processObject.exit(0);
     });
     const cleanupRuntime = createRuntimeCleanup([baseRuntimeCleanup, cleanupShutdownHandlers]);

@@ -965,25 +965,6 @@ footer, header, hgroup, menu, nav, section {
         #name-tooltip {display:none;}
 	}
 
-	@media screen and (max-width: 800px) and (orientation: portrait) {
-        #portrait {display:block;height:300px;width:300px;position:absolute;top:55%; left:50%; margin:-150px 0 0 -150px;}
-        #parchment {display:none;}
-        #container, .game #container {display:none;}
-        
-        #logo {height:84px;width:458px;position:absolute;top:10%;left:50%;margin-left:-229px;z-index:3;background-size:844px;}
-        #portrait p {color:#eee;font-family:'GraphicPixel', sans-serif;font-size:20px;text-align:center;}
-        
-        #tilt {height:120px;width:132px;background-position:-710px -82px;background-size:844px;margin:25px auto 0 auto;}
-        
-        .intro #toggle-legal, #toggle-legal, .intro #legal-link, #legal-link {display:none;}
-    }
-    
-    @media screen and (max-width: 640px) and (orientation: portrait) {
-        #portrait {display:block;height:300px;width:300px;position:absolute;top:70%; left:50%; margin:-150px 0 0 -150px;}
-        
-        #logo {height:42px;width:229px;position:absolute;top:10%;left:50%;margin-left:-114px;z-index:3;background-size:422px;}
-    }
-
 /* Tablet mode */
 
     .tablet .animate .parchment-left, .tablet .animate .parchment-right, .tablet .animate .parchment-middle {-webkit-animation:none;-moz-animation:none;-o-animation:none;animation:none;}
@@ -999,3 +980,106 @@ footer, header, hgroup, menu, nav, section {
     .windows #parchment, .windows #parchment input, .windows #notifications, .windows #instructions, .windows #achievements, .windows #achievement-notification, 
     .windows #playercount, .windows #credits, .windows #loadcharacter, .windows #confirmation, .windows #death, .windows #error, .windows #about, .windows #legal, 
     .windows #parchment p, .windows #portrait p, .windows .alert, .windows footer, .windows .bubble p, .windows #population, .windows #chatinput {font-family:'AdvoCut';}
+
+/* Phone full-viewport gameplay (no framed window) */
+
+    body.phone {
+        --game-width: 480px;
+        --game-height: 224px;
+    }
+
+    body.game.phone #container {
+        position: fixed;
+        inset: 0;
+        left: 0;
+        top: 0;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        margin: 0;
+        background: transparent;
+    }
+
+    body.game.phone #canvasborder {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        background: none;
+    }
+
+    body.game.phone #canvas {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: var(--game-width);
+        height: var(--game-height);
+    }
+
+    body.game.phone #background,
+    body.game.phone #entities,
+    body.game.phone #foreground {
+        top: 0;
+        left: 0;
+    }
+
+    body.game.phone #bubbles {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: var(--game-width);
+        height: var(--game-height);
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    body.game.phone #bar-container {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: env(safe-area-inset-top);
+        width: 100vw;
+        background-repeat: repeat-x;
+    }
+
+    body.game.phone #chatbox {
+        position: fixed;
+        left: 0;
+        right: 0;
+        width: 100vw;
+        margin-left: 0;
+        bottom: env(safe-area-inset-bottom);
+        background-repeat: repeat-x;
+    }
+
+    body.game.phone #population {
+        position: fixed;
+        left: 0;
+        right: 0;
+        width: 100vw;
+        margin-left: 0;
+        background-repeat: repeat-x;
+    }
+
+    #fullscreen-toggle {
+        display: none;
+        position: fixed;
+        right: 10px;
+        top: calc(env(safe-area-inset-top) + 10px);
+        z-index: 50;
+        padding: 6px 10px;
+        font-family: 'GraphicPixel', sans-serif;
+        font-size: 12px;
+        color: #eee;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 6px;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+    }
+
+    body.game.phone #fullscreen-toggle {
+        display: block;
+    }

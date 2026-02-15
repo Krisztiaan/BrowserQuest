@@ -9,7 +9,6 @@ import {
     MSG_CHAT,
     MSG_DAMAGE,
     MSG_HELLO,
-    MSG_HIT,
     MSG_LIST,
     MSG_LOOTMOVE,
     MSG_MOVE,
@@ -285,7 +284,7 @@ test(
         if (combatTargetId !== null) {
             ws.send(JSON.stringify([MSG_ATTACK, combatTargetId]));
             for (let i = 0; i < 6; i += 1) {
-                ws.send(JSON.stringify([MSG_HIT, combatTargetId]));
+                ws.send(JSON.stringify([MSG_ATTACK, combatTargetId]));
             }
 
             // Damage events are random; if one arrives, validate shape.

@@ -1,5 +1,11 @@
 import { afterEach, expect, test } from 'bun:test';
-import Storage, { STORAGE_KEY, readUsernameCookie } from '../../client/storage';
+import Storage, {
+    STORAGE_KEY,
+    clearAccountCookie,
+    readAccountCookie,
+    readUsernameCookie,
+    writeAccountCookie,
+} from '../../client/storage';
 
 const LEGACY_STORAGE_KEY = 'data';
 
@@ -14,7 +20,7 @@ function createLocalStorageMock(): LocalStorageLike {
     const store = new Map<string, string>();
     return {
         getItem(key: string): string | null {
-            return store.has(key) ? store.get(key) ?? null : null;
+            return store.has(key) ? (store.get(key) ?? null) : null;
         },
         setItem(key: string, value: string): void {
             store.set(key, String(value));
@@ -159,4 +165,18 @@ test('storage syncs username cookie on save and clear', () => {
 
     storage.clear();
     expect(readUsernameCookie()).toBeNull();
+});
+
+test('account cookie helpers roundtrip sanitized names and clear properly', () => {
+    Object.defineProperty(globalThis, 'document', {
+        configurable: true,
+        writable: true,
+        value: { cookie: '' },
+    });
+
+    writeAccountCookie('  AccountHero  ');
+    expect(readAccountCookie()).toBe('AccountHero');
+
+    clearAccountCookie();
+    expect(readAccountCookie()).toBeNull();
 });

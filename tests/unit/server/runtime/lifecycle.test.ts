@@ -110,3 +110,180 @@ test('main runtime exposes lifecycle cleanup handle and onLifecycle receives sam
     expect(cleared).toEqual([timerHandle]);
     expect(removedEvents).toEqual(['uncaughtException', 'unhandledRejection', 'SIGTERM', 'SIGINT']);
 });
+
+test('main runtime rejects connects until world ready, then accepts new sessions', () => {
+    const timerHandle = { id: 'timer' };
+    const processHandlers: Record<string, (...args: unknown[]) => void> = {};
+    const connectCloseReasons: string[] = [];
+    const connectedPlayers: unknown[] = [];
+    const emittedEvents: Array<{ eventName: string; fields: Record<string, unknown> }> = [];
+    const handshakeFrames: string[] = [];
+    let connectHandler: ((connection: unknown) => void) | null = null;
+    let worldReadyHandler: (() => void) | null = null;
+
+    const processObject = {
+        env: {},
+        on(eventName: string, handler: (...args: unknown[]) => void) {
+            processHandlers[eventName] = handler;
+        },
+        off(eventName: string) {
+            delete processHandlers[eventName];
+        },
+        exit() {
+            // no-op
+        },
+    };
+
+    const FakeServer = function FakeServer(this: {
+        on: (eventName: 'connect' | 'error', callback: (...args: unknown[]) => void) => void;
+        onRequestStatus: (callback: unknown) => void;
+    }) {
+        this.on = (eventName, callback) => {
+            if (eventName === 'connect') {
+                connectHandler = callback as unknown as (connection: unknown) => void;
+            }
+        };
+        this.onRequestStatus = () => {
+            // no-op
+        };
+    } as unknown as {
+        new (port: number): {
+            on: (eventName: 'connect' | 'error', callback: (...args: unknown[]) => void) => void;
+            onRequestStatus: (callback: unknown) => void;
+        };
+    };
+
+    const FakeWorld = function FakeWorld(
+        this: {
+            playerCount: number;
+            on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
+            emit: (eventName: 'playerConnect', player: unknown) => void;
+            run: (path: string) => void;
+            updatePopulation: (totalPlayers?: number) => void;
+        }
+    ) {
+        this.playerCount = 0;
+        this.on = (eventName, callback) => {
+            if (eventName === 'ready') {
+                worldReadyHandler = callback;
+            }
+        };
+        this.emit = (eventName, player) => {
+            if (eventName === 'playerConnect') {
+                connectedPlayers.push(player);
+            }
+        };
+        this.run = () => {
+            // no-op
+        };
+        this.updatePopulation = () => {
+            // no-op
+        };
+    } as unknown as {
+        new (name: string, cap: number, server: unknown): {
+            playerCount: number;
+            on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
+            emit: (eventName: 'playerConnect', player: unknown) => void;
+            run: (path: string) => void;
+            updatePopulation: (totalPlayers?: number) => void;
+        };
+    };
+
+    const FakePlayer = function FakePlayer(this: { id: string }) {
+        this.id = 'player-1';
+    } as unknown as { new (connection: unknown, world: unknown): { id: string } };
+
+    const runtime = MainRuntime.main(createValidConfig(), {
+        dependencies: {
+            ws: { MultiVersionWebsocketServer: FakeServer },
+            WorldServer: FakeWorld,
+            Player: FakePlayer,
+            metricsRuntime: {
+                createMetrics() {
+                    return {
+                        isEnabled: false,
+                        isReady: false,
+                        ready() {
+                            // no-op
+                        },
+                        getTotalPlayers() {
+                            // no-op
+                        },
+                        getOpenWorldCount() {
+                            // no-op
+                        },
+                        updatePlayerCounters() {
+                            // no-op
+                        },
+                        updateWorldDistribution() {
+                            // no-op
+                        },
+                    };
+                },
+            },
+            logger: {
+                info() {
+                    // no-op
+                },
+                error() {
+                    // no-op
+                },
+                event(_level: string, eventName: string, fields: Record<string, unknown>) {
+                    emittedEvents.push({ eventName, fields });
+                },
+            },
+            processObject,
+            setIntervalFn() {
+                return timerHandle;
+            },
+            clearIntervalFn() {
+                // no-op
+            },
+            setTimeoutFn() {
+                // no-op
+            },
+        },
+    });
+
+    expect(runtime).toBeDefined();
+    expect(typeof connectHandler).toBe('function');
+    expect(typeof worldReadyHandler).toBe('function');
+
+    connectHandler?.({
+        close(reason: string) {
+            connectCloseReasons.push(reason);
+        },
+    });
+
+    expect(connectCloseReasons).toEqual(['Server world is still starting up.']);
+    expect(connectedPlayers.length).toBe(0);
+    expect(
+        emittedEvents.some(
+            (entry) =>
+                entry.eventName === 'server.connect.rejected' && entry.fields.reason === 'world_not_ready'
+        )
+    ).toBe(true);
+
+    worldReadyHandler?.();
+
+    connectHandler?.({
+        id: 'conn-1',
+        close() {
+            // no-op
+        },
+        listen() {
+            // no-op
+        },
+        onClose() {
+            // no-op
+        },
+        sendUTF8(payload: string) {
+            handshakeFrames.push(payload);
+        },
+    });
+
+    expect(connectedPlayers.length).toBe(1);
+    expect(handshakeFrames).toEqual(['go']);
+
+    runtime?.cleanup();
+});

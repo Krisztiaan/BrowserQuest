@@ -27,13 +27,16 @@ export type ServerToClientProtocolManifestEntry = ProtocolManifestEntry<'server_
 }>;
 
 export const CLIENT_TO_SERVER_PROTOCOL_MANIFEST = [
-    { key: 'HELLO', opcode: Types.Messages.HELLO, direction: 'client_to_server', schema: { kind: 'fixed', args: ['s', 'n', 'n'] } },
+    {
+        key: 'HELLO',
+        opcode: Types.Messages.HELLO,
+        direction: 'client_to_server',
+        schema: { kind: 'oneOf', options: [{ args: ['s', 'n', 'n'] }, { args: ['s', 'n', 'n', 'n', 's'] }] },
+    },
     { key: 'MOVE', opcode: Types.Messages.MOVE, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 'n'] } },
     { key: 'LOOTMOVE', opcode: Types.Messages.LOOTMOVE, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 'n', 'n'] } },
     { key: 'AGGRO', opcode: Types.Messages.AGGRO, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'ATTACK', opcode: Types.Messages.ATTACK, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'HIT', opcode: Types.Messages.HIT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'HURT', opcode: Types.Messages.HURT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'CHAT', opcode: Types.Messages.CHAT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['s'] } },
     { key: 'LOOT', opcode: Types.Messages.LOOT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'TELEPORT', opcode: Types.Messages.TELEPORT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 'n'] } },
@@ -42,6 +45,9 @@ export const CLIENT_TO_SERVER_PROTOCOL_MANIFEST = [
     { key: 'OPEN', opcode: Types.Messages.OPEN, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'CHECK', opcode: Types.Messages.CHECK, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'ACHIEVEMENT', opcode: Types.Messages.ACHIEVEMENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
+    { key: 'INTENT', opcode: Types.Messages.INTENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 's', 's'] } },
+    { key: 'CHUNK_SUBSCRIBE', opcode: Types.Messages.CHUNK_SUBSCRIBE, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 'n', 'n'] } },
+    { key: 'CHUNK_UNSUBSCRIBE', opcode: Types.Messages.CHUNK_UNSUBSCRIBE, direction: 'client_to_server', schema: { kind: 'fixed', args: [] } },
 ] as const satisfies ReadonlyArray<ClientToServerProtocolManifestEntry>;
 
 export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
@@ -49,7 +55,10 @@ export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
         key: 'WELCOME',
         opcode: Types.Messages.WELCOME,
         direction: 'server_to_client',
-        schema: { kind: 'fixed', args: ['n', 's', 'n', 'n', 'n'] },
+        schema: {
+            kind: 'oneOf',
+            options: [{ args: ['n', 's', 'n', 'n', 'n'] }, { args: ['n', 's', 'n', 'n', 'n', 'n', 's'] }],
+        },
     },
     {
         key: 'SPAWN',
@@ -78,6 +87,33 @@ export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
         opcode: Types.Messages.ACHIEVEMENTS,
         direction: 'server_to_client',
         schema: { kind: 'fixed', args: ['na', 'n', 'n', 'n', 'n', 'n'] },
+    },
+    { key: 'OUTCOME', opcode: Types.Messages.OUTCOME, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 's', 's'] } },
+    { key: 'REJECT', opcode: Types.Messages.REJECT, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 's', 's'] } },
+    { key: 'ACK', opcode: Types.Messages.ACK, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n'] } },
+    {
+        key: 'CORRECTION',
+        opcode: Types.Messages.CORRECTION,
+        direction: 'server_to_client',
+        schema: { kind: 'oneOf', options: [{ args: ['n', 'n', 'n'] }, { args: ['n', 's', 's'] }] },
+    },
+    {
+        key: 'CHUNK_SNAPSHOT',
+        opcode: Types.Messages.CHUNK_SNAPSHOT,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n', 'n', 's'] },
+    },
+    {
+        key: 'CHUNK_SNAPSHOT_PART',
+        opcode: Types.Messages.CHUNK_SNAPSHOT_PART,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n', 'n', 'n', 'n', 's'] },
+    },
+    {
+        key: 'CHUNK_DELTA',
+        opcode: Types.Messages.CHUNK_DELTA,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n', 'n', 'n', 's'] },
     },
 ] as const satisfies ReadonlyArray<ServerToClientProtocolManifestEntry>;
 

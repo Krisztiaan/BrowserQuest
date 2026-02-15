@@ -4,6 +4,7 @@ import BootEnvelopeModule, { runEntryBoot } from '../../../../server/startup/boo
 import ConfigSourceModule, { loadConfigFile, resolveActiveConfig } from '../../../../server/startup/config';
 import PreflightFailuresModule, {
     ensureConfigPreflightValid,
+    ensureMapPreflightValid,
     ensureConfigSourcePresent,
 } from '../../../../server/startup/preflight';
 import StartupRunnerModule, { runStartup } from '../../../../server/startup/runner';
@@ -34,9 +35,11 @@ test('startup options helper exports stable named/default contract', () => {
 test('startup preflight helper exports stable named/default contract', () => {
     expect(typeof ensureConfigSourcePresent).toBe('function');
     expect(typeof ensureConfigPreflightValid).toBe('function');
+    expect(typeof ensureMapPreflightValid).toBe('function');
     expect(typeof PreflightFailuresModule).toBe('object');
     expect(PreflightFailuresModule.ensureConfigSourcePresent).toBe(ensureConfigSourcePresent);
     expect(PreflightFailuresModule.ensureConfigPreflightValid).toBe(ensureConfigPreflightValid);
+    expect(PreflightFailuresModule.ensureMapPreflightValid).toBe(ensureMapPreflightValid);
 });
 
 test('startup config helper exports stable named/default contract', () => {

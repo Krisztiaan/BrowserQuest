@@ -10,3 +10,4 @@ generated
 .tmp
 *.tsbuildinfo
 server/.tmp-config.payload-*.json
+server/.data

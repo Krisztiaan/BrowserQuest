@@ -17,8 +17,8 @@ export type ProtocolObserver = {
 };
 
 export function attachProtocolObserver(page: Page, options?: ProtocolObserverOptions): ProtocolObserver {
-    // Default to matching the canonical `/ws` endpoint. In dev/Playwright, the browser connects to the Vite origin
-    // (and Vite proxies `/ws`), while in some runtimes it may connect directly to the server port — both include `/ws`.
+    // Default to matching the canonical `/ws` endpoint. Playwright now runs against
+    // the Bun single-service origin, but `/ws` remains the stable runtime boundary.
     const wsUrlSubstring = options?.wsUrlSubstring ?? '/ws';
     const trackChats = options?.trackChats === true;
     const sentTypes: number[] = [];

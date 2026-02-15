@@ -1,8 +1,9 @@
 import Types from '../shared/gametypes-browser';
 import { readFileSync } from 'node:fs';
 import type { PersistedPlayerProfile } from './player-persistence';
+import { AUTH_SESSION_COOKIE_KEY, USERNAME_COOKIE_KEY } from '../shared/auth/cookie-keys';
+import { verifySignedAuthSessionToken } from './auth-session';
 
-const PLAYER_NAME_COOKIE_KEY = 'bq_username';
 const DEFAULT_ARMOR_SPRITE = 'clotharmor';
 const DEFAULT_WEAPON_SPRITE = 'sword1';
 const SHADOW_SPRITE = 'shadow16';
@@ -26,6 +27,7 @@ type SpriteSpec = {
 
 type ProfileLookup = {
     getProfileByName(playerName: string): PersistedPlayerProfile | null;
+    getProfileByAccountNameKey?(accountNameKey: string): PersistedPlayerProfile | null;
 };
 type ProfilePreviewPayload = Readonly<{
     armorSpriteName: string;
@@ -250,8 +252,16 @@ export function createProfilePreviewPayload({
     cookieHeader: string | null | undefined;
     profileLookup: ProfileLookup;
 }): ProfilePreviewPayload {
-    const playerName = parseCookieValue(cookieHeader, PLAYER_NAME_COOKIE_KEY);
-    const profile = playerName ? profileLookup.getProfileByName(playerName) : null;
+    const accountSessionToken = parseCookieValue(cookieHeader, AUTH_SESSION_COOKIE_KEY);
+    const accountNameKey = verifySignedAuthSessionToken({ token: accountSessionToken });
+    const playerName = parseCookieValue(cookieHeader, USERNAME_COOKIE_KEY);
+    const profile = accountNameKey
+        ? (typeof profileLookup.getProfileByAccountNameKey === 'function'
+              ? profileLookup.getProfileByAccountNameKey(accountNameKey)
+              : profileLookup.getProfileByName(accountNameKey))
+        : playerName
+            ? profileLookup.getProfileByName(playerName)
+            : null;
     const armorSpriteName = resolveArmorSpriteName(profile);
     const weaponSpriteName = resolveWeaponSpriteName(profile);
     return {
@@ -282,5 +292,5 @@ export function createProfilePreviewJsonResponse({
     });
 }
 
-export { PLAYER_NAME_COOKIE_KEY };
+export { USERNAME_COOKIE_KEY, AUTH_SESSION_COOKIE_KEY };
 export type { ProfilePreviewPayload };

@@ -39,6 +39,16 @@ const MESSAGE_OPCODES = {
     CHECK: 26,
     ACHIEVEMENT: 27,
     ACHIEVEMENTS: 28,
+    INTENT: 29,
+    OUTCOME: 30,
+    REJECT: 31,
+    ACK: 32,
+    CORRECTION: 33,
+    CHUNK_SUBSCRIBE: 34,
+    CHUNK_UNSUBSCRIBE: 35,
+    CHUNK_SNAPSHOT: 36,
+    CHUNK_DELTA: 37,
+    CHUNK_SNAPSHOT_PART: 38,
 } as const;
 
 type EntityIdsByUpperName = {

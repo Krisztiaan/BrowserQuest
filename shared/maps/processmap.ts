@@ -413,13 +413,18 @@ export default function processMap(
             return;
         }
 
-        if (mode === "client" && layer.name === "blocking") {
+        if (layer.name === "blocking") {
             log.info("Processing blocking tiles...");
-            const blocking = (map.blocking ??= []);
             for (let i = 0; i < tiles.length; i += 1) {
                 const gid = tiles[i] ?? 0;
                 if (gid > 0) {
-                    blocking.push(i);
+                    if (mode === "client") {
+                        const blocking = (map.blocking ??= []);
+                        blocking.push(i);
+                    }
+                    if (mode === "server") {
+                        map.collisions.push(i);
+                    }
                 }
             }
             return;

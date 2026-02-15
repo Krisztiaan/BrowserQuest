@@ -1,5 +1,5 @@
-import { gridPos } from '../../../shared/domain/positions';
 import type { EntityId } from '../../../shared/domain/ids';
+import { debugDoors } from '../../debug-flags';
 
 type DoorDestination = Readonly<{
     x: number;
@@ -49,8 +49,30 @@ export type ClientDoorPortalSystemHost = Readonly<{
     };
     kernel: {
         clientDoorTraversalArmed: boolean;
-        clientLastSentMovePos: { x: number; y: number } | null;
-        clientReplicationLastPos: Map<EntityId, { x: number; y: number }>;
+        clientPendingDoorTraversal:
+            | null
+            | Readonly<{
+                  doorX: number;
+                  doorY: number;
+                  toX: number;
+                  toY: number;
+                  orientation: number;
+                  portal: boolean;
+                  cameraX?: number;
+                  cameraY?: number;
+                  requestedAtMs: number;
+              }>;
+        setClientPendingDoorTraversal(pending: {
+            doorX: number;
+            doorY: number;
+            toX: number;
+            toY: number;
+            orientation: number;
+            portal: boolean;
+            cameraX?: number;
+            cameraY?: number;
+        }): void;
+        clearClientPendingDoorTraversal(): void;
     };
     assignBubbleTo(character: DoorTraversalPlayer): void;
     resetZone(): void;
@@ -67,8 +89,64 @@ export function runClientDoorPortalSystem(host: ClientDoorPortalSystemHost): voi
         return;
     }
 
-    if (host.player.isMoving()) {
-        host.kernel.clientDoorTraversalArmed = true;
+    const PENDING_TTL_MS = 10_000;
+    const nowMs = Date.now();
+
+    const pending = host.kernel.clientPendingDoorTraversal;
+    if (pending) {
+        if (nowMs - pending.requestedAtMs > PENDING_TTL_MS) {
+            debugDoors('pending:expired', pending);
+            host.kernel.clearClientPendingDoorTraversal();
+        } else if (host.player.gridX === pending.toX && host.player.gridY === pending.toY) {
+            debugDoors('pending:complete', pending);
+            // Door traversal completion is driven by server-issued TELEPORT; apply client-side camera/audio/UX once.
+            host.player.turnTo(pending.orientation);
+
+            if (host.renderer?.mobile && typeof pending.cameraX === 'number' && typeof pending.cameraY === 'number') {
+                host.camera.setGridPosition(pending.cameraX, pending.cameraY);
+                host.resetZone();
+            } else if (pending.portal) {
+                host.assignBubbleTo(host.player);
+            } else {
+                host.camera.focusEntity(host.player);
+                host.resetZone();
+            }
+
+            let attackers = 0;
+            host.player.forEachAttacker((attacker) => {
+                attackers += 1;
+                attacker.disengage();
+                attacker.idle();
+            });
+
+            if (attackers > 0) {
+                setTimeout(() => host.tryUnlockingAchievement('COWARD'), 500);
+            }
+
+            host.checkUndergroundAchievement();
+
+            if (host.renderer && (host.renderer.mobile || host.renderer.tablet)) {
+                host.renderer.clearScreen(host.renderer.context);
+            }
+
+            if (pending.portal) {
+                host.audioManager?.playSound('teleport');
+            }
+
+            host.audioManager?.updateMusic();
+            host.kernel.clearClientPendingDoorTraversal();
+        }
+    }
+
+    if (host.player.isDead || host.player.hasTarget()) {
+        host.kernel.clientDoorTraversalArmed = false;
+        return;
+    }
+
+    const doorX = host.player.gridX;
+    const doorY = host.player.gridY;
+    if (!host.map.isDoor(doorX, doorY)) {
+        host.kernel.clientDoorTraversalArmed = false;
         return;
     }
 
@@ -77,64 +155,22 @@ export function runClientDoorPortalSystem(host: ClientDoorPortalSystemHost): voi
     }
     host.kernel.clientDoorTraversalArmed = false;
 
-    if (host.player.isDead || host.player.hasTarget()) {
-        return;
-    }
-
-    const fromX = host.player.gridX;
-    const fromY = host.player.gridY;
-    if (!host.map.isDoor(fromX, fromY)) {
-        return;
-    }
-
-    const destination = host.map.getDoorDestination(fromX, fromY);
-    if (!destination) {
-        return;
-    }
-
-    host.player.setGridPosition(destination.x, destination.y);
-    host.player.nextGridX = destination.x;
-    host.player.nextGridY = destination.y;
-    host.player.turnTo(destination.orientation);
-
-    host.client?.sendTeleport(destination.x, destination.y);
-
-    const destinationPos = gridPos(destination.x, destination.y);
-    host.kernel.clientLastSentMovePos = destinationPos;
-    host.kernel.clientReplicationLastPos.set(host.playerId, destinationPos);
-
-    if (host.renderer?.mobile && destination.cameraX && destination.cameraY) {
-        host.camera.setGridPosition(destination.cameraX, destination.cameraY);
-        host.resetZone();
-    } else if (destination.portal) {
-        host.assignBubbleTo(host.player);
+    // When the player is already standing on a door tile, request traversal and wait for the server TELEPORT.
+    const destination = host.map.getDoorDestination(doorX, doorY);
+    if (destination) {
+        debugDoors('request', { door: { x: doorX, y: doorY }, to: { x: destination.x, y: destination.y }, destination });
+        host.kernel.setClientPendingDoorTraversal({
+            doorX,
+            doorY,
+            toX: destination.x,
+            toY: destination.y,
+            orientation: destination.orientation,
+            portal: destination.portal,
+            cameraX: destination.cameraX,
+            cameraY: destination.cameraY,
+        });
+        host.client?.sendTeleport(destination.x, destination.y);
     } else {
-        host.camera.focusEntity(host.player);
-        host.resetZone();
-    }
-
-    let attackers = 0;
-    host.player.forEachAttacker((attacker) => {
-        attackers += 1;
-        attacker.disengage();
-        attacker.idle();
-    });
-
-    if (attackers > 0) {
-        setTimeout(() => host.tryUnlockingAchievement('COWARD'), 500);
-    }
-
-    host.checkUndergroundAchievement();
-
-    if (host.renderer && (host.renderer.mobile || host.renderer.tablet)) {
-        host.renderer.clearScreen(host.renderer.context);
-    }
-
-    if (destination.portal) {
-        host.audioManager?.playSound('teleport');
-    }
-
-    if (!host.player.isDead) {
-        host.audioManager?.updateMusic();
+        debugDoors('request:none', { door: { x: doorX, y: doorY } });
     }
 }

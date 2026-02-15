@@ -1,7 +1,7 @@
 BrowserQuest
 ============
 
-BrowserQuest is a modernized HTML5 multiplayer game runtime on Bun + Vite.
+BrowserQuest is a modernized HTML5 multiplayer game runtime on Bun.
 
 Runtime Requirements
 --------------------
@@ -15,16 +15,17 @@ Quickstart
 
 1. Install dependencies: `bun install`
 2. Start full-stack dev: `bun run dev`
-3. Open `http://localhost:8123/`
+3. Open `http://localhost:8000/`
 
 Active Scripts
 --------------
 
-- `bun run dev`: full-stack dev (`server/entry.ts` + Vite)
-- `bun run dev:client`: Vite-only dev server
+- `bun run dev`: full-stack dev (Bun runtime + staged client assets)
+- `bun run dev:bun:build-client`: build staged client assets for Bun dev serving
+- `bun run dev:bun:full`: Bun runtime with staged client assets
 - `bun run dev:server`: server-only runtime
 - `bun run start:server`: production-style server entry
-- `bun run build:vite`: production client build to `dist/vite`
+- `bun run build:client`: production client build to `dist/client`
 - `bun run build:server`: runtime server artifact to `dist/server`
 - `bun run build:bundle`: deployable bundle artifact to `dist/bundle`
 - `bun run typecheck`: TypeScript solution build (`tsc -b tsconfig.json`)
@@ -41,7 +42,7 @@ Verification
 - TypeScript solution build
 - lint + format check
 - test suite
-- Vite production build
+- Bun production client build
 
 Content Canonicalization (Current)
 ----------------------------------
@@ -78,15 +79,24 @@ Lint/Format Scope
 
 Current lint/format scope is intentionally bounded while legacy modules are incrementally modernized:
 
-- `lint` currently targets an explicit modern-runtime allowlist in `package.json` (server/shared/client boundary-critical modules).
+- `lint` (error-only via `eslint --quiet`) currently targets:
+  - `client/runtime/connection.ts`
+  - `client/game.ts`
+  - `client/gameclient.ts`
+  - `server/runtime.ts`
+  - `server/player-session.ts`
+  - `server/player-session-command-translation.ts`
+  - `shared/protocol/**/*.ts`
+  - `shared/connection-status.ts`
+- `lint:client-runtime` currently targets:
+  - `client/runtime/connection.ts`
+  - `client/game.ts`
+  - `client/gameclient.ts`
 - `format`/`format:check` currently target:
   - `server/{log.ts,utils.ts,format.ts}`
   - `client/platform/*.ts`
   - `client/preflight.ts`
   - `shared/gametypes-browser.ts`
-  - `tests/**/*.ts`
-
-Unlisted runtime files are treated as explicit temporary exclusions and should be expanded via Ticket 9 follow-up slices, not ad-hoc.
 
 Runtime map loading now consumes Tiled source JSON directly:
 
@@ -98,6 +108,39 @@ Modernization Tracking
 ----------------------
 
 - Backlog + execution log: `TODO.md`
+
+Server Config Knobs (Local/VPS)
+-------------------------------
+
+`server/config_local.json-dist` includes the common knobs; runtime config is loaded from `server/config.json` (default) and overridden by `server/config_local.json` (or a custom path passed to `bun server/entry.ts <configPath>`).
+
+- `chunk_size` (default `32`): tile chunk size used for overlay persistence + chunk AOI streaming.
+- Chunk overlays persistence:
+  - `chunk_overlay_db_path` (default `./server/.data/chunk-overlays.{worldId}.sqlite`)
+  - `chunk_overlay_flush_interval_ms` (default `10000`)
+  - `chunk_overlay_flush_max_chunks` (default `64`)
+  - `chunk_overlay_bootstrap_load_limit_chunks` (default `4096`)
+- Claims persistence:
+  - `claims_db_path` (default `./server/.data/claims.{worldId}.sqlite`)
+- Chunk snapshot streaming caps:
+  - `chunk_snapshot_payload_max_utf8_bytes` (default `65536`)
+  - `chunk_snapshot_max_parts` (default `128`)
+
+Claims Admin CLI
+----------------
+
+`admin:claims` is a small operator CLI that reads/writes the same SQLite claims database the server uses.
+
+- List claims (defaults to `./server/.data/claims.<worldId>.sqlite`):
+  - `bun run admin:claims -- list --world world1`
+- Create a claim:
+  - `bun run admin:claims -- create --world world1 --owner alice --x1 10 --y1 10 --x2 30 --y2 30`
+- Delete a claim:
+  - `bun run admin:claims -- delete --world world1 --id 1`
+- If your server config overrides `claims_db_path`, pass the same path explicitly:
+  - `bun run admin:claims -- list --db ./server/.data/claims.world1.sqlite`
+- JSON output:
+  - `bun run admin:claims -- list --world world1 --json`
 
 Documentation
 -------------

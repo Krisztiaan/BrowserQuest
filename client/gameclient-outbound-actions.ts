@@ -2,6 +2,7 @@ import Types from '../shared/gametypes-browser';
 import type { ClientOutboundProtocolAction } from './client-boundary-types';
 import type { EntityId } from '../shared/domain/ids';
 import { entityIdToWire } from '../shared/domain/ids';
+import { encodeProtocolCapabilitiesJson, PROTOCOL_REVISION } from '../shared/protocol/capabilities';
 
 type OutboundAction<Opcode extends ClientOutboundProtocolAction[0]> = Extract<
     ClientOutboundProtocolAction,
@@ -13,11 +14,22 @@ export function toProtocolEntityId(id: EntityId): number {
 }
 
 export function createHelloAction(name: string, armorKind: number, weaponKind: number): OutboundAction<typeof Types.Messages.HELLO> {
-    return [Types.Messages.HELLO, name, armorKind, weaponKind];
+    const capabilitiesJson = encodeProtocolCapabilitiesJson({
+        moduleIds: ['core.teleport', 'core.move', 'core.doors', 'core.tiles', 'core.claims'],
+    });
+    return [Types.Messages.HELLO, name, armorKind, weaponKind, PROTOCOL_REVISION, capabilitiesJson];
 }
 
 export function createMoveAction(x: number, y: number): OutboundAction<typeof Types.Messages.MOVE> {
     return [Types.Messages.MOVE, x, y];
+}
+
+export function createIntentAction(
+    seq: number,
+    intentTypeId: string,
+    payloadJson: string
+): OutboundAction<typeof Types.Messages.INTENT> {
+    return [Types.Messages.INTENT, seq, intentTypeId, payloadJson];
 }
 
 export function createLootMoveAction(
@@ -34,14 +46,6 @@ export function createAggroAction(mobId: number): OutboundAction<typeof Types.Me
 
 export function createAttackAction(mobId: number): OutboundAction<typeof Types.Messages.ATTACK> {
     return [Types.Messages.ATTACK, mobId];
-}
-
-export function createHitAction(mobId: number): OutboundAction<typeof Types.Messages.HIT> {
-    return [Types.Messages.HIT, mobId];
-}
-
-export function createHurtAction(mobId: number): OutboundAction<typeof Types.Messages.HURT> {
-    return [Types.Messages.HURT, mobId];
 }
 
 export function createChatAction(text: string): OutboundAction<typeof Types.Messages.CHAT> {
@@ -74,4 +78,16 @@ export function createCheckAction(id: number | string): OutboundAction<typeof Ty
 
 export function createAchievementAction(id: number): OutboundAction<typeof Types.Messages.ACHIEVEMENT> {
     return [Types.Messages.ACHIEVEMENT, id];
+}
+
+export function createChunkSubscribeAction(
+    chunkX: number,
+    chunkY: number,
+    radius: number
+): OutboundAction<typeof Types.Messages.CHUNK_SUBSCRIBE> {
+    return [Types.Messages.CHUNK_SUBSCRIBE, chunkX, chunkY, radius];
+}
+
+export function createChunkUnsubscribeAction(): OutboundAction<typeof Types.Messages.CHUNK_UNSUBSCRIBE> {
+    return [Types.Messages.CHUNK_UNSUBSCRIBE];
 }

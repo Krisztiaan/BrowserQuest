@@ -3,6 +3,8 @@ import Transition from './transition';
 import Timer from './timer';
 import log from './platform/log';
 import Types from '../shared/gametypes-browser';
+import { gridPos } from '../shared/domain/positions';
+import { isWithinAttackRange, resolveAttackRangeTiles } from '../shared/combat/attack-range';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { MergeEvents, TypedEventMap, TypedEventSource } from '../shared/typed-event-emitter';
 
@@ -383,6 +385,11 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     engage(character: CharacterLike): void {
         this.attackingMode = true;
         this.setTarget(character);
+        if (this.canReachTarget()) {
+            this.followingMode = false;
+            this.stop();
+            return;
+        }
         this.follow(character);
     }
 
@@ -483,10 +490,17 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     }
 
     canReachTarget(): boolean {
-        if (this.hasTarget() && this.target && this.isAdjacentNonDiagonal(this.target)) {
-            return true;
+        if (!this.hasTarget() || !this.target) {
+            return false;
         }
-        return false;
+        const weaponName = this.getWeaponName();
+        const weaponKind = typeof weaponName === 'string' ? Types.getKindFromString(weaponName) : undefined;
+        const attackRangeTiles = resolveAttackRangeTiles({ attackerKind: this.kind, weaponKind });
+        return isWithinAttackRange(
+            gridPos(this.gridX, this.gridY),
+            gridPos(this.target.gridX, this.target.gridY),
+            attackRangeTiles
+        );
     }
 
     die(): void {

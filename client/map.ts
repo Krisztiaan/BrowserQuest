@@ -4,6 +4,7 @@ import Types from '../shared/gametypes-browser';
 import log from './platform/log';
 import { resolveImageAssetPath } from './image-assets';
 import { fetchClientRuntimeMap } from './map-source';
+import { isOutOfBoundsGridPosition } from '../shared/world/coordinate-contract';
 
 type MapGameLike = {
     renderer: {
@@ -45,21 +46,32 @@ type RuntimeMapPayload = {
 };
 type CheckpointArea = Area & { id?: string | number };
 
+function resolveMapWorkerModuleUrl(): string | URL {
+    const override = (globalThis as unknown as { __BQ_MAP_WORKER_URL__?: unknown }).__BQ_MAP_WORKER_URL__;
+    if (typeof override === 'string' && override.trim().length > 0) {
+        return override;
+    }
+    return new URL('./mapworker.ts', import.meta.url);
+}
+
 class Map {
     game: MapGameLike;
     data: Array<number | number[]>;
     isLoaded: boolean;
     tilesetsLoaded: boolean;
     mapLoaded: boolean;
+    loadError: string | null;
     loadMultiTilesheets: boolean;
     width: number;
     height: number;
     tilesize: number;
     blocking: number[];
     plateau: number[];
+    plateauSet: Set<number>;
     musicAreas: MusicArea[];
     collisions: number[];
     high: number[];
+    highSet: Set<number>;
     animated: AnimatedTileConfig;
     doors: Record<number, DoorDestination>;
     checkpoints: CheckpointArea[];
@@ -68,6 +80,7 @@ class Map {
     tilesets: Array<HTMLImageElement | undefined>;
     tilesetCount: number;
     ready_func: (() => void) | null;
+    collisionOverrideResolver: ((x: number, y: number) => number | null) | null;
 
     constructor(loadMultiTilesheets: boolean, game: MapGameLike) {
         this.game = game;
@@ -75,15 +88,18 @@ class Map {
         this.isLoaded = false;
         this.tilesetsLoaded = false;
         this.mapLoaded = false;
+        this.loadError = null;
         this.loadMultiTilesheets = loadMultiTilesheets;
         this.width = 0;
         this.height = 0;
         this.tilesize = 0;
         this.blocking = [];
         this.plateau = [];
+        this.plateauSet = new Set();
         this.musicAreas = [];
         this.collisions = [];
         this.high = [];
+        this.highSet = new Set();
         this.animated = [];
         this.doors = {};
         this.checkpoints = [];
@@ -92,6 +108,7 @@ class Map {
         this.tilesets = [];
         this.tilesetCount = 0;
         this.ready_func = null;
+        this.collisionOverrideResolver = null;
 
         const useWorker = !(this.game.renderer.mobile || this.game.renderer.tablet);
 
@@ -110,10 +127,11 @@ class Map {
 
     _loadMap(useWorker: boolean): void {
         const self = this;
+        this.loadError = null;
 
         if (useWorker) {
             log.info('Loading map with web worker.');
-            const worker = new Worker(new URL('./mapworker.ts', import.meta.url), { type: 'module' });
+            const worker = new Worker(resolveMapWorkerModuleUrl(), { type: 'module' });
             let settled = false;
 
             const fallbackToMainThread = (reason: string): void => {
@@ -146,6 +164,7 @@ class Map {
                     self._generatePlateauGrid();
                 }
                 self.mapLoaded = true;
+                self.loadError = null;
                 self._checkReady();
 
                 try {
@@ -172,13 +191,19 @@ class Map {
                     self._generateCollisionGrid();
                     self._generatePlateauGrid();
                     self.mapLoaded = true;
+                    self.loadError = null;
                     self._checkReady();
                 })
                 .catch(function (error: unknown) {
                     const message = error instanceof Error ? error.message : String(error);
+                    self.loadError = message;
                     log.error('Failed to load map JSON: ' + message);
                 });
         }
+    }
+
+    getLoadError(): string | null {
+        return this.loadError;
     }
 
     _initTilesets(): void {
@@ -210,9 +235,11 @@ class Map {
         this.data = map.data;
         this.blocking = map.blocking ?? [];
         this.plateau = map.plateau ?? [];
+        this.plateauSet = new Set(this.plateau);
         this.musicAreas = map.musicAreas ?? [];
         this.collisions = map.collisions;
         this.high = map.high;
+        this.highSet = new Set(this.high);
         this.animated = map.animated;
 
         this.doors = this._getDoors(map);
@@ -312,9 +339,17 @@ class Map {
         return y * this.width + x + 1;
     }
 
+    setCollisionOverrideResolver(resolver: ((x: number, y: number) => number | null) | null): void {
+        this.collisionOverrideResolver = resolver;
+    }
+
     isColliding(x: number, y: number): boolean {
         if (this.isOutOfBounds(x, y)) {
             return false;
+        }
+        const override = this.collisionOverrideResolver?.(x, y) ?? null;
+        if (override !== null) {
+            return override !== 0;
         }
         const row = this.grid[y];
         if (!row) {
@@ -366,7 +401,7 @@ class Map {
         for (let i = 0; i < this.height; i++) {
             this.plateauGrid[i] = [];
             for (let j = 0; j < this.width; j++) {
-                if (this.plateau.includes(tileIndex)) {
+                if (this.plateauSet.has(tileIndex)) {
                     this.plateauGrid[i][j] = 1;
                 } else {
                     this.plateauGrid[i][j] = 0;
@@ -381,7 +416,7 @@ class Map {
      * Returns true if the given position is located within the dimensions of the map.
      */
     isOutOfBounds(x: number, y: number): boolean {
-        return Number.isInteger(x) && Number.isInteger(y) && (x < 0 || x >= this.width || y < 0 || y >= this.height);
+        return isOutOfBoundsGridPosition(x, y, this.width, this.height);
     }
 
     /**
@@ -392,7 +427,7 @@ class Map {
      * @see Renderer.drawHighTiles
      */
     isHighTile(id: number): boolean {
-        return this.high.includes(id + 1);
+        return this.highSet.has(id + 1);
     }
 
     /**

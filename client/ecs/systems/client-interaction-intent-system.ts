@@ -1,5 +1,6 @@
 import type { EntityId } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
+import { isWithinAttackRange, resolveAttackRangeTiles } from '../../../shared/combat/attack-range';
 import Types from '../../../shared/gametypes-browser';
 import type { ClientWorldKernel } from '../world-kernel';
 import type { ClientCommand } from '../client-commands';
@@ -95,14 +96,19 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             clearClientInteractionIntentWithSideEffects(host);
             return;
         }
-        const adjacent = isAdjacentNonDiagonal(
-            host.player.gridX,
-            host.player.gridY,
-            targetRecord.gridX,
-            targetRecord.gridY
+        const playerWeaponName = host.player.getWeaponName();
+        const playerWeaponKind = typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
+        const attackRangeTiles = resolveAttackRangeTiles({
+            attackerKind: host.player.kind,
+            weaponKind: playerWeaponKind,
+        });
+        const inAttackRange = isWithinAttackRange(
+            gridPos(host.player.gridX, host.player.gridY),
+            gridPos(targetRecord.gridX, targetRecord.gridY),
+            attackRangeTiles
         );
-        if (adjacent) {
-            if (host.player.target?.id !== intent.targetId) {
+        if (inAttackRange) {
+            if (host.player.target?.id !== intent.targetId || !host.player.isAttacking()) {
                 const cmd: ClientCommand = { type: 'playerAttack', targetId: intent.targetId };
                 host.kernel.enqueueClientCommand(cmd);
             }

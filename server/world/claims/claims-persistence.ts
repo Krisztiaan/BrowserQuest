@@ -1,0 +1,164 @@
+import { Database } from 'bun:sqlite';
+import { mkdirSync } from 'node:fs';
+import path from 'node:path';
+import type { RectClaim } from './claims-store';
+
+const DEFAULT_CLAIMS_DB_PATH = './server/.data/claims.sqlite';
+
+function resolveDatabasePath(configuredPath: string | null | undefined): string {
+    const trimmed = typeof configuredPath === 'string' ? configuredPath.trim() : '';
+    if (!trimmed) {
+        return path.resolve(DEFAULT_CLAIMS_DB_PATH);
+    }
+    if (trimmed === ':memory:') {
+        return trimmed;
+    }
+    return path.resolve(trimmed);
+}
+
+type ClaimRow = {
+    id: number;
+    owner_name: string;
+    editors_json: string;
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    created_at: number;
+    updated_at: number;
+};
+
+export class SqliteClaimsPersistence {
+    readonly databasePath: string;
+    readonly #db: Database;
+    readonly #upsertClaim: ReturnType<Database['prepare']>;
+    readonly #deleteClaim: ReturnType<Database['prepare']>;
+    readonly #selectAll: ReturnType<Database['prepare']>;
+
+    constructor(configuredPath?: string | null) {
+        this.databasePath = resolveDatabasePath(configuredPath);
+        if (this.databasePath !== ':memory:') {
+            mkdirSync(path.dirname(this.databasePath), { recursive: true });
+        }
+
+        this.#db = new Database(this.databasePath, { create: true });
+        this.#db.exec(`
+            PRAGMA journal_mode=WAL;
+            PRAGMA synchronous=NORMAL;
+            PRAGMA foreign_keys=ON;
+
+            CREATE TABLE IF NOT EXISTS claims (
+                id INTEGER PRIMARY KEY,
+                owner_name TEXT NOT NULL,
+                editors_json TEXT NOT NULL DEFAULT '[]',
+                x1 INTEGER NOT NULL,
+                y1 INTEGER NOT NULL,
+                x2 INTEGER NOT NULL,
+                y2 INTEGER NOT NULL,
+                created_at INTEGER NOT NULL,
+                updated_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS claims_owner_name ON claims(owner_name);
+        `);
+        this.#ensureClaimsTableColumns();
+
+        this.#upsertClaim = this.#db.prepare(`
+            INSERT INTO claims
+                (id, owner_name, editors_json, x1, y1, x2, y2, created_at, updated_at)
+            VALUES
+                (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            ON CONFLICT(id) DO UPDATE SET
+                owner_name = excluded.owner_name,
+                editors_json = excluded.editors_json,
+                x1 = excluded.x1,
+                y1 = excluded.y1,
+                x2 = excluded.x2,
+                y2 = excluded.y2,
+                updated_at = excluded.updated_at
+        `);
+
+        this.#deleteClaim = this.#db.prepare(`DELETE FROM claims WHERE id = ?1`);
+        this.#selectAll = this.#db.prepare(`
+            SELECT id, owner_name, editors_json, x1, y1, x2, y2, created_at, updated_at
+            FROM claims
+            ORDER BY id ASC
+        `);
+    }
+
+    close(): void {
+        this.#db.close();
+    }
+
+    upsertClaim(claim: RectClaim, nowMs = Date.now()): void {
+        const updatedAt = Math.floor(nowMs);
+        this.#upsertClaim.run(
+            claim.id,
+            claim.ownerName,
+            JSON.stringify(Array.isArray(claim.editorNameKeys) ? [...claim.editorNameKeys] : []),
+            claim.x1,
+            claim.y1,
+            claim.x2,
+            claim.y2,
+            claim.createdAtMs,
+            updatedAt
+        );
+    }
+
+    deleteClaim(id: number): void {
+        this.#deleteClaim.run(id);
+    }
+
+    loadAllClaims(): RectClaim[] {
+        const rows = this.#selectAll.all() as unknown as ClaimRow[];
+        return rows.map((row) =>
+            Object.freeze({
+                id: row.id,
+                ownerName: row.owner_name,
+                editorNameKeys: decodeEditorNameKeys(row.editors_json),
+                x1: row.x1,
+                y1: row.y1,
+                x2: row.x2,
+                y2: row.y2,
+                createdAtMs: row.created_at,
+                updatedAtMs: row.updated_at,
+            })
+        );
+    }
+
+    #ensureClaimsTableColumns(): void {
+        type TableInfoRow = { name?: unknown };
+        const rows = this.#db.query(`PRAGMA table_info(claims)`).all() as unknown as TableInfoRow[];
+        const hasEditorsJson = rows.some((row) => row?.name === 'editors_json');
+        if (!hasEditorsJson) {
+            this.#db.exec(`ALTER TABLE claims ADD COLUMN editors_json TEXT NOT NULL DEFAULT '[]'`);
+        }
+    }
+}
+
+function decodeEditorNameKeys(editorsJson: unknown): string[] {
+    if (typeof editorsJson !== 'string' || editorsJson.trim().length === 0) {
+        return [];
+    }
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(editorsJson);
+    } catch {
+        return [];
+    }
+    if (!Array.isArray(parsed)) {
+        return [];
+    }
+    const deduped = new Set<string>();
+    for (let i = 0; i < parsed.length; i += 1) {
+        const raw = parsed[i];
+        if (typeof raw !== 'string') {
+            continue;
+        }
+        const normalized = raw.trim().toLowerCase();
+        if (!normalized) {
+            continue;
+        }
+        deduped.add(normalized);
+    }
+    return [...deduped];
+}

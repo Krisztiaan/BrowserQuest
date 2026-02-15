@@ -28,8 +28,8 @@ Date: 2026-02-11
 - Start: 2026-02-11 01:16:00 CET
 - Status: done
 - Verification:
-  - Command: `bun run build:vite`
-  - Result: success (`vite build` completed without CSS syntax warnings).
+  - Command: `bun run build:client`
+  - Result: success (`bun tools/build/client.ts` completed without CSS syntax warnings).
 - Notes:
   - No visual redesign changes were introduced; this was a mechanical syntax modernization only.
 
@@ -41,6 +41,6 @@ Date: 2026-02-11
   - Kept values identical to existing prefixed declarations.
 - Evidence:
   - `node` scan for missing standard properties returned no findings.
-  - `bun run build:vite` passed.
+  - `bun run build:client` passed.
 - Notes:
   - This addresses warnings like “Also define the standard property 'animation' for compatibility”.

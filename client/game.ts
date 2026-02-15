@@ -8,6 +8,7 @@ import { initializeGameConnection } from './runtime/connection';
 import { bootstrapGameRuntime } from './game-runtime-bootstrap';
 import { initializeGameSpatialState } from './game-spatial-state';
 import { buildPathingIgnoreList, type PathingIgnoreEntity } from './runtime/pathing-ignore-list';
+import { applyDynamicOccupancyOverlayToGrid } from './runtime/pathing-dynamic-occupancy';
 import {
     areSpritesLoaded,
     loadSpriteForScale as loadSpriteForScaleRuntime,
@@ -69,6 +70,7 @@ import { runClientRenderSystem } from './ecs/systems/client-render-system';
 import { runClientCombatSystem } from './ecs/systems/client-combat-system';
 import { runClientSimulationSystem } from './ecs/systems/client-simulation-system';
 import Timer from './timer';
+import { resolveStartupWaitOutcome } from './game-startup-wait';
 
 type GridPosition = { x: number; y: number };
 type GridIndexedEntity = {
@@ -117,6 +119,55 @@ type GameEvents = {
 };
 
 export type GameEventSource = TypedEventSource<GameEvents>;
+
+function overlayValueToPathingValue(value: number): number {
+    return value === 0 ? 0 : 1;
+}
+
+function applyChunkOverlayPathingToGrid({
+    grid,
+    cache,
+    isOutOfBounds,
+}: {
+    grid: number[][];
+    cache: ClientWorldKernel['clientChunkOverlayCache'];
+    isOutOfBounds: (x: number, y: number) => boolean;
+}): () => void {
+    const original = new Map<string, number>();
+
+    cache.forEachPresentGlobal((x, y, value) => {
+        if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || isOutOfBounds(x, y)) {
+            return;
+        }
+        const row = grid[y];
+        if (!row || row[x] === undefined) {
+            return;
+        }
+
+        const key = `${x},${y}`;
+        if (!original.has(key)) {
+            original.set(key, row[x] ?? 0);
+        }
+        row[x] = overlayValueToPathingValue(value);
+    });
+
+    return () => {
+        for (const [key, prev] of original.entries()) {
+            const [xs, ys] = key.split(',');
+            const x = Number(xs);
+            const y = Number(ys);
+            if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) {
+                continue;
+            }
+            const row = grid[y];
+            if (!row || row[x] === undefined) {
+                continue;
+            }
+            row[x] = prev;
+        }
+        original.clear();
+    };
+}
 
 class Game extends Evented<GameEvents> {
     app: AppLike;
@@ -177,6 +228,7 @@ class Game extends Evented<GameEvents> {
     drawTarget: boolean;
     lastHovered: GridIndexedEntity | null;
     connectionStartedCallback: (() => void) | null;
+    reviveWelcomeTimeout: ReturnType<typeof setTimeout> | null;
 
     constructor(
         app: AppLike,
@@ -282,6 +334,7 @@ class Game extends Evented<GameEvents> {
         this.drawTarget = false;
         this.lastHovered = null;
         this.connectionStartedCallback = null;
+        this.reviveWelcomeTimeout = null;
 
         this.setBubbleManager(new BubbleManager(bubbleContainer));
         this.setRenderer(new Renderer(this, canvas, background, foreground));
@@ -342,6 +395,7 @@ class Game extends Evented<GameEvents> {
         const self = this;
 
         this.map = new Map(!this.renderer.upscaledRendering, this);
+        this.map.setCollisionOverrideResolver((x, y) => this.kernel.clientChunkOverlayCache.getGlobal(x, y));
 
         this.map.ready(function () {
             log.info('Map loaded.');
@@ -584,21 +638,45 @@ class Game extends Evented<GameEvents> {
         });
     }
 
-    run(onStarted: () => void) {
+    run(onStarted: () => void, onFailed?: (reason: string) => void) {
         const self = this;
+        const startWaitAt = Date.now();
 
         this.loadSprites();
         this.camera = this.renderer.camera;
 
         this.setSpriteScale(this.renderer.scale);
 
+        const failStartup = (reason: string): void => {
+            clearInterval(wait);
+            log.error(reason);
+            this.emit('notification', reason);
+            if (onFailed) {
+                onFailed(reason);
+            }
+        };
+
         const wait = setInterval(function () {
-            if (self.map.isLoaded && self.spritesLoaded()) {
+            const map = self.map;
+            const outcome = resolveStartupWaitOutcome({
+                mapLoaded: map?.isLoaded === true,
+                spritesLoaded: self.spritesLoaded(),
+                mapLoadError: map?.getLoadError?.() ?? null,
+                elapsedMs: Date.now() - startWaitAt,
+            });
+            if (outcome === 'ready') {
                 self.ready = true;
                 log.debug('All sprites loaded.');
                 bootstrapGameRuntime(self, onStarted);
-
                 clearInterval(wait);
+                return;
+            }
+            if (outcome === 'map_error') {
+                failStartup('Unable to load map data. Please reload the page.');
+                return;
+            }
+            if (outcome === 'timeout') {
+                failStartup('Game startup timed out while loading assets. Please reload the page.');
             }
         }, 100);
     }
@@ -618,6 +696,7 @@ class Game extends Evented<GameEvents> {
     }
 
     stop(): void {
+        this.client?.sendChunkUnsubscribe();
         log.info('Game stopped.');
         this.isStopped = true;
     }
@@ -647,15 +726,10 @@ class Game extends Evented<GameEvents> {
             attacker.removeTarget();
         }
 
-        // Only the local player should "follow" targets client-side. Remote entities (mobs/other players) move via
-        // authoritative replication, so an attack link should not start local pathing that fights server positions.
-        if (attacker.id === this.playerId) {
-            attacker.engage(target);
-        } else {
-            attacker.attackingMode = true;
-            attacker.followingMode = false;
-            attacker.setTarget(target);
-        }
+        // Movement is server-authoritative; attack links must not start client-side follow/pathing.
+        attacker.attackingMode = true;
+        attacker.followingMode = false;
+        attacker.setTarget(target);
 
         if (attacker.id !== this.playerId) {
             target.addAttacker(attacker);
@@ -764,7 +838,6 @@ class Game extends Evented<GameEvents> {
         }
 
         const message = npc.talk();
-        this.kernel.clearClientLastClickPos();
         if (message) {
             this.createBubble(npc.id, message);
             this.assignBubbleTo(npc);
@@ -856,6 +929,16 @@ class Game extends Evented<GameEvents> {
         }
 
         this.forEachVisibleTileIndex((tileIndex: number) => {
+            const x = tileIndex % map.width;
+            const y = Math.floor(tileIndex / map.width);
+            const overlayValue = this.kernel.clientChunkOverlayCache.getGlobal(x, y);
+            if (overlayValue !== null) {
+                if (overlayValue > 0) {
+                    callback(overlayValue - 1, tileIndex);
+                }
+                return;
+            }
+
             const tileData = map.data[tileIndex];
             if (Array.isArray(tileData)) {
                 tileData.forEach((id: number) => {
@@ -887,27 +970,44 @@ class Game extends Evented<GameEvents> {
     findPath(character: Character, x: number, y: number, ignoreList?: PathingIgnoreEntity[]): GridPath {
         const self = this;
         let path: GridPath = [];
+        const map = this.map;
 
-        if (this.map.isColliding(x, y)) {
+        if (!map || map.isColliding(x, y)) {
             return path;
         }
 
-        this.kernel.ensureClientPathingGrid(this.map.grid);
+        this.kernel.ensureClientPathingGrid(map.grid);
         if (!this.kernel.clientPathingGrid) {
             return path;
         }
 
         if (this.pathfinder) {
-            if (ignoreList) {
-                ignoreList.forEach(function (entity: GridIndexedEntity) {
-                    self.pathfinder.ignoreEntity(entity);
-                });
-            }
+            const restoreChunkOverlay = applyChunkOverlayPathingToGrid({
+                grid: this.kernel.clientPathingGrid,
+                cache: this.kernel.clientChunkOverlayCache,
+                isOutOfBounds: (cx, cy) => map.isOutOfBounds(cx, cy),
+            });
+            const restoreDynamicOccupancy = applyDynamicOccupancyOverlayToGrid({
+                grid: this.kernel.clientPathingGrid,
+                records: this.kernel.clientSpatialRecords.entries(),
+                isOutOfBounds: (cx, cy) => map.isOutOfBounds(cx, cy),
+                excludeIds: new Set([character.id]),
+            });
 
-            path = this.pathfinder.findPath(this.kernel.clientPathingGrid, character, x, y, false);
+            try {
+                if (ignoreList) {
+                    ignoreList.forEach(function (entity: GridIndexedEntity) {
+                        self.pathfinder.ignoreEntity(entity);
+                    });
+                }
 
-            if (ignoreList) {
-                this.pathfinder.clearIgnoreList();
+                path = this.pathfinder.findPath(this.kernel.clientPathingGrid, character, x, y, false);
+            } finally {
+                if (ignoreList) {
+                    this.pathfinder.clearIgnoreList();
+                }
+                restoreDynamicOccupancy();
+                restoreChunkOverlay();
             }
         } else {
             log.error('Error while finding the path to ' + x + ', ' + y + ' for ' + character.id);
@@ -1026,10 +1126,31 @@ class Game extends Evented<GameEvents> {
         this.bubbleManager.clean();
         this.initAnimatedTiles();
         this.renderer.renderStaticCanvases();
+
+        // Mobile/tablet renderer uses dirty-rect drawing; after a zone/camera reset the screen may be cleared
+        // with no dirty entities to trigger an immediate redraw. Force a redraw of the newly visible set.
+        if (this.started && (this.renderer.mobile || this.renderer.tablet)) {
+            this.forEachVisibleEntityByDepth(function (entity: GridIndexedEntity) {
+                entity.setDirty();
+            });
+        }
     }
 
     resetCamera(): void {
-        this.camera.focusEntity(this.player);
+        if (this.map) {
+            const w = this.camera.gridW - 2;
+            const h = this.camera.gridH - 2;
+            const maxGridX = Math.max(0, this.map.width - this.camera.gridW);
+            const maxGridY = Math.max(0, this.map.height - this.camera.gridH);
+            const desiredX = Math.floor((this.player.gridX - 1) / w) * w;
+            const desiredY = Math.floor((this.player.gridY - 1) / h) * h;
+            this.camera.setGridPosition(
+                Math.max(0, Math.min(desiredX, maxGridX)),
+                Math.max(0, Math.min(desiredY, maxGridY))
+            );
+        } else {
+            this.camera.focusEntity(this.player);
+        }
         this.resetZone();
     }
 
@@ -1043,6 +1164,33 @@ class Game extends Evented<GameEvents> {
 
     destroyBubble(id: EntityId): void {
         this.bubbleManager.destroyBubble(String(id));
+    }
+
+    clearReviveWelcomeTimeout(): void {
+        const pending = this.reviveWelcomeTimeout;
+        if (pending) {
+            clearTimeout(pending);
+            this.reviveWelcomeTimeout = null;
+        }
+    }
+
+    armReviveWelcomeTimeout(): void {
+        this.clearReviveWelcomeTimeout();
+
+        const TIMEOUT_MS = 6_000;
+        this.reviveWelcomeTimeout = setTimeout(() => {
+            this.reviveWelcomeTimeout = null;
+            if (this.playerId !== null) {
+                return;
+            }
+
+            log.error('Revive handshake timed out (WELCOME not received); reconnecting');
+            this.showNotification('Connection hiccup while reviving… reconnecting.');
+
+            this.kernel.drainClientCommands();
+            this.kernel.drainClientRuntimeEvents();
+            this.client?.reconnectSilently();
+        }, TIMEOUT_MS);
     }
 
     assignBubbleTo(character: BubbleAnchor): void {
@@ -1080,14 +1228,17 @@ class Game extends Evented<GameEvents> {
     restart(): void {
         log.debug('Beginning restart');
 
+        this.clearReviveWelcomeTimeout();
+        this.client?.sendChunkUnsubscribe();
         this.kernel.resetWorldState();
         initializeGameSpatialState(this, { resetEntities: true });
 
         this.player = new Warrior('player', this.username);
         this.initPlayer();
+        this.playerId = null;
 
         this.started = true;
-        this.client.enable();
+        this.client?.enable();
         this.sendHello();
 
         this.storage.incrementRevives();
@@ -1096,6 +1247,7 @@ class Game extends Evented<GameEvents> {
             this.renderer.clearScreen(this.renderer.context);
         }
 
+        this.armReviveWelcomeTimeout();
         log.debug('Finished restart');
     }
 

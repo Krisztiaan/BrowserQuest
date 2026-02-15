@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { entityIdFromWire } from '../../shared/domain/ids';
-import { spawnStaticEntitiesForWorld } from '../../server/world/chest-item-lifecycle';
+import { handleEmptyChestAreaRefill, spawnStaticEntitiesForWorld } from '../../server/world/chest-item-lifecycle';
 
 type RespawnableMob = {
     id: number;
@@ -18,8 +18,7 @@ type RespawnableMob = {
 
 function createMobFixture(id: number, x: number, y: number): RespawnableMob {
     let respawnHandler: (() => void) | null = null;
-
-    return {
+    const mob: RespawnableMob = {
         id,
         isDead: false,
         x,
@@ -27,24 +26,22 @@ function createMobFixture(id: number, x: number, y: number): RespawnableMob {
         spawningX: x,
         spawningY: y,
         hitPoints: 100,
-        on(eventName, callback) {
-            if (eventName === 'respawn') {
-                respawnHandler = callback;
-            }
+        on(_eventName, callback) {
+            respawnHandler = callback;
         },
         setPosition(nextX, nextY) {
-            this.x = nextX;
-            this.y = nextY;
+            mob.x = nextX;
+            mob.y = nextY;
         },
         updateHitPoints() {
-            this.hitPoints = 100;
+            mob.hitPoints = 100;
         },
         __emitRespawn() {
-            if (respawnHandler) {
-                respawnHandler();
-            }
+            respawnHandler?.();
         },
     };
+
+    return mob;
 }
 
 test('static mob respawn resets HP and spawn position before re-adding', () => {
@@ -94,4 +91,32 @@ test('static mob respawn resets HP and spawn position before re-adding', () => {
     expect(mob.x).toBe(11);
     expect(mob.y).toBe(20);
     expect(addedMobs.length).toBe(2);
+});
+
+test('handleEmptyChestAreaRefill spawns + schedules despawn for a refill chest', () => {
+    const created: Array<{ x: number; y: number; items: unknown[] }> = [];
+    const added: unknown[] = [];
+    const despawned: unknown[] = [];
+
+    const host = {
+        createChest(x: number, y: number, items: unknown[]) {
+            const chest = { x, y, items };
+            created.push(chest);
+            return chest;
+        },
+        addItem(chest: unknown) {
+            const wrapped = { ...(chest as object), added: true };
+            added.push(wrapped);
+            return wrapped;
+        },
+        handleItemDespawn(item: unknown) {
+            despawned.push(item);
+        },
+    };
+
+    handleEmptyChestAreaRefill(host, { chestX: 10, chestY: 20, items: ['a', 'b'] });
+
+    expect(created).toEqual([{ x: 10, y: 20, items: ['a', 'b'] }]);
+    expect(added.length).toBe(1);
+    expect(despawned).toEqual([added[0]]);
 });

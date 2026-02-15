@@ -12,9 +12,10 @@ import {
     createAttackAction,
     createChatAction,
     createCheckAction,
+    createChunkSubscribeAction,
+    createChunkUnsubscribeAction,
     createHelloAction,
-    createHitAction,
-    createHurtAction,
+    createIntentAction,
     createLootAction,
     createLootMoveAction,
     createMoveAction,
@@ -43,6 +44,10 @@ import { entityIdFromWire } from '../shared/domain/ids';
 import { decodeSpawnAction } from '../shared/replication/spawn-snapshot';
 import { adaptKernelEntityForRendering } from './ecs/kernel-entity-adapter';
 import { ClientWorldKernel } from './ecs/world-kernel';
+import { decodeProtocolCapabilitiesJson, type ProtocolCapabilities } from '../shared/protocol/capabilities';
+import { decodeChunkSnapshotPayloadJson } from '../shared/protocol/chunks/chunk-snapshot-codec';
+import { decodeChunkDeltaPayloadJson } from '../shared/protocol/chunks/chunk-delta-codec';
+import { debugMoves } from './debug-flags';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -101,6 +106,10 @@ export type GameClientEvents = {
     entityDestroy: [entityId: EntityId];
     playerChangeMaxHitPoints: [maxHp: number];
     itemBlink: [entityId: EntityId];
+    protocolCapabilities: [protocolRevision: number, capabilities: ProtocolCapabilities | null];
+    intentRejected: [seq: number, intentTypeId: string, reason: string];
+    intentAcked: [seq: number];
+    correction: [seq: number, payload: unknown];
 };
 
 export type GameClientEventSource = TypedEventSource<GameClientEvents>;
@@ -110,8 +119,15 @@ class GameClient extends Evented<GameClientEvents> {
     wsUrl: string;
     isTimeout: boolean;
     isListening: boolean;
+    lastDispatcherMode = false;
+    suppressNextClose = false;
     handlers: GameClientInboundActionHandlerMap;
     kernel: ClientWorldKernel;
+    serverProtocolRevision: number | null = null;
+    serverCapabilities: ProtocolCapabilities | null = null;
+    unknownOutcomeTypeIdsLogged = new Set<string>();
+    localPlayerId: EntityId | null = null;
+    nextIntentSeq = 1;
 
     constructor(wsUrl: string, kernel?: ClientWorldKernel) {
         super();
@@ -135,6 +151,7 @@ class GameClient extends Evented<GameClientEvents> {
     connect(dispatcherMode = false): void {
         const url = this.wsUrl;
         const self = this;
+        this.lastDispatcherMode = dispatcherMode;
 
         log.info('Trying to connect to server : ' + url);
 
@@ -194,6 +211,10 @@ class GameClient extends Evented<GameClientEvents> {
             };
 
             this.connection.onclose = function () {
+                if (self.suppressNextClose) {
+                    self.suppressNextClose = false;
+                    return;
+                }
                 log.debug('Connection closed');
                 const container = document.getElementById('container');
                 if (container) {
@@ -207,6 +228,34 @@ class GameClient extends Evented<GameClientEvents> {
                 }
             };
         }
+    }
+
+    reconnectSilently(): void {
+        const existing = this.connection;
+        if (existing) {
+            this.sendChunkUnsubscribe();
+            try {
+                existing.onmessage = null;
+                existing.onerror = null;
+                existing.onopen = null;
+            } catch (_) {
+                // ignore
+            }
+            const shouldSuppress = existing.readyState !== WebSocket.CLOSED;
+            this.suppressNextClose = shouldSuppress;
+            try {
+                existing.close();
+            } catch (_) {
+                // ignore
+                this.suppressNextClose = false;
+            }
+        }
+
+        this.connection = null;
+        this.isTimeout = false;
+        this.serverProtocolRevision = null;
+        this.serverCapabilities = null;
+        this.connect(this.lastDispatcherMode);
     }
 
     sendMessage(json: ClientOutboundProtocolAction): void {
@@ -250,13 +299,34 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveWelcome(data: ClientInboundActionByOpcode<typeof Types.Messages.WELCOME>): void {
-        const [, id, name, x, y, hp] = data;
-        this.emit('welcome', entityIdFromWire(id), name, x, y, hp);
+        const [, id, name, x, y, hp, protocolRevision, capabilitiesJson] = data as unknown as [
+            typeof Types.Messages.WELCOME,
+            number,
+            string,
+            number,
+            number,
+            number,
+            number?,
+            string?,
+        ];
+        const playerId = entityIdFromWire(id);
+        this.localPlayerId = playerId;
+        this.emit('welcome', playerId, name, x, y, hp);
+
+        if (typeof protocolRevision === 'number' && typeof capabilitiesJson === 'string') {
+            this.serverProtocolRevision = protocolRevision;
+            this.serverCapabilities = decodeProtocolCapabilitiesJson(capabilitiesJson);
+            this.emit('protocolCapabilities', protocolRevision, this.serverCapabilities);
+        }
     }
 
     receiveMove(data: ClientInboundActionByOpcode<typeof Types.Messages.MOVE>): void {
         const [, id, x, y] = data;
         const entityId = entityIdFromWire(id);
+        if (this.localPlayerId !== null && entityId === this.localPlayerId) {
+            this.kernel.consumeClientPendingMoveAck(x, y);
+            debugMoves('in:MOVE', { entityId, x, y });
+        }
         this.kernel.setPosition(entityId, x, y);
         this.emit('entityMove', entityId, x, y);
     }
@@ -340,6 +410,11 @@ class GameClient extends Evented<GameClientEvents> {
         const [, id, x, y] = data;
         const entityId = entityIdFromWire(id);
         this.kernel.setPosition(entityId, x, y);
+        if (this.localPlayerId !== null && entityId === this.localPlayerId) {
+            this.kernel.clientMovementSuppressed = true;
+            this.kernel.clearClientPendingMoveSeqAcks();
+            debugMoves('in:TELEPORT', { entityId, x, y });
+        }
         this.emit('playerTeleport', entityId, x, y);
     }
 
@@ -386,6 +461,150 @@ class GameClient extends Evented<GameClientEvents> {
         this.emit('achievementProgress', unlockedIds, ratCount, skeletonCount, totalKills, totalDmg, totalRevives);
     }
 
+    receiveOutcome(data: ClientInboundActionByOpcode<typeof Types.Messages.OUTCOME>): void {
+        const [, _seq, outcomeTypeId] = data;
+        if (typeof outcomeTypeId !== 'string') {
+            return;
+        }
+
+        if (!this.unknownOutcomeTypeIdsLogged.has(outcomeTypeId)) {
+            this.unknownOutcomeTypeIdsLogged.add(outcomeTypeId);
+            log.info(`Ignoring unknown outcomeTypeId: ${outcomeTypeId}`);
+        }
+    }
+
+    receiveReject(data: ClientInboundActionByOpcode<typeof Types.Messages.REJECT>): void {
+        const [, seq, intentTypeId, reason] = data;
+        this.emit('intentRejected', seq, intentTypeId, reason);
+        log.info(`Intent rejected (seq=${seq}, type=${intentTypeId}): ${reason}`);
+        debugMoves('in:REJECT', { seq, intentTypeId, reason });
+        if (intentTypeId === 'move.step') {
+            this.kernel.clientMovementSuppressed = true;
+            this.kernel.clearClientPendingMoveSeqAcks();
+        }
+    }
+
+    receiveAck(data: ClientInboundActionByOpcode<typeof Types.Messages.ACK>): void {
+        const [, seq] = data;
+        this.emit('intentAcked', seq);
+        debugMoves('in:ACK', { seq });
+        this.kernel.consumeClientPendingMoveSeqAck(seq);
+    }
+
+    receiveCorrection(data: ClientInboundActionByOpcode<typeof Types.Messages.CORRECTION>): void {
+        const seq = data[1];
+        const a = data[2];
+        const b = data[3];
+        if (typeof seq !== 'number') {
+            return;
+        }
+
+        if (typeof a === 'number' && typeof b === 'number') {
+            const playerId = this.localPlayerId;
+            if (playerId !== null) {
+                this.kernel.clientMovementSuppressed = true;
+                this.kernel.clearClientPendingMoveSeqAcks();
+                debugMoves('in:CORRECTION', { seq, x: a, y: b });
+                this.kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: playerId, x: a, y: b });
+            }
+        }
+
+        this.emit('correction', seq, { a, b });
+    }
+
+	    receiveChunkSnapshot(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT>): void {
+	        const [, chunkX, chunkY, version, payloadJson] = data;
+	        if (
+	            typeof chunkX !== 'number'
+	            || typeof chunkY !== 'number'
+	            || typeof version !== 'number'
+	            || typeof payloadJson !== 'string'
+	        ) {
+	            return;
+	        }
+	        const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
+	        if (!decoded) {
+	            return;
+	        }
+	        this.kernel.clientChunkOverlayCache.applySnapshot({
+	            chunkX,
+	            chunkY,
+	            version,
+	            chunkSize: decoded.chunkSize,
+	            overrides: decoded.overrides,
+	        });
+	    }
+
+	    receiveChunkSnapshotPart(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT_PART>): void {
+	        const [, chunkX, chunkY, version, partIndex, partCount, payloadJson] = data;
+	        if (
+	            typeof chunkX !== 'number'
+	            || typeof chunkY !== 'number'
+	            || typeof version !== 'number'
+	            || typeof partIndex !== 'number'
+	            || typeof partCount !== 'number'
+	            || typeof payloadJson !== 'string'
+	        ) {
+	            return;
+	        }
+	        const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
+	        if (!decoded) {
+	            return;
+	        }
+	        this.kernel.clientChunkOverlayCache.applySnapshotPart({
+	            chunkX,
+	            chunkY,
+	            version,
+	            partIndex,
+	            partCount,
+	            chunkSize: decoded.chunkSize,
+	            overrides: decoded.overrides,
+	        });
+	    }
+	
+    receiveChunkDelta(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_DELTA>): void {
+	        const [, chunkX, chunkY, fromVersion, toVersion, payloadJson] = data;
+	        if (
+	            typeof chunkX !== 'number'
+	            || typeof chunkY !== 'number'
+	            || typeof fromVersion !== 'number'
+	            || typeof toVersion !== 'number'
+	            || typeof payloadJson !== 'string'
+	        ) {
+	            return;
+	        }
+	        const decoded = decodeChunkDeltaPayloadJson(payloadJson);
+	        if (!decoded) {
+	            return;
+	        }
+        this.kernel.clientChunkOverlayCache.applyDelta({
+            chunkX,
+            chunkY,
+            fromVersion,
+            toVersion,
+            changes: decoded.changes,
+        });
+    }
+
+    supportsIntent(intentTypeId: string): boolean {
+        return (
+            this.serverProtocolRevision !== null &&
+            (this.serverCapabilities?.intentTypeIds?.includes(intentTypeId) ?? false)
+        );
+    }
+
+    sendIntent(intentTypeId: string, payloadJson: string, options?: { trackMoveAck?: boolean }): number | null {
+        if (!this.supportsIntent(intentTypeId)) {
+            return null;
+        }
+        const seq = this.nextIntentSeq++;
+        if (options?.trackMoveAck) {
+            this.kernel.enqueueClientPendingMoveSeqAck(seq);
+        }
+        this.sendMessage(createIntentAction(seq, intentTypeId, payloadJson));
+        return seq;
+    }
+
     sendHello(player: ClientPlayerLike): void {
         const armorKind = Types.getKindFromString(player.getSpriteName());
         const weaponKind = Types.getKindFromString(player.getWeaponName());
@@ -399,7 +618,87 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     sendMove(x: number, y: number): void {
-        this.sendMessage(createMoveAction(x, y));
+        if (!this.supportsIntent('move.step')) {
+            debugMoves('out:MOVE', { x, y, mode: 'legacy' });
+            this.sendMessage(createMoveAction(x, y));
+            return;
+        }
+
+        const seq = this.sendIntent('move.step', JSON.stringify({ x, y }), { trackMoveAck: true });
+        if (seq === null) {
+            return;
+        }
+        debugMoves('out:INTENT(move.step)', { seq, x, y });
+    }
+
+    sendTileEdit(x: number, y: number, value: number | null): number | null {
+        if (!Number.isInteger(x) || !Number.isInteger(y)) {
+            return null;
+        }
+        if (value !== null && (!Number.isInteger(value) || value < 0 || value > 0xffff_ffff)) {
+            return null;
+        }
+        return this.sendIntent('tile.edit', JSON.stringify({ x, y, value }));
+    }
+
+    sendClaimCreate({
+        x1,
+        y1,
+        x2,
+        y2,
+        editors = [],
+    }: {
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+        editors?: ReadonlyArray<string>;
+    }): number | null {
+        if (![x1, y1, x2, y2].every((value) => Number.isInteger(value))) {
+            return null;
+        }
+        return this.sendIntent('claim.create', JSON.stringify({ x1, y1, x2, y2, editors: [...editors] }));
+    }
+
+    sendClaimUpdate({
+        id,
+        x1,
+        y1,
+        x2,
+        y2,
+        editors,
+    }: {
+        id: number;
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+        editors?: ReadonlyArray<string>;
+    }): number | null {
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            return null;
+        }
+        if (![x1, y1, x2, y2].every((value) => Number.isInteger(value))) {
+            return null;
+        }
+        return this.sendIntent(
+            'claim.update',
+            JSON.stringify({
+                id,
+                x1,
+                y1,
+                x2,
+                y2,
+                ...(editors !== undefined ? { editors: [...editors] } : {}),
+            })
+        );
+    }
+
+    sendClaimDelete(id: number): number | null {
+        if (!Number.isSafeInteger(id) || id <= 0) {
+            return null;
+        }
+        return this.sendIntent('claim.delete', JSON.stringify({ id }));
     }
 
     sendLootMove(item: IdCarrier, x: number, y: number): void {
@@ -412,14 +711,6 @@ class GameClient extends Evented<GameClientEvents> {
 
     sendAttack(mob: IdCarrier): void {
         this.sendMessage(createAttackAction(toProtocolEntityId(mob.id)));
-    }
-
-    sendHit(mob: IdCarrier): void {
-        this.sendMessage(createHitAction(toProtocolEntityId(mob.id)));
-    }
-
-    sendHurt(mob: IdCarrier): void {
-        this.sendMessage(createHurtAction(toProtocolEntityId(mob.id)));
     }
 
     sendChat(text: string): void {
@@ -440,6 +731,17 @@ class GameClient extends Evented<GameClientEvents> {
 
     sendZone(): void {
         this.sendMessage(createZoneAction());
+    }
+
+    sendChunkSubscribe(chunkX: number, chunkY: number, radius: number): void {
+        const safeChunkX = Number.isSafeInteger(chunkX) ? chunkX : 0;
+        const safeChunkY = Number.isSafeInteger(chunkY) ? chunkY : 0;
+        const safeRadius = Number.isSafeInteger(radius) ? Math.max(0, Math.min(8, radius)) : 0;
+        this.sendMessage(createChunkSubscribeAction(safeChunkX, safeChunkY, safeRadius));
+    }
+
+    sendChunkUnsubscribe(): void {
+        this.sendMessage(createChunkUnsubscribeAction());
     }
 
     sendOpen(chest: IdCarrier): void {

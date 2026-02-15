@@ -171,9 +171,6 @@ class Renderer {
         this.animatedTileCount = 0;
         this.highTileCount = 0;
 
-        this.tablet = Detect.isTablet(window.innerWidth);
-        this.mobile = false;
-
         this.fixFlickeringTimer = new Timer(100);
         this.tileset = null;
         this.lastTargetPos = null;
@@ -197,15 +194,13 @@ class Renderer {
             h = window.innerHeight;
         let scale = 2;
 
-        this.mobile = false;
+        this.tablet = Detect.isTablet(w);
+        this.mobile = Detect.isPhone() && !this.tablet;
 
-        if (w <= 1000) {
-            scale = 2;
-            this.mobile = true;
-        } else if (w <= 1500 || h <= 870) {
-            scale = 2;
-        } else {
+        if (w > 1500 && h > 870) {
             scale = 3;
+        } else {
+            scale = 2;
         }
 
         return scale;
@@ -631,7 +626,10 @@ class Renderer {
         this.drawEntities(true);
     }
 
-    clearDirtyRect(r: BoundingRect): void {
+    clearDirtyRect(r: BoundingRect | null | undefined): void {
+        if (!r) {
+            return;
+        }
         this.context.clearRect(r.x, r.y, r.w, r.h);
     }
 

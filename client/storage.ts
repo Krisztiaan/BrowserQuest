@@ -1,11 +1,15 @@
 import { supportsLocalStorage } from './platform/features';
 import type { AchievementId } from './achievement-domain';
 import { isAchievementId } from './achievement-domain';
+import {
+    ACCOUNT_COOKIE_KEY,
+    AUTH_COOKIE_MAX_AGE_SECONDS,
+    USERNAME_COOKIE_KEY as SHARED_USERNAME_COOKIE_KEY,
+} from '../shared/auth/cookie-keys';
 
 export const STORAGE_KEY = 'username';
 const LEGACY_STORAGE_KEY = 'data';
-export const USERNAME_COOKIE_KEY = 'bq_username';
-const USERNAME_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 365;
+export const USERNAME_COOKIE_KEY = SHARED_USERNAME_COOKIE_KEY;
 
 type PlayerStorage = {
     name: string;
@@ -83,7 +87,7 @@ export function writeUsernameCookie(name: string): void {
         clearUsernameCookie();
         return;
     }
-    document.cookie = `${USERNAME_COOKIE_KEY}=${encodeURIComponent(trimmedName)}; Max-Age=${USERNAME_COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`;
+    document.cookie = `${USERNAME_COOKIE_KEY}=${encodeURIComponent(trimmedName)}; Max-Age=${AUTH_COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`;
 }
 
 export function clearUsernameCookie(): void {
@@ -91,6 +95,37 @@ export function clearUsernameCookie(): void {
         return;
     }
     document.cookie = `${USERNAME_COOKIE_KEY}=; Max-Age=0; Path=/; SameSite=Lax`;
+}
+
+export function readAccountCookie(): string | null {
+    const raw = getCookieRawValue(ACCOUNT_COOKIE_KEY);
+    if (raw === null) {
+        return null;
+    }
+    try {
+        return sanitizePlayerName(decodeURIComponent(raw));
+    } catch {
+        return null;
+    }
+}
+
+export function writeAccountCookie(name: string): void {
+    if (!canUseCookies()) {
+        return;
+    }
+    const trimmedName = sanitizePlayerName(name);
+    if (trimmedName === null) {
+        clearAccountCookie();
+        return;
+    }
+    document.cookie = `${ACCOUNT_COOKIE_KEY}=${encodeURIComponent(trimmedName)}; Max-Age=${AUTH_COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`;
+}
+
+export function clearAccountCookie(): void {
+    if (!canUseCookies()) {
+        return;
+    }
+    document.cookie = `${ACCOUNT_COOKIE_KEY}=; Max-Age=0; Path=/; SameSite=Lax`;
 }
 
 function clampCounter(value: number, max: number): number {

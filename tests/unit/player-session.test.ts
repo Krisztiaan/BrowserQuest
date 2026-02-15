@@ -13,14 +13,20 @@ function createSessionFixture({
     isActive,
     isDead,
     resolveHelloProfile,
+    connectionAccountNameKey,
 }: {
     isActive: boolean;
     isDead: boolean;
-    resolveHelloProfile?: (params: { connectionId: string; requestedName: string }) => {
+    resolveHelloProfile?: (params: {
+        connectionId: string;
+        requestedName: string;
+        authenticatedAccountNameKey?: string;
+    }) => {
         accepted: boolean;
         reason?: string;
         profile?: PersistedPlayerProfile;
     };
+    connectionAccountNameKey?: string;
 }) {
     const sentUtf8: string[] = [];
     const closeReasons: string[] = [];
@@ -32,6 +38,7 @@ function createSessionFixture({
 
     const connection = {
         id: '5001',
+        accountNameKey: connectionAccountNameKey,
         listen(callback: SessionListener): void {
             listener = callback;
         },
@@ -154,6 +161,7 @@ test('player session enriches HELLO command with persisted profile payload when 
             return {
                 accepted: true,
                 profile: {
+                    accountNameKey: 'k',
                     nameKey: 'k',
                     displayName: 'K',
                     armorKind: Types.Entities.GOLDENARMOR,
@@ -166,6 +174,13 @@ test('player session enriches HELLO command with persisted profile payload when 
                         totalKills: 4,
                         totalDmg: 5,
                         totalRevives: 1,
+                    },
+                    progression: {
+                        gold: 0,
+                        farmingLevel: 1,
+                        farmingXp: 0,
+                        homePlotClaimId: null,
+                        inventory: [],
                     },
                 },
             };
@@ -184,6 +199,29 @@ test('player session enriches HELLO command with persisted profile payload when 
         expect(command.profile?.achievements.unlockedIds).toEqual([1, 5]);
         expect(command.profile?.achievements.totalRevives).toBe(1);
     }
+});
+
+test('player session forwards authenticated account identity from connection to profile resolver', () => {
+    const calls: Array<{ connectionId: string; requestedName: string; authenticatedAccountNameKey?: string }> = [];
+    const fixture = createSessionFixture({
+        isActive: false,
+        isDead: false,
+        connectionAccountNameKey: 'hero_account',
+        resolveHelloProfile(params) {
+            calls.push(params);
+            return { accepted: true };
+        },
+    });
+
+    fixture.send([Types.Messages.HELLO, 'Hero Display', Types.Entities.CLOTHARMOR, Types.Entities.SWORD1]);
+
+    expect(calls).toEqual([
+        {
+            connectionId: '5001',
+            requestedName: 'Hero Display',
+            authenticatedAccountNameKey: 'hero_account',
+        },
+    ]);
 });
 
 test('player session releases name claim when socket closes', () => {

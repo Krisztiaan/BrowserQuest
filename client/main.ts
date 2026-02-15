@@ -8,6 +8,7 @@ import { TRANSITIONEND } from './platform/util';
 import type Game from './game';
 import Mob from './mob';
 import sprites from './sprites';
+import { getZoneGroupIdFromGrid } from '../shared/world/coordinate-contract';
 
 type TestEntity = {
     id: string | number;
@@ -90,21 +91,69 @@ declare global {
 
 let app: App | null = null,
     game: Game | null = null;
+let fullscreenToggleBound = false;
 const TEST_ZONE_WIDTH = 28;
 const TEST_ZONE_HEIGHT = 12;
 const SERVER_PLAYER_IMAGE_SRC = '/profile/preview.svg';
 const SERVER_PLAYER_PREVIEW_JSON_URL = '/profile/preview.json';
-const FALLBACK_PLAYER_IMAGE_SRC = '/img/common/thingy.png';
+const LEGACY_THINGY_PLAYER_IMAGE_SRC = '/img/common/thingy.png';
 const DEFAULT_ARMOR_SPRITE = 'clotharmor';
 const DEFAULT_WEAPON_SPRITE = 'sword1';
 const SHADOW_SPRITE = 'shadow16';
 const IDLE_ANIMATION_INTERVAL_MS = 260;
 
-const getZoneGroupId = function (x: number, y: number): string {
-    const gx = Math.floor((x - 1) / TEST_ZONE_WIDTH),
-        gy = Math.floor((y - 1) / TEST_ZONE_HEIGHT);
+function bindFullscreenToggle(): void {
+    if (fullscreenToggleBound) {
+        return;
+    }
 
-    return gx + '-' + gy;
+    const button = document.getElementById('fullscreen-toggle') as HTMLButtonElement | null;
+    const root = document.getElementById('container');
+
+    if (!button || !root) {
+        return;
+    }
+
+    const canFullscreen = !!document.fullscreenEnabled && typeof root.requestFullscreen === 'function';
+    if (!canFullscreen) {
+        button.style.display = 'none';
+        fullscreenToggleBound = true;
+        return;
+    }
+
+    const updateLabel = function (): void {
+        button.textContent = document.fullscreenElement ? 'Exit fullscreen' : 'Fullscreen';
+    };
+
+    updateLabel();
+
+    button.addEventListener('click', function (event: MouseEvent) {
+        event.stopPropagation();
+
+        void (async () => {
+            try {
+                if (document.fullscreenElement) {
+                    await document.exitFullscreen();
+                } else {
+                    await root.requestFullscreen();
+                }
+            } catch (err: unknown) {
+                log.debug('Fullscreen toggle failed');
+                log.debug(err);
+            }
+        })();
+    });
+
+    document.addEventListener('fullscreenchange', function () {
+        updateLabel();
+        setTimeout(() => app?.resizeUi(), 50);
+    });
+
+    fullscreenToggleBound = true;
+}
+
+const getZoneGroupId = function (x: number, y: number): string {
+    return getZoneGroupIdFromGrid(x, y, TEST_ZONE_WIDTH, TEST_ZONE_HEIGHT);
 };
 
 const getTestEntities = function (): TestEntities {
@@ -363,10 +412,128 @@ const installTestApi = function (): void {
     let lastAggroMobId: string | number | null = null;
     let lastKillProbeMobId: string | number | null = null;
     let killProbeInterval: ReturnType<typeof setInterval> | null = null;
+    const intentResults = new Map<number, { status: 'pending' | 'acked' | 'rejected'; intentTypeId?: string; reason?: string }>();
+    let intentListenersBound = false;
+
+    const bindIntentListeners = function (): void {
+        if (intentListenersBound || !game?.client) {
+            return;
+        }
+        intentListenersBound = true;
+        game.client.on('intentAcked', function (seq: number) {
+            intentResults.set(seq, { status: 'acked' });
+        });
+        game.client.on('intentRejected', function (seq: number, intentTypeId: string, reason: string) {
+            intentResults.set(seq, { status: 'rejected', intentTypeId, reason });
+        });
+    };
 
     globalThis.__BQ_TEST_API = {
+        isBootstrapped: function () {
+            return !!(app?.ready && game?.map?.isLoaded);
+        },
+
+        startSession: function (name: string) {
+            if (typeof name !== 'string') {
+                return;
+            }
+            intentResults.clear();
+            const trimmed = name.trim();
+            const input = document.getElementById('nameinput') as HTMLInputElement | null;
+            if (input) {
+                input.value = trimmed;
+                input.setAttribute('value', trimmed);
+                input.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true, key: 'a' }));
+            }
+            app?.tryStartingGame(trimmed, undefined);
+        },
+
         isReady: function () {
             return !!(game && game.started && game.client && game.map && game.map.isLoaded && game.player);
+        },
+
+        getPlayerPos: function () {
+            if (!game?.map?.isLoaded || !game.player) {
+                return { ok: false, reason: 'not_ready', x: null, y: null };
+            }
+            return { ok: true, x: game.player.gridX, y: game.player.gridY };
+        },
+
+        getOverlayTileValue: function (x: number, y: number) {
+            if (!game?.map?.isLoaded || !Number.isInteger(x) || !Number.isInteger(y)) {
+                return null;
+            }
+            return game.kernel.clientChunkOverlayCache.getGlobal(x, y);
+        },
+
+        getIntentStatus: function (seq: number) {
+            if (!Number.isSafeInteger(seq) || seq < 0) {
+                return { status: 'invalid' };
+            }
+            return intentResults.get(seq) ?? { status: 'pending' };
+        },
+
+        sendClaimCreateIntent: function ({
+            x1,
+            y1,
+            x2,
+            y2,
+            editors,
+        }: {
+            x1: number;
+            y1: number;
+            x2: number;
+            y2: number;
+            editors?: string[];
+        }) {
+            if (!game?.client || !game.map?.isLoaded) {
+                return { ok: false, reason: 'not_ready', seq: null };
+            }
+            bindIntentListeners();
+            const seq = game.client.sendClaimCreate({ x1, y1, x2, y2, editors: Array.isArray(editors) ? editors : [] });
+            if (seq === null) {
+                return { ok: false, reason: 'unsupported_or_invalid', seq: null };
+            }
+            intentResults.set(seq, { status: 'pending' });
+            return { ok: true, seq };
+        },
+
+        sendTileEditIntent: function (x: number, y: number, value: number | null) {
+            if (!game?.client || !game.map?.isLoaded) {
+                return { ok: false, reason: 'not_ready', seq: null };
+            }
+            bindIntentListeners();
+            const seq = game.client.sendTileEdit(x, y, value);
+            if (seq === null) {
+                return { ok: false, reason: 'unsupported_or_invalid', seq: null };
+            }
+            intentResults.set(seq, { status: 'pending' });
+            return { ok: true, seq };
+        },
+
+        clickTile: function (x: number, y: number) {
+            if (!game?.map?.isLoaded) {
+                return { ok: false, reason: 'not_ready' };
+            }
+            if (typeof x !== 'number' || typeof y !== 'number' || !Number.isInteger(x) || !Number.isInteger(y)) {
+                return { ok: false, reason: 'invalid_coords' };
+            }
+            game.kernel.setClientClickIntent({ x, y });
+            return { ok: true };
+        },
+
+        getDoorDestination: function (x: number, y: number) {
+            if (!game?.map?.isLoaded) {
+                return { ok: false, reason: 'not_ready', destination: null };
+            }
+            if (!game.map.isDoor(x, y)) {
+                return { ok: true, destination: null };
+            }
+            const destination = game.map.getDoorDestination(x, y);
+            if (!destination) {
+                return { ok: true, destination: null };
+            }
+            return { ok: true, destination };
         },
 
         moveToDifferentZone: function () {
@@ -469,7 +636,6 @@ const installTestApi = function (): void {
             }
 
             game.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId: mob.id as never });
-            game.kernel.enqueueClientCommand({ type: 'clientSendHit', targetId: mob.id as never });
             game.kernel.enqueueClientCommand({
                 type: 'clientSendLootMove',
                 itemId: item.id as never,
@@ -485,60 +651,70 @@ const installTestApi = function (): void {
                 itemY: item.gridY,
             };
         },
-        sendAggroProbe: function () {
-            if (!game?.client || !game.map?.isLoaded) {
-                return { ok: false, reason: 'not_ready' };
-            }
+	        sendAggroProbe: function () {
+	            if (!game?.client || !game.map?.isLoaded) {
+	                return { ok: false, reason: 'not_ready' };
+	            }
 
-            const entities = getTestEntities();
+	            const entities = getTestEntities();
 
-            const playerX = game.player.gridX;
-            const playerY = game.player.gridY;
-            let mob: TestEntity | null = null;
-            let bestDist = Number.POSITIVE_INFINITY;
+	            const playerX = game.player.gridX;
+	            const playerY = game.player.gridY;
+	            let mob: TestEntity | null = null;
+	            let tile: { x: number; y: number } | null = null;
+	            let bestDist = Number.POSITIVE_INFINITY;
 
-            for (const candidate of entities.mobs) {
-                if (!Number.isSafeInteger(candidate.gridX) || !Number.isSafeInteger(candidate.gridY)) {
-                    continue;
-                }
-                const dist = Math.abs(candidate.gridX - playerX) + Math.abs(candidate.gridY - playerY);
-                if (dist < bestDist) {
-                    bestDist = dist;
-                    mob = candidate;
-                }
-            }
+	            for (const candidate of entities.mobs) {
+	                if (!Number.isSafeInteger(candidate.gridX) || !Number.isSafeInteger(candidate.gridY)) {
+	                    continue;
+	                }
+	                const candidateTiles = [
+	                    { x: (candidate.gridX as number) - 1, y: candidate.gridY as number },
+	                    { x: (candidate.gridX as number) + 1, y: candidate.gridY as number },
+	                    { x: candidate.gridX as number, y: (candidate.gridY as number) - 1 },
+	                    { x: candidate.gridX as number, y: (candidate.gridY as number) + 1 },
+	                ].filter((nextTile) => !game.map.isOutOfBounds(nextTile.x, nextTile.y) && !game.map.isColliding(nextTile.x, nextTile.y));
 
-            if (!mob) {
-                return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
-            }
+	                if (candidateTiles.length === 0) {
+	                    continue;
+	                }
 
-            const candidateTiles = [
-                { x: (mob.gridX as number) - 1, y: mob.gridY as number },
-                { x: (mob.gridX as number) + 1, y: mob.gridY as number },
-                { x: mob.gridX as number, y: (mob.gridY as number) - 1 },
-                { x: mob.gridX as number, y: (mob.gridY as number) + 1 },
-            ].filter((tile) => !game.map.isOutOfBounds(tile.x, tile.y) && !game.map.isColliding(tile.x, tile.y));
+	                candidateTiles.sort((a, b) => {
+	                    const da = Math.abs(a.x - playerX) + Math.abs(a.y - playerY);
+	                    const db = Math.abs(b.x - playerX) + Math.abs(b.y - playerY);
+	                    return da - db;
+	                });
 
-            candidateTiles.sort((a, b) => {
-                const da = Math.abs(a.x - playerX) + Math.abs(a.y - playerY);
-                const db = Math.abs(b.x - playerX) + Math.abs(b.y - playerY);
-                return da - db;
-            });
+	                const nextTile = candidateTiles[0];
+	                if (!nextTile) {
+	                    continue;
+	                }
 
-            const tile = candidateTiles[0];
-            if (tile) {
-                game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
-            }
+	                const dist = Math.abs(candidate.gridX - playerX) + Math.abs(candidate.gridY - playerY);
+	                if (dist < bestDist) {
+	                    bestDist = dist;
+	                    mob = candidate;
+	                    tile = nextTile;
+	                }
+	            }
 
-            lastAggroMobId = mob.id;
-            game.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: mob.id as never });
+	            if (!mob || !tile) {
+	                return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
+	            }
 
-            return {
-                ok: true,
-                mobId: mob.id,
-                mobCount: entities.mobs.length,
-            };
-        },
+	            game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
+
+	            lastAggroMobId = mob.id;
+	            game.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: mob.id as never });
+
+	            return {
+	                ok: true,
+	                mobId: mob.id,
+	                mobCount: entities.mobs.length,
+	                targetX: tile.x,
+	                targetY: tile.y,
+	            };
+	        },
         getAggroProbeStatus: function () {
             if (!game?.client || !game.map?.isLoaded) {
                 return {
@@ -907,12 +1083,13 @@ const initApp = function (): void {
             resizeCheck = document.getElementById('resize-check');
 
         if (playerImage) {
-            playerImage.src = FALLBACK_PLAYER_IMAGE_SRC;
+            playerImage.src = SERVER_PLAYER_IMAGE_SRC;
             playerImage.addEventListener('error', function () {
-                if (playerImage.src.endsWith(FALLBACK_PLAYER_IMAGE_SRC)) {
+                if (playerImage.src.endsWith(SERVER_PLAYER_IMAGE_SRC)) {
+                    playerImage.removeAttribute('src');
                     return;
                 }
-                playerImage.src = FALLBACK_PLAYER_IMAGE_SRC;
+                playerImage.src = SERVER_PLAYER_IMAGE_SRC;
             });
             hydrateLoadCharacterPreview(playerImage);
         }
@@ -1099,7 +1276,11 @@ const initApp = function (): void {
                 if (playerName) {
                     playerName.innerHTML = data.player.name;
                 }
-                if (playerImage && data.player.image.trim().length > 0) {
+                if (
+                    playerImage &&
+                    data.player.image.trim().length > 0 &&
+                    !data.player.image.includes(LEGACY_THINGY_PLAYER_IMAGE_SRC)
+                ) {
                     playerImage.src = data.player.image;
                 }
             }
@@ -1150,6 +1331,7 @@ function initGame(): void {
             game = new Game(app, '#bubbles', canvas, background, foreground, input);
             game.setStorage(app.storage);
             app.setGame(game);
+            bindFullscreenToggle();
             installTestApi();
 
             if (app.isDesktop && app.supportsWorkers) {
@@ -1546,9 +1728,6 @@ function initGame(): void {
                 }
             });
 
-            if (game.renderer.tablet) {
-                document.body.classList.add('tablet');
-            }
         })
         .catch(function (err: unknown) {
             log.error(err, true);

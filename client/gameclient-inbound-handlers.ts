@@ -25,6 +25,13 @@ type GameClientInboundReceiver = {
     receiveHitPoints(data: ClientInboundActionByOpcode<typeof Types.Messages.HP>): void;
     receiveBlink(data: ClientInboundActionByOpcode<typeof Types.Messages.BLINK>): void;
     receiveAchievements(data: ClientInboundActionByOpcode<typeof Types.Messages.ACHIEVEMENTS>): void;
+    receiveOutcome(data: ClientInboundActionByOpcode<typeof Types.Messages.OUTCOME>): void;
+    receiveReject(data: ClientInboundActionByOpcode<typeof Types.Messages.REJECT>): void;
+    receiveAck(data: ClientInboundActionByOpcode<typeof Types.Messages.ACK>): void;
+    receiveCorrection(data: ClientInboundActionByOpcode<typeof Types.Messages.CORRECTION>): void;
+    receiveChunkSnapshot(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT>): void;
+    receiveChunkSnapshotPart(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT_PART>): void;
+    receiveChunkDelta(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_DELTA>): void;
 };
 
 export function createGameClientInboundHandlers(
@@ -50,5 +57,12 @@ export function createGameClientInboundHandlers(
         [Types.Messages.HP]: (data) => receiver.receiveHitPoints(data),
         [Types.Messages.BLINK]: (data) => receiver.receiveBlink(data),
         [Types.Messages.ACHIEVEMENTS]: (data) => receiver.receiveAchievements(data),
+        [Types.Messages.OUTCOME]: (data) => receiver.receiveOutcome(data),
+        [Types.Messages.REJECT]: (data) => receiver.receiveReject(data),
+        [Types.Messages.ACK]: (data) => receiver.receiveAck(data),
+        [Types.Messages.CORRECTION]: (data) => receiver.receiveCorrection(data),
+        [Types.Messages.CHUNK_SNAPSHOT]: (data) => receiver.receiveChunkSnapshot(data),
+        [Types.Messages.CHUNK_SNAPSHOT_PART]: (data) => receiver.receiveChunkSnapshotPart(data),
+        [Types.Messages.CHUNK_DELTA]: (data) => receiver.receiveChunkDelta(data),
     };
 }

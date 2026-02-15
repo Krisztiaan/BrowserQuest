@@ -35,11 +35,14 @@ export function flushOutgoingQueues(
 
         // Avoid single huge JSON.stringify() calls that can stall the event loop (especially when a player
         // receives many SPAWN actions at once). Chunk into smaller batches to keep handshake/ticks responsive.
-        while (queue.length > 0) {
-            const chunk = queue.length > MAX_BATCH_ACTIONS ? queue.splice(0, MAX_BATCH_ACTIONS) : queue.splice(0);
-            const payload = chunk.length === 1 ? chunk[0] : chunk;
+        const queueLength = queue.length;
+        for (let batchStart = 0; batchStart < queueLength; batchStart += MAX_BATCH_ACTIONS) {
+            const batchEnd = Math.min(batchStart + MAX_BATCH_ACTIONS, queueLength);
+            const batchLength = batchEnd - batchStart;
+            const payload =
+                batchLength === 1 ? queue[batchStart] : queue.slice(batchStart, batchEnd);
             connection.send(payload);
         }
+        queue.length = 0;
     }
 }
-

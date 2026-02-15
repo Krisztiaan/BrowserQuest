@@ -8,17 +8,16 @@ From the project root:
 
 - `bun install`
 - `bun run dev`
-- Open `http://localhost:8123/`
+- Open `http://localhost:8000/`
 
-Vite (modern tooling):
+Staged-client refresh (manual):
 
-- `bun run dev:vite:full`
-- Open `http://localhost:8123/`
+- `bun run dev:bun:build-client`
 
 Build and verification
 ----------------------
 
-- Production client build: `bun run build:vite` (output: `dist/vite`)
+- Production client build: `bun run build:client` (output: `dist/client`)
 - Full modern verify lane: `bun run verify:modern`
 
 Support policy

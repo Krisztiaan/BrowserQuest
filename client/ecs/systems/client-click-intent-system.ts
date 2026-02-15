@@ -3,12 +3,34 @@ import Types from '../../../shared/gametypes-browser';
 import type { EntityId } from '../../../shared/domain/ids';
 import type { ClientWorldKernel } from '../world-kernel';
 import { clearClientInteractionIntentWithSideEffects } from './client-interaction-intent-system';
+import { debugClicks } from '../../debug-flags';
 
 export type ClientClickIntentSystemHost = Readonly<{
     started: boolean;
     kernel: ClientWorldKernel;
-    player: { isDead: boolean; isOnPlateau: boolean; nextGridX?: number; nextGridY?: number } | null;
-    map: { isColliding(x: number, y: number): boolean; isPlateau(x: number, y: number): boolean } | null;
+    player: {
+        gridX: number;
+        gridY: number;
+        isDead: boolean;
+        isOnPlateau: boolean;
+        nextGridX?: number;
+        nextGridY?: number;
+    } | null;
+    map:
+        | {
+              isColliding(x: number, y: number): boolean;
+              isPlateau(x: number, y: number): boolean;
+              isDoor?(x: number, y: number): boolean;
+              getDoorDestination?(x: number, y: number): {
+                  x: number;
+                  y: number;
+                  orientation: number;
+                  portal: boolean;
+                  cameraX?: number;
+                  cameraY?: number;
+              } | undefined;
+          }
+        | null;
 
     isZoning(): boolean;
     isZoningTile(x: number, y: number): boolean;
@@ -24,6 +46,9 @@ function pickEntityAt(kernel: ClientWorldKernel, x: number, y: number): SpatialP
             continue;
         }
         if (record.isPlayer) {
+            continue;
+        }
+        if (record.isDead) {
             continue;
         }
         return { id, x: record.gridX, y: record.gridY, kind: record.kind, isPlayer: record.isPlayer };
@@ -61,23 +86,92 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
     // Consume intent exactly once.
     host.kernel.clearClientClickIntent();
 
+    debugClicks('intent', {
+        raw: { x: intent.x, y: intent.y },
+        started: host.started,
+        hasPlayer: Boolean(host.player),
+        hasMap: Boolean(host.map),
+    });
+
     if (!host.started || !host.player || !host.map) {
+        debugClicks('ignore:not_ready');
         return;
     }
 
-    const x = intent.x;
-    const y = intent.y;
+    const map = host.map;
+    const resolveDoorClick = (x: number, y: number): { x: number; y: number } | null => {
+        if (!map.isDoor) {
+            return null;
+        }
+        if (map.isDoor(x, y)) {
+            return { x, y };
+        }
+        const adjacent = [
+            { x: x - 1, y },
+            { x: x + 1, y },
+            { x, y: y - 1 },
+            { x, y: y + 1 },
+        ];
+        for (const candidate of adjacent) {
+            if (map.isDoor(candidate.x, candidate.y)) {
+                return candidate;
+            }
+        }
+        return null;
+    };
 
-    const last = host.kernel.clientClickState?.lastClickPos ?? null;
-    if (last && last.x === x && last.y === y) {
+    let x = intent.x;
+    let y = intent.y;
+
+    const doorClick = map.isDoor?.(x, y) ? { x, y } : map.isColliding(x, y) ? resolveDoorClick(x, y) : null;
+    if (doorClick) {
+        x = doorClick.x;
+        y = doorClick.y;
+    }
+
+    debugClicks('resolved', {
+        click: { x, y },
+        doorClick,
+        player: { x: host.player.gridX, y: host.player.gridY, nextX: host.player.nextGridX, nextY: host.player.nextGridY },
+        map: {
+            isDoor: map.isDoor?.(x, y) ?? null,
+            isColliding: map.isColliding(x, y),
+            isPlateau: map.isPlateau(x, y),
+        },
+    });
+
+    if (doorClick && map.getDoorDestination) {
+        const destination = map.getDoorDestination(x, y);
+        if (destination) {
+            debugClicks('door:destination', destination);
+            host.kernel.setClientPendingDoorTraversal({
+                doorX: x,
+                doorY: y,
+                toX: destination.x,
+                toY: destination.y,
+                orientation: destination.orientation,
+                portal: destination.portal,
+                cameraX: destination.cameraX,
+                cameraY: destination.cameraY,
+            });
+        } else {
+            debugClicks('door:destination:none');
+            host.kernel.clearClientPendingDoorTraversal();
+        }
+    } else {
+        host.kernel.clearClientPendingDoorTraversal();
+    }
+
+    if (map.isDoor?.(x, y) && host.player.gridX === x && host.player.gridY === y) {
+        debugClicks('door:arm', { x, y });
+        host.kernel.clientDoorTraversalArmed = true;
         return;
     }
-    host.kernel.setClientLastClickPos(x, y);
 
     const nextX = host.player.nextGridX ?? -1;
     const nextY = host.player.nextGridY ?? -1;
 
-    const hoveringCollidingTile = host.map.isColliding(x, y);
+    const hoveringCollidingTile = map.isColliding(x, y) && !(map.isDoor?.(x, y) ?? false);
     const hoveringPlateauTile = host.player.isOnPlateau ? !host.map.isPlateau(x, y) : host.map.isPlateau(x, y);
 
     if (
@@ -87,12 +181,23 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
         hoveringCollidingTile ||
         hoveringPlateauTile
     ) {
+        debugClicks('ignore:gated', {
+            isZoning: host.isZoning(),
+            isZoningTile: host.isZoningTile(nextX, nextY),
+            isDead: host.player.isDead,
+            hoveringCollidingTile,
+            hoveringPlateauTile,
+            click: { x, y },
+            next: { x: nextX, y: nextY },
+        });
         return;
     }
 
     const kernel = host.kernel;
+
     const entity = pickEntityAt(kernel, x, y);
     if (entity && Types.isMob(entity.kind)) {
+        debugClicks('pick:mob', { id: entity.id, kind: entity.kind, x: entity.x, y: entity.y });
         host.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
         host.kernel.setClientInteractionIntent({
             kind: 'attack',
@@ -104,6 +209,7 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
 
     const item = pickItemAt(kernel, x, y);
     if (item) {
+        debugClicks('pick:item', { id: item.id, kind: item.kind, x: item.x, y: item.y });
         host.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
         host.kernel.clearClientLootAttempt();
         host.kernel.setClientInteractionIntent({
@@ -116,6 +222,7 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
     }
 
     if (entity && Types.isNpc(entity.kind)) {
+        debugClicks('pick:npc', { id: entity.id, kind: entity.kind, x: entity.x, y: entity.y });
         host.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
         host.kernel.setClientInteractionIntent({
             kind: 'talk',
@@ -126,6 +233,7 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
     }
 
     if (entity && Types.isChest(entity.kind)) {
+        debugClicks('pick:chest', { id: entity.id, kind: entity.kind, x: entity.x, y: entity.y });
         host.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
         host.kernel.setClientInteractionIntent({
             kind: 'open',
@@ -136,5 +244,6 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
     }
 
     clearClientInteractionIntentWithSideEffects(host);
+    debugClicks('move', { x, y });
     host.kernel.enqueueClientCommand({ type: 'playerGoTo', x, y });
 }

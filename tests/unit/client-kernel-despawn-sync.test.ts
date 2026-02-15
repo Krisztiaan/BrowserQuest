@@ -30,3 +30,45 @@ test('kernel removeEntity leaves replication bookkeeping so sync can emit remove
 
     expect(cmds).toContainEqual({ type: 'removeEntityById', entityId: mobId });
 });
+
+test('dead local player clears stale mob attack links from replication sync', () => {
+    const kernel = new ClientWorldKernel();
+    const playerId = entityIdFromWire(1);
+    const mobId = entityIdFromWire(1223);
+
+    kernel.upsertFromSpawnSnapshot({
+        id: 1,
+        kind: Types.Entities.WARRIOR,
+        x: 10,
+        y: 10,
+        extras: {
+            type: 'player',
+            name: 'K',
+            orientation: Types.Orientations.DOWN,
+            armor: Types.Entities.CLOTHARMOR,
+            weapon: Types.Entities.SWORD1,
+        },
+    });
+    kernel.upsertFromSpawnSnapshot({
+        id: 1223,
+        kind: Types.Entities.RAT,
+        x: 11,
+        y: 10,
+        extras: { type: 'mob', orientation: Types.Orientations.LEFT, targetId: 1 },
+    });
+
+    kernel.clientReplicationKnownAlive.add(playerId);
+    kernel.clientReplicationKnownAlive.add(mobId);
+    kernel.clientReplicationLastPos.set(playerId, gridPos(10, 10));
+    kernel.clientReplicationLastPos.set(mobId, gridPos(11, 10));
+    kernel.target.set(mobId, playerId);
+    kernel.clientReplicationLastTarget.set(mobId, playerId);
+    kernel.clientLocalPlayerDead = true;
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId });
+    const cmds = kernel.drainClientCommands();
+
+    expect(cmds).toContainEqual({ type: 'characterClearTarget', entityId: mobId });
+    expect(kernel.clientReplicationLastTarget.has(mobId)).toBe(false);
+    expect(kernel.target.has(mobId)).toBe(false);
+});

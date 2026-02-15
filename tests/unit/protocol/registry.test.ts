@@ -26,6 +26,7 @@ test('client-to-server protocol registry stays aligned with schema opcodes', () 
     const registryOpcodes = sortedUnique(CLIENT_TO_SERVER_PROTOCOL_REGISTRY.map((entry) => entry.opcode));
     const schemaOpcodes = sortedUnique([
         ...Object.keys(CLIENT_TO_SERVER_FORMAT_SCHEMA).map((key) => Number(key)),
+        Types.Messages.HELLO,
         Types.Messages.WHO,
     ]);
 
@@ -54,6 +55,13 @@ test('server-to-client protocol registry stays aligned with canonical opcode set
         Types.Messages.HP,
         Types.Messages.BLINK,
         Types.Messages.ACHIEVEMENTS,
+        Types.Messages.OUTCOME,
+        Types.Messages.REJECT,
+        Types.Messages.ACK,
+        Types.Messages.CORRECTION,
+        Types.Messages.CHUNK_SNAPSHOT,
+        Types.Messages.CHUNK_SNAPSHOT_PART,
+        Types.Messages.CHUNK_DELTA,
     ]);
 
     expect(registryOpcodes).toEqual(expectedOpcodes);

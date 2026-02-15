@@ -38,6 +38,7 @@ async function readStreamText(stream: ReadableStream<Uint8Array> | number | null
 
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 let configPath: string | null = null;
+let mapPath: string | null = null;
 
 afterEach(async () => {
     await killBunProcess(proc);
@@ -50,6 +51,16 @@ afterEach(async () => {
             // ignore
         } finally {
             configPath = null;
+        }
+    }
+
+    if (mapPath) {
+        try {
+            await Bun.file(mapPath).delete();
+        } catch (_) {
+            // ignore
+        } finally {
+            mapPath = null;
         }
     }
 });
@@ -80,4 +91,35 @@ test('server entry fails fast with preflight error for invalid config', async ()
 
     const [stdoutText, stderrText] = await Promise.all([readStreamText(proc.stdout), readStreamText(proc.stderr)]);
     expect(`${stdoutText}\n${stderrText}`).toContain('Startup preflight: invalid server configuration:');
+});
+
+test('server entry fails fast when configured map JSON is invalid', async () => {
+    mapPath = `${repoRoot}/server/.tmp-map.invalid-json.json`;
+    await Bun.write(mapPath, '{bad json');
+
+    configPath = `${repoRoot}/server/.tmp-config.invalid-map-json-runtime.json`;
+    await Bun.write(
+        configPath,
+        JSON.stringify({
+            port: 8000,
+            debug_level: 'info',
+            nb_players_per_world: 5,
+            nb_worlds: 1,
+            map_filepath: mapPath,
+            metrics_enabled: false,
+        })
+    );
+
+    proc = Bun.spawn({
+        cmd: ['bun', 'server/entry.ts', configPath],
+        cwd: repoRoot,
+        stdout: 'pipe',
+        stderr: 'pipe',
+    });
+
+    const code = await waitForProcessExit(proc, 4000);
+    expect(code).toBe(1);
+
+    const [stdoutText, stderrText] = await Promise.all([readStreamText(proc.stdout), readStreamText(proc.stderr)]);
+    expect(`${stdoutText}\n${stderrText}`).toContain('Startup preflight: map file contains invalid JSON:');
 });

@@ -25,6 +25,7 @@ function addSpawnedEntity(host: ClientKernelReplicationSyncSystemHost, view: Ker
 
 export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicationSyncSystemHost): void {
     const kernel = host.kernel;
+    const localPlayerIsDead = host.playerId !== null && kernel.clientLocalPlayerDead;
 
     // Removed entities: kernel no longer considers them alive.
     for (const id of Array.from(kernel.clientReplicationKnownAlive)) {
@@ -70,6 +71,9 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
     // Target updates: maintain attack links based on kernel target map changes.
     for (const [attackerId, targetId] of kernel.target.entries()) {
         const targetIsLocalPlayer = host.playerId !== null && targetId === host.playerId;
+        if (targetIsLocalPlayer && localPlayerIsDead) {
+            continue;
+        }
         if (!kernel.clientReplicationKnownAlive.has(attackerId) || (!targetIsLocalPlayer && !kernel.clientReplicationKnownAlive.has(targetId))) {
             continue;
         }
@@ -88,6 +92,16 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
             continue;
         }
         const lastTargetIsLocalPlayer = host.playerId !== null && lastTargetId === host.playerId;
+        if (lastTargetIsLocalPlayer && localPlayerIsDead) {
+            if (host.playerId !== null && attackerId === host.playerId) {
+                kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
+            } else {
+                kernel.enqueueClientCommand({ type: 'characterClearTarget', entityId: attackerId });
+            }
+            kernel.clientReplicationLastTarget.delete(attackerId);
+            kernel.target.delete(attackerId);
+            continue;
+        }
         if (!lastTargetIsLocalPlayer && !kernel.clientReplicationKnownAlive.has(lastTargetId)) {
             // Target despawned; treat as a removal.
             if (host.playerId !== null && attackerId === host.playerId) {

@@ -13,7 +13,10 @@ export type HelloCommand = Readonly<{
     name: string;
     armorKind: EntityKind;
     weaponKind: EntityKind;
+    protocolRevision?: number;
+    capabilitiesJson?: string;
     profile?: Readonly<{
+        accountNameKey: string;
         nameKey: string;
         displayName: string;
         armorKind: EntityKind;
@@ -28,6 +31,14 @@ export type HelloCommand = Readonly<{
             totalRevives: number;
         }>;
     }>;
+}>;
+
+export type IntentCommand = Readonly<{
+    type: 'INTENT';
+    source: CommandSource;
+    seq: number;
+    intentTypeId: string;
+    payloadJson: string;
 }>;
 
 export type WhoCommand = Readonly<{
@@ -72,18 +83,6 @@ export type AttackCommand = Readonly<{
     targetId: EntityId;
 }>;
 
-export type HitCommand = Readonly<{
-    type: 'HIT';
-    source: CommandSource;
-    attackedMobId: EntityId;
-}>;
-
-export type HurtCommand = Readonly<{
-    type: 'HURT';
-    source: CommandSource;
-    hurtingMobId: EntityId;
-}>;
-
 export type LootCommand = Readonly<{
     type: 'LOOT';
     source: CommandSource;
@@ -114,8 +113,57 @@ export type AchievementCommand = Readonly<{
     achievementId: number;
 }>;
 
+export type ChunkSubscribeCommand = Readonly<{
+    type: 'CHUNK_SUBSCRIBE';
+    source: CommandSource;
+    chunkX: number;
+    chunkY: number;
+    radius: number;
+}>;
+
+export type ChunkUnsubscribeCommand = Readonly<{
+    type: 'CHUNK_UNSUBSCRIBE';
+    source: CommandSource;
+}>;
+
+export type TileEditCommand = Readonly<{
+    type: 'TILE_EDIT';
+    source: CommandSource;
+    x: number;
+    y: number;
+    value: number | null;
+}>;
+
+export type ClaimCreateCommand = Readonly<{
+    type: 'CLAIM_CREATE';
+    source: CommandSource;
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    editorNameKeys: ReadonlyArray<string>;
+}>;
+
+export type ClaimUpdateCommand = Readonly<{
+    type: 'CLAIM_UPDATE';
+    source: CommandSource;
+    claimId: number;
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    editorNameKeys?: ReadonlyArray<string>;
+}>;
+
+export type ClaimDeleteCommand = Readonly<{
+    type: 'CLAIM_DELETE';
+    source: CommandSource;
+    claimId: number;
+}>;
+
 export type Command =
     | HelloCommand
+    | IntentCommand
     | WhoCommand
     | ZoneCommand
     | ChatCommand
@@ -123,10 +171,14 @@ export type Command =
     | LootMoveCommand
     | AggroCommand
     | AttackCommand
-    | HitCommand
-    | HurtCommand
     | LootCommand
     | TeleportCommand
     | OpenCommand
     | CheckCommand
-    | AchievementCommand;
+    | AchievementCommand
+    | ChunkSubscribeCommand
+    | ChunkUnsubscribeCommand
+    | TileEditCommand
+    | ClaimCreateCommand
+    | ClaimUpdateCommand
+    | ClaimDeleteCommand;

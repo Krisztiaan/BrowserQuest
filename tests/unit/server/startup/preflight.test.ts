@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { ensureConfigPreflightValid, ensureConfigSourcePresent } from '../../../../server/startup/preflight';
+import { ensureConfigPreflightValid, ensureConfigSourcePresent, ensureMapPreflightValid } from '../../../../server/startup/preflight';
 
 test('preflight helper emits and fails when no active config is present', () => {
     const errors: string[] = [];
@@ -87,4 +87,56 @@ test('preflight validation helper emits compacted error payload and fails for in
     expect(limitBytes).toBe(512);
     expect(failCode).toBe(1);
     expect(errors).toEqual(['Startup preflight: invalid server configuration: trimmed-errors']);
+});
+
+test('map preflight helper accepts readable valid JSON map files', async () => {
+    const errors: string[] = [];
+    let failCode: number | null = null;
+
+    const isValid = await ensureMapPreflightValid({
+        activeConfig: { map_filepath: './assets/maps/tiled/world.json' },
+        emitError: (message) => errors.push(message),
+        fail: (code) => {
+            failCode = code;
+        },
+        readFileText: async () => '{"width":1,"height":1}',
+    });
+
+    expect(isValid).toBe(true);
+    expect(failCode).toBeNull();
+    expect(errors).toEqual([]);
+});
+
+test('map preflight helper fails for missing or invalid map JSON', async () => {
+    const errorsMissing: string[] = [];
+    let failMissing: number | null = null;
+    const missingOk = await ensureMapPreflightValid({
+        activeConfig: { map_filepath: './missing-map.json' },
+        emitError: (message) => errorsMissing.push(message),
+        fail: (code) => {
+            failMissing = code;
+        },
+        readFileText: async () => {
+            throw new Error('ENOENT');
+        },
+    });
+
+    expect(missingOk).toBe(false);
+    expect(failMissing).toBe(1);
+    expect(errorsMissing).toEqual(['Startup preflight: map file missing or unreadable: ./missing-map.json']);
+
+    const errorsJson: string[] = [];
+    let failJson: number | null = null;
+    const jsonOk = await ensureMapPreflightValid({
+        activeConfig: { map_filepath: './bad-map.json' },
+        emitError: (message) => errorsJson.push(message),
+        fail: (code) => {
+            failJson = code;
+        },
+        readFileText: async () => '{bad json',
+    });
+
+    expect(jsonOk).toBe(false);
+    expect(failJson).toBe(1);
+    expect(errorsJson).toEqual(['Startup preflight: map file contains invalid JSON: ./bad-map.json']);
 });

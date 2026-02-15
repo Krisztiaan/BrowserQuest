@@ -55,6 +55,7 @@ export type ClientSimulationSystemHost = Readonly<{
         gridW: number;
         gridH: number;
         setPosition(x: number, y: number): void;
+        isVisible(entity: Character): boolean;
     };
     currentZoning: StepTransition | null;
     zoningOrientation: number | null;
@@ -65,6 +66,7 @@ export type ClientSimulationSystemHost = Readonly<{
     forEachEntity(callback: (entity: SimulationEntity) => void): void;
     initAnimatedTiles(): void;
     endZoning(): void;
+    resetCamera(): void;
     forEachAnimatedTile(callback: (tile: AnimatedTileLike) => void): void;
     checkOtherDirtyRects(rect: DirtyRect, source: AnimatedTileLike, x: number, y: number): void;
 }>;
@@ -327,11 +329,29 @@ function updateInfos(host: ClientSimulationSystemHost): void {
     host.infoManager.update(host.currentTime);
 }
 
+function ensureMobileCameraTracksPlayer(host: ClientSimulationSystemHost): void {
+    const renderer = host.renderer;
+    const player = host.player;
+    // While awaiting WELCOME (e.g. during revive/restart), the local player is not yet authoritative.
+    // Do not auto-snap the camera to a placeholder position.
+    if (!renderer || !player || !host.playerId) {
+        return;
+    }
+    if (!renderer.mobile && !renderer.tablet) {
+        return;
+    }
+    if (host.camera.isVisible(player)) {
+        return;
+    }
+    host.resetCamera();
+}
+
 export function runClientSimulationSystem(host: ClientSimulationSystemHost): void {
     if (!host.started) {
         return;
     }
 
+    ensureMobileCameraTracksPlayer(host);
     updateZoning(host);
     updateCharacters(host);
     updatePlayerAggro(host);

@@ -13,6 +13,7 @@ const log = Log.getLogger();
 
 type SessionConnection = {
     id: string;
+    accountNameKey?: string;
     listen(callback: (message: ClientToServerProtocolAction) => void): void;
     onClose(callback: () => void): void;
     sendUTF8(payload: string): void;
@@ -31,6 +32,7 @@ type SessionWorld = {
     resolveHelloProfile?(params: {
         connectionId: string;
         requestedName: string;
+        authenticatedAccountNameKey?: string;
     }): Readonly<{ accepted: boolean; reason?: string; profile?: PersistedPlayerProfile }>;
     releaseSessionClaim?(connectionId: string): void;
 };
@@ -100,6 +102,7 @@ export function attachWorldConnectionSession({
                 resolved = world.resolveHelloProfile?.({
                     connectionId: connection.id,
                     requestedName: command.name,
+                    authenticatedAccountNameKey: connection.accountNameKey,
                 });
             } catch (error) {
                 log.error('Failed to resolve HELLO profile: ' + String(error));

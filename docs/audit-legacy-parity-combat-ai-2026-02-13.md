@@ -4,6 +4,10 @@ Scope: modern runtime in `/root/dev/BrowserQuest` vs legacy baseline in `/root/d
 
 Goal: identify gameplay-simulation parity gaps before deeper ECS migration work.
 
+Status update (2026-02-15):
+- This document is a historical snapshot from 2026-02-13.
+- Current protocol/schema no longer accepts client-to-server `HIT`/`HURT`; references below are historical context for migration sequencing.
+
 Out of scope:
 - Rendering modernization (Ticket 12)
 - Product/UI redesigns
@@ -26,7 +30,7 @@ Primary sources reviewed:
 Modern runtime now has key fixes (mob hurt-player flow and despawn bookkeeping), but parity is still incomplete in several important places.
 
 Highest-impact remaining gaps:
-1. Combat authority still depends on client-sent `HIT`/`HURT` (legacy parity, but fragile for modern authoritative sim).
+1. Historical baseline: combat authority depended on client-sent `HIT`/`HURT` (legacy parity, but fragile for modern authoritative sim).
 2. Modern client lost legacy auto-aggro wiring (`checkAggro` emits with no listener-driven mob scan/send path).
 3. Mob chase/unstack behavior differs due scheduler cadence and lack of occupancy constraints in server path selection.
 4. Client combat graph cleanup is still non-idempotent under despawn/death reorderings (`X is not attacked by Y`).
@@ -35,7 +39,7 @@ Highest-impact remaining gaps:
 
 ### 1) Protocol-level combat control (`AGGRO`, `ATTACK`, `HIT`, `HURT`)
 
-Status: `partial` (legacy-compatible, not modern-authoritative)
+Status: `historical` (captured legacy-compatible path at audit time)
 
 Legacy behavior:
 - Client sends `AGGRO` near aggressive mobs.
@@ -43,9 +47,9 @@ Legacy behavior:
 - Client sends `HIT` to apply player->mob damage.
 - Client sends `HURT` to apply mob->player damage.
 
-Modern behavior:
-- Same protocol shape still active (`translateClientActionToCommand` still accepts all 4 opcodes).
-- Damage application still triggered by inbound `HIT`/`HURT` in `applyHitCommand`/`applyHurtCommand`.
+Modern behavior at audit time:
+- Same protocol shape was still active (`translateClientActionToCommand` accepted all 4 opcodes).
+- Damage application was still triggered by inbound `HIT`/`HURT` in `applyHitCommand`/`applyHurtCommand`.
 
 Gap:
 - This matches legacy, but blocks server-authoritative simulation goals and leaves damage pacing sensitive to client timing/order.

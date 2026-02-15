@@ -1,6 +1,6 @@
 import Types from '../shared/gametypes-browser';
 import { isClientToServerProtocolAction } from '../shared/protocol/registry';
-import { isFixedClientToServerOpcode } from '../shared/protocol/schema';
+import { isKnownClientToServerOpcode } from '../shared/protocol/schema';
 import Log from './log';
 
 const log = Log.getLogger();
@@ -16,7 +16,7 @@ class FormatChecker {
         }
 
         const opcode = msg[0];
-        if (!isFixedClientToServerOpcode(opcode) && opcode !== Types.Messages.WHO) {
+        if (!isKnownClientToServerOpcode(opcode)) {
             log.error('Unknown message type: ' + opcode);
         }
         return false;
