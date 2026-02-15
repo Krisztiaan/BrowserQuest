@@ -81,6 +81,7 @@ test('registry batch helpers normalize single and multi action payloads', () => 
         [Types.Messages.ZONE],
         [Types.Messages.MOVE, 4, 5],
     ]);
+    expect(normalizeClientToServerProtocolActionBatch([[Types.Messages.ZONE], ['bad']])).toEqual([]);
     expect(normalizeServerToClientProtocolActionBatch([Types.Messages.POPULATION, 3, 10])).toEqual([
         [Types.Messages.POPULATION, 3, 10],
     ]);
@@ -93,6 +94,7 @@ test('registry batch helpers normalize single and multi action payloads', () => 
         [Types.Messages.POPULATION, 3, 10],
         [Types.Messages.HP, 100],
     ]);
+    expect(normalizeServerToClientProtocolActionBatch([[Types.Messages.HP, 100], ['bad']])).toEqual([]);
 });
 
 test('registry string batch decoders parse and validate payload frames', () => {
@@ -101,12 +103,14 @@ test('registry string batch decoders parse and validate payload frames', () => {
         [Types.Messages.MOVE, 8, 9],
     ]);
     expect(decodeClientToServerProtocolActionBatch('[[4,8.5,9]]')).toEqual([]);
+    expect(decodeClientToServerProtocolActionBatch('[[21],["bad"]]')).toEqual([]);
 
     expect(decodeServerToClientProtocolActionBatch('[[17,1,2],[23,50]]')).toEqual([
         [Types.Messages.POPULATION, 1, 2],
         [Types.Messages.HP, 50],
     ]);
     expect(decodeServerToClientProtocolActionBatch('[[11,5,10]]')).toEqual([]);
+    expect(decodeServerToClientProtocolActionBatch('[[23,50],["bad"]]')).toEqual([]);
 });
 
 test('registry encode helpers preserve protocol action payload shapes', () => {

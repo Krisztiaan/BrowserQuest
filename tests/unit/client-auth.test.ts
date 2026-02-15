@@ -66,9 +66,73 @@ function createDocumentCookieMock(): Document {
     return doc as Document;
 }
 
+class FakePublicKeyCredential {
+    id: string;
+    rawId: ArrayBuffer;
+    type: PublicKeyCredentialType;
+    authenticatorAttachment: AuthenticatorAttachment | null;
+    response: AuthenticatorResponse;
+    private readonly jsonValue: unknown;
+
+    constructor(jsonValue: unknown) {
+        this.id = 'fake-credential-id';
+        this.rawId = new Uint8Array([1]).buffer;
+        this.type = 'public-key';
+        this.authenticatorAttachment = null;
+        this.response = {} as AuthenticatorResponse;
+        this.jsonValue = jsonValue;
+    }
+
+    getClientExtensionResults(): AuthenticationExtensionsClientOutputs {
+        return {};
+    }
+
+    toJSON(): unknown {
+        return this.jsonValue;
+    }
+}
+
 const originalLocalStorage = globalThis.localStorage;
 const originalDocument = globalThis.document;
 const originalFetch = globalThis.fetch;
+const originalNavigator = globalThis.navigator;
+const originalWindow = (globalThis as typeof globalThis & { window?: unknown }).window;
+const originalPublicKeyCredential = (globalThis as typeof globalThis & { PublicKeyCredential?: unknown }).PublicKeyCredential;
+
+function installWebAuthnMocks({
+    createResult,
+    getResult,
+}: {
+    createResult?: Credential | null;
+    getResult?: Credential | null;
+}): void {
+    const credentialClass = FakePublicKeyCredential as unknown as typeof PublicKeyCredential;
+    const win = (typeof originalWindow === 'object' && originalWindow !== null ? originalWindow : {}) as {
+        PublicKeyCredential?: typeof PublicKeyCredential;
+    };
+    win.PublicKeyCredential = credentialClass;
+
+    Object.defineProperty(globalThis, 'window', {
+        configurable: true,
+        writable: true,
+        value: win,
+    });
+    Object.defineProperty(globalThis, 'PublicKeyCredential', {
+        configurable: true,
+        writable: true,
+        value: credentialClass,
+    });
+    Object.defineProperty(globalThis, 'navigator', {
+        configurable: true,
+        writable: true,
+        value: {
+            credentials: {
+                create: async () => createResult ?? null,
+                get: async () => getResult ?? null,
+            },
+        },
+    });
+}
 
 afterEach(() => {
     Object.defineProperty(globalThis, 'localStorage', {
@@ -86,9 +150,24 @@ afterEach(() => {
         writable: true,
         value: originalFetch,
     });
+    Object.defineProperty(globalThis, 'navigator', {
+        configurable: true,
+        writable: true,
+        value: originalNavigator,
+    });
+    Object.defineProperty(globalThis, 'window', {
+        configurable: true,
+        writable: true,
+        value: originalWindow,
+    });
+    Object.defineProperty(globalThis, 'PublicKeyCredential', {
+        configurable: true,
+        writable: true,
+        value: originalPublicKeyCredential,
+    });
 });
 
-test('registerWithPasskey posts auth payload and persists local username identity', async () => {
+test('registerWithPasskey runs options+verify flow and persists local username identity', async () => {
     const localStorageMock = createLocalStorageMock();
     Object.defineProperty(globalThis, 'localStorage', {
         configurable: true,
@@ -101,36 +180,87 @@ test('registerWithPasskey posts auth payload and persists local username identit
         value: createDocumentCookieMock(),
     });
 
+    installWebAuthnMocks({
+        createResult: new FakePublicKeyCredential({
+            id: 'cred-1',
+            type: 'public-key',
+            rawId: 'AQ',
+            response: {
+                attestationObject: 'AQ',
+                clientDataJSON: 'AQ',
+            },
+        }) as unknown as Credential,
+    });
+
     const fetchCalls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
     Object.defineProperty(globalThis, 'fetch', {
         configurable: true,
         writable: true,
         value: async (input: RequestInfo | URL, init?: RequestInit) => {
             fetchCalls.push({ input, init });
-            return new Response(
-                JSON.stringify({
-                    ok: true,
-                    accountNameKey: 'alice',
-                    displayName: 'Alice',
-                }),
-                { status: 200, headers: { 'Content-Type': 'application/json' } }
-            );
+            const pathname = String(input);
+            if (pathname === '/auth/passkey/register/options') {
+                return new Response(
+                    JSON.stringify({
+                        ok: true,
+                        options: {
+                            challenge: 'AQ',
+                            rp: { name: 'BrowserQuest', id: 'localhost' },
+                            user: {
+                                id: 'AQ',
+                                name: 'alice',
+                                displayName: 'Alice',
+                            },
+                            pubKeyCredParams: [],
+                            excludeCredentials: [],
+                        },
+                    }),
+                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+            if (pathname === '/auth/passkey/register/verify') {
+                return new Response(
+                    JSON.stringify({
+                        ok: true,
+                        accountNameKey: 'alice',
+                        displayName: 'Alice',
+                    }),
+                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+            return new Response(JSON.stringify({ ok: false, reason: 'unexpected endpoint' }), {
+                status: 500,
+                headers: { 'Content-Type': 'application/json' },
+            });
         },
     });
 
-    const result = await registerWithPasskey({ username: ' Alice ', credentialId: 'cred-1' });
+    const result = await registerWithPasskey({ username: ' Alice ' });
     expect(result).toEqual({
         ok: true,
         accountNameKey: 'alice',
         displayName: 'Alice',
     });
-    expect(fetchCalls).toHaveLength(1);
-    expect(fetchCalls[0]?.input).toBe('/auth/passkey/register');
+
+    expect(fetchCalls).toHaveLength(2);
+    expect(fetchCalls[0]?.input).toBe('/auth/passkey/register/options');
     expect(fetchCalls[0]?.init?.method).toBe('POST');
     expect(fetchCalls[0]?.init?.credentials).toBe('same-origin');
     expect(JSON.parse(String(fetchCalls[0]?.init?.body))).toEqual({
         username: 'Alice',
-        credentialId: 'cred-1',
+    });
+    expect(fetchCalls[1]?.input).toBe('/auth/passkey/register/verify');
+    expect(JSON.parse(String(fetchCalls[1]?.init?.body))).toEqual({
+        username: 'Alice',
+        response: {
+            id: 'cred-1',
+            rawId: 'AQ',
+            response: {
+                attestationObject: 'AQ',
+                clientDataJSON: 'AQ',
+            },
+            type: 'public-key',
+        },
     });
 
     expect(readUsernameCookie()).toBe('Alice');
@@ -150,20 +280,49 @@ test('loginWithPasskey returns request failures without mutating local identity'
         value: createDocumentCookieMock(),
     });
 
+    installWebAuthnMocks({
+        getResult: new FakePublicKeyCredential({
+            id: 'cred-wrong',
+            type: 'public-key',
+            rawId: 'AQ',
+            response: {
+                authenticatorData: 'AQ',
+                clientDataJSON: 'AQ',
+                signature: 'AQ',
+                userHandle: null,
+            },
+        }) as unknown as Credential,
+    });
+
     Object.defineProperty(globalThis, 'fetch', {
         configurable: true,
         writable: true,
-        value: async () =>
-            new Response(JSON.stringify({ ok: false, reason: 'Credential did not match username.' }), {
+        value: async (input: RequestInfo | URL) => {
+            const pathname = String(input);
+            if (pathname === '/auth/passkey/login/options') {
+                return new Response(
+                    JSON.stringify({
+                        ok: true,
+                        options: {
+                            challenge: 'AQ',
+                            rpId: 'localhost',
+                            allowCredentials: [{ id: 'AQ', type: 'public-key' }],
+                        },
+                    }),
+                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                );
+            }
+            return new Response(JSON.stringify({ ok: false, reason: 'Passkey assertion did not match this account.' }), {
                 status: 401,
                 headers: { 'Content-Type': 'application/json' },
-            }),
+            });
+        },
     });
 
-    const result = await loginWithPasskey({ username: 'alice', credentialId: 'wrong-cred' });
+    const result = await loginWithPasskey({ username: 'alice' });
     expect(result.ok).toBe(false);
     if (!result.ok) {
-        expect(result.reason).toContain('Credential did not match');
+        expect(result.reason).toContain('did not match');
     }
     expect(readUsernameCookie()).toBeNull();
     expect(localStorageMock.getItem(STORAGE_KEY)).toBeNull();
@@ -180,10 +339,10 @@ test('passkey auth helpers validate required inputs before hitting network', asy
         },
     });
 
-    const noUsername = await registerWithPasskey({ username: '   ', credentialId: 'cred-1' });
-    expect(noUsername).toEqual({ ok: false, reason: 'Username is required.' });
-    const noCredential = await loginWithPasskey({ username: 'alice', credentialId: '   ' });
-    expect(noCredential).toEqual({ ok: false, reason: 'Passkey credential is required.' });
+    const noRegisterUsername = await registerWithPasskey({ username: '   ' });
+    expect(noRegisterUsername).toEqual({ ok: false, reason: 'Username is required.' });
+    const noLoginUsername = await loginWithPasskey({ username: '   ' });
+    expect(noLoginUsername).toEqual({ ok: false, reason: 'Username is required.' });
     expect(fetchCalls).toBe(0);
 });
 
@@ -226,6 +385,20 @@ test('logoutPasskeySession posts logout and clears local identity state', async 
 });
 
 test('loginWithPasskey surfaces network failures as deterministic auth errors', async () => {
+    installWebAuthnMocks({
+        getResult: new FakePublicKeyCredential({
+            id: 'cred-1',
+            type: 'public-key',
+            rawId: 'AQ',
+            response: {
+                authenticatorData: 'AQ',
+                clientDataJSON: 'AQ',
+                signature: 'AQ',
+                userHandle: null,
+            },
+        }) as unknown as Credential,
+    });
+
     Object.defineProperty(globalThis, 'fetch', {
         configurable: true,
         writable: true,
@@ -234,7 +407,7 @@ test('loginWithPasskey surfaces network failures as deterministic auth errors', 
         },
     });
 
-    const result = await loginWithPasskey({ username: 'alice', credentialId: 'cred-1' });
+    const result = await loginWithPasskey({ username: 'alice' });
     expect(result).toEqual({
         ok: false,
         reason: 'Network error while contacting auth endpoint.',

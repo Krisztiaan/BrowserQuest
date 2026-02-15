@@ -122,17 +122,17 @@ test('main runtime wires passkey auth handler when websocket server exposes auth
     expect(typeof passkeyAuthHandler).toBe('function');
 
     const response = await passkeyAuthHandler!(
-        new Request('http://localhost/auth/passkey/register', {
+        new Request('http://localhost/auth/passkey/register/options', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: 'alice', credentialId: 'cred-runtime' }),
+            body: JSON.stringify({ username: 'alice' }),
         })
     );
 
     expect(response.status).toBe(200);
-    const setCookie = response.headers.get('set-cookie') ?? '';
-    expect(setCookie).toContain('bq_session=');
-    expect(setCookie).toContain('bq_account=alice');
+    const body = (await response.json()) as { ok?: boolean; options?: { challenge?: string } };
+    expect(body.ok).toBe(true);
+    expect(typeof body.options?.challenge).toBe('string');
 
     runtime?.cleanup();
 });

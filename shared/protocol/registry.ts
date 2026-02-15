@@ -41,7 +41,15 @@ export function normalizeClientToServerProtocolActionBatch(value: unknown): Clie
         return [];
     }
     if (value.length > 0 && Array.isArray(value[0])) {
-        return value.filter((entry): entry is ClientToServerProtocolAction => isClientToServerProtocolAction(entry));
+        const out: ClientToServerProtocolAction[] = [];
+        for (let i = 0; i < value.length; i += 1) {
+            const entry = value[i];
+            if (!isClientToServerProtocolAction(entry)) {
+                return [];
+            }
+            out.push(entry);
+        }
+        return out;
     }
 
     return isClientToServerProtocolAction(value) ? [value] : [];
@@ -60,7 +68,15 @@ export function normalizeServerToClientProtocolActionBatch(value: unknown): Serv
         return [];
     }
     if (value.length > 0 && Array.isArray(value[0])) {
-        return value.filter((entry): entry is ServerToClientProtocolAction => isServerToClientProtocolAction(entry));
+        const out: ServerToClientProtocolAction[] = [];
+        for (let i = 0; i < value.length; i += 1) {
+            const entry = value[i];
+            if (!isServerToClientProtocolAction(entry)) {
+                return [];
+            }
+            out.push(entry);
+        }
+        return out;
     }
 
     return isServerToClientProtocolAction(value) ? [value] : [];

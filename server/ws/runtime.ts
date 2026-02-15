@@ -231,8 +231,10 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                     return this.profilePreviewProvider(request);
                 }
                 if (
-                    (requestPath === '/auth/passkey/register'
-                        || requestPath === '/auth/passkey/login'
+                    (requestPath === '/auth/passkey/register/options'
+                        || requestPath === '/auth/passkey/register/verify'
+                        || requestPath === '/auth/passkey/login/options'
+                        || requestPath === '/auth/passkey/login/verify'
                         || requestPath === '/auth/passkey/logout')
                     && this.passkeyAuthProvider
                 ) {

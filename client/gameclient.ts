@@ -255,6 +255,8 @@ class GameClient extends Evented<GameClientEvents> {
         this.isTimeout = false;
         this.serverProtocolRevision = null;
         this.serverCapabilities = null;
+        this.nextIntentSeq = 1;
+        this.kernel.clearClientPendingMoveSeqAcks();
         this.connect(this.lastDispatcherMode);
     }
 

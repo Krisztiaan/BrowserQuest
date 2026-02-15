@@ -20,6 +20,7 @@ test('shared protocol contract parser normalizes single and batched actions', ()
         [4, 10, 20],
         [11, 'hi'],
     ]);
+    expect(parseProtocolActionBatch('[[4,10,20],{"bad":true}]')).toEqual([]);
     expect(parseProtocolActionBatch('{"action":"move"}')).toEqual([]);
     expect(parseProtocolActionBatch('{"bad":')).toEqual([]);
 });

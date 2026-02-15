@@ -16,15 +16,11 @@ import {
 test('client protocol payload helper normalizes protocol action batches', () => {
     const singleAction: ClientProtocolAction = [1, 7, 'hello', 10, 20, 100];
     const batchAction: unknown = [[3, 42], [22, 99], ['oops']];
-    const expectedBatch: ClientProtocolBatch = [
-        [3, 42],
-        [22, 99],
-    ];
 
     expect(decodeServerToClientProtocolAction(singleAction)).toEqual(singleAction);
     expect(decodeServerToClientProtocolAction(['not-opcode'])).toBeNull();
     expect(normalizeServerToClientProtocolActionBatch(singleAction)).toEqual([singleAction]);
-    expect(normalizeServerToClientProtocolActionBatch(batchAction)).toEqual(expectedBatch);
+    expect(normalizeServerToClientProtocolActionBatch(batchAction)).toEqual([]);
     expect(normalizeServerToClientProtocolActionBatch({ nope: true })).toEqual([]);
 });
 

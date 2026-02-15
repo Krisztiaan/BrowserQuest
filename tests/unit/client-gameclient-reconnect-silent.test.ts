@@ -53,9 +53,15 @@ test('GameClient.reconnectSilently does not emit disconnected for the intentiona
         client.connect(false);
         expect(MockWebSocket.instances.length).toBe(1);
 
+        client.nextIntentSeq = 42;
+        kernel.enqueueClientPendingMoveSeqAck(10);
+        kernel.enqueueClientPendingMoveSeqAck(11);
+
         client.reconnectSilently();
         expect(MockWebSocket.instances.length).toBe(2);
         expect(disconnected).toBe(0);
+        expect(client.nextIntentSeq).toBe(1);
+        expect(kernel.clientPendingMoveSeqAcks.length).toBe(0);
 
         // A real close should still emit disconnected.
         (client.connection as unknown as MockWebSocket).close();
@@ -69,4 +75,3 @@ test('GameClient.reconnectSilently does not emit disconnected for the intentiona
         }
     }
 });
-

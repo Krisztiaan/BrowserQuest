@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
+import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
 
 const DEFAULT_PLAYER_DB_PATH = './server/.data/player-profiles.sqlite';
 const DEFAULT_ARMOR_KIND = Types.Entities.CLOTHARMOR as EntityKind;
@@ -39,10 +40,17 @@ type SessionByConnectionRow = {
 
 type PasskeyCredentialByNameRow = {
     credential_id: string;
+    public_key?: Uint8Array;
+    counter?: number;
+    transports_json?: string | null;
 };
 
 type PasskeyCredentialByIdRow = {
     name_key: string;
+    credential_id: string;
+    public_key: Uint8Array;
+    counter: number;
+    transports_json: string | null;
 };
 
 export type PersistedAchievementProgress = Readonly<{
@@ -76,6 +84,14 @@ export type PasskeyRegisterResult =
 export type PasskeyAuthenticateResult =
     | Readonly<{ accepted: true; accountNameKey: string; profile: PersistedPlayerProfile }>
     | Readonly<{ accepted: false; reason: string }>;
+
+export type PersistedPasskeyCredential = Readonly<{
+    accountNameKey: string;
+    credentialId: string;
+    credentialPublicKey: Uint8Array;
+    counter: number;
+    transports: AuthenticatorTransportFuture[];
+}>;
 
 export type PersistedInventoryEntry = Readonly<{
     itemKind: EntityKind;
@@ -183,6 +199,69 @@ function encodeProgressionState(state: PersistedProgressionState): string {
     return JSON.stringify(state);
 }
 
+function normalizeTransportValue(value: unknown): AuthenticatorTransportFuture | null {
+    switch (value) {
+        case 'ble':
+        case 'cable':
+        case 'hybrid':
+        case 'internal':
+        case 'nfc':
+        case 'smart-card':
+        case 'usb':
+            return value;
+        default:
+            return null;
+    }
+}
+
+function decodeTransportsJson(value: unknown): AuthenticatorTransportFuture[] {
+    if (typeof value !== 'string' || value.trim().length === 0) {
+        return [];
+    }
+    let parsed: unknown;
+    try {
+        parsed = JSON.parse(value);
+    } catch {
+        return [];
+    }
+    if (!Array.isArray(parsed)) {
+        return [];
+    }
+    const deduped = new Set<AuthenticatorTransportFuture>();
+    for (let i = 0; i < parsed.length; i += 1) {
+        const normalized = normalizeTransportValue(parsed[i]);
+        if (normalized) {
+            deduped.add(normalized);
+        }
+    }
+    return [...deduped];
+}
+
+function encodeTransportsJson(value: ReadonlyArray<AuthenticatorTransportFuture> | undefined): string {
+    const deduped = new Set<AuthenticatorTransportFuture>();
+    for (const raw of value ?? []) {
+        const normalized = normalizeTransportValue(raw);
+        if (normalized) {
+            deduped.add(normalized);
+        }
+    }
+    return JSON.stringify([...deduped]);
+}
+
+function toUint8Array(value: unknown): Uint8Array | null {
+    if (value instanceof Uint8Array) {
+        return value.slice();
+    }
+    if (value instanceof ArrayBuffer) {
+        return new Uint8Array(value.slice(0));
+    }
+    if (ArrayBuffer.isView(value)) {
+        const view = value as ArrayBufferView;
+        return new Uint8Array(view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength));
+    }
+    return null;
+}
+
 function asPersistedPlayerProfile(row: ProfileRow, achievements: PersistedAchievementProgress): PersistedPlayerProfile {
     return {
         accountNameKey: row.name_key,
@@ -228,6 +307,7 @@ export class SqlitePlayerPersistence {
     #insertUnlockedAchievement: ReturnType<Database['prepare']>;
     #selectPasskeyCredentialByNameAndCredential: ReturnType<Database['prepare']>;
     #selectPasskeyCredentialByCredential: ReturnType<Database['prepare']>;
+    #selectPasskeyCredentialsByName: ReturnType<Database['prepare']>;
     #selectAnyPasskeyCredentialByName: ReturnType<Database['prepare']>;
     #insertPasskeyCredential: ReturnType<Database['prepare']>;
     #touchPasskeyCredentialUse: ReturnType<Database['prepare']>;
@@ -277,6 +357,9 @@ export class SqlitePlayerPersistence {
             CREATE TABLE IF NOT EXISTS player_passkeys (
                 name_key TEXT NOT NULL,
                 credential_id TEXT NOT NULL UNIQUE,
+                public_key BLOB,
+                counter INTEGER NOT NULL DEFAULT 0,
+                transports_json TEXT NOT NULL DEFAULT '[]',
                 created_at INTEGER NOT NULL,
                 last_used_at INTEGER NOT NULL,
                 PRIMARY KEY(name_key, credential_id),
@@ -285,6 +368,7 @@ export class SqlitePlayerPersistence {
             CREATE INDEX IF NOT EXISTS player_passkeys_name_key ON player_passkeys(name_key);
         `);
         this.#ensurePlayersTableColumns();
+        this.#ensurePasskeysTableColumns();
 
         this.#selectProfile = this.#db.prepare(
             `SELECT name_key, display_name, armor_kind, weapon_kind, checkpoint_id, progression_json
@@ -370,14 +454,19 @@ export class SqlitePlayerPersistence {
              VALUES (?1, ?2, ?3)`
         );
         this.#selectPasskeyCredentialByNameAndCredential = this.#db.prepare(
-            `SELECT credential_id
+            `SELECT credential_id, public_key, counter, transports_json
              FROM player_passkeys
              WHERE name_key = ?1 AND credential_id = ?2`
         );
         this.#selectPasskeyCredentialByCredential = this.#db.prepare(
-            `SELECT name_key
+            `SELECT name_key, credential_id, public_key, counter, transports_json
              FROM player_passkeys
              WHERE credential_id = ?1`
+        );
+        this.#selectPasskeyCredentialsByName = this.#db.prepare(
+            `SELECT credential_id, transports_json
+             FROM player_passkeys
+             WHERE name_key = ?1`
         );
         this.#selectAnyPasskeyCredentialByName = this.#db.prepare(
             `SELECT credential_id
@@ -386,12 +475,20 @@ export class SqlitePlayerPersistence {
              LIMIT 1`
         );
         this.#insertPasskeyCredential = this.#db.prepare(
-            `INSERT INTO player_passkeys (name_key, credential_id, created_at, last_used_at)
-             VALUES (?1, ?2, ?3, ?4)`
+            `INSERT INTO player_passkeys
+                (name_key, credential_id, public_key, counter, transports_json, created_at, last_used_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(credential_id) DO UPDATE SET
+                name_key = excluded.name_key,
+                public_key = excluded.public_key,
+                counter = excluded.counter,
+                transports_json = excluded.transports_json,
+                last_used_at = excluded.last_used_at`
         );
         this.#touchPasskeyCredentialUse = this.#db.prepare(
             `UPDATE player_passkeys
-             SET last_used_at = ?3
+             SET counter = MAX(counter, ?3),
+                 last_used_at = ?4
              WHERE name_key = ?1 AND credential_id = ?2`
         );
 
@@ -405,6 +502,27 @@ export class SqlitePlayerPersistence {
         const hasProgressionJson = columns.some((column) => column?.name === 'progression_json');
         if (!hasProgressionJson) {
             this.#db.exec(`ALTER TABLE players ADD COLUMN progression_json TEXT NOT NULL DEFAULT '{}'`);
+        }
+    }
+
+    #ensurePasskeysTableColumns(): void {
+        const columns = this.#db
+            .prepare(`PRAGMA table_info(player_passkeys)`)
+            .all() as Array<{ name?: unknown }>;
+
+        const hasPublicKey = columns.some((column) => column?.name === 'public_key');
+        if (!hasPublicKey) {
+            this.#db.exec(`ALTER TABLE player_passkeys ADD COLUMN public_key BLOB`);
+        }
+
+        const hasCounter = columns.some((column) => column?.name === 'counter');
+        if (!hasCounter) {
+            this.#db.exec(`ALTER TABLE player_passkeys ADD COLUMN counter INTEGER NOT NULL DEFAULT 0`);
+        }
+
+        const hasTransportsJson = columns.some((column) => column?.name === 'transports_json');
+        if (!hasTransportsJson) {
+            this.#db.exec(`ALTER TABLE player_passkeys ADD COLUMN transports_json TEXT NOT NULL DEFAULT '[]'`);
         }
     }
 
@@ -681,20 +799,76 @@ export class SqlitePlayerPersistence {
         this.#incrementAchievementProgress.run(normalizedName, rat, skeleton, kills, damage, revives, Date.now());
     }
 
+    listPasskeyCredentialsByName(
+        accountNameKey: string
+    ): Array<Readonly<{ credentialId: string; transports: AuthenticatorTransportFuture[] }>> {
+        const normalizedName = normalizePlayerName(accountNameKey);
+        if (!normalizedName) {
+            return [];
+        }
+        const rows = this.#selectPasskeyCredentialsByName.all(normalizedName) as PasskeyCredentialByNameRow[];
+        const out: Array<Readonly<{ credentialId: string; transports: AuthenticatorTransportFuture[] }>> = [];
+        for (let i = 0; i < rows.length; i += 1) {
+            const row = rows[i];
+            if (!row?.credential_id) {
+                continue;
+            }
+            out.push({
+                credentialId: row.credential_id,
+                transports: decodeTransportsJson(row.transports_json),
+            });
+        }
+        return out;
+    }
+
+    getPasskeyCredentialByCredentialId(credentialId: string): PersistedPasskeyCredential | null {
+        const normalizedCredentialId = credentialId.trim();
+        if (!normalizedCredentialId) {
+            return null;
+        }
+        const row = this.#selectPasskeyCredentialByCredential.get(normalizedCredentialId) as PasskeyCredentialByIdRow | null;
+        if (!row) {
+            return null;
+        }
+        const publicKey = toUint8Array(row.public_key);
+        if (!publicKey || publicKey.length === 0) {
+            return null;
+        }
+        return {
+            accountNameKey: row.name_key,
+            credentialId: row.credential_id,
+            credentialPublicKey: publicKey,
+            counter: Number.isSafeInteger(row.counter) && row.counter >= 0 ? row.counter : 0,
+            transports: decodeTransportsJson(row.transports_json),
+        };
+    }
+
     registerPasskeyCredential({
         requestedName,
         credentialId,
+        credentialPublicKey,
+        counter = 0,
+        transports = [],
     }: {
         requestedName: string;
         credentialId: string;
+        credentialPublicKey: Uint8Array;
+        counter?: number;
+        transports?: ReadonlyArray<AuthenticatorTransportFuture>;
     }): PasskeyRegisterResult {
         const normalizedName = normalizePlayerName(requestedName);
         const normalizedCredentialId = credentialId.trim();
+        const normalizedPublicKey = toUint8Array(credentialPublicKey);
+        const normalizedCounter = Number.isSafeInteger(counter) && counter >= 0 ? counter : 0;
+
         if (!normalizedName) {
             return { accepted: false, reason: 'Invalid username.' };
         }
         if (normalizedCredentialId.length === 0) {
             return { accepted: false, reason: 'Invalid passkey credential id.' };
+        }
+        if (!normalizedPublicKey || normalizedPublicKey.length === 0) {
+            return { accepted: false, reason: 'Invalid passkey public key.' };
         }
 
         const credentialOwner = this.#selectPasskeyCredentialByCredential.get(normalizedCredentialId) as
@@ -721,15 +895,15 @@ export class SqlitePlayerPersistence {
             row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
         }
 
-        const existingByName = this.#selectPasskeyCredentialByNameAndCredential.get(
+        this.#insertPasskeyCredential.run(
             normalizedName,
-            normalizedCredentialId
-        ) as PasskeyCredentialByNameRow | null;
-        if (!existingByName) {
-            this.#insertPasskeyCredential.run(normalizedName, normalizedCredentialId, now, now);
-        } else {
-            this.#touchPasskeyCredentialUse.run(normalizedName, normalizedCredentialId, now);
-        }
+            normalizedCredentialId,
+            normalizedPublicKey,
+            normalizedCounter,
+            encodeTransportsJson(transports),
+            now,
+            now
+        );
 
         if (!row) {
             return { accepted: false, reason: 'Unable to load player profile.' };
@@ -745,9 +919,11 @@ export class SqlitePlayerPersistence {
     authenticatePasskeyCredential({
         requestedName,
         credentialId,
+        nextCounter,
     }: {
         requestedName: string;
         credentialId: string;
+        nextCounter?: number;
     }): PasskeyAuthenticateResult {
         const normalizedName = normalizePlayerName(requestedName);
         const normalizedCredentialId = credentialId.trim();
@@ -773,7 +949,15 @@ export class SqlitePlayerPersistence {
         }
 
         const now = Date.now();
-        this.#touchPasskeyCredentialUse.run(normalizedName, normalizedCredentialId, now);
+        const currentCounter =
+            typeof credential.counter === 'number' && Number.isSafeInteger(credential.counter) && credential.counter >= 0
+                ? credential.counter
+                : 0;
+        const normalizedCounter =
+            typeof nextCounter === 'number' && Number.isSafeInteger(nextCounter) && nextCounter >= 0
+                ? nextCounter
+                : currentCounter;
+        this.#touchPasskeyCredentialUse.run(normalizedName, normalizedCredentialId, normalizedCounter, now);
         const row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
         if (!row) {
             return { accepted: false, reason: 'Unable to load player profile.' };

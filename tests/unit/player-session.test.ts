@@ -229,3 +229,26 @@ test('player session releases name claim when socket closes', () => {
     fixture.close();
     expect(fixture.releasedConnections).toEqual(['5001']);
 });
+
+test('player session arms idle timeout immediately on attach', () => {
+    const originalSetTimeout = globalThis.setTimeout;
+    const originalClearTimeout = globalThis.clearTimeout;
+    const scheduled: Array<{ delay: number }> = [];
+
+    (globalThis as typeof globalThis & { setTimeout: typeof setTimeout }).setTimeout = ((handler, delay, ...args) => {
+        void handler;
+        void args;
+        scheduled.push({ delay: Number(delay) });
+        return 1 as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout;
+    (globalThis as typeof globalThis & { clearTimeout: typeof clearTimeout }).clearTimeout = ((_timer) => {}) as typeof clearTimeout;
+
+    try {
+        createSessionFixture({ isActive: false, isDead: false });
+        expect(scheduled.length).toBe(1);
+        expect(scheduled[0]?.delay).toBe(1000 * 60 * 15);
+    } finally {
+        (globalThis as typeof globalThis & { setTimeout: typeof setTimeout }).setTimeout = originalSetTimeout;
+        (globalThis as typeof globalThis & { clearTimeout: typeof clearTimeout }).clearTimeout = originalClearTimeout;
+    }
+});

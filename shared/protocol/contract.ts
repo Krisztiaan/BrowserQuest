@@ -81,7 +81,15 @@ const protocolContract: ProtocolContract = {
         }
 
         if (parsed.length > 0 && Array.isArray(parsed[0])) {
-            return parsed.filter((entry): entry is ProtocolParsedAction => isProtocolAction(entry));
+            const out: ProtocolParsedAction[] = [];
+            for (let i = 0; i < parsed.length; i += 1) {
+                const entry = parsed[i];
+                if (!isProtocolAction(entry)) {
+                    return [];
+                }
+                out.push(entry);
+            }
+            return out;
         }
 
         if (isProtocolAction(parsed)) {

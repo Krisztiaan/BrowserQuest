@@ -20,6 +20,7 @@ test('protocol TS key inventory aligns with canonical runtime protocol contract 
         [4, 10, 20],
         [11, 'hi'],
     ]);
+    expect(ProtocolContract.parseProtocolActionBatch('[[4,10,20],{"bad":true}]')).toEqual([]);
 
     expect(PROTOCOL_CONTRACT_KEYS).toEqual([...PROTOCOL_CONTRACT_NUMERIC_KEYS, ...PROTOCOL_CONTRACT_FUNCTION_KEYS]);
 });

@@ -27,16 +27,77 @@ function createJsonRequest(pathname: string, payload: unknown, method = 'POST'):
     });
 }
 
-test('passkey auth register endpoint accepts username + credential and sets auth cookies', async () => {
+test('passkey auth register options endpoint returns options payload', async () => {
     await withTempPlayerDb(async (dbPath) => {
         const persistence = new SqlitePlayerPersistence(dbPath);
         try {
             const response = await createPasskeyAuthResponse({
-                request: createJsonRequest('/auth/passkey/register', {
+                request: createJsonRequest('/auth/passkey/register/options', {
                     username: 'Alice',
-                    credentialId: 'cred-1',
                 }),
                 persistence,
+            });
+
+            expect(response.status).toBe(200);
+            const body = (await response.json()) as { ok: boolean; options?: { challenge?: string; user?: { name?: string } } };
+            expect(body.ok).toBe(true);
+            expect(typeof body.options?.challenge).toBe('string');
+            expect(body.options?.user?.name).toBe('alice');
+        } finally {
+            persistence.close();
+        }
+    });
+});
+
+test('passkey auth register verify endpoint validates challenge and sets auth cookies', async () => {
+    await withTempPlayerDb(async (dbPath) => {
+        const persistence = new SqlitePlayerPersistence(dbPath);
+        try {
+            const optionsResponse = await createPasskeyAuthResponse({
+                request: createJsonRequest('/auth/passkey/register/options', {
+                    username: 'Alice',
+                }),
+                persistence,
+                dependencies: {
+                    generateRegistrationOptionsFn: async () =>
+                        ({
+                            challenge: 'challenge-register',
+                            rp: { name: 'BrowserQuest', id: 'localhost' },
+                            user: { id: 'AQ', name: 'alice', displayName: 'Alice' },
+                            pubKeyCredParams: [],
+                        }) as never,
+                },
+            });
+            expect(optionsResponse.status).toBe(200);
+
+            const response = await createPasskeyAuthResponse({
+                request: createJsonRequest('/auth/passkey/register/verify', {
+                    username: 'Alice',
+                    response: {
+                        id: 'cred-1',
+                        type: 'public-key',
+                        rawId: 'AQ',
+                        response: {
+                            attestationObject: 'AQ',
+                            clientDataJSON: 'AQ',
+                        },
+                    },
+                }),
+                persistence,
+                dependencies: {
+                    verifyRegistrationResponseFn: async () =>
+                        ({
+                            verified: true,
+                            registrationInfo: {
+                                credential: {
+                                    id: 'cred-1',
+                                    publicKey: new Uint8Array([1, 2, 3, 4]),
+                                    counter: 7,
+                                    transports: ['internal'],
+                                },
+                            },
+                        }) as never,
+                },
             });
 
             expect(response.status).toBe(200);
@@ -49,28 +110,71 @@ test('passkey auth register endpoint accepts username + credential and sets auth
             expect(setCookie).toContain(`${AUTH_SESSION_COOKIE_KEY}=`);
             expect(setCookie).toContain(`${ACCOUNT_COOKIE_KEY}=alice`);
             expect(setCookie).toContain(`${USERNAME_COOKIE_KEY}=Alice`);
+
+            const stored = persistence.getPasskeyCredentialByCredentialId('cred-1');
+            expect(stored).not.toBeNull();
+            expect(stored?.accountNameKey).toBe('alice');
+            expect(stored?.counter).toBe(7);
         } finally {
             persistence.close();
         }
     });
 });
 
-test('passkey auth login endpoint validates credential and sets auth cookies', async () => {
+test('passkey auth login verify endpoint validates credential and sets auth cookies', async () => {
     await withTempPlayerDb(async (dbPath) => {
         const persistence = new SqlitePlayerPersistence(dbPath);
         try {
             const registerResult = persistence.registerPasskeyCredential({
                 requestedName: 'alice',
                 credentialId: 'cred-login',
+                credentialPublicKey: new Uint8Array([9, 9, 9]),
+                counter: 2,
+                transports: ['internal'],
             });
             expect(registerResult.accepted).toBe(true);
 
-            const response = await createPasskeyAuthResponse({
-                request: createJsonRequest('/auth/passkey/login', {
+            const optionsResponse = await createPasskeyAuthResponse({
+                request: createJsonRequest('/auth/passkey/login/options', {
                     username: 'alice',
-                    credentialId: 'cred-login',
                 }),
                 persistence,
+                dependencies: {
+                    generateAuthenticationOptionsFn: async () =>
+                        ({
+                            challenge: 'challenge-login',
+                            rpId: 'localhost',
+                            allowCredentials: [{ id: 'cred-login', type: 'public-key' }],
+                        }) as never,
+                },
+            });
+            expect(optionsResponse.status).toBe(200);
+
+            const response = await createPasskeyAuthResponse({
+                request: createJsonRequest('/auth/passkey/login/verify', {
+                    username: 'alice',
+                    response: {
+                        id: 'cred-login',
+                        type: 'public-key',
+                        rawId: 'AQ',
+                        response: {
+                            authenticatorData: 'AQ',
+                            clientDataJSON: 'AQ',
+                            signature: 'AQ',
+                            userHandle: null,
+                        },
+                    },
+                }),
+                persistence,
+                dependencies: {
+                    verifyAuthenticationResponseFn: async () =>
+                        ({
+                            verified: true,
+                            authenticationInfo: {
+                                newCounter: 11,
+                            },
+                        }) as never,
+                },
             });
 
             expect(response.status).toBe(200);
@@ -80,26 +184,54 @@ test('passkey auth login endpoint validates credential and sets auth cookies', a
             const setCookie = response.headers.get('set-cookie') ?? '';
             expect(setCookie).toContain(`${AUTH_SESSION_COOKIE_KEY}=`);
             expect(setCookie).toContain(`${ACCOUNT_COOKIE_KEY}=alice`);
+            expect(persistence.getPasskeyCredentialByCredentialId('cred-login')?.counter).toBe(11);
         } finally {
             persistence.close();
         }
     });
 });
 
-test('passkey auth login endpoint rejects mismatched credentials', async () => {
+test('passkey auth login verify endpoint rejects mismatched credentials', async () => {
     await withTempPlayerDb(async (dbPath) => {
         const persistence = new SqlitePlayerPersistence(dbPath);
         try {
             const registerResult = persistence.registerPasskeyCredential({
                 requestedName: 'alice',
                 credentialId: 'cred-ok',
+                credentialPublicKey: new Uint8Array([4, 5, 6]),
             });
             expect(registerResult.accepted).toBe(true);
 
-            const response = await createPasskeyAuthResponse({
-                request: createJsonRequest('/auth/passkey/login', {
+            const optionsResponse = await createPasskeyAuthResponse({
+                request: createJsonRequest('/auth/passkey/login/options', {
                     username: 'alice',
-                    credentialId: 'cred-wrong',
+                }),
+                persistence,
+                dependencies: {
+                    generateAuthenticationOptionsFn: async () =>
+                        ({
+                            challenge: 'challenge-login',
+                            rpId: 'localhost',
+                            allowCredentials: [{ id: 'cred-ok', type: 'public-key' }],
+                        }) as never,
+                },
+            });
+            expect(optionsResponse.status).toBe(200);
+
+            const response = await createPasskeyAuthResponse({
+                request: createJsonRequest('/auth/passkey/login/verify', {
+                    username: 'alice',
+                    response: {
+                        id: 'cred-wrong',
+                        type: 'public-key',
+                        rawId: 'AQ',
+                        response: {
+                            authenticatorData: 'AQ',
+                            clientDataJSON: 'AQ',
+                            signature: 'AQ',
+                            userHandle: null,
+                        },
+                    },
                 }),
                 persistence,
             });
@@ -143,13 +275,13 @@ test('passkey auth endpoint rejects unsupported method and unknown path', async 
         const persistence = new SqlitePlayerPersistence(dbPath);
         try {
             const methodResponse = await createPasskeyAuthResponse({
-                request: createJsonRequest('/auth/passkey/register', { username: 'alice', credentialId: 'cred' }, 'GET'),
+                request: createJsonRequest('/auth/passkey/register/options', { username: 'alice' }, 'GET'),
                 persistence,
             });
             expect(methodResponse.status).toBe(405);
 
             const notFoundResponse = await createPasskeyAuthResponse({
-                request: createJsonRequest('/auth/passkey/unknown', { username: 'alice', credentialId: 'cred' }, 'POST'),
+                request: createJsonRequest('/auth/passkey/unknown', { username: 'alice' }, 'POST'),
                 persistence,
             });
             expect(notFoundResponse.status).toBe(404);

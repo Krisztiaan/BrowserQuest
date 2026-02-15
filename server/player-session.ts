@@ -141,5 +141,6 @@ export function attachWorldConnectionSession({
         }
     });
 
+    resetTimeout();
     connection.sendUTF8(HANDSHAKE_CONTROL.GO);
 }

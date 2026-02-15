@@ -1744,3 +1744,47 @@ Format per entry:
     - `bun run verify:modern` (result: pass)
   - Next action:
     - Optional cleanup: archive or trim historical bundler mentions in old progress logs if you want text-level zero references, not just runtime/script zero fallback paths.
+
+- 14:56 UTC
+  - Ticket: 606/607/608/609 (seq correctness + real WebAuthn + strict protocol parse + idle-timeout arm)
+  - Start timestamp: 14:56 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - 606: reset client INTENT seq baseline on silent reconnect.
+      - 607: implement real WebAuthn register/login options+verify and replace credential-id shim behavior.
+      - 608: make batch protocol parsing strict (no mixed valid/invalid filtering).
+      - 609: arm idle timeout immediately at session attach.
+    - Out of scope:
+      - New auth providers and broader protocol redesign.
+  - Acceptance criteria:
+    - Each ticket meets its `TODO.md` acceptance criteria and verification plan.
+  - Key actions taken:
+    - Audited current auth/session/protocol paths and identified all affected files/tests.
+    - Opened active tickets in `TODO.md` with scoped verification commands.
+  - Evidence:
+    - `rg -n "registerWithPasskey|loginWithPasskey|passkey|credentialId|auth/passkey" ...`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 14:55:36 UTC`
+  - Next action:
+    - Implement Ticket 606 first, then 608/609, then 607 with dependency/test updates.
+
+- 15:09 UTC
+  - Ticket: 606/607/608/609 (seq correctness + real WebAuthn + strict protocol parse + idle-timeout arm)
+  - Start timestamp: 14:56 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Completed seq reconnect hardening by resetting client intent seq baseline and clearing pending move seq ack tracking on silent reconnect.
+    - Completed strict protocol batch parsing to reject mixed valid+invalid payload batches instead of filtering invalid entries.
+    - Completed idle timeout hardening by arming disconnect timeout immediately on session attach.
+    - Completed real WebAuthn migration:
+      - server register/login `options` + `verify` flow with challenge storage + expiry, RP/origin checks, and verification via `@simplewebauthn/server`,
+      - client-side WebAuthn ceremony (`navigator.credentials.create/get`) and serialized response submit,
+      - persistence schema/method updates for credential public key, counter, and transports.
+    - Updated all affected unit tests for new auth routes/payloads and browser WebAuthn mocks.
+    - Fixed strict TypeScript issues in passkey verification arguments (`expectedOrigin` mutability and public key typed array shape).
+  - Evidence:
+    - `bun test tests/unit/server/passkey-auth.test.ts tests/unit/client-auth.test.ts tests/unit/server-player-persistence.test.ts tests/unit/server/runtime/passkey-auth-route.test.ts`
+    - `bun test tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/client-gameclient-reconnect-silent.test.ts tests/unit/protocol/registry.test.ts tests/unit/protocol/contract-module.test.ts tests/unit/protocol/contract-types.test.ts tests/unit/client-boundary-types.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/ws/server-runtime.test.ts tests/unit/player-session.test.ts tests/unit/server/passkey-auth.test.ts tests/unit/client-auth.test.ts tests/unit/server-player-persistence.test.ts tests/unit/server/runtime/passkey-auth-route.test.ts`
+    - `bun run typecheck`
+  - Next action:
+    - Ready to lump-commit all staged project changes.

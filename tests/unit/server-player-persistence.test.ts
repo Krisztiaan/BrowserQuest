@@ -139,10 +139,14 @@ test('player persistence stores and caps achievement counters + unlock ids', () 
 
 test('player persistence supports passkey registration and passkey authentication by account name key', () => {
     const persistence = createPersistence();
+    const publicKey = new Uint8Array([1, 2, 3, 4]);
 
     const registered = persistence.registerPasskeyCredential({
         requestedName: 'Hero',
         credentialId: 'cred-hero-1',
+        credentialPublicKey: publicKey,
+        counter: 5,
+        transports: ['internal'],
     });
     expect(registered.accepted).toBe(true);
     if (registered.accepted) {
@@ -153,12 +157,19 @@ test('player persistence supports passkey registration and passkey authenticatio
     const authenticated = persistence.authenticatePasskeyCredential({
         requestedName: 'hero',
         credentialId: 'cred-hero-1',
+        nextCounter: 9,
     });
     expect(authenticated.accepted).toBe(true);
     if (authenticated.accepted) {
         expect(authenticated.accountNameKey).toBe('hero');
         expect(authenticated.profile.nameKey).toBe('hero');
     }
+
+    const stored = persistence.getPasskeyCredentialByCredentialId('cred-hero-1');
+    expect(stored).not.toBeNull();
+    expect(stored?.counter).toBe(9);
+    expect(stored?.transports).toEqual(['internal']);
+    expect(stored?.credentialPublicKey).toEqual(publicKey);
 
     const rejected = persistence.authenticatePasskeyCredential({
         requestedName: 'hero',
@@ -177,6 +188,7 @@ test('player session claiming is account-bound even if display name changes', ()
     const registration = persistence.registerPasskeyCredential({
         requestedName: 'Hero',
         credentialId: 'cred-account-1',
+        credentialPublicKey: new Uint8Array([9, 9, 9]),
     });
     expect(registration.accepted).toBe(true);
 
