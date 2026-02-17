@@ -2,18 +2,16 @@
   "extends": "./tsconfig.node.json",
   "compilerOptions": {
     "composite": true,
-    "strict": false,
     "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-tools.tsbuildinfo"
   },
   "include": [
     "tools/**/*.ts",
-    "server/ecs/**/*.ts",
-    "server/world/claims/**/*.ts",
-    "server/world/chunks/chunk-overlay-store.ts",
+    "server/**/*.ts",
+    "shared/**/*.ts",
+    "types/**/*.d.ts",
     "client/client-boundary-types.ts",
     "client/gameclient-outbound-actions.ts",
-    "client/world/chunks/client-chunk-overlay-cache.ts",
-    "shared/**/*.ts"
+    "client/world/chunks/client-chunk-overlay-cache.ts"
   ],
   "exclude": ["node_modules/**", "dist/**"]
 }

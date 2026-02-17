@@ -6,20 +6,8 @@
     "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-browser.tsbuildinfo"
   },
   "include": [
-    "client/achievement-domain.ts",
-    "client/asset-key-domain.ts",
-    "client/client-boundary-types.ts",
-    "shared/domain/ids.ts",
-    "shared/domain/positions.ts",
-    "shared/entity-kind-domain.ts",
-    "shared/gametypes-browser.ts",
-    "shared/protocol/manifest.ts",
-    "shared/protocol/schema.ts",
-    "shared/protocol/contract.ts",
-    "shared/protocol/types.ts",
-    "shared/connection-status.ts",
-    "shared/ws-close-codes.ts",
-    "shared/typed-event-emitter.ts",
-    "shared/evented.ts"
+    "client/**/*.ts",
+    "shared/**/*.ts",
+    "types/**/*.d.ts"
   ]
 }

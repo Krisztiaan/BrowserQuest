@@ -2585,3 +2585,56 @@ Format per entry:
     - `bun test --timeout 20000` (pass; 414 pass / 1 skip)
   - Next action:
     - All active tickets complete; TODO queue cleared.
+
+- 15:52 UTC
+  - Ticket: 319 (Unshard useful checks to full-surface coverage)
+  - Start timestamp: 2026-02-17 15:52 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - remove narrowed typecheck include/exclude sharding that hides useful diagnostics.
+      - preserve strict safety posture while surfacing real errors.
+    - Out of scope:
+      - fixing all newly surfaced diagnostics in this pass.
+  - Key actions taken:
+    - Audited active typecheck/lint configs and confirmed current narrow coverage + warning suppression.
+    - Opened execution tickets 319/320 in `TODO.md`.
+  - Evidence:
+    - `bun run typecheck:client` (passes with narrow include)
+    - `bun run typecheck:full:client` (passes with narrow include)
+    - `bun run lint` (passes with `--quiet` suppressing warnings)
+    - `bun x tsc ... client/**/*.ts shared/**/*.ts` strict probe (579 diagnostics surfaced)
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 15:52 UTC`
+  - Next action:
+    - Implement config/script changes for full coverage and warning enforcement, then rerun verification commands.
+
+- 15:56 UTC
+  - Ticket: 319 (Unshard useful checks to full-surface coverage)
+  - Start timestamp: 2026-02-17 15:52 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Expanded client/browser typecheck scope from narrow allowlists to full coverage (`client/**/*.ts`, `shared/**/*.ts`, `types/**/*.d.ts`).
+    - Removed server-node typecheck exclusions that hid runtime entrypoint diagnostics.
+    - Expanded tools typecheck coverage to full server/shared/types + tools, while retaining explicitly imported client boundary files.
+  - Evidence:
+    - `bun run typecheck:client` => exit 1, `579` diagnostics surfaced.
+    - `bun run typecheck:full:client` => exit 2, `579` diagnostics surfaced.
+    - `bun run typecheck:server` => exit 0.
+    - `bun run typecheck:tools` => exit 2, surfaced: `tools/bots/bot-client.ts(9,5): TS2724 createMoveAction missing export`.
+    - `cat tsconfig.browser.json tsconfig.full.client.json tsconfig.node.json tsconfig.tools.json`
+  - Next action:
+    - Execute Ticket 320 (warning/error enforcement in lint scripts).
+
+- 15:56 UTC
+  - Ticket: 320 (Enforce surfaced warnings/errors in default check scripts)
+  - Start timestamp: 2026-02-17 15:52 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed warning suppression via `--quiet` from lint scripts.
+    - Added `--max-warnings=0` to enforce warning-free lint.
+    - Expanded default lint target globs to include JS surfaces and tools TS files.
+  - Evidence:
+    - `bun run lint` => exit 1 with surfaced issues (`27` errors, `208` warnings; warnings now fail by policy).
+    - `rg -n "\"lint:modern\"|\"lint:authority\"|\"lint:client-runtime\"" package.json`
+  - Next action:
+    - Clear active queue in `TODO.md`; ready for targeted remediation tickets on surfaced diagnostics.

@@ -28,16 +28,6 @@
     "include": [
         "server/**/*.ts",
         "shared/**/*.ts",
-        "types/**/*.d.ts",
-        "client/client-boundary-types.ts",
-        "client/achievement-domain.ts",
-        "client/asset-key-domain.ts"
-    ],
-    "exclude": [
-        "server/world-server.ts",
-        "server/runtime.ts",
-        "server/startup.ts",
-        "server/entry.ts",
-        "server/startup/*.ts"
+        "types/**/*.d.ts"
     ]
 }
