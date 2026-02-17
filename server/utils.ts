@@ -82,10 +82,12 @@ function randomOrientation(): number {
     return Types.Orientations.DOWN;
 }
 
+type MixinValue = string | number | boolean | object | null | undefined;
+
 function mixin(
-    target: Record<string, unknown>,
-    source: Record<string, unknown> | null | undefined
-): Record<string, unknown> {
+    target: Record<string, MixinValue>,
+    source: Record<string, MixinValue> | null | undefined
+): Record<string, MixinValue> {
     if (!source) {
         return target;
     }

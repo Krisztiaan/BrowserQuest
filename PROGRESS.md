@@ -258,6 +258,20 @@ Format per entry:
   - Status: `done`
   - Key actions taken:
     - Added a client-side chunk overlay cache (snapshots replace full chunk state; deltas apply versioned changes).
+
+## 2026-02-16
+
+- 23:40 UTC
+  - Ticket: 301 (release gate: make `verify:modern` green)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Converted audit findings into execution tickets (301-308) in `TODO.md` with scope, acceptance criteria, verification plans, and dependencies.
+    - Began implementation with release-gate lint/correctness blockers as first dependency.
+  - Evidence:
+    - `git diff TODO.md PROGRESS.md`
+    - `bun run verify:modern` (previously failing lint blockers captured in audit)
+  - Next action:
+    - Apply code fixes for lint failures, rerun `bun run verify:modern`, then continue tickets 302-308.
     - Wired `CHUNK_SNAPSHOT`/`CHUNK_DELTA` inbound handlers to decode payload envelopes and apply them to the cache.
     - Added unit coverage for snapshot/delta application and delta version mismatch behavior.
   - Evidence:
@@ -1788,3 +1802,626 @@ Format per entry:
     - `bun run typecheck`
   - Next action:
     - Ready to lump-commit all staged project changes.
+
+- 17:10 UTC
+  - Ticket: 610/611/612/613/614 (runtime reliability + ID hardening + startup simplification + verify coverage)
+  - Start timestamp: 15:24 UTC
+  - Status: `done`
+  - Scope:
+    - In scope:
+      - eliminate reconnect close-suppression race in client transport.
+      - replace concat-based world entity id generation with allocator-backed ids.
+      - harden map loading failure paths for worker init/payload and tileset errors.
+      - fix renderer text zero-coordinate suppression and clear load-character preview animation interval leak.
+      - align legacy startup entry to canonical boot envelope and extend verify lane to include server build.
+    - Out of scope:
+      - full-repo lint scope expansion and protocol architecture changes.
+  - Acceptance criteria:
+    - All targeted hardening changes implemented and verified in canonical `verify:modern` lane.
+  - Key actions taken:
+    - `client/gameclient.ts`:
+      - replaced global `suppressNextClose` flag with socket-scoped `WeakSet<WebSocket>` suppression to avoid reconnect close races.
+    - `server/world-server.ts`, `server/world/chest-item-lifecycle.ts`:
+      - removed fragile string-concat id generation (`'7'/'8'/'9' + ...`).
+      - introduced allocator-backed world id generation via `ecsPipeline.state.world.createEntity()`.
+      - threaded explicit `nextMobId` id source through static mob spawning.
+    - `tests/unit/server-chest-item-lifecycle.test.ts`:
+      - updated fixture to provide deterministic `nextMobId`.
+    - `client/map.ts`:
+      - guarded worker construction with fallback to main-thread load.
+      - wrapped worker payload init in try/catch with fallback.
+      - replaced tileset `throw` path with explicit `loadError` logging and added `onerror`.
+    - `client/renderer.ts`:
+      - fixed `drawText` to render valid `0`/origin values and guard only null/undefined/non-finite args.
+    - `client/main.ts`:
+      - added cleanup for load-character preview animation interval when leaving returning screen.
+    - `server/startup.ts`:
+      - switched main-entry path to canonical `runEntryBoot` flow with structured preflight/runtime options.
+    - `package.json`, `README.md`:
+      - extended `verify:modern` to also run `build:server`.
+      - updated verification docs to reflect client+server builds.
+  - Evidence:
+    - `bun run verify:modern` (result: pass; includes content check, typecheck, lint, format check, full tests, client build, server build)
+  - Next action:
+    - Ready for commit/review.
+
+- 17:16 UTC
+  - Ticket: 615/616/617 (reliability and lifecycle hardening follow-through)
+  - Start timestamp: 17:16 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - remove remaining concat-based mob ID generation from `MobArea` by using allocator-backed IDs.
+      - fix client interval lifecycle/race issues in app shell + debug kill probe.
+      - run full modern verify lane and close progress/ticket state.
+    - Out of scope:
+      - broad architecture rewrites or lint scope expansion.
+  - Acceptance criteria:
+    - Tickets 615/616/617 acceptance criteria in `TODO.md` all pass.
+  - Key actions taken:
+    - Performed targeted repo-wide audit sweep for ID generation, interval lifecycle, and fallback paths.
+    - Opened active tickets in `TODO.md` with dependency order and verification plan.
+  - Evidence:
+    - `rg -n "Number\\('7|Number\\('8|Number\\('9|setInterval\\(" client server shared tests`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 17:16:24 UTC`
+  - Next action:
+    - Implement Ticket 615 (`MobArea` allocator IDs), then Ticket 616 (client interval hardening).
+
+- 17:19 UTC
+  - Ticket: 615/616/617 (reliability and lifecycle hardening follow-through)
+  - Start timestamp: 17:16 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ticket 615:
+      - migrated `server/mobarea.ts` from concat-derived IDs to injected allocator callback (`nextMobId`).
+      - wired world runtime callsite (`server/world-server.ts`) to pass allocator-backed IDs.
+      - added unit test coverage in `tests/unit/server-world-primitives.test.ts` proving allocator IDs are used.
+    - Ticket 616:
+      - hardened achievement blink lifecycle in `client/app.ts` by preventing duplicate intervals and adding explicit `stopAchievementBlink()` cleanup.
+      - fixed debug kill-probe timeout ownership in `client/main.ts` by tracking timeout handle and only stopping the interval instance it created.
+    - Ticket 617:
+      - ran full canonical verify lane after all changes.
+      - closed active tickets in `TODO.md` per definition-of-done policy.
+  - Evidence:
+    - `bun test tests/unit/server-world-primitives.test.ts tests/unit/server-ecs-respawn-invariants.test.ts tests/unit/ecs/command-pipeline-spawn-seeding.test.ts`
+    - `bun test tests/unit/client-game-startup-wait.test.ts tests/unit/client-player-death-flow.test.ts`
+    - `bun run verify:modern` (result: pass; 410 pass / 1 skip / 0 fail, plus client+server builds)
+  - Next action:
+    - Ready for user review/commit.
+
+- 17:28 UTC
+  - Ticket: 618/619/620 (lint coverage + ECS legacy-bridge simplification)
+  - Start timestamp: 17:28 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - fix full TypeScript lint blockers and enable full-project lint script coverage.
+      - simplify ECS combat/death paths by removing dead legacy bridge code/casts.
+      - run canonical verify lane and close ticket/progress state.
+    - Out of scope:
+      - protocol compatibility rewrites and broad style-rule churn.
+  - Acceptance criteria:
+    - Tickets 618/619/620 acceptance criteria in `TODO.md` all pass.
+  - Key actions taken:
+    - Audited full lint surface with full TS globs (10 concrete errors found).
+    - Audited ECS command pipeline legacy bridge hotspots (`resolveCombatNumber`, player death cast path).
+    - Opened new active tickets in `TODO.md` with dependency-ordered verification plan.
+  - Evidence:
+    - `bun x eslint --quiet "client/**/*.ts" "server/**/*.ts" "shared/**/*.ts" "tests/**/*.ts"`
+    - `rg -n "\\blegacy\\b|resolveCombatNumber|handlePlayerDeath|getConnectionPlayerById" server/world/ecs-command-pipeline.ts`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 17:27:32 UTC`
+  - Next action:
+    - Implement Ticket 618 lint fixes + script modernization, then Ticket 619 ECS simplification.
+
+- 17:34 UTC
+  - Ticket: 618/619/620 (lint coverage + ECS legacy-bridge simplification)
+  - Start timestamp: 17:28 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ticket 618:
+      - fixed full-scope lint blockers in:
+        - `client/debug-flags.ts` (removed stale unused eslint disable directives),
+        - `server/format.ts` (removed unused import),
+        - `server/player-persistence.ts` (removed unnecessary assertion),
+        - `server/startup/preflight.ts` (return-await cleanup),
+        - `server/world/claims/claims-store.ts` (removed unnecessary assertions).
+      - switched default lint lane to full TS coverage in `package.json` (`lint -> lint:modern`).
+      - updated README lint scope section to reflect full-project lint coverage.
+    - Ticket 619:
+      - simplified ECS combat stat resolution in `server/world/ecs-command-pipeline.ts` by removing dead `legacy` fallback path (`resolveCombatNumber` -> `resolveCombatStat`).
+      - removed ad-hoc death-path casts and used typed `PlayerLike` contract (`firepotionTimeout` added as optional field in `server/world/player-like.ts`).
+    - Ticket 620:
+      - ran canonical `verify:modern` lane successfully with the expanded lint scope.
+      - closed active tickets in `TODO.md`.
+  - Evidence:
+    - `bun run lint` (result: pass, full TS coverage)
+    - `bun test tests/unit/ecs/mob-ai-chase.test.ts tests/unit/server-player-lifecycle.test.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts`
+    - `bun run verify:modern` (result: pass; 410 pass / 1 skip / 0 fail, plus client+server builds)
+  - Next action:
+    - Ready for user review/commit.
+
+- 17:40 UTC
+  - Ticket: 621/622/623 (typing hardening + assertion minimization)
+  - Start timestamp: 17:40 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - remove avoidable `as ...`/`unknown` seams in world runtime host + ECS host contract + touched client runtime seams.
+      - preserve behavior and protocol compatibility while tightening types.
+      - run full verify lane after changes.
+    - Out of scope:
+      - full-repo elimination of every `unknown` boundary parser type in one batch.
+  - Acceptance criteria:
+    - Tickets 621/622/623 acceptance criteria in `TODO.md` pass.
+  - Key actions taken:
+    - Audited assertion hotspots in `server/world-server.ts`, `server/world/ecs-command-pipeline.ts`, and `client/main.ts`.
+    - Quantified global assertion/unknown footprint and prioritized high-impact runtime seams.
+    - Opened active tickets with dependency-ordered verification.
+  - Evidence:
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" server/world-server.ts server/world/ecs-command-pipeline.ts client/main.ts client/gameclient.ts server/startup.ts server/mobarea.ts`
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" server client shared tests | wc -l` => `1017`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 17:39:49 UTC`
+  - Next action:
+    - Implement Ticket 621 world-host typing cleanup first.
+
+- 17:52 UTC
+  - Ticket: 621/622/623 (typing hardening + assertion minimization)
+  - Start timestamp: 17:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ticket 621:
+      - tightened world/runtime seams and removed avoidable casts in `server/world-server.ts`:
+        - removed `as unknown as` host/config/area plumbing adapters,
+        - introduced stricter sync/removal helper types,
+        - made item construction typed via `Entity<WorldItemEvents>` + `Object.assign` (no cast),
+        - removed stale kind cast and improved kind resolution guard in static spawn setup.
+      - tightened world transport/contracts types (`server/world/contracts.ts`, `server/world/transport.ts`) from `unknown` payloads to protocol action unions.
+      - tightened player-session timeout typing and removed timeout cast (`server/player-session.ts`).
+    - Ticket 622:
+      - tightened ECS host contract types in `server/world/ecs-command-pipeline.ts` for drop/item/message/remove paths.
+      - removed avoidable combat/drop bridge casts and mutable intent context casts.
+      - removed avoidable assertion churn in chest-loot processing and identity helpers.
+      - introduced generic drop selection typing in `server/world/entity.ts`.
+      - generalized static spawn lifecycle signatures in `server/world/chest-item-lifecycle.ts` so world callsites no longer need `as WorldMob` / `as WorldItem` casts.
+    - Ticket 623:
+      - cleaned touched client assertion seams in `client/main.ts` (entity-id conversions via `entityIdFromWire`, typed preview payload parser, removed avoidable assertions).
+      - simplified `client/gameclient.ts` welcome tuple parsing without tuple assertion cast.
+      - removed stale `unknown[]` state from `server/mobarea.ts`.
+      - reduced global `as/any/unknown` surface: `1017 -> 954` (`rg` count).
+      - ran full verification lane successfully.
+  - Evidence:
+    - `bun test tests/unit/server-world-primitives.test.ts tests/unit/server-player-lifecycle.test.ts tests/unit/ecs/mob-ai-chase.test.ts tests/unit/ecs/command-pipeline-open-chest.test.ts`
+    - `bun run lint` (full-project TS lint scope)
+    - `bun run typecheck`
+    - `bun run verify:modern` (result: pass; 410 pass / 1 skip / 0 fail; client+server builds pass)
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" server client shared tests | wc -l` => `954`
+  - Next action:
+    - Ready for user review/commit.
+
+- 17:58 UTC
+  - Ticket: 624/625/626/627/628 (typing hardening continuation)
+  - Start timestamp: 17:58 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - aggressively reduce avoidable `unknown`/`as ...` in high-yield runtime files (`client-command-apply-system`, `metrics-runtime`, `ws/runtime*`, `config-preflight`, `map`, `auth`).
+      - keep behavior stable and run targeted + full verification.
+    - Out of scope:
+      - protocol semantic rewrites or backend architecture changes.
+  - Acceptance criteria:
+    - Tickets 624-628 in `TODO.md` pass their verification plans.
+  - Key actions taken:
+    - Re-ran global assertion footprint and ranked hotspots by file.
+    - Opened dependency-ordered tickets 624-628 with explicit scope/acceptance/verification/dependencies.
+    - Audited top runtime files and identified concrete cast-reduction refactor seams.
+  - Evidence:
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client server shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `954`
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client/ecs/systems/client-command-apply-system.ts server/metrics-runtime.ts server/ws/runtime.ts server/ws/runtime-factory.ts server/config-preflight.ts client/auth.ts server/runtime.ts server/map.ts`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 17:58:41 UTC`
+  - Next action:
+    - Implement Ticket 625 (adapter typing) and Ticket 624 (client command apply cleanup), then move to metrics/ws hardening.
+
+- 18:16 UTC
+  - Ticket: 624/625/626/627/628 (typing hardening continuation)
+  - Start timestamp: 17:58 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ticket 625:
+      - tightened `client/ecs/kernel-entity-adapter.ts` to return concrete discriminated unions (`Item`, `Chest`, `Character`) and removed unknown-based adapter casts.
+    - Ticket 624:
+      - hardened `client/ecs/systems/client-command-apply-system.ts` host/entity contracts with concrete types.
+      - removed broad `as unknown as` chains in welcome/send/combat/teleport/spawn/equip paths and replaced with typed guards/conversions.
+    - Ticket 626:
+      - rewired metrics runtime/adapters to explicit contracts (`server/metrics-runtime.ts`, `server/metrics-adapters/noop.ts`, `server/metrics-adapters/memcache.ts`, `server/metrics.ts`, `server/metrics-client.ts`).
+      - fixed metrics-unavailable handshake regression by restoring null/undefined open-world fallback semantics.
+    - Ticket 627:
+      - tightened websocket runtime seams across `server/ws/runtime-types.ts`, `server/ws/runtime-factory.ts`, and `server/ws/runtime.ts` while keeping Bun/ws dynamic boundaries flexible.
+    - Ticket 628:
+      - simplified boundary typing in `server/config-preflight.ts`, `server/map.ts`, and `client/auth.ts` with stronger records/guards and fewer assertion seams.
+    - Closed active tickets in `TODO.md` after verification passed.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun run lint`
+    - `bun test tests/unit/client-auth.test.ts tests/unit/server-config-preflight.test.ts tests/unit/server-map-ready-callbacks.test.ts tests/unit/mmo/server-map-doors.test.ts tests/unit/metrics-runtime.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/ws/server-runtime.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/ws/runtime-boundary-decision.test.ts tests/unit/server/runtime/factories.test.ts tests/unit/server/runtime/process.test.ts tests/unit/server/runtime/lifecycle.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+    - `bun test tests/smoke/server/handshake.test.ts`
+    - `bun run verify:modern` (result: pass; 410 pass / 1 skip / 0 fail; client+server builds pass)
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" server client shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `726`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 18:16:49 UTC`
+  - Next action:
+    - Ready for user review/commit or another reduction pass.
+
+- 18:24 UTC
+  - Ticket: 629/630/631/632 (typing hardening continuation 2)
+  - Start timestamp: 18:24 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - continue lowering `unknown`/assertion footprint in highest-yield non-test files (`startup/runner`, `log`, `positions`, `protocol/schema`, `processmap`, plugin/persistence seams).
+      - preserve protocol/runtime behavior and validate with targeted tests + full verification.
+    - Out of scope:
+      - architecture rewrites or protocol semantic changes.
+  - Acceptance criteria:
+    - Tickets 629-632 in `TODO.md` pass verification.
+  - Key actions taken:
+    - Re-baselined footprint after prior pass (`726`) and ranked current hotspots.
+    - Opened new active tickets 629-632 with dependency-ordered scope/verification.
+    - Audited target files and identified low-risk cast/unknown cleanup seams.
+  - Evidence:
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client server shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `726`
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" shared/maps/processmap.ts shared/protocol/schema.ts server/startup/runner.ts server/log.ts server/plugins/loader.ts server/player-persistence.ts shared/domain/positions.ts client/gameclient.ts server/world/ecs-command-pipeline.ts`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 18:24:10 UTC`
+  - Next action:
+    - Implement Ticket 629 first, then protocol/map cleanup (Ticket 630).
+
+- 18:44 UTC
+  - Ticket: 629/630/631/632 + 633/634 (typing hardening continuation 2/3)
+  - Start timestamp: 18:24 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Completed runtime-side reductions for Ticket 629/630/631/632 follow-up:
+      - tightened `server/player-persistence.ts` with typed sqlite row helpers, entity-kind normalization, and removed repeated statement result casts.
+      - tightened `shared/protocol/schema.ts` action normalization/validation path to remove avoidable schema casts.
+      - tightened `server/plugins/loader.ts` module export normalization and constructor wrapping without assertion chains.
+      - tightened `client/gameclient.ts` + runtime event/command flow to replace `unknown` payload plumbing with concrete runtime entity/correction payload types.
+      - reduced `server/world/ecs-command-pipeline.ts` raw intent/outcome handler casting via decode helpers and record guards.
+    - Started Ticket 634 high-volume test fixture typing cleanup:
+      - removed `unknown`-heavy fixtures from `tests/unit/server/runtime/lifecycle.test.ts`.
+      - removed `unknown`-heavy fixtures from `tests/unit/ecs/mob-ai-chase.test.ts`.
+      - removed `unknown`-heavy fixture/event payload typing from `tests/unit/metrics-runtime.test.ts`.
+      - reduced fixture `unknown` usage in `tests/unit/client-command-apply-movement-correction.test.ts` and `tests/unit/server-world-primitives.test.ts`.
+    - Updated active queue in `TODO.md` to tickets 633/634/635 with current verification plans.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/server-plugins-loader.test.ts tests/unit/server-player-persistence.test.ts tests/unit/server/startup/runner.test.ts tests/unit/protocol/registry.test.ts tests/unit/mmo/protocol-capabilities.test.ts tests/unit/mmo/protocol-chunks-schema.test.ts tests/unit/mmo/protocol-seq-ack-schema.test.ts tests/unit/mmo/server-client-collision-parity.test.ts tests/unit/client-gameclient-reconnect-silent.test.ts tests/unit/client-auth.test.ts tests/unit/ecs/command-pipeline-open-chest.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/server-permissions.test.ts tests/unit/mmo/server-door-traversal.test.ts`
+    - `bun test tests/unit/server/runtime/lifecycle.test.ts tests/unit/ecs/mob-ai-chase.test.ts`
+    - `bun test tests/unit/metrics-runtime.test.ts`
+    - `bun test tests/unit/client-command-apply-movement-correction.test.ts`
+    - `bun test tests/unit/server-world-primitives.test.ts`
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client server shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `643` => `587` => `564` => `545` => `532`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 18:43:57 UTC`
+  - Next action:
+    - Continue Ticket 633/634 on remaining top hotspots (`tests/unit/server/runtime/process.test.ts`, `tests/unit/server/runtime/factories.test.ts`, `tests/unit/mmo/server-seq-idempotency.test.ts`, selected browser tests) and drive baseline toward `<500`.
+
+- 18:50 UTC
+  - Ticket: 633/634/635 completion + 636 kickoff
+  - Start timestamp: 18:44 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Completed Ticket 635 sub-500 sweep:
+      - refactored `tests/unit/server/runtime/process.test.ts` to concrete runtime event/error field types.
+      - rewrote `tests/unit/server/runtime/factories.test.ts` with typed runtime stubs/classes (removed unknown-heavy constructor assertions).
+      - rewrote `tests/unit/mmo/server-seq-idempotency.test.ts` with typed host/message helpers and shared fixture setup.
+    - Additional runtime seam cleanup:
+      - removed remaining `unknown`-typed loose plugin inputs from `server/plugins/loader.ts`.
+      - removed remaining `unknown`-typed JSON/host seams in `server/world/ecs-command-pipeline.ts` using `LooseValue`/`JsonLike` aliases.
+    - Rebased active backlog in `TODO.md` (removed completed 633/634/635 from active queue; opened 636/637 follow-ups).
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/server/runtime/process.test.ts tests/unit/server/runtime/factories.test.ts tests/unit/mmo/server-seq-idempotency.test.ts`
+    - `bun test tests/unit/server-plugins-loader.test.ts tests/unit/server/startup/runner.test.ts`
+    - `bun test tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/server-permissions.test.ts tests/unit/ecs/command-pipeline-open-chest.test.ts tests/unit/mmo/server-door-traversal.test.ts tests/unit/mmo/server-chunk-resync-fallback.test.ts`
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client server shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `501` => `492` => `484`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 18:50:06 UTC`
+  - Next action:
+    - Execute Ticket 636 on remaining unit/runtime hotspots (`client-gameclient-reconnect-silent`, `client-auth`, chunk snapshot/resync tests, and `server/world-server.ts` seams).
+
+- 19:11 UTC
+  - Ticket: 636 (post-sub500 runtime/test hotspot reduction, continuation)
+  - Start timestamp: 18:50 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Production/runtime tightening wave:
+      - reduced boundary assertions in `shared/domain/ids.ts`, `shared/protocol/registry.ts`, `server/startup/boot.ts`, `server/passkey-auth.ts`, `server/ecs/component-registry.ts`, `server/ecs/world.ts`, `client/map.ts`, `client/debug-flags.ts`.
+      - reduced additional runtime/protocol seams in `shared/protocol/chunks/chunk-delta-codec.ts`, `server/world/map-config.ts`, `server/world/entity.ts`, `server/world/claims/claims-persistence.ts`, `server/startup/bridge-probe.ts`, `shared/modules/module-registry.ts`, `shared/replication/spawn-snapshot.ts`, `server/map.ts`, `server/world/mob-orchestration.ts`, `server/character.ts`, `client/ecs/systems/client-combat-system.ts`.
+    - Test-fixture typing cleanup wave:
+      - removed `unknown`-heavy fixtures/messages from chunk/capability/permission/runtime suites and ws/log/plugin suites, including:
+        - `tests/unit/mmo/server-chunk-snapshot-config-caps.test.ts`
+        - `tests/unit/mmo/server-chunk-aoi-snapshots.test.ts`
+        - `tests/unit/mmo/server-chunk-snapshot-parts-e2e.test.ts`
+        - `tests/unit/mmo/protocol-capabilities.test.ts`
+        - `tests/unit/mmo/server-permissions.test.ts`
+        - `tests/unit/mmo/server-farming-vertical-slice.test.ts`
+        - `tests/unit/ecs/command-pipeline-open-chest.test.ts`
+        - `tests/unit/server-chest-item-lifecycle.test.ts`
+        - `tests/unit/server/runtime/passkey-auth-route.test.ts`
+        - `tests/unit/server-format.test.ts`
+        - `tests/unit/mmo/server-chunk-deltas.test.ts`
+        - `tests/unit/mmo/server-c2s-teleport-deny.test.ts`
+        - `tests/smoke/server/handshake-ws-bridge.test.ts`
+        - `tests/smoke/server-metrics-healthy.optional.test.ts`
+        - `tests/unit/ws/runtime-factory.test.ts`
+        - `tests/unit/ws/connection.test.ts`
+        - `tests/unit/server-plugins-loader.test.ts`
+        - `tests/unit/server-log.test.ts`
+    - Baseline reductions this pass:
+      - `396 -> 351 -> 278 -> 227 -> 187`.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/domain-ids.test.ts tests/unit/protocol/registry.test.ts tests/unit/server/startup/boot.test.ts tests/unit/server/passkey-auth.test.ts tests/unit/server/runtime/passkey-auth-route.test.ts tests/unit/server-world-primitives.test.ts tests/unit/server-map-ready-callbacks.test.ts tests/unit/mmo/server-map-doors.test.ts`
+    - `bun test tests/unit/server/runtime/passkey-auth-route.test.ts tests/unit/server-format.test.ts tests/unit/mmo/protocol-capabilities.test.ts tests/unit/mmo/server-permissions.test.ts tests/unit/mmo/server-farming-vertical-slice.test.ts tests/unit/ecs/command-pipeline-open-chest.test.ts tests/unit/server-chest-item-lifecycle.test.ts tests/unit/mmo/server-chunk-aoi-snapshots.test.ts tests/unit/mmo/server-chunk-snapshot-config-caps.test.ts tests/unit/mmo/server-chunk-snapshot-parts-e2e.test.ts`
+    - `bun test tests/unit/server/startup/options.test.ts tests/unit/server/startup/bridge-probe.test.ts tests/unit/mmo/server-chunk-deltas.test.ts tests/unit/mmo/server-c2s-teleport-deny.test.ts tests/unit/mmo/server-claims-store.test.ts tests/unit/server-world-primitives.test.ts tests/unit/server-map-ready-callbacks.test.ts tests/unit/mmo/server-map-doors.test.ts`
+    - `bun test tests/unit/ws/runtime-factory.test.ts tests/unit/ws/connection.test.ts tests/unit/server-plugins-loader.test.ts tests/unit/server-log.test.ts`
+    - `bun test tests/unit/ws/runtime-factory.test.ts tests/unit/ws/connection.test.ts tests/unit/metrics-client.test.ts tests/unit/server/startup/config.test.ts tests/unit/replication/spawn-snapshot.test.ts tests/unit/mmo/module-registry.test.ts tests/unit/mmo/protocol-capabilities.test.ts tests/unit/mmo/protocol-chunks-schema.test.ts tests/unit/mmo/protocol-seq-ack-schema.test.ts tests/unit/server-world-primitives.test.ts tests/unit/server-map-ready-callbacks.test.ts tests/unit/mmo/server-map-doors.test.ts tests/unit/client-combat-runtime-plumbing.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts`
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client server shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `396` => `351` => `278` => `227` => `187`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 19:11:23 UTC`
+  - Next action:
+    - Continue Ticket 636 on remaining 3-4 count hotspots (unit/smoke + unavoidable external-api boundaries), then re-baseline.
+
+- 19:32 UTC
+  - Ticket: 636/637 (remaining TODO execution)
+  - Start timestamp: 19:11 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Completed Ticket 636 runtime/unit-test hotspot cleanup:
+      - tightened fixture and host typing in:
+        - `tests/unit/mmo/server-door-traversal.test.ts`
+        - `tests/unit/server-player-lifecycle.test.ts`
+        - `tests/unit/server-ecs-respawn-invariants.test.ts`
+        - `tests/unit/metrics-client.test.ts`
+        - `tests/unit/ecs/client-attack-intent-follow.test.ts`
+        - `tests/smoke/server-structured-logs.harness.ts`
+        - `tests/smoke/modern-gameplay-parity.test.ts`
+      - kept `server/metrics-client.ts` `unknown` at external memcache API boundary only where required by upstream typing.
+    - Completed Ticket 637 browser fixture typing cleanup:
+      - removed remaining browser `unknown` seams in:
+        - `tests/browser/modern-ui-smoke.playwright.ts`
+        - `tests/browser/protocol-invariant.playwright.ts`
+      - browser typing footprint is now `0` under the tracked grep metric.
+    - Reduced global footprint this pass: `177 -> 144`.
+    - Closed active queue in `TODO.md` (no active tickets).
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/ws/runtime-factory.test.ts tests/unit/ws/connection.test.ts tests/unit/server-plugins-loader.test.ts tests/unit/server-log.test.ts tests/unit/metrics-client.test.ts tests/unit/server/startup/config.test.ts tests/unit/replication/spawn-snapshot.test.ts tests/unit/mmo/module-registry.test.ts tests/unit/mmo/server-door-traversal.test.ts tests/unit/server-player-lifecycle.test.ts tests/unit/server-ecs-respawn-invariants.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts`
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" tests/browser --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `0`
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client server shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `144`
+    - `date -u +"%Y-%m-%d %H:%M:%S UTC"` => `2026-02-15 19:32:11 UTC`
+  - Next action:
+    - Ready for user review/next pass.
+
+- 19:56 UTC
+  - Ticket: 638/639/640 (typing hardening continuation)
+  - Start timestamp: 19:56 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - continue reducing avoidable `unknown`/assertion seams in core runtime hotspots first, then secondary runtime files and test fixtures.
+      - preserve behavior and compatibility, verify with typecheck + targeted tests.
+    - Out of scope:
+      - architecture rewrites.
+  - Acceptance criteria:
+    - Tickets 638/639/640 acceptance criteria in `TODO.md` pass.
+  - Key actions taken:
+    - Re-baselined remaining footprint and ranked hotspots by file.
+    - Opened dependency-ordered tickets 638/639/640 in `TODO.md`.
+    - Identified concrete low-risk targets in runtime + fixture seams.
+  - Evidence:
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client server shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `86`
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client server shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | cut -d: -f1 | sort | uniq -c | sort -nr | head -n 30`
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-15 19:56 UTC`
+  - Next action:
+    - Execute Ticket 638 on core runtime files, then run typecheck and targeted suites.
+
+- 20:10 UTC
+  - Ticket: 638/639/640 (typing hardening continuation)
+  - Start timestamp: 19:56 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ticket 638 (core runtime hardening):
+      - tightened preflight/runtime seams in `server/startup/preflight.ts`, `server/metrics-runtime.ts`, `server/ws/runtime-types.ts`, `server/ws/runtime-factory.ts`, `client/config.ts`, `server/world/update-loop.ts`, `server/world/time/timewheel.ts`, `client/game-sprite-runtime.ts`.
+      - replaced `shared/evented.ts` weak-map cast bridge with per-instance typed emitter field, removing `as unknown as` seam.
+      - tightened event-map generics in `shared/typed-event-emitter.ts`.
+    - Ticket 639 (secondary runtime cleanup):
+      - tightened plugin/resource/domain seams in `server/plugins/contracts.ts`, `server/plugins/sample-spawner.plugin.ts`, `server/chestarea.ts`, `server/format.ts`, `server/entity.ts`, `server/area.ts`, `server/world/player-like.ts`, `server/ecs/resources.ts`, `server/player-persistence.ts`.
+      - tightened client/runtime seams in `client/renderer.ts`, `client/platform/util.ts`, `client/pathfinder.ts`, `client/map-source.ts`, `client/main.ts`, `client/character.ts`, `client/chest.ts`, `client/entityfactory.ts`, `client/ecs/systems/client-*`.
+      - removed residual `as unknown as` in `server/world/chunks/chunk-overlay-persistence.ts` and `client/gameclient-outbound-actions.ts`.
+    - Ticket 640 (test-fixture cleanup):
+      - removed avoidable `unknown` assertions in touched tests/smoke fixtures including:
+        - `tests/unit/client-player-death-flow.test.ts`
+        - `tests/unit/client-combat-runtime-plumbing.test.ts`
+        - `tests/unit/client-boundary-types.test.ts`
+        - `tests/unit/player-session.test.ts`
+        - `tests/unit/server/world-update-loop.test.ts`
+        - `tests/unit/server/runtime/source.test.ts`
+        - `tests/unit/mmo/client-chunk-overlay-runtime-integration.test.ts`
+        - `tests/unit/mmo/server-world-chunk-size-config.test.ts`
+        - `tests/unit/mmo/client-door-traversal-authority.test.ts`
+        - `tests/unit/ecs/client-door-portal-system.test.ts`
+        - `tests/unit/ecs/command-pipeline-spawn-seeding.test.ts`
+        - `tests/unit/ecs/client-spatial-dead-mob-unblocks-pathing.test.ts`
+        - `tests/unit/server/startup/events.test.ts`
+        - `tests/unit/server/startup/ecs-scheduler-probe.test.ts`
+        - `tests/unit/canvas-smoothing.test.ts`
+        - `tests/smoke/server-payload-guards.test.ts`
+    - Footprint reduction this pass:
+      - `86 -> 70 -> 35 -> 14`.
+      - Remaining `unknown` occurrences are primarily external memcache boundary typing (`server/metrics-client.ts`) and semantic string literals/tests for `"unknown"`.
+    - Closed active queue in `TODO.md` (no active tickets).
+  - Evidence:
+    - `bun run typecheck` (pass)
+    - `bun test tests/unit/metrics-runtime.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/server-config-preflight.test.ts tests/unit/server/startup/events.test.ts tests/unit/server/startup/ecs-scheduler-probe.test.ts tests/unit/server/world-update-loop.test.ts tests/unit/tools-admin-claims.test.ts tests/unit/client-combat-runtime-plumbing.test.ts tests/unit/client-player-death-flow.test.ts tests/unit/client-boundary-types.test.ts tests/unit/mmo/client-chunk-overlay-runtime-integration.test.ts tests/unit/mmo/client-door-traversal-authority.test.ts tests/unit/ecs/client-door-portal-system.test.ts tests/unit/ecs/client-spatial-dead-mob-unblocks-pathing.test.ts tests/unit/ecs/command-pipeline-spawn-seeding.test.ts tests/unit/canvas-smoothing.test.ts tests/smoke/server-payload-guards.test.ts` (41 pass / 0 fail)
+    - `rg -n "as unknown as| as any\\b|: any\\b|\\bunknown\\b" client server shared tests --glob '!**/dist/**' --glob '!**/build/**' --glob '!**/node_modules/**' | wc -l` => `14`
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-15 20:10 UTC`
+  - Next action:
+    - Ready for user review/commit or final boundary-only pass (`server/metrics-client.ts`) if external API compatibility strategy is approved.
+
+- 20:31 UTC
+  - Ticket: 641/642/643 (metrics architecture refactor, self-contained mode)
+  - Start timestamp: 20:31 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - replace loose callback-centric memcache bridge with typed store boundary.
+      - remove metrics ready monkey-patching and simplify runtime world admission path to remove implicit external key dependency.
+      - align tests/docs/runtime contracts.
+    - Out of scope:
+      - distributed balancing redesign beyond current single-project needs.
+  - Acceptance criteria:
+    - Tickets 641/642/643 acceptance criteria in `TODO.md` pass.
+  - Key actions taken:
+    - Audited current metrics stack (`metrics-client`, `metrics`, adapters, runtime integration, tests, docs).
+    - Confirmed memcache package API/type behavior from installed dependency (`node_modules/memcache/dist/index.d.ts`).
+    - Opened dependency-ordered tickets 641/642/643 in `TODO.md`.
+  - Evidence:
+    - `rg -n "getOpenWorldCount|updatePlayerCounters|updateWorldDistribution|RuntimeMetrics|createMetrics\\(" server tests shared`
+    - `sed -n '1,260p' server/metrics-client.ts`
+    - `sed -n '1,320p' server/metrics.ts`
+    - `sed -n '1,280p' server/metrics-runtime.ts`
+    - `sed -n '1,240p' server/metrics-adapters/memcache.ts`
+    - `sed -n '340,545p' server/runtime.ts`
+    - `sed -n '1,260p' node_modules/memcache/dist/index.d.ts`
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-15 20:31 UTC`
+  - Next action:
+    - Implement Ticket 641 (typed metrics store boundary) then run `typecheck` + `metrics-client` tests.
+
+- 20:36 UTC
+  - Ticket: 641/642/643 (metrics architecture refactor, self-contained mode)
+  - Start timestamp: 20:31 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ticket 641:
+      - replaced `server/metrics-client.ts` with strict typed store boundary:
+        - Promise-based `connect()`, `setString()`, `getString()`.
+        - explicit endpoint normalization and strict result-type checks.
+      - rewrote `tests/unit/metrics-client.test.ts` to validate strict typed behavior and failure bubbling.
+    - Ticket 642:
+      - rewrote `server/metrics.ts` to use typed store + explicit string/json metric codecs.
+      - removed adapter `ready()` monkey-patching from `server/metrics-adapters/memcache.ts`.
+      - removed `getOpenWorldCount` from runtime metrics contract (`server/runtime-types.ts`) and simplified connection admission logic in `server/runtime.ts` to local least-populated available world (capacity-bounded), eliminating implicit external `world_count_*` dependency.
+      - updated no-op adapter to match new runtime metrics contract.
+    - Ticket 643:
+      - aligned runtime tests/stubs with new `RuntimeMetrics` shape:
+        - `tests/unit/server/runtime/lifecycle.test.ts`
+        - `tests/unit/server/runtime/factories.test.ts`
+        - `tests/unit/server/runtime/passkey-auth-route.test.ts`
+      - added direct metrics service tests (`tests/unit/metrics.test.ts`) for:
+        - constructor readiness lifecycle,
+        - player counter aggregation/write codec behavior,
+        - world-distribution JSON payload writing,
+        - connect failure unavailable signaling.
+      - updated `server/README.md` metrics section to document self-contained behavior and no external `world_count_*` requirement.
+  - Evidence:
+    - `bun run typecheck` (pass)
+    - `bun test tests/unit/metrics-client.test.ts` (5 pass / 0 fail)
+    - `bun test tests/unit/metrics-runtime.test.ts tests/unit/server/runtime/factories.test.ts tests/unit/server/runtime/lifecycle.test.ts tests/unit/server/runtime/metrics-hooks.test.ts tests/unit/server/runtime/passkey-auth-route.test.ts` (14 pass / 0 fail)
+    - `bun run typecheck && bun test tests/unit/metrics-client.test.ts tests/unit/metrics.test.ts tests/unit/metrics-runtime.test.ts tests/unit/server/runtime/factories.test.ts tests/unit/server/runtime/lifecycle.test.ts tests/unit/server/runtime/metrics-hooks.test.ts tests/unit/server/runtime/passkey-auth-route.test.ts tests/smoke/server-metrics-healthy.optional.test.ts` (23 pass / 1 skip / 0 fail)
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-15 20:36 UTC`
+  - Next action:
+    - Ready for user review/commit.
+
+## 2026-02-17
+
+- 00:02 UTC
+  - Ticket: 301 (Release gate: make `verify:modern` green)
+  - Start timestamp: 2026-02-16 23:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Fixed lint blockers in server startup/runtime/tests and removed unused imports.
+    - Resolved format blocker in `server/utils.ts`.
+  - Evidence:
+    - `bun run verify:modern` (pass)
+  - Next action:
+    - Execute Ticket 302.
+
+- 00:02 UTC
+  - Ticket: 302 (Startup correctness: semantic map preflight)
+  - Start timestamp: 2026-02-16 23:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added semantic map payload validation in startup preflight.
+    - Added deterministic map-payload-shape failure coverage in unit + smoke tests.
+  - Evidence:
+    - `bun test tests/unit/server/startup/preflight.test.ts tests/smoke/server/config-preflight-entry.test.ts tests/smoke/server/config-preflight.test.ts` (pass)
+  - Next action:
+    - Execute Ticket 303.
+
+- 00:02 UTC
+  - Ticket: 303 (Security + simplification: auth cookie hardening and account-cookie dedup)
+  - Start timestamp: 2026-02-16 23:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Hardened passkey auth cookies with dynamic `Secure` attribute on HTTPS requests.
+    - Removed redundant client account-cookie helpers and aligned storage tests.
+  - Evidence:
+    - `bun test tests/unit/server/passkey-auth.test.ts tests/unit/client-storage.test.ts tests/unit/server/runtime/passkey-auth-route.test.ts` (pass)
+  - Next action:
+    - Execute Ticket 304.
+
+- 00:02 UTC
+  - Ticket: 304 (Architecture consolidation: remove startup compatibility alias duplication)
+  - Start timestamp: 2026-02-16 23:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed `server/startup.ts` alias module and updated startup module contract test to canonical exports.
+  - Evidence:
+    - `bun test tests/unit/server/startup-module.test.ts tests/unit/server/startup/*.test.ts` (pass)
+  - Next action:
+    - Execute Ticket 305.
+
+- 00:02 UTC
+  - Ticket: 305 (Consolidation: centralize HTTP/cookie/pathname helpers)
+  - Start timestamp: 2026-02-16 23:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added shared `server/http-utils.ts` and reused it across runtime/ws/passkey/profile flows.
+  - Evidence:
+    - `bun test tests/unit/server/profile-preview.test.ts tests/unit/server/passkey-auth.test.ts tests/unit/ws/*.test.ts` (pass)
+  - Next action:
+    - Execute Ticket 306.
+
+- 00:02 UTC
+  - Ticket: 306 (Streamlining: replace startup name polling with event-driven updates)
+  - Start timestamp: 2026-02-16 23:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed interval polling from startup name handling and moved to input/change/keyup event-driven updates.
+  - Evidence:
+    - `bun run test:browser:modern` (pass)
+    - `bun run test` (pass)
+  - Next action:
+    - Execute Ticket 307.
+
+- 00:02 UTC
+  - Ticket: 307 (Efficiency: parallelize metrics total-player reads)
+  - Start timestamp: 2026-02-16 23:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Parallelized player-count reads in metrics aggregation with `Promise.all` while preserving semantics.
+  - Evidence:
+    - `bun test tests/unit/metrics.test.ts tests/unit/metrics-runtime.test.ts tests/unit/metrics-client.test.ts` (pass)
+  - Next action:
+    - Execute Ticket 308.
+
+- 00:02 UTC
+  - Ticket: 308 (Pre-release surface minimization + regression closure)
+  - Start timestamp: 2026-02-16 23:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Investigated regression from test-API gating attempt; fixed renderer null-guard in `client/renderer.ts`.
+    - Restored `installTestApi()` parity path in `client/main.ts` to keep browser test semantics stable.
+    - Completed final release gate verification.
+  - Evidence:
+    - `bun run test:browser:modern` (pass)
+    - `bun run test` (pass; 417 pass / 1 skip)
+    - `bun run verify:modern` (pass)
+  - Next action:
+    - All active tickets complete; TODO queue cleared.

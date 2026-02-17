@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-15 15:09 UTC
+Last updated: 2026-02-17 00:02 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -17,9 +17,11 @@ Definition of done (per ticket):
 - Milestone 211 - UX + authority parity hardening
 - Milestone 209 - MMO runtime/perf modernization
 - Milestone 212 - Security + protocol consistency hardening
+- Milestone 213 - Reliability and lifecycle hardening follow-through
+- Milestone 214 - Lint coverage + ECS legacy-bridge simplification
+- Milestone 215 - Typing hardening and assertion minimization
 
 ## Execution Queue (Work Order)
-
-- No active tickets. Completed tickets are recorded in `PROGRESS.md`.
+- No active tickets.
 
 ---

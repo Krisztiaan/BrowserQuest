@@ -7,13 +7,16 @@ const repoRoot = new URL('../..', import.meta.url).pathname;
 const runHealthySmoke = process.env.BQ_TEST_METRICS_HEALTH === '1';
 const maybeTest = runHealthySmoke ? test : test.skip;
 
-type EventRecord = Record<string, unknown>;
+type EventValue = string | number | boolean | null | undefined | EventValue[] | { [key: string]: EventValue };
+type EventRecord = Record<string, EventValue>;
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: JsonValue | object | null | undefined): value is EventRecord {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function startStructuredLogCapture(stream: ReadableStream<unknown> | number | null | undefined, events: EventRecord[]) {
+function startStructuredLogCapture(stream: ReadableStream<Uint8Array> | number | null | undefined, events: EventRecord[]) {
     if (!stream || typeof stream === 'number') {
         return;
     }
@@ -37,7 +40,7 @@ function startStructuredLogCapture(stream: ReadableStream<unknown> | number | nu
                     return;
                 }
                 try {
-                    const parsed: unknown = JSON.parse(trimmed);
+                    const parsed = JSON.parse(trimmed) as JsonValue;
                     if (isRecord(parsed)) {
                         events.push(parsed);
                     }
@@ -172,7 +175,7 @@ maybeTest('optional: healthy metrics path starts with memcache backend and no fa
             clearTimeout(timeout);
             reject(err instanceof Error ? err : new Error(String(err)));
         });
-        ws.once('message', (data: unknown) => {
+        ws.once('message', (data: string | Blob | ArrayBuffer | Uint8Array) => {
             clearTimeout(timeout);
             if (typeof data !== 'string') {
                 reject(new Error('Unexpected websocket handshake payload type'));

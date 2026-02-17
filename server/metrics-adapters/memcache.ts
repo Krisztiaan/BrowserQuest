@@ -1,40 +1,16 @@
-interface MetricsAdapter {
-    isEnabled: boolean;
-    ready(callback?: () => void): void;
-    [key: string]: unknown;
-}
-
-import * as MetricsModule from '../metrics';
-
-const Metrics = ((MetricsModule as unknown as { default?: unknown }).default
-    ? (MetricsModule as unknown as { default: unknown }).default
-    : MetricsModule) as new (config: unknown, options?: unknown) => MetricsAdapter;
+import Metrics from '../metrics';
+import type { RuntimeEventFields, RuntimeMetrics } from '../runtime-types';
 
 interface MemcacheAdapterOptions {
     onReady?: () => void;
+    onUnavailable?: (reason: string, fields?: RuntimeEventFields) => void;
 }
 
 function createMemcacheMetricsAdapter(
-    config: Record<string, unknown>,
+    config: ConstructorParameters<typeof Metrics>[0],
     options?: MemcacheAdapterOptions
-): MetricsAdapter {
-    const adapterOptions = options ?? {};
-    const metrics = new Metrics(config, adapterOptions);
-    metrics.isEnabled = true;
-
-    if (typeof adapterOptions.onReady === 'function') {
-        const originalReady = metrics.ready;
-        metrics.ready = function (callback?: () => void) {
-            originalReady.call(metrics, function () {
-                adapterOptions.onReady?.();
-                if (typeof callback === 'function') {
-                    callback();
-                }
-            });
-        };
-    }
-
-    return metrics;
+): RuntimeMetrics {
+    return new Metrics(config, options);
 }
 
 export { createMemcacheMetricsAdapter };

@@ -1,15 +1,18 @@
 import { runBridgeProbeIfEnabled } from './bridge-probe';
 import { runEcsSchedulerProbeIfEnabled } from './ecs-scheduler-probe';
-import { resolveRuntimeOptions } from './options';
+import { resolveRuntimeOptions, type StartupRuntimeOptions } from './options';
 import { getPluginSpecsFromConfig, loadServerPlugins, wrapWorldServerConstructorWithPlugins } from '../plugins/loader';
-import type { RuntimeWorldServerConstructor } from '../runtime-types';
+import type { MainRuntimeDependencyOverrides, RuntimeWorldServerConstructor } from '../runtime-types';
 
 type BridgeProbeParams = Parameters<typeof runBridgeProbeIfEnabled>[0];
 type EcsProbeParams = Parameters<typeof runEcsSchedulerProbeIfEnabled>[0];
-type StartupWsImport = () => Promise<{ default: unknown; [key: string]: unknown }>;
+type StartupWsImport = Parameters<typeof resolveRuntimeOptions>[0]['importWsRuntime'];
+type RuntimeOptionsLike = StartupRuntimeOptions;
+type StructuredEventField = string | number | boolean | null | string[];
+type StructuredEventFields = Record<string, StructuredEventField>;
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
+function isRuntimeWorldServerConstructor(value: object | null | undefined): value is RuntimeWorldServerConstructor {
+    return typeof value === 'function';
 }
 
 export async function runStartup({
@@ -29,22 +32,22 @@ export async function runStartup({
     activeConfig: object;
     env: NodeJS.ProcessEnv;
     cwd?: string;
-    emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
-    emitProbeEvent: (level: string, fields: Record<string, unknown>) => void;
+    emitStructuredEvent: (level: string, event: string, fields: StructuredEventFields) => void;
+    emitProbeEvent: (level: string, fields: StructuredEventFields) => void;
     importWsRuntime: StartupWsImport;
-    createRuntimeDependencies: (overrides: object) => unknown;
-    startServer: (config: object, runtimeOptions?: unknown) => void;
+    createRuntimeDependencies: (overrides: MainRuntimeDependencyOverrides) => MainRuntimeDependencyOverrides;
+    startServer: (config: object, runtimeOptions?: RuntimeOptionsLike) => void;
     fail: (code: number) => void;
     runBridgeProbeFn?: (params: BridgeProbeParams) => Promise<void>;
     runEcsSchedulerProbeFn?: (params: EcsProbeParams) => Promise<void>;
     resolveRuntimeOptionsFn?: (params: {
         env: NodeJS.ProcessEnv;
-        emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
+        emitStructuredEvent: (level: string, event: string, fields: StructuredEventFields) => void;
         importWsRuntime: StartupWsImport;
-        createRuntimeDependencies: (overrides: object) => unknown;
+        createRuntimeDependencies: (overrides: MainRuntimeDependencyOverrides) => MainRuntimeDependencyOverrides;
         fail: (code: number) => void;
-    }) => Promise<unknown>;
-}): Promise<{ runtimeOptions: unknown }> {
+    }) => Promise<RuntimeOptionsLike | undefined>;
+}): Promise<{ runtimeOptions: RuntimeOptionsLike | undefined }> {
     await runBridgeProbeFn({
         env,
         emitProbeEvent,
@@ -67,17 +70,17 @@ export async function runStartup({
     });
 
     const pluginSpecs = getPluginSpecsFromConfig(activeConfig);
-    let effectiveRuntimeOptions: unknown = runtimeOptions;
+    let effectiveRuntimeOptions = runtimeOptions;
 
     if (pluginSpecs.length > 0) {
         try {
             const plugins = await loadServerPlugins(pluginSpecs, { baseDir: cwd ?? process.cwd() });
 
-            const optionsObject = isPlainObject(runtimeOptions) ? runtimeOptions : {};
-            const dependencies = isPlainObject(optionsObject.dependencies) ? optionsObject.dependencies : {};
-            const resolvedDependencies = createRuntimeDependencies(dependencies) as { WorldServer?: unknown };
+            const optionsObject = runtimeOptions ?? { dependencies: {} };
+            const dependencies = optionsObject.dependencies ?? {};
+            const resolvedDependencies = createRuntimeDependencies(dependencies);
             const baseWorldServer = resolvedDependencies.WorldServer;
-            if (typeof baseWorldServer !== 'function') {
+            if (!isRuntimeWorldServerConstructor(baseWorldServer)) {
                 throw new Error('Runtime dependency seam did not provide a constructable WorldServer.');
             }
 
@@ -85,10 +88,7 @@ export async function runStartup({
                 ...optionsObject,
                 dependencies: {
                     ...dependencies,
-                    WorldServer: wrapWorldServerConstructorWithPlugins(
-                        baseWorldServer as unknown as RuntimeWorldServerConstructor,
-                        plugins
-                    ),
+                    WorldServer: wrapWorldServerConstructorWithPlugins(baseWorldServer, plugins),
                 },
             };
 
@@ -97,7 +97,7 @@ export async function runStartup({
             });
         } catch (err) {
             emitStructuredEvent('error', 'startup_plugins_load_failed', {
-                specs: pluginSpecs,
+                specs: pluginSpecs.join(','),
                 error: String(err),
             });
             fail(1);
