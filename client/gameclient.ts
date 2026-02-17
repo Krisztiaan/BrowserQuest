@@ -67,7 +67,7 @@ function safeParseJson(payload: string): JsonValue | null {
 type ClientPlayerLike = {
     name: string;
     getSpriteName(): string;
-    getWeaponName(): string;
+    getWeaponName(): string | null;
 };
 type IdCarrier = { id: EntityId };
 type CorrectionPayload = Readonly<{ a: number | string; b: number | string }>;

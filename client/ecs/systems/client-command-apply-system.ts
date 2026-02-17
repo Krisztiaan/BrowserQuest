@@ -39,7 +39,16 @@ type GridIndexedEntity = {
     blink?(speed: number): void;
     dirtyRect?: DirtyRect | null;
 };
-type DirtyRect = Record<string, number>;
+type DirtyRect = {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+};
 
 type SpatialRecord = Readonly<{
     gridX: number;

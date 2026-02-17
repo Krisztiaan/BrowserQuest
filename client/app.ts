@@ -62,7 +62,7 @@ class App {
     hitpointsEl: HTMLElement | null;
     parchmentNameInputEl: HTMLInputElement | null;
     populationEl: HTMLElement | null;
-    bodyEl: HTMLBodyElement;
+    bodyEl: HTMLElement;
     achievementsEl: HTMLElement | null;
     achievementsButtonEl: HTMLElement | null;
     instructionsEl: HTMLElement | null;
@@ -239,6 +239,12 @@ class App {
 
     startGame(username: string, onStarting?: () => void): void {
         const self = this;
+        const game = this.game;
+        if (!game) {
+            this.isStarting = false;
+            this.showMessage('Game is not ready yet. Please retry.');
+            return;
+        }
 
         if (onStarting) {
             onStarting();
@@ -247,25 +253,31 @@ class App {
             if (!self.isDesktop) {
                 // On mobile and tablet we load the map after the player has clicked
                 // on the PLAY button instead of loading it in a web worker.
-                self.game.loadMap();
+                game.loadMap();
             }
             self.start(username);
         });
     }
 
     start(username: string): void {
-        const self = this,
-            firstTimePlaying = !self.storage.hasAlreadyPlayed();
+        const game = this.game;
+        if (!game) {
+            this.isStarting = false;
+            this.showMessage('Game is not ready yet. Please retry.');
+            return;
+        }
+        const self = this;
+        const firstTimePlaying = !self.storage.hasAlreadyPlayed();
 
-        if (username && !this.game.started) {
+        if (username && !game.started) {
             const config = this.config;
             const serverConfig = config?.server ?? { wsUrl: 'ws://localhost/ws', dispatcher: false };
 
             log.debug('Starting game with runtime server config.');
-            this.game.setServerOptions(serverConfig.wsUrl, username);
+            game.setServerOptions(serverConfig.wsUrl, username);
 
             this.center();
-            this.game.run(
+            game.run(
                 function () {
                     self.isStarting = false;
                     self.bodyEl.classList.add('started');
@@ -282,16 +294,20 @@ class App {
     }
 
     setMouseCoordinates(event: PointerPosition): void {
+        const game = this.game;
+        if (!game) {
+            return;
+        }
         const container = this.containerEl ?? document.getElementById('container');
         if (!container) {
             return;
         }
-        const isPhone = !!this.game?.renderer.mobile && !this.game.renderer.tablet;
+        const isPhone = game.renderer.mobile && !game.renderer.tablet;
 
-        const scale = this.game.renderer.getScaleFactor();
-        const width = this.game.renderer.getWidth();
-        const height = this.game.renderer.getHeight();
-        const mouse = this.game.mouse;
+        const scale = game.renderer.getScaleFactor();
+        const width = game.renderer.getWidth();
+        const height = game.renderer.getHeight();
+        const mouse = game.mouse;
 
         if (isPhone) {
             const viewport = document.getElementById('foreground');
@@ -319,19 +335,23 @@ class App {
     }
 
     initHealthBar(): void {
-        const scale = this.game.renderer.getScaleFactor(),
+        const game = this.game;
+        if (!game) {
+            return;
+        }
+        const scale = game.renderer.getScaleFactor(),
             healthbar = this.healthbarEl ?? document.getElementById('healthbar'),
             hitpoints = this.hitpointsEl ?? document.getElementById('hitpoints'),
             healthMaxWidth = (healthbar ? healthbar.offsetWidth : 0) - 12 * scale;
 
-        this.game.on('playerHealthChange', function (hp, maxHp) {
+        game.on('playerHealthChange', function (hp, maxHp) {
             const barWidth = Math.round((healthMaxWidth / maxHp) * (hp > 0 ? hp : 0));
             if (hitpoints) {
                 hitpoints.style.width = barWidth + 'px';
             }
         });
 
-        this.game.on('playerHurt', () => this.blinkHealthBar());
+        game.on('playerHurt', () => this.blinkHealthBar());
     }
 
     blinkHealthBar(): void {
@@ -378,11 +398,15 @@ class App {
     }
 
     showChat(): void {
+        const game = this.game;
+        if (!game) {
+            return;
+        }
         const chatbox = this.chatboxEl ?? document.getElementById('chatbox'),
             chatinput = this.chatinputEl ?? document.getElementById('chatinput'),
             chatbutton = this.chatbuttonEl ?? document.getElementById('chatbutton');
 
-        if (this.game.started) {
+        if (game.started) {
             if (chatbox) {
                 chatbox.classList.add('active');
             }
@@ -396,11 +420,15 @@ class App {
     }
 
     hideChat(): void {
+        const game = this.game;
+        if (!game) {
+            return;
+        }
         const chatbox = this.chatboxEl ?? document.getElementById('chatbox'),
             chatinput = this.chatinputEl ?? document.getElementById('chatinput'),
             chatbutton = this.chatbuttonEl ?? document.getElementById('chatbutton');
 
-        if (this.game.started) {
+        if (game.started) {
             if (chatbox) {
                 chatbox.classList.remove('active');
             }
@@ -463,13 +491,17 @@ class App {
     }
 
     initEquipmentIcons(): void {
-        const scale = this.game.renderer.getScaleFactor();
-        const getIconPath = function (spriteName) {
+        const game = this.game;
+        if (!game || !game.player) {
+            return;
+        }
+        const scale = game.renderer.getScaleFactor();
+        const getIconPath = function (spriteName: string) {
                 return resolveImageAssetPath(scale, 'item-' + spriteName);
             },
-            weapon = this.game.player.getWeaponName(),
-            armor = this.game.player.getSpriteName(),
-            weaponPath = weapon ? getIconPath(weapon) : null,
+            weapon = game.player.getWeaponName(),
+            armor = game.player.getSpriteName(),
+            weaponPath = typeof weapon === 'string' ? getIconPath(weapon) : null,
             armorPath = getIconPath(armor);
 
         if (weaponPath && this.weaponEl) {
@@ -513,6 +545,10 @@ class App {
     }
 
     showAchievementNotification(id: AchievementId, name: string): void {
+        const game = this.game;
+        if (!game) {
+            return;
+        }
         const notif = this.achievementNotificationEl ?? document.getElementById('achievement-notification'),
             button = this.achievementsButtonEl ?? document.getElementById('achievementsbutton'),
             nameEl = notif ? notif.querySelector('.name') : null;
@@ -523,7 +559,7 @@ class App {
         if (nameEl) {
             nameEl.textContent = name;
         }
-        if (this.game.storage.getAchievementCount() === 1 && !this.blinkInterval) {
+        if (game.storage.getAchievementCount() === 1 && !this.blinkInterval) {
             this.blinkInterval = setInterval(function () {
                 if (button) {
                     button.classList.toggle('blink');
@@ -550,9 +586,13 @@ class App {
     }
 
     displayUnlockedAchievement(id: AchievementId): void {
+        const game = this.game;
+        if (!game) {
+            return;
+        }
         const achievementEl = document.querySelector('#achievements li.achievement' + id);
 
-        const achievement = this.game.getAchievementById(id);
+        const achievement = game.getAchievementById(id);
         if (achievement && achievement.hidden && achievementEl) {
             const nameEl = achievementEl.querySelector('.achievement-name'),
                 descEl = achievementEl.querySelector('.achievement-description');
@@ -595,6 +635,9 @@ class App {
 
         Object.keys(achievements).forEach(function (key: string) {
             const achievement = achievements[key];
+            if (!achievement) {
+                return;
+            }
             count++;
 
             const achievementNode = achievementTemplate.cloneNode(true) as HTMLElement;
@@ -615,8 +658,11 @@ class App {
             }
 
             achievementNode.querySelectorAll('a').forEach(function (link: Element) {
-                link.addEventListener('click', function (event: MouseEvent) {
+                link.addEventListener('click', function (event: Event) {
                     const url = link.getAttribute('href');
+                    if (!url) {
+                        return;
+                    }
                     self.openPopup(url);
                     event.preventDefault();
                     return false;
@@ -667,19 +713,20 @@ class App {
     }
 
     toggleScrollContent(content: ScrollContent): void {
+        const game = this.game;
         const parchment = this.parchmentEl ?? document.getElementById('parchment'),
             body = this.bodyEl,
             helpButton = this.helpButtonEl ?? document.getElementById('helpbutton'),
             currentState = parchment ? parchment.className : '';
 
-        if (this.game.started) {
+        if (game?.started) {
             if (parchment) {
                 parchment.className = content;
             }
             body.classList.remove('credits', 'legal', 'about');
             body.classList.toggle(content);
 
-            if (!this.game.player) {
+            if (!game.player) {
                 body.classList.toggle('death');
             }
 
@@ -700,6 +747,7 @@ class App {
     }
 
     closeInGameScroll(content: ScrollContent): void {
+        const game = this.game;
         const body = this.bodyEl,
             parchment = this.parchmentEl ?? document.getElementById('parchment'),
             helpButton = this.helpButtonEl ?? document.getElementById('helpbutton');
@@ -708,7 +756,7 @@ class App {
         if (parchment) {
             parchment.classList.remove(content);
         }
-        if (!this.game.player) {
+        if (!game?.player) {
             body.classList.add('death');
         }
         if (content === 'about') {
@@ -820,7 +868,10 @@ class App {
     }
 
     resetMessageTimer(): void {
-        clearTimeout(this.messageTimer);
+        if (this.messageTimer !== null) {
+            clearTimeout(this.messageTimer);
+            this.messageTimer = null;
+        }
     }
 
     resizeUi(): void {

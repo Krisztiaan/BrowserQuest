@@ -43,13 +43,14 @@ import log from './platform/log';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import { requestAnimFrame } from './platform/util';
-import type { AchievementId, AchievementKey } from './achievement-domain';
+import { isAchievementId, type AchievementId, type AchievementKey } from './achievement-domain';
 import { SPRITE_KEYS } from './asset-key-domain';
 import type { CursorKey, MusicKey, SpriteKey } from './asset-key-domain';
 import type Storage from './storage';
 import { Evented } from '../shared/evented';
 import type { TypedEventSource } from '../shared/typed-event-emitter';
 import type { EntityId } from '../shared/domain/ids';
+import { isEntityId } from '../shared/domain/ids';
 import { ClientWorldKernel } from './ecs/world-kernel';
 import { ClientFrameScheduler } from './ecs/frame-scheduler';
 import { runClientClickIntentSystem } from './ecs/systems/client-click-intent-system';
@@ -91,6 +92,8 @@ type GridIndexedEntity = {
     clean(): void;
     blink(speed: number): void;
     setSprite(sprite: Sprite | null): void;
+    getSpriteName(): string;
+    setGridPosition(x: number, y: number): void;
     setDirty(): void;
     setHighlight(isHighlighted: boolean): void;
     setWeaponName?(name: string): void;
@@ -108,7 +111,7 @@ type DirtyRect = {
     bottom: number;
 };
 type DirtyRectSource = GridIndexedEntity | DirtyAnimatedTile | null;
-type BubbleAnchor = { id: EntityId; x: number; y: number };
+type BubbleAnchor = { id: EntityId | string | number; x: number; y: number };
 type RuntimeServerConfig = { wsUrl: string; dispatcher: boolean };
 type AppLike = {
     config: { server?: RuntimeServerConfig } | null;
@@ -127,6 +130,10 @@ type GameEvents = {
     playerInvincible: [];
     achievementUnlock: [id: AchievementId, name: string, description: string];
 };
+
+function isGridIndexedItem(item: Item): item is Item & GridIndexedEntity {
+    return isEntityId(item.id);
+}
 
 export type GameEventSource = TypedEventSource<GameEvents>;
 
@@ -375,7 +382,7 @@ class Game extends Evented<GameEvents> {
 
         // Characters expect a path resolver callback; without it, clicks/moves log errors and do nothing.
         const self = this;
-        const install = function (character: Character): void {
+        const install = function (character: Character<any>): void {
             character.setPathRequestResolver(function (x: number, y: number) {
                 return self.findPath(character, x, y, buildPathingIgnoreList(character));
             });
@@ -517,8 +524,9 @@ class Game extends Evented<GameEvents> {
     }
 
     setCursor(name: CursorKey, orientation?: number): void {
-        if (name in this.cursors) {
-            this.currentCursor = this.cursors[name];
+        const cursor = this.cursors[name];
+        if (cursor) {
+            this.currentCursor = cursor;
             this.currentCursorOrientation = orientation;
         } else {
             log.error('Unknown cursor name :' + name);
@@ -567,7 +575,11 @@ class Game extends Evented<GameEvents> {
     }
 
     addItem(item: Item, x: number, y: number): void {
-        item.setSprite(this.sprites[item.getSpriteName()]);
+        if (!isGridIndexedItem(item)) {
+            log.error('Cannot add item. Non-entity-id item reference.');
+            return;
+        }
+        item.setSprite(this.sprites[item.getSpriteName()] ?? null);
         item.setGridPosition(x, y);
         item.setAnimation('idle', 150);
         this.addEntity(item);
@@ -586,6 +598,10 @@ class Game extends Evented<GameEvents> {
             log.error('Cannot remove item. Unknown item reference.');
             return;
         }
+        if (!isGridIndexedItem(item)) {
+            log.error('Cannot remove item. Non-entity-id item reference.');
+            return;
+        }
         this.removeEntity(item);
     }
 
@@ -593,18 +609,26 @@ class Game extends Evented<GameEvents> {
      *
      */
     initAnimatedTiles(): void {
-        const self = this,
-            m = this.map;
+        const self = this;
+        const m = this.map;
+        if (!m) {
+            return;
+        }
 
         this.animatedTiles = [];
         this.forEachVisibleTile(function (id: number, index: number) {
             if (m.isAnimatedTile(id)) {
-                const tile = new AnimatedTile(id, m.getTileAnimationLength(id), m.getTileAnimationDelay(id), index),
-                    pos = self.map.tileIndexToGridPosition(tile.index);
+                const length = m.getTileAnimationLength(id);
+                const delay = m.getTileAnimationDelay(id);
+                if (length === undefined || delay === undefined) {
+                    return;
+                }
+                const tile = new AnimatedTile(id, length, delay, index),
+                    pos = m.tileIndexToGridPosition(tile.index);
 
                 tile.x = pos.x;
                 tile.y = pos.y;
-                self.animatedTiles.push(tile);
+                self.animatedTiles?.push(tile);
             }
         }, 1);
         //log.info("Initialized animated tiles.");
@@ -642,9 +666,13 @@ class Game extends Evented<GameEvents> {
     }
 
     initMusicAreas(): void {
-        const self = this;
-        this.map.musicAreas.forEach(function (area: { x: number; y: number; w: number; h: number; id: MusicKey }) {
-            self.audioManager.addArea(area.x, area.y, area.w, area.h, area.id);
+        const map = this.map;
+        const audioManager = this.audioManager;
+        if (!map || !audioManager) {
+            return;
+        }
+        map.musicAreas.forEach(function (area: { x: number; y: number; w: number; h: number; id: MusicKey }) {
+            audioManager.addArea(area.x, area.y, area.w, area.h, area.id);
         });
     }
 
@@ -731,7 +759,7 @@ class Game extends Evented<GameEvents> {
      * Links two entities in an attacker<-->target relationship.
      * This is just a utility method to wrap a set of instructions.
      */
-    createAttackLink(attacker: Character, target: Character): void {
+    createAttackLink(attacker: Character<any>, target: Character<any>): void {
         if (attacker.hasTarget()) {
             attacker.removeTarget();
         }
@@ -774,8 +802,8 @@ class Game extends Evented<GameEvents> {
     /**
      * Moves a character to a given location on the world grid.
      */
-    makeCharacterGoTo(character: Character, x: number, y: number): void {
-        if (!this.map.isOutOfBounds(x, y)) {
+    makeCharacterGoTo(character: Character<any>, x: number, y: number): void {
+        if (this.map && !this.map.isOutOfBounds(x, y)) {
             character.go(x, y);
         }
     }
@@ -783,8 +811,8 @@ class Game extends Evented<GameEvents> {
     /**
      *
      */
-    makeCharacterTeleportTo(character: Character, x: number, y: number): void {
-        if (!this.map.isOutOfBounds(x, y)) {
+    makeCharacterTeleportTo(character: Character<any>, x: number, y: number): void {
+        if (this.map && !this.map.isOutOfBounds(x, y)) {
             character.setGridPosition(x, y);
 
             this.assignBubbleTo(character);
@@ -868,7 +896,10 @@ class Game extends Evented<GameEvents> {
      */
     forEachEntity(callback: (entity: GridIndexedEntity) => void) {
         Object.keys(this.entities).forEach((id: string) => {
-            callback(this.entities[id]);
+            const entity = this.entities[id];
+            if (entity) {
+                callback(entity);
+            }
         });
     }
 
@@ -950,6 +981,9 @@ class Game extends Evented<GameEvents> {
             }
 
             const tileData = map.data[tileIndex];
+            if (tileData === undefined) {
+                return;
+            }
             if (Array.isArray(tileData)) {
                 tileData.forEach((id: number) => {
                     callback(id - 1, tileIndex);
@@ -957,7 +991,7 @@ class Game extends Evented<GameEvents> {
                 return;
             }
 
-            if (!Number.isNaN(tileData - 1)) {
+            if (typeof tileData === 'number' && !Number.isNaN(tileData - 1)) {
                 callback(tileData - 1, tileIndex);
             }
         }, extra);
@@ -977,8 +1011,12 @@ class Game extends Evented<GameEvents> {
      * Finds a path to a grid position for the specified character.
      * The path will pass through any entity present in the ignore list.
      */
-    findPath(character: Character, x: number, y: number, ignoreList?: PathingIgnoreEntity[]): GridPath {
-        const self = this;
+    findPath(
+        character: Character<any> & PathingIgnoreEntity & { id: EntityId | string | number },
+        x: number,
+        y: number,
+        ignoreList?: PathingIgnoreEntity[]
+    ): GridPath {
         let path: GridPath = [];
         const map = this.map;
 
@@ -991,7 +1029,12 @@ class Game extends Evented<GameEvents> {
             return path;
         }
 
-        if (this.pathfinder) {
+        const pathfinder = this.pathfinder;
+        if (pathfinder) {
+            const excludeIds = new Set<EntityId>();
+            if (isEntityId(character.id)) {
+                excludeIds.add(character.id);
+            }
             const restoreChunkOverlay = applyChunkOverlayPathingToGrid({
                 grid: this.kernel.clientPathingGrid,
                 cache: this.kernel.clientChunkOverlayCache,
@@ -1001,20 +1044,20 @@ class Game extends Evented<GameEvents> {
                 grid: this.kernel.clientPathingGrid,
                 records: this.kernel.clientSpatialRecords.entries(),
                 isOutOfBounds: (cx, cy) => map.isOutOfBounds(cx, cy),
-                excludeIds: new Set([character.id]),
+                excludeIds,
             });
 
             try {
                 if (ignoreList) {
-                    ignoreList.forEach(function (entity: GridIndexedEntity) {
-                        self.pathfinder.ignoreEntity(entity);
+                    ignoreList.forEach(function (entity: PathingIgnoreEntity) {
+                        pathfinder.ignoreEntity(entity);
                     });
                 }
 
-                path = this.pathfinder.findPath(this.kernel.clientPathingGrid, character, x, y, false);
+                path = pathfinder.findPath(this.kernel.clientPathingGrid, character, x, y, false);
             } finally {
                 if (ignoreList) {
-                    this.pathfinder.clearIgnoreList();
+                    pathfinder.clearIgnoreList();
                 }
                 restoreDynamicOccupancy();
                 restoreChunkOverlay();
@@ -1058,7 +1101,7 @@ class Game extends Evented<GameEvents> {
      */
     getZoningOrientation(x: number, y: number): number {
         const c = this.camera;
-        let orientation = Types.Orientations.DOWN;
+        let orientation: number = Types.Orientations.DOWN;
 
         x = x - c.gridX;
         y = y - c.gridY;
@@ -1105,7 +1148,7 @@ class Game extends Evented<GameEvents> {
         } else {
             this.currentZoning = new Transition();
         }
-        this.bubbleManager.clean();
+        this.bubbleManager?.clean();
         this.kernel.enqueueClientCommand({ type: 'clientSendZone' });
     }
 
@@ -1124,7 +1167,9 @@ class Game extends Evented<GameEvents> {
 
         if (this.zoningQueue.length > 0) {
             const pos = this.zoningQueue[0];
-            this.startZoningFrom(pos.x, pos.y);
+            if (pos) {
+                this.startZoningFrom(pos.x, pos.y);
+            }
         }
     }
 
@@ -1133,7 +1178,7 @@ class Game extends Evented<GameEvents> {
     }
 
     resetZone(): void {
-        this.bubbleManager.clean();
+        this.bubbleManager?.clean();
         this.initAnimatedTiles();
         this.renderer.renderStaticCanvases();
 
@@ -1168,12 +1213,12 @@ class Game extends Evented<GameEvents> {
         this.kernel.enqueueClientCommand({ type: 'clientSendChat', message });
     }
 
-    createBubble(id: EntityId, message: string): void {
-        this.bubbleManager.create(String(id), message, this.currentTime);
+    createBubble(id: EntityId | string | number, message: string): void {
+        this.bubbleManager?.create(String(id), message, this.currentTime);
     }
 
-    destroyBubble(id: EntityId): void {
-        this.bubbleManager.destroyBubble(String(id));
+    destroyBubble(id: EntityId | string | number): void {
+        this.bubbleManager?.destroyBubble(String(id));
     }
 
     clearReviveWelcomeTimeout(): void {
@@ -1204,7 +1249,7 @@ class Game extends Evented<GameEvents> {
     }
 
     assignBubbleTo(character: BubbleAnchor): void {
-        const bubble = this.bubbleManager.getBubbleById(String(character.id));
+        const bubble = this.bubbleManager?.getBubbleById(String(character.id));
 
         if (bubble) {
             const s = this.renderer.scale,
@@ -1291,15 +1336,15 @@ class Game extends Evented<GameEvents> {
     tryUnlockingAchievement(name: AchievementKey): void {
         let achievement: AchievementDefinition | null = null;
         if (name in this.achievements) {
-            achievement = this.achievements[name];
+            achievement = this.achievements[name] ?? null;
 
-            if (achievement && achievement.isCompleted() && this.storage.unlockAchievement(achievement.id)) {
+            if (achievement?.isCompleted?.() && isAchievementId(achievement.id) && this.storage.unlockAchievement(achievement.id)) {
                 this.kernel.enqueueClientCommand({
                     type: 'clientSendAchievement',
                     achievementId: achievement.id,
                 });
                 this.emit('achievementUnlock', achievement.id, achievement.name, achievement.desc);
-                this.audioManager.playSound('achievement');
+                this.audioManager?.playSound('achievement');
             }
         }
     }
@@ -1337,7 +1382,7 @@ class Game extends Evented<GameEvents> {
     }
 
     checkUndergroundAchievement(): void {
-        const music = this.audioManager.getSurroundingMusic(this.player);
+        const music = this.audioManager?.getSurroundingMusic(this.player);
 
         if (music) {
             if (music.name === 'cave') {
@@ -1347,9 +1392,13 @@ class Game extends Evented<GameEvents> {
     }
 
     forEachEntityAround(x: number, y: number, r: number, callback: (entity: GridIndexedEntity) => void) {
+        const map = this.map;
+        if (!map) {
+            return;
+        }
         for (let i = x - r, max_i = x + r; i <= max_i; i += 1) {
             for (let j = y - r, max_j = y + r; j <= max_j; j += 1) {
-                if (!this.map.isOutOfBounds(i, j)) {
+                if (!map.isOutOfBounds(i, j)) {
                     const ids = this.kernel.getClientRenderIdsAt(i, j);
                     for (const id of ids) {
                         const entity = this.entities[String(id)];

@@ -5,7 +5,16 @@ import type Timer from '../../timer';
 import Types from '../../../shared/gametypes-browser';
 import type { EntityId } from '../../../shared/domain/ids';
 
-type DirtyRect = Record<string, number>;
+type DirtyRect = {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+};
 type StepTransition = {
     inProgress: boolean;
     endValue: number;
@@ -28,7 +37,7 @@ type NonCharacterEntity = {
     currentAnimation?: { update(time: number): boolean } | null;
     setDirty(): void;
 };
-type SimulationEntity = Character | NonCharacterEntity;
+type SimulationEntity = Character<any> | NonCharacterEntity;
 type AnimatedTileLike = AnimatedTile & {
     isDirty?: boolean;
     dirtyRect?: DirtyRect;
@@ -38,7 +47,7 @@ export type ClientSimulationSystemHost = Readonly<{
     started: boolean;
     currentTime: number;
     playerAggroTimer: Pick<Timer, 'isOver'>;
-    player: Character | null;
+    player: Character<any> | null;
     kernel: {
         enqueueClientCommand(command: { type: 'clientSendAggro'; mobId: EntityId }): void;
     };
@@ -55,7 +64,7 @@ export type ClientSimulationSystemHost = Readonly<{
         gridW: number;
         gridH: number;
         setPosition(x: number, y: number): void;
-        isVisible(entity: Character): boolean;
+        isVisible(entity: Character<any>): boolean;
     };
     currentZoning: StepTransition | null;
     zoningOrientation: number | null;

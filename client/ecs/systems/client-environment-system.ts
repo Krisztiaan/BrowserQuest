@@ -5,7 +5,7 @@ export type ClientEnvironmentSystemHost = Readonly<{
     kernel: ClientWorldKernel;
     map: {
         isPlateau(x: number, y: number): boolean;
-        getCurrentCheckpoint(player: { gridX: number; gridY: number }): { id?: string | number } | null;
+        getCurrentCheckpoint(player: { gridX: number; gridY: number }): { id?: string | number } | null | undefined;
     } | null;
     player:
         | {

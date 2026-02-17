@@ -17,6 +17,9 @@ type DoorTraversalAttacker = Readonly<{
 type DoorRendererContext = CanvasRenderingContext2D | object | null;
 
 type DoorTraversalPlayer = {
+    id: EntityId | string | number;
+    x: number;
+    y: number;
     gridX: number;
     gridY: number;
     nextGridX: number;
@@ -46,7 +49,7 @@ export type ClientDoorPortalSystemHost = Readonly<{
     } | null;
     camera: {
         setGridPosition(x: number, y: number): void;
-        focusEntity(entity: DoorTraversalPlayer): void;
+        focusEntity(entity: object): void;
     };
     kernel: {
         clientDoorTraversalArmed: boolean;

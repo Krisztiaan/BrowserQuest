@@ -2805,3 +2805,61 @@ Format per entry:
     - strict total reduced `337 -> 202`.
   - Next action:
     - commit batch C changes (`entityfactory` + `renderer` strict burn-down) and continue next priority diagnostics batch.
+
+- 16:47 UTC
+  - Ticket: 327 (Strict client burn-down batch D1: `client/app.ts` host contract and null guards)
+  - Start timestamp: 2026-02-17 16:47 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - resolve `client/app.ts` strict diagnostics via host-contract and nullable guard fixes.
+    - Out of scope:
+      - UI/UX behavior changes.
+  - Key actions taken:
+    - Established post-batch-C baseline for next priority slice.
+    - Opened Tickets 327/328 in `TODO.md`.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchC-after.log 2>&1` => `202` diagnostics.
+    - `awk -F'[:(]' ... /tmp/typecheck-client-batchC-after.log | sort -nr` => top files: `client/game.ts`=`57`, `client/app.ts`=`32`.
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 16:47 UTC`.
+  - Next action:
+    - patch `client/app.ts`, rerun strict checks, then execute Ticket 328 `client/game.ts` reductions.
+
+- 16:56 UTC
+  - Ticket: 327 (Strict client burn-down batch D1: `client/app.ts` host contract and null guards)
+  - Start timestamp: 2026-02-17 16:47 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Hardened app startup/runtime entrypoints with explicit `game` presence guards (`startGame`, `start`, pointer/health/chat/equipment flows).
+    - Added strict-safe event/popup/timer handling (`Event` listener typing, nullable href guard, message timer null guard).
+    - Guarded achievement access and list initialization paths against undefined lookups while preserving existing behavior.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchD-mid1.log 2>&1` => `app=0`, `main=0`, `total=170`.
+    - `awk '/^client\\/app.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchD-mid1.log` => `0`.
+    - `awk '/^client\\/main.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchD-mid1.log` => `0`.
+  - Next action:
+    - Complete Ticket 328 with system-level host-contract alignment in `game.ts` and ECS boundary types.
+
+- 16:56 UTC
+  - Ticket: 328 (Strict client burn-down batch D2: `client/game.ts` structural host alignment and entity-id guard tightening)
+  - Start timestamp: 2026-02-17 16:47 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Applied system-level boundary alignment across runtime systems:
+      - aligned `GameClient` player contract (`getWeaponName(): string | null`) with runtime player state.
+      - aligned renderer/game map and bounding contracts for pre-load nullability + strict dirty-rect shape compatibility.
+      - aligned ECS host interfaces (`command-apply`, `simulation`, `door-portal`, `environment`, `interaction-intent`) with actual runtime host behaviors.
+    - Refactored `game.ts` with defensive subsystem guards and stricter runtime contracts:
+      - entity-id guard for item entity registration/removal.
+      - map/audio/bubble null guards around zoning/music/bubble/pathing flows.
+      - pathfinding overlay exclusion narrowed via `isEntityId` guard.
+      - strengthened tile-data and cursor lookup guards.
+    - Reduced host incompatibility surface so scheduler systems can consume `Game` directly under strict typing.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchD-after.log 2>&1` => `client_total=114`.
+    - `bun run typecheck:full:client > /tmp/typecheck-full-client-batchD-after.log 2>&1` => `full_client_total=114`.
+    - `bun run typecheck:tools > /tmp/typecheck-tools-batchD-after.log 2>&1` => `tools_exit=0`.
+    - `awk '/^client\\/game.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchD-after.log` => `0`.
+    - strict client totals: `202 -> 114`.
+  - Next action:
+    - commit batch D (`app` + `game` + ECS boundary hardening), then continue next priority diagnostics tranche.

@@ -66,7 +66,7 @@ type BoundingEntity = {
     y: number;
     sprite?: { offsetX: number; offsetY: number; width: number; height: number } | null;
     hasWeapon?(): boolean;
-    getWeaponName?(): string;
+    getWeaponName?(): string | null;
 };
 type RenderInfo = {
     opacity: number;
@@ -77,13 +77,15 @@ type RenderInfo = {
     strokeColor?: string;
 };
 type RendererGameLike = {
-    map: {
-        tilesets?: Array<HTMLImageElement | undefined>;
-        width: number;
-        tilesize: number;
-        isHighTile(id: number): boolean;
-        isAnimatedTile(id: number): boolean;
-    };
+    map:
+        | {
+              tilesets?: Array<HTMLImageElement | undefined>;
+              width: number;
+              tilesize: number;
+              isHighTile(id: number): boolean;
+              isAnimatedTile(id: number): boolean;
+          }
+        | null;
     renderer?: Renderer;
     setSpriteScale(scale: number): void;
     getMouseGridPosition(): { x: number; y: number };
@@ -711,8 +713,12 @@ class Renderer {
     }
 
     getTileBoundingRect(tile: RenderAnimatedTile): BoundingRect {
-        const rect: BoundingRect = { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 },
-            gridW = this.game.map.width,
+        const rect: BoundingRect = { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 };
+        const map = this.game.map;
+        if (!map) {
+            return rect;
+        }
+        const gridW = map.width,
             s = this.scale,
             ts = this.tilesize,
             cellid = tile.index;
@@ -775,6 +781,9 @@ class Renderer {
     drawTerrain(): void {
         const self = this;
         const m = this.game.map;
+        if (!m) {
+            return;
+        }
         const tileset = this.tileset;
         if (!tileset) {
             return;
@@ -793,6 +802,9 @@ class Renderer {
     drawAnimatedTiles(dirtyOnly = false): void {
         const self = this;
         const m = this.game.map;
+        if (!m) {
+            return;
+        }
         const tileset = this.tileset;
         if (!tileset) {
             return;
@@ -820,6 +832,9 @@ class Renderer {
     drawHighTiles(ctx: RendererContext2D): void {
         const self = this;
         const m = this.game.map;
+        if (!m) {
+            return;
+        }
         const tileset = this.tileset;
         if (!tileset) {
             return;
