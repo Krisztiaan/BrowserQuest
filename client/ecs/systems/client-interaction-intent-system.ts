@@ -1,6 +1,6 @@
 import type { EntityId } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
-import { isWithinAttackRange, resolveAttackRangeTiles } from '../../../shared/combat/attack-range';
+import { resolveEngagementDecision } from '../../../shared/combat/engagement';
 import Types from '../../../shared/gametypes-browser';
 import type { ClientWorldKernel } from '../world-kernel';
 import type { ClientCommand } from '../client-commands';
@@ -98,20 +98,22 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         }
         const playerWeaponName = host.player.getWeaponName();
         const playerWeaponKind = typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
-        const attackRangeTiles = resolveAttackRangeTiles({
+        const engagement = resolveEngagementDecision({
+            attackerPos: gridPos(host.player.gridX, host.player.gridY),
+            targetPos: gridPos(targetRecord.gridX, targetRecord.gridY),
             attackerKind: host.player.kind,
-            weaponKind: playerWeaponKind,
+            attackerWeaponKind: playerWeaponKind,
         });
-        const inAttackRange = isWithinAttackRange(
-            gridPos(host.player.gridX, host.player.gridY),
-            gridPos(targetRecord.gridX, targetRecord.gridY),
-            attackRangeTiles
-        );
-        if (inAttackRange) {
+        if (engagement === 'attack') {
             if (host.player.target?.id !== intent.targetId || !host.player.isAttacking()) {
                 const cmd: ClientCommand = { type: 'playerAttack', targetId: intent.targetId };
                 host.kernel.enqueueClientCommand(cmd);
             }
+            return;
+        }
+        const hasPendingMoveIntents =
+            host.kernel.clientPendingMoveAcks.length > 0 || host.kernel.clientPendingMoveSeqAcks.length > 0;
+        if (hasPendingMoveIntents) {
             return;
         }
         const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;

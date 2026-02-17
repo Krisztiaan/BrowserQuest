@@ -8,6 +8,7 @@ import type Sprite from '../../sprite';
 import { entityIdFromWire, isEntityId, type EntityId } from '../../../shared/domain/ids';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
 import { gridPos } from '../../../shared/domain/positions';
+import { buildMovePlanSteps, resolveMoveBaseline } from '../../../shared/world/movement-intents';
 import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 import { getMobPrefab } from '../../../shared/content/prefabs';
@@ -234,6 +235,40 @@ function hardStopCharacterMovement<TEvents extends CharacterEventEnvelope>(entit
     entity.idle();
 }
 
+function resolvePlanOrigin(host: ClientCommandApplySystemHost): { x: number; y: number } {
+    return resolveMoveBaseline(
+        gridPos(host.player.gridX, host.player.gridY),
+        host.kernel.clientPendingMoveAcks
+    );
+}
+
+function requestPathFromPlanOrigin({
+    host,
+    origin,
+    toX,
+    toY,
+}: {
+    host: ClientCommandApplySystemHost;
+    origin: { x: number; y: number };
+    toX: number;
+    toY: number;
+}): Array<[number, number]> {
+    if (origin.x === host.player.gridX && origin.y === host.player.gridY) {
+        return host.player.requestPathfindingTo(toX, toY);
+    }
+
+    const prevGridX = host.player.gridX;
+    const prevGridY = host.player.gridY;
+    host.player.gridX = origin.x;
+    host.player.gridY = origin.y;
+    try {
+        return host.player.requestPathfindingTo(toX, toY);
+    } finally {
+        host.player.gridX = prevGridX;
+        host.player.gridY = prevGridY;
+    }
+}
+
 function planServerAuthoritativeMoveTo({
     host,
     toX,
@@ -257,27 +292,35 @@ function planServerAuthoritativeMoveTo({
 
     // New plan supersedes old.
     host.kernel.clearClientMovePlan();
-    host.kernel.clearClientPendingMoveAcks();
-    host.kernel.clearClientPendingMoveSeqAcks();
-    host.kernel.clientMovementSuppressed = false;
-
-    const path = host.player.requestPathfindingTo(toX, toY);
+    const origin = resolvePlanOrigin(host);
+    const path = requestPathFromPlanOrigin({
+        host,
+        origin,
+        toX,
+        toY,
+    });
     if (path.length <= 1) {
-        debugMoves('plan:none', { toX, toY, stopAdjacentToTarget, reason: 'no_path' });
+        debugMoves('plan:none', { toX, toY, stopAdjacentToTarget, origin, reason: 'no_path' });
         return;
     }
-    const rawSteps = stopAdjacentToTarget ? path.slice(1, -1) : path.slice(1);
-    if (rawSteps.length === 0) {
-        debugMoves('plan:none', { toX, toY, stopAdjacentToTarget, reason: 'no_steps' });
+    const steps = buildMovePlanSteps({ path, stopAdjacentToTarget });
+    if (steps.length === 0) {
+        debugMoves('plan:none', { toX, toY, stopAdjacentToTarget, origin, reason: 'no_steps' });
         return;
     }
-
-    const steps = rawSteps.map((entry) => gridPos(entry[0], entry[1]));
     const target = steps.at(-1);
     if (!target) {
         return;
     }
-    debugMoves('plan:set', { toX, toY, stopAdjacentToTarget, steps: steps.length, target });
+    debugMoves('plan:set', {
+        toX,
+        toY,
+        stopAdjacentToTarget,
+        origin,
+        pending: host.kernel.clientPendingMoveAcks.length,
+        steps: steps.length,
+        target,
+    });
     host.kernel.setClientMovePlan({
         target,
         steps,
@@ -762,7 +805,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             case 'playerFollow': {
                 const entity = getKnownEntity(command.targetId);
                 if (entity) {
-                    if (entity instanceof Character) {
+                    if (entity instanceof Character && host.player.target !== entity) {
                         host.player.setTarget(entity);
                     }
                     planServerAuthoritativeMoveTo({
@@ -777,7 +820,9 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             case 'playerTalkTo': {
                 const entity = getKnownEntity(command.npcId);
                 if (entity instanceof Npc) {
-                    host.player.setTarget(entity);
+                    if (host.player.target !== entity) {
+                        host.player.setTarget(entity);
+                    }
                     planServerAuthoritativeMoveTo({
                         host,
                         toX: entity.gridX,
@@ -797,7 +842,9 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             case 'playerOpenChest': {
                 const entity = getKnownEntity(command.chestId);
                 if (entity instanceof Chest) {
-                    host.player.setTarget(entity);
+                    if (host.player.target !== entity) {
+                        host.player.setTarget(entity);
+                    }
                     planServerAuthoritativeMoveTo({
                         host,
                         toX: entity.gridX,

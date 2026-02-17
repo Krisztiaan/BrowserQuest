@@ -203,6 +203,36 @@ test('playerGoTo plans steps without moving the local player client-side', () =>
     expect(kernel.clientMovePlan?.target).toEqual(gridPos(12, 10));
 });
 
+test('playerGoTo plans from pending move tail and preserves pending acks', () => {
+    const playerId = entityIdFromWire(70011);
+    const { host, kernel, player } = createHostFixture(playerId);
+    const pathOrigins: Array<{ x: number; y: number }> = [];
+
+    player.setPathRequestResolver((toX, toY) => {
+        pathOrigins.push({ x: player.gridX, y: player.gridY });
+        return [
+            [player.gridX, player.gridY],
+            [player.gridX + 1, player.gridY],
+            [toX, toY],
+        ];
+    });
+
+    kernel.enqueueClientPendingMoveAck(11, 10);
+    kernel.enqueueClientPendingMoveAck(12, 10);
+    kernel.enqueueClientPendingMoveSeqAck(31);
+
+    kernel.enqueueClientCommand({ type: 'playerGoTo', x: 14, y: 10 });
+    runClientCommandApplySystem(host);
+
+    expect(pathOrigins).toEqual([{ x: 12, y: 10 }]);
+    expect(player.gridX).toBe(10);
+    expect(player.gridY).toBe(10);
+    expect(kernel.clientPendingMoveAcks).toEqual([gridPos(11, 10), gridPos(12, 10)]);
+    expect(kernel.clientPendingMoveSeqAcks).toEqual([31]);
+    expect(kernel.clientMovePlan?.steps).toEqual([gridPos(13, 10), gridPos(14, 10)]);
+    expect(kernel.clientMovePlan?.target).toEqual(gridPos(14, 10));
+});
+
 test('playerStop clears queued move plan and pending move acks', () => {
     const playerId = entityIdFromWire(7006);
     const { host, kernel } = createHostFixture(playerId);

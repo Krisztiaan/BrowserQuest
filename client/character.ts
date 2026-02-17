@@ -4,7 +4,7 @@ import Timer from './timer';
 import log from './platform/log';
 import Types from '../shared/gametypes-browser';
 import { gridPos } from '../shared/domain/positions';
-import { isWithinAttackRange, resolveAttackRangeTiles } from '../shared/combat/attack-range';
+import { isEntityWithinAttackRange } from '../shared/combat/engagement';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { MergeEvents, TypedEventMap, TypedEventSource } from '../shared/typed-event-emitter';
 
@@ -516,12 +516,12 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
         }
         const weaponName = this.getWeaponName();
         const weaponKind = typeof weaponName === 'string' ? Types.getKindFromString(weaponName) : undefined;
-        const attackRangeTiles = resolveAttackRangeTiles({ attackerKind: this.kind, weaponKind });
-        return isWithinAttackRange(
-            gridPos(this.gridX, this.gridY),
-            gridPos(this.target.gridX, this.target.gridY),
-            attackRangeTiles
-        );
+        return isEntityWithinAttackRange({
+            attackerPos: gridPos(this.gridX, this.gridY),
+            targetPos: gridPos(this.target.gridX, this.target.gridY),
+            attackerKind: this.kind,
+            attackerWeaponKind: weaponKind,
+        });
     }
 
     die(): void {

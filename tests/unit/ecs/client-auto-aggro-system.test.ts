@@ -7,12 +7,7 @@ import {
 } from '../../../client/ecs/systems/client-simulation-system';
 import Types from '../../../shared/gametypes-browser';
 import { entityIdFromWire } from '../../../shared/domain/ids';
-
-function setGrid(entity: Character, x: number, y: number): void {
-    entity.setGridPosition(x, y);
-    entity.gridX = x;
-    entity.gridY = y;
-}
+import { setEntityGrid } from '../../support/mmo/client-gameplay';
 
 function createHost({
     player,
@@ -67,10 +62,10 @@ function createHost({
 
 test('client simulation auto-aggro enqueues AGGRO for nearby aggressive mobs while idle', () => {
     const player = new Character('player', Types.Entities.WARRIOR);
-    setGrid(player, 10, 10);
+    setEntityGrid(player, 10, 10);
 
     const mob = new Mob(entityIdFromWire(1200), Types.Entities.SKELETON);
-    setGrid(mob, 11, 10);
+    setEntityGrid(mob, 11, 10);
 
     const commands: Array<{ type: 'clientSendAggro'; mobId: number }> = [];
     const host = createHost({
@@ -89,10 +84,10 @@ test('client simulation auto-aggro enqueues AGGRO for nearby aggressive mobs whi
 
 test('client simulation auto-aggro is idempotent for the same mob target', () => {
     const player = new Character('player', Types.Entities.WARRIOR);
-    setGrid(player, 12, 10);
+    setEntityGrid(player, 12, 10);
 
     const mob = new Mob(entityIdFromWire(1201), Types.Entities.SKELETON);
-    setGrid(mob, 13, 10);
+    setEntityGrid(mob, 13, 10);
 
     const commands: Array<{ type: 'clientSendAggro'; mobId: number }> = [];
     const host = createHost({

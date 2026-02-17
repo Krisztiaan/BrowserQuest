@@ -1,6 +1,7 @@
 import Types from '../shared/gametypes-browser';
 import Utils from './utils';
 import type { ClientToServerHelloAction, ClientToServerProtocolAction } from '../shared/protocol/types';
+import { isValidIntentSeq } from '../shared/protocol/intent-seq';
 import type { Command, CommandSource } from './ecs/commands';
 import type { EntityId } from '../shared/domain/ids';
 import { entityIdFromWire } from '../shared/domain/ids';
@@ -209,9 +210,7 @@ export function translateClientActionToCommand(
 
             if (
                 typeof seq !== 'number'
-                || !Number.isFinite(seq)
-                || !Number.isSafeInteger(seq)
-                || seq < 0
+                || !isValidIntentSeq(seq)
                 || typeof intentTypeId !== 'string'
                 || !Utils.hasMaxUtf8Bytes(intentTypeId, INTENT_TYPE_ID_MAX_UTF8_BYTES)
                 || typeof payloadJson !== 'string'

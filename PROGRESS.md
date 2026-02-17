@@ -3265,3 +3265,158 @@ Format per entry:
     - `bun run lint`
   - Next action:
     - Backlog cleanup (remove done tickets and obsolete audit docs), then commit.
+
+- 21:38 UTC
+  - Ticket: 347 (Client movement/combat intent flood control)
+  - Start timestamp: 2026-02-17 21:38 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited live logs showing repeated `move.step` rejects (`non-adjacent` and `queue full`) while chasing rats.
+    - Traced reject sources to `server/world/ecs-command-pipeline.ts` and correlated with client follow/replan flow in `client/ecs/systems/client-command-apply-system.ts`, `client/ecs/systems/client-interaction-intent-system.ts`, and `client/ecs/systems/client-player-move-outbox-system.ts`.
+    - Identified client-side pending-move state resets during replanning as likely source of server queue desync and intent flood.
+  - Evidence:
+    - `rg -n "already the target of|move.step queue full|Invalid move.step|Intent rejected|data:" client server shared -S`
+    - `sed -n '520,760p' server/world/ecs-command-pipeline.ts`
+    - `sed -n '1,340p' client/ecs/systems/client-interaction-intent-system.ts`
+    - `sed -n '280,760p' client/ecs/systems/client-command-apply-system.ts`
+    - `sed -n '1,280p' client/ecs/systems/client-player-move-outbox-system.ts`
+  - Next action:
+    - Patch replanning/move queue behavior to prevent stale-baseline move intent bursts, then run focused movement/combat tests.
+
+- 21:38 UTC
+  - Ticket: 348 (Client logging/audio noise hardening)
+  - Start timestamp: 2026-02-17 21:38 UTC
+  - Status: `todo`
+  - Key actions taken:
+    - Audited default client logger config and audio load logs.
+    - Confirmed `client/platform/log.ts` defaults to `debug`, causing packet and repetitive target logs to print continuously in normal runtime.
+  - Evidence:
+    - `sed -n '1,240p' client/platform/log.ts`
+    - `sed -n '1,260p' client/audio.ts`
+    - `rg -n "log\\.debug\\(|console\\.log" client -S | head -n 200`
+  - Next action:
+    - Switch to sane default log level with opt-in debug, then verify client typecheck/tests.
+
+- 21:45 UTC
+  - Ticket: 347 (Client movement/combat intent flood control)
+  - Status: `done`
+  - Key actions taken:
+    - Updated client movement replanning to use pending authoritative move tail as planning origin instead of resetting outbound move-ack baseline.
+    - Added follow throttling in interaction intent system to avoid redundant `playerFollow` while move intents are already in-flight.
+    - Reduced duplicate target-set churn for follow/talk/open command handling.
+    - Added unit coverage for pending-tail replanning and follow suppression under pending move intents.
+  - Evidence:
+    - `bun test tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts`
+  - Next action:
+    - Mark Ticket 348 done and start detailed ticketized code-sharing refactor.
+
+- 21:45 UTC
+  - Ticket: 348 (Client logging/audio noise hardening)
+  - Status: `done`
+  - Key actions taken:
+    - Reworked `client/platform/log.ts` to default to `info` and made `debug` opt-in via global/query/localStorage overrides.
+    - Preserved explicit debug pathways for targeted diagnostics while removing default packet/noise spam pressure.
+  - Evidence:
+    - `bun run typecheck:client`
+    - `bun test tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts`
+  - Next action:
+    - Execute Ticket 349 (shared intent contracts/payload codecs).
+
+- 21:45 UTC
+  - Ticket: 349–353 (Client/server code-sharing refactor)
+  - Start timestamp: 2026-02-17 21:45 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Performed detailed ticketization for five sharing tracks requested by user:
+      - shared intent contracts/payload codecs,
+      - shared movement intent rules,
+      - shared seq utilities,
+      - shared combat engagement predicates,
+      - shared gameplay test fixtures.
+    - Captured scope/acceptance/verification/dependencies in `TODO.md`.
+    - Audited current duplication points across `client/gameclient.ts`, `server/world/ecs-command-pipeline.ts`, `server/world/ecs-command-pipeline/intent-payloads.ts`, and related tests.
+  - Evidence:
+    - `rg -n "sendIntent\\(|move.step|claim\\.create|tile\\.edit|decodeIntent|seq|ACK|CORRECTION|REJECT" client server shared tests -S`
+    - `sed -n '620,790p' client/gameclient.ts`
+    - `sed -n '1440,1705p' server/world/ecs-command-pipeline.ts`
+    - `sed -n '1,260p' server/world/ecs-command-pipeline/intent-payloads.ts`
+  - Next action:
+    - Implement Ticket 349 shared intent constants/codecs and wire into client/server.
+
+- 21:53 UTC
+  - Ticket: 349 (Shared intent contracts/payload codecs)
+  - Status: `done`
+  - Key actions taken:
+    - Added shared intent contract module `shared/protocol/intents.ts` with stable intent/outcome IDs and payload encode/decode helpers.
+    - Rewired client intent send paths (`move.step`, `door.teleport`, `tile.edit`, claim intents) to shared constants/codecs.
+    - Rewired server INTENT bridging to shared decoders and removed duplicated server-only intent parser file.
+    - Added protocol unit coverage for intent constants and codec round-trips/rejections.
+  - Evidence:
+    - `bun test tests/unit/protocol/intents.test.ts tests/unit/mmo/protocol-capabilities.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts`
+  - Next action:
+    - Execute Ticket 350 shared movement intent rules.
+
+- 21:53 UTC
+  - Ticket: 350 (Shared movement intent rules)
+  - Status: `done`
+  - Key actions taken:
+    - Added `shared/world/movement-intents.ts` for move baseline resolution, cardinal step validation, queue limits/reasons, and stop-adjacent plan slicing.
+    - Adopted shared movement helpers in server `move.step` validation and client move-plan origin/slicing logic.
+    - Added dedicated movement helper unit tests.
+  - Evidence:
+    - `bun test tests/unit/world/movement-intents.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - Execute Ticket 351 shared seq utilities.
+
+- 21:53 UTC
+  - Ticket: 351 (Shared intent seq utilities)
+  - Status: `done`
+  - Key actions taken:
+    - Added `shared/protocol/intent-seq.ts` with seq validation, classification (`accept`/`duplicate`/`stale`/`gap`), reject reason formatting, and seq progression helper.
+    - Replaced inline server seq-gate math with shared classifier/reason formatting.
+    - Wired client seq issuance and server INTENT translation validation to shared seq helpers.
+    - Added seq utility unit tests.
+  - Evidence:
+    - `bun test tests/unit/protocol/intent-seq.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/player-session.test.ts`
+  - Next action:
+    - Execute Ticket 352 shared combat engagement predicates.
+
+- 21:53 UTC
+  - Ticket: 352 (Shared combat engagement predicates)
+  - Status: `done`
+  - Key actions taken:
+    - Added `shared/combat/engagement.ts` with shared in-range and engagement decision predicates.
+    - Replaced client interaction attack/follow gate logic with shared engagement predicate.
+    - Replaced server combat hit-frame in-range check with shared engagement predicate.
+    - Reused shared predicate in client character range checks for parity.
+    - Added engagement predicate unit tests.
+  - Evidence:
+    - `bun test tests/unit/combat/engagement.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts`
+  - Next action:
+    - Execute Ticket 353 shared gameplay fixtures.
+
+- 21:53 UTC
+  - Ticket: 353 (Shared gameplay test fixtures)
+  - Status: `done`
+  - Key actions taken:
+    - Added shared gameplay test helpers at `tests/support/mmo/client-gameplay.ts` for entity grid placement and client spatial-record seeding.
+    - Migrated `tests/unit/ecs/client-attack-intent-follow.test.ts` and `tests/unit/ecs/client-auto-aggro-system.test.ts` to shared helpers, removing duplicated local setup code.
+    - Kept behavior assertions unchanged.
+  - Evidence:
+    - `bun test tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-auto-aggro-system.test.ts`
+  - Next action:
+    - Run consolidated verification and close all active tickets.
+
+- 21:53 UTC
+  - Ticket: 349–353 (Consolidated verification)
+  - Status: `done`
+  - Key actions taken:
+    - Ran full targeted validation across new shared modules + affected client/server integration tests.
+    - Ran full repository typecheck to confirm no typing regressions.
+    - Cleared `TODO.md` active tickets per done policy.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/character.ts client/ecs/systems/client-command-apply-system.ts client/ecs/systems/client-interaction-intent-system.ts client/gameclient.ts server/player-session-command-translation.ts server/world/ecs-command-pipeline.ts server/world/ecs-command-pipeline/core-module-registry.ts shared/protocol/intents.ts shared/world/movement-intents.ts shared/protocol/intent-seq.ts shared/combat/engagement.ts tests/unit/protocol/intents.test.ts tests/unit/world/movement-intents.test.ts tests/unit/protocol/intent-seq.test.ts tests/unit/combat/engagement.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-auto-aggro-system.test.ts tests/support/mmo/client-gameplay.ts`
+    - `bun test tests/unit/protocol/intents.test.ts tests/unit/world/movement-intents.test.ts tests/unit/protocol/intent-seq.test.ts tests/unit/combat/engagement.test.ts tests/unit/mmo/protocol-capabilities.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/player-session.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-auto-aggro-system.test.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts`
+  - Next action:
+    - Ready for user review / optional follow-up cleanup split (if a smaller commit breakdown is desired).

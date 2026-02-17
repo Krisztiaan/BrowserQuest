@@ -1,6 +1,11 @@
 import type { EntityId } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
-import { isWithinAttackRange, resolveAttackRangeTiles } from '../../shared/combat/attack-range';
+import { isEntityWithinAttackRange } from '../../shared/combat/engagement';
+import {
+    MOVE_STEP_REJECT_NON_ADJACENT,
+    resolveMoveBaseline,
+    validateMoveStepIntent,
+} from '../../shared/world/movement-intents';
 import { requireMobPrefab } from '../../shared/content/prefabs';
 import { WorldState } from '../ecs/world-state';
 import type { Command } from '../ecs/commands';
@@ -61,12 +66,19 @@ import { CLAIMS_STORE_RESOURCE } from './claims/claims-resource';
 import type { ServerConfig } from '../runtime-types';
 import { normalizeIdentityKey, resolveIdentityKey } from '../identity';
 import {
-    decodeIntentClaimCreate,
-    decodeIntentClaimDelete,
-    decodeIntentClaimUpdate,
-    decodeIntentGridPos,
-    decodeIntentTileEdit,
-} from './ecs-command-pipeline/intent-payloads';
+    decodeClaimCreateIntentPayload,
+    decodeClaimDeleteIntentPayload,
+    decodeClaimUpdateIntentPayload,
+    decodeDoorTeleportIntentPayload,
+    decodeMoveStepIntentPayload,
+    decodeTileEditIntentPayload,
+} from '../../shared/protocol/intents';
+import {
+    classifyIntentSeq,
+    formatIntentSeqRejectReason,
+    INTENT_SEQ_DEFAULT_MAX_GAP,
+    INTENT_SEQ_INITIAL_LAST_ACCEPTED,
+} from '../../shared/protocol/intent-seq';
 import {
     enqueueChunkAoiUpdates,
     replicateChunkDeltas,
@@ -592,21 +604,19 @@ function applyMoveIntentCommand({
     if (!currentPos) {
         return;
     }
-    const baseline = lastQueued ?? currentPos;
-    const dist = Math.abs(baseline.x - cmd.to.x) + Math.abs(baseline.y - cmd.to.y);
-    if (dist !== 1) {
-        // Client got ahead or desynced; clear queued intents and force correction.
-        state.world.removeComponent(player.id, MoveQueue);
-        return { ok: false, reason: 'Invalid move.step (non-adjacent).' };
-    }
-
-    if (!world.isValidPosition(cmd.to.x, cmd.to.y)) {
-        return { ok: false, reason: 'Invalid move.step (position blocked).' };
-    }
-
-    const MAX_QUEUE = 16;
-    if (existing.length >= MAX_QUEUE) {
-        return { ok: false, reason: 'move.step queue full.' };
+    const baseline = resolveMoveBaseline(currentPos, existing);
+    const validation = validateMoveStepIntent({
+        baseline,
+        to: cmd.to,
+        existingQueueLength: existing.length,
+        isValidPosition: (x, y) => world.isValidPosition(x, y),
+    });
+    if (!validation.ok) {
+        if (validation.reason === MOVE_STEP_REJECT_NON_ADJACENT) {
+            // Client got ahead or desynced; clear queued intents and force correction.
+            state.world.removeComponent(player.id, MoveQueue);
+        }
+        return validation;
     }
     state.world.addComponent(player.id, MoveQueue, { entries: [...existing, cmd.to] });
 }
@@ -997,9 +1007,15 @@ function runServerAuthoritativeCombatSystem({
         const attackerPos = state.world.getComponent(engagement.attackerId, replication.Position);
         const targetPos = state.world.getComponent(engagement.targetId, replication.Position);
         const attackerWeaponKind = state.world.getComponent(engagement.attackerId, replication.Weapon);
-        const attackRangeTiles = resolveAttackRangeTiles({ attackerKind, weaponKind: attackerWeaponKind });
         const isInRange =
-            attackerPos !== undefined && targetPos !== undefined && isWithinAttackRange(attackerPos, targetPos, attackRangeTiles);
+            attackerPos !== undefined &&
+            targetPos !== undefined &&
+            isEntityWithinAttackRange({
+                attackerPos,
+                targetPos,
+                attackerKind,
+                attackerWeaponKind,
+            });
         const isVisible =
             isMobVsPlayer && attackerPos !== undefined && targetPos !== undefined
                 ? isEntityVisibleToPlayer(world, targetPos, attackerPos)
@@ -1550,19 +1566,20 @@ function createApplyInboundCommandsSystem(
                         world.pushToPlayerId(cmd.source.playerId, buildCorrectionMoveAction(cmd.seq, pos.x, pos.y));
                     };
 
-                    const lastAccepted = seqState.lastAcceptedByPlayerId.get(player.id) ?? -1;
-                    const maxSeqGap = 2048;
-                    if (cmd.seq < lastAccepted) {
-                        reject(`Stale seq: ${cmd.seq} < ${lastAccepted}`);
-                        correction();
-                        break;
-                    }
-                    if (cmd.seq === lastAccepted) {
+                    const lastAccepted = seqState.lastAcceptedByPlayerId.get(player.id) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
+                    const seqDecision = classifyIntentSeq({
+                        seq: cmd.seq,
+                        lastAccepted,
+                        maxGap: INTENT_SEQ_DEFAULT_MAX_GAP,
+                    });
+                    if (seqDecision.kind === 'duplicate') {
                         world.pushToPlayerId(cmd.source.playerId, buildAckAction(cmd.seq));
                         break;
                     }
-                    if (cmd.seq > lastAccepted + maxSeqGap) {
-                        reject(`Seq gap too large: ${cmd.seq} > ${lastAccepted} + ${maxSeqGap}`);
+
+                    const seqRejectReason = formatIntentSeqRejectReason(cmd.seq, seqDecision);
+                    if (seqRejectReason !== null) {
+                        reject(seqRejectReason);
                         correction();
                         break;
                     }
@@ -1576,17 +1593,17 @@ function createApplyInboundCommandsSystem(
 
                     let bridged: Command | null = null;
                     if (cmd.intentTypeId === INTENT_MOVE_STEP) {
-                        const to = decodeIntentGridPos(cmd.payloadJson);
+                        const to = decodeMoveStepIntentPayload(cmd.payloadJson);
                         bridged = to
                             ? ({ type: 'MOVE', source: cmd.source, to } satisfies Extract<Command, { type: 'MOVE' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_DOOR_TELEPORT) {
-                        const to = decodeIntentGridPos(cmd.payloadJson);
+                        const to = decodeDoorTeleportIntentPayload(cmd.payloadJson);
                         bridged = to
                             ? ({ type: 'TELEPORT', source: cmd.source, to } satisfies Extract<Command, { type: 'TELEPORT' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_TILE_EDIT) {
-                        const edit = decodeIntentTileEdit(cmd.payloadJson);
+                        const edit = decodeTileEditIntentPayload(cmd.payloadJson);
                         bridged = edit
                             ? ({
                                   type: 'TILE_EDIT',
@@ -1597,7 +1614,7 @@ function createApplyInboundCommandsSystem(
                               } satisfies Extract<Command, { type: 'TILE_EDIT' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_CLAIM_CREATE) {
-                        const claim = decodeIntentClaimCreate(cmd.payloadJson);
+                        const claim = decodeClaimCreateIntentPayload(cmd.payloadJson);
                         bridged = claim
                             ? ({
                                   type: 'CLAIM_CREATE',
@@ -1606,30 +1623,30 @@ function createApplyInboundCommandsSystem(
                                   y1: claim.y1,
                                   x2: claim.x2,
                                   y2: claim.y2,
-                                  editorNameKeys: claim.editorNameKeys,
+                                  editorNameKeys: claim.editors,
                               } satisfies Extract<Command, { type: 'CLAIM_CREATE' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_CLAIM_UPDATE) {
-                        const claim = decodeIntentClaimUpdate(cmd.payloadJson);
+                        const claim = decodeClaimUpdateIntentPayload(cmd.payloadJson);
                         bridged = claim
                             ? ({
                                   type: 'CLAIM_UPDATE',
                                   source: cmd.source,
-                                  claimId: claim.claimId,
+                                  claimId: claim.id,
                                   x1: claim.x1,
                                   y1: claim.y1,
                                   x2: claim.x2,
                                   y2: claim.y2,
-                                  ...(claim.editorNameKeys !== undefined ? { editorNameKeys: claim.editorNameKeys } : {}),
+                                  ...(claim.editors !== undefined ? { editorNameKeys: claim.editors } : {}),
                               } satisfies Extract<Command, { type: 'CLAIM_UPDATE' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_CLAIM_DELETE) {
-                        const claim = decodeIntentClaimDelete(cmd.payloadJson);
+                        const claim = decodeClaimDeleteIntentPayload(cmd.payloadJson);
                         bridged = claim
                             ? ({
                                   type: 'CLAIM_DELETE',
                                   source: cmd.source,
-                                  claimId: claim.claimId,
+                                  claimId: claim.id,
                               } satisfies Extract<Command, { type: 'CLAIM_DELETE' }>)
                             : null;
                     }

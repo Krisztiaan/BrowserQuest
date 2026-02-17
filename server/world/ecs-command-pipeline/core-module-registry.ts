@@ -1,6 +1,24 @@
 import { entityIdFromWire, type EntityId } from '../../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../../shared/domain/positions';
 import { GameModuleRegistry } from '../../../shared/modules/module-registry';
+import {
+    INTENT_CLAIM_CREATE,
+    INTENT_CLAIM_DELETE,
+    INTENT_CLAIM_UPDATE,
+    INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_STEP,
+    INTENT_TILE_EDIT,
+    OUTCOME_DOOR_TELEPORT,
+} from '../../../shared/protocol/intents';
+export {
+    INTENT_CLAIM_CREATE,
+    INTENT_CLAIM_DELETE,
+    INTENT_CLAIM_UPDATE,
+    INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_STEP,
+    INTENT_TILE_EDIT,
+    OUTCOME_DOOR_TELEPORT,
+} from '../../../shared/protocol/intents';
 import type { Command } from '../../ecs/commands';
 import type { ComponentType } from '../../ecs/component-registry';
 import type { DomainEvent } from '../../ecs/events';
@@ -21,14 +39,6 @@ import type { RectClaim } from '../claims/claims-store';
 import { canEditTile } from '../claims/permissions';
 import type { ChunkOverlayStore } from '../chunks/chunk-overlay-store';
 import type { PlayerLike } from '../player-like';
-
-export const INTENT_MOVE_STEP = 'move.step';
-export const INTENT_DOOR_TELEPORT = 'door.teleport';
-export const INTENT_TILE_EDIT = 'tile.edit';
-export const INTENT_CLAIM_CREATE = 'claim.create';
-export const INTENT_CLAIM_UPDATE = 'claim.update';
-export const INTENT_CLAIM_DELETE = 'claim.delete';
-export const OUTCOME_DOOR_TELEPORT = 'teleport.door';
 
 type JsonScalar = string | number | boolean | null;
 type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
