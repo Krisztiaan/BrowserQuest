@@ -19,13 +19,13 @@ type CharacterLike = {
     waitToAttack?: (character: CharacterLike) => void;
 };
 type CombatTarget = CharacterLike & {
-    removeAttacker?: (attacker: Character) => void;
+    removeAttacker?: (attacker: CharacterLike) => void;
 };
 
 type PathRequestResolver = (x: number, y: number) => Path;
 
 export type CharacterEvents = {
-    dirty: [character: Character];
+    dirty: [character: Character<any>];
     startPathing: [path: Path];
     stopPathing: [x: number, y: number];
     beforeStep: [];
@@ -33,10 +33,11 @@ export type CharacterEvents = {
     aggro: [character: CharacterLike];
     checkAggro: [];
     death: [];
-    hasMoved: [character: Character];
+    hasMoved: [character: Character<any>];
 };
 
-export type CharacterEventSource<TEvents extends TypedEventMap = CharacterEvents> = TypedEventSource<TEvents>;
+export type CharacterEventSource<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = CharacterEvents> =
+    TypedEventSource<TEvents>;
 
 class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = CharacterEvents> extends Entity<TEvents> {
     nextGridX: number;
@@ -119,7 +120,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
         this.pathRequestResolver = null;
     }
 
-    clean(): void {
+    override clean(): void {
         this.forEachAttacker((attacker) => {
             attacker.disengage();
             attacker.idle();
@@ -143,7 +144,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
         return null;
     }
 
-    hasShadow(): boolean {
+    override hasShadow(): boolean {
         return true;
     }
 
@@ -184,7 +185,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
         }
     }
 
-    idle(orientation?: number): void {
+    override idle(orientation?: number): void {
         this.setOrientation(orientation);
         this.animate('idle', this.idleSpeed);
     }
@@ -250,17 +251,22 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
 
         const p = this.path;
         const i = this.step;
+        const current = p[i];
+        const previous = p[i - 1];
+        if (!current || !previous) {
+            return;
+        }
 
-        if (p[i][0] < p[i - 1][0]) {
+        if (current[0] < previous[0]) {
             this.walk(Types.Orientations.LEFT);
         }
-        if (p[i][0] > p[i - 1][0]) {
+        if (current[0] > previous[0]) {
             this.walk(Types.Orientations.RIGHT);
         }
-        if (p[i][1] < p[i - 1][1]) {
+        if (current[1] < previous[1]) {
             this.walk(Types.Orientations.UP);
         }
-        if (p[i][1] > p[i - 1][1]) {
+        if (current[1] > previous[1]) {
             this.walk(Types.Orientations.DOWN);
         }
     }
@@ -269,7 +275,11 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
         if (!this.path) {
             return;
         }
-        this.setGridPosition(this.path[this.step][0], this.path[this.step][1]);
+        const position = this.path[this.step];
+        if (!position) {
+            return;
+        }
+        this.setGridPosition(position[0], position[1]);
     }
 
     nextStep(): void {
@@ -287,8 +297,11 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
                 this.interrupted = false;
             } else {
                 if (this.hasNextStep()) {
-                    this.nextGridX = this.path[this.step + 1][0];
-                    this.nextGridY = this.path[this.step + 1][1];
+                    const next = this.path[this.step + 1];
+                    if (next) {
+                        this.nextGridX = next[0];
+                        this.nextGridY = next[1];
+                    }
                 }
 
                 this.emit('step');
@@ -426,21 +439,24 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     // Registers a character as a current attacker of this one.
     addAttacker(character: Character): void {
         if (!this.isAttackedBy(character)) {
-            this.attackers[String(character.id)] = character;        }
-
+            this.attackers[String(character.id)] = character;
+        }
     }
 
     // Unregisters a character as a current attacker of this one.
     removeAttacker(character: CharacterLike): void {
         if (this.isAttackedBy(character)) {
-            delete this.attackers[String(character.id)];        }
-
+            delete this.attackers[String(character.id)];
+        }
     }
 
     // Loops through all the characters currently attacking this one.
     forEachAttacker(callback: (attacker: Character) => void): void {
         Object.keys(this.attackers).forEach((id) => {
-            callback(this.attackers[id]);
+            const attacker = this.attackers[id];
+            if (attacker) {
+                callback(attacker);
+            }
         });
     }
 

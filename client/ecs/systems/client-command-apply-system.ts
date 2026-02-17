@@ -5,7 +5,7 @@ import Chest from '../../chest';
 import Character from '../../character';
 import type Player from '../../player';
 import type Sprite from '../../sprite';
-import { entityIdFromWire, type EntityId } from '../../../shared/domain/ids';
+import { entityIdFromWire, isEntityId, type EntityId } from '../../../shared/domain/ids';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
 import { gridPos } from '../../../shared/domain/positions';
 import log from '../../platform/log';
@@ -56,7 +56,7 @@ type SpatialRecord = Readonly<{
     nextGridX: number;
     nextGridY: number;
     isMoving: boolean;
-    isDead: boolean;
+    isDead?: boolean;
     kind: EntityKind;
     isPlayer: boolean;
 }>;
@@ -94,9 +94,9 @@ export type ClientCommandApplySystemHost = {
     makePlayerGoTo(x: number, y: number): void;
     makePlayerGoToItem(item: Item | null): void;
     getEntityById(id: EntityId): GridIndexedEntity | undefined;
-    makeCharacterTeleportTo(entity: Character, x: number, y: number): void;
-    makeCharacterGoTo(entity: Character, x: number, y: number): void;
-    createAttackLink(attacker: Character, target: Character): void;
+    makeCharacterTeleportTo(entity: Character<any>, x: number, y: number): void;
+    makeCharacterGoTo(entity: Character<any>, x: number, y: number): void;
+    createAttackLink(attacker: Character<any>, target: Character<any>): void;
     removeItem(item: Item | null): void;
     removeEntity(entity: GridIndexedEntity): void;
     enqueueZoningFrom(x: number, y: number): void;
@@ -154,6 +154,19 @@ export type ClientCommandApplySystemHost = {
     addItemFromUnknown(item: RuntimeEntity, x: number, y: number): void;
 };
 
+function isGridIndexedEntity(value: unknown): value is GridIndexedEntity {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    const candidate = value as Partial<GridIndexedEntity>;
+    return (
+        isEntityId(candidate.id) &&
+        typeof candidate.getSpriteName === 'function' &&
+        typeof candidate.setGridPosition === 'function' &&
+        typeof candidate.setSprite === 'function'
+    );
+}
+
 function safeOrientation(orientation: number | undefined): number {
     return orientation === Types.Orientations.UP ||
         orientation === Types.Orientations.DOWN ||
@@ -163,7 +176,7 @@ function safeOrientation(orientation: number | undefined): number {
         : Types.Orientations.DOWN;
 }
 
-function startAuthoritativeAdjacentStep(entity: Character, x: number, y: number): boolean {
+function startAuthoritativeAdjacentStep(entity: Character<any>, x: number, y: number): boolean {
     const distance = Math.abs(entity.gridX - x) + Math.abs(entity.gridY - y);
     if (distance !== 1) {
         return false;
@@ -177,7 +190,7 @@ function startAuthoritativeAdjacentStep(entity: Character, x: number, y: number)
     return entity.isMoving();
 }
 
-function appendAuthoritativeAdjacentStep(entity: Character, x: number, y: number): boolean {
+function appendAuthoritativeAdjacentStep(entity: Character<any>, x: number, y: number): boolean {
     const path = entity.path;
     if (!path || path.length === 0) {
         return false;
@@ -197,7 +210,7 @@ function appendAuthoritativeAdjacentStep(entity: Character, x: number, y: number
     return true;
 }
 
-function hardStopCharacterMovement(entity: Character): void {
+function hardStopCharacterMovement(entity: Character<any>): void {
     entity.stop();
     entity.path = null;
     entity.newDestination = null;
@@ -285,7 +298,11 @@ function setPathingCell(host: ClientCommandApplySystemHost, x: number, y: number
     if (!grid) {
         return;
     }
-    grid[y][x] = value;
+    const row = grid[y];
+    if (!row || row[x] === undefined) {
+        return;
+    }
+    row[x] = value;
 }
 
 const DEFAULT_CHUNK_SUBSCRIBE_RADIUS = 3;
@@ -411,9 +428,11 @@ function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: st
 
     host.updateBars();
     host.resetCamera();
-    host.addEntity(host.player);
+    if (isGridIndexedEntity(host.player)) {
+        host.addEntity(host.player);
+    }
     const renderer = host.renderer;
-    if (renderer) {
+    if (renderer && isGridIndexedEntity(host.player)) {
         host.player.dirtyRect = renderer.getEntityBoundingRect(host.player);
     }
 
@@ -425,7 +444,8 @@ function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: st
         host.storage.initPlayer(host.player.name);
         if (renderer) {
             renderer.getPlayerImage(function (playerImage: string) {
-                host.storage.savePlayer(playerImage, host.player.getSpriteName(), host.player.getWeaponName());
+                const weaponName = host.player.getWeaponName() ?? 'sword1';
+                host.storage.savePlayer(playerImage, host.player.getSpriteName(), weaponName);
             });
         }
         host.showNotification('Welcome to BrowserQuest!');
@@ -973,7 +993,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (command.mobKind === Types.Entities.BOSS) {
                     host.showNotification('You killed the skeleton king');
                 } else if (mobName) {
-                    const firstLetter = mobName[0]?.toLowerCase();
+                    const firstLetter = (mobName[0] ?? '').toLowerCase();
                     const article = ['a', 'e', 'i', 'o', 'u'].includes(firstLetter) ? 'an' : 'a';
                     host.showNotification(`You killed ${article} ${mobName}`);
                 }
@@ -1051,10 +1071,12 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 }
 
                 if (adapted.type === 'chest') {
-                    const entity = adapted.entity as GridIndexedEntity;
-                    entity.setSprite(host.sprites[entity.getSpriteName()] ?? null);
-                    entity.setGridPosition(view.position.x, view.position.y);
-                    host.addEntity(entity);
+                    const entity = adapted.entity;
+                    if (isGridIndexedEntity(entity)) {
+                        entity.setSprite(host.sprites[entity.getSpriteName()] ?? null);
+                        entity.setGridPosition(view.position.x, view.position.y);
+                        host.addEntity(entity);
+                    }
                     break;
                 }
 
@@ -1065,7 +1087,9 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     character.setOrientation(safeOrientation(adapted.orientation));
                 }
                 character.idle?.();
-                host.addEntity(character as GridIndexedEntity);
+                if (isGridIndexedEntity(character)) {
+                    host.addEntity(character);
+                }
 
                 if (adapted.targetId !== undefined) {
                     const target = getKnownEntity(adapted.targetId);
@@ -1095,8 +1119,8 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (entity instanceof Character) {
                     if (entity.isMoving()) {
                         const path = entity.path;
-                        const tail = path?.length ? path[path.length - 1] : null;
-                        if (tail !== null && tail[0] === command.x && tail[1] === command.y) {
+                        const tail = path && path.length > 0 ? path[path.length - 1] : undefined;
+                        if (tail && tail[0] === command.x && tail[1] === command.y) {
                             break;
                         }
                         if (appendAuthoritativeAdjacentStep(entity, command.x, command.y)) {

@@ -2863,3 +2863,53 @@ Format per entry:
     - strict client totals: `202 -> 114`.
   - Next action:
     - commit batch D (`app` + `game` + ECS boundary hardening), then continue next priority diagnostics tranche.
+
+- 16:57 UTC
+  - Ticket: 329 (Strict client burn-down batch E1: `client/character.ts` event contract and pathing/movement guards)
+  - Start timestamp: 2026-02-17 16:57 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - clear strict diagnostics in `client/character.ts`.
+    - Out of scope:
+      - gameplay behavior changes.
+  - Key actions taken:
+    - Established post-batch-D baseline and prioritized next highest strict files.
+    - Opened Tickets 329/330 in `TODO.md`.
+  - Evidence:
+    - `awk -F'[:(]' ... /tmp/typecheck-client-batchD-after.log | sort -nr` => top files: `client/character.ts`=`19`, `client/map.ts`=`14`, `client/ecs/systems/client-command-apply-system.ts`=`13`.
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 16:57 UTC`.
+  - Next action:
+    - patch `client/character.ts`, rerun strict checks, then close command-apply diagnostics.
+
+- 17:00 UTC
+  - Ticket: 329 (Strict client burn-down batch E1: `client/character.ts` event contract and pathing/movement guards)
+  - Start timestamp: 2026-02-17 16:57 UTC
+  - Status: `done`
+  - Key actions taken:
+    - tightened character event/type contracts (`CharacterEventSource` constraint, `Character<any>` event payloads).
+    - added explicit override markers and safe movement/path guards for index access under `noUncheckedIndexedAccess`.
+    - hardened attacker iteration/removal flows against undefined map entries.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchE-mid1.log 2>&1` => `character=0`.
+    - `awk '/^client\\/character.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchE-mid1.log` => `0`.
+    - `awk '/^client\\/player.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchE-mid1.log` => `6` (unchanged baseline).
+  - Next action:
+    - close Ticket 330 command-apply strict diagnostics and verify totals.
+
+- 17:00 UTC
+  - Ticket: 330 (Strict client burn-down batch E2: `client/ecs/systems/client-command-apply-system.ts` command host guard completion)
+  - Start timestamp: 2026-02-17 16:57 UTC
+  - Status: `done`
+  - Key actions taken:
+    - aligned command-apply host boundaries to runtime realities (`Character<any>` bridges, optional `isDead`, strict grid-row guards).
+    - replaced unsafe entity casts with explicit runtime `isGridIndexedEntity` guard.
+    - hardened welcome/equipment/kill-notification flows for nullable/optional values (weapon fallback, article derivation, spawn entity guards).
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchE-after.log 2>&1` => `client_total=82`.
+    - `bun run typecheck:full:client > /tmp/typecheck-full-client-batchE-after.log 2>&1` => `full_client_total=82`.
+    - `bun run typecheck:tools > /tmp/typecheck-tools-batchE-after.log 2>&1` => `tools_exit=0`.
+    - `awk '/^client\\/ecs\\/systems\\/client-command-apply-system.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchE-after.log` => `0`.
+    - strict client totals: `114 -> 82`.
+  - Next action:
+    - commit batch E (`character` + command-apply hardening) and continue next highest strict files (`map`, `game-visual-runtime`, `mapworker`).
