@@ -57,10 +57,20 @@ import type { SchedulerStage } from './ecs/scheduler';
 import { WorldEcsCommandPipeline } from './world/ecs-command-pipeline';
 import type { PlayerLike } from './world/player-like';
 import type { ServerConfig } from './runtime-types';
-import { ChunkFlushScheduler } from './world/chunks/chunk-flush-scheduler';
-import { SqliteChunkOverlayPersistence } from './world/chunks/chunk-overlay-persistence';
-import { SqliteClaimsPersistence } from './world/claims/claims-persistence';
+import type { ChunkFlushScheduler } from './world/chunks/chunk-flush-scheduler';
+import type { SqliteChunkOverlayPersistence } from './world/chunks/chunk-overlay-persistence';
+import type { SqliteClaimsPersistence } from './world/claims/claims-persistence';
 import { CLAIMS_STORE_RESOURCE } from './world/claims/claims-resource';
+import {
+    closeWorldPersistence,
+    flushChunkPersistenceOnShutdown,
+    openWorldPersistence,
+} from './world/world-persistence-lifecycle';
+import {
+    pushSerializedBroadcastQueue,
+    pushSerializedToPlayerIdQueue,
+    serializeWorldMessage,
+} from './world/outgoing-queue-service';
 import type { RectClaim } from './world/claims/claims-store';
 import type {
     PersistedAchievementProgress,
@@ -275,96 +285,30 @@ class World extends Evented<WorldEvents> {
     }
 
     flushPersistenceOnShutdown(): void {
-        try {
-            this.chunkFlushScheduler?.flushAllNow();
-        } catch (err) {
+        flushChunkPersistenceOnShutdown(this.chunkFlushScheduler, (error) => {
             log.event('error', 'world.persistence.flush_failed', {
                 worldId: this.id,
                 phase: 'shutdown_flush',
-                error: String(err),
+                error: String(error),
             });
-        }
+        });
     }
 
     closePersistence(): void {
         this.updateLoopHandle?.stop();
         this.updateLoopHandle = null;
 
-        try {
-            this.chunkOverlayPersistence?.close();
-        } catch (err) {
+        closeWorldPersistence(this.chunkOverlayPersistence, this.claimsPersistence, (target, error) => {
             log.event('error', 'world.persistence.close_failed', {
                 worldId: this.id,
-                target: 'chunk_overlays',
-                error: String(err),
+                target,
+                error: String(error),
             });
-        }
-        try {
-            this.claimsPersistence?.close();
-        } catch (err) {
-            log.event('error', 'world.persistence.close_failed', {
-                worldId: this.id,
-                target: 'claims',
-                error: String(err),
-            });
-        }
+        });
         this.chunkOverlayPersistence = null;
         this.chunkFlushScheduler = null;
         this.chunkFlushTickErrorLatched = false;
         this.claimsPersistence = null;
-    }
-
-    resolveWorldScopedDbPath_(configured: string | undefined, fallback: string): string {
-        const trimmed = typeof configured === 'string' ? configured.trim() : '';
-        if (trimmed.length === 0) {
-            return fallback;
-        }
-        return trimmed.replaceAll('{worldId}', this.id);
-    }
-
-    resolveChunkOverlayDbPath_(): string {
-        const envPath = process.env.BQ_CHUNK_OVERLAY_DB_PATH;
-        const configured = typeof envPath === 'string' && envPath.trim().length > 0 ? envPath : this.serverConfig?.chunk_overlay_db_path;
-        const fallback = `./server/.data/chunk-overlays.${this.id}.sqlite`;
-        return this.resolveWorldScopedDbPath_(configured, fallback);
-    }
-
-    resolveClaimsDbPath_(): string {
-        const envPath = process.env.BQ_CLAIMS_DB_PATH;
-        const configured = typeof envPath === 'string' && envPath.trim().length > 0 ? envPath : this.serverConfig?.claims_db_path;
-        const fallback = `./server/.data/claims.${this.id}.sqlite`;
-        return this.resolveWorldScopedDbPath_(configured, fallback);
-    }
-
-    resolveChunkFlushConfig_(): { flushIntervalMs: number; maxChunksPerFlush: number; loadLimitChunks: number } {
-        const cfg = this.serverConfig ?? null;
-        const envInterval = process.env.BQ_CHUNK_OVERLAY_FLUSH_INTERVAL_MS;
-        const envMaxChunks = process.env.BQ_CHUNK_OVERLAY_FLUSH_MAX_CHUNKS;
-        const envLoadLimit = process.env.BQ_CHUNK_OVERLAY_BOOTSTRAP_LOAD_LIMIT_CHUNKS;
-
-        const flushIntervalMsRaw =
-            typeof envInterval === 'string' && envInterval.trim().length > 0
-                ? Number.parseInt(envInterval, 10)
-                : cfg?.chunk_overlay_flush_interval_ms;
-        const maxChunksRaw =
-            typeof envMaxChunks === 'string' && envMaxChunks.trim().length > 0
-                ? Number.parseInt(envMaxChunks, 10)
-                : cfg?.chunk_overlay_flush_max_chunks;
-        const loadLimitRaw =
-            typeof envLoadLimit === 'string' && envLoadLimit.trim().length > 0
-                ? Number.parseInt(envLoadLimit, 10)
-                : cfg?.chunk_overlay_bootstrap_load_limit_chunks;
-
-        const flushIntervalMs =
-            typeof flushIntervalMsRaw === 'number' && Number.isInteger(flushIntervalMsRaw) && flushIntervalMsRaw > 0
-                ? flushIntervalMsRaw
-                : 10_000;
-        const maxChunksPerFlush =
-            typeof maxChunksRaw === 'number' && Number.isInteger(maxChunksRaw) && maxChunksRaw > 0 ? maxChunksRaw : 64;
-        const loadLimitChunks =
-            typeof loadLimitRaw === 'number' && Number.isInteger(loadLimitRaw) && loadLimitRaw > 0 ? loadLimitRaw : 4096;
-
-        return { flushIntervalMs, maxChunksPerFlush, loadLimitChunks };
     }
 
     ensureChunkOverlayLoaded(chunkX: number, chunkY: number): boolean {
@@ -641,7 +585,7 @@ class World extends Evented<WorldEvents> {
             world: this,
             ecs: Object.freeze({
                 registerSystem: ((stage: SchedulerStage, name: string, run) => {
-                    this.ecsPipeline.registerSystem(stage, name, run as never);
+                    this.ecsPipeline.registerSystem(stage, name, run);
                 }) as ServerPluginEcsApi['registerSystem'],
             }),
         });
@@ -668,22 +612,16 @@ class World extends Evented<WorldEvents> {
 
         this.map.ready(function () {
             self.closePersistence();
-
-            const chunkDbPath = self.resolveChunkOverlayDbPath_();
-            const claimsDbPath = self.resolveClaimsDbPath_();
-            const flushConfig = self.resolveChunkFlushConfig_();
-
-            self.chunkOverlayPersistence = new SqliteChunkOverlayPersistence(chunkDbPath);
-            self.chunkOverlayPersistence.loadRecentIntoStore(self.ecsPipeline.chunkOverlays, { limitChunks: flushConfig.loadLimitChunks });
-            self.chunkFlushScheduler = new ChunkFlushScheduler({
-                store: self.ecsPipeline.chunkOverlays,
-                persistence: self.chunkOverlayPersistence,
-                config: { flushIntervalMs: flushConfig.flushIntervalMs, maxChunksPerFlush: flushConfig.maxChunksPerFlush },
-            });
-
-            self.claimsPersistence = new SqliteClaimsPersistence(claimsDbPath);
             const claimsStore = self.ecsPipeline.state.resources.require(CLAIMS_STORE_RESOURCE);
-            claimsStore.loadClaims(self.claimsPersistence.loadAllClaims());
+            const persistence = openWorldPersistence({
+                worldId: self.id,
+                serverConfig: self.serverConfig,
+                chunkOverlays: self.ecsPipeline.chunkOverlays,
+                claimsStore,
+            });
+            self.chunkOverlayPersistence = persistence.chunkOverlayPersistence;
+            self.chunkFlushScheduler = persistence.chunkFlushScheduler;
+            self.claimsPersistence = persistence.claimsPersistence;
 
             bootstrapWorldMapRuntime({
                 world: self,
@@ -789,33 +727,18 @@ class World extends Evented<WorldEvents> {
     }
 
     pushToPlayer(player: PlayerLike, message: WorldMessage): void {
-        const serializedMessage = Array.isArray(message) ? message : message.serialize();
+        const serializedMessage = serializeWorldMessage(message);
         pushSerializedToPlayerQueue(this.outgoingQueues, player, serializedMessage, logWorldQueueError);
     }
 
     pushToPlayerId(playerId: EntityId, message: WorldMessage): void {
-        const key = String(playerId);
-        const queue = this.outgoingQueues[key];
-        if (!queue) {
-            return;
-        }
-        const serializedMessage = Array.isArray(message) ? message : message.serialize();
-        queue.push(serializedMessage);
+        const serializedMessage = serializeWorldMessage(message);
+        pushSerializedToPlayerIdQueue(this.outgoingQueues, playerId, serializedMessage);
     }
 
     pushBroadcast(message: WorldMessage, ignoredPlayerId: EntityId | null = null): void {
-        const serializedMessage = Array.isArray(message) ? message : message.serialize();
-        const ignoredKey = ignoredPlayerId === null ? null : String(ignoredPlayerId);
-
-        for (const id in this.outgoingQueues) {
-            if (ignoredKey !== null && id === ignoredKey) {
-                continue;
-            }
-            const queue = this.outgoingQueues[id];
-            if (queue) {
-                queue.push(serializedMessage);
-            }
-        }
+        const serializedMessage = serializeWorldMessage(message);
+        pushSerializedBroadcastQueue(this.outgoingQueues, serializedMessage, ignoredPlayerId);
     }
 
     processQueues() {

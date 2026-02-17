@@ -1,40 +1,12 @@
 import { afterEach, expect, test } from 'bun:test';
 import { killBunProcess } from '../../support/process-cleanup';
+import {
+    deleteFileIfExists,
+    readStreamText,
+    waitForProcessExit,
+} from '../../support/server-harness';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
-
-async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs = 4000) {
-    return new Promise<number>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timed out waiting for server exit')), timeoutMs);
-        proc.exited
-            .then((code) => {
-                clearTimeout(timeout);
-                resolve(code);
-            })
-            .catch((error) => {
-                clearTimeout(timeout);
-                reject(error instanceof Error ? error : new Error(String(error)));
-            });
-    });
-}
-
-async function readStreamText(stream: ReadableStream<Uint8Array> | number | null | undefined) {
-    if (!stream || typeof stream === 'number') {
-        return '';
-    }
-
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
-    let output = '';
-
-    for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        output += decoder.decode(value);
-    }
-
-    return output;
-}
 
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 let configPath: string | null = null;
@@ -43,26 +15,10 @@ let mapPath: string | null = null;
 afterEach(async () => {
     await killBunProcess(proc);
     proc = null;
-
-    if (configPath) {
-        try {
-            await Bun.file(configPath).delete();
-        } catch (_) {
-            // ignore
-        } finally {
-            configPath = null;
-        }
-    }
-
-    if (mapPath) {
-        try {
-            await Bun.file(mapPath).delete();
-        } catch (_) {
-            // ignore
-        } finally {
-            mapPath = null;
-        }
-    }
+    await deleteFileIfExists(configPath);
+    await deleteFileIfExists(mapPath);
+    configPath = null;
+    mapPath = null;
 });
 
 test('server entry fails fast with preflight error for invalid config', async () => {

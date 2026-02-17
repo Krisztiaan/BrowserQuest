@@ -3171,3 +3171,97 @@ Format per entry:
     - `bun test --timeout 20000 > /tmp/test-ticket340-final.log 2>&1` => `exit=0`.
   - Next action:
     - snapshot final diff and create one lump commit for Tickets 339/340.
+
+- 20:40 UTC
+  - Ticket: 341 (Streamlining and simplification audit)
+  - Start timestamp: 2026-02-17 20:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - audited repo-level complexity/duplication hotspots across client/server/shared/tests/tools.
+    - produced ticketized simplification plan with scope/acceptance/verification/dependencies.
+    - documented prioritized findings and execution order in `docs/streamlining-simplification-audit-2026-02-17.md`.
+  - Evidence:
+    - `rg --files | wc -l` => `797`.
+    - `rg --files -g '*.ts' -g '*.js' | xargs wc -l | sort -nr | head -n 40` => top hotspots include `server/world/ecs-command-pipeline.ts`, `client/main.ts`, `client/game.ts`, `server/world-server.ts`.
+    - `rg -n "function getFreePort\\(|async function waitForHttpOk\\(" tests` => repeated smoke harness helpers across multiple files.
+    - `for d in client server shared tests tools; do ... rg -o "as never" ...; done` => production cast seams remain in `server` and `client`.
+  - Next action:
+    - execute Ticket 341 if you want me to start with the highest-leverage simplification batch now.
+
+## 2026-02-17
+
+- 21:34 UTC
+  - Ticket: 341 (Consolidate smoke/server test harness utilities)
+  - Status: `done`
+  - Key actions taken:
+    - Added shared strict harness at `tests/support/server-harness.ts` (port allocation, HTTP readiness, process exit waits, stream capture, ws waiters, temp file cleanup).
+    - Migrated smoke tests to shared helpers and removed duplicated local helper implementations.
+  - Evidence:
+    - `bun test tests/smoke --timeout 30000`
+  - Next action:
+    - Complete ticket 345 parser consolidation.
+
+- 21:34 UTC
+  - Ticket: 345 (Shared CLI arg parser for tools)
+  - Status: `done`
+  - Key actions taken:
+    - Added shared parser primitives at `tools/shared/cli-args.ts`.
+    - Rewired `tools/admin/claims.ts` and `tools/bots/args.ts` to use shared parser with strict help handling.
+  - Evidence:
+    - `bun run bots:soak -- --help`
+    - `bun run admin:claims -- --help`
+  - Next action:
+    - Complete ticket 342 client main split.
+
+- 21:34 UTC
+  - Ticket: 342 (Split `client/main.ts` by concern)
+  - Status: `done`
+  - Key actions taken:
+    - Split bootstrap/test surfaces into dedicated modules:
+      - `client/main/test-api.ts`
+      - `client/main/fullscreen-toggle.ts`
+      - `client/main/character-preview.ts`
+    - Reduced `client/main.ts` to orchestration and explicit module wiring.
+  - Evidence:
+    - `bun run typecheck:client`
+    - `PW_REUSE_SERVERS=1 bun x playwright test --config=playwright.config.ts tests/browser/modern-ui-smoke.playwright.ts --reporter=line`
+    - Note: `bun test --timeout 20000 tests/browser` is non-applicable because `tests/browser` contains Playwright `.playwright.ts` specs, not Bun test files.
+  - Next action:
+    - Complete ticket 343 world-server decomposition.
+
+- 21:34 UTC
+  - Ticket: 343 (Decompose `server/world-server.ts` services)
+  - Status: `done`
+  - Key actions taken:
+    - Extracted world persistence lifecycle into `server/world/world-persistence-lifecycle.ts`.
+    - Extracted outgoing queue coordination helpers into `server/world/outgoing-queue-service.ts`.
+    - `server/world-server.ts` now orchestrates persistence + queue services instead of implementing all side-effect logic inline.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/server/runtime/lifecycle.test.ts tests/unit/server-player-lifecycle.test.ts`
+  - Next action:
+    - Complete ticket 344 ECS pipeline slicing.
+
+- 21:34 UTC
+  - Ticket: 344 (Slice `server/world/ecs-command-pipeline.ts` by concern)
+  - Status: `done`
+  - Key actions taken:
+    - Extracted intent registration into `server/world/ecs-command-pipeline/core-module-registry.ts`.
+    - Extracted replication/nearby broadcast phase logic into `server/world/ecs-command-pipeline/interest-replication.ts`.
+    - Pipeline class now wires explicit module contracts and uses dedicated phase modules.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/ecs tests/unit/mmo`
+  - Next action:
+    - Complete ticket 346 seam cleanup.
+
+- 21:34 UTC
+  - Ticket: 346 (Remove production boundary cast seams + legacy/fallback seams touched)
+  - Status: `done`
+  - Key actions taken:
+    - Removed all `as never` / `as unknown as` occurrences in production code under `client server shared tools`.
+    - Replaced cast seams with strict narrowing/typed adapters in runtime, metrics, map normalization, and plugin/system wiring.
+  - Evidence:
+    - `rg -n "as never|as unknown as" client server shared tools`
+    - `bun run typecheck`
+    - `bun run lint`
+  - Next action:
+    - Backlog cleanup (remove done tickets and obsolete audit docs), then commit.

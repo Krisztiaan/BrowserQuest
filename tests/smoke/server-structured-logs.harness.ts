@@ -1,14 +1,17 @@
-import net from 'node:net';
 import { killBunProcess } from '../support/process-cleanup';
 import WebSocket from '../support/ws-client';
-import { toError } from '../support/format';
+import {
+    deleteFileIfExists,
+    getFreePort,
+    waitForGoHandshake,
+    waitForHttpOk,
+    waitForWebSocketClose,
+    type StructuredEventRecord,
+} from '../support/server-harness';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
-type EventValue = string | number | boolean | null | undefined | EventValue[] | { [key: string]: EventValue };
-type EventRecord = Record<string, EventValue>;
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+type EventRecord = StructuredEventRecord;
 type FatalTrigger = 'unhandled_rejection' | 'uncaught_exception';
 type ServerConfig = {
     port: number;
@@ -67,43 +70,6 @@ export function createStructuredLogHarness(): StructuredLogHarness {
         return `seen events: ${eventSummary}\nrecent structured lines:\n${recentLines}`;
     }
 
-    async function getFreePort() {
-        return new Promise<number>((resolve, reject) => {
-            const server = net.createServer();
-            server.once('error', reject);
-            server.listen(0, '127.0.0.1', () => {
-                const address = server.address();
-                if (!address || typeof address === 'string') {
-                    server.close(() => reject(new Error('Unable to allocate port')));
-                    return;
-                }
-                const port = address.port;
-                server.close((err) => (err ? reject(err) : resolve(port)));
-            });
-        });
-    }
-
-    // Wait until the status endpoint responds successfully.
-    async function waitForHttpOk(url: string, timeoutMs = 5000) {
-        const start = Date.now();
-        let lastError: string | Error | null = null;
-
-        for (;;) {
-            try {
-                const res = await fetch(url);
-                if (res.ok) return;
-                lastError = `HTTP ${res.status}`;
-            } catch (error) {
-                lastError = error instanceof Error ? error : new Error(String(error));
-            }
-
-            if (Date.now() - start > timeoutMs) {
-                throw new Error(`Timed out waiting for ${url}. Last error: ${String(lastError)}`);
-            }
-            await Bun.sleep(50);
-        }
-    }
-
     // Wait for a structured event name to appear in captured records.
     async function waitForEvent(events: EventRecord[], eventName: string, timeoutMs = 5000) {
         const start = Date.now();
@@ -146,16 +112,16 @@ export function createStructuredLogHarness(): StructuredLogHarness {
                         if (!trimmed.startsWith('{')) continue;
                         pushRecentStructuredLine(`[${sourceLabel}] ${trimmed}`);
                         try {
-                            const parsed = JSON.parse(trimmed) as JsonValue;
-                            if (parsed && typeof parsed === 'object' && 'event' in parsed) {
+                            const parsed: unknown = JSON.parse(trimmed);
+                            if (typeof parsed === 'object' && parsed !== null && 'event' in parsed) {
                                 events.push(parsed as EventRecord);
                             }
-                        } catch (_) {
+                        } catch {
                             // ignore non-json lines
                         }
                     }
                 }
-            } catch (_) {
+            } catch {
                 // ignore read errors during teardown
             }
         })();
@@ -210,37 +176,17 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     // Open and close a websocket session to trigger connection lifecycle events.
     async function openAndCloseWebSocketSession(port: number) {
         const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`);
-        await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 4000);
-            ws.once('error', (err) => {
-                clearTimeout(timeout);
-                reject(toError(err));
-            });
-            ws.on('message', (data) => {
-                if (typeof data === 'string' ? data === 'go' : false) {
-                    clearTimeout(timeout);
-                    resolve();
-                }
-            });
-        });
+        await waitForGoHandshake(ws, 4000);
         ws.close();
-        await new Promise<void>((resolve) => ws.once('close', () => resolve()));
+        await waitForWebSocketClose(ws, 4000);
     }
 
     // Kill server process and remove temp config file after each test.
     async function cleanup() {
         await killBunProcess(proc);
         proc = null;
-
-        if (configPath) {
-            try {
-                await Bun.file(configPath).delete();
-            } catch (_) {
-                // ignore
-            } finally {
-                configPath = null;
-            }
-        }
+        await deleteFileIfExists(configPath);
+        configPath = null;
     }
 
     return {

@@ -42,7 +42,7 @@ type GridEntityLike = {
 type DirtyRectLike = Record<string, number>;
 
 export type EntityEvents = {
-    dirty: [entity: Entity];
+    dirty: [entity: Entity<MergeEvents<EntityEvents, TypedEventMap>>];
 };
 
 class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEvents> extends Evented<TEvents> {
@@ -318,7 +318,8 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
 
     setDirty(): void {
         this.isDirty = true;
-        this.emit('dirty', this as unknown as TEvents['dirty'][0]);
+        const payload = this as unknown;
+        this.emit('dirty', payload as TEvents['dirty'][0]);
     }
 }
 

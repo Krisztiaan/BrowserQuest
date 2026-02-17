@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-17 20:25 UTC
+Last updated: 2026-02-17 21:22 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -12,10 +12,6 @@ Definition of done (per ticket):
 - A `PROGRESS.md` entry exists with timestamp + evidence.
 - Once `done`, remove the ticket from `TODO.md` (history lives in `PROGRESS.md` + git).
 
-## Execution Queue (Work Order)
-
-No active tickets.
-
 ## Active Tickets
 
-No active tickets.
+- None.

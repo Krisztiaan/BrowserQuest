@@ -266,9 +266,10 @@ function createFatalReporter(
             }
         };
         if (typeof err === 'object' && err !== null && 'stack' in err) {
-            const stackValue: unknown = Reflect.get(err as unknown as Record<string, unknown>, 'stack');
+            const errorRecord: { stack?: unknown; message?: unknown } = err;
+            const stackValue: unknown = Reflect.get(errorRecord, 'stack');
             const stack = typeof stackValue === 'string' ? stackValue : safeJson(stackValue);
-            const messageValue: unknown = Reflect.get(err as unknown as Record<string, unknown>, 'message');
+            const messageValue: unknown = Reflect.get(errorRecord, 'message');
             const message = typeof messageValue === 'string' ? messageValue : safeJson(messageValue ?? err);
             logger.error(label + ': ' + stack);
             emitServerEvent('error', eventName, {

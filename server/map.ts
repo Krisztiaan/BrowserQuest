@@ -59,11 +59,34 @@ function cloneMapDefinition(mapDefinition: MapDefinition): MapDefinition {
     return JSON.parse(JSON.stringify(mapDefinition)) as MapDefinition;
 }
 
+interface TiledPropertySource {
+    name: string;
+    value: string | number | boolean | null;
+}
+
+interface TiledObjectSource {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    type?: string;
+    properties?: TiledPropertySource[];
+}
+
+interface TiledLayerSource {
+    name: string;
+    type: string;
+    visible?: boolean | number;
+    data?: number[];
+    objects?: TiledObjectSource[];
+    [key: string]: string | number | boolean | null | undefined | number[] | object | TiledObjectSource[];
+}
+
 interface TiledMapSource {
     width: number;
     height: number;
     tilewidth: number;
-    layers?: object[];
+    layers?: TiledLayerSource[];
 }
 
 type LooseValue = string | number | boolean | null | undefined | object;
@@ -73,12 +96,17 @@ function isTiledMapSource(payload: LooseValue): payload is TiledMapSource {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
         return false;
     }
-    const candidate = payload as { width?: number; height?: number; tilewidth?: number; layers?: object[] };
+    const candidate = payload as { width?: number; height?: number; tilewidth?: number; layers?: TiledLayerSource[] };
+    const hasValidLayers =
+        Array.isArray(candidate.layers) &&
+        candidate.layers.every(
+            (layer) => typeof layer.name === 'string' && typeof layer.type === 'string'
+        );
     return (
         typeof candidate.width === 'number' &&
         typeof candidate.height === 'number' &&
         typeof candidate.tilewidth === 'number' &&
-        Array.isArray(candidate.layers)
+        hasValidLayers
     );
 }
 
@@ -116,7 +144,7 @@ async function normalizeMapDefinition(rawMap: LooseValue): Promise<MapDefinition
     }
 
     const processMapModule = await import('../shared/maps/processmap');
-    const processedMap = processMapModule.default(rawMap as never, { mode: 'server', quiet: true });
+    const processedMap = processMapModule.default(rawMap, { mode: 'server', quiet: true });
     if (!isMapDefinition(processedMap)) {
         throw new Error('Invalid map payload: processmap output did not match server map shape');
     }

@@ -1,11 +1,6 @@
 import { SqliteClaimsPersistence } from '../../server/world/claims/claims-persistence';
 import { ClaimsStore } from '../../server/world/claims/claims-store';
-
-type ArgSpec = Readonly<{
-    key: string;
-    kind: 'string' | 'number' | 'boolean';
-    defaultValue?: string | number | boolean;
-}>;
+import { parseCliArgs } from '../shared/cli-args';
 
 function printUsageAndExit(code: number): never {
     console.error(
@@ -40,50 +35,6 @@ function printUsageAndExit(code: number): never {
         ].join('\n')
     );
     process.exit(code);
-}
-
-function toNumber(value: string, flag: string): number {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) {
-        throw new Error(`Invalid ${flag}: ${value}`);
-    }
-    return parsed;
-}
-
-function parseArgs(argv: string[], specs: ReadonlyArray<ArgSpec>): Record<string, string | number | boolean> {
-    const out: Record<string, string | number | boolean> = {};
-    for (const spec of specs) {
-        if (spec.defaultValue !== undefined) {
-            out[spec.key] = spec.defaultValue;
-        }
-    }
-
-    for (let i = 0; i < argv.length; i += 1) {
-        const raw = argv[i] ?? '';
-        if (raw === '--help' || raw === '-h') {
-            printUsageAndExit(0);
-        }
-        if (!raw.startsWith('--')) {
-            throw new Error(`Unknown argument: ${raw}`);
-        }
-        const key = raw.slice(2);
-        const spec = specs.find((s) => s.key === key);
-        if (!spec) {
-            throw new Error(`Unknown flag: --${key}`);
-        }
-        if (spec.kind === 'boolean') {
-            out[key] = true;
-            continue;
-        }
-        const next = argv[i + 1];
-        if (typeof next !== 'string' || next.startsWith('--')) {
-            throw new Error(`Missing value for --${key}`);
-        }
-        i += 1;
-        out[key] = spec.kind === 'number' ? toNumber(next, `--${key}`) : next;
-    }
-
-    return out;
 }
 
 function fail(message: string): never {
@@ -268,28 +219,36 @@ if (cmd === '' || cmd === '--help' || cmd === '-h') {
 
 try {
     if (cmd === 'list') {
-        const parsed = parseArgs(rest, [
-            { key: 'world', kind: 'string', defaultValue: 'world1' },
-            { key: 'db', kind: 'string' },
-            { key: 'json', kind: 'boolean', defaultValue: false },
-        ]);
+        const parsed = parseCliArgs(
+            rest,
+            [
+                { key: 'world', kind: 'string', defaultValue: 'world1' },
+                { key: 'db', kind: 'string' },
+                { key: 'json', kind: 'boolean', defaultValue: false },
+            ],
+            { onHelp: () => printUsageAndExit(0) }
+        );
         const worldIdRaw = typeof parsed.world === 'string' ? parsed.world.trim() : 'world1';
         const worldId = worldIdRaw.length > 0 ? worldIdRaw : 'world1';
         const dbPathRaw = typeof parsed.db === 'string' ? parsed.db.trim() : null;
         const dbPath = resolveClaimsDbPath({ dbPath: dbPathRaw && dbPathRaw.length > 0 ? dbPathRaw : null, worldId });
         runList({ dbPath, json: Boolean(parsed.json) });
     } else if (cmd === 'create') {
-        const parsed = parseArgs(rest, [
-            { key: 'world', kind: 'string', defaultValue: 'world1' },
-            { key: 'db', kind: 'string' },
-            { key: 'json', kind: 'boolean', defaultValue: false },
-            { key: 'owner', kind: 'string' },
-            { key: 'editors', kind: 'string' },
-            { key: 'x1', kind: 'number' },
-            { key: 'y1', kind: 'number' },
-            { key: 'x2', kind: 'number' },
-            { key: 'y2', kind: 'number' },
-        ]);
+        const parsed = parseCliArgs(
+            rest,
+            [
+                { key: 'world', kind: 'string', defaultValue: 'world1' },
+                { key: 'db', kind: 'string' },
+                { key: 'json', kind: 'boolean', defaultValue: false },
+                { key: 'owner', kind: 'string' },
+                { key: 'editors', kind: 'string' },
+                { key: 'x1', kind: 'number' },
+                { key: 'y1', kind: 'number' },
+                { key: 'x2', kind: 'number' },
+                { key: 'y2', kind: 'number' },
+            ],
+            { onHelp: () => printUsageAndExit(0) }
+        );
         const owner = typeof parsed.owner === 'string' ? parsed.owner.trim() : '';
         if (!owner) {
             fail('Missing --owner');
@@ -315,19 +274,23 @@ try {
             y2: coords[3] as number,
         });
     } else if (cmd === 'update') {
-        const parsed = parseArgs(rest, [
-            { key: 'world', kind: 'string', defaultValue: 'world1' },
-            { key: 'db', kind: 'string' },
-            { key: 'json', kind: 'boolean', defaultValue: false },
-            { key: 'id', kind: 'number' },
-            { key: 'owner', kind: 'string' },
-            { key: 'editors', kind: 'string' },
-            { key: 'clear-editors', kind: 'boolean', defaultValue: false },
-            { key: 'x1', kind: 'number' },
-            { key: 'y1', kind: 'number' },
-            { key: 'x2', kind: 'number' },
-            { key: 'y2', kind: 'number' },
-        ]);
+        const parsed = parseCliArgs(
+            rest,
+            [
+                { key: 'world', kind: 'string', defaultValue: 'world1' },
+                { key: 'db', kind: 'string' },
+                { key: 'json', kind: 'boolean', defaultValue: false },
+                { key: 'id', kind: 'number' },
+                { key: 'owner', kind: 'string' },
+                { key: 'editors', kind: 'string' },
+                { key: 'clear-editors', kind: 'boolean', defaultValue: false },
+                { key: 'x1', kind: 'number' },
+                { key: 'y1', kind: 'number' },
+                { key: 'x2', kind: 'number' },
+                { key: 'y2', kind: 'number' },
+            ],
+            { onHelp: () => printUsageAndExit(0) }
+        );
         const idRaw = parsed.id;
         if (typeof idRaw !== 'number' || !Number.isInteger(idRaw) || idRaw <= 0) {
             fail('Missing/invalid --id');
@@ -374,12 +337,16 @@ try {
             y2: hasAnyRect ? (parsed.y2 as number) : undefined,
         });
     } else if (cmd === 'delete') {
-        const parsed = parseArgs(rest, [
-            { key: 'world', kind: 'string', defaultValue: 'world1' },
-            { key: 'db', kind: 'string' },
-            { key: 'json', kind: 'boolean', defaultValue: false },
-            { key: 'id', kind: 'number' },
-        ]);
+        const parsed = parseCliArgs(
+            rest,
+            [
+                { key: 'world', kind: 'string', defaultValue: 'world1' },
+                { key: 'db', kind: 'string' },
+                { key: 'json', kind: 'boolean', defaultValue: false },
+                { key: 'id', kind: 'number' },
+            ],
+            { onHelp: () => printUsageAndExit(0) }
+        );
         const idRaw = parsed.id;
         if (typeof idRaw !== 'number' || !Number.isInteger(idRaw) || idRaw <= 0) {
             fail('Missing/invalid --id');

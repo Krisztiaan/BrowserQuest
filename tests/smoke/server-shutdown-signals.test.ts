@@ -1,57 +1,8 @@
-import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import { killBunProcess } from '../support/process-cleanup';
+import { getFreePort, waitForHttpOk, waitForProcessExit } from '../support/server-harness';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
-
-async function getFreePort() {
-    return new Promise<number>((resolve, reject) => {
-        const server = net.createServer();
-        server.once('error', reject);
-        server.listen(0, '127.0.0.1', () => {
-            const address = server.address();
-            if (!address || typeof address === 'string') {
-                server.close(() => reject(new Error('Unable to allocate port')));
-                return;
-            }
-            const port = address.port;
-            server.close((err) => (err ? reject(err) : resolve(port)));
-        });
-    });
-}
-
-async function waitForHttpOk(url: string, timeoutMs = 5000) {
-    const start = Date.now();
-
-    for (;;) {
-        try {
-            const res = await fetch(url);
-            if (res.ok) return;
-        } catch (_) {
-            // ignore until timeout
-        }
-
-        if (Date.now() - start > timeoutMs) {
-            throw new Error(`Timed out waiting for ${url}`);
-        }
-        await Bun.sleep(50);
-    }
-}
-
-async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs = 4000) {
-    return new Promise<number>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timed out waiting for server exit')), timeoutMs);
-        proc.exited
-            .then((code) => {
-                clearTimeout(timeout);
-                resolve(code);
-            })
-            .catch((error) => {
-                clearTimeout(timeout);
-                reject(error instanceof Error ? error : new Error(String(error)));
-            });
-    });
-}
 
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 

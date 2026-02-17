@@ -33,6 +33,21 @@ type UnavailableSignal = Readonly<{
     key?: string;
 }>;
 
+function isMemcacheModuleShape(value: unknown): value is MemcacheModuleShape {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+    const candidate = value as { Memcache?: unknown; default?: unknown };
+    return typeof candidate.Memcache === 'function' || typeof candidate.default === 'function';
+}
+
+function createDefaultMetricsStore(config: MetricsConfig): MetricsStoreClient {
+    if (!isMemcacheModuleShape(memcacheModule)) {
+        throw new Error('Unsupported memcache module shape');
+    }
+    return MetricsClient.createMetricsClient(memcacheModule, config);
+}
+
 function toMetricInteger(value: string | undefined): number {
     if (typeof value !== 'string') {
         return 0;
@@ -66,8 +81,7 @@ class Metrics extends Evented<MetricsEvents> {
         const runtimeOptions = options ?? {};
 
         this.config = config;
-        this.store = (runtimeOptions.createStore ??
-            ((cfg) => MetricsClient.createMetricsClient(memcacheModule as unknown as MemcacheModuleShape, cfg)))(config);
+        this.store = (runtimeOptions.createStore ?? createDefaultMetricsStore)(config);
         this.isEnabled = true;
         this.isReady = false;
         this.unavailableSignals = new Set();

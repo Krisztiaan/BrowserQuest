@@ -1,4 +1,4 @@
-import Entity from './entity';
+import Entity, { type EntityEvents } from './entity';
 import Transition from './transition';
 import Timer from './timer';
 import log from './platform/log';
@@ -30,7 +30,7 @@ type CombatAttacker = CharacterLike & {
 type PathRequestResolver = (x: number, y: number) => Path;
 
 export type CharacterEvents = {
-    dirty: [entity: Entity];
+    dirty: [entity: Entity<MergeEvents<EntityEvents, TypedEventMap>>];
     startPathing: [path: Path];
     stopPathing: [x: number, y: number];
     beforeStep: [];
@@ -532,7 +532,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
 
     hasMoved(): void {
         this.setDirty();
-        this.emit('hasMoved', this as unknown as TEvents['hasMoved'][0]);
+        this.emit('hasMoved', this);
     }
 
     hurt(): void {

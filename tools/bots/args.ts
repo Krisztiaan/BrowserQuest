@@ -1,8 +1,4 @@
-type ArgSpec = Readonly<{
-    key: string;
-    kind: 'string' | 'number' | 'boolean';
-    defaultValue?: string | number | boolean;
-}>;
+import { parseCliArgs } from '../shared/cli-args';
 
 export type SoakArgs = Readonly<{
     host: string;
@@ -73,76 +69,36 @@ function printUsageAndExit(code: number): never {
     process.exit(code);
 }
 
-function toNumber(value: string, flag: string): number {
-    const parsed = Number(value);
-    if (!Number.isFinite(parsed)) {
-        throw new Error(`Invalid ${flag}: ${value}`);
-    }
-    return parsed;
-}
-
-function parseArgs(argv: string[], specs: ReadonlyArray<ArgSpec>): Record<string, string | number | boolean> {
-    const out: Record<string, string | number | boolean> = {};
-    for (const spec of specs) {
-        if (spec.defaultValue !== undefined) {
-            out[spec.key] = spec.defaultValue;
-        }
-    }
-
-    for (let i = 0; i < argv.length; i += 1) {
-        const raw = argv[i] ?? '';
-        if (raw === '--help' || raw === '-h') {
-            printUsageAndExit(0);
-        }
-        if (!raw.startsWith('--')) {
-            throw new Error(`Unknown argument: ${raw}`);
-        }
-        const key = raw.slice(2);
-        const spec = specs.find((s) => s.key === key);
-        if (!spec) {
-            throw new Error(`Unknown flag: --${key}`);
-        }
-        if (spec.kind === 'boolean') {
-            out[key] = true;
-            continue;
-        }
-        const next = argv[i + 1];
-        if (typeof next !== 'string' || next.startsWith('--')) {
-            throw new Error(`Missing value for --${key}`);
-        }
-        i += 1;
-        out[key] = spec.kind === 'number' ? toNumber(next, `--${key}`) : next;
-    }
-
-    return out;
-}
-
 export function parseSoakArgs(argv: string[]): SoakArgs {
-    const parsed = parseArgs(argv, [
-        { key: 'host', kind: 'string', defaultValue: '127.0.0.1' },
-        { key: 'port', kind: 'number' },
-        { key: 'seconds', kind: 'number', defaultValue: 30 },
-        { key: 'bots', kind: 'number', defaultValue: 5 },
-        { key: 'move-hz', kind: 'number', defaultValue: 2 },
-        { key: 'enable-chunks', kind: 'boolean', defaultValue: false },
-        { key: 'chunk-radius', kind: 'number', defaultValue: 0 },
-        { key: 'enable-tile-edits', kind: 'boolean', defaultValue: false },
-        { key: 'tile-edit-mode', kind: 'string', defaultValue: 'leader' },
-        { key: 'tile-edit-hz', kind: 'number', defaultValue: 1 },
-        { key: 'spawn-server', kind: 'boolean', defaultValue: true },
-        { key: 'server-config', kind: 'string' },
-        { key: 'fixed-spawn', kind: 'boolean', defaultValue: true },
-        { key: 'fixed-spawn-area-index', kind: 'number', defaultValue: 0 },
-        { key: 'fixed-spawn-center', kind: 'boolean', defaultValue: true },
-        { key: 'budget-connect-errors', kind: 'number', defaultValue: 0 },
-        { key: 'budget-min-welcome-rate', kind: 'number', defaultValue: 1 },
-        { key: 'budget-min-chunk-snapshots-per-bot', kind: 'number', defaultValue: 1 },
-        { key: 'budget-max-chunk-delta-apply-failures', kind: 'number', defaultValue: 0 },
-        { key: 'budget-min-observer-peer-edits', kind: 'number', defaultValue: 1 },
-        { key: 'budget-avg-ack-rtt-ms', kind: 'number', defaultValue: 200 },
-        { key: 'budget-corrections-per-minute', kind: 'number', defaultValue: 10 },
-        { key: 'budget-rejects-per-minute', kind: 'number', defaultValue: 10 },
-    ]);
+    const parsed = parseCliArgs(
+        argv,
+        [
+            { key: 'host', kind: 'string', defaultValue: '127.0.0.1' },
+            { key: 'port', kind: 'number' },
+            { key: 'seconds', kind: 'number', defaultValue: 30 },
+            { key: 'bots', kind: 'number', defaultValue: 5 },
+            { key: 'move-hz', kind: 'number', defaultValue: 2 },
+            { key: 'enable-chunks', kind: 'boolean', defaultValue: false },
+            { key: 'chunk-radius', kind: 'number', defaultValue: 0 },
+            { key: 'enable-tile-edits', kind: 'boolean', defaultValue: false },
+            { key: 'tile-edit-mode', kind: 'string', defaultValue: 'leader' },
+            { key: 'tile-edit-hz', kind: 'number', defaultValue: 1 },
+            { key: 'spawn-server', kind: 'boolean', defaultValue: true },
+            { key: 'server-config', kind: 'string' },
+            { key: 'fixed-spawn', kind: 'boolean', defaultValue: true },
+            { key: 'fixed-spawn-area-index', kind: 'number', defaultValue: 0 },
+            { key: 'fixed-spawn-center', kind: 'boolean', defaultValue: true },
+            { key: 'budget-connect-errors', kind: 'number', defaultValue: 0 },
+            { key: 'budget-min-welcome-rate', kind: 'number', defaultValue: 1 },
+            { key: 'budget-min-chunk-snapshots-per-bot', kind: 'number', defaultValue: 1 },
+            { key: 'budget-max-chunk-delta-apply-failures', kind: 'number', defaultValue: 0 },
+            { key: 'budget-min-observer-peer-edits', kind: 'number', defaultValue: 1 },
+            { key: 'budget-avg-ack-rtt-ms', kind: 'number', defaultValue: 200 },
+            { key: 'budget-corrections-per-minute', kind: 'number', defaultValue: 10 },
+            { key: 'budget-rejects-per-minute', kind: 'number', defaultValue: 10 },
+        ],
+        { onHelp: () => printUsageAndExit(0) }
+    );
 
     const bots = Math.max(1, Math.floor(parsed.bots as number));
     const seconds = Math.max(1, Math.floor(parsed.seconds as number));

@@ -1,4 +1,4 @@
-import { entityIdFromWire, type EntityId } from '../../shared/domain/ids';
+import type { EntityId } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
 import { isWithinAttackRange, resolveAttackRangeTiles } from '../../shared/combat/attack-range';
 import { requireMobPrefab } from '../../shared/content/prefabs';
@@ -6,7 +6,7 @@ import { WorldState } from '../ecs/world-state';
 import type { Command } from '../ecs/commands';
 import type { DomainEvent } from '../ecs/events';
 import { Scheduler, type SchedulerStage, type System, type SystemContext } from '../ecs/scheduler';
-import { OUTBOX_RESOURCE, type OutboxMessage } from '../ecs/outbox';
+import { OUTBOX_RESOURCE } from '../ecs/outbox';
 import { Queue } from '../ecs/queues';
 import { flushDomainEventsToOutboxSystem } from '../ecs/outbox-systems';
 import type { ComponentType } from '../ecs/component-registry';
@@ -50,7 +50,7 @@ import { RESPAWN_TASKS_RESOURCE, type RespawnTask, type RespawnableEntity } from
 import { registerMobAiComponents, type MobHateEntry } from '../ecs/mob-ai-components';
 import { registerMovementComponents } from '../ecs/movement-components';
 import type { PlayerLike } from './player-like';
-import { GameModuleRegistry } from '../../shared/modules/module-registry';
+import type { GameModuleRegistry } from '../../shared/modules/module-registry';
 import { encodeProtocolCapabilitiesJson, PROTOCOL_REVISION } from '../../shared/protocol/capabilities';
 import { createIntentSeqState, INTENT_SEQ_STATE_RESOURCE } from '../ecs/intent-seq';
 import { createResourceKey } from '../ecs/resources';
@@ -58,15 +58,8 @@ import { ChunkOverlayStore } from './chunks/chunk-overlay-store';
 import { createChunkAoiState, CHUNK_AOI_STATE_RESOURCE, type ChunkSubscription } from './chunks/chunk-aoi';
 import { ClaimsStore, type RectClaim } from './claims/claims-store';
 import { CLAIMS_STORE_RESOURCE } from './claims/claims-resource';
-import { canEditTile } from './claims/permissions';
 import type { ServerConfig } from '../runtime-types';
 import { normalizeIdentityKey, resolveIdentityKey } from '../identity';
-import {
-    applyClaimCreateIntent,
-    applyClaimDeleteIntent,
-    applyClaimUpdateIntent,
-    DEFAULT_CLAIM_INTENT_CONFIG,
-} from './ecs-command-pipeline/claim-intents';
 import {
     decodeIntentClaimCreate,
     decodeIntentClaimDelete,
@@ -79,19 +72,21 @@ import {
     replicateChunkDeltas,
     replicateChunkSnapshots,
 } from './ecs-command-pipeline/chunk-aoi-streaming';
-
-type InboundIntentContext = {
-    modules: GameModuleRegistry;
-    state: WorldState<Command, DomainEvent>;
-    ctx: SystemContext;
-    world: WorldCommandHost;
-    player: PlayerLike;
-    Position: ComponentType<GridPos>;
-    Target: ComponentType<EntityId>;
-    movement: ReturnType<typeof registerMovementComponents>;
-    mobAi: ReturnType<typeof registerMobAiComponents>;
-    replication: ReturnType<typeof registerSpawnReplicationComponents>;
-};
+import {
+    broadcastNearbyOutboxMessage,
+    replicateInterestVisibility,
+} from './ecs-command-pipeline/interest-replication';
+import {
+    createCoreServerModuleRegistry,
+    INTENT_CLAIM_CREATE,
+    INTENT_CLAIM_DELETE,
+    INTENT_CLAIM_UPDATE,
+    INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_STEP,
+    INTENT_TILE_EDIT,
+    OUTCOME_DOOR_TELEPORT,
+    type InboundIntentContext,
+} from './ecs-command-pipeline/core-module-registry';
 
 type DoorTeleportOutcome = Readonly<{ playerId: EntityId; to: GridPos }>;
 type DroppedItem = Readonly<{ id: EntityId; kind: EntityKind }>;
@@ -99,203 +94,6 @@ type DroppedMob = Readonly<{ kind: EntityKind; x: number; y: number }>;
 type LooseValue = string | number | boolean | bigint | symbol | null | undefined | object;
 type JsonScalar = string | number | boolean | null;
 type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
-type JsonRecord = { [key: string]: JsonLike };
-
-const INTENT_MOVE_STEP = 'move.step';
-const INTENT_DOOR_TELEPORT = 'door.teleport';
-const INTENT_TILE_EDIT = 'tile.edit';
-const INTENT_CLAIM_CREATE = 'claim.create';
-const INTENT_CLAIM_UPDATE = 'claim.update';
-const INTENT_CLAIM_DELETE = 'claim.delete';
-const OUTCOME_DOOR_TELEPORT = 'teleport.door';
-
-function isRecord(value: LooseValue): value is JsonRecord {
-    return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function decodeInboundIntentContext(value: LooseValue): InboundIntentContext | null {
-    return isRecord(value) ? (value as object as InboundIntentContext) : null;
-}
-
-function decodeCommandByType<TType extends Command['type']>(
-    value: LooseValue,
-    expectedType: TType
-): Extract<Command, { type: TType }> | null {
-    if (!isRecord(value) || value.type !== expectedType) {
-        return null;
-    }
-    return value as Extract<Command, { type: TType }>;
-}
-
-function createCoreServerModuleRegistry(): GameModuleRegistry {
-    const modules = new GameModuleRegistry();
-    modules.registerModules([
-        {
-            id: 'core.teleport',
-            register(registry) {
-                registry.registerOutcomeHandler(OUTCOME_DOOR_TELEPORT, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
-                    if (!ctx || !isRecord(rawPayload as LooseValue)) {
-                        return;
-                    }
-                    const payload = rawPayload as JsonRecord;
-                    const playerIdCandidate = payload.playerId;
-                    const to = payload.to;
-                    if (
-                        typeof playerIdCandidate !== 'number'
-                        || !Number.isInteger(playerIdCandidate)
-                        || !isRecord(to)
-                        || typeof to.x !== 'number'
-                        || typeof to.y !== 'number'
-                    ) {
-                        return;
-                    }
-                    const playerId = entityIdFromWire(playerIdCandidate);
-                    applyTeleportOutcome({
-                        state: ctx.state,
-                        ctx: ctx.ctx,
-                        Position: ctx.Position,
-                        Target: ctx.Target,
-                        mobAi: ctx.mobAi,
-                        movement: ctx.movement,
-                        replication: ctx.replication,
-                        world: ctx.world,
-                        playerId,
-                        to: gridPos(to.x, to.y),
-                    });
-                });
-            },
-        },
-        {
-            id: 'core.move',
-            deps: ['core.teleport'],
-            register(registry) {
-                registry.registerIntentHandler(INTENT_MOVE_STEP, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
-                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'MOVE');
-                    if (!ctx || !cmd) {
-                        return;
-                    }
-                    return applyMoveIntentCommand({
-                        state: ctx.state,
-                        Position: ctx.Position,
-                        player: ctx.player,
-                        movement: ctx.movement,
-                        world: ctx.world,
-                        cmd,
-                    });
-                });
-            },
-        },
-        {
-            id: 'core.doors',
-            deps: ['core.teleport'],
-            register(registry) {
-                registry.registerIntentHandler(INTENT_DOOR_TELEPORT, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
-                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'TELEPORT');
-                    if (!ctx || !cmd) {
-                        return;
-                    }
-
-                    const currentPos = ctx.Position.store.get(ctx.player.id) ?? gridPos(ctx.player.x, ctx.player.y);
-                    const doorDestination = ctx.world.map.getDoorDestination(currentPos.x, currentPos.y);
-                    if (!doorDestination) {
-                        return;
-                    }
-                    if (doorDestination.x !== cmd.to.x || doorDestination.y !== cmd.to.y) {
-                        return;
-                    }
-                    if (!ctx.world.isValidPosition(cmd.to.x, cmd.to.y)) {
-                        return;
-                    }
-
-                    const teleport = ctx.modules.getOutcomeHandler(OUTCOME_DOOR_TELEPORT);
-                    if (!teleport) {
-                        throw new Error(`Missing outcome handler: ${OUTCOME_DOOR_TELEPORT}`);
-                    }
-                    teleport(ctx, { playerId: ctx.player.id, to: cmd.to } satisfies DoorTeleportOutcome);
-                });
-            },
-        },
-        {
-            id: 'core.tiles',
-            register(registry) {
-                registry.registerIntentHandler(INTENT_TILE_EDIT, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
-                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'TILE_EDIT');
-                    if (!ctx || !cmd) {
-                        return;
-                    }
-                    const claims = ctx.state.resources.require(CLAIMS_STORE_RESOURCE);
-                    const claim = claims.getClaimAt(cmd.x, cmd.y);
-                    const decision = canEditTile({
-                            actorName: resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
-                            claim,
-                        });
-                    if (!decision.ok) {
-                        return { ok: false, reason: `PERMISSION:${decision.code}` };
-                    }
-
-                    const overlays = ctx.state.resources.require(CHUNK_OVERLAY_STORE_RESOURCE);
-                    ctx.world.ensureChunkOverlayLoadedForTile?.(cmd.x, cmd.y);
-                    try {
-                        if (cmd.value === null) {
-                            overlays.clearGlobal(cmd.x, cmd.y);
-                        } else {
-                            overlays.setGlobal(cmd.x, cmd.y, cmd.value);
-                        }
-                    } catch (_err) {
-                        return { ok: false, reason: 'Invalid tile edit.' };
-                    }
-                    return { ok: true };
-                });
-            },
-        },
-        {
-            id: 'core.claims',
-            register(registry) {
-                registry.registerIntentHandler(INTENT_CLAIM_CREATE, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
-                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'CLAIM_CREATE');
-                    if (!ctx || !cmd) {
-                        return;
-                    }
-                    return applyClaimCreateIntent({
-                        state: ctx.state,
-                        world: ctx.world,
-                        player: ctx.player,
-                        cmd,
-                        limits: DEFAULT_CLAIM_INTENT_CONFIG,
-                    });
-                });
-                registry.registerIntentHandler(INTENT_CLAIM_UPDATE, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
-                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'CLAIM_UPDATE');
-                    if (!ctx || !cmd) {
-                        return;
-                    }
-                    return applyClaimUpdateIntent({
-                        state: ctx.state,
-                        world: ctx.world,
-                        player: ctx.player,
-                        cmd,
-                        limits: DEFAULT_CLAIM_INTENT_CONFIG,
-                    });
-                });
-                registry.registerIntentHandler(INTENT_CLAIM_DELETE, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
-                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'CLAIM_DELETE');
-                    if (!ctx || !cmd) {
-                        return;
-                    }
-                    return applyClaimDeleteIntent({ state: ctx.state, world: ctx.world, player: ctx.player, cmd });
-                });
-            },
-        },
-    ]);
-    return modules;
-}
 
 export const CHUNK_OVERLAY_STORE_RESOURCE = createResourceKey<ChunkOverlayStore>('chunk_overlay_store');
 
@@ -2019,7 +1817,34 @@ export class WorldEcsCommandPipeline {
         this.state.resources.set(CHUNK_OVERLAY_STORE_RESOURCE, this.chunkOverlays);
         this.state.resources.set(CLAIMS_STORE_RESOURCE, new ClaimsStore());
 
-        const modules = createCoreServerModuleRegistry();
+        const modules = createCoreServerModuleRegistry({
+            chunkOverlayStoreResource: CHUNK_OVERLAY_STORE_RESOURCE,
+            resolvePlayerIdentityKey,
+            applyMoveIntentCommand({ state, Position, player, movement, world, cmd }) {
+                return applyMoveIntentCommand({
+                    state,
+                    Position,
+                    player,
+                    movement,
+                    world: world as WorldCommandHost,
+                    cmd,
+                });
+            },
+            applyTeleportOutcome({ state, ctx, Position, Target, mobAi, movement, replication, world, playerId, to }) {
+                applyTeleportOutcome({
+                    state,
+                    ctx,
+                    Position,
+                    Target,
+                    mobAi,
+                    movement,
+                    replication,
+                    world: world as WorldCommandHost,
+                    playerId,
+                    to,
+                });
+            },
+        });
 
         this.#scheduler = new Scheduler<Command, DomainEvent>({ nowMs: () => Date.now() });
         this.#scheduler.register(
@@ -2732,7 +2557,14 @@ export class WorldEcsCommandPipeline {
         this.#scheduler.tick(this.state, this.#tick++);
 
         const idsByGroup = this.#buildGroupIndex();
-        this.#replicateInterest(idsByGroup);
+        replicateInterestVisibility({
+            world: this.#world,
+            state: this.state,
+            Position: this.Position,
+            replication: this.replication,
+            interest: this.state.resources.require(INTEREST_TRACKER_RESOURCE),
+            idsByGroup,
+        });
         this.#replicateChunkSnapshots();
         this.#replicateChunkDeltas();
 
@@ -2748,7 +2580,12 @@ export class WorldEcsCommandPipeline {
                 continue;
             }
 
-            this.#broadcastNearby(msg, idsByGroup);
+            broadcastNearbyOutboxMessage({
+                world: this.#world,
+                Position: this.Position,
+                msg,
+                idsByGroup,
+            });
         }
     }
 
@@ -2766,89 +2603,6 @@ export class WorldEcsCommandPipeline {
         });
 
         return idsByGroup;
-    }
-
-    #replicateInterest(idsByGroup: Map<string, EntityId[]>): void {
-        const interest = this.state.resources.require(INTEREST_TRACKER_RESOURCE);
-        const Kind = this.replication.Kind;
-
-        Kind.store.forEach((observerId, kind) => {
-            if (!Types.isPlayer(kind)) {
-                return;
-            }
-
-            if (!this.#world.isPlayerActive(observerId)) {
-                interest.clearObserver(observerId);
-                return;
-            }
-
-            const pos = this.Position.store.get(observerId);
-            if (!pos) {
-                return;
-            }
-
-            const groupId = this.#world.map.getGroupIdFromPosition(pos.x, pos.y);
-            const visible: EntityId[] = [];
-            this.#world.map.forEachAdjacentGroup(groupId, (adjacent) => {
-                const groupIds = idsByGroup.get(adjacent);
-                if (groupIds) {
-                    visible.push(...groupIds);
-                }
-            });
-
-            const diff = interest.update(observerId, visible, { excludeSelf: true });
-            for (let i = 0; i < diff.enter.length; i += 1) {
-                const id = diff.enter[i];
-                if (id === undefined) {
-                    continue;
-                }
-                try {
-                    this.#world.pushToPlayerId(
-                        observerId,
-                        buildSpawnActionFromReplicationState(this.state.world, this.replication, id)
-                    );
-                } catch (_) {
-                    // Entity may have been destroyed during this tick or missing replication components.
-                }
-            }
-            for (let i = 0; i < diff.leave.length; i += 1) {
-                const id = diff.leave[i];
-                if (id === undefined) {
-                    continue;
-                }
-                this.#world.pushToPlayerId(observerId, buildDespawnAction(id));
-            }
-        });
-    }
-
-    #broadcastNearby(msg: Extract<OutboxMessage, { kind: 'broadcast_nearby' }>, idsByGroup: Map<string, EntityId[]>) {
-        const pos = this.Position.store.get(msg.actorId);
-        const groupId =
-            pos !== undefined
-                ? this.#world.map.getGroupIdFromPosition(pos.x, pos.y)
-                : typeof msg.fallbackGroupId === 'string'
-                  ? msg.fallbackGroupId
-                  : null;
-        if (!groupId) {
-            return;
-        }
-
-        this.#world.map.forEachAdjacentGroup(groupId, (adjacent) => {
-            const ids = idsByGroup.get(adjacent);
-            if (!ids) {
-                return;
-            }
-            for (let i = 0; i < ids.length; i += 1) {
-                const id = ids[i];
-                if (id === undefined || (msg.ignoredPlayerId !== undefined && id === msg.ignoredPlayerId)) {
-                    continue;
-                }
-                if (!this.#world.isPlayerActive(id)) {
-                    continue;
-                }
-                this.#world.pushToPlayerId(id, msg.action);
-            }
-        });
     }
 
     #replicateChunkSnapshots(): void {

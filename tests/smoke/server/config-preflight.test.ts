@@ -1,70 +1,13 @@
 import { afterEach, expect, test } from 'bun:test';
 import { killBunProcess } from '../../support/process-cleanup';
+import {
+    deleteFileIfExists,
+    startStructuredLogCapture,
+    waitForProcessExit,
+    type StructuredEventRecord,
+} from '../../support/server-harness';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
-
-type EventValue = string | number | boolean | null | undefined | EventValue[] | { [key: string]: EventValue };
-type EventRecord = Record<string, EventValue>;
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-
-function startStructuredLogCapture(
-    stream: ReadableStream<Uint8Array> | number | null | undefined,
-    events: EventRecord[],
-    rawLines?: string[]
-) {
-    if (!stream || typeof stream === 'number') {
-        return;
-    }
-
-    const reader = stream.getReader();
-
-    void (async () => {
-        let carry = '';
-        for (;;) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (!(value instanceof Uint8Array)) {
-                continue;
-            }
-            carry += new TextDecoder().decode(value);
-            const chunks = carry.split('\n');
-            carry = chunks.pop() ?? '';
-            chunks.forEach((line) => {
-                const trimmed = line.trim();
-                if (rawLines && trimmed) {
-                    rawLines.push(trimmed);
-                }
-                if (!trimmed.startsWith('{')) {
-                    return;
-                }
-                try {
-                    const parsed = JSON.parse(trimmed) as JsonValue;
-                    if (parsed && typeof parsed === 'object') {
-                        events.push(parsed as EventRecord);
-                    }
-                } catch (_) {
-                    // ignore
-                }
-            });
-        }
-    })();
-}
-
-async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs = 4000) {
-    return new Promise<number>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Timed out waiting for server exit')), timeoutMs);
-        proc.exited
-            .then((code) => {
-                clearTimeout(timeout);
-                resolve(code);
-            })
-            .catch((error) => {
-                clearTimeout(timeout);
-                reject(error instanceof Error ? error : new Error(String(error)));
-            });
-    });
-}
 
 let proc: ReturnType<typeof Bun.spawn> | null = null;
 let configPath: string | null = null;
@@ -73,26 +16,10 @@ let mapPath: string | null = null;
 afterEach(async () => {
     await killBunProcess(proc);
     proc = null;
-
-    if (configPath) {
-        try {
-            await Bun.file(configPath).delete();
-        } catch (_) {
-            // ignore
-        } finally {
-            configPath = null;
-        }
-    }
-
-    if (mapPath) {
-        try {
-            await Bun.file(mapPath).delete();
-        } catch (_) {
-            // ignore
-        } finally {
-            mapPath = null;
-        }
-    }
+    await deleteFileIfExists(configPath);
+    await deleteFileIfExists(mapPath);
+    configPath = null;
+    mapPath = null;
 });
 
 test('server fails fast with structured config-invalid event when config preflight fails', async () => {
@@ -109,7 +36,7 @@ test('server fails fast with structured config-invalid event when config preflig
         })
     );
 
-    const events: EventRecord[] = [];
+    const events: StructuredEventRecord[] = [];
     const stderrLines: string[] = [];
 
     proc = Bun.spawn({
