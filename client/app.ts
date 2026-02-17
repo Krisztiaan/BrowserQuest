@@ -51,7 +51,6 @@ class App {
     ready: boolean;
     config: RuntimeConfig | null;
     storage: Storage;
-    watchNameInputInterval: ReturnType<typeof setInterval>;
     isStarting: boolean;
     playButtonEl: Element | null;
     containerEl: HTMLElement | null;
@@ -92,7 +91,6 @@ class App {
         this.ready = false;
         this.config = null;
         this.storage = new Storage();
-        this.watchNameInputInterval = setInterval(() => this.toggleButton(), 100);
         this.isStarting = false;
         this.playButtonEl = document.querySelector('#createcharacter .play');
         this.containerEl = document.getElementById('container');
@@ -372,7 +370,6 @@ class App {
     }
 
     hideIntro(onHidden: () => void): void {
-        clearInterval(this.watchNameInputInterval);
         document.body.classList.remove('intro');
         setTimeout(function () {
             document.body.classList.add('game');
@@ -447,6 +444,7 @@ class App {
         if (achievements) {
             achievements.classList.toggle('active');
         }
+        this.stopAchievementBlink();
     }
 
     resetPage(): void {
@@ -525,21 +523,30 @@ class App {
         if (nameEl) {
             nameEl.textContent = name;
         }
-        if (this.game.storage.getAchievementCount() === 1) {
+        if (this.game.storage.getAchievementCount() === 1 && !this.blinkInterval) {
             this.blinkInterval = setInterval(function () {
                 if (button) {
                     button.classList.toggle('blink');
                 }
             }, 500);
         }
-        setTimeout(function () {
+        setTimeout(() => {
             if (notif) {
                 notif.classList.remove('active');
             }
-            if (button) {
-                button.classList.remove('blink');
-            }
+            this.stopAchievementBlink();
         }, 5000);
+    }
+
+    stopAchievementBlink(): void {
+        if (this.blinkInterval) {
+            clearInterval(this.blinkInterval);
+            this.blinkInterval = null;
+        }
+        const button = this.achievementsButtonEl ?? document.getElementById('achievementsbutton');
+        if (button) {
+            button.classList.remove('blink');
+        }
     }
 
     displayUnlockedAchievement(id: AchievementId): void {

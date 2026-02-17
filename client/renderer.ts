@@ -9,6 +9,7 @@ import log from './platform/log';
 import { disableCanvasImageSmoothing, type PixelArtCanvasContext } from './canvas-smoothing';
 
 type RendererContext2D = PixelArtCanvasContext;
+type DrawScaledImageArg = number | RendererContext2D | CanvasImageSource;
 type BoundingRect = Record<string, number>;
 type RenderSprite = {
     image: CanvasImageSource;
@@ -218,8 +219,7 @@ class Renderer {
         this.initFont();
         this.initFPS();
 
-        const tilesets = (this.game as unknown as { map?: { tilesets?: Array<HTMLImageElement | undefined> } | null }).map
-            ?.tilesets;
+        const tilesets = this.game.map?.tilesets;
         if (!this.upscaledRendering && tilesets) {
             this.setTileset(tilesets[this.scale - 1]);
         }
@@ -293,19 +293,23 @@ class Renderer {
                 strokeSize = 5;
         }
 
-        if (text && x && y) {
-            const label = String(text);
-            ctx.save();
-            if (centered) {
-                ctx.textAlign = 'center';
-            }
-            ctx.strokeStyle = strokeColor ?? '#373737';
-            ctx.lineWidth = strokeSize;
-            ctx.strokeText(label, x, y);
-            ctx.fillStyle = color ?? 'white';
-            ctx.fillText(label, x, y);
-            ctx.restore();
+        if (text === null || text === undefined || !Number.isFinite(x) || !Number.isFinite(y)) {
+            return;
         }
+        const label = String(text);
+        if (label.length === 0) {
+            return;
+        }
+        ctx.save();
+        if (centered) {
+            ctx.textAlign = 'center';
+        }
+        ctx.strokeStyle = strokeColor ?? '#373737';
+        ctx.lineWidth = strokeSize;
+        ctx.strokeText(label, x, y);
+        ctx.fillStyle = color ?? 'white';
+        ctx.fillText(label, x, y);
+        ctx.restore();
     }
 
     drawCellRect(x: number, y: number, color: string): void {
@@ -417,7 +421,7 @@ class Renderer {
         dy: number
     ): void {
         const s = this.upscaledRendering ? 1 : this.scale;
-        Array.prototype.forEach.call(arguments, function (arg: unknown) {
+        Array.prototype.forEach.call(arguments, function (arg: DrawScaledImageArg) {
             const isInvalidNumber = typeof arg === 'number' && (Number.isNaN(arg) || arg < 0);
             if (arg === undefined || arg === null || isInvalidNumber) {
                 log.error('x:' + x + ' y:' + y + ' w:' + w + ' h:' + h + ' dx:' + dx + ' dy:' + dy, true);

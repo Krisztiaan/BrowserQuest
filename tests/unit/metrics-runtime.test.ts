@@ -1,13 +1,14 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import Log from '../../server/log';
 import MetricsRuntime from '../../server/metrics-runtime';
+import type { RuntimeEventFields } from '../../server/runtime-types';
 
 const originalConsoleError = console.error;
 const originalLogLevel = Log.getLogger().level;
 
 type NoopMetricsAdapter = {
     isEnabled: false;
-    meta: Record<string, unknown>;
+    meta: RuntimeEventFields;
 };
 
 type BaseConfig = {
@@ -18,11 +19,13 @@ type BaseConfig = {
     game_servers?: Array<{ name: string }>;
 };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: object | null | undefined): value is RuntimeEventFields {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function assertNoopMetricsAdapter(value: unknown): asserts value is NoopMetricsAdapter {
+function assertNoopMetricsAdapter(
+    value: Readonly<{ isEnabled?: boolean; meta?: RuntimeEventFields }> | null | undefined
+): asserts value is NoopMetricsAdapter {
     if (!isRecord(value) || value.isEnabled !== false || !isRecord(value.meta)) {
         throw new Error('Expected noop metrics adapter shape');
     }
@@ -48,17 +51,17 @@ beforeEach(() => {
 });
 
 test('metrics runtime returns no-op adapter when metrics are disabled', () => {
-    const emitted: Array<{ level: string; event: string; fields: Record<string, unknown> }> = [];
+    const emitted: Array<{ level: string; event: string; fields: RuntimeEventFields }> = [];
     let memcacheCalls = 0;
 
     const result = MetricsRuntime.createMetrics(
         { metrics_enabled: false },
-        (level: string, event: string, fields: Record<string, unknown>) => {
+        (level: string, event: string, fields: RuntimeEventFields) => {
             emitted.push({ level, event, fields });
         },
         {
             adapters: {
-                createNoopMetricsAdapter: (meta: Record<string, unknown>) => ({ isEnabled: false, meta }),
+                createNoopMetricsAdapter: (meta: RuntimeEventFields) => ({ isEnabled: false, meta }),
                 createMemcacheMetricsAdapter: () => {
                     memcacheCalls += 1;
                     return { isEnabled: true };
@@ -75,17 +78,17 @@ test('metrics runtime returns no-op adapter when metrics are disabled', () => {
 });
 
 test('metrics runtime emits invalid-config fallback and uses no-op adapter', () => {
-    const emitted: Array<{ level: string; event: string; fields: Record<string, unknown> }> = [];
+    const emitted: Array<{ level: string; event: string; fields: RuntimeEventFields }> = [];
     let memcacheCalls = 0;
 
     const result = MetricsRuntime.createMetrics(
         { metrics_enabled: true },
-        (level: string, event: string, fields: Record<string, unknown>) => {
+        (level: string, event: string, fields: RuntimeEventFields) => {
             emitted.push({ level, event, fields });
         },
         {
             adapters: {
-                createNoopMetricsAdapter: (meta: Record<string, unknown>) => ({ isEnabled: false, meta }),
+                createNoopMetricsAdapter: (meta: RuntimeEventFields) => ({ isEnabled: false, meta }),
                 createMemcacheMetricsAdapter: () => {
                     memcacheCalls += 1;
                     return { isEnabled: true };
@@ -106,16 +109,16 @@ test('metrics runtime emits invalid-config fallback and uses no-op adapter', () 
 });
 
 test('metrics runtime emits init-failed fallback when memcache adapter throws', () => {
-    const emitted: Array<{ level: string; event: string; fields: Record<string, unknown> }> = [];
+    const emitted: Array<{ level: string; event: string; fields: RuntimeEventFields }> = [];
 
     const result = MetricsRuntime.createMetrics(
         createValidConfig(),
-        (level: string, event: string, fields: Record<string, unknown>) => {
+        (level: string, event: string, fields: RuntimeEventFields) => {
             emitted.push({ level, event, fields });
         },
         {
             adapters: {
-                createNoopMetricsAdapter: (meta: Record<string, unknown>) => ({ isEnabled: false, meta }),
+                createNoopMetricsAdapter: (meta: RuntimeEventFields) => ({ isEnabled: false, meta }),
                 createMemcacheMetricsAdapter: () => {
                     throw new Error('adapter unavailable');
                 },
@@ -133,16 +136,16 @@ test('metrics runtime emits init-failed fallback when memcache adapter throws', 
 
 test('metrics runtime returns memcache adapter when configuration is valid', () => {
     const expectedAdapter = { isEnabled: true, isReady: false, adapter: 'memcache' };
-    const emitted: Array<{ level: string; event: string; fields: Record<string, unknown> }> = [];
+    const emitted: Array<{ level: string; event: string; fields: RuntimeEventFields }> = [];
 
     const result = MetricsRuntime.createMetrics(
         createValidConfig(),
-        (level: string, event: string, fields: Record<string, unknown>) => {
+        (level: string, event: string, fields: RuntimeEventFields) => {
             emitted.push({ level, event, fields });
         },
         {
             adapters: {
-                createNoopMetricsAdapter: (meta: Record<string, unknown>) => ({ isEnabled: false, meta }),
+                createNoopMetricsAdapter: (meta: RuntimeEventFields) => ({ isEnabled: false, meta }),
                 createMemcacheMetricsAdapter: () => expectedAdapter,
             },
         }
@@ -153,17 +156,17 @@ test('metrics runtime returns memcache adapter when configuration is valid', () 
 });
 
 test('metrics runtime wires structured metrics-ready signal via memcache adapter hook', () => {
-    const emitted: Array<{ level: string; event: string; fields: Record<string, unknown> }> = [];
+    const emitted: Array<{ level: string; event: string; fields: RuntimeEventFields }> = [];
     let onReadyHook: (() => void) | null = null;
 
     MetricsRuntime.createMetrics(
         createValidConfig(),
-        (level: string, event: string, fields: Record<string, unknown>) => {
+        (level: string, event: string, fields: RuntimeEventFields) => {
             emitted.push({ level, event, fields });
         },
         {
             adapters: {
-                createNoopMetricsAdapter: (meta: Record<string, unknown>) => ({ isEnabled: false, meta }),
+                createNoopMetricsAdapter: (meta: RuntimeEventFields) => ({ isEnabled: false, meta }),
                 createMemcacheMetricsAdapter: (_config: BaseConfig, options: { onReady?: () => void } | undefined) => {
                     onReadyHook = options?.onReady ?? null;
                     return { isEnabled: true };
@@ -182,20 +185,20 @@ test('metrics runtime wires structured metrics-ready signal via memcache adapter
 });
 
 test('metrics runtime forwards adapter unavailability signals with stable reason codes', () => {
-    const emitted: Array<{ level: string; event: string; fields: Record<string, unknown> }> = [];
-    let onUnavailableHook: ((reason: string, details?: Record<string, unknown>) => void) | null = null;
+    const emitted: Array<{ level: string; event: string; fields: RuntimeEventFields }> = [];
+    let onUnavailableHook: ((reason: string, details?: RuntimeEventFields) => void) | null = null;
 
     MetricsRuntime.createMetrics(
         createValidConfig(),
-        (level: string, event: string, fields: Record<string, unknown>) => {
+        (level: string, event: string, fields: RuntimeEventFields) => {
             emitted.push({ level, event, fields });
         },
         {
             adapters: {
-                createNoopMetricsAdapter: (meta: Record<string, unknown>) => ({ isEnabled: false, meta }),
+                createNoopMetricsAdapter: (meta: RuntimeEventFields) => ({ isEnabled: false, meta }),
                 createMemcacheMetricsAdapter: (
                     _config: BaseConfig,
-                    options: { onUnavailable?: (reason: string, details?: Record<string, unknown>) => void } | undefined
+                    options: { onUnavailable?: (reason: string, details?: RuntimeEventFields) => void } | undefined
                 ) => {
                     onUnavailableHook = options?.onUnavailable ?? null;
                     return { isEnabled: true };

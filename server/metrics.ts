@@ -1,7 +1,8 @@
 import * as memcacheModule from 'memcache';
-import MetricsClient from './metrics-client';
+import MetricsClient, { type MetricsStoreClient } from './metrics-client';
 import Log from './log';
 import { Evented } from '../shared/evented';
+import type { RuntimeEventFields } from './runtime-types';
 
 const log = Log.getLogger();
 
@@ -12,14 +13,10 @@ interface MetricsConfig {
     game_servers?: Array<{ name: string }>;
 }
 
-interface MetricsClientAdapter {
-    connect(): void;
-    set(key: string, value: unknown, callback: (ok: boolean) => void): void;
-    get(key: string, callback: (result: unknown) => void): void;
-}
-
 interface RuntimeOptions {
-    onUnavailable?: (reason: string, fields: Record<string, unknown>) => void;
+    onReady?: () => void;
+    onUnavailable?: (reason: string, fields: RuntimeEventFields) => void;
+    createStore?: (config: MetricsConfig) => MetricsStoreClient;
 }
 
 interface WorldLike {
@@ -30,69 +27,146 @@ type MetricsEvents = {
     ready: [];
 };
 
+type UnavailableSignal = Readonly<{
+    reason: string;
+    operation?: 'connect' | 'read' | 'write';
+    key?: string;
+}>;
+
+function toMetricInteger(value: string | undefined): number {
+    if (typeof value !== 'string') {
+        return 0;
+    }
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function normalizeServerNames(config: MetricsConfig): string[] {
+    const input = Array.isArray(config.game_servers) ? config.game_servers : [];
+    const names = input
+        .map((entry) => (typeof entry?.name === 'string' ? entry.name.trim() : ''))
+        .filter((name) => name.length > 0);
+    if (typeof config.server_name === 'string' && config.server_name.trim().length > 0) {
+        names.push(config.server_name.trim());
+    }
+    return Array.from(new Set(names));
+}
+
 class Metrics extends Evented<MetricsEvents> {
     config: MetricsConfig;
-    client: MetricsClientAdapter;
+    readonly store: MetricsStoreClient;
     isEnabled: boolean;
     isReady: boolean;
-    unavailableReasons: Record<string, boolean>;
-    onUnavailable: (reason: string, fields: Record<string, unknown>) => void;
+    unavailableSignals: Set<string>;
+    onUnavailable: (reason: string, fields: RuntimeEventFields) => void;
+    onReady: () => void;
 
     constructor(config: MetricsConfig, options?: RuntimeOptions) {
         super();
-        const self = this;
         const runtimeOptions = options ?? {};
 
         this.config = config;
-        this.isEnabled = false;
+        this.store = (runtimeOptions.createStore ?? ((cfg) => MetricsClient.createMetricsClient(memcacheModule, cfg)))(config);
+        this.isEnabled = true;
         this.isReady = false;
-        this.unavailableReasons = {};
+        this.unavailableSignals = new Set();
         this.onUnavailable =
             typeof runtimeOptions.onUnavailable === 'function' ? runtimeOptions.onUnavailable : function () {};
+        this.onReady = typeof runtimeOptions.onReady === 'function' ? runtimeOptions.onReady : function () {};
 
-        const reportUnavailable = function (reason: string, fields?: Record<string, unknown>): void {
-            if (self.unavailableReasons[reason]) {
-                return;
-            }
-            self.unavailableReasons[reason] = true;
-            self.onUnavailable(reason, fields ?? {});
+        void this.connectStore();
+    }
+
+    private signalKey(signal: UnavailableSignal): string {
+        return `${signal.reason}:${signal.operation ?? ''}:${signal.key ?? ''}`;
+    }
+
+    private reportUnavailable(reason: string, fields: RuntimeEventFields = {}): void {
+        const signal: UnavailableSignal = {
+            reason,
+            operation: fields.operation === 'read' || fields.operation === 'write' || fields.operation === 'connect'
+                ? fields.operation
+                : undefined,
+            key: typeof fields.key === 'string' ? fields.key : undefined,
         };
+        const dedupeKey = this.signalKey(signal);
+        if (this.unavailableSignals.has(dedupeKey)) {
+            return;
+        }
+        this.unavailableSignals.add(dedupeKey);
+        this.onUnavailable(reason, fields);
+    }
 
-        const markReady = function (): void {
-            if (self.isReady) {
-                return;
+    private markReady(): void {
+        if (this.isReady) {
+            return;
+        }
+        this.isReady = true;
+        log.info('Metrics enabled: memcached client connected to ' + this.store.endpoint);
+        this.onReady();
+        this.emit('ready');
+    }
+
+    private async connectStore(): Promise<void> {
+        try {
+            await this.store.connect();
+            this.markReady();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            log.error('Memcached client connect failed: ' + message);
+            this.reportUnavailable('connect_failed', {
+                operation: 'connect',
+                error: message,
+            });
+        }
+    }
+
+    private async setMetricString(key: string, value: string): Promise<boolean> {
+        try {
+            const ok = await this.store.setString(key, value);
+            if (!ok) {
+                this.reportUnavailable('write_failed', {
+                    operation: 'write',
+                    key,
+                    error: 'not_stored',
+                });
             }
-            self.isReady = true;
-            log.info(
-                'Metrics enabled: memcached client connected to ' + config.memcached_host + ':' + config.memcached_port
-            );
-            self.emit('ready');
-        };
+            return ok;
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.reportUnavailable('write_failed', {
+                operation: 'write',
+                key,
+                error: message,
+            });
+            return false;
+        }
+    }
 
-        this.client = MetricsClient.createMetricsClient(memcacheModule, config, {
-            onReady: markReady,
-            onError: function (error) {
-                const errorMessage = String(
-                    typeof error === 'object' && error !== null && 'message' in error
-                        ? (error as { message?: unknown }).message
-                        : error
-                );
-                log.error('Memcached client connect failed: ' + errorMessage);
-                reportUnavailable('connect_failed', {
-                    error: errorMessage,
-                });
-            },
-            onOperationError: function (details) {
-                const operation = details.operation;
-                const reason = operation === 'read' ? 'read_failed' : 'write_failed';
-                reportUnavailable(reason, {
-                    operation,
-                    key: details.key,
-                    error: details.error,
-                });
-            },
-        });
-        this.client.connect();
+    private async getMetricString(key: string): Promise<string | undefined> {
+        try {
+            return await this.store.getString(key);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.reportUnavailable('read_failed', {
+                operation: 'read',
+                key,
+                error: message,
+            });
+            return undefined;
+        }
+    }
+
+    private playerCountKey(serverName: string): string {
+        return `player_count_${serverName}`;
+    }
+
+    private totalPlayersKey(): string {
+        return 'total_players';
+    }
+
+    private worldDistributionKey(): string {
+        return `world_distribution_${this.config.server_name}`;
     }
 
     ready(callback: () => void): void {
@@ -100,87 +174,68 @@ class Metrics extends Evented<MetricsEvents> {
             callback();
             return;
         }
-        this.on('ready', callback);
-    }
-
-    setValue(key: string, value: unknown, callback?: (ok: boolean) => void): void {
-        const done = typeof callback === 'function' ? callback : function () {};
-
-        if (!this.isReady) {
-            done(false);
-            return;
-        }
-
-        this.client.set(key, value, done);
-    }
-
-    getValue(key: string, callback?: (result: unknown) => void): void {
-        const done = typeof callback === 'function' ? callback : function () {};
-
-        if (!this.isReady) {
-            done(undefined);
-            return;
-        }
-
-        this.client.get(key, done);
+        this.once('ready', callback);
     }
 
     updatePlayerCounters(worlds: WorldLike[], updatedCallback?: (totalPlayers: number) => void): void {
-        const self = this;
-        const config = this.config;
-        const gameServers = Array.isArray(config.game_servers) ? config.game_servers : [];
-        let numServers = gameServers.length;
-        const playerCount = worlds.reduce(function (sum, world) {
-            return sum + world.playerCount;
-        }, 0);
+        void this.updatePlayerCountersAsync(worlds, updatedCallback);
+    }
 
-        if (this.isReady) {
-            // Set the number of players on this server
-            this.setValue('player_count_' + config.server_name, playerCount, function () {
-                let total_players = 0;
+    private async updatePlayerCountersAsync(
+        worlds: WorldLike[],
+        updatedCallback?: (totalPlayers: number) => void
+    ): Promise<void> {
+        const done = typeof updatedCallback === 'function' ? updatedCallback : () => {};
+        if (!this.isReady) {
+            return;
+        }
 
-                // Recalculate the total number of players and set it
-                gameServers.forEach(function (server) {
-                    self.getValue('player_count_' + server.name, function (result) {
-                        let count = 0;
-                        if (typeof result === 'number' && Number.isFinite(result)) {
-                            count = Math.trunc(result);
-                        } else if (typeof result === 'string') {
-                            const parsed = Number.parseInt(result, 10);
-                            count = Number.isFinite(parsed) ? parsed : 0;
-                        }
+        const localPlayerCount = worlds.reduce((sum, world) => sum + world.playerCount, 0);
+        const localWriteOk = await this.setMetricString(this.playerCountKey(this.config.server_name), String(localPlayerCount));
+        if (!localWriteOk) {
+            return;
+        }
 
-                        total_players += count;
-                        numServers -= 1;
-                        if (numServers === 0) {
-                            self.setValue('total_players', total_players, function () {
-                                if (updatedCallback) {
-                                    updatedCallback(total_players);
-                                }
-                            });
-                        }
-                    });
-                });
-            });
-        } else {
-            log.error('Memcached client not connected');
+        const serverNames = normalizeServerNames(this.config);
+        if (serverNames.length === 0) {
+            await this.setMetricString(this.totalPlayersKey(), String(localPlayerCount));
+            done(localPlayerCount);
+            return;
+        }
+
+        const playerCountReads = await Promise.all(
+            serverNames.map(async (serverName) => this.getMetricString(this.playerCountKey(serverName)))
+        );
+        const totalPlayers = playerCountReads.reduce((sum, raw) => sum + toMetricInteger(raw), 0);
+
+        const totalWriteOk = await this.setMetricString(this.totalPlayersKey(), String(totalPlayers));
+        if (totalWriteOk) {
+            done(totalPlayers);
         }
     }
 
-    updateWorldDistribution(worlds: unknown): void {
-        this.setValue('world_distribution_' + this.config.server_name, worlds);
+    updateWorldDistribution(worlds: number[]): void {
+        void this.updateWorldDistributionAsync(worlds);
     }
 
-    getOpenWorldCount(callback: (result: unknown) => void): void {
-        this.getValue('world_count_' + this.config.server_name, function (result) {
-            callback(result);
-        });
+    private async updateWorldDistributionAsync(worlds: number[]): Promise<void> {
+        if (!this.isReady) {
+            return;
+        }
+        const payload = JSON.stringify(worlds);
+        await this.setMetricString(this.worldDistributionKey(), payload);
     }
 
-    getTotalPlayers(callback: (result: unknown) => void): void {
-        this.getValue('total_players', function (result) {
-            callback(result);
-        });
+    getTotalPlayers(callback: (result: number) => void): void {
+        if (!this.isReady) {
+            callback(0);
+            return;
+        }
+
+        void (async () => {
+            const raw = await this.getMetricString(this.totalPlayersKey());
+            callback(toMetricInteger(raw));
+        })();
     }
 }
 

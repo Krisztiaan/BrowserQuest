@@ -9,9 +9,10 @@ import type Game from './game';
 import Mob from './mob';
 import sprites from './sprites';
 import { getZoneGroupIdFromGrid } from '../shared/world/coordinate-contract';
+import { entityIdFromWire } from '../shared/domain/ids';
 
 type TestEntity = {
-    id: string | number;
+    id: number;
     kind: EntityKind;
     gridX?: number;
     gridY?: number;
@@ -101,6 +102,7 @@ const DEFAULT_ARMOR_SPRITE = 'clotharmor';
 const DEFAULT_WEAPON_SPRITE = 'sword1';
 const SHADOW_SPRITE = 'shadow16';
 const IDLE_ANIMATION_INTERVAL_MS = 260;
+let loadCharacterPreviewInterval: ReturnType<typeof setInterval> | null = null;
 
 function bindFullscreenToggle(): void {
     if (fullscreenToggleBound) {
@@ -137,7 +139,7 @@ function bindFullscreenToggle(): void {
                 } else {
                     await root.requestFullscreen();
                 }
-            } catch (err: unknown) {
+            } catch (err) {
                 log.debug('Fullscreen toggle failed');
                 log.debug(err);
             }
@@ -191,8 +193,12 @@ type SpriteSpec = {
     animations?: Record<string, { row: number; length: number }>;
 };
 type PreviewPayload = {
-    armorSpriteName?: unknown;
-    weaponSpriteName?: unknown;
+    armorSpriteName?: string;
+    weaponSpriteName?: string;
+};
+type PreviewPayloadSource = {
+    armorSpriteName?: string;
+    weaponSpriteName?: string;
 };
 type PreviewRuntime = {
     armorSpec: SpriteSpec;
@@ -214,7 +220,7 @@ const getSpriteSpec = function (spriteName: string): SpriteSpec | null {
     if (!Number.isFinite(spriteSpec.width) || !Number.isFinite(spriteSpec.height)) {
         return null;
     }
-    return spriteSpec as unknown as SpriteSpec;
+    return spriteSpec;
 };
 
 const getSpriteOffset = function (spriteSpec: SpriteSpec): { x: number; y: number } {
@@ -253,7 +259,18 @@ const loadImageAsset = function (src: string): Promise<HTMLImageElement> {
     });
 };
 
-const resolveArmorSpriteName = function (raw: unknown): string {
+const parsePreviewPayload = function (value: object | null | undefined): PreviewPayload {
+    if (!value || typeof value !== 'object') {
+        return {};
+    }
+    const record = value as PreviewPayloadSource;
+    return {
+        armorSpriteName: typeof record.armorSpriteName === 'string' ? record.armorSpriteName : undefined,
+        weaponSpriteName: typeof record.weaponSpriteName === 'string' ? record.weaponSpriteName : undefined,
+    };
+};
+
+const resolveArmorSpriteName = function (raw: string | undefined): string {
     if (typeof raw !== 'string') {
         return DEFAULT_ARMOR_SPRITE;
     }
@@ -264,7 +281,7 @@ const resolveArmorSpriteName = function (raw: unknown): string {
     return raw;
 };
 
-const resolveWeaponSpriteName = function (raw: unknown): string {
+const resolveWeaponSpriteName = function (raw: string | undefined): string {
     if (typeof raw !== 'string') {
         return DEFAULT_WEAPON_SPRITE;
     }
@@ -284,7 +301,7 @@ const loadLoadCharacterPreviewRuntime = async function (): Promise<PreviewRuntim
             cache: 'no-store',
         });
         if (response.ok) {
-            const parsed = (await response.json()) as PreviewPayload;
+            const parsed = parsePreviewPayload(await response.json());
             payload.armorSpriteName = parsed.armorSpriteName;
             payload.weaponSpriteName = parsed.weaponSpriteName;
         }
@@ -329,6 +346,11 @@ const loadLoadCharacterPreviewRuntime = async function (): Promise<PreviewRuntim
 };
 
 const hydrateLoadCharacterPreview = function (playerImage: HTMLImageElement): void {
+    if (loadCharacterPreviewInterval) {
+        clearInterval(loadCharacterPreviewInterval);
+        loadCharacterPreviewInterval = null;
+    }
+
     void loadLoadCharacterPreviewRuntime().then((runtime) => {
         if (!runtime) {
             playerImage.src = SERVER_PLAYER_IMAGE_SRC;
@@ -393,8 +415,12 @@ const hydrateLoadCharacterPreview = function (playerImage: HTMLImageElement): vo
 
         if (runtime.frameCount > 1) {
             let frameIndex = 1;
-            setInterval(function () {
+            loadCharacterPreviewInterval = setInterval(function () {
                 if (!document.body.classList.contains('returning')) {
+                    if (loadCharacterPreviewInterval) {
+                        clearInterval(loadCharacterPreviewInterval);
+                        loadCharacterPreviewInterval = null;
+                    }
                     return;
                 }
                 drawFrame(frameIndex);
@@ -412,8 +438,20 @@ const installTestApi = function (): void {
     let lastAggroMobId: string | number | null = null;
     let lastKillProbeMobId: string | number | null = null;
     let killProbeInterval: ReturnType<typeof setInterval> | null = null;
+    let killProbeTimeout: ReturnType<typeof setTimeout> | null = null;
     const intentResults = new Map<number, { status: 'pending' | 'acked' | 'rejected'; intentTypeId?: string; reason?: string }>();
     let intentListenersBound = false;
+
+    const stopKillProbe = (): void => {
+        if (killProbeInterval) {
+            clearInterval(killProbeInterval);
+            killProbeInterval = null;
+        }
+        if (killProbeTimeout) {
+            clearTimeout(killProbeTimeout);
+            killProbeTimeout = null;
+        }
+    };
 
     const bindIntentListeners = function (): void {
         if (intentListenersBound || !game?.client) {
@@ -634,11 +672,17 @@ const installTestApi = function (): void {
             if (!Number.isSafeInteger(item.gridX) || !Number.isSafeInteger(item.gridY)) {
                 return { ok: false, reason: 'item_position_invalid', itemId: item.id };
             }
+            if (!Number.isSafeInteger(mob.id) || !Number.isSafeInteger(item.id)) {
+                return { ok: false, reason: 'entity_id_invalid' };
+            }
 
-            game.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId: mob.id as never });
+            const mobId = entityIdFromWire(mob.id);
+            const itemId = entityIdFromWire(item.id);
+
+            game.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId });
             game.kernel.enqueueClientCommand({
                 type: 'clientSendLootMove',
-                itemId: item.id as never,
+                itemId,
                 x: item.gridX,
                 y: item.gridY,
             });
@@ -705,7 +749,7 @@ const installTestApi = function (): void {
 	            game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
 
 	            lastAggroMobId = mob.id;
-	            game.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: mob.id as never });
+	            game.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: entityIdFromWire(mob.id) });
 
 	            return {
 	                ok: true,
@@ -913,27 +957,18 @@ const installTestApi = function (): void {
 
             lastKillProbeMobId = mob.id;
 
-            if (killProbeInterval) {
-                clearInterval(killProbeInterval);
-                killProbeInterval = null;
-            }
+            stopKillProbe();
 
             const killMobId = mob.id;
             const runKillProbeTick = () => {
                 if (!game?.client || !game.map?.isLoaded) {
-                    if (killProbeInterval) {
-                        clearInterval(killProbeInterval);
-                        killProbeInterval = null;
-                    }
+                    stopKillProbe();
                     return;
                 }
 
                 const liveMob = game.entities[String(killMobId)];
                 if (!(liveMob instanceof Mob) || liveMob.isDead) {
-                    if (killProbeInterval) {
-                        clearInterval(killProbeInterval);
-                        killProbeInterval = null;
-                    }
+                    stopKillProbe();
                     return;
                 }
 
@@ -959,15 +994,15 @@ const installTestApi = function (): void {
                     }
                 }
 
-                game.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId: killMobId as never });
+                game.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId: entityIdFromWire(killMobId) });
             };
 
             runKillProbeTick();
-            killProbeInterval = setInterval(runKillProbeTick, 250);
-            setTimeout(() => {
-                if (killProbeInterval) {
-                    clearInterval(killProbeInterval);
-                    killProbeInterval = null;
+            const interval = setInterval(runKillProbeTick, 250);
+            killProbeInterval = interval;
+            killProbeTimeout = setTimeout(() => {
+                if (killProbeInterval === interval) {
+                    stopKillProbe();
                 }
             }, 12_000);
 
@@ -1215,9 +1250,13 @@ const initApp = function (): void {
         });
 
         if (nameInput) {
-            nameInput.addEventListener('keyup', function () {
+            const syncPlayState = function () {
                 app.toggleButton();
-            });
+            };
+            nameInput.addEventListener('keyup', syncPlayState);
+            nameInput.addEventListener('input', syncPlayState);
+            nameInput.addEventListener('change', syncPlayState);
+            syncPlayState();
         }
 
         if (previous) {
@@ -1729,7 +1768,7 @@ function initGame(): void {
             });
 
         })
-        .catch(function (err: unknown) {
+        .catch(function (err) {
             log.error(err, true);
         });
 }
