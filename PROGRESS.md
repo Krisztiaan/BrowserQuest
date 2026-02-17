@@ -2913,3 +2913,51 @@ Format per entry:
     - strict client totals: `114 -> 82`.
   - Next action:
     - commit batch E (`character` + command-apply hardening) and continue next highest strict files (`map`, `game-visual-runtime`, `mapworker`).
+
+- 17:00 UTC
+  - Ticket: 331 (Strict client burn-down batch F1: `client/map.ts` map-data/overlay bounds guards)
+  - Start timestamp: 2026-02-17 17:00 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - clear strict diagnostics in `client/map.ts`.
+    - Out of scope:
+      - map schema changes.
+  - Key actions taken:
+    - Opened Tickets 331/332 in `TODO.md` for next highest strict files after batch E.
+  - Evidence:
+    - `awk -F'[:(]' ... /tmp/typecheck-client-batchE-after.log | sort -nr` => top files include `client/map.ts`=`14`, `client/game-visual-runtime.ts`=`11`, `client/mapworker.ts`=`8`.
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 17:00 UTC`.
+  - Next action:
+    - patch `client/map.ts`, then harden `client/game-visual-runtime.ts`.
+
+- 17:02 UTC
+  - Ticket: 331 (Strict client burn-down batch F1: `client/map.ts` map-data/overlay bounds guards)
+  - Start timestamp: 2026-02-17 17:00 UTC
+  - Status: `done`
+  - Key actions taken:
+    - added strict row/index guards in collision/plateau grid generation.
+    - fixed map destination/checkpoint nullability contracts (`getDoorDestination` optional, checkpoint id normalization to `null`).
+    - tightened tile animation access with optional guards (`getTileAnimationLength`, `getTileAnimationDelay`).
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchF-mid1.log 2>&1` => `map=0`.
+    - `awk '/^client\\/map.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchF-mid1.log` => `0`.
+    - `awk '/^client\\/mapworker.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchF-mid1.log` => `8` (unchanged).
+  - Next action:
+    - close Ticket 332 visual runtime strict diagnostics and verify totals.
+
+- 17:02 UTC
+  - Ticket: 332 (Strict client burn-down batch F2: `client/game-visual-runtime.ts` sprite registry hardening)
+  - Start timestamp: 2026-02-17 17:00 UTC
+  - Status: `done`
+  - Key actions taken:
+    - introduced strict `requireSprite()` boundary helper to enforce sprite registry integrity at runtime.
+    - removed unchecked registry indexing in shadow/cursor/hurt/silhouette initialization flows.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchF-after.log 2>&1` => `client_total=58`.
+    - `bun run typecheck:full:client > /tmp/typecheck-full-client-batchF-after.log 2>&1` => `full_client_total=58`.
+    - `bun run typecheck:tools > /tmp/typecheck-tools-batchF-after.log 2>&1` => `tools_exit=0`.
+    - `awk '/^client\\/game-visual-runtime.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchF-after.log` => `0`.
+    - strict client totals: `82 -> 58`.
+  - Next action:
+    - commit batch F (`map` + visual runtime hardening) and continue remaining strict files.

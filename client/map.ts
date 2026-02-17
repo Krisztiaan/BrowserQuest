@@ -43,7 +43,7 @@ type RuntimeMapPayload = {
     grid?: number[][];
     plateauGrid?: number[][];
 };
-type CheckpointArea = Area & { id?: string | number };
+type CheckpointArea = Area;
 
 function resolveMapWorkerModuleUrl(): string | URL {
     const override = (globalThis as MapGlobals).__BQ_MAP_WORKER_URL__;
@@ -263,7 +263,7 @@ class Map {
             self = this;
 
         (map.doors ?? []).forEach(function (door: RawDoor) {
-            let o = Types.Orientations.DOWN;
+            let o: number = Types.Orientations.DOWN;
             const fromX = Number(door.x);
             const fromY = Number(door.y);
             const toX = Number(door.tx);
@@ -396,19 +396,26 @@ class Map {
         for (let i = 0; i < this.height; i++) {
             this.grid[i] = [];
             for (let j = 0; j < this.width; j++) {
-                this.grid[i][j] = 0;
+                const row = this.grid[i];
+                if (row) {
+                    row[j] = 0;
+                }
             }
         }
 
         this.collisions.forEach(function (tileIndex: number) {
             const pos = self.tileIndexToGridPosition(tileIndex + 1);
-            self.grid[pos.y][pos.x] = 1;
+            const row = self.grid[pos.y];
+            if (row && row[pos.x] !== undefined) {
+                row[pos.x] = 1;
+            }
         });
 
         this.blocking.forEach(function (tileIndex: number) {
             const pos = self.tileIndexToGridPosition(tileIndex + 1);
-            if (self.grid[pos.y] !== undefined) {
-                self.grid[pos.y][pos.x] = 1;
+            const row = self.grid[pos.y];
+            if (row && row[pos.x] !== undefined) {
+                row[pos.x] = 1;
             }
         });
         log.info('Collision grid generated.');
@@ -421,10 +428,14 @@ class Map {
         for (let i = 0; i < this.height; i++) {
             this.plateauGrid[i] = [];
             for (let j = 0; j < this.width; j++) {
+                const row = this.plateauGrid[i];
+                if (!row) {
+                    continue;
+                }
                 if (this.plateauSet.has(tileIndex)) {
-                    this.plateauGrid[i][j] = 1;
+                    row[j] = 1;
                 } else {
-                    this.plateauGrid[i][j] = 0;
+                    row[j] = 0;
                 }
                 tileIndex += 1;
             }
@@ -461,7 +472,7 @@ class Map {
      *
      */
     getTileAnimationLength(id: number): number | undefined {
-        return this.animated[id + 1].l;
+        return this.animated[id + 1]?.l;
     }
 
     /**
@@ -469,7 +480,7 @@ class Map {
      */
     getTileAnimationDelay(id: number): number {
         const animProperties = this.animated[id + 1];
-        if (animProperties.d) {
+        if (animProperties?.d) {
             return animProperties.d;
         } else {
             return 100;
@@ -480,7 +491,7 @@ class Map {
         return this.doors[this.GridPositionToTileIndex(x, y)] !== undefined;
     }
 
-    getDoorDestination(x: number, y: number): DoorDestination {
+    getDoorDestination(x: number, y: number): DoorDestination | undefined {
         return this.doors[this.GridPositionToTileIndex(x, y)];
     }
 
@@ -488,7 +499,7 @@ class Map {
         const checkpoints: CheckpointArea[] = [];
         map.checkpoints.forEach(function (cp: RawCheckpoint) {
             const area = new Area(Number(cp.x), Number(cp.y), Number(cp.w), Number(cp.h));
-            area.id = typeof cp.id === 'string' || typeof cp.id === 'number' ? cp.id : undefined;
+            area.id = typeof cp.id === 'string' || typeof cp.id === 'number' ? cp.id : null;
             checkpoints.push(area);
         });
         return checkpoints;
