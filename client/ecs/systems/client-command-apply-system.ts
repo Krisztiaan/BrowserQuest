@@ -7,7 +7,7 @@ import type Player from '../../player';
 import type Sprite from '../../sprite';
 import { entityIdFromWire, isEntityId, type EntityId } from '../../../shared/domain/ids';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
-import { gridPos } from '../../../shared/domain/positions';
+import { gridPos, type GridPos } from '../../../shared/domain/positions';
 import { buildMovePlanSteps, resolveMoveBaseline } from '../../../shared/world/movement-intents';
 import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
@@ -235,9 +235,19 @@ function hardStopCharacterMovement<TEvents extends CharacterEventEnvelope>(entit
     entity.idle();
 }
 
+function resolveAuthoritativeLocalPlayerPos(host: ClientCommandApplySystemHost): GridPos {
+    if (host.playerId !== null) {
+        const authoritative = host.kernel.position.get(host.playerId);
+        if (authoritative) {
+            return gridPos(authoritative.x, authoritative.y);
+        }
+    }
+    return gridPos(host.player.gridX, host.player.gridY);
+}
+
 function resolvePlanOrigin(host: ClientCommandApplySystemHost): { x: number; y: number } {
     return resolveMoveBaseline(
-        gridPos(host.player.gridX, host.player.gridY),
+        resolveAuthoritativeLocalPlayerPos(host),
         host.kernel.clientPendingMoveAcks
     );
 }
@@ -286,9 +296,6 @@ function planServerAuthoritativeMoveTo({
     if (host.map.isOutOfBounds(toX, toY)) {
         return;
     }
-
-    // Cancel any local pathing/prediction immediately; local player only moves via server MOVE/TELEPORT now.
-    hardStopCharacterMovement(host.player);
 
     // New plan supersedes old.
     host.kernel.clearClientMovePlan();

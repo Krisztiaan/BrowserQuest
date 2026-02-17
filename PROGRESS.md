@@ -3420,3 +3420,94 @@ Format per entry:
     - `bun test tests/unit/protocol/intents.test.ts tests/unit/world/movement-intents.test.ts tests/unit/protocol/intent-seq.test.ts tests/unit/combat/engagement.test.ts tests/unit/mmo/protocol-capabilities.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/player-session.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-auto-aggro-system.test.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts`
   - Next action:
     - Ready for user review / optional follow-up cleanup split (if a smaller commit breakdown is desired).
+
+- 22:17 UTC
+  - Ticket: 354 (Respawn stale-generation crash fix)
+  - Start timestamp: 2026-02-17 22:12 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Investigated runtime crash stack (`EntityAllocator.ensureAlive: stale EntityId generation`) through `seedItemFromSpawn` and respawn task emit path.
+    - Identified root cause: delayed respawn callbacks reused dead entity IDs after allocator generation/index had already been reused by another entity.
+    - Patched `WorldServer.scheduleMobRespawn` and `WorldServer.scheduleStaticItemRespawn` to allocate fresh ECS entity IDs at respawn emit-time instead of reusing stale IDs.
+    - Added regression coverage in `tests/unit/mmo/server-world-runtime-simplification.test.ts` to assert stale-generation respawn no longer crashes and still spawns an entity.
+  - Evidence:
+    - `bun test tests/unit/mmo/server-world-runtime-simplification.test.ts tests/unit/server-ecs-respawn-invariants.test.ts`
+    - `bun x eslint --max-warnings=0 server/world-server.ts tests/unit/mmo/server-world-runtime-simplification.test.ts`
+    - `bun run typecheck`
+  - Next action:
+    - Ready for runtime validation by re-running `bun dev` and reproducing previous rat-kill/respawn loop.
+
+- 22:17 UTC
+  - Ticket: 355–356 (Movement/animation + logging regression follow-up)
+  - Start timestamp: 2026-02-17 22:17 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Captured user-reported regressions:
+      - choppy movement/animations under repeated orders,
+      - occasional `Invalid move.step (non-adjacent)` rejects,
+      - client logging visibility degraded due prior log-level default change.
+    - Ticketized fixes for movement smoothing + logging observability restoration in `TODO.md`.
+    - Began targeted patching in client movement planning/outbox and logger behavior.
+  - Evidence:
+    - User runtime log excerpt (`Intent rejected ... non-adjacent`) and behavior report.
+  - Next action:
+    - Implement Ticket 355 movement/outbox smoothing changes and Ticket 356 logger semantics rollback, then verify.
+
+- 23:21 UTC
+  - Ticket: 355 (Movement/animation smoothing under repeated orders)
+  - Status: `done`
+  - Key actions taken:
+    - Removed unconditional local movement hard-stop during replanning in `planServerAuthoritativeMoveTo`, so repeated move orders no longer interrupt active authoritative movement animations.
+    - Tightened move outbox to send at most one queued step per frame and keep at most one pending step in flight.
+    - Added outbox step guards:
+      - skip duplicate baseline steps instead of re-sending,
+      - drop non-adjacent planned steps before sending (prevents avoidable server-side `non-adjacent` rejects).
+    - Added dedicated outbox regression tests for single-send cadence, duplicate-skip, and non-adjacent drop behavior.
+  - Evidence:
+    - `bun test tests/unit/ecs/client-player-move-outbox-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts`
+  - Next action:
+    - Finalize Ticket 356 logger observability restoration and re-run typecheck/lint.
+
+- 23:21 UTC
+  - Ticket: 356 (Restore practical client logging observability)
+  - Status: `done`
+  - Key actions taken:
+    - Simplified `client/platform/log.ts` to straightforward level behavior with explicit `setLevel`.
+    - Restored default client log level to `debug` (no hidden query/localStorage/global pre-filter gates).
+    - Preserved clear `info`/`debug`/`error` semantics.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/platform/log.ts client/ecs/systems/client-command-apply-system.ts client/ecs/systems/client-player-move-outbox-system.ts tests/unit/ecs/client-player-move-outbox-system.test.ts server/world-server.ts tests/unit/mmo/server-world-runtime-simplification.test.ts`
+  - Next action:
+    - Keep Ticket 354 respawn fix staged with these runtime fixes and run targeted respawn verification.
+
+- 23:21 UTC
+  - Ticket: 354 (Respawn stale-generation crash fix)
+  - Status: `done` (re-verified)
+  - Key actions taken:
+    - Re-verified stale-generation respawn fix after movement/logging follow-up changes.
+  - Evidence:
+    - `bun test tests/unit/mmo/server-world-runtime-simplification.test.ts tests/unit/server-ecs-respawn-invariants.test.ts`
+  - Next action:
+    - Ready for runtime validation by re-running `bun dev` and checking movement smoothness + logging visibility in browser console.
+
+- 23:39 UTC
+  - Ticket: 357 (Outbox baseline/pipelining correction)
+  - Start timestamp: 2026-02-17 23:31 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated `client-player-move-outbox-system` to baseline from authoritative kernel local-player position when available (fallback to rendered player grid).
+    - Restored short move pipelining (`MAX_QUEUED_STEPS=2`, `MAX_SEND_PER_FRAME=2`) to remove forced single-step click behavior.
+    - Changed non-adjacent outbox handling from plan wipe to pause (`break`) so transient baseline mismatch does not cancel full path.
+    - Updated `resolvePlanOrigin` in `client-command-apply-system` to use authoritative kernel local-player position for path planning when sprite position lags.
+    - Extended movement regression tests:
+      - outbox two-step-per-frame cap,
+      - non-adjacent pause without plan clear,
+      - authoritative-kernel baseline behavior in outbox,
+      - authoritative-kernel planning origin in command-apply.
+  - Evidence:
+    - `bun test tests/unit/ecs/client-player-move-outbox-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts`
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/ecs/systems/client-player-move-outbox-system.ts client/ecs/systems/client-command-apply-system.ts tests/unit/ecs/client-player-move-outbox-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - Runtime-check in browser (`bun dev`) for multi-step click pathing smoothness and verify no recurring `Invalid move.step (non-adjacent)` rejects under repeated clicks.

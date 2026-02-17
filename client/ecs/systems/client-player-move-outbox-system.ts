@@ -1,4 +1,6 @@
 import type { EntityId } from '../../../shared/domain/ids';
+import { gridPos, type GridPos } from '../../../shared/domain/positions';
+import { isCardinalStep, resolveMoveBaseline } from '../../../shared/world/movement-intents';
 import type { ClientWorldKernel } from '../world-kernel';
 import { debugMoves } from '../../debug-flags';
 
@@ -12,17 +14,41 @@ export type ClientPlayerMoveOutboxSystemHost = Readonly<{
     isZoningTile(x: number, y: number): boolean;
 }>;
 
+function resolveAuthoritativeLocalBaseline({
+    host,
+    playerId,
+    player,
+}: {
+    host: ClientPlayerMoveOutboxSystemHost;
+    playerId: EntityId;
+    player: { gridX: number; gridY: number };
+}): GridPos {
+    const authoritative = host.kernel.position.get(playerId);
+    if (!authoritative) {
+        return resolveMoveBaseline(
+            gridPos(player.gridX, player.gridY),
+            host.kernel.clientPendingMoveAcks
+        );
+    }
+    return resolveMoveBaseline(
+        gridPos(authoritative.x, authoritative.y),
+        host.kernel.clientPendingMoveAcks
+    );
+}
+
 export function runClientPlayerMoveOutboxSystem(host: ClientPlayerMoveOutboxSystemHost): void {
     if (!host.started || !host.playerId || !host.player) {
         return;
     }
+    const playerId = host.playerId;
+    const player = host.player;
 
     if (host.kernel.clientMovementSuppressed) {
         return;
     }
 
-    const x = host.player.gridX;
-    const y = host.player.gridY;
+    const x = player.gridX;
+    const y = player.gridY;
 
     // Zone transitions are server-authoritative for movement, but the legacy zone handshake still needs to be kicked
     // off once the local player actually arrives on a zoning tile.
@@ -42,7 +68,7 @@ export function runClientPlayerMoveOutboxSystem(host: ClientPlayerMoveOutboxSyst
         return;
     }
 
-    // Keep the server move queue short so retargeting is responsive and corrections are rare.
+    // Keep queue depth short for retarget responsiveness while still allowing smooth streaming motion.
     const MAX_QUEUED_STEPS = 2;
     const MAX_SEND_PER_FRAME = 2;
 
@@ -58,8 +84,30 @@ export function runClientPlayerMoveOutboxSystem(host: ClientPlayerMoveOutboxSyst
             break;
         }
 
+        const baseline = resolveAuthoritativeLocalBaseline({ host, playerId, player });
+        if (baseline.x === step.x && baseline.y === step.y) {
+            nextPlan = {
+                target: nextPlan.target,
+                steps: nextPlan.steps,
+                nextStepIndex: nextPlan.nextStepIndex + 1,
+                stopAdjacentToTarget: nextPlan.stopAdjacentToTarget,
+            };
+            host.kernel.clientMovePlan = nextPlan;
+            continue;
+        }
+        if (!isCardinalStep(baseline, step)) {
+            debugMoves('outbox:pause_non_adjacent_step', {
+                baseline,
+                step: { x: step.x, y: step.y },
+                planTarget: nextPlan.target,
+                nextStepIndex: nextPlan.nextStepIndex,
+            });
+            break;
+        }
+
         debugMoves('outbox:send_step', {
             step: { x: step.x, y: step.y },
+            baseline,
             planTarget: nextPlan.target,
             queued: host.kernel.clientPendingMoveAcks.length,
             nextStepIndex: nextPlan.nextStepIndex,

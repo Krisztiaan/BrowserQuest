@@ -1,6 +1,9 @@
 import { expect, test } from 'bun:test';
 import WorldServer from '../../../server/world-server';
 import Player from '../../../server/player';
+import Types from '../../../shared/gametypes-browser';
+import { gridPos } from '../../../shared/domain/positions';
+import { entityIdGeneration, entityIdIndex } from '../../../shared/domain/ids';
 
 function createWorld(): WorldServer {
     const server = {
@@ -60,4 +63,34 @@ test('WorldServer.removePlayer removes ecs entity exactly once', () => {
     world.removePlayer(player);
 
     expect(removeEntityCalls).toBe(1);
+});
+
+test('WorldServer.scheduleMobRespawn allocates fresh id when stale generation id was reused', () => {
+    const world = createWorld();
+
+    const staleMobId = world.ecsPipeline.state.world.createEntity();
+    world.ecsPipeline.removeEntity(staleMobId);
+
+    const occupiedId = world.ecsPipeline.state.world.createEntity();
+    expect(entityIdIndex(occupiedId)).toBe(entityIdIndex(staleMobId));
+    expect(entityIdGeneration(occupiedId)).not.toBe(entityIdGeneration(staleMobId));
+
+    const originalScheduleStaticRespawn = world.ecsPipeline.scheduleStaticRespawn.bind(
+        world.ecsPipeline
+    ) as typeof world.ecsPipeline.scheduleStaticRespawn;
+    world.ecsPipeline.scheduleStaticRespawn = ((entity) => {
+        entity.emit('respawn');
+    }) as typeof world.ecsPipeline.scheduleStaticRespawn;
+
+    const aliveBefore = world.ecsPipeline.state.world.entities.aliveCount;
+    world.scheduleMobRespawn({
+        mobId: staleMobId,
+        kind: Types.Entities.RAT,
+        spawn: gridPos(8, 9),
+        delaySeconds: 0,
+    });
+
+    expect(world.ecsPipeline.state.world.entities.aliveCount).toBe(aliveBefore + 1);
+
+    world.ecsPipeline.scheduleStaticRespawn = originalScheduleStaticRespawn;
 });

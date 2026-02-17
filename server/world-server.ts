@@ -335,7 +335,7 @@ class World extends Evented<WorldEvents> {
     }
 
     scheduleMobRespawn({
-        mobId,
+        mobId: _mobId,
         kind,
         spawn,
         tickNow,
@@ -351,8 +351,11 @@ class World extends Evented<WorldEvents> {
         this.ecsPipeline.scheduleStaticRespawn(
             {
                 emit: () => {
+                    // The original mob id may already be reused by another entity generation by the time
+                    // respawn fires; allocate a fresh ECS id for the respawned mob to avoid stale-id crashes.
+                    const respawnId = this.allocateEntityId_();
                     this.ecsPipeline.seedMobFromPrefabSpawn({
-                        id: mobId,
+                        id: respawnId,
                         kind,
                         x: spawn.x,
                         y: spawn.y,
@@ -367,7 +370,7 @@ class World extends Evented<WorldEvents> {
     }
 
     scheduleStaticItemRespawn({
-        itemId,
+        itemId: _itemId,
         kind,
         spawn,
         tickNow,
@@ -383,8 +386,11 @@ class World extends Evented<WorldEvents> {
         this.ecsPipeline.scheduleStaticRespawn(
             {
                 emit: () => {
-                    this.ecsPipeline.seedItemFromSpawn({ id: itemId, kind, x: spawn.x, y: spawn.y });
-                    this.ecsPipeline.state.world.addComponent(itemId, this.ecsPipeline.items.StaticSpawnPos, spawn);
+                    // Static loot respawn must also use a fresh id because the old one may now refer to a different
+                    // generation/index occupant.
+                    const respawnId = this.allocateEntityId_();
+                    this.ecsPipeline.seedItemFromSpawn({ id: respawnId, kind, x: spawn.x, y: spawn.y });
+                    this.ecsPipeline.state.world.addComponent(respawnId, this.ecsPipeline.items.StaticSpawnPos, spawn);
                 },
             },
             resolvedDelay,

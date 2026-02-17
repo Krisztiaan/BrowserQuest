@@ -233,6 +233,32 @@ test('playerGoTo plans from pending move tail and preserves pending acks', () =>
     expect(kernel.clientMovePlan?.target).toEqual(gridPos(14, 10));
 });
 
+test('playerGoTo plans from authoritative kernel position when rendered player lags behind', () => {
+    const playerId = entityIdFromWire(70012);
+    const { host, kernel, player } = createHostFixture(playerId);
+    const pathOrigins: Array<{ x: number; y: number }> = [];
+
+    player.setPathRequestResolver((toX, toY) => {
+        pathOrigins.push({ x: player.gridX, y: player.gridY });
+        return [
+            [player.gridX, player.gridY],
+            [player.gridX + 1, player.gridY],
+            [toX, toY],
+        ];
+    });
+
+    kernel.position.set(playerId, gridPos(11, 10));
+
+    kernel.enqueueClientCommand({ type: 'playerGoTo', x: 13, y: 10 });
+    runClientCommandApplySystem(host);
+
+    expect(pathOrigins).toEqual([{ x: 11, y: 10 }]);
+    expect(player.gridX).toBe(10);
+    expect(player.gridY).toBe(10);
+    expect(kernel.clientMovePlan?.steps).toEqual([gridPos(12, 10), gridPos(13, 10)]);
+    expect(kernel.clientMovePlan?.target).toEqual(gridPos(13, 10));
+});
+
 test('playerStop clears queued move plan and pending move acks', () => {
     const playerId = entityIdFromWire(7006);
     const { host, kernel } = createHostFixture(playerId);
