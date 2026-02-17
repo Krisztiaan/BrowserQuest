@@ -3009,3 +3009,51 @@ Format per entry:
     - strict client totals: `58 -> 44`.
   - Next action:
     - commit batch G (`mapworker` + click-intent + environment host fix) and continue remaining strict files.
+
+- 17:07 UTC
+  - Ticket: 335 (Strict client burn-down batch H1: `client/bubble.ts` DOM/runtime guard hardening)
+  - Start timestamp: 2026-02-17 17:07 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - clear strict diagnostics in `client/bubble.ts`.
+    - Out of scope:
+      - bubble UX changes.
+  - Key actions taken:
+    - Opened Tickets 335/336 in `TODO.md` from post-batch-G top diagnostics.
+  - Evidence:
+    - `awk -F'[:(]' ... /tmp/typecheck-client-batchG-after.log | sort -nr` => top files: `client/bubble.ts`=`7`, `client/player.ts`=`6`.
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 17:07 UTC`.
+  - Next action:
+    - patch bubble strict guards, then clear player strict issues.
+
+- 17:09 UTC
+  - Ticket: 335 (Strict client burn-down batch H1: `client/bubble.ts` DOM/runtime guard hardening)
+  - Start timestamp: 2026-02-17 17:07 UTC
+  - Status: `done`
+  - Key actions taken:
+    - hardened bubble registry access with explicit undefined guards (`getBubbleById`, update/clean iteration, forEach callbacks).
+    - ensured bubble lifecycle operations only run when a bubble instance is present.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchH-mid1.log 2>&1` => `bubble=0`.
+    - `awk '/^client\\/bubble.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchH-mid1.log` => `0`.
+  - Next action:
+    - complete Ticket 336 player strict nullability/equipment guards.
+
+- 17:09 UTC
+  - Ticket: 336 (Strict client burn-down batch H2: `client/player.ts` equipment switching and sprite/null safety)
+  - Start timestamp: 2026-02-17 17:07 UTC
+  - Status: `done`
+  - Key actions taken:
+    - rewrote player sprite predicate to explicit guard block (no nullable object leakage).
+    - added explicit `EntityKind` narrowing before armor/weapon rank calls.
+    - added required `override` modifiers for inherited methods.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchH-after.log 2>&1` => `client_total=31`.
+    - `bun run typecheck:full:client > /tmp/typecheck-full-client-batchH-after.log 2>&1` => `full_client_total=31`.
+    - `bun run typecheck:tools > /tmp/typecheck-tools-batchH-after.log 2>&1` => `tools_exit=0`.
+    - `awk '/^client\\/player.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchH-after.log` => `0`.
+    - `awk '/^client\\/character.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchH-after.log` => `0`.
+    - strict client totals: `44 -> 31`.
+  - Next action:
+    - commit batch H (`bubble` + `player` hardening) and continue remaining strict files.

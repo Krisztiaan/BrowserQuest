@@ -42,7 +42,7 @@ class BubbleManager {
 
     getBubbleById(id: string): Bubble | null {
         if (id in this.bubbles) {
-            return this.bubbles[id];
+            return this.bubbles[id] ?? null;
         }
         return null;
     }
@@ -81,7 +81,7 @@ class BubbleManager {
 
         Object.keys(this.bubbles).forEach((id) => {
             const bubble = this.bubbles[id];
-            if (bubble.isOver(time)) {
+            if (bubble && bubble.isOver(time)) {
                 bubble.destroy();
                 bubblesToDelete.push(bubble.id);
             }
@@ -97,8 +97,10 @@ class BubbleManager {
 
         Object.keys(this.bubbles).forEach((id) => {
             const bubble = this.bubbles[id];
-            bubble.destroy();
-            bubblesToDelete.push(bubble.id);
+            if (bubble) {
+                bubble.destroy();
+                bubblesToDelete.push(bubble.id);
+            }
         });
 
         bubblesToDelete.forEach((id) => {
@@ -119,7 +121,10 @@ class BubbleManager {
 
     forEachBubble(callback: (bubble: Bubble) => void): void {
         Object.keys(this.bubbles).forEach((id) => {
-            callback(this.bubbles[id]);
+            const bubble = this.bubbles[id];
+            if (bubble) {
+                callback(bubble);
+            }
         }, this);
     }
 }

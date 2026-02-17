@@ -10,8 +10,12 @@ type PlayerSprite = SpriteLike & {
     id: string;
     animationData: Record<string, { row: number }>;
 };
-const isPlayerSprite = (sprite: ReturnType<Character['getSprite']>): sprite is PlayerSprite =>
-    Boolean(sprite) && typeof sprite === 'object' && 'id' in sprite && typeof sprite.id === 'string';
+const isPlayerSprite = (sprite: ReturnType<Character['getSprite']>): sprite is PlayerSprite => {
+    if (!sprite || typeof sprite !== 'object' || !('id' in sprite)) {
+        return false;
+    }
+    return typeof sprite.id === 'string';
+};
 
 type LootItem = {
     id: string | number;
@@ -85,11 +89,17 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
 
             if (item.type === 'armor') {
                 rank = Types.getArmorRank(item.kind);
-                currentRank = Types.getArmorRank(Types.getKindFromString(currentArmorName));
+                const currentArmorKind = Types.getKindFromString(currentArmorName);
+                if (currentArmorKind !== undefined) {
+                    currentRank = Types.getArmorRank(currentArmorKind);
+                }
                 msg = 'You are wearing a better armor';
             } else if (item.type === 'weapon') {
                 rank = Types.getWeaponRank(item.kind);
-                currentRank = Types.getWeaponRank(Types.getKindFromString(this.weaponName ?? 'sword1'));
+                const currentWeaponKind = Types.getKindFromString(this.weaponName ?? 'sword1');
+                if (currentWeaponKind !== undefined) {
+                    currentRank = Types.getWeaponRank(currentWeaponKind);
+                }
                 msg = 'You are wielding a better weapon';
             }
 
@@ -109,7 +119,7 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
         }
     }
 
-    getSpriteName(): string {
+    override getSpriteName(): string {
         return this.spriteName;
     }
 
@@ -133,7 +143,7 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
         throw new Error('Player armor sprite unavailable');
     }
 
-    getWeaponName(): string | null {
+    override getWeaponName(): string | null {
         return this.weaponName;
     }
 
@@ -141,7 +151,7 @@ class Player extends Character<MergeEvents<CharacterEvents, PlayerEvents>> {
         this.weaponName = name;
     }
 
-    hasWeapon(): boolean {
+    override hasWeapon(): boolean {
         return this.weaponName !== null;
     }
 
