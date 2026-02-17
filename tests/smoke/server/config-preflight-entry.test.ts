@@ -123,3 +123,34 @@ test('server entry fails fast when configured map JSON is invalid', async () => 
     const [stdoutText, stderrText] = await Promise.all([readStreamText(proc.stdout), readStreamText(proc.stderr)]);
     expect(`${stdoutText}\n${stderrText}`).toContain('Startup preflight: map file contains invalid JSON:');
 });
+
+test('server entry fails fast when configured map payload shape is invalid', async () => {
+    mapPath = `${repoRoot}/server/.tmp-map.invalid-shape.json`;
+    await Bun.write(mapPath, JSON.stringify({ width: 1 }));
+
+    configPath = `${repoRoot}/server/.tmp-config.invalid-map-shape-runtime.json`;
+    await Bun.write(
+        configPath,
+        JSON.stringify({
+            port: 8000,
+            debug_level: 'info',
+            nb_players_per_world: 5,
+            nb_worlds: 1,
+            map_filepath: mapPath,
+            metrics_enabled: false,
+        })
+    );
+
+    proc = Bun.spawn({
+        cmd: ['bun', 'server/entry.ts', configPath],
+        cwd: repoRoot,
+        stdout: 'pipe',
+        stderr: 'pipe',
+    });
+
+    const code = await waitForProcessExit(proc, 4000);
+    expect(code).toBe(1);
+
+    const [stdoutText, stderrText] = await Promise.all([readStreamText(proc.stdout), readStreamText(proc.stderr)]);
+    expect(`${stdoutText}\n${stderrText}`).toContain('Startup preflight: map file contains invalid map payload:');
+});

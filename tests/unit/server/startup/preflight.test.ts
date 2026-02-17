@@ -99,12 +99,33 @@ test('map preflight helper accepts readable valid JSON map files', async () => {
         fail: (code) => {
             failCode = code;
         },
-        readFileText: async () => '{"width":1,"height":1}',
+        readFileText: async () => '{"width":1,"height":1,"collisions":[],"roamingAreas":[],"chestAreas":[],"staticChests":[],"staticEntities":{}}',
     });
 
     expect(isValid).toBe(true);
     expect(failCode).toBeNull();
     expect(errors).toEqual([]);
+});
+
+test('map preflight helper fails for parseable but semantically invalid map payload', async () => {
+    const errors: string[] = [];
+    let failCode: number | null = null;
+
+    const isValid = await ensureMapPreflightValid({
+        activeConfig: { map_filepath: './bad-shape-map.json' },
+        emitError: (message) => errors.push(message),
+        fail: (code) => {
+            failCode = code;
+        },
+        readFileText: async () => '{"width":1}',
+        validateMapPayloadFn: async () => ({ ok: false, reason: 'missing required map fields' }),
+    });
+
+    expect(isValid).toBe(false);
+    expect(failCode).toBe(1);
+    expect(errors).toEqual([
+        'Startup preflight: map file contains invalid map payload: ./bad-shape-map.json (missing required map fields)',
+    ]);
 });
 
 test('map preflight helper fails for missing or invalid map JSON', async () => {

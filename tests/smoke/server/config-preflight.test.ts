@@ -3,10 +3,13 @@ import { killBunProcess } from '../../support/process-cleanup';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
 
-type EventRecord = Record<string, unknown>;
+type EventValue = string | number | boolean | null | undefined | EventValue[] | { [key: string]: EventValue };
+type EventRecord = Record<string, EventValue>;
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 function startStructuredLogCapture(
-    stream: ReadableStream<unknown> | number | null | undefined,
+    stream: ReadableStream<Uint8Array> | number | null | undefined,
     events: EventRecord[],
     rawLines?: string[]
 ) {
@@ -36,7 +39,7 @@ function startStructuredLogCapture(
                     return;
                 }
                 try {
-                    const parsed: unknown = JSON.parse(trimmed) as unknown;
+                    const parsed = JSON.parse(trimmed) as JsonValue;
                     if (parsed && typeof parsed === 'object') {
                         events.push(parsed as EventRecord);
                     }
@@ -155,4 +158,35 @@ test('server fails fast when startup preflight cannot read configured map file',
     const code = await waitForProcessExit(proc, 4000);
     expect(code).toBe(1);
     expect(stderrLines.some((line) => line.includes('Startup preflight: map file missing or unreadable:'))).toBe(true);
+});
+
+test('server fails fast when startup preflight reads map JSON with invalid payload shape', async () => {
+    mapPath = `${repoRoot}/server/.tmp-map.invalid-shape.json`;
+    await Bun.write(mapPath, JSON.stringify({ width: 1 }));
+
+    configPath = `${repoRoot}/server/.tmp-config.invalid-map-shape.json`;
+    await Bun.write(
+        configPath,
+        JSON.stringify({
+            port: 8000,
+            debug_level: 'info',
+            nb_players_per_world: 5,
+            nb_worlds: 1,
+            map_filepath: mapPath,
+            metrics_enabled: false,
+        })
+    );
+
+    const stderrLines: string[] = [];
+    proc = Bun.spawn({
+        cmd: ['bun', 'server/entry.ts', configPath],
+        cwd: repoRoot,
+        stdout: 'pipe',
+        stderr: 'pipe',
+    });
+    startStructuredLogCapture(proc.stderr, [], stderrLines);
+
+    const code = await waitForProcessExit(proc, 4000);
+    expect(code).toBe(1);
+    expect(stderrLines.some((line) => line.includes('Startup preflight: map file contains invalid map payload:'))).toBe(true);
 });

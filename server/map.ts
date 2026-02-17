@@ -27,16 +27,23 @@ interface CheckpointDefinition {
 
 interface CheckpointContract {
     id: number | string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
     getRandomPosition(): Position;
 }
+
+type MapArea = Readonly<Record<string, string | number | number[] | undefined>>;
+type StaticChest = Readonly<{ x: number; y: number; i: number[] }>;
 
 interface MapDefinition {
     width: number;
     height: number;
     collisions: number[];
-    roamingAreas: unknown[];
-    chestAreas: unknown[];
-    staticChests: unknown[];
+    roamingAreas: MapArea[];
+    chestAreas: MapArea[];
+    staticChests: StaticChest[];
     staticEntities: Record<string, string>;
     doors?: DoorDefinition[];
     checkpoints?: CheckpointDefinition[];
@@ -56,28 +63,75 @@ interface TiledMapSource {
     width: number;
     height: number;
     tilewidth: number;
-    layers?: unknown[];
+    layers?: object[];
 }
 
-function isTiledMapSource(payload: unknown): payload is TiledMapSource {
+type LooseValue = string | number | boolean | null | undefined | object;
+type MapPayloadValidationResult = { ok: true } | { ok: false; reason: string };
+
+function isTiledMapSource(payload: LooseValue): payload is TiledMapSource {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return false;
+    }
+    const candidate = payload as { width?: number; height?: number; tilewidth?: number; layers?: object[] };
     return (
-        typeof payload === 'object' &&
-        payload !== null &&
-        typeof (payload as { width?: unknown }).width === 'number' &&
-        typeof (payload as { height?: unknown }).height === 'number' &&
-        typeof (payload as { tilewidth?: unknown }).tilewidth === 'number' &&
-        'layers' in payload &&
-        Array.isArray((payload as { layers?: unknown }).layers)
+        typeof candidate.width === 'number' &&
+        typeof candidate.height === 'number' &&
+        typeof candidate.tilewidth === 'number' &&
+        Array.isArray(candidate.layers)
     );
 }
 
-async function normalizeMapDefinition(rawMap: unknown): Promise<MapDefinition> {
+function isMapDefinition(payload: LooseValue): payload is MapDefinition {
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+        return false;
+    }
+    const candidate = payload as {
+        width?: number;
+        height?: number;
+        collisions?: number[];
+        roamingAreas?: MapArea[];
+        chestAreas?: MapArea[];
+        staticChests?: StaticChest[];
+        staticEntities?: Record<string, string>;
+    };
+    return (
+        typeof candidate.width === 'number' &&
+        typeof candidate.height === 'number' &&
+        Array.isArray(candidate.collisions) &&
+        Array.isArray(candidate.roamingAreas) &&
+        Array.isArray(candidate.chestAreas) &&
+        Array.isArray(candidate.staticChests) &&
+        typeof candidate.staticEntities === 'object' &&
+        candidate.staticEntities !== null &&
+        !Array.isArray(candidate.staticEntities)
+    );
+}
+
+async function normalizeMapDefinition(rawMap: LooseValue): Promise<MapDefinition> {
+    if (isMapDefinition(rawMap)) {
+        return rawMap;
+    }
     if (!isTiledMapSource(rawMap)) {
-        return rawMap as MapDefinition;
+        throw new Error('Invalid map payload: expected normalized map object or tiled map source');
     }
 
     const processMapModule = await import('../shared/maps/processmap');
-    return processMapModule.default(rawMap as never, { mode: 'server', quiet: true }) as unknown as MapDefinition;
+    const processedMap = processMapModule.default(rawMap as never, { mode: 'server', quiet: true });
+    if (!isMapDefinition(processedMap)) {
+        throw new Error('Invalid map payload: processmap output did not match server map shape');
+    }
+    return processedMap;
+}
+
+export async function validateMapPayload(rawMap: LooseValue): Promise<MapPayloadValidationResult> {
+    try {
+        await normalizeMapDefinition(rawMap);
+        return { ok: true };
+    } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        return { ok: false, reason };
+    }
 }
 
 async function readAndNormalizeMapDefinition(filepath: string): Promise<MapDefinition | null> {
@@ -97,9 +151,9 @@ async function readAndNormalizeMapDefinition(filepath: string): Promise<MapDefin
     }
 
     try {
-        const parsed = JSON.parse(file) as unknown;
+        const parsed = JSON.parse(file);
         return await normalizeMapDefinition(parsed);
-    } catch (parseErr: unknown) {
+    } catch (parseErr) {
         const parseMessage = parseErr instanceof Error ? parseErr.message : String(parseErr);
         log.error('Invalid map JSON: ' + filepath + ' (' + parseMessage + ')');
         return null;
@@ -132,9 +186,9 @@ class Map {
     width: number;
     height: number;
     collisions: number[];
-    mobAreas: unknown[];
-    chestAreas: unknown[];
-    staticChests: unknown[];
+    mobAreas: MapArea[];
+    chestAreas: MapArea[];
+    staticChests: StaticChest[];
     staticEntities: Record<string, string>;
     doors: DoorDefinition[];
     doorIndex: globalThis.Map<number, DoorDefinition>;
@@ -425,20 +479,10 @@ class Map {
         }
 
         if (process.env.BQ_FIXED_START_CENTER === '1') {
-            const anyArea = area as unknown as { x?: unknown; y?: unknown; width?: unknown; height?: unknown };
-            if (
-                typeof anyArea.x === 'number'
-                && typeof anyArea.y === 'number'
-                && typeof anyArea.width === 'number'
-                && typeof anyArea.height === 'number'
-                && Number.isFinite(anyArea.x)
-                && Number.isFinite(anyArea.y)
-                && Number.isFinite(anyArea.width)
-                && Number.isFinite(anyArea.height)
-            ) {
+            if (Number.isFinite(area.x) && Number.isFinite(area.y) && Number.isFinite(area.width) && Number.isFinite(area.height)) {
                 return {
-                    x: Math.floor(anyArea.x + anyArea.width / 2),
-                    y: Math.floor(anyArea.y + anyArea.height / 2),
+                    x: Math.floor(area.x + area.width / 2),
+                    y: Math.floor(area.y + area.height / 2),
                 };
             }
         }
