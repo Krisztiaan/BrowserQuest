@@ -1,6 +1,7 @@
 import { gridPos } from '../../../shared/domain/positions';
 import Types from '../../../shared/gametypes-browser';
 import type { EntityId } from '../../../shared/domain/ids';
+import type { EntityKind } from '../../../shared/entity-kind-domain';
 import type { ClientWorldKernel } from '../world-kernel';
 import { clearClientInteractionIntentWithSideEffects } from './client-interaction-intent-system';
 import { debugClicks } from '../../debug-flags';
@@ -36,7 +37,7 @@ export type ClientClickIntentSystemHost = Readonly<{
     isZoningTile(x: number, y: number): boolean;
 }>;
 
-type SpatialPick = Readonly<{ id: EntityId; x: number; y: number; kind: number; isPlayer: boolean }>;
+type SpatialPick = Readonly<{ id: EntityId; x: number; y: number; kind: EntityKind; isPlayer: boolean }>;
 
 function pickEntityAt(kernel: ClientWorldKernel, x: number, y: number): SpatialPick | null {
     const ids = kernel.getClientEntityIdsAt(x, y);
@@ -132,7 +133,12 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
     debugClicks('resolved', {
         click: { x, y },
         doorClick,
-        player: { x: host.player.gridX, y: host.player.gridY, nextX: host.player.nextGridX, nextY: host.player.nextGridY },
+        player: {
+            x: host.player.gridX,
+            y: host.player.gridY,
+            nextX: host.player.nextGridX ?? null,
+            nextY: host.player.nextGridY ?? null,
+        },
         map: {
             isDoor: map.isDoor?.(x, y) ?? null,
             isColliding: map.isColliding(x, y),

@@ -26,22 +26,29 @@ function tileIndexToGridPosition(tileNum: number, width: number): { x: number; y
 }
 
 function generateCollisionGrid(map: WorkerMap): void {
-  const grid = [];
+  const grid: number[][] = [];
   for (let i = 0; i < map.height; i += 1) {
-    grid[i] = [];
+    const row: number[] = [];
+    grid[i] = row;
     for (let j = 0; j < map.width; j += 1) {
-      grid[i][j] = 0;
+      row[j] = 0;
     }
   }
 
   for (const tileIndex of map.collisions) {
     const pos = tileIndexToGridPosition(tileIndex + 1, map.width);
-    grid[pos.y][pos.x] = 1;
+    const row = grid[pos.y];
+    if (row && row[pos.x] !== undefined) {
+      row[pos.x] = 1;
+    }
   }
 
   for (const tileIndex of map.blocking) {
     const pos = tileIndexToGridPosition(tileIndex + 1, map.width);
-    grid[pos.y][pos.x] = 1;
+    const row = grid[pos.y];
+    if (row && row[pos.x] !== undefined) {
+      row[pos.x] = 1;
+    }
   }
 
   map.grid = grid;
@@ -50,12 +57,13 @@ function generateCollisionGrid(map: WorkerMap): void {
 function generatePlateauGrid(map: WorkerMap): void {
   let tileIndex = 0;
   const plateauSet = new Set(map.plateau ?? []);
-  const plateauGrid = [];
+  const plateauGrid: number[][] = [];
 
   for (let i = 0; i < map.height; i += 1) {
-    plateauGrid[i] = [];
+    const row: number[] = [];
+    plateauGrid[i] = row;
     for (let j = 0; j < map.width; j += 1) {
-      plateauGrid[i][j] = plateauSet.has(tileIndex) ? 1 : 0;
+      row[j] = plateauSet.has(tileIndex) ? 1 : 0;
       tileIndex += 1;
     }
   }

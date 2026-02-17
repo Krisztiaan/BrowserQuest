@@ -2961,3 +2961,51 @@ Format per entry:
     - strict client totals: `82 -> 58`.
   - Next action:
     - commit batch F (`map` + visual runtime hardening) and continue remaining strict files.
+
+- 17:04 UTC
+  - Ticket: 333 (Strict client burn-down batch G1: `client/mapworker.ts` grid transform typing + bounds guards)
+  - Start timestamp: 2026-02-17 17:04 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - clear strict diagnostics in `client/mapworker.ts`.
+    - Out of scope:
+      - map payload schema changes.
+  - Key actions taken:
+    - Opened Tickets 333/334 in `TODO.md` from post-batch-F priority list.
+  - Evidence:
+    - `awk -F'[:(]' ... /tmp/typecheck-client-batchF-after.log | sort -nr` => top files include `client/mapworker.ts`=`8`, `client/ecs/systems/client-click-intent-system.ts`=`7`.
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 17:04 UTC`.
+  - Next action:
+    - patch mapworker strict grid assignments, then clear click-intent/system host residuals.
+
+- 17:06 UTC
+  - Ticket: 333 (Strict client burn-down batch G1: `client/mapworker.ts` grid transform typing + bounds guards)
+  - Start timestamp: 2026-02-17 17:04 UTC
+  - Status: `done`
+  - Key actions taken:
+    - changed worker grid builders to explicit `number[][]` rows and guarded assignment by row/cell presence.
+    - removed `never`-indexed writes and unchecked row access under strict/noUncheckedIndexedAccess.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchG-mid1.log 2>&1` => `mapworker=0`.
+    - `awk '/^client\\/mapworker.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchG-mid1.log` => `0`.
+  - Next action:
+    - complete Ticket 334 click-intent narrowing and verify `client/game.ts` remains clean.
+
+- 17:06 UTC
+  - Ticket: 334 (Strict client burn-down batch G2: `client/ecs/systems/client-click-intent-system.ts` intent command narrowing)
+  - Start timestamp: 2026-02-17 17:04 UTC
+  - Status: `done`
+  - Key actions taken:
+    - aligned click-intent pick typing with `EntityKind` domain (`SpatialPick.kind`).
+    - normalized debug payload fields to JSON-safe nullable values (`nextX`/`nextY` as `null` instead of `undefined`).
+    - fixed environment-system checkpoint id host contract (`null`-capable ids) to remove `game.ts` host regression.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchG-after.log 2>&1` => `client_total=44`.
+    - `bun run typecheck:full:client > /tmp/typecheck-full-client-batchG-after.log 2>&1` => `full_client_total=44`.
+    - `bun run typecheck:tools > /tmp/typecheck-tools-batchG-after.log 2>&1` => `tools_exit=0`.
+    - `awk '/^client\\/ecs\\/systems\\/client-click-intent-system.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchG-after.log` => `0`.
+    - `awk '/^client\\/game.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchG-after.log` => `0`.
+    - strict client totals: `58 -> 44`.
+  - Next action:
+    - commit batch G (`mapworker` + click-intent + environment host fix) and continue remaining strict files.
