@@ -135,8 +135,7 @@ export function createAchievementDefinitions(storage: AchievementStorage): Recor
         },
     };
 
-    Object.keys(achievements).forEach(function (key) {
-        const achievement = achievements[key];
+    Object.values(achievements).forEach(function (achievement) {
         achievement.isCompleted ??= function () {
             return true;
         };

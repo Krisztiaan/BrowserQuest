@@ -17,8 +17,10 @@ class Animation {
         this.width = width;
         this.height = height;
         this.speed = 100;
+        this.lastTime = 0;
         this.count = 0;
         this.onEndCount = function () {};
+        this.currentFrame = { index: 0, x: 0, y: 0 };
         this.reset();
     }
 

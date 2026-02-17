@@ -104,6 +104,9 @@ class Sprite {
 
         for (const name in this.animationData) {
             const animation = this.animationData[name];
+            if (!animation) {
+                continue;
+            }
             animations[name] = new Animation(name, animation.length, animation.row, this.width, this.height);
         }
 

@@ -31,6 +31,8 @@ class Camera {
         this.gridX = 0;
         this.gridY = 0;
         this.offset = 0.5;
+        this.gridW = 0;
+        this.gridH = 0;
         this.rescale();
     }
 

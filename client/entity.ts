@@ -161,16 +161,18 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
     }
 
     getSpriteName(): string {
-        return Types.getKindAsString(this.kind);
+        const kindName = Types.getKindAsString(this.kind);
+        if (!kindName) {
+            throw new Error(`Unknown entity kind: ${String(this.kind)}`);
+        }
+        return kindName;
     }
 
     getAnimationByName(name: string): AnimationLike | null {
-        let animation: AnimationLike | null = null;
-
-        if (name in this.animations) {
-            animation = this.animations[name];
-        } else {
+        const animation = this.animations[name];
+        if (!animation) {
             log.error('No animation called ' + name);
+            return null;
         }
         return animation;
     }
@@ -316,7 +318,7 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
 
     setDirty(): void {
         this.isDirty = true;
-        this.emit('dirty', this as TEvents['dirty'][0]);
+        this.emit('dirty', this as unknown as TEvents['dirty'][0]);
     }
 }
 

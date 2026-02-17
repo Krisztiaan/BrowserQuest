@@ -35,10 +35,11 @@ class Pathfinder {
 
     initBlankGrid_(): void {
         for (let i = 0; i < this.height; i += 1) {
-            this.blankGrid[i] = [];
+            const row: number[] = [];
             for (let j = 0; j < this.width; j += 1) {
-                this.blankGrid[i][j] = 0;
+                row[j] = 0;
             }
+            this.blankGrid[i] = row;
         }
     }
 
@@ -72,8 +73,12 @@ class Pathfinder {
         let incomplete: GridPath = [];
 
         for (let i = perfect.length - 1; i > 0; i -= 1) {
-            const x = perfect[i][0];
-            const y = perfect[i][1];
+            const point = perfect[i];
+            if (!point) {
+                continue;
+            }
+            const x = point[0];
+            const y = point[1];
 
             if (this.grid && this.grid[y]?.[x] === 0) {
                 incomplete = toGridPath(AStar(this.grid, start, [x, y]));

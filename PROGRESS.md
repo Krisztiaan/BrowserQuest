@@ -3057,3 +3057,36 @@ Format per entry:
     - strict client totals: `44 -> 31`.
   - Next action:
     - commit batch H (`bubble` + `player` hardening) and continue remaining strict files.
+
+- 17:09 UTC
+  - Ticket: 337 (Strict client burn-down batch I: remaining strict-tail cross-file hardening)
+  - Start timestamp: 2026-02-17 17:09 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - reduce remaining `31` strict diagnostics across tail files (`pathfinder`, `entity`, `auth`, etc.).
+    - Out of scope:
+      - subsystem rewrites.
+  - Key actions taken:
+    - Opened tail-cleanup ticket in `TODO.md`.
+  - Evidence:
+    - `awk -F'[:(]' ... /tmp/typecheck-client-batchH-after.log | sort -nr` => top remaining files: `pathfinder=3`, `entity=3`, `auth=3`, and multiple `2/1` files.
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 17:09 UTC`.
+  - Next action:
+    - patch remaining strict tail files and rerun full verification.
+
+- 17:17 UTC
+  - Ticket: 337 (Strict client burn-down batch I: remaining strict-tail cross-file hardening)
+  - Start timestamp: 2026-02-17 17:09 UTC
+  - Status: `done`
+  - Key actions taken:
+    - cleared the remaining strict-tail diagnostics across `animation/audio/auth/camera/chest/environment-system/simulation-system/world-kernel/entity/game-achievements/game-sprite-runtime/gameclient/infomanager/item/npc/pathfinder/sprite`.
+    - replaced nullable/unchecked indexing with explicit guards and strict typed assignments.
+    - hardened kind/sprite invariants (`item`, `npc`, `entity`, sprite reload path) and passkey JSON serialization shape.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchI-after.log 2>&1` => `client_total=0`.
+    - `bun run typecheck:full:client > /tmp/typecheck-full-client-batchI-after.log 2>&1` => `full_client_total=0`.
+    - `bun run typecheck:tools > /tmp/typecheck-tools-batchI-after.log 2>&1` => `tools_exit=0`.
+    - strict client totals: `31 -> 0`.
+  - Next action:
+    - commit batch I and continue with any new strict issues surfaced by future changes.

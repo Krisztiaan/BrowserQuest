@@ -29,11 +29,15 @@ export function runClientEnvironmentSystem(host: ClientEnvironmentSystemHost): v
 
     const checkpoint = host.map.getCurrentCheckpoint(host.player);
     if (checkpoint) {
-        const lastId = host.player.lastCheckpoint?.id;
-        if (lastId !== checkpoint.id) {
-            host.kernel.enqueueClientCommand({ type: 'setPlayerLastCheckpoint', checkpoint });
-            if (checkpoint.id !== undefined) {
-                host.kernel.enqueueClientCommand({ type: 'clientSendCheck', checkpointId: checkpoint.id });
+        const checkpointId = checkpoint.id ?? undefined;
+        const lastId = host.player.lastCheckpoint?.id ?? undefined;
+        if (lastId !== checkpointId) {
+            host.kernel.enqueueClientCommand({
+                type: 'setPlayerLastCheckpoint',
+                checkpoint: checkpointId === undefined ? {} : { id: checkpointId },
+            });
+            if (checkpointId !== undefined) {
+                host.kernel.enqueueClientCommand({ type: 'clientSendCheck', checkpointId });
             }
         }
     }

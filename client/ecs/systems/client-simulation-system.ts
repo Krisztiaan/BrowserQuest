@@ -48,6 +48,7 @@ export type ClientSimulationSystemHost = Readonly<{
     currentTime: number;
     playerAggroTimer: Pick<Timer, 'isOver'>;
     player: Character<any> | null;
+    playerId: EntityId | null;
     kernel: {
         enqueueClientCommand(command: { type: 'clientSendAggro'; mobId: EntityId }): void;
     };

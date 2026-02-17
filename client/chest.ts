@@ -14,7 +14,7 @@ class Chest extends Entity<MergeEvents<EntityEvents, ChestEvents>> {
         super(id, Types.Entities.CHEST);
     }
 
-    getSpriteName(): string {
+    override getSpriteName(): string {
         return "chest";
     }
 

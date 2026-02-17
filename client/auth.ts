@@ -182,8 +182,43 @@ async function postVerify(
     };
 }
 
-function isJsonRecord(value: JsonValue | undefined): value is JsonRecord {
+function isJsonRecord(value: unknown): value is JsonRecord {
     return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function toJsonValue(value: unknown): JsonValue | undefined {
+    if (value === null) {
+        return null;
+    }
+    if (typeof value === 'string' || typeof value === 'boolean') {
+        return value;
+    }
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : undefined;
+    }
+    if (Array.isArray(value)) {
+        const parsedArray: JsonValue[] = [];
+        for (const entry of value) {
+            const parsedEntry = toJsonValue(entry);
+            if (parsedEntry === undefined) {
+                return undefined;
+            }
+            parsedArray.push(parsedEntry);
+        }
+        return parsedArray;
+    }
+    if (isJsonRecord(value) || (typeof value === 'object' && value !== null)) {
+        const parsedRecord: JsonRecord = {};
+        for (const [key, recordValue] of Object.entries(value as Record<string, unknown>)) {
+            const parsedRecordValue = toJsonValue(recordValue);
+            if (parsedRecordValue === undefined) {
+                return undefined;
+            }
+            parsedRecord[key] = parsedRecordValue;
+        }
+        return parsedRecord;
+    }
+    return undefined;
 }
 
 function parseCreationOptions(options: JsonValue | undefined): PublicKeyCredentialCreationOptions | null {
@@ -199,7 +234,33 @@ function parseCreationOptions(options: JsonValue | undefined): PublicKeyCredenti
 
     const userRecord = user;
     const userId = resolveString(userRecord.id);
-    if (!userId) {
+    const userName = resolveString(userRecord.name);
+    const userDisplayName = resolveString(userRecord.displayName);
+    const rp = record.rp;
+    if (!userId || !userName || !userDisplayName || !isJsonRecord(rp)) {
+        return null;
+    }
+    const rpName = resolveString(rp.name);
+    if (!rpName) {
+        return null;
+    }
+    const rpId = resolveString(rp.id);
+
+    const pubKeyCredParams = Array.isArray(record.pubKeyCredParams)
+        ? record.pubKeyCredParams
+              .filter(isJsonRecord)
+              .map((entry) => {
+                  if (entry.type !== 'public-key' || typeof entry.alg !== 'number' || !Number.isFinite(entry.alg)) {
+                      return null;
+                  }
+                  return {
+                      type: 'public-key' as const,
+                      alg: entry.alg,
+                  };
+              })
+              .filter((entry): entry is PublicKeyCredentialParameters => entry !== null)
+        : [];
+    if (pubKeyCredParams.length === 0) {
         return null;
     }
 
@@ -219,15 +280,24 @@ function parseCreationOptions(options: JsonValue | undefined): PublicKeyCredenti
               .filter((entry): entry is PublicKeyCredentialDescriptor => entry !== null)
         : [];
 
-    return {
-        ...(record as Partial<PublicKeyCredentialCreationOptions>),
+    const parsed: PublicKeyCredentialCreationOptions = {
         challenge: decodeBase64UrlToArrayBuffer(challenge),
-        user: {
-            ...(userRecord as Partial<PublicKeyCredentialUserEntity>),
-            id: decodeBase64UrlToArrayBuffer(userId),
+        rp: {
+            name: rpName,
+            ...(rpId ? { id: rpId } : {}),
         },
+        user: {
+            id: decodeBase64UrlToArrayBuffer(userId),
+            name: userName,
+            displayName: userDisplayName,
+        },
+        pubKeyCredParams,
         excludeCredentials,
     };
+    if (typeof record.timeout === 'number' && Number.isFinite(record.timeout)) {
+        parsed.timeout = record.timeout;
+    }
+    return parsed;
 }
 
 function parseRequestOptions(options: JsonValue | undefined): PublicKeyCredentialRequestOptions | null {
@@ -272,20 +342,29 @@ function serializeRegistrationCredential(credential: PublicKeyCredential): JsonV
     if (!(response instanceof AuthenticatorAttestationResponse)) {
         return null;
     }
-
-    const transports = typeof response.getTransports === 'function' ? response.getTransports() : undefined;
-    return {
+    const extensionResults = toJsonValue(credential.getClientExtensionResults());
+    if (!isJsonRecord(extensionResults)) {
+        return null;
+    }
+    const responsePayload: JsonRecord = {
+        attestationObject: encodeArrayBufferToBase64Url(response.attestationObject),
+        clientDataJSON: encodeArrayBufferToBase64Url(response.clientDataJSON),
+    };
+    const transports = typeof response.getTransports === 'function' ? response.getTransports() : [];
+    if (transports.length > 0) {
+        responsePayload.transports = transports;
+    }
+    const payload: JsonRecord = {
         id: credential.id,
         rawId: encodeArrayBufferToBase64Url(credential.rawId),
         type: credential.type,
-        authenticatorAttachment: credential.authenticatorAttachment ?? undefined,
-        clientExtensionResults: credential.getClientExtensionResults(),
-        response: {
-            attestationObject: encodeArrayBufferToBase64Url(response.attestationObject),
-            clientDataJSON: encodeArrayBufferToBase64Url(response.clientDataJSON),
-            transports,
-        },
+        clientExtensionResults: extensionResults,
+        response: responsePayload,
     };
+    if (credential.authenticatorAttachment !== null) {
+        payload.authenticatorAttachment = credential.authenticatorAttachment;
+    }
+    return payload;
 }
 
 function serializeAuthenticationCredential(credential: PublicKeyCredential): JsonValue | null {
@@ -298,20 +377,27 @@ function serializeAuthenticationCredential(credential: PublicKeyCredential): Jso
     if (!(response instanceof AuthenticatorAssertionResponse)) {
         return null;
     }
-
-    return {
+    const extensionResults = toJsonValue(credential.getClientExtensionResults());
+    if (!isJsonRecord(extensionResults)) {
+        return null;
+    }
+    const responsePayload: JsonRecord = {
+        authenticatorData: encodeArrayBufferToBase64Url(response.authenticatorData),
+        clientDataJSON: encodeArrayBufferToBase64Url(response.clientDataJSON),
+        signature: encodeArrayBufferToBase64Url(response.signature),
+        userHandle: response.userHandle ? encodeArrayBufferToBase64Url(response.userHandle) : null,
+    };
+    const payload: JsonRecord = {
         id: credential.id,
         rawId: encodeArrayBufferToBase64Url(credential.rawId),
         type: credential.type,
-        authenticatorAttachment: credential.authenticatorAttachment ?? undefined,
-        clientExtensionResults: credential.getClientExtensionResults(),
-        response: {
-            authenticatorData: encodeArrayBufferToBase64Url(response.authenticatorData),
-            clientDataJSON: encodeArrayBufferToBase64Url(response.clientDataJSON),
-            signature: encodeArrayBufferToBase64Url(response.signature),
-            userHandle: response.userHandle ? encodeArrayBufferToBase64Url(response.userHandle) : null,
-        },
+        clientExtensionResults: extensionResults,
+        response: responsePayload,
     };
+    if (credential.authenticatorAttachment !== null) {
+        payload.authenticatorAttachment = credential.authenticatorAttachment;
+    }
+    return payload;
 }
 
 export async function registerWithPasskey(params: { username: string }): Promise<PasskeyAuthResult> {

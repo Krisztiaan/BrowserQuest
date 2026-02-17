@@ -175,10 +175,12 @@ export class ClientWorldKernel {
 
         const next: number[][] = [];
         for (let y = 0; y < height; y += 1) {
-            next[y] = [];
+            const nextRow: number[] = [];
+            const sourceRow = mapGrid[y];
             for (let x = 0; x < width; x += 1) {
-                next[y][x] = mapGrid[y]?.[x] ?? 0;
+                nextRow[x] = sourceRow?.[x] ?? 0;
             }
+            next[y] = nextRow;
         }
         this.clientPathingGrid = next;
     }

@@ -122,7 +122,7 @@ class GameClient extends Evented<GameClientEvents> {
     connection: WebSocket | null;
     wsUrl: string;
     isTimeout: boolean;
-    isListening: boolean;
+    isListening = false;
     lastDispatcherMode = false;
     suppressedCloseSockets = new WeakSet<WebSocket>();
     handlers: GameClientInboundActionHandlerMap;
@@ -612,7 +612,12 @@ class GameClient extends Evented<GameClientEvents> {
 
     sendHello(player: ClientPlayerLike): void {
         const armorKind = Types.getKindFromString(player.getSpriteName());
-        const weaponKind = Types.getKindFromString(player.getWeaponName());
+        const weaponName = player.getWeaponName();
+        if (!weaponName) {
+            log.error('Cannot send HELLO with missing weapon name');
+            return;
+        }
+        const weaponKind = Types.getKindFromString(weaponName);
 
         if (armorKind === undefined || weaponKind === undefined) {
             log.error('Cannot send HELLO with unresolved equipment kinds');

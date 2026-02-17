@@ -148,14 +148,19 @@ class AudioManager {
     }
 
     getSound(name: MusicKey | AudioSoundKey): ManagedAudio | null {
-        if (!this.sounds[name] || this.sounds[name].length === 0) {
+        const soundPool = this.sounds[name];
+        if (!soundPool || soundPool.length === 0) {
             return null;
         }
-        let sound = this.sounds[name].find((entry) => entry.ended || entry.paused) ?? null;
+        let sound = soundPool.find((entry) => entry.ended || entry.paused) ?? null;
         if (sound && sound.ended) {
             sound.currentTime = 0;
         } else {
-            sound = this.sounds[name][0];
+            const first = soundPool[0];
+            if (!first) {
+                return null;
+            }
+            sound = first;
         }
         return sound;
     }

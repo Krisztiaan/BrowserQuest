@@ -32,7 +32,11 @@ class InfoManager {
 
     forEachInfo(callback: (info: DamageInfo) => void): void {
         Object.keys(this.infos).forEach((id) => {
-            callback(this.infos[id]);
+            const info = this.infos[id];
+            if (!info) {
+                return;
+            }
+            callback(info);
         }, this);
     }
 

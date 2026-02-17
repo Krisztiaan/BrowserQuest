@@ -16,6 +16,14 @@ function isSpriteReloadableEntity(value: object | null | undefined): value is Sp
     return typeof candidate.getSpriteName === 'function' && typeof candidate.setSprite === 'function';
 }
 
+function getRequiredSprite(game: Game, spriteName: string): Sprite {
+    const sprite = game.sprites[spriteName];
+    if (!sprite) {
+        throw new Error(`Missing sprite in spriteset: ${spriteName}`);
+    }
+    return sprite;
+}
+
 export function loadSpriteForScale(game: Game, name: SpriteKey, scale: number): void {
     const index = scale - 1;
 
@@ -42,7 +50,8 @@ export function setSpriteScale(game: Game, scale: number): void {
                 return;
             }
             entity.sprite = null;
-            entity.setSprite(game.sprites[entity.getSpriteName()]);
+            const spriteName = entity.getSpriteName();
+            entity.setSprite(getRequiredSprite(game, spriteName));
         });
         game.initHurtSprites();
         game.initShadows();
@@ -63,12 +72,10 @@ export function loadSprites(game: Game): void {
 }
 
 export function areSpritesLoaded(game: Game): boolean {
-    if (
-        Object.keys(game.sprites).some(function (name: string) {
-            return !game.sprites[name].isLoaded;
-        })
-    ) {
-        return false;
+    for (const sprite of Object.values(game.sprites)) {
+        if (!sprite.isLoaded) {
+            return false;
+        }
     }
     return true;
 }

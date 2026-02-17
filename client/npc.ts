@@ -150,7 +150,11 @@ class Npc extends Character {
 
     constructor(id: string | number, kind: EntityKind) {
         super(id, kind);
-        this.itemKind = Types.getKindAsString(this.kind);
+        const kindName = Types.getKindAsString(this.kind);
+        if (!kindName) {
+            throw new Error(`Unknown NPC kind: ${String(this.kind)}`);
+        }
+        this.itemKind = kindName;
         this.talkCount = this.getTalkList().length;
         this.talkIndex = 0;
     }
