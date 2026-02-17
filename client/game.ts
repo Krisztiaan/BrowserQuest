@@ -1,7 +1,7 @@
 import InfoManager from './infomanager';
 import BubbleManager from './bubble';
 import Renderer from './renderer';
-import Map from './map';
+import GameMap from './map';
 import type Animation from './animation';
 import type Sprite from './sprite';
 import { initializeGameConnection } from './runtime/connection';
@@ -34,7 +34,7 @@ import type Camera from './camera';
 import { createAchievementDefinitions } from './game-achievements';
 import type { AchievementDefinition } from './game-achievements';
 import Item from './item';
-import type Mob from './mob';
+import Mob from './mob';
 import Npc from './npc';
 import Character from './character';
 import type Chest from './chest';
@@ -134,7 +134,7 @@ function applyChunkOverlayPathingToGrid({
     cache: ClientWorldKernel['clientChunkOverlayCache'];
     isOutOfBounds: (x: number, y: number) => boolean;
 }): () => void {
-    const original = new Map<string, number>();
+    const original = new globalThis.Map<string, number>();
 
     cache.forEachPresentGlobal((x, y, value) => {
         if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || isOutOfBounds(x, y)) {
@@ -209,7 +209,7 @@ class Game extends Evented<GameEvents> {
     debugPathing: boolean;
     spriteNames: SpriteKey[];
     storage: Storage;
-    map: Map | null;
+    map: GameMap | null;
     shadows: Record<string, Sprite>;
     targetAnimation: Animation | null;
     sparksAnimation: Animation | null;
@@ -390,15 +390,19 @@ class Game extends Evented<GameEvents> {
     }
 
     loadMap(): void {
-        const self = this;
+        const renderer = this.renderer;
+        if (!renderer) {
+            throw new Error('Game renderer must be initialized before map load');
+        }
 
-        this.map = new Map(!this.renderer.upscaledRendering, this);
-        this.map.setCollisionOverrideResolver((x, y) => this.kernel.clientChunkOverlayCache.getGlobal(x, y));
+        const map = new GameMap(!renderer.upscaledRendering, this);
+        this.map = map;
+        map.setCollisionOverrideResolver((x, y) => this.kernel.clientChunkOverlayCache.getGlobal(x, y));
 
-        this.map.ready(function () {
+        map.ready(() => {
             log.info('Map loaded.');
-            const tilesetIndex = self.renderer.upscaledRendering ? 0 : self.renderer.scale - 1;
-            self.renderer.setTileset(self.map.tilesets[tilesetIndex]);
+            const tilesetIndex = renderer.upscaledRendering ? 0 : renderer.scale - 1;
+            renderer.setTileset(map.tilesets[tilesetIndex]);
         });
     }
 

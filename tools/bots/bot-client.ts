@@ -6,7 +6,6 @@ import { decodeChunkDeltaPayloadJson } from '../../shared/protocol/chunks/chunk-
 import {
     createHelloAction,
     createIntentAction,
-    createMoveAction,
 } from '../../client/gameclient-outbound-actions';
 import { ClientChunkOverlayCache } from '../../client/world/chunks/client-chunk-overlay-cache';
 
@@ -278,10 +277,9 @@ export class BotClient {
         const dy = Math.random() < 0.5 ? -1 : 1;
         const next = { x: pos.x + dx, y: pos.y + dy };
 
-        const supportsIntent =
+        const supportsMoveIntent =
             this.#serverProtocolRevision !== null && (this.#serverCapabilities?.intentTypeIds?.includes('move.step') ?? false);
-        if (!supportsIntent) {
-            this.#sendRaw(createMoveAction(next.x, next.y));
+        if (!supportsMoveIntent) {
             return;
         }
 

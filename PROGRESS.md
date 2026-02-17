@@ -2638,3 +2638,55 @@ Format per entry:
     - `rg -n "\"lint:modern\"|\"lint:authority\"|\"lint:client-runtime\"" package.json`
   - Next action:
     - Clear active queue in `TODO.md`; ready for targeted remediation tickets on surfaced diagnostics.
+
+- 16:04 UTC
+  - Ticket: 321 (Fix bot `createMoveAction` mismatch)
+  - Start timestamp: 2026-02-17 16:04 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - remove stale `createMoveAction` usage from bot client and keep protocol path modern-only.
+    - Out of scope:
+      - bot architecture changes.
+  - Key actions taken:
+    - Audited bot outbound action imports and confirmed stale `createMoveAction` call path.
+    - Rebaselined strict client/tool diagnostics before edits.
+    - Opened Tickets 321/322 in `TODO.md`.
+  - Evidence:
+    - `bun run typecheck:tools` => TS2724 at `tools/bots/bot-client.ts(9,5)`.
+    - `bun run typecheck:client` => `579` diagnostics.
+    - `rg -n "createMoveAction|#sendMoveTick" tools/bots/bot-client.ts`
+  - Next action:
+    - Patch bot client import/callsite, verify tools typecheck, then execute Ticket 322 strict batch A.
+
+- 16:08 UTC
+  - Ticket: 321 (Fix bot `createMoveAction` mismatch)
+  - Start timestamp: 2026-02-17 16:04 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed stale `createMoveAction` import from `tools/bots/bot-client.ts`.
+    - Removed legacy move fallback branch in bot move tick; movement remains modern INTENT-only (`move.step`).
+  - Evidence:
+    - `bun run typecheck:tools` => exit `0`.
+  - Next action:
+    - Execute Ticket 322 strict client burn-down batch A.
+
+- 16:08 UTC
+  - Ticket: 322 (Strict client burn-down batch A)
+  - Start timestamp: 2026-02-17 16:04 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Fixed runtime crash path in `client/game.ts`:
+      - renamed imported map class to `GameMap` to avoid built-in `Map` collision.
+      - switched overlay snapshot map to `globalThis.Map<string, number>`.
+      - tightened `loadMap()` with explicit renderer guard and local narrowed references.
+      - changed `Mob` import to value import for runtime `instanceof` usage.
+    - Replaced legacy untyped `client/lib/astar.ts` with strict typed implementation (no implicit `any`, no switch fallthrough, explicit bounds/walkability guards).
+    - Verified pathing behavior remains intact on focused unit tests.
+  - Evidence:
+    - `bun run typecheck:client` before => `579` diagnostics; after => `497` diagnostics.
+    - `rg -c "^client/lib/astar.ts\(" /tmp/typecheck-client-current.log` => `71`.
+    - `rg -c "^client/lib/astar.ts\(" /tmp/typecheck-client-after.log` => `0`.
+    - `bun test tests/unit/client-pathing-dynamic-occupancy.test.ts tests/unit/client-pathfinder-ignore-restore.test.ts tests/unit/mmo/client-chunk-overlay-runtime-integration.test.ts --timeout 30000` => `4 pass`.
+  - Next action:
+    - Clear active queue in `TODO.md`; open next burn-down batch on `client/main.ts` + remaining `client/game.ts` host-contract mismatches.

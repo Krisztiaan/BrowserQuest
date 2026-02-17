@@ -1,148 +1,228 @@
+type GridPoint = Readonly<{ x: number; y: number }>;
+type GridNode = GridPoint & {
+    f: number;
+    g: number;
+    v: number;
+    p?: GridNode;
+};
 
-var AStar = (function () {
+type PathPoint = [number, number];
+type PathGrid = ReadonlyArray<ReadonlyArray<number>>;
+type DistanceMode = 'manhattan' | 'diagonal' | 'euclidean';
+type DiagonalMode = 'none' | 'constrained' | 'free';
 
-    /**
-     * A* (A-Star) algorithm for a path finder
-     * @author  Andrea Giammarchi
-     * @license Mit Style License
-     */
+type AStarVariant = 'Diagonal' | 'DiagonalFree' | 'Euclidean' | 'EuclideanFree';
 
-    function diagonalSuccessors($N, $S, $E, $W, N, S, E, W, grid, rows, cols, result, i) {
-        if($N) {
-            $E && !grid[N][E] && (result[i++] = {x:E, y:N});
-            $W && !grid[N][W] && (result[i++] = {x:W, y:N});
+function isWalkable(grid: PathGrid, x: number, y: number): boolean {
+    const row = grid[y];
+    return !!row && row[x] === 0;
+}
+
+function inBounds(x: number, y: number, rows: number, cols: number): boolean {
+    return x >= 0 && y >= 0 && x < cols && y < rows;
+}
+
+function resolveDistanceMode(variant: string | undefined): DistanceMode {
+    if (variant === 'Diagonal' || variant === 'DiagonalFree') {
+        return 'diagonal';
+    }
+    if (variant === 'Euclidean' || variant === 'EuclideanFree') {
+        return 'euclidean';
+    }
+    return 'manhattan';
+}
+
+function resolveDiagonalMode(variant: string | undefined): DiagonalMode {
+    if (variant === 'Diagonal' || variant === 'Euclidean') {
+        return 'constrained';
+    }
+    if (variant === 'DiagonalFree' || variant === 'EuclideanFree') {
+        return 'free';
+    }
+    return 'none';
+}
+
+function distance(a: GridPoint, b: GridPoint, mode: DistanceMode): number {
+    const dx = Math.abs(a.x - b.x);
+    const dy = Math.abs(a.y - b.y);
+    if (mode === 'diagonal') {
+        return Math.max(dx, dy);
+    }
+    if (mode === 'euclidean') {
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    return dx + dy;
+}
+
+function collectSuccessors(
+    grid: PathGrid,
+    current: GridPoint,
+    rows: number,
+    cols: number,
+    diagonalMode: DiagonalMode
+): GridPoint[] {
+    const { x, y } = current;
+    const result: GridPoint[] = [];
+
+    const northY = y - 1;
+    const southY = y + 1;
+    const eastX = x + 1;
+    const westX = x - 1;
+
+    const north = northY >= 0 && isWalkable(grid, x, northY);
+    const south = southY < rows && isWalkable(grid, x, southY);
+    const east = eastX < cols && isWalkable(grid, eastX, y);
+    const west = westX >= 0 && isWalkable(grid, westX, y);
+
+    if (north) {
+        result.push({ x, y: northY });
+    }
+    if (east) {
+        result.push({ x: eastX, y });
+    }
+    if (south) {
+        result.push({ x, y: southY });
+    }
+    if (west) {
+        result.push({ x: westX, y });
+    }
+
+    if (diagonalMode === 'none') {
+        return result;
+    }
+
+    const canUse = (diagX: number, diagY: number): boolean => {
+        if (!inBounds(diagX, diagY, rows, cols)) {
+            return false;
         }
-        if($S){
-            $E && !grid[S][E] && (result[i++] = {x:E, y:S});
-            $W && !grid[S][W] && (result[i++] = {x:W, y:S});
+        return isWalkable(grid, diagX, diagY);
+    };
+
+    if (diagonalMode === 'constrained') {
+        if (north && east && canUse(eastX, northY)) {
+            result.push({ x: eastX, y: northY });
+        }
+        if (north && west && canUse(westX, northY)) {
+            result.push({ x: westX, y: northY });
+        }
+        if (south && east && canUse(eastX, southY)) {
+            result.push({ x: eastX, y: southY });
+        }
+        if (south && west && canUse(westX, southY)) {
+            result.push({ x: westX, y: southY });
         }
         return result;
     }
 
-    function diagonalSuccessorsFree($N, $S, $E, $W, N, S, E, W, grid, rows, cols, result, i) {
-        $N = N > -1;
-        $S = S < rows;
-        $E = E < cols;
-        $W = W > -1;
-        if($E) {
-            $N && !grid[N][E] && (result[i++] = {x:E, y:N});
-            $S && !grid[S][E] && (result[i++] = {x:E, y:S});
-        }
-        if($W) {
-            $N && !grid[N][W] && (result[i++] = {x:W, y:N});
-            $S && !grid[S][W] && (result[i++] = {x:W, y:S});
-        }
-        return result;
+    if (canUse(eastX, northY)) {
+        result.push({ x: eastX, y: northY });
+    }
+    if (canUse(westX, northY)) {
+        result.push({ x: westX, y: northY });
+    }
+    if (canUse(eastX, southY)) {
+        result.push({ x: eastX, y: southY });
+    }
+    if (canUse(westX, southY)) {
+        result.push({ x: westX, y: southY });
     }
 
-    function nothingToDo($N, $S, $E, $W, N, S, E, W, grid, rows, cols, result, i) {
-        return result;
+    return result;
+}
+
+function reconstructPath(node: GridNode): PathPoint[] {
+    const result: PathPoint[] = [];
+    let current: GridNode | undefined = node;
+
+    while (current) {
+        result.push([current.x, current.y]);
+        current = current.p;
     }
 
-    function successors(find, x, y, grid, rows, cols){
-        var
-            N = y - 1,
-            S = y + 1,
-            E = x + 1,
-            W = x - 1,
-            $N = N > -1 && !grid[N][x],
-            $S = S < rows && !grid[S][x],
-            $E = E < cols && !grid[y][E],
-            $W = W > -1 && !grid[y][W],
-            result = [],
-            i = 0
-        ;
-        $N && (result[i++] = {x:x, y:N});
-        $E && (result[i++] = {x:E, y:y});
-        $S && (result[i++] = {x:x, y:S});
-        $W && (result[i++] = {x:W, y:y});
-        return find($N, $S, $E, $W, N, S, E, W, grid, rows, cols, result, i);
+    result.reverse();
+    return result;
+}
+
+function AStar(
+    grid: PathGrid,
+    start: readonly [number, number],
+    end: readonly [number, number],
+    variant?: AStarVariant | string
+): PathPoint[] {
+    const rows = grid.length;
+    const cols = grid[0]?.length ?? 0;
+
+    if (rows === 0 || cols === 0) {
+        return [];
     }
 
-    function diagonal(start, end, f1, f2) {
-        return f2(f1(start.x - end.x), f1(start.y - end.y));
+    const startNode: GridPoint = { x: start[0], y: start[1] };
+    const endNode: GridPoint = { x: end[0], y: end[1] };
+
+    if (
+        !inBounds(startNode.x, startNode.y, rows, cols)
+        || !inBounds(endNode.x, endNode.y, rows, cols)
+        || !isWalkable(grid, startNode.x, startNode.y)
+        || !isWalkable(grid, endNode.x, endNode.y)
+    ) {
+        return [];
     }
 
-    function euclidean(start, end, f1, f2) {
-        var
-            x = start.x - end.x,
-            y = start.y - end.y
-        ;
-        return f2(x * x + y * y);
-    }
+    const limit = cols * rows;
+    const distanceMode = resolveDistanceMode(variant);
+    const diagonalMode = resolveDiagonalMode(variant);
 
-    function manhattan(start, end, f1, f2) {
-        return f1(start.x - end.x) + f1(start.y - end.y);
-    }
+    const open: GridNode[] = [
+        {
+            x: startNode.x,
+            y: startNode.y,
+            f: 0,
+            g: 0,
+            v: startNode.x + startNode.y * cols,
+        },
+    ];
+    const visited = new Set<number>();
+    const endV = endNode.x + endNode.y * cols;
 
-    function AStar(grid, start, end, f?) {
-        var
-            cols = grid[0].length,
-            rows = grid.length,
-            limit = cols * rows,
-            f1 = Math.abs,
-            f2 = Math.max,
-            list = {},
-            result = [],
-            open = [{x:start[0], y:start[1], f:0, g:0, v:start[0]+start[1]*cols}],
-            length = 1,
-            adj, distance, find, i, j, max, min, current, next
-        ;
-        end = {x:end[0], y:end[1], v:end[0]+end[1]*cols};
-        switch (f) {
-            case "Diagonal":
-                find = diagonalSuccessors;
-            case "DiagonalFree":
-                distance = diagonal;
-                break;
-            case "Euclidean":
-                find = diagonalSuccessors;
-            case "EuclideanFree":
-                f2 = Math.sqrt;
-                distance = euclidean;
-                break;
-            default:
-                distance = manhattan;
-                find = nothingToDo;
-                break;
-        }
-        find || (find = diagonalSuccessorsFree);
-        do {
-            max = limit;
-            min = 0;
-            for(i = 0; i < length; ++i) {
-                if((f = open[i].f) < max) {
-                    max = f;
-                    min = i;
-                }
-            };
-            current = open.splice(min, 1)[0];
-            if (current.v != end.v) {
-                --length;
-                next = successors(find, current.x, current.y, grid, rows, cols);
-                for(i = 0, j = next.length; i < j; ++i){
-                    (adj = next[i]).p = current;
-                    adj.f = adj.g = 0;
-                    adj.v = adj.x + adj.y * cols;
-                    if(!(adj.v in list)){
-                        adj.f = (adj.g = current.g + distance(adj, current, f1, f2)) + distance(adj, end, f1, f2);
-                        open[length++] = adj;
-                        list[adj.v] = 1;
-                    }
-                }
-            } else {
-                i = length = 0;
-                do {
-                    result[i++] = [current.x, current.y];
-                } while (current = current.p);
-                result.reverse();
+    while (open.length > 0) {
+        let minIndex = 0;
+        let minScore = limit;
+        for (let i = 0; i < open.length; i += 1) {
+            const node = open[i];
+            if (node && node.f < minScore) {
+                minScore = node.f;
+                minIndex = i;
             }
-        } while (length);
-        return result;
+        }
+
+        const current = open.splice(minIndex, 1)[0];
+        if (!current) {
+            continue;
+        }
+
+        if (current.v === endV) {
+            return reconstructPath(current);
+        }
+
+        const next = collectSuccessors(grid, current, rows, cols, diagonalMode);
+        for (let i = 0; i < next.length; i += 1) {
+            const adj = next[i];
+            if (!adj) {
+                continue;
+            }
+            const v = adj.x + adj.y * cols;
+            if (visited.has(v)) {
+                continue;
+            }
+
+            const g = current.g + distance(adj, current, distanceMode);
+            const f = g + distance(adj, endNode, distanceMode);
+            open.push({ x: adj.x, y: adj.y, g, f, v, p: current });
+            visited.add(v);
+        }
     }
 
-    return AStar;
-
-}());
+    return [];
+}
 
 export default AStar;
