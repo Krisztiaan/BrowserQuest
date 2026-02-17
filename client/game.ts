@@ -175,7 +175,7 @@ class Game extends Evented<GameEvents> {
     ready: boolean;
     started: boolean;
     hasNeverStarted: boolean;
-    renderer: Renderer | null;
+    renderer: Renderer;
     pathfinder: Pathfinder | null;
     chatinput: HTMLInputElement | null;
     bubbleManager: BubbleManager | null;
@@ -208,7 +208,7 @@ class Game extends Evented<GameEvents> {
     animatedTiles: DirtyAnimatedTile[] | null;
     debugPathing: boolean;
     spriteNames: SpriteKey[];
-    storage: Storage;
+    storage!: Storage;
     map: GameMap | null;
     shadows: Record<string, Sprite>;
     targetAnimation: Animation | null;
@@ -246,7 +246,6 @@ class Game extends Evented<GameEvents> {
         this.started = false;
         this.hasNeverStarted = true;
 
-        this.renderer = null;
         this.pathfinder = null;
         this.chatinput = null;
         this.bubbleManager = null;
@@ -338,7 +337,7 @@ class Game extends Evented<GameEvents> {
         this.reviveWelcomeTimeout = null;
 
         this.setBubbleManager(new BubbleManager(bubbleContainer));
-        this.setRenderer(new Renderer(this, canvas, background, foreground));
+        this.renderer = new Renderer(this, canvas, background, foreground);
         this.setChatInput(input);
     }
 

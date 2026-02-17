@@ -26,11 +26,11 @@ type AppGame = {
         getHeight(): number;
         rescale(scale: number): void;
     };
-    map?: { isLoaded: boolean; getLoadError?: () => string | null };
+    map?: { isLoaded: boolean; getLoadError?: () => string | null } | null;
     mouse: { x: number; y: number };
     started: boolean;
     player: {
-        getWeaponName(): string;
+        getWeaponName(): string | null;
         getSpriteName(): string;
     } | null;
     storage: { getAchievementCount(): number };
@@ -39,7 +39,7 @@ type AppGame = {
     run(callback: () => void, onFailed?: (reason: string) => void): void;
     on(eventName: 'playerHealthChange', callback: (hp: number, maxHp: number) => void): void;
     on(eventName: 'playerHurt', callback: () => void): void;
-    getAchievementById(id: AchievementId): AchievementView | undefined;
+    getAchievementById(id: AchievementId): AchievementView | null | undefined;
     resize(): void;
     updateBars(): void;
 };
@@ -469,10 +469,10 @@ class App {
             },
             weapon = this.game.player.getWeaponName(),
             armor = this.game.player.getSpriteName(),
-            weaponPath = getIconPath(weapon),
+            weaponPath = weapon ? getIconPath(weapon) : null,
             armorPath = getIconPath(armor);
 
-        if (this.weaponEl) {
+        if (weaponPath && this.weaponEl) {
             this.weaponEl.style.backgroundImage = 'url("' + weaponPath + '")';
         }
         if (armor !== 'firefox') {

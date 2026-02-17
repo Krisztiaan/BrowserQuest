@@ -20,8 +20,31 @@ type TestEntity = {
 
 type ZoneTarget = { x: number; y: number; group: string };
 type TestEntities = { mobs: TestEntity[]; items: TestEntity[] };
+type DoorDestination = {
+    x: number;
+    y: number;
+    orientation: number;
+    cameraX?: number;
+    cameraY?: number;
+    portal: boolean;
+};
 type TestApi = {
+    isBootstrapped: () => boolean;
+    startSession: (name: string) => void;
     isReady: () => boolean;
+    getPlayerPos: () => { ok: boolean; reason?: string; x: number | null; y: number | null };
+    getOverlayTileValue: (x: number, y: number) => number | null;
+    getIntentStatus: (seq: number) => { status: 'invalid' | 'pending' | 'acked' | 'rejected'; intentTypeId?: string; reason?: string };
+    sendClaimCreateIntent: (payload: {
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+        editors?: string[];
+    }) => { ok: boolean; reason?: string; seq: number | null };
+    sendTileEditIntent: (x: number, y: number, value: number | null) => { ok: boolean; reason?: string; seq: number | null };
+    clickTile: (x: number, y: number) => { ok: boolean; reason?: string };
+    getDoorDestination: (x: number, y: number) => { ok: boolean; reason?: string; destination: DoorDestination | null };
     moveToDifferentZone: () => { ok: boolean; reason?: string; from?: ZoneTarget; to?: ZoneTarget };
     getActionTargets: () => {
         ready: boolean;
@@ -103,6 +126,7 @@ const DEFAULT_WEAPON_SPRITE = 'sword1';
 const SHADOW_SPRITE = 'shadow16';
 const IDLE_ANIMATION_INTERVAL_MS = 260;
 let loadCharacterPreviewInterval: ReturnType<typeof setInterval> | null = null;
+const isSafeInteger = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value);
 
 function bindFullscreenToggle(): void {
     if (fullscreenToggleBound) {
@@ -141,7 +165,7 @@ function bindFullscreenToggle(): void {
                 }
             } catch (err) {
                 log.debug('Fullscreen toggle failed');
-                log.debug(err);
+                log.debug(err instanceof Error ? err.message : String(err));
             }
         })();
     });
@@ -159,18 +183,19 @@ const getZoneGroupId = function (x: number, y: number): string {
 };
 
 const getTestEntities = function (): TestEntities {
-    if (!game?.entities || !game.started) {
+    const activeGame = game;
+    if (!activeGame?.entities || !activeGame.started) {
         return { mobs: [], items: [] };
     }
 
     const mobs: TestEntity[] = [],
         items: TestEntity[] = [];
 
-    Object.values(game.entities).forEach(function (entity?: TestEntity) {
-        if (!entity || !Number.isSafeInteger(entity.id) || !Number.isSafeInteger(entity.kind)) {
+    Object.values(activeGame.entities).forEach(function (entity?: TestEntity) {
+        if (!entity || !isSafeInteger(entity.id) || !isSafeInteger(entity.kind)) {
             return;
         }
-        if (entity.id === game.player.id) {
+        if (entity.id === activeGame.player.id) {
             return;
         }
 
@@ -431,7 +456,11 @@ const hydrateLoadCharacterPreview = function (playerImage: HTMLImageElement): vo
 };
 
 const installTestApi = function (): void {
-    if (!globalThis.__BQ_TEST_MODE__) {
+    const testGlobals = globalThis as typeof globalThis & {
+        __BQ_TEST_MODE__?: boolean;
+        __BQ_TEST_API?: TestApi;
+    };
+    if (!testGlobals.__BQ_TEST_MODE__) {
         return;
     }
 
@@ -466,7 +495,7 @@ const installTestApi = function (): void {
         });
     };
 
-    globalThis.__BQ_TEST_API = {
+    testGlobals.__BQ_TEST_API = {
         isBootstrapped: function () {
             return !!(app?.ready && game?.map?.isLoaded);
         },
@@ -505,7 +534,7 @@ const installTestApi = function (): void {
         },
 
         getIntentStatus: function (seq: number) {
-            if (!Number.isSafeInteger(seq) || seq < 0) {
+            if (!isSafeInteger(seq) || seq < 0) {
                 return { status: 'invalid' };
             }
             return intentResults.get(seq) ?? { status: 'pending' };
@@ -669,11 +698,16 @@ const installTestApi = function (): void {
                     itemCount: entities.items.length,
                 };
             }
-            if (!Number.isSafeInteger(item.gridX) || !Number.isSafeInteger(item.gridY)) {
+            if (!isSafeInteger(item.gridX) || !isSafeInteger(item.gridY)) {
                 return { ok: false, reason: 'item_position_invalid', itemId: item.id };
             }
-            if (!Number.isSafeInteger(mob.id) || !Number.isSafeInteger(item.id)) {
+            if (!isSafeInteger(mob.id) || !isSafeInteger(item.id)) {
                 return { ok: false, reason: 'entity_id_invalid' };
+            }
+            const itemX = item.gridX;
+            const itemY = item.gridY;
+            if (!isSafeInteger(itemX) || !isSafeInteger(itemY)) {
+                return { ok: false, reason: 'item_position_invalid', itemId: item.id };
             }
 
             const mobId = entityIdFromWire(mob.id);
@@ -683,41 +717,51 @@ const installTestApi = function (): void {
             game.kernel.enqueueClientCommand({
                 type: 'clientSendLootMove',
                 itemId,
-                x: item.gridX,
-                y: item.gridY,
+                x: itemX,
+                y: itemY,
             });
 
             return {
                 ok: true,
                 mobId: mob.id,
                 itemId: item.id,
-                itemX: item.gridX,
-                itemY: item.gridY,
+                itemX,
+                itemY,
             };
         },
 	        sendAggroProbe: function () {
 	            if (!game?.client || !game.map?.isLoaded) {
 	                return { ok: false, reason: 'not_ready' };
 	            }
+                const activeGame = game;
+                const activeMap = activeGame.map;
+                if (!activeMap) {
+                    return { ok: false, reason: 'not_ready' };
+                }
 
 	            const entities = getTestEntities();
 
-	            const playerX = game.player.gridX;
-	            const playerY = game.player.gridY;
+	            const playerX = activeGame.player.gridX;
+	            const playerY = activeGame.player.gridY;
 	            let mob: TestEntity | null = null;
 	            let tile: { x: number; y: number } | null = null;
 	            let bestDist = Number.POSITIVE_INFINITY;
 
-	            for (const candidate of entities.mobs) {
-	                if (!Number.isSafeInteger(candidate.gridX) || !Number.isSafeInteger(candidate.gridY)) {
-	                    continue;
-	                }
+            for (const candidate of entities.mobs) {
+                const candidateX = candidate.gridX;
+                const candidateY = candidate.gridY;
+                if (!isSafeInteger(candidateX) || !isSafeInteger(candidateY)) {
+                    continue;
+                }
 	                const candidateTiles = [
-	                    { x: (candidate.gridX as number) - 1, y: candidate.gridY as number },
-	                    { x: (candidate.gridX as number) + 1, y: candidate.gridY as number },
-	                    { x: candidate.gridX as number, y: (candidate.gridY as number) - 1 },
-	                    { x: candidate.gridX as number, y: (candidate.gridY as number) + 1 },
-	                ].filter((nextTile) => !game.map.isOutOfBounds(nextTile.x, nextTile.y) && !game.map.isColliding(nextTile.x, nextTile.y));
+	                    { x: candidateX - 1, y: candidateY },
+	                    { x: candidateX + 1, y: candidateY },
+	                    { x: candidateX, y: candidateY - 1 },
+	                    { x: candidateX, y: candidateY + 1 },
+	                ].filter(
+                        (nextTile) =>
+                            !activeMap.isOutOfBounds(nextTile.x, nextTile.y) && !activeMap.isColliding(nextTile.x, nextTile.y)
+                    );
 
 	                if (candidateTiles.length === 0) {
 	                    continue;
@@ -734,7 +778,7 @@ const installTestApi = function (): void {
 	                    continue;
 	                }
 
-	                const dist = Math.abs(candidate.gridX - playerX) + Math.abs(candidate.gridY - playerY);
+                const dist = Math.abs(candidateX - playerX) + Math.abs(candidateY - playerY);
 	                if (dist < bestDist) {
 	                    bestDist = dist;
 	                    mob = candidate;
@@ -746,10 +790,10 @@ const installTestApi = function (): void {
 	                return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
 	            }
 
-	            game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
+	            activeGame.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
 
 	            lastAggroMobId = mob.id;
-	            game.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: entityIdFromWire(mob.id) });
+	            activeGame.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: entityIdFromWire(mob.id) });
 
 	            return {
 	                ok: true,
@@ -829,9 +873,14 @@ const installTestApi = function (): void {
             if (!game?.client || !game.map?.isLoaded) {
                 return { ok: false, reason: 'not_ready' };
             }
+            const activeGame = game;
+            const activeMap = activeGame.map;
+            if (!activeMap) {
+                return { ok: false, reason: 'not_ready' };
+            }
 
             const entities = getTestEntities();
-            const player = game.player;
+            const player = activeGame.player;
             const rankMobForKillProbe = (entity: TestEntity): number => {
                 if (entity.kind === Types.Entities.RAT) {
                     return 0;
@@ -850,11 +899,13 @@ const installTestApi = function (): void {
             let bestDist = Number.POSITIVE_INFINITY;
 
             for (const candidate of entities.mobs) {
-                if (!Number.isSafeInteger(candidate.gridX) || !Number.isSafeInteger(candidate.gridY)) {
+                const candidateX = candidate.gridX;
+                const candidateY = candidate.gridY;
+                if (!isSafeInteger(candidateX) || !isSafeInteger(candidateY)) {
                     continue;
                 }
                 const rank = rankMobForKillProbe(candidate);
-                const dist = Math.abs(candidate.gridX - player.gridX) + Math.abs(candidate.gridY - player.gridY);
+                const dist = Math.abs(candidateX - player.gridX) + Math.abs(candidateY - player.gridY);
                 if (rank < bestRank || (rank === bestRank && dist < bestDist)) {
                     bestRank = rank;
                     bestDist = dist;
@@ -866,12 +917,18 @@ const installTestApi = function (): void {
                 return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
             }
 
+            const mobX = mob.gridX;
+            const mobY = mob.gridY;
+            if (!isSafeInteger(mobX) || !isSafeInteger(mobY)) {
+                return { ok: false, reason: 'mob_position_invalid', mobId: mob.id };
+            }
+
             const candidateTiles = [
-                { x: (mob.gridX as number) - 1, y: mob.gridY as number },
-                { x: (mob.gridX as number) + 1, y: mob.gridY as number },
-                { x: mob.gridX as number, y: (mob.gridY as number) - 1 },
-                { x: mob.gridX as number, y: (mob.gridY as number) + 1 },
-            ].filter((tile) => !game.map.isOutOfBounds(tile.x, tile.y) && !game.map.isColliding(tile.x, tile.y));
+                { x: mobX - 1, y: mobY },
+                { x: mobX + 1, y: mobY },
+                { x: mobX, y: mobY - 1 },
+                { x: mobX, y: mobY + 1 },
+            ].filter((tile) => !activeMap.isOutOfBounds(tile.x, tile.y) && !activeMap.isColliding(tile.x, tile.y));
 
             candidateTiles.sort((a, b) => {
                 const da = Math.abs(a.x - player.gridX) + Math.abs(a.y - player.gridY);
@@ -885,7 +942,7 @@ const installTestApi = function (): void {
             }
 
             lastAggroMobId = mob.id;
-            game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
+            activeGame.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
 
             return {
                 ok: true,
@@ -899,9 +956,14 @@ const installTestApi = function (): void {
             if (!game?.client || !game.map?.isLoaded) {
                 return { ok: false, reason: 'not_ready' };
             }
+            const activeGame = game;
+            const activeMap = activeGame.map;
+            if (!activeMap) {
+                return { ok: false, reason: 'not_ready' };
+            }
 
             const entities = getTestEntities();
-            const player = game.player;
+            const player = activeGame.player;
 
             const rankMobForKillProbe = (entity: TestEntity): number => {
                 if (entity.kind === Types.Entities.RAT) {
@@ -921,11 +983,13 @@ const installTestApi = function (): void {
             let bestDist = Number.POSITIVE_INFINITY;
 
             for (const candidate of entities.mobs) {
-                if (!Number.isSafeInteger(candidate.gridX) || !Number.isSafeInteger(candidate.gridY)) {
+                const candidateX = candidate.gridX;
+                const candidateY = candidate.gridY;
+                if (!isSafeInteger(candidateX) || !isSafeInteger(candidateY)) {
                     continue;
                 }
                 const rank = rankMobForKillProbe(candidate);
-                const dist = Math.abs(candidate.gridX - player.gridX) + Math.abs(candidate.gridY - player.gridY);
+                const dist = Math.abs(candidateX - player.gridX) + Math.abs(candidateY - player.gridY);
                 if (rank < bestRank || (rank === bestRank && dist < bestDist)) {
                     bestRank = rank;
                     bestDist = dist;
@@ -937,12 +1001,18 @@ const installTestApi = function (): void {
                 return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
             }
 
+            const mobX = mob.gridX;
+            const mobY = mob.gridY;
+            if (!isSafeInteger(mobX) || !isSafeInteger(mobY)) {
+                return { ok: false, reason: 'mob_position_invalid', mobId: mob.id };
+            }
+
             const candidateTiles = [
-                { x: (mob.gridX as number) - 1, y: mob.gridY as number },
-                { x: (mob.gridX as number) + 1, y: mob.gridY as number },
-                { x: mob.gridX as number, y: (mob.gridY as number) - 1 },
-                { x: mob.gridX as number, y: (mob.gridY as number) + 1 },
-            ].filter((tile) => !game.map.isOutOfBounds(tile.x, tile.y) && !game.map.isColliding(tile.x, tile.y));
+                { x: mobX - 1, y: mobY },
+                { x: mobX + 1, y: mobY },
+                { x: mobX, y: mobY - 1 },
+                { x: mobX, y: mobY + 1 },
+            ].filter((tile) => !activeMap.isOutOfBounds(tile.x, tile.y) && !activeMap.isColliding(tile.x, tile.y));
 
             candidateTiles.sort((a, b) => {
                 const da = Math.abs(a.x - player.gridX) + Math.abs(a.y - player.gridY);
@@ -961,40 +1031,46 @@ const installTestApi = function (): void {
 
             const killMobId = mob.id;
             const runKillProbeTick = () => {
-                if (!game?.client || !game.map?.isLoaded) {
+                const currentGame = game;
+                if (!currentGame?.client || !currentGame.map?.isLoaded) {
+                    stopKillProbe();
+                    return;
+                }
+                const currentMap = currentGame.map;
+                if (!currentMap) {
                     stopKillProbe();
                     return;
                 }
 
-                const liveMob = game.entities[String(killMobId)];
+                const liveMob = currentGame.entities[String(killMobId)];
                 if (!(liveMob instanceof Mob) || liveMob.isDead) {
                     stopKillProbe();
                     return;
                 }
 
-                if (!liveMob.isAdjacentNonDiagonal(game.player)) {
+                if (!liveMob.isAdjacentNonDiagonal(currentGame.player)) {
                     const chaseTiles = [
                         { x: liveMob.gridX - 1, y: liveMob.gridY },
                         { x: liveMob.gridX + 1, y: liveMob.gridY },
                         { x: liveMob.gridX, y: liveMob.gridY - 1 },
                         { x: liveMob.gridX, y: liveMob.gridY + 1 },
                     ].filter((candidate) =>
-                        !game.map?.isOutOfBounds(candidate.x, candidate.y) && !game.map?.isColliding(candidate.x, candidate.y)
+                        !currentMap.isOutOfBounds(candidate.x, candidate.y) && !currentMap.isColliding(candidate.x, candidate.y)
                     );
 
                     chaseTiles.sort((a, b) => {
-                        const da = Math.abs(a.x - game.player.gridX) + Math.abs(a.y - game.player.gridY);
-                        const db = Math.abs(b.x - game.player.gridX) + Math.abs(b.y - game.player.gridY);
+                        const da = Math.abs(a.x - currentGame.player.gridX) + Math.abs(a.y - currentGame.player.gridY);
+                        const db = Math.abs(b.x - currentGame.player.gridX) + Math.abs(b.y - currentGame.player.gridY);
                         return da - db;
                     });
 
                     const chaseTile = chaseTiles[0];
                     if (chaseTile) {
-                        game.kernel.enqueueClientCommand({ type: 'clientSendMove', x: chaseTile.x, y: chaseTile.y });
+                        currentGame.kernel.enqueueClientCommand({ type: 'clientSendMove', x: chaseTile.x, y: chaseTile.y });
                     }
                 }
 
-                game.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId: entityIdFromWire(killMobId) });
+                currentGame.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId: entityIdFromWire(killMobId) });
             };
 
             runKillProbeTick();
@@ -1027,27 +1103,26 @@ const installTestApi = function (): void {
                     nearestMobId: null,
                 };
             }
+            const activeGame = game;
 
             const requestedMobId = lastKillProbeMobId;
-            const requestedMob =
-                requestedMobId !== null && game.entities[String(requestedMobId)] instanceof Mob
-                    ? (game.entities[String(requestedMobId)] as Mob)
-                    : null;
+            const requestedEntity = requestedMobId !== null ? activeGame.entities[String(requestedMobId)] : null;
+            const requestedMob = requestedEntity instanceof Mob ? requestedEntity : null;
 
             let nearestMobId: string | number | null = null;
             let nearestDist = Number.POSITIVE_INFINITY;
-            for (const entity of Object.values(game.entities)) {
+            for (const entity of Object.values(activeGame.entities)) {
                 if (!(entity instanceof Mob)) {
                     continue;
                 }
-                const dist = Math.abs(entity.gridX - game.player.gridX) + Math.abs(entity.gridY - game.player.gridY);
+                const dist = Math.abs(entity.gridX - activeGame.player.gridX) + Math.abs(entity.gridY - activeGame.player.gridY);
                 if (dist < nearestDist) {
                     nearestDist = dist;
                     nearestMobId = entity.id;
                 }
             }
 
-            const playerTargetId = game.player.target ? game.player.target.id : null;
+            const playerTargetId = activeGame.player.target ? activeGame.player.target.id : null;
 
             if (!requestedMob) {
                 return {
@@ -1062,7 +1137,7 @@ const installTestApi = function (): void {
                 };
             }
 
-            const dist = Math.abs(requestedMob.gridX - game.player.gridX) + Math.abs(requestedMob.gridY - game.player.gridY);
+            const dist = Math.abs(requestedMob.gridX - activeGame.player.gridX) + Math.abs(requestedMob.gridY - activeGame.player.gridY);
             return {
                 ready: true,
                 requestedMobId,
@@ -1079,13 +1154,16 @@ const installTestApi = function (): void {
 
 const initApp = function (): void {
     const onReady = function (): void {
-        app = new App();
-        app.center();
+        const runtimeApp = new App();
+        app = runtimeApp;
 
-        if (Detect.isWindows()) {
-            // Workaround for graphical glitches on text
-            document.body.classList.add('windows');
-        }
+        (function (app: App): void {
+            app.center();
+
+            if (Detect.isWindows()) {
+                // Workaround for graphical glitches on text
+                document.body.classList.add('windows');
+            }
 
         if (Detect.isFirefoxAndroid()) {
             // Remove chat placeholder
@@ -1199,7 +1277,7 @@ const initApp = function (): void {
         }
 
         document.querySelectorAll('.clickable').forEach(function (element: Element) {
-            element.addEventListener('click', function (event: MouseEvent) {
+            element.addEventListener('click', function (event: Event) {
                 event.stopPropagation();
             });
         });
@@ -1300,8 +1378,11 @@ const initApp = function (): void {
         });
 
         document.querySelectorAll('.twitter').forEach(function (element: Element) {
-            element.addEventListener('click', function (event: MouseEvent) {
+            element.addEventListener('click', function (event: Event) {
                 const url = element.getAttribute('href');
+                if (typeof url !== 'string') {
+                    return;
+                }
 
                 app.openPopup(url);
                 event.preventDefault();
@@ -1341,9 +1422,10 @@ const initApp = function (): void {
             resizeCheck.addEventListener(TRANSITIONEND, () => app.resizeUi());
         }
 
-        log.info('App initialized.');
+            log.info('App initialized.');
 
-        initGame();
+            initGame();
+        })(runtimeApp);
     };
 
     if (document.readyState === 'loading') {
@@ -1367,105 +1449,113 @@ function initGame(): void {
                 return;
             }
 
-            game = new Game(app, '#bubbles', canvas, background, foreground, input);
-            game.setStorage(app.storage);
-            app.setGame(game);
-            bindFullscreenToggle();
-            installTestApi();
+            const runtimeApp = app;
+            const runtimeGame = new Game(runtimeApp, '#bubbles', canvas, background, foreground, input);
+            game = runtimeGame;
 
-            if (app.isDesktop && app.supportsWorkers) {
-                game.loadMap();
-            }
-
-            game.on('gameStart', function () {
-                app.initEquipmentIcons();
-            });
-
-            game.on('disconnect', function (message: string) {
-                const deathParagraph = document.querySelector('#death p'),
-                    respawn = document.getElementById('respawn');
-                if (deathParagraph) {
-                    deathParagraph.innerHTML = message + '<em>Please reload the page.</em>';
+            (function (app: App, game: Game): void {
+                if (!game.renderer) {
+                    throw new Error('Game renderer must be initialized after game construction');
                 }
-                if (respawn) {
-                    respawn.style.display = 'none';
+                const renderer = game.renderer;
+                game.setStorage(app.storage);
+                app.setGame(game);
+                bindFullscreenToggle();
+                installTestApi();
+
+                if (app.isDesktop && app.supportsWorkers) {
+                    game.loadMap();
                 }
-            });
 
-            game.on('playerDeath', function () {
-                if (document.body.classList.contains('credits')) {
-                    document.body.classList.remove('credits');
-                }
-                document.body.classList.add('death');
-            });
+                game.on('gameStart', function () {
+                    app.initEquipmentIcons();
+                });
 
-            game.on('playerEquipmentChange', function () {
-                app.initEquipmentIcons();
-            });
+                game.on('disconnect', function (message: string) {
+                    const deathParagraph = document.querySelector('#death p'),
+                        respawn = document.getElementById('respawn');
+                    if (deathParagraph) {
+                        deathParagraph.innerHTML = message + '<em>Please reload the page.</em>';
+                    }
+                    if (respawn) {
+                        respawn.style.display = 'none';
+                    }
+                });
 
-            game.on('playerInvincible', function () {
-                const hitpoints = document.getElementById('hitpoints');
-                if (hitpoints) {
-                    hitpoints.classList.toggle('invincible');
-                }
-            });
+                game.on('playerDeath', function () {
+                    if (document.body.classList.contains('credits')) {
+                        document.body.classList.remove('credits');
+                    }
+                    document.body.classList.add('death');
+                });
 
-            const instancePopulation = document.getElementById('instance-population'),
-                playerCount = document.getElementById('playercount'),
-                worldPopulation = document.getElementById('world-population');
+                game.on('playerEquipmentChange', function () {
+                    app.initEquipmentIcons();
+                });
 
-            const setPopulationText = function (root: ParentNode | null, selector: string, value: string): void {
-                if (!root) {
-                    return;
-                }
-                const node = root.querySelector(selector);
-                if (node) {
-                    node.textContent = value;
-                }
-            };
+                game.on('playerInvincible', function () {
+                    const hitpoints = document.getElementById('hitpoints');
+                    if (hitpoints) {
+                        hitpoints.classList.toggle('invincible');
+                    }
+                });
 
-            game.on('nbPlayersChange', function (worldPlayers: number, totalPlayers: number) {
-                const worldCount = String(worldPlayers),
-                    totalCount = String(totalPlayers),
-                    worldLabel = worldPlayers === 1 ? 'player' : 'players',
-                    totalLabel = totalPlayers === 1 ? 'player' : 'players';
+                const instancePopulation = document.getElementById('instance-population'),
+                    playerCount = document.getElementById('playercount'),
+                    worldPopulation = document.getElementById('world-population');
 
-                setPopulationText(playerCount, 'span.count', worldCount);
-                setPopulationText(playerCount, 'span:nth-child(2)', worldLabel);
-                setPopulationText(instancePopulation, 'span:nth-child(1)', worldCount);
-                setPopulationText(instancePopulation, 'span:nth-child(2)', worldLabel);
-                setPopulationText(worldPopulation, 'span:nth-child(1)', totalCount);
-                setPopulationText(worldPopulation, 'span:nth-child(2)', totalLabel);
-            });
+                const setPopulationText = function (root: ParentNode | null, selector: string, value: string): void {
+                    if (!root) {
+                        return;
+                    }
+                    const node = root.querySelector(selector);
+                    if (node) {
+                        node.textContent = value;
+                    }
+                };
 
-            game.on('achievementUnlock', function (id: AchievementId, name: string, _description: string) {
-                app.unlockAchievement(id, name);
-            });
+                game.on('nbPlayersChange', function (worldPlayers: number, totalPlayers: number) {
+                    const worldCount = String(worldPlayers),
+                        totalCount = String(totalPlayers),
+                        worldLabel = worldPlayers === 1 ? 'player' : 'players',
+                        totalLabel = totalPlayers === 1 ? 'player' : 'players';
 
-            game.on('notification', function (message: string) {
-                app.showMessage(message);
-            });
+                    setPopulationText(playerCount, 'span.count', worldCount);
+                    setPopulationText(playerCount, 'span:nth-child(2)', worldLabel);
+                    setPopulationText(instancePopulation, 'span:nth-child(1)', worldCount);
+                    setPopulationText(instancePopulation, 'span:nth-child(2)', worldLabel);
+                    setPopulationText(worldPopulation, 'span:nth-child(1)', totalCount);
+                    setPopulationText(worldPopulation, 'span:nth-child(2)', totalLabel);
+                });
 
-            app.initHealthBar();
+                game.on('achievementUnlock', function (id: AchievementId, name: string, _description: string) {
+                    app.unlockAchievement(id, name);
+                });
 
-            const nameInput = document.getElementById('nameinput') as HTMLInputElement | null,
-                chatBox = document.getElementById('chatbox'),
-                chatInput = document.getElementById('chatinput') as HTMLInputElement | null,
+                game.on('notification', function (message: string) {
+                    app.showMessage(message);
+                });
+
+                app.initHealthBar();
+
+                const nameInput = document.getElementById('nameinput') as HTMLInputElement | null,
+                    chatBox = document.getElementById('chatbox'),
+                    chatInput = document.getElementById('chatinput') as HTMLInputElement | null,
                 createCharacterForm = document.getElementById('createcharacter-form') as HTMLFormElement | null,
                 chatForm = document.getElementById('chat-form') as HTMLFormElement | null,
                 foregroundEl = document.getElementById('foreground'),
-                parchmentEl = document.getElementById('parchment'),
-                nameTooltip = document.getElementById('name-tooltip'),
-                respawnButton = document.getElementById('respawn'),
-                muteButton = document.getElementById('mutebutton');
-            if (nameInput) {
-                nameInput.setAttribute('value', '');
-            }
+                    parchmentEl = document.getElementById('parchment'),
+                    nameTooltip = document.getElementById('name-tooltip'),
+                    respawnButton = document.getElementById('respawn'),
+                    muteButton = document.getElementById('mutebutton');
+                if (nameInput) {
+                    nameInput.setAttribute('value', '');
+                }
             if (chatBox) {
                 chatBox.setAttribute('value', '');
             }
 
-            if (game.renderer.mobile || game.renderer.tablet) {
+            if (renderer.mobile || renderer.tablet) {
                 if (foregroundEl) {
                     let touchStartX = 0;
                     let touchStartY = 0;
@@ -1536,10 +1626,8 @@ function initGame(): void {
                     foregroundEl.addEventListener('click', function (event: MouseEvent) {
                         app.center();
                         app.setMouseCoordinates(event);
-                        if (game) {
-                            const pos = game.getMouseGridPosition();
-                            game.kernel.setClientClickIntent({ x: pos.x, y: pos.y });
-                        }
+                        const pos = game.getMouseGridPosition();
+                        game.kernel.setClientClickIntent({ x: pos.x, y: pos.y });
                         app.hideWindows();
                     });
                 }
@@ -1575,7 +1663,7 @@ function initGame(): void {
                     }
                 }
 
-                if (game.started && !game.renderer.mobile && !hasClosedParchment) {
+                if (game.started && !renderer.mobile && !hasClosedParchment) {
                     const pos = game.getMouseGridPosition();
                     game.kernel.setClientClickIntent({ x: pos.x, y: pos.y });
                 }
@@ -1583,7 +1671,7 @@ function initGame(): void {
 
             if (respawnButton) {
                 respawnButton.addEventListener('click', function () {
-                    game.audioManager.playSound('revive');
+                    game.audioManager?.playSound('revive');
                     game.restart();
                     document.body.classList.remove('death');
                 });
@@ -1712,7 +1800,7 @@ function initGame(): void {
 
             if (muteButton) {
                 muteButton.addEventListener('click', function () {
-                    game.audioManager.toggle();
+                    game.audioManager?.toggle();
                 });
             }
 
@@ -1747,7 +1835,7 @@ function initGame(): void {
                         // ESC
                         app.hideWindows();
                         Object.keys(game.player.attackers).forEach(function (id) {
-                            game.player.attackers[id].stop();
+                            game.player.attackers[id]?.stop();
                         });
                         e.preventDefault();
                         return false;
@@ -1767,6 +1855,7 @@ function initGame(): void {
                 }
             });
 
+            })(runtimeApp, runtimeGame);
         })
         .catch(function (err) {
             log.error(err, true);

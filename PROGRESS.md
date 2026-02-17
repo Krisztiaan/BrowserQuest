@@ -2690,3 +2690,60 @@ Format per entry:
     - `bun test tests/unit/client-pathing-dynamic-occupancy.test.ts tests/unit/client-pathfinder-ignore-restore.test.ts tests/unit/mmo/client-chunk-overlay-runtime-integration.test.ts --timeout 30000` => `4 pass`.
   - Next action:
     - Clear active queue in `TODO.md`; open next burn-down batch on `client/main.ts` + remaining `client/game.ts` host-contract mismatches.
+
+- 16:13 UTC
+  - Ticket: 323 (Strict client burn-down batch B: `client/main.ts` structural narrowing)
+  - Start timestamp: 2026-02-17 16:13 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - remove repeated nullable host references in `client/main.ts` using local typed runtime scopes.
+      - preserve current startup/init behavior.
+    - Out of scope:
+      - complete strict cleanup of `client/main.ts`.
+  - Key actions taken:
+    - Rebaselined strict diagnostics before batch B (`497` total; `client/main.ts`=`117`; `client/game.ts`=`97`).
+    - Opened Tickets 323/324 in `TODO.md`.
+  - Evidence:
+    - `bun run typecheck:client` => `497` diagnostics.
+    - `rg -c "^client/main.ts\(" /tmp/typecheck-client-batchB-before.log` => `117`.
+    - `rg -c "^client/game.ts\(" /tmp/typecheck-client-batchB-before.log` => `97`.
+  - Next action:
+    - Patch `client/main.ts` using local runtime aliases for `app`/`game`, then rerun strict client typecheck.
+
+- 16:24 UTC
+  - Ticket: 323 (Strict client burn-down batch B: `client/main.ts` structural narrowing)
+  - Start timestamp: 2026-02-17 16:13 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Refactored `client/main.ts` startup/init flow to capture non-null runtime hosts in local typed scopes.
+      - wrapped `onReady` body in `(app: App)` local closure.
+      - wrapped async `initGame` runtime block in `(app: App, game: Game)` local closure.
+    - Tightened probe/test API guard paths with explicit local `activeGame`/`activeMap` bindings to preserve nullability narrowing across callbacks.
+    - Added strict integer type predicate helper and replaced untyped `Number.isSafeInteger` checks that were not narrowing.
+    - Fixed DOM event typing mismatches (`Event` vs `MouseEvent`) and guarded nullable `href` before popup usage.
+    - Replaced direct global test API indexing with typed `testGlobals` bridge.
+  - Evidence:
+    - `bun run typecheck:client` before => `497` diagnostics.
+    - `bun run typecheck:client` after => `337` diagnostics.
+    - `client/main.ts` diagnostics: `117 -> 0`.
+    - `rg -c "^client/main.ts\(" /tmp/typecheck-client-batchB-before.log` => `117`.
+    - `rg -c "^client/main.ts\(" /tmp/typecheck-client-batchB-after4.log` => `0`.
+  - Next action:
+    - Execute Ticket 324 completion notes (game initialization/type-safety guards already applied in this batch).
+
+- 16:24 UTC
+  - Ticket: 324 (Strict client burn-down batch B+: `client/game.ts` immediate guards)
+  - Start timestamp: 2026-02-17 16:13 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Promoted `Game.renderer` to non-null-by-construction and instantiated renderer in constructor without nullable staging.
+    - Marked `Game.storage` as explicit deferred initialization (`storage!`) consistent with `setStorage` lifecycle.
+    - Updated `App` `AppGame` contract for observed runtime shapes (`map` nullable, `getWeaponName` nullable, `getAchievementById` nullable) and guarded icon assignment when weapon is absent.
+  - Evidence:
+    - `bun run typecheck:client` game diagnostics: `97 -> 57`.
+    - `bun run typecheck:tools` => pass.
+    - `rg -c "^client/game.ts\(" /tmp/typecheck-client-batchB-before.log` => `97`.
+    - `rg -c "^client/game.ts\(" /tmp/typecheck-client-batchB-after4.log` => `57`.
+  - Next action:
+    - Clear active queue in `TODO.md`; prepare next burn-down batch focused on `client/entityfactory.ts` and `client/renderer.ts`.
