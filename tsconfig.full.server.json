@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-full-server.tsbuildinfo"
+  },
+  "include": [
+    "server/**/*.ts",
+    "shared/**/*.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": []
+}

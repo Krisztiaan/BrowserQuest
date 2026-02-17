@@ -18,7 +18,9 @@ export type NpcId = Brand<EntityId, 'NpcId'>;
 
 export const ENTITY_ID_NONE = 0 as EntityId;
 
-export function isEntityId(value: unknown): value is EntityId {
+type EntityIdCandidate = number | string | boolean | bigint | object | null | undefined;
+
+export function isEntityId(value: EntityIdCandidate): value is EntityId {
     return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 0xffff_ffff;
 }
 
@@ -39,7 +41,7 @@ export function entityIdFromWireString(value: string): EntityId {
 }
 
 export function entityIdToWire(id: EntityId): number {
-    return id as unknown as number;
+    return id as number;
 }
 
 export function makeEntityId(index: number, generation: number): EntityId {
@@ -67,19 +69,19 @@ export function isNoneEntityId(id: EntityId): boolean {
 }
 
 export function asPlayerId(id: EntityId): PlayerId {
-    return id as unknown as PlayerId;
+    return id as PlayerId;
 }
 
 export function asMobId(id: EntityId): MobId {
-    return id as unknown as MobId;
+    return id as MobId;
 }
 
 export function asItemId(id: EntityId): ItemId {
-    return id as unknown as ItemId;
+    return id as ItemId;
 }
 
 export function asNpcId(id: EntityId): NpcId {
-    return id as unknown as NpcId;
+    return id as NpcId;
 }
 
 export function formatEntityId(id: EntityId): string {

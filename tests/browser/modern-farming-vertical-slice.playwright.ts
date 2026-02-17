@@ -1,12 +1,30 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 
+type FarmingIntentStatus = { status: string; reason?: string };
+type FarmingTestApi = {
+    isBootstrapped?: () => boolean;
+    startSession?: (name: string) => void;
+    isReady?: () => boolean;
+    getPlayerPos?: () => { ok: boolean; x: number; y: number };
+    sendClaimCreateIntent?: (payload: {
+        x1: number;
+        y1: number;
+        x2: number;
+        y2: number;
+        editors: string[];
+    }) => { ok: boolean; seq: number | null };
+    sendTileEditIntent?: (x: number, y: number, value: number) => { ok: boolean; seq: number | null };
+    getIntentStatus?: (seq: number) => FarmingIntentStatus;
+    getOverlayTileValue?: (x: number, y: number) => number | null;
+};
+
 async function bootstrapTestPage(page: Page): Promise<void> {
     const wsUrl = 'ws://127.0.0.1:8000/ws';
     await page.context().clearCookies();
     await page.addInitScript(
         (overrideWsUrl: string) => {
-            (window as unknown as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
-            (globalThis as unknown as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
+            (window as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
+            (globalThis as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
             window.localStorage.clear();
         },
         wsUrl
@@ -16,9 +34,7 @@ async function bootstrapTestPage(page: Page): Promise<void> {
         .poll(
             () =>
                 page.evaluate(() => {
-                    const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                        | { isBootstrapped?: () => boolean }
-                        | undefined;
+                    const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
                     return typeof api?.isBootstrapped === 'function' && api.isBootstrapped();
                 }),
             { timeout: 30_000 }
@@ -28,9 +44,7 @@ async function bootstrapTestPage(page: Page): Promise<void> {
 
 async function startSession(page: Page, name: string): Promise<void> {
     await page.evaluate((nextName: string) => {
-        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-            | { startSession?: (name: string) => void }
-            | undefined;
+        const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
         api?.startSession?.(nextName);
     }, name);
     await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
@@ -38,9 +52,7 @@ async function startSession(page: Page, name: string): Promise<void> {
         .poll(
             () =>
                 page.evaluate(() => {
-                    const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                        | { isReady?: () => boolean }
-                        | undefined;
+                    const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
                     return typeof api?.isReady === 'function' && api.isReady();
                 }),
             { timeout: 30_000 }
@@ -73,26 +85,14 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
         await startSession(eve.page, 'farm-eve');
 
         const alicePos = await alice.page.evaluate(() => {
-            const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                | { getPlayerPos?: () => { ok: boolean; x: number; y: number } }
-                | undefined;
+            const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
             return api?.getPlayerPos?.() ?? { ok: false, x: 0, y: 0 };
         });
         expect(alicePos.ok).toBe(true);
         const target = { x: alicePos.x, y: alicePos.y };
 
         const claimCreate = await alice.page.evaluate(({ x, y }) => {
-            const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                | {
-                      sendClaimCreateIntent?: (payload: {
-                          x1: number;
-                          y1: number;
-                          x2: number;
-                          y2: number;
-                          editors: string[];
-                      }) => { ok: boolean; seq: number | null };
-                  }
-                | undefined;
+            const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
             return api?.sendClaimCreateIntent?.({ x1: x, y1: y, x2: x + 1, y2: y + 1, editors: ['farm-bob'] }) ?? { ok: false, seq: null };
         }, target);
         expect(claimCreate.ok).toBe(true);
@@ -102,9 +102,7 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
             .poll(
                 () =>
                     alice.page.evaluate((seq) => {
-                        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                            | { getIntentStatus?: (seq: number) => { status: string } }
-                            | undefined;
+                        const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
                         return api?.getIntentStatus?.(seq).status ?? 'missing';
                     }, claimCreate.seq as number),
                 { timeout: 20_000 }
@@ -112,11 +110,7 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
             .toBe('acked');
 
         const eveBlocked = await eve.page.evaluate(({ x, y }) => {
-            const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                | {
-                      sendTileEditIntent?: (x: number, y: number, value: number) => { ok: boolean; seq: number | null };
-                  }
-                | undefined;
+            const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
             return api?.sendTileEditIntent?.(x, y, 7701) ?? { ok: false, seq: null };
         }, target);
         expect(eveBlocked.ok).toBe(true);
@@ -126,9 +120,7 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
             .poll(
                 () =>
                     eve.page.evaluate((seq) => {
-                        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                            | { getIntentStatus?: (seq: number) => { status: string; reason?: string } }
-                            | undefined;
+                        const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
                         return api?.getIntentStatus?.(seq) ?? { status: 'missing' };
                     }, eveBlocked.seq as number),
                 { timeout: 20_000 }
@@ -136,11 +128,7 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
             .toMatchObject({ status: 'rejected' });
 
         const bobEdit = await bob.page.evaluate(({ x, y }) => {
-            const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                | {
-                      sendTileEditIntent?: (x: number, y: number, value: number) => { ok: boolean; seq: number | null };
-                  }
-                | undefined;
+            const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
             return api?.sendTileEditIntent?.(x, y, 7702) ?? { ok: false, seq: null };
         }, target);
         expect(bobEdit.ok).toBe(true);
@@ -150,9 +138,7 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
             .poll(
                 () =>
                     bob.page.evaluate((seq) => {
-                        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                            | { getIntentStatus?: (seq: number) => { status: string } }
-                            | undefined;
+                        const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
                         return api?.getIntentStatus?.(seq).status ?? 'missing';
                     }, bobEdit.seq as number),
                 { timeout: 20_000 }
@@ -163,9 +149,7 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
             .poll(
                 () =>
                     alice.page.evaluate(({ x, y }) => {
-                        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                            | { getOverlayTileValue?: (x: number, y: number) => number | null }
-                            | undefined;
+                        const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
                         return api?.getOverlayTileValue?.(x, y) ?? null;
                     }, target),
                 { timeout: 20_000 }
@@ -176,11 +160,7 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
         await startSession(alice.page, 'farm-alice');
 
         const eveBlockedAfterReconnect = await eve.page.evaluate(({ x, y }) => {
-            const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                | {
-                      sendTileEditIntent?: (x: number, y: number, value: number) => { ok: boolean; seq: number | null };
-                  }
-                | undefined;
+            const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
             return api?.sendTileEditIntent?.(x, y, 7703) ?? { ok: false, seq: null };
         }, target);
         expect(eveBlockedAfterReconnect.ok).toBe(true);
@@ -190,9 +170,7 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
             .poll(
                 () =>
                     eve.page.evaluate((seq) => {
-                        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                            | { getIntentStatus?: (seq: number) => { status: string } }
-                            | undefined;
+                        const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
                         return api?.getIntentStatus?.(seq).status ?? 'missing';
                     }, eveBlockedAfterReconnect.seq as number),
                 { timeout: 20_000 }

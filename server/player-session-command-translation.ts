@@ -108,15 +108,6 @@ export function translateClientActionToCommand(
             }
             return { type: 'CHAT', source, message: chatMessage };
         }
-        case Types.Messages.MOVE: {
-            const x = message[1];
-            const y = message[2];
-            if (typeof x !== 'number' || typeof y !== 'number' || !Number.isInteger(x) || !Number.isInteger(y)) {
-                closeInvalidPayload('Invalid MOVE coordinates.');
-                return null;
-            }
-            return { type: 'MOVE', source, to: gridPos(x, y) };
-        }
         case Types.Messages.LOOTMOVE: {
             const x = message[1];
             const y = message[2];
@@ -176,15 +167,6 @@ export function translateClientActionToCommand(
                 closeInvalidPayload(`Invalid LOOT item id: ${String(err)}`);
                 return null;
             }
-        }
-        case Types.Messages.TELEPORT: {
-            const x = message[1];
-            const y = message[2];
-            if (typeof x !== 'number' || typeof y !== 'number' || !Number.isInteger(x) || !Number.isInteger(y)) {
-                closeInvalidPayload('Invalid TELEPORT coordinates.');
-                return null;
-            }
-            return { type: 'TELEPORT', source, to: gridPos(x, y) };
         }
         case Types.Messages.OPEN: {
             const chestId = message[1];

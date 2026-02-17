@@ -23,7 +23,7 @@ export type ClientInteractionIntentSystemHost = Readonly<{
     started: boolean;
     playerId: EntityId | null;
     player: Player;
-    entities: Record<string, unknown>;
+    entities: Record<string, Character | null | undefined>;
     kernel: ClientWorldKernel;
 }>;
 

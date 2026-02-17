@@ -1,5 +1,10 @@
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test';
 
+type PhoneTestApi = {
+    startSession?: (name: string) => void;
+};
+type TouchProbe = { touchstart: number; touchend: number; click: number };
+
 const IPHONE_USER_AGENT =
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 
@@ -17,8 +22,8 @@ async function bootstrapPhoneSession(page: Page, name: string): Promise<void> {
 
     await page.context().clearCookies();
     await page.addInitScript((overrideWsUrl: string) => {
-        (globalThis as unknown as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
-        (globalThis as unknown as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
+        (globalThis as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
+        (globalThis as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
         window.localStorage.clear();
 
         // Deterministic Fullscreen API polyfill for headless browser tests.
@@ -58,9 +63,7 @@ async function bootstrapPhoneSession(page: Page, name: string): Promise<void> {
         .poll(
             () =>
                 page.evaluate(() => {
-                    const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                        | { startSession?: (name: string) => void }
-                        | undefined;
+                    const api = (globalThis as { __BQ_TEST_API?: PhoneTestApi }).__BQ_TEST_API;
                     return typeof api?.startSession === 'function';
                 }),
             { timeout: 30_000 }
@@ -68,9 +71,7 @@ async function bootstrapPhoneSession(page: Page, name: string): Promise<void> {
         .toBe(true);
 
     await page.evaluate((nextName: string) => {
-        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-            | { startSession?: (name: string) => void }
-            | undefined;
+        const api = (globalThis as { __BQ_TEST_API?: PhoneTestApi }).__BQ_TEST_API;
         api?.startSession?.(nextName);
     }, name);
 
@@ -167,7 +168,7 @@ test('modern phone layout: full-viewport, no frame/scroll, and click/fullscreen 
     await page.evaluate(() => {
         const foreground = document.getElementById('foreground');
         const probe = { touchstart: 0, touchend: 0, click: 0 };
-        (globalThis as unknown as { __BQ_TOUCH_PROBE__?: typeof probe }).__BQ_TOUCH_PROBE__ = probe;
+        (globalThis as { __BQ_TOUCH_PROBE__?: TouchProbe }).__BQ_TOUCH_PROBE__ = probe;
         if (!foreground) {
             return;
         }
@@ -187,7 +188,7 @@ test('modern phone layout: full-viewport, no frame/scroll, and click/fullscreen 
         .poll(
             () =>
                 page.evaluate(() => {
-                    const probe = (globalThis as unknown as { __BQ_TOUCH_PROBE__?: { touchstart: number; touchend: number; click: number } }).__BQ_TOUCH_PROBE__;
+                    const probe = (globalThis as { __BQ_TOUCH_PROBE__?: TouchProbe }).__BQ_TOUCH_PROBE__;
                     if (!probe) {
                         return false;
                     }

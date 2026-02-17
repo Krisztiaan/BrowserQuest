@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 
-type ConfigObject = Record<string, unknown>;
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+type ConfigObject = Record<string, JsonValue>;
 type ReadFileFn = (
     path: string,
     options?: BufferEncoding | { encoding?: BufferEncoding | null }
@@ -9,7 +11,7 @@ type ReadFileFn = (
 const defaultReadFile: ReadFileFn = (path, options) =>
     fs.readFile(path, options as BufferEncoding | { encoding?: BufferEncoding | null }) as Promise<string | Buffer>;
 
-function isConfigObject(value: unknown): value is ConfigObject {
+function isConfigObject(value: JsonValue | object | null | undefined): value is ConfigObject {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -21,7 +23,7 @@ export async function loadConfigFile(configPath: string, readFileFn: ReadFileFn 
             if (!(await file.exists())) {
                 return null;
             }
-            const parsed = (await file.json()) as unknown;
+            const parsed = (await file.json()) as JsonValue;
             return isConfigObject(parsed) ? parsed : null;
         } catch (_) {
             return null;
@@ -31,7 +33,7 @@ export async function loadConfigFile(configPath: string, readFileFn: ReadFileFn 
     try {
         const raw = await readFileFn(configPath, 'utf8');
         const rawText = typeof raw === 'string' ? raw : raw.toString('utf8');
-        const parsed = JSON.parse(rawText) as unknown;
+        const parsed = JSON.parse(rawText) as JsonValue;
         return isConfigObject(parsed) ? parsed : null;
     } catch (_) {
         return null;

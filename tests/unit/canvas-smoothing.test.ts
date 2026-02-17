@@ -7,7 +7,7 @@ test('disableCanvasImageSmoothing disables standard and vendor flags', () => {
         mozImageSmoothingEnabled: true,
         webkitImageSmoothingEnabled: true,
         msImageSmoothingEnabled: true,
-    } as unknown as CanvasRenderingContext2D & {
+    } as CanvasRenderingContext2D & {
         mozImageSmoothingEnabled: boolean;
         webkitImageSmoothingEnabled: boolean;
         msImageSmoothingEnabled: boolean;

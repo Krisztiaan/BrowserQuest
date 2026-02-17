@@ -1,12 +1,20 @@
 import type { MapChestAreaConfig, MapChestConfig, MapMobAreaConfig } from './map-config';
 
+type ChestItemSeed = string | number;
+type StaticItemLike = { id?: number | string } & object;
+type JsonScalar = string | number | boolean | null;
+type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
+
 type RuntimeMobArea = {
     spawnMobs(): void;
     on(eventName: 'empty', callback: () => void): void;
 };
 
 type RuntimeChestArea = {
-    entities: unknown[];
+    chestX: number;
+    chestY: number;
+    items: JsonLike[];
+    entities: object[];
     on(eventName: 'empty', callback: () => void): void;
     setNumberOfEntities(count: number): void;
 };
@@ -18,9 +26,9 @@ type MapBootstrapWorld = {
     mobAreas: RuntimeMobArea[];
     chestAreas: RuntimeChestArea[];
     handleEmptyMobArea(area: RuntimeMobArea): void;
-    handleEmptyChestArea(area: RuntimeChestArea): void;
-    createChest(x: number, y: number, items: unknown[]): unknown;
-    addStaticItem(item: unknown): void;
+    handleEmptyChestArea(area: RuntimeChestArea | null | undefined): void;
+    createChest(x: number, y: number, items: ChestItemSeed[]): StaticItemLike;
+    addStaticItem(item: StaticItemLike): void;
     spawnStaticEntities(): void;
 };
 

@@ -2,6 +2,7 @@ import { Database } from 'bun:sqlite';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import type { RectClaim } from './claims-store';
+import { normalizeIdentityKeyOrNull } from '../../identity';
 
 const DEFAULT_CLAIMS_DB_PATH = './server/.data/claims.sqlite';
 
@@ -27,6 +28,8 @@ type ClaimRow = {
     created_at: number;
     updated_at: number;
 };
+type JsonScalar = string | number | boolean | null;
+type JsonValue = JsonScalar | JsonValue[] | { [key: string]: JsonValue };
 
 export class SqliteClaimsPersistence {
     readonly databasePath: string;
@@ -60,7 +63,6 @@ export class SqliteClaimsPersistence {
             );
             CREATE INDEX IF NOT EXISTS claims_owner_name ON claims(owner_name);
         `);
-        this.#ensureClaimsTableColumns();
 
         this.#upsertClaim = this.#db.prepare(`
             INSERT INTO claims
@@ -109,7 +111,7 @@ export class SqliteClaimsPersistence {
     }
 
     loadAllClaims(): RectClaim[] {
-        const rows = this.#selectAll.all() as unknown as ClaimRow[];
+        const rows = this.#selectAll.all() as ClaimRow[];
         return rows.map((row) =>
             Object.freeze({
                 id: row.id,
@@ -124,24 +126,15 @@ export class SqliteClaimsPersistence {
             })
         );
     }
-
-    #ensureClaimsTableColumns(): void {
-        type TableInfoRow = { name?: unknown };
-        const rows = this.#db.query(`PRAGMA table_info(claims)`).all() as unknown as TableInfoRow[];
-        const hasEditorsJson = rows.some((row) => row?.name === 'editors_json');
-        if (!hasEditorsJson) {
-            this.#db.exec(`ALTER TABLE claims ADD COLUMN editors_json TEXT NOT NULL DEFAULT '[]'`);
-        }
-    }
 }
 
-function decodeEditorNameKeys(editorsJson: unknown): string[] {
+function decodeEditorNameKeys(editorsJson: string | number | boolean | null | undefined | object): string[] {
     if (typeof editorsJson !== 'string' || editorsJson.trim().length === 0) {
         return [];
     }
-    let parsed: unknown;
+    let parsed: JsonValue;
     try {
-        parsed = JSON.parse(editorsJson);
+        parsed = JSON.parse(editorsJson) as JsonValue;
     } catch {
         return [];
     }
@@ -154,7 +147,7 @@ function decodeEditorNameKeys(editorsJson: unknown): string[] {
         if (typeof raw !== 'string') {
             continue;
         }
-        const normalized = raw.trim().toLowerCase();
+        const normalized = normalizeIdentityKeyOrNull(raw);
         if (!normalized) {
             continue;
         }

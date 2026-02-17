@@ -3,8 +3,12 @@ type RuntimeServerConfig = {
     dispatcher: boolean;
 };
 
+type RuntimeGlobalOverrides = typeof globalThis & {
+    __BQ_WS_URL__?: string;
+};
+
 function resolveRuntimeServerConfig(): RuntimeServerConfig {
-    const override = (globalThis as unknown as { __BQ_WS_URL__?: unknown }).__BQ_WS_URL__;
+    const override = (globalThis as RuntimeGlobalOverrides).__BQ_WS_URL__;
     if (typeof override === "string" && override.trim().length > 0) {
         return {
             wsUrl: override,

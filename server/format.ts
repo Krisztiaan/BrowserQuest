@@ -1,12 +1,12 @@
-import Types from '../shared/gametypes-browser';
 import { isClientToServerProtocolAction } from '../shared/protocol/registry';
 import { isKnownClientToServerOpcode } from '../shared/protocol/schema';
+import type { ProtocolActionValue } from '../shared/protocol/types';
 import Log from './log';
 
 const log = Log.getLogger();
 
 class FormatChecker {
-    check(msg: unknown[]): boolean {
+    check(msg: ProtocolActionValue[]): boolean {
         if (isClientToServerProtocolAction(msg)) {
             return true;
         }
@@ -25,7 +25,7 @@ class FormatChecker {
 
 const checker = new FormatChecker();
 
-const check = (msg: unknown[]): boolean => checker.check(msg);
+const check = (msg: ProtocolActionValue[]): boolean => checker.check(msg);
 
 export { FormatChecker, check };
 export default { FormatChecker, check };

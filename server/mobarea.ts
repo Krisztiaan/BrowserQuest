@@ -1,6 +1,5 @@
 import type { EntityKind, EntityKindId, EntityKindName } from '../shared/entity-kind-domain';
 import type { EntityId } from '../shared/domain/ids';
-import { entityIdFromWire } from '../shared/domain/ids';
 import Area from './area';
 import type { AreaWorldContract } from './area';
 import MobEntity from './world/mob-entity';
@@ -15,15 +14,14 @@ interface MobAreaMobContract {
     on(eventName: 'respawn', callback: () => void): void;
 }
 
-interface MobAreaWorldContract {
+interface MobAreaWorldContract extends AreaWorldContract {
     addMob(mob: MobAreaMobContract): void;
-    isValidPosition(x: number, y: number): boolean;
 }
 
 class MobArea extends Area {
     nb: number;
     kind: EntityKindName;
-    respawns: unknown[];
+    nextMobId: () => EntityId;
     declare world: MobAreaWorldContract;
 
     constructor(
@@ -34,13 +32,14 @@ class MobArea extends Area {
         y: number,
         width: number,
         height: number,
-        world: MobAreaWorldContract
+        world: MobAreaWorldContract,
+        nextMobId: () => EntityId
     ) {
-        super(id, x, y, width, height, world as unknown as AreaWorldContract);
+        super(id, x, y, width, height, world);
         this.world = world;
         this.nb = nb;
         this.kind = kind;
-        this.respawns = [];
+        this.nextMobId = nextMobId;
         this.setNumberOfEntities(this.nb);
 
         //this.initRoaming();
@@ -55,12 +54,7 @@ class MobArea extends Area {
     _createMobInsideArea(): MobAreaMobContract {
         const k = Types.getKindFromString(this.kind) as EntityKindId;
         const pos = this._getRandomPositionInsideArea();
-        const mob = new MobEntity(
-            entityIdFromWire(Number('1' + this.id + '' + k + '' + this.entities.length)),
-            k,
-            pos.x,
-            pos.y
-        );
+        const mob = new MobEntity(this.nextMobId(), k, pos.x, pos.y);
 
         mob.on('respawn', () => {
             const nextPos = this._getRandomPositionInsideArea();

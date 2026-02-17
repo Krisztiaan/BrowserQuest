@@ -3,20 +3,21 @@ import Types from '../../../shared/gametypes-browser';
 import { ClientWorldKernel } from '../../../client/ecs/world-kernel';
 import GameClient from '../../../client/gameclient';
 import { encodeProtocolCapabilitiesJson } from '../../../shared/protocol/capabilities';
+import type { ClientToServerProtocolAction } from '../../../shared/protocol/types';
 import { runClientPlayerMoveOutboxSystem } from '../../../client/ecs/systems/client-player-move-outbox-system';
 
-test('client falls back to legacy MOVE until capabilities are known', () => {
+test('client refuses movement sends until move.step capability is known', () => {
     const kernel = new ClientWorldKernel();
     const client = new GameClient('ws://example.invalid', kernel);
 
-    const sent: unknown[] = [];
+    const sent: ClientToServerProtocolAction[] = [];
     client.sendMessage = (action) => {
         sent.push(action);
     };
 
     client.sendMove(1, 2);
 
-    expect(sent).toEqual([[Types.Messages.MOVE, 1, 2]]);
+    expect(sent).toEqual([]);
     expect(kernel.clientPendingMoveSeqAcks.length).toBe(0);
 });
 
@@ -24,7 +25,7 @@ test('client sends sequenced INTENT for movement and consumes ACK by seq', () =>
     const kernel = new ClientWorldKernel();
     const client = new GameClient('ws://example.invalid', kernel);
 
-    const sent: unknown[] = [];
+    const sent: ClientToServerProtocolAction[] = [];
     client.sendMessage = (action) => {
         sent.push(action);
     };
@@ -76,7 +77,7 @@ test('movement CORRECTION suppresses outbox and enqueues teleportEntity for loca
 test('client sends sequenced non-movement intents for tile/claim operations when capabilities allow', () => {
     const kernel = new ClientWorldKernel();
     const client = new GameClient('ws://example.invalid', kernel);
-    const sent: unknown[] = [];
+    const sent: ClientToServerProtocolAction[] = [];
     client.sendMessage = (action) => {
         sent.push(action);
     };

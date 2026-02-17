@@ -1,6 +1,7 @@
 import { buildPopulationAction } from '../protocol/outbound-actions';
+import type { WorldMessage } from './contracts';
 
-type PlayerMap = Record<string, unknown>;
+type PlayerMap = Record<string, object>;
 
 type PlayerCountHolder = {
     playerCount: number;
@@ -8,7 +9,7 @@ type PlayerCountHolder = {
 
 type PopulationNotifyHost = {
     playerCount: number;
-    pushBroadcast(message: unknown): void;
+    pushBroadcast(message: WorldMessage): void;
 };
 
 export function countPlayersInWorld(playerMap: PlayerMap): number {

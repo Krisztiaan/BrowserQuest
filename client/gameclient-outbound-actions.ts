@@ -3,10 +3,11 @@ import type { ClientOutboundProtocolAction } from './client-boundary-types';
 import type { EntityId } from '../shared/domain/ids';
 import { entityIdToWire } from '../shared/domain/ids';
 import { encodeProtocolCapabilitiesJson, PROTOCOL_REVISION } from '../shared/protocol/capabilities';
+import type { ProtocolActionValue } from '../shared/protocol/types';
 
 type OutboundAction<Opcode extends ClientOutboundProtocolAction[0]> = Extract<
     ClientOutboundProtocolAction,
-    [Opcode, ...unknown[]]
+    [Opcode, ...ProtocolActionValue[]]
 >;
 
 export function toProtocolEntityId(id: EntityId): number {
@@ -18,10 +19,6 @@ export function createHelloAction(name: string, armorKind: number, weaponKind: n
         moduleIds: ['core.teleport', 'core.move', 'core.doors', 'core.tiles', 'core.claims'],
     });
     return [Types.Messages.HELLO, name, armorKind, weaponKind, PROTOCOL_REVISION, capabilitiesJson];
-}
-
-export function createMoveAction(x: number, y: number): OutboundAction<typeof Types.Messages.MOVE> {
-    return [Types.Messages.MOVE, x, y];
 }
 
 export function createIntentAction(
@@ -54,10 +51,6 @@ export function createChatAction(text: string): OutboundAction<typeof Types.Mess
 
 export function createLootAction(itemId: number): OutboundAction<typeof Types.Messages.LOOT> {
     return [Types.Messages.LOOT, itemId];
-}
-
-export function createTeleportAction(x: number, y: number): OutboundAction<typeof Types.Messages.TELEPORT> {
-    return [Types.Messages.TELEPORT, x, y];
 }
 
 export function createWhoAction(ids: number[]): OutboundAction<typeof Types.Messages.WHO> {

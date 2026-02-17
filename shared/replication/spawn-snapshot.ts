@@ -26,7 +26,10 @@ export type SpawnSnapshot = Readonly<{
     extras: SpawnExtras;
 }>;
 
-function normalizeOrientation(value: unknown): number {
+type LooseValue = string | number | boolean | null | undefined | object;
+const DEFAULT_ENTITY_KIND = 0 as EntityKind;
+
+function normalizeOrientation(value: LooseValue): number {
     if (typeof value !== 'number') {
         return Types.Orientations.DOWN;
     }
@@ -47,8 +50,8 @@ export function decodeSpawnAction(action: ServerToClientSpawnAction): SpawnSnaps
     if (Types.isPlayer(kind)) {
         const name = typeof tail[0] === 'string' ? tail[0] : '';
         const orientation = normalizeOrientation(tail[1]);
-        const armor = isEntityKind(tail[2]) ? tail[2] : (0 as unknown as EntityKind);
-        const weapon = isEntityKind(tail[3]) ? tail[3] : (0 as unknown as EntityKind);
+        const armor = isEntityKind(tail[2]) ? tail[2] : DEFAULT_ENTITY_KIND;
+        const weapon = isEntityKind(tail[3]) ? tail[3] : DEFAULT_ENTITY_KIND;
         const targetId = typeof tail[4] === 'number' ? tail[4] : undefined;
         return { id, kind, x, y, extras: { type: 'player', name, orientation, armor, weapon, targetId } };
     }
@@ -99,6 +102,6 @@ function encodeSpawnTail(extras: SpawnExtras): ProtocolActionValue[] {
     }
 }
 
-function isEntityKind(value: unknown): value is EntityKind {
+function isEntityKind(value: LooseValue): value is EntityKind {
     return typeof value === 'number' || typeof value === 'string';
 }

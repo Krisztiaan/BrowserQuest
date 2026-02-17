@@ -10,9 +10,9 @@ export type ClientCombatSystemHost = Readonly<{
     currentTime: number;
     playerId: EntityId | null;
     player: Player | null;
-    entities: Record<string, unknown>;
+    entities: Record<string, Character | Player | object | null | undefined>;
     map: { isColliding(x: number, y: number): boolean } | null;
-    camera: { isVisible(entity: unknown): boolean } | null;
+    camera: { isVisible(entity: Character | Player | object): boolean } | null;
     kernel: ClientWorldKernel;
 }>;
 
@@ -31,11 +31,10 @@ export function runClientCombatSystem(host: ClientCombatSystemHost): void {
 
     // Ensure the player stops attacking immediately when their target is dead or has despawned.
     if (player.isAttacking() && player.target) {
-        const t = player.target as unknown;
-        const targetId = (t as { id?: unknown }).id;
-        const known =
-            typeof targetId === 'number' ? Boolean(host.entities[String(targetId)]) : false;
-        if ((t instanceof Character && t.isDead) || !known) {
+        const target = player.target;
+        const targetId = typeof target.id === 'number' ? target.id : null;
+        const known = targetId !== null ? Boolean(host.entities[String(targetId)]) : false;
+        if ((target instanceof Character && target.isDead) || !known) {
             host.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
             clearClientInteractionIntentWithSideEffects(host);
             return;

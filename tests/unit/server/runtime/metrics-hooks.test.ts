@@ -5,7 +5,7 @@ const MainRuntime = MainRuntimeModule;
 
 test('main runtime population change handler updates counters, world population, and distribution', () => {
     const worldUpdates: number[] = [];
-    const distributionWrites: unknown[] = [];
+    const distributionWrites: number[][] = [];
     const worlds = [
         {
             playerCount: 1,
@@ -21,11 +21,14 @@ test('main runtime population change handler updates counters, world population,
         },
     ];
     const metrics = {
-        updatePlayerCounters(receivedWorlds: unknown, callback: (totalPlayers: number) => void) {
+        updatePlayerCounters(
+            receivedWorlds: Array<{ playerCount: number; updatePopulation(total: number): void }>,
+            callback: (totalPlayers: number) => void
+        ) {
             expect(receivedWorlds).toBe(worlds);
             callback(5);
         },
-        updateWorldDistribution(distribution: unknown) {
+        updateWorldDistribution(distribution: number[]) {
             distributionWrites.push(distribution);
         },
     };

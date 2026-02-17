@@ -2,14 +2,18 @@ import { runBridgeProbeIfEnabled } from './bridge-probe';
 import { runEcsSchedulerProbeIfEnabled } from './ecs-scheduler-probe';
 import { resolveRuntimeOptions, type StartupRuntimeOptions } from './options';
 import { getPluginSpecsFromConfig, loadServerPlugins, wrapWorldServerConstructorWithPlugins } from '../plugins/loader';
-import type { MainRuntimeDependencyOverrides, RuntimeWorldServerConstructor } from '../runtime-types';
+import type {
+    MainRuntimeDependencies,
+    MainRuntimeDependencyOverrides,
+    RuntimeEventFields,
+    RuntimeWorldServerConstructor,
+    ServerConfig,
+} from '../runtime-types';
 
 type BridgeProbeParams = Parameters<typeof runBridgeProbeIfEnabled>[0];
 type EcsProbeParams = Parameters<typeof runEcsSchedulerProbeIfEnabled>[0];
 type StartupWsImport = Parameters<typeof resolveRuntimeOptions>[0]['importWsRuntime'];
 type RuntimeOptionsLike = StartupRuntimeOptions;
-type StructuredEventField = string | number | boolean | null | string[];
-type StructuredEventFields = Record<string, StructuredEventField>;
 
 function isRuntimeWorldServerConstructor(value: object | null | undefined): value is RuntimeWorldServerConstructor {
     return typeof value === 'function';
@@ -29,22 +33,22 @@ export async function runStartup({
     runEcsSchedulerProbeFn = runEcsSchedulerProbeIfEnabled,
     resolveRuntimeOptionsFn = resolveRuntimeOptions,
 }: {
-    activeConfig: object;
+    activeConfig: ServerConfig;
     env: NodeJS.ProcessEnv;
     cwd?: string;
-    emitStructuredEvent: (level: string, event: string, fields: StructuredEventFields) => void;
-    emitProbeEvent: (level: string, fields: StructuredEventFields) => void;
+    emitStructuredEvent: (level: string, event: string, fields: RuntimeEventFields) => void;
+    emitProbeEvent: (level: string, fields: RuntimeEventFields) => void;
     importWsRuntime: StartupWsImport;
-    createRuntimeDependencies: (overrides: MainRuntimeDependencyOverrides) => MainRuntimeDependencyOverrides;
-    startServer: (config: object, runtimeOptions?: RuntimeOptionsLike) => void;
+    createRuntimeDependencies: (overrides: MainRuntimeDependencyOverrides) => MainRuntimeDependencies;
+    startServer: (config: ServerConfig, runtimeOptions?: RuntimeOptionsLike) => void;
     fail: (code: number) => void;
     runBridgeProbeFn?: (params: BridgeProbeParams) => Promise<void>;
     runEcsSchedulerProbeFn?: (params: EcsProbeParams) => Promise<void>;
     resolveRuntimeOptionsFn?: (params: {
         env: NodeJS.ProcessEnv;
-        emitStructuredEvent: (level: string, event: string, fields: StructuredEventFields) => void;
+        emitStructuredEvent: (level: string, event: string, fields: RuntimeEventFields) => void;
         importWsRuntime: StartupWsImport;
-        createRuntimeDependencies: (overrides: MainRuntimeDependencyOverrides) => MainRuntimeDependencyOverrides;
+        createRuntimeDependencies: (overrides: MainRuntimeDependencyOverrides) => MainRuntimeDependencies;
         fail: (code: number) => void;
     }) => Promise<RuntimeOptionsLike | undefined>;
 }): Promise<{ runtimeOptions: RuntimeOptionsLike | undefined }> {

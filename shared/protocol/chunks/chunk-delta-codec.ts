@@ -7,14 +7,22 @@ export type ChunkDeltaPayloadEnvelopeV1 = Readonly<{
     changes: ChunkDeltaChange[];
 }>;
 
-function validateChunkSize(chunkSize: unknown): number | null {
+type JsonScalar = string | number | boolean | null;
+type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
+type JsonRecord = Record<string, JsonLike>;
+
+function isJsonRecord(value: JsonLike | object | null | undefined): value is JsonRecord {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function validateChunkSize(chunkSize: JsonLike | object | undefined): number | null {
     if (typeof chunkSize !== 'number' || !Number.isSafeInteger(chunkSize) || chunkSize <= 0 || chunkSize > 256) {
         return null;
     }
     return chunkSize;
 }
 
-function validateChanges(changes: unknown, chunkSize: number, maxChanges: number): ChunkDeltaChange[] | null {
+function validateChanges(changes: JsonLike | object | undefined, chunkSize: number, maxChanges: number): ChunkDeltaChange[] | null {
     if (!Array.isArray(changes) || changes.length > maxChanges) {
         return null;
     }
@@ -24,7 +32,7 @@ function validateChanges(changes: unknown, chunkSize: number, maxChanges: number
         if (!Array.isArray(entry) || entry.length !== 3) {
             return null;
         }
-        const [x, y, value] = entry as unknown[];
+        const [x, y, value] = entry;
         if (
             typeof x !== 'number'
             || typeof y !== 'number'
@@ -76,24 +84,23 @@ export function decodeChunkDeltaPayloadJson(
     if (typeof payloadJson !== 'string' || !Number.isInteger(maxChanges) || maxChanges <= 0) {
         return null;
     }
-    let parsed: unknown;
+    let parsed: JsonLike;
     try {
-        parsed = JSON.parse(payloadJson);
+        parsed = JSON.parse(payloadJson) as JsonLike;
     } catch (_) {
         return null;
     }
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (!isJsonRecord(parsed)) {
         return null;
     }
-    const record = parsed as Record<string, unknown>;
-    if (record.schemaVersion !== 1 || record.encoding !== 'json') {
+    if (parsed.schemaVersion !== 1 || parsed.encoding !== 'json') {
         return null;
     }
-    const chunkSize = validateChunkSize(record.chunkSize);
+    const chunkSize = validateChunkSize(parsed.chunkSize);
     if (!chunkSize) {
         return null;
     }
-    const changes = validateChanges(record.changes, chunkSize, maxChanges);
+    const changes = validateChanges(parsed.changes, chunkSize, maxChanges);
     if (!changes) {
         return null;
     }
@@ -104,4 +111,3 @@ export function decodeChunkDeltaPayloadJson(
         changes,
     });
 }
-

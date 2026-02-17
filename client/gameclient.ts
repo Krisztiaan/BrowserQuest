@@ -18,9 +18,7 @@ import {
     createIntentAction,
     createLootAction,
     createLootMoveAction,
-    createMoveAction,
     createOpenAction,
-    createTeleportAction,
     createWhoAction,
     createZoneAction,
     toProtocolEntityId,
@@ -38,6 +36,7 @@ import type {
     ClientInboundProtocolAction,
     ClientOutboundProtocolAction,
     ClientProtocolBatch,
+    RuntimeEntity,
 } from './client-boundary-types';
 import type { EntityId } from '../shared/domain/ids';
 import { entityIdFromWire } from '../shared/domain/ids';
@@ -49,13 +48,17 @@ import { decodeChunkSnapshotPayloadJson } from '../shared/protocol/chunks/chunk-
 import { decodeChunkDeltaPayloadJson } from '../shared/protocol/chunks/chunk-delta-codec';
 import { debugMoves } from './debug-flags';
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
+function isRecord(value: JsonValue | object | null | undefined): value is Record<string, JsonValue> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function safeParseJson(payload: string): unknown {
+function safeParseJson(payload: string): JsonValue | null {
     try {
-        return JSON.parse(payload);
+        const parsed: JsonValue = JSON.parse(payload);
+        return parsed;
     } catch (_) {
         return null;
     }
@@ -67,6 +70,7 @@ type ClientPlayerLike = {
     getWeaponName(): string;
 };
 type IdCarrier = { id: EntityId };
+type CorrectionPayload = Readonly<{ a: number | string; b: number | string }>;
 
 export type GameClientEvents = {
     dispatched: [host: string, port: number];
@@ -74,14 +78,14 @@ export type GameClientEvents = {
     disconnected: [reason: string];
     welcome: [id: EntityId, name: string, x: number, y: number, hp: number];
     spawnCharacter: [
-        entity: unknown,
+        entity: RuntimeEntity,
         x: number,
         y: number,
         orientation: number | undefined,
         target: EntityId | undefined,
     ];
-    spawnItem: [item: unknown, x: number, y: number];
-    spawnChest: [chest: unknown, x: number, y: number];
+    spawnItem: [item: RuntimeEntity, x: number, y: number];
+    spawnChest: [chest: RuntimeEntity, x: number, y: number];
     despawnEntity: [entityId: EntityId];
     entityMove: [entityId: EntityId, x: number, y: number];
     entityAttack: [attackerId: EntityId, targetId: EntityId];
@@ -90,7 +94,7 @@ export type GameClientEvents = {
     playerMoveToItem: [playerId: EntityId, itemId: EntityId];
     playerTeleport: [entityId: EntityId, x: number, y: number];
     chatMessage: [entityId: EntityId, text: string];
-    dropItem: [item: unknown, mobId: EntityId];
+    dropItem: [item: RuntimeEntity, mobId: EntityId];
     playerDamageMob: [mobId: EntityId, points: number];
     playerKillMob: [kind: EntityKind];
     achievementProgress: [
@@ -109,7 +113,7 @@ export type GameClientEvents = {
     protocolCapabilities: [protocolRevision: number, capabilities: ProtocolCapabilities | null];
     intentRejected: [seq: number, intentTypeId: string, reason: string];
     intentAcked: [seq: number];
-    correction: [seq: number, payload: unknown];
+    correction: [seq: number, payload: CorrectionPayload];
 };
 
 export type GameClientEventSource = TypedEventSource<GameClientEvents>;
@@ -120,7 +124,7 @@ class GameClient extends Evented<GameClientEvents> {
     isTimeout: boolean;
     isListening: boolean;
     lastDispatcherMode = false;
-    suppressNextClose = false;
+    suppressedCloseSockets = new WeakSet<WebSocket>();
     handlers: GameClientInboundActionHandlerMap;
     kernel: ClientWorldKernel;
     serverProtocolRevision: number | null = null;
@@ -155,10 +159,11 @@ class GameClient extends Evented<GameClientEvents> {
 
         log.info('Trying to connect to server : ' + url);
 
-        this.connection = new WebSocket(url);
+        const socket = new WebSocket(url);
+        this.connection = socket;
 
         if (dispatcherMode) {
-            this.connection.onmessage = function (e: MessageEvent) {
+            socket.onmessage = function (e: MessageEvent) {
                 if (typeof e.data !== 'string') {
                     alert('Unknown error while connecting to BrowserQuest.');
                     return;
@@ -187,11 +192,11 @@ class GameClient extends Evented<GameClientEvents> {
                 }
             };
         } else {
-            this.connection.onopen = function (_e: Event) {
+            socket.onopen = function (_e: Event) {
                 log.info('Connected to server ' + self.wsUrl);
             };
 
-            this.connection.onmessage = function (e: MessageEvent) {
+            socket.onmessage = function (e: MessageEvent) {
                 if (e.data === HANDSHAKE_CONTROL.GO) {
                     self.emit('connected');
                     return;
@@ -206,13 +211,13 @@ class GameClient extends Evented<GameClientEvents> {
                 }
             };
 
-            this.connection.onerror = function (e: Event) {
+            socket.onerror = function (e: Event) {
                 log.error(e, true);
             };
 
-            this.connection.onclose = function () {
-                if (self.suppressNextClose) {
-                    self.suppressNextClose = false;
+            socket.onclose = function () {
+                if (self.suppressedCloseSockets.has(socket)) {
+                    self.suppressedCloseSockets.delete(socket);
                     return;
                 }
                 log.debug('Connection closed');
@@ -241,13 +246,14 @@ class GameClient extends Evented<GameClientEvents> {
             } catch (_) {
                 // ignore
             }
-            const shouldSuppress = existing.readyState !== WebSocket.CLOSED;
-            this.suppressNextClose = shouldSuppress;
+            if (existing.readyState !== WebSocket.CLOSED) {
+                this.suppressedCloseSockets.add(existing);
+            }
             try {
                 existing.close();
             } catch (_) {
                 // ignore
-                this.suppressNextClose = false;
+                this.suppressedCloseSockets.delete(existing);
             }
         }
 
@@ -289,9 +295,15 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveAction(data: ClientInboundProtocolAction): void {
-        const action = data[0];
-        const handler = this.handlers[action];
-        handler(data as never);
+        this.dispatchInboundAction(data[0], data);
+    }
+
+    private dispatchInboundAction<Opcode extends ClientInboundProtocolAction[0]>(
+        opcode: Opcode,
+        data: ClientInboundActionByOpcode<Opcode>
+    ): void {
+        const handler = this.handlers[opcode];
+        handler(data);
     }
 
     receiveActionBatch(actions: ClientProtocolBatch): void {
@@ -301,16 +313,7 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveWelcome(data: ClientInboundActionByOpcode<typeof Types.Messages.WELCOME>): void {
-        const [, id, name, x, y, hp, protocolRevision, capabilitiesJson] = data as unknown as [
-            typeof Types.Messages.WELCOME,
-            number,
-            string,
-            number,
-            number,
-            number,
-            number?,
-            string?,
-        ];
+        const [, id, name, x, y, hp, protocolRevision, capabilitiesJson] = data;
         const playerId = entityIdFromWire(id);
         this.localPlayerId = playerId;
         this.emit('welcome', playerId, name, x, y, hp);
@@ -514,71 +517,71 @@ class GameClient extends Evented<GameClientEvents> {
         this.emit('correction', seq, { a, b });
     }
 
-	    receiveChunkSnapshot(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT>): void {
-	        const [, chunkX, chunkY, version, payloadJson] = data;
-	        if (
-	            typeof chunkX !== 'number'
-	            || typeof chunkY !== 'number'
-	            || typeof version !== 'number'
-	            || typeof payloadJson !== 'string'
-	        ) {
-	            return;
-	        }
-	        const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
-	        if (!decoded) {
-	            return;
-	        }
-	        this.kernel.clientChunkOverlayCache.applySnapshot({
-	            chunkX,
-	            chunkY,
-	            version,
-	            chunkSize: decoded.chunkSize,
-	            overrides: decoded.overrides,
-	        });
-	    }
+    receiveChunkSnapshot(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT>): void {
+        const [, chunkX, chunkY, version, payloadJson] = data;
+        if (
+            typeof chunkX !== 'number'
+            || typeof chunkY !== 'number'
+            || typeof version !== 'number'
+            || typeof payloadJson !== 'string'
+        ) {
+            return;
+        }
+        const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
+        if (!decoded) {
+            return;
+        }
+        this.kernel.clientChunkOverlayCache.applySnapshot({
+            chunkX,
+            chunkY,
+            version,
+            chunkSize: decoded.chunkSize,
+            overrides: decoded.overrides,
+        });
+    }
 
-	    receiveChunkSnapshotPart(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT_PART>): void {
-	        const [, chunkX, chunkY, version, partIndex, partCount, payloadJson] = data;
-	        if (
-	            typeof chunkX !== 'number'
-	            || typeof chunkY !== 'number'
-	            || typeof version !== 'number'
-	            || typeof partIndex !== 'number'
-	            || typeof partCount !== 'number'
-	            || typeof payloadJson !== 'string'
-	        ) {
-	            return;
-	        }
-	        const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
-	        if (!decoded) {
-	            return;
-	        }
-	        this.kernel.clientChunkOverlayCache.applySnapshotPart({
-	            chunkX,
-	            chunkY,
-	            version,
-	            partIndex,
-	            partCount,
-	            chunkSize: decoded.chunkSize,
-	            overrides: decoded.overrides,
-	        });
-	    }
-	
+    receiveChunkSnapshotPart(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT_PART>): void {
+        const [, chunkX, chunkY, version, partIndex, partCount, payloadJson] = data;
+        if (
+            typeof chunkX !== 'number'
+            || typeof chunkY !== 'number'
+            || typeof version !== 'number'
+            || typeof partIndex !== 'number'
+            || typeof partCount !== 'number'
+            || typeof payloadJson !== 'string'
+        ) {
+            return;
+        }
+        const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
+        if (!decoded) {
+            return;
+        }
+        this.kernel.clientChunkOverlayCache.applySnapshotPart({
+            chunkX,
+            chunkY,
+            version,
+            partIndex,
+            partCount,
+            chunkSize: decoded.chunkSize,
+            overrides: decoded.overrides,
+        });
+    }
+
     receiveChunkDelta(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_DELTA>): void {
-	        const [, chunkX, chunkY, fromVersion, toVersion, payloadJson] = data;
-	        if (
-	            typeof chunkX !== 'number'
-	            || typeof chunkY !== 'number'
-	            || typeof fromVersion !== 'number'
-	            || typeof toVersion !== 'number'
-	            || typeof payloadJson !== 'string'
-	        ) {
-	            return;
-	        }
-	        const decoded = decodeChunkDeltaPayloadJson(payloadJson);
-	        if (!decoded) {
-	            return;
-	        }
+        const [, chunkX, chunkY, fromVersion, toVersion, payloadJson] = data;
+        if (
+            typeof chunkX !== 'number'
+            || typeof chunkY !== 'number'
+            || typeof fromVersion !== 'number'
+            || typeof toVersion !== 'number'
+            || typeof payloadJson !== 'string'
+        ) {
+            return;
+        }
+        const decoded = decodeChunkDeltaPayloadJson(payloadJson);
+        if (!decoded) {
+            return;
+        }
         this.kernel.clientChunkOverlayCache.applyDelta({
             chunkX,
             chunkY,
@@ -621,8 +624,7 @@ class GameClient extends Evented<GameClientEvents> {
 
     sendMove(x: number, y: number): void {
         if (!this.supportsIntent('move.step')) {
-            debugMoves('out:MOVE', { x, y, mode: 'legacy' });
-            this.sendMessage(createMoveAction(x, y));
+            debugMoves('out:INTENT(move.step):unavailable', { x, y });
             return;
         }
 
@@ -724,7 +726,7 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     sendTeleport(x: number, y: number): void {
-        this.sendMessage(createTeleportAction(x, y));
+        this.sendIntent('door.teleport', JSON.stringify({ x, y }));
     }
 
     sendWho(ids: number[]): void {

@@ -7,13 +7,11 @@ export type ProtocolParsedAction = [number, ...ProtocolActionValue[]];
 export type ClientToServerHelloAction =
     | [typeof Types.Messages.HELLO, string, number, number]
     | [typeof Types.Messages.HELLO, string, number, number, number, string];
-export type ClientToServerMoveAction = [typeof Types.Messages.MOVE, number, number];
 export type ClientToServerLootMoveAction = [typeof Types.Messages.LOOTMOVE, number, number, number];
 export type ClientToServerAggroAction = [typeof Types.Messages.AGGRO, number];
 export type ClientToServerAttackAction = [typeof Types.Messages.ATTACK, number];
 export type ClientToServerChatAction = [typeof Types.Messages.CHAT, string];
 export type ClientToServerLootAction = [typeof Types.Messages.LOOT, number];
-export type ClientToServerTeleportAction = [typeof Types.Messages.TELEPORT, number, number];
 export type ClientToServerWhoAction = [typeof Types.Messages.WHO, ...number[]];
 export type ClientToServerZoneAction = [typeof Types.Messages.ZONE];
 export type ClientToServerOpenAction = [typeof Types.Messages.OPEN, number];
@@ -25,13 +23,11 @@ export type ClientToServerChunkUnsubscribeAction = [typeof Types.Messages.CHUNK_
 
 export type ClientToServerProtocolAction =
     | ClientToServerHelloAction
-    | ClientToServerMoveAction
     | ClientToServerLootMoveAction
     | ClientToServerAggroAction
     | ClientToServerAttackAction
     | ClientToServerChatAction
     | ClientToServerLootAction
-    | ClientToServerTeleportAction
     | ClientToServerWhoAction
     | ClientToServerZoneAction
     | ClientToServerOpenAction
@@ -163,6 +159,16 @@ export const PROTOCOL_CONTRACT_NUMERIC_KEYS = [
     'MSG_CHECK',
     'MSG_ACHIEVEMENT',
     'MSG_ACHIEVEMENTS',
+    'MSG_INTENT',
+    'MSG_OUTCOME',
+    'MSG_REJECT',
+    'MSG_ACK',
+    'MSG_CORRECTION',
+    'MSG_CHUNK_SUBSCRIBE',
+    'MSG_CHUNK_UNSUBSCRIBE',
+    'MSG_CHUNK_SNAPSHOT',
+    'MSG_CHUNK_SNAPSHOT_PART',
+    'MSG_CHUNK_DELTA',
     'ENTITY_CLOTH_ARMOR',
     'ENTITY_SWORD_1',
 ] as const;

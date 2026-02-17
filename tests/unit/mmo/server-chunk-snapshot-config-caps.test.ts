@@ -5,6 +5,9 @@ import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { ClientChunkOverlayCache } from '../../../client/world/chunks/client-chunk-overlay-cache';
 import { decodeChunkSnapshotPayloadJson, encodeChunkSnapshotPayloadJson, encodeChunkSnapshotPayloadJsonParts } from '../../../shared/protocol/chunks/chunk-snapshot-codec';
+import type { WorldMessage } from '../../../server/world/contracts';
+
+type FrameInput = ReadonlyArray<number | string> | object | null | undefined;
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -22,7 +25,7 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function isChunkSnapshotPartMessage(msg: unknown): msg is [number, number, number, number, number, number, string] {
+function isChunkSnapshotPartMessage(msg: FrameInput): msg is [number, number, number, number, number, number, string] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_SNAPSHOT_PART
@@ -79,8 +82,8 @@ test('WorldEcsCommandPipeline.setServerConfig applies chunk snapshot caps (no en
         const player = createTestPlayer(24001);
         player.setPosition(1, 1);
 
-        const delivered: unknown[] = [];
-        const host: Record<string, unknown> = {
+        const delivered: WorldMessage[] = [];
+        const host = {
             ups: 50,
             map: {
                 getCheckpoint() {
@@ -121,14 +124,14 @@ test('WorldEcsCommandPipeline.setServerConfig applies chunk snapshot caps (no en
                 return null;
             },
             handleItemDespawn() {},
-            moveEntity(entity: unknown, x: number, y: number) {
-                (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+            moveEntity(entity: { setPosition: (nextX: number, nextY: number) => void }, x: number, y: number) {
+                entity.setPosition(x, y);
             },
             removeEntity() {},
             addItemFromChest() {
                 return null;
             },
-            pushToPlayerId(playerId: number, message: unknown) {
+            pushToPlayerId(playerId: number, message: WorldMessage) {
                 if (playerId === player.id) {
                     delivered.push(message);
                 }
@@ -242,8 +245,8 @@ test('snapshot overflow fallback streams high-part snapshots instead of indefini
         const player = createTestPlayer(24002);
         player.setPosition(1, 1);
 
-        const delivered: unknown[] = [];
-        const host: Record<string, unknown> = {
+        const delivered: WorldMessage[] = [];
+        const host = {
             ups: 50,
             map: {
                 getCheckpoint() {
@@ -284,14 +287,14 @@ test('snapshot overflow fallback streams high-part snapshots instead of indefini
                 return null;
             },
             handleItemDespawn() {},
-            moveEntity(entity: unknown, x: number, y: number) {
-                (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+            moveEntity(entity: { setPosition: (nextX: number, nextY: number) => void }, x: number, y: number) {
+                entity.setPosition(x, y);
             },
             removeEntity() {},
             addItemFromChest() {
                 return null;
             },
-            pushToPlayerId(playerId: number, message: unknown) {
+            pushToPlayerId(playerId: number, message: WorldMessage) {
                 if (playerId === player.id) {
                     delivered.push(message);
                 }

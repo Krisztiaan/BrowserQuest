@@ -1,4 +1,21 @@
 import { SERVER_EVENT_NAMES } from '../server-event-names';
+import type { MainRuntimeDependencies, MainRuntimeDependencyOverrides, RuntimeEventFields } from '../runtime-types';
+
+type StartupWsRuntimeModule = {
+    default: MainRuntimeDependencies['ws'];
+};
+
+type ResolveRuntimeOptionsParams = {
+    env: NodeJS.ProcessEnv;
+    emitStructuredEvent: (level: string, event: string, fields: RuntimeEventFields) => void;
+    importWsRuntime: () => Promise<StartupWsRuntimeModule>;
+    createRuntimeDependencies: (overrides: MainRuntimeDependencyOverrides) => MainRuntimeDependencies;
+    fail: (code: number) => void;
+};
+
+export type StartupRuntimeOptions = {
+    dependencies: MainRuntimeDependencyOverrides;
+};
 
 export async function resolveRuntimeOptions({
     env,
@@ -6,18 +23,7 @@ export async function resolveRuntimeOptions({
     importWsRuntime,
     createRuntimeDependencies,
     fail,
-}: {
-    env: NodeJS.ProcessEnv;
-    emitStructuredEvent: (level: string, event: string, fields: Record<string, unknown>) => void;
-    importWsRuntime: () => Promise<{
-        default: unknown;
-        CLOSE_CODES?: unknown;
-        MultiVersionWebsocketServer?: unknown;
-        wsWebSocketConnection?: unknown;
-    }>;
-    createRuntimeDependencies: (overrides: object) => unknown;
-    fail: (code: number) => void;
-}): Promise<{ dependencies: unknown } | undefined> {
+}: ResolveRuntimeOptionsParams): Promise<StartupRuntimeOptions | undefined> {
     void env;
 
     try {

@@ -3,6 +3,7 @@ import { entityIdFromWire } from '../../shared/domain/ids';
 import { gridPos } from '../../shared/domain/positions';
 import Types from '../../shared/gametypes-browser';
 import { WorldEcsCommandPipeline } from '../../server/world/ecs-command-pipeline';
+import type { WorldMessage } from '../../server/world/contracts';
 
 function createPlayerLike(playerId: number) {
     const player = {
@@ -38,7 +39,7 @@ function createWorldHostStub() {
         mobs: [] as Array<{ mobId: number; kind: number; spawn: { x: number; y: number } }>,
         items: [] as Array<{ itemId: number; kind: number; spawn: { x: number; y: number }; tickNow?: number }>,
     };
-    const pushed: unknown[] = [];
+    const pushed: WorldMessage[] = [];
     const player = createPlayerLike(7001);
 
     const world = {
@@ -93,7 +94,7 @@ function createWorldHostStub() {
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(_playerId: number, message: unknown) {
+        pushToPlayerId(_playerId: number, message: WorldMessage) {
             pushed.push(message);
         },
         persistPlayerEquipment() {},
@@ -109,7 +110,7 @@ function createWorldHostStub() {
 
 test('LOOT of a static item schedules respawn and destroys the item entity', () => {
     const { world, player, scheduled } = createWorldHostStub();
-    const pipeline = new WorldEcsCommandPipeline(world as unknown as never);
+    const pipeline = new WorldEcsCommandPipeline(world as never);
 
     pipeline.state.world.ensureEntity(player.id);
     pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, player.kind);
@@ -138,7 +139,7 @@ test('LOOT of a static item schedules respawn and destroys the item entity', () 
 
 test('mob death schedules ECS respawn without legacy entity lookup', () => {
     const { world, player, scheduled } = createWorldHostStub();
-    const pipeline = new WorldEcsCommandPipeline(world as unknown as never);
+    const pipeline = new WorldEcsCommandPipeline(world as never);
 
     pipeline.state.world.ensureEntity(player.id);
     pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, player.kind);

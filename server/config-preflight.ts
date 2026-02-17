@@ -12,52 +12,52 @@ interface ValidationError {
     reason: ValidationErrorReason;
 }
 
-interface CandidateConfig {
-    port?: unknown;
-    debug_level?: unknown;
-    nb_players_per_world?: unknown;
-    nb_worlds?: unknown;
-    map_filepath?: unknown;
-    metrics_enabled?: unknown;
-    plugins?: unknown;
-    chunk_size?: unknown;
-    player_db_path?: unknown;
-    chunk_overlay_db_path?: unknown;
-    claims_db_path?: unknown;
-    chunk_overlay_flush_interval_ms?: unknown;
-    chunk_overlay_flush_max_chunks?: unknown;
-    chunk_overlay_bootstrap_load_limit_chunks?: unknown;
-    chunk_snapshot_payload_max_utf8_bytes?: unknown;
-    chunk_snapshot_max_parts?: unknown;
-    updates_per_second?: unknown;
-}
+type CandidateConfig = Partial<{
+    port: number;
+    debug_level: string;
+    nb_players_per_world: number;
+    nb_worlds: number;
+    map_filepath: string;
+    metrics_enabled: boolean;
+    plugins: string[];
+    chunk_size: number;
+    player_db_path: string;
+    chunk_overlay_db_path: string;
+    claims_db_path: string;
+    chunk_overlay_flush_interval_ms: number;
+    chunk_overlay_flush_max_chunks: number;
+    chunk_overlay_bootstrap_load_limit_chunks: number;
+    chunk_snapshot_payload_max_utf8_bytes: number;
+    chunk_snapshot_max_parts: number;
+    updates_per_second: number;
+}>;
 
 interface ValidationResult {
     isValid: boolean;
     errors: ValidationError[];
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-    return !!value && typeof value === "object" && !Array.isArray(value);
+function isPlainObject(value: object | null | undefined): value is CandidateConfig {
+    return !!value && !Array.isArray(value);
 }
 
-function isNonEmptyString(value: unknown): value is string {
-    return typeof value === "string" && value.trim().length > 0;
+function isNonEmptyString(value: string | undefined): value is string {
+    return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isPositiveInteger(value: unknown): value is number {
-    return typeof value === "number" && Number.isInteger(value) && value > 0;
+function isPositiveInteger(value: number | undefined): value is number {
+    return typeof value === 'number' && Number.isInteger(value) && value > 0;
 }
 
-function isChunkSize(value: unknown): value is number {
+function isChunkSize(value: number | undefined): value is number {
     return isPositiveInteger(value) && value <= 256;
 }
 
-function isStringArray(value: unknown): value is string[] {
+function isStringArray(value: string[] | undefined): value is string[] {
     return Array.isArray(value) && value.every((entry) => typeof entry === 'string' && entry.trim().length > 0);
 }
 
-function validateConfig(config: unknown): ValidationResult {
+function validateConfig(config: CandidateConfig | object | null | undefined): ValidationResult {
     const errors: ValidationError[] = [];
 
     if (!isPlainObject(config)) {
@@ -67,7 +67,7 @@ function validateConfig(config: unknown): ValidationResult {
         };
     }
 
-    const candidate = config as CandidateConfig;
+    const candidate = config;
 
     if (!isPositiveInteger(candidate.port)) {
         errors.push({ field: 'port', reason: 'must_be_positive_integer' });

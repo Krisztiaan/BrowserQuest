@@ -1,6 +1,9 @@
 import { gunzipSync, gzipSync } from 'fflate';
 
 export type ChunkSnapshotOverride = [number, number, number];
+type JsonScalar = string | number | boolean | null;
+type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
+type JsonRecord = { [key: string]: JsonLike };
 
 type ChunkSnapshotJsonEnvelopeV1 = Readonly<{
     schemaVersion: 1;
@@ -64,14 +67,18 @@ function base64Decode(base64: string): Uint8Array | null {
     }
 }
 
-function validateDecodedChunkSize(chunkSize: unknown): number | null {
+function isRecord(value: JsonLike | object | null | undefined): value is JsonRecord {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function validateDecodedChunkSize(chunkSize: JsonLike | object | null | undefined): number | null {
     if (typeof chunkSize !== 'number' || !Number.isSafeInteger(chunkSize) || chunkSize <= 0 || chunkSize > 256) {
         return null;
     }
     return chunkSize;
 }
 
-function validateDecodedOverrides(overrides: unknown, chunkSize: number): ChunkSnapshotOverride[] | null {
+function validateDecodedOverrides(overrides: JsonLike | object | null | undefined, chunkSize: number): ChunkSnapshotOverride[] | null {
     if (!Array.isArray(overrides)) {
         return null;
     }
@@ -81,7 +88,9 @@ function validateDecodedOverrides(overrides: unknown, chunkSize: number): ChunkS
         if (!Array.isArray(entry) || entry.length !== 3) {
             return null;
         }
-        const [x, y, value] = entry as unknown[];
+        const x = entry[0];
+        const y = entry[1];
+        const value = entry[2];
         if (
             typeof x !== 'number'
             || typeof y !== 'number'
@@ -157,13 +166,27 @@ export function encodeChunkSnapshotPayloadJsonParts({
     overrides: ChunkSnapshotOverride[];
     maxUtf8Bytes?: number;
 }): string[] {
-    const full = (() => {
-        try {
-            return encodeChunkSnapshotPayloadJson({ chunkSize, overrides, maxUtf8Bytes });
-        } catch (_) {
-            return null;
+    const encodeRangeCache = new Map<string, string | null>();
+    const tryEncodeRange = (startInclusive: number, endExclusive: number): string | null => {
+        const cacheKey = `${startInclusive}:${endExclusive}`;
+        if (encodeRangeCache.has(cacheKey)) {
+            return encodeRangeCache.get(cacheKey) ?? null;
         }
-    })();
+        let encoded: string | null = null;
+        try {
+            encoded = encodeChunkSnapshotPayloadJson({
+                chunkSize,
+                overrides: overrides.slice(startInclusive, endExclusive),
+                maxUtf8Bytes,
+            });
+        } catch (_) {
+            encoded = null;
+        }
+        encodeRangeCache.set(cacheKey, encoded);
+        return encoded;
+    };
+
+    const full = tryEncodeRange(0, overrides.length);
     if (full !== null) {
         return [full];
     }
@@ -179,11 +202,10 @@ export function encodeChunkSnapshotPayloadJsonParts({
     let best = 0;
     while (lo <= hi) {
         const mid = Math.floor((lo + hi) / 2);
-        try {
-            encodeChunkSnapshotPayloadJson({ chunkSize, overrides: overrides.slice(0, mid), maxUtf8Bytes });
+        if (tryEncodeRange(0, mid) !== null) {
             best = mid;
             lo = mid + 1;
-        } catch (_) {
+        } else {
             hi = mid - 1;
         }
     }
@@ -199,18 +221,12 @@ export function encodeChunkSnapshotPayloadJsonParts({
         const parts: string[] = [];
         let ok = true;
         for (let i = 0; i < overrides.length; i += perPart) {
-            try {
-                parts.push(
-                    encodeChunkSnapshotPayloadJson({
-                        chunkSize,
-                        overrides: overrides.slice(i, i + perPart),
-                        maxUtf8Bytes,
-                    })
-                );
-            } catch (_) {
+            const encoded = tryEncodeRange(i, i + perPart);
+            if (encoded === null) {
                 ok = false;
                 break;
             }
+            parts.push(encoded);
         }
         if (ok) {
             return parts;
@@ -234,17 +250,17 @@ export function decodeChunkSnapshotPayloadJson(
         return null;
     }
 
-    let parsed: unknown;
+    let parsed: JsonLike;
     try {
-        parsed = JSON.parse(payloadJson);
+        parsed = JSON.parse(payloadJson) as JsonLike;
     } catch (_) {
         return null;
     }
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (!isRecord(parsed)) {
         return null;
     }
 
-    const record = parsed as Record<string, unknown>;
+    const record = parsed;
     if (record.schemaVersion !== 1) {
         return null;
     }
@@ -282,17 +298,17 @@ export function decodeChunkSnapshotPayloadJson(
         return null;
     }
 
-    let innerParsed: unknown;
+    let innerParsed: JsonLike;
     try {
-        innerParsed = JSON.parse(utf8Decode(uncompressed));
+        innerParsed = JSON.parse(utf8Decode(uncompressed)) as JsonLike;
     } catch (_) {
         return null;
     }
-    if (!innerParsed || typeof innerParsed !== 'object' || Array.isArray(innerParsed)) {
+    if (!isRecord(innerParsed)) {
         return null;
     }
 
-    const inner = innerParsed as Record<string, unknown>;
+    const inner = innerParsed;
     const innerChunkSize = validateDecodedChunkSize(inner.chunkSize);
     if (!innerChunkSize || innerChunkSize !== chunkSize) {
         return null;

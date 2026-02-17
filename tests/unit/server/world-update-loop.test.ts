@@ -55,7 +55,7 @@ test('update loop catches up after transient timer drift while preserving cadenc
 });
 
 test('update loop stop clears pending timer and prevents further ticks', () => {
-    const cleared: unknown[] = [];
+    const cleared: Array<ReturnType<typeof setTimeout> | number> = [];
     const processedAt: number[] = [];
     let pendingCallback: (() => void) | null = null;
     let nextHandleId = 0;

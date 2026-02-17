@@ -1,5 +1,6 @@
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { EntityId } from '../../shared/domain/ids';
+import type { RuntimeEntity } from '../client-boundary-types';
 
 export type ClientRuntimeEvent =
     | Readonly<{ type: 'welcome'; id: EntityId; name: string; x: number; y: number; maxHp: number }>
@@ -11,7 +12,7 @@ export type ClientRuntimeEvent =
     | Readonly<{ type: 'playerChangeMaxHitPoints'; maxHp: number }>
     | Readonly<{ type: 'chatMessage'; entityId: EntityId; text: string }>
     | Readonly<{ type: 'playerEquipItem'; entityId: EntityId; itemKind: EntityKind }>
-    | Readonly<{ type: 'dropItem'; item: unknown; mobId: EntityId }>
+    | Readonly<{ type: 'dropItem'; item: RuntimeEntity; mobId: EntityId }>
     | Readonly<{ type: 'itemBlink'; entityId: EntityId }>
     | Readonly<{ type: 'playerDamageMob'; mobId: EntityId; points: number }>
     | Readonly<{ type: 'playerKillMob'; kind: EntityKind }>

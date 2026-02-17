@@ -1,5 +1,6 @@
 import type {
     ClientToServerProtocolAction,
+    ProtocolActionValue,
     ServerToClientProtocolAction,
 } from '../shared/protocol/types';
 import type { EntityKind } from '../shared/entity-kind-domain';
@@ -9,7 +10,7 @@ export type ClientInboundProtocolAction = ServerToClientProtocolAction;
 export type ClientOutboundProtocolAction = ClientToServerProtocolAction;
 export type ClientInboundActionByOpcode<Opcode extends ClientInboundProtocolAction[0]> = Extract<
     ClientInboundProtocolAction,
-    [Opcode, ...unknown[]]
+    [Opcode, ...ProtocolActionValue[]]
 >;
 export type ClientProtocolAction = ClientInboundProtocolAction;
 export type ClientProtocolBatch = ClientProtocolAction[];

@@ -51,7 +51,7 @@ test('setPlayerHealth(0) marks player dead and emits playerDeath once', () => {
         },
         infoManager: { addDamageInfo() {} },
         entities: {},
-    } as unknown as Parameters<typeof runClientCommandApplySystem>[0];
+    } as Parameters<typeof runClientCommandApplySystem>[0];
 
     runClientCommandApplySystem(host);
     runClientCommandApplySystem(host);

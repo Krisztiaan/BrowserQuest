@@ -5,6 +5,7 @@ import type { EntityId } from '../shared/domain/ids';
 
 import Utils from './utils';
 import { buildDespawnAction } from './protocol/outbound-actions';
+import type { ServerToClientDespawnAction } from '../shared/protocol/types';
 
 interface PositionLike {
     x: number;
@@ -29,7 +30,7 @@ class Entity<TEvents extends TypedEventMap = NoEvents> extends Evented<TEvents> 
 
     destroy(): void {}
 
-    despawn(): unknown {
+    despawn(): ServerToClientDespawnAction {
         return buildDespawnAction(this.id);
     }
 

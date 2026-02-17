@@ -3,7 +3,8 @@ import WsRuntimeModule from '../../../server/ws/runtime';
 
 const originalConsoleInfo = console.info;
 
-type Handler = (...args: unknown[]) => void;
+type SocketArg = string | number | boolean | null | undefined | object;
+type Handler = (...args: SocketArg[]) => void;
 
 beforeEach(() => {
     console.info = () => {
@@ -24,7 +25,7 @@ function createSocketMock() {
         on(event: string, handler: Handler) {
             handlers[event] = handler;
         },
-        emit(event: string, ...args: unknown[]) {
+        emit(event: string, ...args: SocketArg[]) {
             handlers[event]?.(...args);
         },
         close(code: number, reason: string) {

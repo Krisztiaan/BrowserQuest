@@ -1,5 +1,9 @@
 type LogLevelName = 'error' | 'info' | 'debug';
 type ConsoleMethod = 'error' | 'info' | 'log';
+type LogScalar = string | number | boolean | bigint | null;
+type LogJsonValue = LogScalar | LogJsonValue[] | { [key: string]: LogJsonValue };
+type LogArg = LogJsonValue | Error | undefined;
+type EventFields = Record<string, LogJsonValue>;
 
 export const ERROR = 0;
 export const INFO = 1;
@@ -7,10 +11,10 @@ export const DEBUG = 2;
 
 type RuntimeLogger = {
     level: number;
-    info(...args: unknown[]): void;
-    debug(...args: unknown[]): void;
-    error(...args: unknown[]): void;
-    event(levelName: string, eventName: string, fields?: unknown): void;
+    info(...args: LogArg[]): void;
+    debug(...args: LogArg[]): void;
+    error(...args: LogArg[]): void;
+    event(levelName: string, eventName: string, fields?: EventFields | LogJsonValue): void;
 };
 
 const LEVELS: Record<LogLevelName, number> = {
@@ -32,35 +36,39 @@ function normalizeLevelName(levelName: string): LogLevelName | null {
     return null;
 }
 
-function write(method: ConsoleMethod, args: unknown[]): void {
+function write(method: ConsoleMethod, args: LogArg[]): void {
     if (typeof console === 'undefined' || typeof console[method] !== 'function') {
         return;
     }
     console[method](...args);
 }
 
+function isEventFields(value: EventFields | LogJsonValue | undefined): value is EventFields {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 const logger: RuntimeLogger = {
     level: INFO,
 
-    info(...args: unknown[]): void {
+    info(...args: LogArg[]): void {
         if (logger.level >= INFO) {
             write('info', args);
         }
     },
 
-    debug(...args: unknown[]): void {
+    debug(...args: LogArg[]): void {
         if (logger.level >= DEBUG) {
             write('log', args);
         }
     },
 
-    error(...args: unknown[]): void {
+    error(...args: LogArg[]): void {
         if (logger.level >= ERROR) {
             write('error', args);
         }
     },
 
-    event(levelName: string, eventName: string, fields?: unknown): void {
+    event(levelName: string, eventName: string, fields?: EventFields | LogJsonValue): void {
         const resolvedLevelName = normalizeLevelName(levelName);
         const level = resolvedLevelName ? LEVELS[resolvedLevelName] : INFO;
 
@@ -69,13 +77,13 @@ const logger: RuntimeLogger = {
         }
 
         const method = resolvedLevelName ? METHODS[resolvedLevelName] : 'info';
-        const payload: Record<string, unknown> = {
+        const payload: EventFields & { ts: string; level: string; event: string; payload?: LogJsonValue } = {
             ts: new Date().toISOString(),
             level: levelName || 'info',
             event: eventName,
         };
 
-        if (fields && typeof fields === 'object' && !Array.isArray(fields)) {
+        if (isEventFields(fields)) {
             Object.assign(payload, fields);
         } else if (fields !== undefined) {
             payload.payload = fields;

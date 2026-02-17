@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import WS from '../../../server/ws/runtime';
+import type { ProtocolParsedAction } from '../../../shared/protocol/types';
 const originalConsoleInfo = console.info;
 
-type Handler = (...args: unknown[]) => void;
+type SocketArg = string | number | boolean | null | undefined | object;
+type Handler = (...args: SocketArg[]) => void;
 
 beforeEach(() => {
     console.info = () => {
@@ -23,7 +25,7 @@ function createSocketMock() {
         on(event: string, handler: Handler) {
             handlers[event] = handler;
         },
-        emit(event: string, ...args: unknown[]) {
+        emit(event: string, ...args: SocketArg[]) {
             if (handlers[event]) {
                 handlers[event](...args);
             }
@@ -103,9 +105,9 @@ test('ws connection forwards valid array payload to listener', () => {
     const socket = createSocketMock();
     const server = { removeConnection() {} };
     const conn = new WS.wsWebSocketConnection('id-4', socket, server, '127.0.0.1');
-    let received: unknown = null;
+    let received: ProtocolParsedAction | null = null;
 
-    conn.listen((payload: unknown) => {
+    conn.listen((payload: ProtocolParsedAction) => {
         received = payload;
     });
 

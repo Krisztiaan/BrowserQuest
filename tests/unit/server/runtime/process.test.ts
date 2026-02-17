@@ -1,12 +1,14 @@
 import { expect, test } from 'bun:test';
 import * as MainRuntimeModule from '../../../../server/runtime';
+import type { RuntimeEventFields } from '../../../../server/runtime-types';
 
 const MainRuntime = MainRuntimeModule;
+type RuntimeErrorArg = string | Error | object | null | undefined;
 
 test('main runtime server event emitter forwards structured events to logger', () => {
-    const events: Array<{ level: string; eventName: string; fields: unknown }> = [];
+    const events: Array<{ level: string; eventName: string; fields: RuntimeEventFields }> = [];
     const emitServerEvent = MainRuntime.createServerEventEmitter({
-        event(level: string, eventName: string, fields: unknown) {
+        event(level: string, eventName: string, fields: RuntimeEventFields) {
             events.push({ level, eventName, fields });
         },
     });
@@ -37,7 +39,10 @@ test('main runtime population check timer uses injected timer seam and updates o
         isEnabled: true,
         isReady: true,
         getTotalPlayers(callback: (total: number) => void) {
-            callback(totals.shift() as number);
+            const total = totals.shift();
+            if (typeof total === 'number') {
+                callback(total);
+            }
         },
     };
     const setIntervalFn = (fn: () => void, delay: number) => {
@@ -92,11 +97,11 @@ test('main runtime fatal reporter maps known and unknown fatal events', () => {
 });
 
 test('main runtime fatal handler installer binds process events to reporter', () => {
-    const handlers: Record<string, (value: unknown) => void> = {};
+    const handlers: Record<string, (...args: RuntimeErrorArg[]) => void> = {};
     const removed: string[] = [];
-    const calls: Array<{ label: string; value: unknown }> = [];
+    const calls: Array<{ label: string; value: RuntimeErrorArg }> = [];
     const processObject = {
-        on(eventName: string, handler: (value: unknown) => void) {
+        on(eventName: string, handler: (...args: RuntimeErrorArg[]) => void) {
             handlers[eventName] = handler;
         },
         off(eventName: string) {
@@ -104,7 +109,7 @@ test('main runtime fatal handler installer binds process events to reporter', ()
             delete handlers[eventName];
         },
     };
-    const cleanup = MainRuntime.installFatalHandlers(processObject, (label: string, value: unknown) => {
+    const cleanup = MainRuntime.installFatalHandlers(processObject, (label: string, value: RuntimeErrorArg) => {
         calls.push({ label, value });
     });
 
@@ -178,8 +183,8 @@ test('main runtime shutdown handler installer binds SIGTERM/SIGINT and cleans up
 });
 
 test('main runtime population cleanup delegates to provided clearInterval seam', () => {
-    const cleared: unknown[] = [];
-    const cleanup = MainRuntime.createPopulationCheckCleanup({ token: 'timer' }, (timerHandle: unknown) => {
+    const cleared: Array<{ token: string }> = [];
+    const cleanup = MainRuntime.createPopulationCheckCleanup({ token: 'timer' }, (timerHandle: { token: string }) => {
         cleared.push(timerHandle);
     });
 

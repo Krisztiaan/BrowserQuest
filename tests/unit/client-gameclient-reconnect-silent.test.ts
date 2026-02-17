@@ -12,9 +12,9 @@ class MockWebSocket {
 
     readonly url: string;
     readyState = MockWebSocket.OPEN;
-    onopen: ((e: unknown) => void) | null = null;
-    onmessage: ((e: { data: unknown }) => void) | null = null;
-    onerror: ((e: unknown) => void) | null = null;
+    onopen: ((e: Event) => void) | null = null;
+    onmessage: ((e: MessageEvent) => void) | null = null;
+    onerror: ((e: Event) => void) | null = null;
     onclose: (() => void) | null = null;
 
     constructor(url: string) {
@@ -32,14 +32,22 @@ class MockWebSocket {
 
 test('GameClient.reconnectSilently does not emit disconnected for the intentional close', () => {
     const prevWs = globalThis.WebSocket;
-    const prevDoc = (globalThis as unknown as { document?: unknown }).document;
+    const prevDoc = 'document' in globalThis ? globalThis.document : undefined;
 
-    (globalThis as unknown as { WebSocket: unknown }).WebSocket = MockWebSocket as unknown;
-    (globalThis as unknown as { document: unknown }).document = {
-        getElementById() {
-            return null;
-        },
-    };
+    Object.defineProperty(globalThis, 'WebSocket', {
+        configurable: true,
+        writable: true,
+        value: MockWebSocket as typeof WebSocket,
+    });
+    Object.defineProperty(globalThis, 'document', {
+        configurable: true,
+        writable: true,
+        value: {
+            getElementById() {
+                return null;
+            },
+        } as Document,
+    });
 
     try {
         const kernel = new ClientWorldKernel();
@@ -64,14 +72,33 @@ test('GameClient.reconnectSilently does not emit disconnected for the intentiona
         expect(kernel.clientPendingMoveSeqAcks.length).toBe(0);
 
         // A real close should still emit disconnected.
-        (client.connection as unknown as MockWebSocket).close();
+        if (client.connection instanceof MockWebSocket) {
+            client.connection.close();
+        }
         expect(disconnected).toBe(1);
     } finally {
-        (globalThis as unknown as { WebSocket: unknown }).WebSocket = prevWs as unknown;
+        Object.defineProperty(globalThis, 'WebSocket', {
+            configurable: true,
+            writable: true,
+            value: prevWs,
+        });
         if (prevDoc === undefined) {
-            delete (globalThis as unknown as { document?: unknown }).document;
+            try {
+                // Keep teardown resilient in environments where deleting document is disallowed.
+                delete (globalThis as { document?: Document }).document;
+            } catch {
+                Object.defineProperty(globalThis, 'document', {
+                    configurable: true,
+                    writable: true,
+                    value: undefined,
+                });
+            }
         } else {
-            (globalThis as unknown as { document: unknown }).document = prevDoc;
+            Object.defineProperty(globalThis, 'document', {
+                configurable: true,
+                writable: true,
+                value: prevDoc,
+            });
         }
     }
 });

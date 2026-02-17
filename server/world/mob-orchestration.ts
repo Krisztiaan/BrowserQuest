@@ -10,12 +10,13 @@ type MobWithLinks = {
 };
 
 type PlayerEntity = {
-    removeAttacker(mob: unknown): void;
-    removeHater(mob: unknown): void;
+    removeAttacker(mob: MobWithLinks): void;
+    removeHater(mob: MobWithLinks): void;
 };
 
-type GetEntityById = (id: EntityId) => unknown;
-type IsPlayerEntity = (entity: unknown) => entity is PlayerEntity;
+type EntityLookupValue = PlayerEntity | null | undefined | object;
+type GetEntityById = (id: EntityId) => EntityLookupValue;
+type IsPlayerEntity = (entity: EntityLookupValue) => entity is PlayerEntity;
 
 export function clearWorldMobAggroLink({
     mob,
@@ -54,4 +55,3 @@ export function clearWorldMobHateLinks({
         }
     });
 }
-

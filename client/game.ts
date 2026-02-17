@@ -26,6 +26,7 @@ import {
 import AnimatedTile from './tile';
 import Warrior from './warrior';
 import type GameClient from './gameclient';
+import type { RuntimeEntity } from './client-boundary-types';
 import AudioManager from './audio';
 import Transition from './transition';
 import type Pathfinder from './pathfinder';
@@ -367,9 +368,6 @@ class Game extends Evented<GameEvents> {
         // Characters expect a path resolver callback; without it, clicks/moves log errors and do nothing.
         const self = this;
         const install = function (character: Character): void {
-            if (typeof (character as unknown as { setPathRequestResolver?: unknown }).setPathRequestResolver !== 'function') {
-                return;
-            }
             character.setPathRequestResolver(function (x: number, y: number) {
                 return self.findPath(character, x, y, buildPathingIgnoreList(character));
             });
@@ -563,7 +561,7 @@ class Game extends Evented<GameEvents> {
         this.addEntity(item);
     }
 
-    addItemFromUnknown(item: unknown, x: number, y: number): void {
+    addItemFromUnknown(item: RuntimeEntity, x: number, y: number): void {
         if (item instanceof Item) {
             this.addItem(item, x, y);
             return;

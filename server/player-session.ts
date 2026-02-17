@@ -26,7 +26,7 @@ type SessionWorld = {
     enqueueCommand(command: Command): void;
     getConnectionPlayerById(playerId: EntityId): {
         isDead?: boolean;
-        firepotionTimeout?: unknown;
+        firepotionTimeout?: ReturnType<typeof setTimeout> | null;
         emit(eventName: 'exit'): void;
     } | null;
     resolveHelloProfile?(params: {
@@ -135,7 +135,7 @@ export function attachWorldConnectionSession({
         const player = world.getConnectionPlayerById(playerId);
         if (player) {
             if (player.firepotionTimeout) {
-                clearTimeout(player.firepotionTimeout as never);
+                clearTimeout(player.firepotionTimeout);
             }
             player.emit('exit');
         }

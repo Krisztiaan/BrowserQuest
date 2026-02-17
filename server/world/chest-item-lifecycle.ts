@@ -1,6 +1,8 @@
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { EntityId } from '../../shared/domain/ids';
-import { entityIdFromWire } from '../../shared/domain/ids';
+
+type JsonScalar = string | number | boolean | null;
+type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
 
 type NextItemId = () => EntityId;
 type CreateChest<TItem> = (id: EntityId, x: number, y: number) => TItem;
@@ -17,7 +19,7 @@ type CreateWorldItemParams<TItem> = {
 };
 
 type ChestWithItems = {
-    setItems(items: unknown[]): void;
+    setItems(items: JsonLike[]): void;
 };
 
 type CreateItemFn<TItem> = (kind: EntityKind, x: number, y: number) => TItem;
@@ -26,7 +28,7 @@ type IsChestFn<TItem, TChest extends TItem & ChestWithItems> = (item: TItem) => 
 type CreateWorldChestParams<TItem, TChest extends TItem & ChestWithItems> = {
     x: number;
     y: number;
-    items: unknown[];
+    items: JsonLike[];
     chestKind: EntityKind;
     createItem: CreateItemFn<TItem>;
     isChest: IsChestFn<TItem, TChest>;
@@ -35,20 +37,27 @@ type CreateWorldChestParams<TItem, TChest extends TItem & ChestWithItems> = {
 type EmptyChestArea = {
     chestX: number;
     chestY: number;
-    items: unknown[];
+    items: JsonLike[];
 };
 
 type WorldChestAreaHost = {
-    createChest(x: number, y: number, items: unknown[]): ChestEntity;
+    createChest(x: number, y: number, items: JsonLike[]): ChestEntity;
     addItem(chest: ChestEntity): ChestEntity;
     handleItemDespawn(item: ChestEntity): void;
 };
 
-type ChestEntity = unknown;
+type ChestEntity = object;
 
-type ChestAreaLike<TMob> = {
-    contains(mob: TMob): boolean;
-    addToArea(mob: TMob): void;
+type PositionLike = {
+    x: number;
+    y: number;
+};
+
+type MobAreaEntity = PositionLike & { id: EntityId };
+
+type ChestAreaLike<TMob extends MobAreaEntity> = {
+    contains(mob: PositionLike | null | undefined): boolean;
+    addToArea(mob: TMob | null | undefined): void;
 };
 
 type GridPosition = {
@@ -58,37 +67,38 @@ type GridPosition = {
 
 type StaticEntityMap = Record<string, string> | undefined;
 
-type SpawnMob = {
+type SpawnMobLike = {
     id: EntityId;
     isDead: boolean;
     x?: number;
     y?: number;
     spawningX?: number;
     spawningY?: number;
-    area?: unknown;
+    area?: object | null;
     setPosition?(x: number, y: number): void;
     updateHitPoints?(): void;
     on(eventName: 'respawn', callback: () => void): void;
 };
 
-type SpawnChestAreaLike = {
-    addToArea(entity: unknown): void;
+type SpawnChestAreaLike<TMob> = {
+    addToArea(entity: TMob | null | undefined): void;
 };
 
-type SpawnStaticEntitiesForWorldParams = {
+type SpawnStaticEntitiesForWorldParams<TMob extends SpawnMobLike, TItem> = {
     staticEntities: StaticEntityMap;
+    nextMobId: () => EntityId;
     resolveKindFromString(kindName: string): EntityKind;
     tileIndexToGridPosition(tileIndex: number): GridPosition;
     isNpcKind(kind: EntityKind): boolean;
     isMobKind(kind: EntityKind): boolean;
     isItemKind(kind: EntityKind): boolean;
     addNpc(kind: EntityKind, x: number, y: number): void;
-    createMob(id: EntityId, kind: EntityKind, x: number, y: number): SpawnMob;
-    addMob(mob: SpawnMob): void;
-    isChestArea(area: unknown): area is SpawnChestAreaLike;
-    addMobToContainingChestArea(mob: SpawnMob): void;
-    createItem(kind: EntityKind, x: number, y: number): unknown;
-    addStaticItem(item: unknown): void;
+    createMob(id: EntityId, kind: EntityKind, x: number, y: number): TMob;
+    addMob(mob: TMob): void;
+    isChestArea(area: object): area is SpawnChestAreaLike<TMob>;
+    addMobToContainingChestArea(mob: TMob): void;
+    createItem(kind: EntityKind, x: number, y: number): TItem;
+    addStaticItem(item: TItem): void;
 };
 
 export function createWorldItem<TItem>({
@@ -134,7 +144,7 @@ export function handleEmptyChestAreaRefill(host: WorldChestAreaHost, area: Empty
     host.handleItemDespawn(chest);
 }
 
-export function addMobToContainingChestAreas<TMob>(
+export function addMobToContainingChestAreas<TMob extends MobAreaEntity>(
     chestAreas: Array<ChestAreaLike<TMob>>,
     mob: TMob
 ): void {
@@ -145,8 +155,9 @@ export function addMobToContainingChestAreas<TMob>(
     });
 }
 
-export function spawnStaticEntitiesForWorld({
+export function spawnStaticEntitiesForWorld<TMob extends SpawnMobLike, TItem>({
     staticEntities,
+    nextMobId,
     resolveKindFromString,
     tileIndexToGridPosition,
     isNpcKind,
@@ -159,11 +170,8 @@ export function spawnStaticEntitiesForWorld({
     addMobToContainingChestArea,
     createItem,
     addStaticItem,
-    }: SpawnStaticEntitiesForWorldParams): void {
-        let count = 0;
-
-    Object.keys(staticEntities ?? {}).forEach((tileId) => {
-        const kindName = (staticEntities as Record<string, string>)[tileId];
+}: SpawnStaticEntitiesForWorldParams<TMob, TItem>): void {
+    Object.entries(staticEntities ?? {}).forEach(([tileId, kindName]) => {
         if (!kindName) {
             return;
         }
@@ -177,7 +185,7 @@ export function spawnStaticEntitiesForWorld({
         }
 
         if (isMobKind(kind)) {
-            const mob = createMob(entityIdFromWire(Number('7' + kind + count++)), kind, x, y);
+            const mob = createMob(nextMobId(), kind, x, y);
             mob.on('respawn', () => {
                 const spawnX = typeof mob.spawningX === 'number' ? mob.spawningX : x;
                 const spawnY = typeof mob.spawningY === 'number' ? mob.spawningY : y;

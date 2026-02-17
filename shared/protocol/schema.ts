@@ -8,34 +8,58 @@ import {
 
 type MessageTypeFormat = Array<'n' | 's'>;
 export type ClientToServerFormatSchema = Record<number, MessageTypeFormat>;
+type ProtocolSchemaInput = number | string | boolean | null | number[] | object | undefined;
+type ProtocolSchemaAction = readonly ProtocolSchemaInput[];
 
-function isFiniteNumber(value: unknown): value is number {
+function isFiniteNumber(value: ProtocolSchemaInput): value is number {
     return typeof value === 'number' && Number.isFinite(value);
 }
 
-function isFiniteInteger(value: unknown): value is number {
+function isFiniteInteger(value: ProtocolSchemaInput): value is number {
     return isFiniteNumber(value) && Number.isSafeInteger(value);
 }
 
-function isString(value: unknown): value is string {
+function isString(value: ProtocolSchemaInput): value is string {
     return typeof value === 'string';
 }
 
-function isNumberOrString(value: unknown): value is number | string {
+function isNumberOrString(value: ProtocolSchemaInput): value is number | string {
     return isFiniteNumber(value) || isString(value);
 }
 
-function isNumberArray(value: unknown): value is number[] {
+function isNumberArray(value: ProtocolSchemaInput): value is number[] {
     return Array.isArray(value) && value.every(isFiniteNumber);
 }
 
-function isProtocolActionValue(value: unknown): value is ProtocolActionValue {
+function isProtocolActionValue(value: ProtocolSchemaInput): value is ProtocolActionValue {
     return (
         isFiniteNumber(value) || isString(value) || typeof value === 'boolean' || value === null || isNumberArray(value)
     );
 }
 
-function validateClientToServerArg(kind: 'n' | 's', value: unknown): boolean {
+function isProtocolSchemaInput(value: ProtocolSchemaInput | object | null | undefined): value is ProtocolSchemaInput {
+    if (value === null || value === undefined) {
+        return true;
+    }
+    if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
+        return true;
+    }
+    if (Array.isArray(value)) {
+        return value.every((entry) => typeof entry === 'number' && Number.isFinite(entry));
+    }
+    return typeof value === 'object';
+}
+
+function toProtocolSchemaAction(
+    value: readonly ProtocolSchemaInput[] | ProtocolSchemaInput | object | null | undefined
+): ProtocolSchemaAction | null {
+    if (!Array.isArray(value)) {
+        return null;
+    }
+    return value.every(isProtocolSchemaInput) ? value : null;
+}
+
+function validateClientToServerArg(kind: 'n' | 's', value: ProtocolSchemaInput): boolean {
     switch (kind) {
         case 'n':
             return isFiniteInteger(value);
@@ -44,7 +68,7 @@ function validateClientToServerArg(kind: 'n' | 's', value: unknown): boolean {
     }
 }
 
-function validateServerToClientArg(kind: 'n' | 's' | 'ns' | 'na' | 'pv' | 'lit1', value: unknown): boolean {
+function validateServerToClientArg(kind: 'n' | 's' | 'ns' | 'na' | 'pv' | 'lit1', value: ProtocolSchemaInput): boolean {
     switch (kind) {
         case 'n':
             return isFiniteNumber(value);
@@ -63,7 +87,10 @@ function validateServerToClientArg(kind: 'n' | 's' | 'ns' | 'na' | 'pv' | 'lit1'
     }
 }
 
-function validateClientToServerActionBySchema(entry: ClientToServerProtocolManifestEntry, action: unknown[]): boolean {
+function validateClientToServerActionBySchema(
+    entry: ClientToServerProtocolManifestEntry,
+    action: readonly ProtocolSchemaInput[]
+): boolean {
     if (action.length === 0 || !isFiniteNumber(action[0])) {
         return false;
     }
@@ -92,7 +119,7 @@ function validateClientToServerActionBySchema(entry: ClientToServerProtocolManif
             return false;
         }
         for (let i = 0; i < payload.length; i += 1) {
-            if (!validateClientToServerArg(schema.arg as 'n' | 's', payload[i])) {
+            if (!validateClientToServerArg(schema.arg, payload[i])) {
                 return false;
             }
         }
@@ -110,7 +137,7 @@ function validateClientToServerActionBySchema(entry: ClientToServerProtocolManif
             }
         }
         for (let i = schema.prefix.length; i < payload.length; i += 1) {
-            if (!validateClientToServerArg(schema.rest as 'n' | 's', payload[i])) {
+            if (!validateClientToServerArg(schema.rest, payload[i])) {
                 return false;
             }
         }
@@ -141,7 +168,10 @@ function validateClientToServerActionBySchema(entry: ClientToServerProtocolManif
     return false;
 }
 
-function validateServerToClientActionBySchema(entry: ServerToClientProtocolManifestEntry, action: unknown[]): boolean {
+function validateServerToClientActionBySchema(
+    entry: ServerToClientProtocolManifestEntry,
+    action: readonly ProtocolSchemaInput[]
+): boolean {
     if (action.length === 0 || !isFiniteNumber(action[0])) {
         return false;
     }
@@ -225,11 +255,13 @@ const SERVER_TO_CLIENT_ENTRY_BY_OPCODE = new Map<number, ServerToClientProtocolM
     SERVER_TO_CLIENT_PROTOCOL_MANIFEST.map((entry) => [entry.opcode, entry])
 );
 
-export const CLIENT_TO_SERVER_FORMAT_SCHEMA: ClientToServerFormatSchema = Object.fromEntries(
-    CLIENT_TO_SERVER_PROTOCOL_MANIFEST.flatMap((entry) =>
-        entry.schema.kind === 'fixed' ? [[entry.opcode, [...entry.schema.args] as MessageTypeFormat]] : []
-    )
-) as ClientToServerFormatSchema;
+const clientToServerFormatSchema: ClientToServerFormatSchema = {};
+for (const entry of CLIENT_TO_SERVER_PROTOCOL_MANIFEST) {
+    if (entry.schema.kind === 'fixed') {
+        clientToServerFormatSchema[entry.opcode] = [...entry.schema.args];
+    }
+}
+export const CLIENT_TO_SERVER_FORMAT_SCHEMA: ClientToServerFormatSchema = clientToServerFormatSchema;
 
 export function isFixedClientToServerOpcode(type: number): boolean {
     return type in CLIENT_TO_SERVER_FORMAT_SCHEMA;
@@ -239,28 +271,32 @@ export function isKnownClientToServerOpcode(type: number): boolean {
     return CLIENT_TO_SERVER_ENTRY_BY_OPCODE.has(type);
 }
 
-export function checkClientToServerProtocolAction(action: unknown[]): boolean {
-    if (action.length === 0 || !isFiniteNumber(action[0])) {
+export function checkClientToServerProtocolAction(action: readonly ProtocolSchemaInput[]): boolean {
+    const normalizedAction = toProtocolSchemaAction(action);
+    if (!normalizedAction || normalizedAction.length === 0 || !isFiniteNumber(normalizedAction[0])) {
         return false;
     }
-    const opcode = action[0];
+    const opcode = normalizedAction[0];
     const entry = CLIENT_TO_SERVER_ENTRY_BY_OPCODE.get(opcode);
     if (!entry) {
         return false;
     }
-    return validateClientToServerActionBySchema(entry, action);
+    return validateClientToServerActionBySchema(entry, normalizedAction);
 }
 
-export function isServerToClientProtocolAction(action: unknown): action is ServerToClientProtocolAction {
-    if (!Array.isArray(action) || action.length === 0 || !isFiniteNumber(action[0])) {
+export function isServerToClientProtocolAction(
+    action: ProtocolSchemaInput[] | ProtocolSchemaInput | object | null | undefined
+): action is ServerToClientProtocolAction {
+    const normalizedAction = toProtocolSchemaAction(action);
+    if (!normalizedAction || normalizedAction.length === 0 || !isFiniteNumber(normalizedAction[0])) {
         return false;
     }
-    const opcode = action[0];
+    const opcode = normalizedAction[0];
     const entry = SERVER_TO_CLIENT_ENTRY_BY_OPCODE.get(opcode);
     if (!entry) {
         return false;
     }
-    return validateServerToClientActionBySchema(entry, action);
+    return validateServerToClientActionBySchema(entry, normalizedAction);
 }
 
 export default {

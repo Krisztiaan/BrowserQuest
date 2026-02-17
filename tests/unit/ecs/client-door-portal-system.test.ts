@@ -146,7 +146,16 @@ test('clicking a door tile while already standing on it triggers traversal', () 
             enqueueClientCommand() {},
             setClientInteractionIntent() {},
             clearClientLootAttempt() {},
-            setClientPendingDoorTraversal(pending: unknown) {
+            setClientPendingDoorTraversal(pending: {
+                doorX: number;
+                doorY: number;
+                toX: number;
+                toY: number;
+                orientation: number;
+                portal: boolean;
+                cameraX?: number;
+                cameraY?: number;
+            }) {
                 this.clientPendingDoorTraversal = { ...pending, requestedAtMs: Date.now() };
             },
             clearClientPendingDoorTraversal() {

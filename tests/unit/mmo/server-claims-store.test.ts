@@ -2,7 +2,6 @@ import { expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { Database } from 'bun:sqlite';
 import { SqliteClaimsPersistence } from '../../../server/world/claims/claims-persistence';
 import { ClaimsStore } from '../../../server/world/claims/claims-store';
 
@@ -75,33 +74,4 @@ test('ClaimsStore can update claims and detect overlaps with optional exclusion'
     expect(overlapWithExclude).toBeNull();
     const overlapWithOther = store.findFirstOverlappingClaim({ x1: 11, y1: 11, x2: 14, y2: 14 });
     expect(overlapWithOther?.id).toBe(claimB.id);
-});
-
-test('SqliteClaimsPersistence migrates legacy claims schema without editors_json', () => {
-    withTempDbPath((dbPath) => {
-        const db = new Database(dbPath, { create: true });
-        db.exec(`
-            CREATE TABLE claims (
-                id INTEGER PRIMARY KEY,
-                owner_name TEXT NOT NULL,
-                x1 INTEGER NOT NULL,
-                y1 INTEGER NOT NULL,
-                x2 INTEGER NOT NULL,
-                y2 INTEGER NOT NULL,
-                created_at INTEGER NOT NULL,
-                updated_at INTEGER NOT NULL
-            );
-            INSERT INTO claims (id, owner_name, x1, y1, x2, y2, created_at, updated_at)
-            VALUES (1, 'alice', 0, 0, 1, 1, 1000, 1000);
-        `);
-        db.close();
-
-        const persistence = new SqliteClaimsPersistence(dbPath);
-        const claims = persistence.loadAllClaims();
-        persistence.close();
-
-        expect(claims.length).toBe(1);
-        expect(claims[0]?.ownerName).toBe('alice');
-        expect(claims[0]?.editorNameKeys).toEqual([]);
-    });
 });

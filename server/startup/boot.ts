@@ -1,8 +1,17 @@
 import { resolveActiveConfig } from './config';
 import { ensureConfigPreflightValid, ensureConfigSourcePresent, ensureMapPreflightValid } from './preflight';
 import { runStartup } from './runner';
+import type { ServerConfig } from '../runtime-types';
 
-export async function runEntryBoot<TStartupParams extends Record<string, unknown>>({
+type ConfigValidationIssue = Readonly<{
+    field: string;
+    reason: string;
+}>;
+type StartupParams = Omit<Parameters<typeof runStartup>[0], 'activeConfig'>;
+type StartupResult = Awaited<ReturnType<typeof runStartup>>;
+type ConfigValidationResult = { isValid: boolean; errors: ConfigValidationIssue[] };
+
+export async function runEntryBoot<TStartupParams extends StartupParams>({
     defaultConfigPath,
     customConfigPath,
     validateConfig,
@@ -13,14 +22,12 @@ export async function runEntryBoot<TStartupParams extends Record<string, unknown
     resolveActiveConfigFn = resolveActiveConfig,
     ensureConfigSourcePresentFn = ensureConfigSourcePresent,
     ensureConfigPreflightValidFn = ensureConfigPreflightValid,
-    runStartupFn = runStartup as unknown as (
-        params: { activeConfig: object } & TStartupParams
-    ) => Promise<unknown>,
+    runStartupFn = runStartup,
     ensureMapPreflightValidFn = ensureMapPreflightValid,
 }: {
     defaultConfigPath: string;
     customConfigPath: string;
-    validateConfig: (config: object) => { isValid: boolean; errors: unknown[] };
+    validateConfig: (config: object) => ConfigValidationResult;
     limitUtf8Bytes: (text: string, maxBytes: number) => string;
     emitError: (message: string) => void;
     fail: (code: number) => void;
@@ -36,12 +43,12 @@ export async function runEntryBoot<TStartupParams extends Record<string, unknown
     }) => boolean;
     ensureConfigPreflightValidFn?: (params: {
         activeConfig: object;
-        validateConfig: (config: object) => { isValid: boolean; errors: unknown[] };
+        validateConfig: (config: object) => ConfigValidationResult;
         limitUtf8Bytes: (text: string, maxBytes: number) => string;
         emitError: (message: string) => void;
         fail: (code: number) => void;
     }) => boolean;
-    runStartupFn?: (params: { activeConfig: object } & TStartupParams) => Promise<unknown>;
+    runStartupFn?: (params: { activeConfig: ServerConfig } & TStartupParams) => Promise<StartupResult>;
     ensureMapPreflightValidFn?: (params: {
         activeConfig: object;
         emitError: (message: string) => void;
@@ -88,9 +95,9 @@ export async function runEntryBoot<TStartupParams extends Record<string, unknown
     }
 
     await runStartupFn({
-        activeConfig,
+        activeConfig: activeConfig as ServerConfig,
         ...startupParams,
-    } as { activeConfig: object } & TStartupParams);
+    });
 
     return { activeConfig, started: true };
 }

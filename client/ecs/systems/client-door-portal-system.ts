@@ -14,6 +14,7 @@ type DoorTraversalAttacker = Readonly<{
     disengage(): void;
     idle(): void;
 }>;
+type DoorRendererContext = CanvasRenderingContext2D | object | null;
 
 type DoorTraversalPlayer = {
     gridX: number;
@@ -40,8 +41,8 @@ export type ClientDoorPortalSystemHost = Readonly<{
     renderer: {
         mobile: boolean;
         tablet: boolean;
-        context: unknown;
-        clearScreen(context: unknown): void;
+        context: DoorRendererContext;
+        clearScreen(context: DoorRendererContext): void;
     } | null;
     camera: {
         setGridPosition(x: number, y: number): void;

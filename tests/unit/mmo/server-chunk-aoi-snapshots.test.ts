@@ -5,6 +5,9 @@ import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { CHUNK_AOI_STATE_RESOURCE } from '../../../server/world/chunks/chunk-aoi';
 import { makeChunkKey } from '../../../server/world/chunks/chunk-overlay-store';
+import type { WorldMessage } from '../../../server/world/contracts';
+
+type FrameInput = ReadonlyArray<number | string> | object | null | undefined;
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -22,7 +25,7 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function isChunkSnapshotMessage(msg: unknown): msg is [number, number, number, number, string] {
+function isChunkSnapshotMessage(msg: FrameInput): msg is [number, number, number, number, string] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_SNAPSHOT
@@ -37,8 +40,8 @@ test('CHUNK_SUBSCRIBE streams bounded CHUNK_SNAPSHOTs and includes overlay overr
     const player = createTestPlayer(23201);
     player.setPosition(1, 1);
 
-    const delivered: unknown[] = [];
-    const host: Record<string, unknown> = {
+    const delivered: WorldMessage[] = [];
+    const host = {
         ups: 50,
         map: {
             getCheckpoint() {
@@ -79,14 +82,14 @@ test('CHUNK_SUBSCRIBE streams bounded CHUNK_SNAPSHOTs and includes overlay overr
             return null;
         },
         handleItemDespawn() {},
-        moveEntity(entity: unknown, x: number, y: number) {
-            (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+        moveEntity(entity: { setPosition: (nextX: number, nextY: number) => void }, x: number, y: number) {
+            entity.setPosition(x, y);
         },
         removeEntity() {},
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(playerId: number, message: unknown) {
+        pushToPlayerId(playerId: number, message: WorldMessage) {
             if (playerId === player.id) {
                 delivered.push(message);
             }
@@ -170,8 +173,8 @@ test('chunk AOI prunes stale/out-of-window state and enforces pending queue caps
     const player = createTestPlayer(23202);
     player.setPosition(1, 1);
 
-    const delivered: unknown[] = [];
-    const host: Record<string, unknown> = {
+    const delivered: WorldMessage[] = [];
+    const host = {
         ups: 50,
         map: {
             getCheckpoint() {
@@ -212,14 +215,14 @@ test('chunk AOI prunes stale/out-of-window state and enforces pending queue caps
             return null;
         },
         handleItemDespawn() {},
-        moveEntity(entity: unknown, x: number, y: number) {
-            (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+        moveEntity(entity: { setPosition: (nextX: number, nextY: number) => void }, x: number, y: number) {
+            entity.setPosition(x, y);
         },
         removeEntity() {},
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(playerId: number, message: unknown) {
+        pushToPlayerId(playerId: number, message: WorldMessage) {
             if (playerId === player.id) {
                 delivered.push(message);
             }

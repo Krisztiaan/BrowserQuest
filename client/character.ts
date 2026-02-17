@@ -53,7 +53,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     step: number;
     newDestination: { x: number; y: number } | null;
     destination: { gridX: number; gridY: number } | null;
-    adjacentTiles: Record<string, unknown>;
+    adjacentTiles: Record<string, boolean>;
 
     target: CombatTarget | null;
     unconfirmedTarget: CharacterLike | null;

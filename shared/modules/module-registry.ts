@@ -1,10 +1,23 @@
 import type { EffectKindId, IntentTypeId, InteractionKindId, ModuleId, OutcomeTypeId } from './kind-ids';
 
 export type IntentHandlerResult = void | Readonly<{ ok: true }> | Readonly<{ ok: false; reason: string }>;
-export type IntentHandler<TContext = unknown> = (ctx: TContext, payload: unknown) => IntentHandlerResult;
-export type InteractionHandler<TContext = unknown> = (ctx: TContext, payload: unknown) => void;
-export type EffectHandler<TContext = unknown> = (ctx: TContext, payload: unknown) => void;
-export type OutcomeHandler<TContext = unknown> = (ctx: TContext, payload: unknown) => void;
+type ModulePayload = string | number | boolean | null | undefined | object;
+export type IntentHandler<TContext = object, TPayload extends ModulePayload = ModulePayload> = (
+    ctx: TContext,
+    payload: TPayload
+) => IntentHandlerResult;
+export type InteractionHandler<TContext = object, TPayload extends ModulePayload = ModulePayload> = (
+    ctx: TContext,
+    payload: TPayload
+) => void;
+export type EffectHandler<TContext = object, TPayload extends ModulePayload = ModulePayload> = (
+    ctx: TContext,
+    payload: TPayload
+) => void;
+export type OutcomeHandler<TContext = object, TPayload extends ModulePayload = ModulePayload> = (
+    ctx: TContext,
+    payload: TPayload
+) => void;
 
 export type ModuleManifest = Readonly<{
     id: ModuleId;

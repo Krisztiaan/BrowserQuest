@@ -1,4 +1,5 @@
 import type { ComponentStore } from './component-store';
+import type { EntityId } from '../../shared/domain/ids';
 
 export type ComponentType<T> = Readonly<{
     id: number;
@@ -6,14 +7,21 @@ export type ComponentType<T> = Readonly<{
     store: ComponentStore<T>;
 }>;
 
-export function componentBit(type: ComponentType<unknown>): bigint {
+export type ComponentBitType = Readonly<{ id: number }>;
+export type ComponentRegistryEntry = Readonly<{
+    id: number;
+    name: string;
+    remove(id: EntityId): void;
+}>;
+
+export function componentBit(type: ComponentBitType): bigint {
     return 1n << BigInt(type.id);
 }
 
 export class ComponentRegistry {
     #nextId = 0;
-    #types: ComponentType<unknown>[] = [];
-    #typesByName = new Map<string, ComponentType<unknown>>();
+    #types: ComponentRegistryEntry[] = [];
+    #typesByName = new Map<string, ComponentRegistryEntry>();
 
     register<T>(name: string, store: ComponentStore<T>): ComponentType<T> {
         if (this.#typesByName.has(name)) {
@@ -24,13 +32,19 @@ export class ComponentRegistry {
             name,
             store,
         });
-        this.#types.push(type as unknown as ComponentType<unknown>);
-        this.#typesByName.set(name, type as unknown as ComponentType<unknown>);
+        const entry: ComponentRegistryEntry = Object.freeze({
+            id: type.id,
+            name,
+            remove(id: EntityId): void {
+                store.remove(id);
+            },
+        });
+        this.#types.push(entry);
+        this.#typesByName.set(name, entry);
         return type;
     }
 
-    all(): ReadonlyArray<ComponentType<unknown>> {
+    all(): ReadonlyArray<ComponentRegistryEntry> {
         return this.#types;
     }
 }
-

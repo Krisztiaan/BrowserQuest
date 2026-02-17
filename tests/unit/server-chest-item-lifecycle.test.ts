@@ -50,6 +50,7 @@ test('static mob respawn resets HP and spawn position before re-adding', () => {
 
     spawnStaticEntitiesForWorld({
         staticEntities: { '1305': 'rat' },
+        nextMobId: () => entityIdFromWire(720),
         resolveKindFromString: () => 2,
         tileIndexToGridPosition: () => ({ x: 10, y: 20 }),
         isNpcKind: () => false,
@@ -94,22 +95,22 @@ test('static mob respawn resets HP and spawn position before re-adding', () => {
 });
 
 test('handleEmptyChestAreaRefill spawns + schedules despawn for a refill chest', () => {
-    const created: Array<{ x: number; y: number; items: unknown[] }> = [];
-    const added: unknown[] = [];
-    const despawned: unknown[] = [];
+    const created: Array<{ x: number; y: number; items: string[] }> = [];
+    const added: Array<{ x: number; y: number; items: string[]; added: true }> = [];
+    const despawned: Array<{ x: number; y: number; items: string[]; added: true }> = [];
 
     const host = {
-        createChest(x: number, y: number, items: unknown[]) {
+        createChest(x: number, y: number, items: string[]) {
             const chest = { x, y, items };
             created.push(chest);
             return chest;
         },
-        addItem(chest: unknown) {
-            const wrapped = { ...(chest as object), added: true };
+        addItem(chest: { x: number; y: number; items: string[] }) {
+            const wrapped = { ...chest, added: true as const };
             added.push(wrapped);
             return wrapped;
         },
-        handleItemDespawn(item: unknown) {
+        handleItemDespawn(item: { x: number; y: number; items: string[]; added: true }) {
             despawned.push(item);
         },
     };

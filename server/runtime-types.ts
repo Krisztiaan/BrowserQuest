@@ -1,9 +1,23 @@
 import type { RuntimeEventName } from './server-event-names';
+import type { EntityId } from '../shared/domain/ids';
+import type { ServerPlugin } from './plugins/contracts';
+
+export type RuntimeEventFieldValue =
+    | string
+    | number
+    | boolean
+    | null
+    | RuntimeEventFieldValue[]
+    | { [key: string]: RuntimeEventFieldValue };
+export type RuntimeEventFields = Record<string, RuntimeEventFieldValue>;
+type RuntimeErrorArg = string | Error | object | null | undefined;
+export type RuntimeIntervalHandle = ReturnType<typeof setInterval>;
+export type RuntimeTimeoutHandle = ReturnType<typeof setTimeout>;
 
 export interface RuntimeLogger {
     info(message: string): void;
     error(message: string): void;
-    event(level: string, eventName: RuntimeEventName, fields: Record<string, unknown>): void;
+    event(level: string, eventName: RuntimeEventName, fields: RuntimeEventFields): void;
 }
 
 export interface RuntimeWorld {
@@ -16,22 +30,31 @@ export interface RuntimeWorld {
 
 export interface RuntimeServer {
     on(eventName: 'connect', callback: (connection: RuntimeConnection) => void): void;
-    on(eventName: 'error', callback: (...args: unknown[]) => void): void;
+    on(eventName: 'error', callback: (...args: RuntimeErrorArg[]) => void): void;
     onRequestStatus(callback: () => string): void;
     onRequestProfilePreview?(callback: (request: Request) => Response): void;
     onRequestPasskeyAuth?(callback: (request: Request) => Response | Promise<Response>): void;
+    getConnection(id: string): { send(payload: unknown): void } | undefined;
 }
 
 export interface RuntimeConnection {
+    id: string;
+    accountNameKey?: string;
+    listen(callback: (message: unknown) => void): void;
+    onClose(callback: () => void): void;
+    sendUTF8(payload: string): void;
     close(reason: string): void;
+    closeInvalidPayload?(reason: string): void;
 }
 
 export interface RuntimeWsModule {
     MultiVersionWebsocketServer: new (port: number) => RuntimeServer;
 }
 
+export type RuntimePluginLike = ServerPlugin;
+
 export interface RuntimeWorldServerConstructor {
-    new (id: string, capacity: number, server: RuntimeServer, plugins?: readonly unknown[]): RuntimeWorld;
+    new (id: string, capacity: number, server: RuntimeServer, plugins?: readonly RuntimePluginLike[]): RuntimeWorld;
 }
 
 export interface RuntimePlayerConstructor {
@@ -39,7 +62,7 @@ export interface RuntimePlayerConstructor {
 }
 
 export interface RuntimePlayer {
-    id?: string | number;
+    id: EntityId;
 }
 
 export interface RuntimeMetrics {
@@ -47,7 +70,6 @@ export interface RuntimeMetrics {
     isReady: boolean;
     ready(callback: () => void): void;
     getTotalPlayers(callback: (totalPlayers: number) => void): void;
-    getOpenWorldCount(callback: (openWorldCount: number | string) => void): void;
     updatePlayerCounters(worlds: RuntimeWorld[], callback: (totalPlayers: number) => void): void;
     updateWorldDistribution(distribution: number[]): void;
 }
@@ -59,15 +81,15 @@ export interface RuntimeMetricsModule {
 export interface RuntimeProcessLike {
     env: Record<string, string | undefined>;
     exit(code: number): never;
-    on(event: string, handler: (...args: unknown[]) => void): void;
-    off?(event: string, handler: (...args: unknown[]) => void): void;
-    removeListener?(event: string, handler: (...args: unknown[]) => void): void;
+    on(event: string, handler: (...args: RuntimeErrorArg[]) => void): void;
+    off?(event: string, handler: (...args: RuntimeErrorArg[]) => void): void;
+    removeListener?(event: string, handler: (...args: RuntimeErrorArg[]) => void): void;
 }
 
 export type RuntimeServerEventEmitter = (
     level: string,
     eventName: RuntimeEventName,
-    fields: Record<string, unknown>
+    fields: RuntimeEventFields
 ) => void;
 
 export interface MainRuntimeDependencies {
@@ -77,9 +99,9 @@ export interface MainRuntimeDependencies {
     metricsRuntime: RuntimeMetricsModule;
     logger: RuntimeLogger;
     processObject: RuntimeProcessLike;
-    setIntervalFn: (handler: () => void, timeoutMs: number) => unknown;
-    setTimeoutFn: (handler: () => void, timeoutMs: number) => unknown;
-    clearIntervalFn: (timerHandle: unknown) => void;
+    setIntervalFn: (handler: () => void, timeoutMs: number) => RuntimeIntervalHandle;
+    setTimeoutFn: (handler: () => void, timeoutMs: number) => RuntimeTimeoutHandle;
+    clearIntervalFn: (timerHandle: RuntimeIntervalHandle) => void;
 }
 
 export type MainRuntimeDependencyOverrides = Partial<MainRuntimeDependencies>;

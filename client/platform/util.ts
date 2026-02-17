@@ -5,7 +5,7 @@ type RafGlobal = {
     setTimeout: typeof setTimeout;
 };
 
-const rafGlobal = globalThis as unknown as RafGlobal;
+const rafGlobal: RafGlobal = globalThis;
 
 const requestAnimFrame =
     rafGlobal.requestAnimationFrame ??
@@ -13,7 +13,8 @@ const requestAnimFrame =
         rafGlobal.setTimeout(callback, 1000 / 60);
     };
 
-const isInt = function (value: unknown): boolean {
+type IntCandidate = number | string | boolean | bigint | object | null | undefined;
+const isInt = function (value: IntCandidate): boolean {
     return typeof value === 'number' && Number.isInteger(value);
 };
 

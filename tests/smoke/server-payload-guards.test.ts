@@ -69,7 +69,7 @@ async function waitForClose(ws: WebSocket, timeoutMs = 3000) {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for close')), timeoutMs);
         ws.once('close', (closeEvent) => {
             clearTimeout(timeout);
-            const eventRecord = closeEvent as { code?: unknown; reason?: unknown };
+            const eventRecord = closeEvent as { code?: number; reason?: string };
             resolve({
                 code: typeof eventRecord.code === 'number' ? eventRecord.code : WebSocket.CLOSED,
                 reason: typeof eventRecord.reason === 'string' ? eventRecord.reason : '',

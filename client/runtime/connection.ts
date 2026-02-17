@@ -1,6 +1,7 @@
 import log from '../platform/log';
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { EntityId } from '../../shared/domain/ids';
+import type { RuntimeEntity } from '../client-boundary-types';
 import GameClient from '../gameclient';
 import type Game from '../game';
 import { GameClientEffectRegistry } from './effects-registry';
@@ -71,7 +72,7 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
         enqueue(game, { type: 'playerEquipItem', entityId, itemKind });
     });
 
-    effects.on('dropItem', function ({ game }, item: unknown, mobId: EntityId) {
+    effects.on('dropItem', function ({ game }, item: RuntimeEntity, mobId: EntityId) {
         enqueue(game, { type: 'dropItem', item, mobId });
     });
 

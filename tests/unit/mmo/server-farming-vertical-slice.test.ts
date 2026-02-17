@@ -10,14 +10,17 @@ import { CLAIMS_STORE_RESOURCE } from '../../../server/world/claims/claims-resou
 import type { RectClaim } from '../../../server/world/claims/claims-store';
 import { SqliteClaimsPersistence } from '../../../server/world/claims/claims-persistence';
 import { SqliteChunkOverlayPersistence } from '../../../server/world/chunks/chunk-overlay-persistence';
+import type { WorldMessage } from '../../../server/world/contracts';
 
 type Harness = {
     players: { alice: Player; bob: Player };
     pipeline: WorldEcsCommandPipeline;
-    deliveredByPlayerId: Map<number, unknown[]>;
+    deliveredByPlayerId: Map<number, WorldMessage[]>;
     close: () => void;
     flushDirtyChunks: () => void;
 };
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 function withTempDataPaths<T>(fn: (paths: { claimsDbPath: string; chunkDbPath: string }) => T): T {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-farming-'));
@@ -56,7 +59,7 @@ function createHarness({ claimsDbPath, chunkDbPath }: { claimsDbPath: string; ch
         [bob.id, bob],
     ]);
 
-    const deliveredByPlayerId = new Map<number, unknown[]>([
+    const deliveredByPlayerId = new Map<number, WorldMessage[]>([
         [alice.id, []],
         [bob.id, []],
     ]);
@@ -64,7 +67,7 @@ function createHarness({ claimsDbPath, chunkDbPath }: { claimsDbPath: string; ch
     const claimsPersistence = new SqliteClaimsPersistence(claimsDbPath);
     const chunkPersistence = new SqliteChunkOverlayPersistence(chunkDbPath);
 
-    const host: Record<string, unknown> = {
+    const host = {
         ups: 50,
         map: {
             getCheckpoint() {
@@ -105,14 +108,14 @@ function createHarness({ claimsDbPath, chunkDbPath }: { claimsDbPath: string; ch
             return null;
         },
         handleItemDespawn() {},
-        moveEntity(entity: unknown, x: number, y: number) {
-            (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+        moveEntity(entity: { setPosition: (nextX: number, nextY: number) => void }, x: number, y: number) {
+            entity.setPosition(x, y);
         },
         removeEntity() {},
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(playerId: number, message: unknown) {
+        pushToPlayerId(playerId: number, message: WorldMessage) {
             const queue = deliveredByPlayerId.get(playerId);
             if (queue) {
                 queue.push(message);
@@ -174,7 +177,7 @@ function enqueueIntent({
     player: Player;
     seq: number;
     intentTypeId: string;
-    payload: unknown;
+    payload: JsonValue;
 }): void {
     pipeline.enqueue({
         type: 'INTENT',
@@ -185,7 +188,7 @@ function enqueueIntent({
     });
 }
 
-function hasAck(messages: unknown[] | undefined, seq: number): boolean {
+function hasAck(messages: WorldMessage[] | undefined, seq: number): boolean {
     if (!messages) {
         return false;
     }

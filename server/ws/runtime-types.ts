@@ -1,10 +1,13 @@
 import type { ProtocolParsedAction } from '../../shared/protocol/types';
 import type { RuntimeEventName } from '../server-event-names';
 
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+export type RuntimeEventFields = Record<string, JsonValue>;
+
 export interface WebSocketRuntimeLogger {
     info(message: string): void;
     error(message: string): void;
-    event(level: string, event: RuntimeEventName, fields: Record<string, unknown>): void;
+    event(level: string, event: RuntimeEventName, fields: RuntimeEventFields): void;
 }
 
 export interface WebSocketRuntimeUtils {
@@ -37,8 +40,15 @@ export type CreateHttpServer = (
 
 export type ParseUrlPathname = (requestUrl: string | undefined) => string | null | undefined;
 
+export interface HttpUpgradeRequestLike {
+    socket?: { remoteAddress?: string | null };
+    headers?: { cookie?: string };
+}
+
 export interface WebSocketServerLike {
-    on(event: string, handler: (...args: unknown[]) => void): void;
+    on(event: 'error', handler: (error: WsErrorLike) => void): void;
+    on(event: 'connection', handler: (connection: WsConnectionLike, request?: HttpUpgradeRequestLike) => void): void;
+    on(event: string, handler: (...args: Array<WsConnectionLike | HttpUpgradeRequestLike | WsErrorLike>) => void): void;
 }
 
 export interface WebSocketModuleLike {
@@ -54,8 +64,20 @@ export type LogConnectionEvent = (
     level: string,
     eventName: RuntimeEventName,
     connection: WebSocketRuntimeConnectionRef,
-    extraFields?: Record<string, unknown>
+    extraFields?: RuntimeEventFields
 ) => void;
+
+export type WsFrameData = string | Uint8Array | ArrayBuffer | Buffer;
+export type WsErrorLike = string | Error | number | boolean | bigint | null | undefined | object;
+
+export interface WsConnectionLike {
+    on(
+        event: string,
+        handler: (...args: Array<WsFrameData | WsErrorLike | boolean>) => void
+    ): void;
+    send(data: string): void;
+    close(code?: number, reason?: string): void;
+}
 
 export interface WebSocketRuntimeFactoryDeps {
     log: WebSocketRuntimeLogger;
@@ -71,9 +93,10 @@ export interface WebSocketRuntimeFactoryDeps {
 export interface WebSocketRuntimeConnection {
     id: string;
     remoteAddress: string;
+    accountNameKey?: string;
     onClose(callback: () => void): void;
     listen(callback: (action: ProtocolParsedAction) => void): void;
-    send(message: unknown): void;
+    send(message: JsonValue): void;
     sendUTF8(data: string): void;
     close(logError: string, closeCode?: number): void;
     closeInvalidPayload(logError: string): void;
@@ -82,16 +105,16 @@ export interface WebSocketRuntimeConnection {
 
 export interface WebSocketRuntimeServer {
     on(eventName: 'connect', callback: (connection: WebSocketRuntimeConnection) => void): void;
-    on(eventName: 'error', callback: (...args: unknown[]) => void): void;
+    on(eventName: 'error', callback: (...args: Array<string | Error | object | null | undefined>) => void): void;
     onRequestStatus(callback: () => string): void;
-    broadcast(message: unknown): void;
+    broadcast(message: JsonValue): void;
 }
 
 export interface WebSocketRuntimeClasses {
     MultiVersionWebsocketServer: new (port: number) => WebSocketRuntimeServer;
     wsWebSocketConnection: new (
         id: string,
-        connection: unknown,
+        connection: WsConnectionLike,
         server: { removeConnection(id: string): void },
         remoteAddress: string
     ) => WebSocketRuntimeConnection;

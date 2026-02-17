@@ -1,13 +1,12 @@
 import { expect, test } from 'bun:test';
 import WorldServer from '../../../server/world-server';
-import type { RuntimeServer } from '../../../server/runtime-types';
 
 test('WorldServer applies ServerConfig.chunk_size before players join', () => {
     const server = {
-        getConnection() {
+        getConnection(_id: string) {
             return undefined;
         },
-    } satisfies Pick<RuntimeServer, never> as unknown as { getConnection: (id: string) => undefined };
+    } as { getConnection: (id: string) => undefined };
 
     const world = new WorldServer('world1', 2000, server as never);
     expect(world.ecsPipeline.chunkOverlays.chunkSize).toBe(32);
@@ -24,4 +23,3 @@ test('WorldServer applies ServerConfig.chunk_size before players join', () => {
 
     expect(world.ecsPipeline.chunkOverlays.chunkSize).toBe(64);
 });
-

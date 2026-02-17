@@ -1,6 +1,6 @@
 import { entityIdIndex, type EntityId } from '../../shared/domain/ids';
 import { ArchetypeIndex } from './archetype-index';
-import { ComponentRegistry, componentBit, type ComponentType } from './component-registry';
+import { ComponentRegistry, componentBit, type ComponentBitType, type ComponentType } from './component-registry';
 import { EntityAllocator } from './entity-allocator';
 
 export class EcsWorld {
@@ -59,7 +59,7 @@ export class EcsWorld {
         for (const type of this.components.all()) {
             const bit = componentBit(type);
             if ((mask & bit) !== 0n) {
-                (type.store).remove(id);
+                type.remove(id);
             }
         }
 
@@ -72,7 +72,7 @@ export class EcsWorld {
         this.#assertAlive(id);
         const index = entityIdIndex(id);
         const prevMask = this.#maskByIndex[index] ?? 0n;
-        const nextMask = prevMask | componentBit(type as unknown as ComponentType<unknown>);
+        const nextMask = prevMask | componentBit(type);
         if (prevMask === nextMask) {
             type.store.set(id, value);
             return;
@@ -87,7 +87,7 @@ export class EcsWorld {
         this.#assertAlive(id);
         const index = entityIdIndex(id);
         const prevMask = this.#maskByIndex[index] ?? 0n;
-        const bit = componentBit(type as unknown as ComponentType<unknown>);
+        const bit = componentBit(type);
         const nextMask = prevMask & ~bit;
         if (prevMask === nextMask) {
             return;
@@ -108,7 +108,7 @@ export class EcsWorld {
         return type.store.has(id);
     }
 
-    query(required: ReadonlyArray<ComponentType<unknown>>): EntityId[] {
+    query(required: ReadonlyArray<ComponentBitType>): EntityId[] {
         let requiredMask = 0n;
         for (const type of required) {
             requiredMask |= componentBit(type);

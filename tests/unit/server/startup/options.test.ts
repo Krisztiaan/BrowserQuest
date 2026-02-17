@@ -1,11 +1,16 @@
 import { expect, test } from 'bun:test';
 import { resolveRuntimeOptions } from '../../../../server/startup/options';
 
+type EventValue = string | number | boolean | null | undefined;
+type EventRecord = Record<string, EventValue>;
+type RuntimeOverrideValue = string | number | boolean | null | undefined | object;
+type RuntimeOverrides = Record<string, RuntimeOverrideValue>;
+
 test('startup runtime options always inject runtime websocket runtime through dependency seam', async () => {
-    const events: Array<Record<string, unknown>> = [];
+    const events: EventRecord[] = [];
     const wsDefault = { id: 'ws-runtime-default' };
     const runtimeDependencies = { id: 'runtime-dependencies' };
-    let receivedOverrides: Record<string, unknown> | null = null;
+    let receivedOverrides: RuntimeOverrides | null = null;
     let failCode: number | null = null;
 
     const runtimeOptions = await resolveRuntimeOptions({
@@ -15,7 +20,7 @@ test('startup runtime options always inject runtime websocket runtime through de
         },
         importWsRuntime: () => Promise.resolve({ default: wsDefault }),
         createRuntimeDependencies: (overrides) => {
-            receivedOverrides = overrides as Record<string, unknown>;
+            receivedOverrides = overrides as RuntimeOverrides;
             return runtimeDependencies;
         },
         fail: (code) => {
@@ -36,7 +41,7 @@ test('startup runtime options always inject runtime websocket runtime through de
 });
 
 test('startup runtime options ignore removed runtime-mode env toggles', async () => {
-    const events: Array<Record<string, unknown>> = [];
+    const events: EventRecord[] = [];
 
     const runtimeOptions = await resolveRuntimeOptions({
         env: {
@@ -64,7 +69,7 @@ test('startup runtime options ignore removed runtime-mode env toggles', async ()
 });
 
 test('startup runtime options emit load-error diagnostics when runtime websocket runtime import fails', async () => {
-    const events: Array<Record<string, unknown>> = [];
+    const events: EventRecord[] = [];
     let failCode: number | null = null;
 
     const runtimeOptions = await resolveRuntimeOptions({

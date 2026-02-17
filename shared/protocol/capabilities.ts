@@ -10,8 +10,16 @@ export type ProtocolCapabilities = Readonly<{
     outcomeTypeIds?: ReadonlyArray<string>;
 }>;
 
-function isStringArray(value: unknown): value is string[] {
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+type JsonRecord = Record<string, JsonValue>;
+
+function isStringArray(value: JsonValue | object | null | undefined): value is string[] {
     return Array.isArray(value) && value.every((entry) => typeof entry === 'string');
+}
+
+function isJsonRecord(value: JsonValue | object | null | undefined): value is JsonRecord {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function normalizeIdList(list: ReadonlyArray<string>): string[] {
@@ -44,20 +52,18 @@ export function decodeProtocolCapabilitiesJson(json: string): ProtocolCapabiliti
         return null;
     }
 
-    let parsed: unknown;
+    let parsed: JsonValue;
     try {
-        parsed = JSON.parse(json);
+        parsed = JSON.parse(json) as JsonValue;
     } catch (_) {
         return null;
     }
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (!isJsonRecord(parsed)) {
         return null;
     }
-    const record = parsed as Record<string, unknown>;
-
-    const moduleIdsRaw = record.moduleIds;
-    const intentTypeIdsRaw = record.intentTypeIds;
-    const outcomeTypeIdsRaw = record.outcomeTypeIds;
+    const moduleIdsRaw = parsed.moduleIds;
+    const intentTypeIdsRaw = parsed.intentTypeIds;
+    const outcomeTypeIdsRaw = parsed.outcomeTypeIds;
 
     const moduleIds = isStringArray(moduleIdsRaw) ? normalizeIdList(moduleIdsRaw) : undefined;
     const intentTypeIds = isStringArray(intentTypeIdsRaw) ? normalizeIdList(intentTypeIdsRaw) : undefined;
@@ -73,4 +79,3 @@ export function decodeProtocolCapabilitiesJson(json: string): ProtocolCapabiliti
         ...(outcomeTypeIds ? { outcomeTypeIds } : {}),
     };
 }
-

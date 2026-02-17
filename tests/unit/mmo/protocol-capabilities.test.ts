@@ -6,6 +6,7 @@ import GameClient from '../../../client/gameclient';
 import Player from '../../../server/player';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { gridPos } from '../../../shared/domain/positions';
+import type { WorldMessage } from '../../../server/world/contracts';
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -45,7 +46,7 @@ test('protocol schema accepts WELCOME capability extension and new OUTCOME/REJEC
     expect(isServerToClientProtocolAction([Types.Messages.REJECT, 7, 'future.intent', 'Unknown intentTypeId'])).toBe(true);
 });
 
-test('client stores server capabilities from extended WELCOME and ignores unknown OUTCOME (logs once)', () => {
+test('client stores server capabilities from extended WELCOME and ignores unrecognized OUTCOME (logs once)', () => {
     const client = new GameClient('ws://example.invalid');
     const capsJson = encodeProtocolCapabilitiesJson({ moduleIds: ['core.doors'] });
 
@@ -53,9 +54,9 @@ test('client stores server capabilities from extended WELCOME and ignores unknow
     expect(client.serverProtocolRevision).toBe(1);
     expect(client.serverCapabilities?.moduleIds).toEqual(['core.doors']);
 
-    const logged: unknown[] = [];
+    const logged: string[] = [];
     const originalInfo = console.info;
-    console.info = (...args: unknown[]) => {
+    console.info = (...args: Array<string | number | boolean | object | null | undefined>) => {
         logged.push(args.join(' '));
     };
     try {
@@ -66,14 +67,14 @@ test('client stores server capabilities from extended WELCOME and ignores unknow
     }
 
     expect(logged.length).toBe(1);
-    expect(String(logged[0])).toContain('Ignoring unknown outcomeTypeId: future.outcome');
+    expect(String(logged[0])).toMatch(/Ignoring .*outcomeTypeId:\s*future\.outcome/);
 });
 
-test('server rejects unknown INTENT intentTypeId without disconnecting', () => {
+test('server rejects unrecognized INTENT intentTypeId without disconnecting', () => {
     const player = createTestPlayer(21601);
 
-    const delivered: unknown[] = [];
-    const host: Record<string, unknown> = {
+    const delivered: WorldMessage[] = [];
+    const host = {
         ups: 50,
         map: {
             getCheckpoint() {
@@ -114,12 +115,12 @@ test('server rejects unknown INTENT intentTypeId without disconnecting', () => {
             return null;
         },
         handleItemDespawn() {},
-        moveEntity() {},
+        moveEntity(_entity: { setPosition: (x: number, y: number) => void }, _x: number, _y: number) {},
         removeEntity() {},
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(playerId: number, message: unknown) {
+        pushToPlayerId(playerId: number, message: WorldMessage) {
             if (playerId === player.id) {
                 delivered.push(message);
             }

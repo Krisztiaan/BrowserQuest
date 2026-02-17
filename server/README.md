@@ -17,10 +17,14 @@ Copy `config_local.json-dist` to a new `config_local.json` file, then edit it. T
 The distributed template already includes metrics-related keys so toggling `metrics_enabled` does not require guessing field names.
 Startup runs config preflight validation; invalid configs fail fast with structured event `server.config.invalid`.
 
+Pre-release compatibility note: runtime persistence expects current schema only. Legacy DB schema migration is intentionally not performed in-process. For incompatible pre-release updates, start with fresh DB files.
+
 Metrics mode (`metrics_enabled`)
 --------------------------------
 
-Metrics are optional. If `metrics_enabled` is `false`, the server runs in local-only population mode.
+Metrics are optional. This project is self-contained and does not require any external metrics consumers.
+World admission is always decided from local runtime world capacity (least-populated available world).
+If `metrics_enabled` is `false`, metrics writes/reads are disabled and gameplay still runs normally.
 
 If `metrics_enabled` is `true`, all fields below are required:
 
@@ -67,6 +71,7 @@ Fallback behavior:
   - `reason: "connect_failed"` or `reason: "read_failed"` or `reason: "write_failed"`
   - `error` (and `operation`/`key` for read/write failures)
 - In both fallback cases, gameplay and handshake paths continue normally.
+- No external `world_count_*` key is required for player admission.
 - Structured event taxonomy: `docs/server-logging-taxonomy.md`
 
 Metrics dependency policy and troubleshooting:

@@ -3,6 +3,7 @@ import { FixedClock } from '../ecs/clock';
 import { XorShift32 } from '../ecs/rng';
 import { Scheduler } from '../ecs/scheduler';
 import { WorldState } from '../ecs/world-state';
+import type { RuntimeEventFields } from '../runtime-types';
 
 export function runEcsSchedulerProbeIfEnabled({
     env,
@@ -10,7 +11,7 @@ export function runEcsSchedulerProbeIfEnabled({
     fail,
 }: {
     env: NodeJS.ProcessEnv;
-    emitProbeEvent: (level: string, fields: Record<string, unknown>) => void;
+    emitProbeEvent: (level: string, fields: RuntimeEventFields) => void;
     fail: (code: number) => void;
 }): Promise<void> {
     if (env.BQ_ECS_SCHEDULER_PROBE !== '1') {

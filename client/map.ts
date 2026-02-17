@@ -22,12 +22,11 @@ type DoorDestination = {
     cameraY?: number;
     portal: boolean;
 };
-type RawDoor = {
-    [key: string]: unknown;
-};
-type RawCheckpoint = {
-    [key: string]: unknown;
-};
+type JsonScalar = string | number | boolean | null;
+type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
+type RawDoor = { [key: string]: JsonLike | undefined };
+type RawCheckpoint = { [key: string]: JsonLike | undefined };
+type MapGlobals = typeof globalThis & { __BQ_MAP_WORKER_URL__?: string };
 type RuntimeMapPayload = {
     width: number;
     height: number;
@@ -47,7 +46,7 @@ type RuntimeMapPayload = {
 type CheckpointArea = Area & { id?: string | number };
 
 function resolveMapWorkerModuleUrl(): string | URL {
-    const override = (globalThis as unknown as { __BQ_MAP_WORKER_URL__?: unknown }).__BQ_MAP_WORKER_URL__;
+    const override = (globalThis as MapGlobals).__BQ_MAP_WORKER_URL__;
     if (typeof override === 'string' && override.trim().length > 0) {
         return override;
     }
@@ -131,7 +130,15 @@ class Map {
 
         if (useWorker) {
             log.info('Loading map with web worker.');
-            const worker = new Worker(resolveMapWorkerModuleUrl(), { type: 'module' });
+            let worker: Worker;
+            try {
+                worker = new Worker(resolveMapWorkerModuleUrl(), { type: 'module' });
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                log.error(`Map worker failed to initialize (${message}); falling back to main-thread map load.`);
+                self._loadMap(false);
+                return;
+            }
             let settled = false;
 
             const fallbackToMainThread = (reason: string): void => {
@@ -152,20 +159,25 @@ class Map {
                 if (settled) {
                     return;
                 }
-                settled = true;
-
-                const map = event.data;
-                self._initMap(map);
-                if (map.grid && map.plateauGrid) {
-                    self.grid = map.grid;
-                    self.plateauGrid = map.plateauGrid;
-                } else {
-                    self._generateCollisionGrid();
-                    self._generatePlateauGrid();
+                try {
+                    const map = event.data;
+                    self._initMap(map);
+                    if (map.grid && map.plateauGrid) {
+                        self.grid = map.grid;
+                        self.plateauGrid = map.plateauGrid;
+                    } else {
+                        self._generateCollisionGrid();
+                        self._generatePlateauGrid();
+                    }
+                    self.mapLoaded = true;
+                    self.loadError = null;
+                    self._checkReady();
+                    settled = true;
+                } catch (error) {
+                    const message = error instanceof Error ? error.message : String(error);
+                    fallbackToMainThread(`payload_error:${message}`);
+                    return;
                 }
-                self.mapLoaded = true;
-                self.loadError = null;
-                self._checkReady();
 
                 try {
                     worker.terminate();
@@ -194,7 +206,7 @@ class Map {
                     self.loadError = null;
                     self._checkReady();
                 })
-                .catch(function (error: unknown) {
+                .catch(function (error) {
                     const message = error instanceof Error ? error.message : String(error);
                     self.loadError = message;
                     log.error('Failed to load map JSON: ' + message);
@@ -296,8 +308,11 @@ class Map {
         log.info('Loading tileset: ' + filepath);
 
         tileset.onload = function () {
-            if (tileset.width % self.tilesize > 0) {
-                throw Error('Tileset size should be a multiple of ' + self.tilesize);
+            if (self.tilesize > 0 && tileset.width % self.tilesize > 0) {
+                const message = 'Tileset size should be a multiple of ' + self.tilesize;
+                self.loadError = message;
+                log.error(message);
+                return;
             }
             log.info('Map tileset loaded.');
 
@@ -308,6 +323,11 @@ class Map {
                 self.tilesetsLoaded = true;
                 self._checkReady();
             }
+        };
+        tileset.onerror = function () {
+            const message = 'Failed to load map tileset: ' + filepath;
+            self.loadError = message;
+            log.error(message);
         };
 
         return tileset;

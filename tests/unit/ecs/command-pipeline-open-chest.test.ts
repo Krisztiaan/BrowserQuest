@@ -4,6 +4,7 @@ import { entityIdFromWire } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
 import Player from '../../../server/player';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
+import type { EntityKind } from '../../../shared/entity-kind-domain';
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -31,16 +32,16 @@ test('OPEN uses ECS chest loot table + ECS Position (not legacy fields)', () => 
         items: [Types.Entities.SWORD1],
     };
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, Player | typeof chest>([
         [player.id, player],
         [chest.id, chest],
     ]);
 
     const removed: number[] = [];
-    const spawned: Array<{ kind: unknown; x: number; y: number }> = [];
-    const despawnScheduled: unknown[] = [];
+    const spawned: Array<{ kind: EntityKind; x: number; y: number }> = [];
+    const despawnScheduled: Array<{ id: number }> = [];
 
-    const host: Record<string, unknown> = {
+    const host = {
         ups: 5,
         map: {
             getCheckpoint() {
@@ -80,12 +81,12 @@ test('OPEN uses ECS chest loot table + ECS Position (not legacy fields)', () => 
         getDroppedItem() {
             return null;
         },
-        handleItemDespawn(item: unknown) {
+        handleItemDespawn(item: { id: number }) {
             despawnScheduled.push(item);
         },
         moveEntity() {},
         removeEntity() {},
-        addItemFromChest(kind: unknown, x: number, y: number) {
+        addItemFromChest(kind: EntityKind, x: number, y: number) {
             spawned.push({ kind, x, y });
             return { id: entityIdFromWire(901) };
         },
@@ -99,8 +100,8 @@ test('OPEN uses ECS chest loot table + ECS Position (not legacy fields)', () => 
     };
 
     const pipeline = new WorldEcsCommandPipeline(host as never);
-    (host as { removeEntity: (entity: unknown) => void }).removeEntity = (entity: unknown) => {
-        const id = (entity as { id: number }).id;
+    host.removeEntity = (entity: { id: number }) => {
+        const id = entity.id;
         removed.push(id);
         entities.delete(id);
         pipeline.removeEntity(id);

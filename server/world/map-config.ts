@@ -18,16 +18,18 @@ export type MapChestAreaConfig = {
     h: number;
     tx: number;
     ty: number;
-    i: unknown[];
+    i: Array<string | number>;
 };
 
 export type MapChestConfig = {
     x: number;
     y: number;
-    i: unknown[];
+    i: Array<string | number>;
 };
 
-export const isMapMobAreaConfig = (value: unknown): value is MapMobAreaConfig => {
+type MapConfigValue = string | number | boolean | null | undefined | object;
+
+export const isMapMobAreaConfig = (value: MapConfigValue): value is MapMobAreaConfig => {
     if (!value || typeof value !== 'object') {
         return false;
     }
@@ -43,7 +45,7 @@ export const isMapMobAreaConfig = (value: unknown): value is MapMobAreaConfig =>
     );
 };
 
-export const isMapChestAreaConfig = (value: unknown): value is MapChestAreaConfig => {
+export const isMapChestAreaConfig = (value: MapConfigValue): value is MapChestAreaConfig => {
     if (!value || typeof value !== 'object') {
         return false;
     }
@@ -57,13 +59,19 @@ export const isMapChestAreaConfig = (value: unknown): value is MapChestAreaConfi
         && typeof entry.tx === 'number'
         && typeof entry.ty === 'number'
         && Array.isArray(entry.i)
+        && entry.i.every((item) => typeof item === 'string' || typeof item === 'number')
     );
 };
 
-export const isMapChestConfig = (value: unknown): value is MapChestConfig => {
+export const isMapChestConfig = (value: MapConfigValue): value is MapChestConfig => {
     if (!value || typeof value !== 'object') {
         return false;
     }
     const entry = value as Partial<MapChestConfig>;
-    return typeof entry.x === 'number' && typeof entry.y === 'number' && Array.isArray(entry.i);
+    return (
+        typeof entry.x === 'number'
+        && typeof entry.y === 'number'
+        && Array.isArray(entry.i)
+        && entry.i.every((item) => typeof item === 'string' || typeof item === 'number')
+    );
 };

@@ -9,11 +9,13 @@ export function createResourceKey<T>(name: string): ResourceKey<T> {
     return Object.freeze({ name, id: Symbol(name) }) as ResourceKey<T>;
 }
 
+type ResourceValue = string | number | boolean | bigint | symbol | object | null | undefined;
+
 export class WorldResources {
-    #values = new Map<symbol, unknown>();
+    #values = new Map<symbol, ResourceValue>();
 
     set<T>(key: ResourceKey<T>, value: T): void {
-        this.#values.set(key.id, value);
+        this.#values.set(key.id, value as ResourceValue);
     }
 
     get<T>(key: ResourceKey<T>): T | undefined {

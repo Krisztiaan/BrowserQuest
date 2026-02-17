@@ -1,13 +1,16 @@
 import Area from './area';
 import type { AreaWorldContract } from './area';
 
+type JsonScalar = string | number | boolean | null;
+type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
+
 interface ChestAreaEntity {
     x: number;
     y: number;
 }
 
 class ChestArea extends Area {
-    items: unknown[];
+    items: JsonLike[];
     chestX: number;
     chestY: number;
 
@@ -19,7 +22,7 @@ class ChestArea extends Area {
         height: number,
         cx: number,
         cy: number,
-        items: unknown[],
+        items: JsonLike[],
         world: AreaWorldContract
     ) {
         super(id, x, y, width, height, world);

@@ -6,6 +6,7 @@ import Entity from './entity';
 import Log from './log';
 import Utils from './utils';
 import { buildAttackAction, buildHealthAction } from './protocol/outbound-actions';
+import type { ServerToClientAttackAction, ServerToClientHealthAction } from '../shared/protocol/types';
 
 const log = Log.getLogger();
 
@@ -65,18 +66,18 @@ class Character<TEvents extends TypedEventMap = NoEvents> extends Entity<TEvents
         return this.target !== null;
     }
 
-    attack(): unknown {
+    attack(): ServerToClientAttackAction | null {
         if (!this.target) {
             return null;
         }
         return buildAttackAction(this.id, this.target);
     }
 
-    health(): unknown {
+    health(): ServerToClientHealthAction {
         return buildHealthAction(this.hitPoints, false);
     }
 
-    regen(): unknown {
+    regen(): ServerToClientHealthAction {
         return buildHealthAction(this.hitPoints, true);
     }
 
@@ -90,7 +91,7 @@ class Character<TEvents extends TypedEventMap = NoEvents> extends Entity<TEvents
         const key = String(entity?.id ?? '');
         if (key && key in this.attackers) {
             delete this.attackers[key];
-            log.debug(this.id + ' REMOVED ATTACKER ' + (entity ? entity.id : 'unknown'));
+            log.debug(this.id + ' REMOVED ATTACKER ' + (entity ? entity.id : 'none'));
         }
     }
 

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import * as MainRuntimeModule from '../../../../server/runtime';
 
-const MainRuntime = MainRuntimeModule as Record<string, unknown>;
+const MainRuntime = MainRuntimeModule as Record<string, object>;
 
 const expectedFunctions = [
     'main',

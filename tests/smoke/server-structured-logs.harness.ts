@@ -4,7 +4,10 @@ import WebSocket from '../support/ws-client';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
-type EventRecord = Record<string, unknown>;
+type EventValue = string | number | boolean | null | undefined | EventValue[] | { [key: string]: EventValue };
+type EventRecord = Record<string, EventValue>;
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 type FatalTrigger = 'unhandled_rejection' | 'uncaught_exception';
 type ServerConfig = {
     port: number;
@@ -82,15 +85,15 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     // Wait until the status endpoint responds successfully.
     async function waitForHttpOk(url: string, timeoutMs = 5000) {
         const start = Date.now();
-        let lastError: unknown = null;
+        let lastError: string | Error | null = null;
 
         for (;;) {
             try {
                 const res = await fetch(url);
                 if (res.ok) return;
                 lastError = `HTTP ${res.status}`;
-            } catch (_) {
-                lastError = _;
+            } catch (error) {
+                lastError = error instanceof Error ? error : new Error(String(error));
             }
 
             if (Date.now() - start > timeoutMs) {
@@ -117,7 +120,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
     }
 
     function attachEventReader(
-        stream: ReadableStream<unknown> | number | null | undefined,
+        stream: ReadableStream<Uint8Array> | number | null | undefined,
         events: EventRecord[],
         sourceLabel: string
     ) {
@@ -142,7 +145,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
                         if (!trimmed.startsWith('{')) continue;
                         pushRecentStructuredLine(`[${sourceLabel}] ${trimmed}`);
                         try {
-                            const parsed: unknown = JSON.parse(trimmed) as unknown;
+                            const parsed = JSON.parse(trimmed) as JsonValue;
                             if (parsed && typeof parsed === 'object' && 'event' in parsed) {
                                 events.push(parsed as EventRecord);
                             }

@@ -46,7 +46,16 @@ test('client door traversal does not self-teleport; it requests traversal and wa
         kernel: {
             clientDoorTraversalArmed: true,
             clientPendingDoorTraversal: null,
-            setClientPendingDoorTraversal(pending: unknown) {
+            setClientPendingDoorTraversal(pending: {
+                doorX: number;
+                doorY: number;
+                toX: number;
+                toY: number;
+                orientation: number;
+                portal: boolean;
+                cameraX?: number;
+                cameraY?: number;
+            }) {
                 this.clientPendingDoorTraversal = { ...pending, requestedAtMs: Date.now() };
             },
             clearClientPendingDoorTraversal() {
@@ -65,4 +74,3 @@ test('client door traversal does not self-teleport; it requests traversal and wa
     expect(teleports).toEqual([{ x: 10, y: 11 }]);
     expect(moved).toBe(false);
 });
-

@@ -1,11 +1,10 @@
 import type { EntityKind } from '../shared/entity-kind-domain';
-import type { WorldMessage } from './world/contracts';
+import type { OutgoingQueues, WorldConnection as RuntimeWorldConnection, WorldMessage } from './world/contracts';
 import Entity from './entity';
 import Log from './log';
 import MobEntity from './world/mob-entity';
 import Map from './map';
 import Npc from './npc';
-import type Player from './player';
 import MobArea from './mobarea';
 import ChestArea from './chestarea';
 import Utils from './utils';
@@ -40,7 +39,7 @@ import {
     selectDroppedItemForMob,
 } from './world/entity';
 import { requireMobPrefab } from '../shared/content/prefabs';
-import { SERVER_PLUGIN_API_VERSION, type ServerPlugin } from './plugins/contracts';
+import { SERVER_PLUGIN_API_VERSION, type ServerPlugin, type ServerPluginEcsApi } from './plugins/contracts';
 import {
     countPlayersInWorld,
     decrementWorldPlayerCount,
@@ -52,7 +51,6 @@ import { flushOutgoingQueues, pushSerializedToPlayerQueue } from './world/transp
 import Types from '../shared/gametypes-browser';
 import { Evented } from '../shared/evented';
 import type { EntityId } from '../shared/domain/ids';
-import { entityIdFromWire } from '../shared/domain/ids';
 import { gridPos, type GridPos } from '../shared/domain/positions';
 import type { Command } from './ecs/commands';
 import type { SchedulerStage } from './ecs/scheduler';
@@ -69,57 +67,34 @@ import type {
     PersistedPlayerProfile,
     SqlitePlayerPersistence,
 } from './player-persistence';
+import { resolveIdentityKey } from './identity';
 const log = Log.getLogger();
 const logWorldQueueError = (errorMessage: string): void => {
     log.error(errorMessage);
 };
 
-function resolvePlayerIdentityKey(
-    value: string | { accountNameKey?: unknown; name?: unknown } | null | undefined
-): string | null {
-    if (typeof value === 'string') {
-        const normalized = value.trim().toLowerCase();
-        return normalized.length > 0 ? normalized : null;
-    }
-
-    if (!value || typeof value !== 'object') {
-        return null;
-    }
-
-    const accountNameKey = value.accountNameKey;
-    if (typeof accountNameKey === 'string') {
-        const normalizedAccount = accountNameKey.trim().toLowerCase();
-        if (normalizedAccount.length > 0) {
-            return normalizedAccount;
-        }
-    }
-
-    const displayName = value.name;
-    if (typeof displayName === 'string') {
-        const normalizedDisplay = displayName.trim().toLowerCase();
-        if (normalizedDisplay.length > 0) {
-            return normalizedDisplay;
-        }
-    }
-
-    return null;
-}
-
 // ======= GAME SERVER ========
 
 type WorldEntity = Entity;
-type WorldPlayer = Player;
-type WorldMob = MobEntity;
+type WorldPlayer = PlayerLike;
+type WorldMob = MobEntity & { orientation?: number };
 type WorldNpc = Npc;
-type WorldItem = Entity & {
-    type: 'item';
+type WorldItemEvents = {
+    respawn: [];
+};
+
+type WorldItem = Entity<WorldItemEvents> & {
     isStatic: boolean;
     isFromChest: boolean;
-    on(eventName: 'respawn', callback: () => void): unknown;
 };
+type JsonScalar = string | number | boolean | null;
+type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
 type WorldMapLike = {
     ready(callback: () => void): void;
     generateCollisionGrid(): void;
+    getCheckpoint(id: string | number): { id?: string | number } | null | undefined;
+    isDoor(x: number, y: number): boolean;
+    getDoorDestination(x: number, y: number): { x: number; y: number } | null;
     getRandomStartingPosition(): { x: number; y: number };
     tileIndexToGridPosition(tileIndex: number): { x: number; y: number };
     isOutOfBounds(x: number, y: number): boolean;
@@ -128,15 +103,15 @@ type WorldMapLike = {
     forEachGroup(callback: (id: string) => void): void;
     forEachAdjacentGroup(groupId: string, callback: (id: string) => void): void;
     staticEntities?: Record<string, string>;
-    mobAreas?: unknown[];
-    chestAreas?: unknown[];
-    staticChests?: unknown[];
+    mobAreas?: object[];
+    chestAreas?: object[];
+    staticChests?: object[];
 };
 
 type EmptyChestArea = {
     chestX: number;
     chestY: number;
-    items: unknown[];
+    items: JsonLike[];
 };
 
 type SpawnableEntity = {
@@ -145,20 +120,35 @@ type SpawnableEntity = {
     y: number;
     kind: EntityKind;
 };
-const isSpawnableEntity = (entity: unknown): entity is SpawnableEntity =>
-    typeof entity === 'object' &&
-    entity !== null &&
-    typeof (entity as { id?: unknown }).id === 'number' &&
-    typeof (entity as { x?: unknown }).x === 'number' &&
-    typeof (entity as { y?: unknown }).y === 'number' &&
-    (typeof (entity as { kind?: unknown }).kind === 'number' || typeof (entity as { kind?: unknown }).kind === 'string');
+type CombatSyncEntity = {
+    id: EntityId;
+    hitPoints?: number;
+    maxHitPoints?: number;
+    armorLevel?: number;
+    weaponLevel?: number;
+};
 
-type WorldConnection = {
-    send(payload: unknown): void;
+type ChestLootSyncEntity = {
+    id: EntityId;
+    kind?: EntityKind;
+    items?: JsonLike[];
+};
+
+type WorldEntitySyncInput = SpawnableEntity & Partial<CombatSyncEntity & ChestLootSyncEntity>;
+
+type AreaLink = {
+    removeFromArea(entity: { id: EntityId }): void;
+};
+
+type RemovableWorldEntity = {
+    id: EntityId;
+    type?: string;
+    destroy?: () => void;
+    area?: AreaLink | null;
 };
 
 type WorldServerLike = {
-    getConnection(id: string): WorldConnection | undefined;
+    getConnection(id: string): RuntimeWorldConnection | undefined;
 };
 
 type PlayerPersistence = Pick<
@@ -176,7 +166,7 @@ type WorldEvents = {
     ready: [];
     init: [];
     playerConnect: [player: WorldPlayer];
-    playerEnter: [player: WorldPlayer];
+    playerEnter: [player: PlayerLike];
     playerAdded: [];
     playerRemoved: [];
 };
@@ -187,15 +177,14 @@ class World extends Evented<WorldEvents> {
     server: WorldServerLike;
     ups: number;
 
-    map: WorldMapLike;
+    map!: WorldMapLike;
 
     players: Record<string, WorldPlayer>;
     mobAreas: InstanceType<typeof MobArea>[];
     chestAreas: InstanceType<typeof ChestArea>[];
 
-    outgoingQueues: Record<string, unknown[]>;
+    outgoingQueues: OutgoingQueues;
 
-    itemCount: number;
     playerCount: number;
 
     ecsPipeline: WorldEcsCommandPipeline;
@@ -206,6 +195,7 @@ class World extends Evented<WorldEvents> {
     serverConfig: ServerConfig | null;
     chunkOverlayPersistence: SqliteChunkOverlayPersistence | null;
     chunkFlushScheduler: ChunkFlushScheduler | null;
+    chunkFlushTickErrorLatched: boolean;
     claimsPersistence: SqliteClaimsPersistence | null;
     updateLoopHandle: ReturnType<typeof startWorldUpdateLoop> | null;
 
@@ -217,15 +207,12 @@ class World extends Evented<WorldEvents> {
         this.server = websocketServer;
         this.ups = DEFAULT_WORLD_UPDATES_PER_SECOND;
 
-        this.map = null as unknown as WorldMapLike;
-
         this.players = {};
         this.mobAreas = [];
         this.chestAreas = [];
 
         this.outgoingQueues = {};
 
-        this.itemCount = 0;
         this.playerCount = 0;
 
         this.pendingPlayers = {};
@@ -237,6 +224,7 @@ class World extends Evented<WorldEvents> {
         this.serverConfig = null;
         this.chunkOverlayPersistence = null;
         this.chunkFlushScheduler = null;
+        this.chunkFlushTickErrorLatched = false;
         this.claimsPersistence = null;
         this.updateLoopHandle = null;
 
@@ -280,7 +268,7 @@ class World extends Evented<WorldEvents> {
         }
 
         try {
-            (this.ecsPipeline as unknown as { setServerConfig?: (cfg: ServerConfig | null) => void }).setServerConfig?.(config);
+            this.ecsPipeline.setServerConfig(config);
         } catch (_) {
             // ignore
         }
@@ -289,8 +277,12 @@ class World extends Evented<WorldEvents> {
     flushPersistenceOnShutdown(): void {
         try {
             this.chunkFlushScheduler?.flushAllNow();
-        } catch (_) {
-            // best-effort
+        } catch (err) {
+            log.event('error', 'world.persistence.flush_failed', {
+                worldId: this.id,
+                phase: 'shutdown_flush',
+                error: String(err),
+            });
         }
     }
 
@@ -300,16 +292,25 @@ class World extends Evented<WorldEvents> {
 
         try {
             this.chunkOverlayPersistence?.close();
-        } catch (_) {
-            // ignore
+        } catch (err) {
+            log.event('error', 'world.persistence.close_failed', {
+                worldId: this.id,
+                target: 'chunk_overlays',
+                error: String(err),
+            });
         }
         try {
             this.claimsPersistence?.close();
-        } catch (_) {
-            // ignore
+        } catch (err) {
+            log.event('error', 'world.persistence.close_failed', {
+                worldId: this.id,
+                target: 'claims',
+                error: String(err),
+            });
         }
         this.chunkOverlayPersistence = null;
         this.chunkFlushScheduler = null;
+        this.chunkFlushTickErrorLatched = false;
         this.claimsPersistence = null;
     }
 
@@ -354,9 +355,14 @@ class World extends Evented<WorldEvents> {
                 ? Number.parseInt(envLoadLimit, 10)
                 : cfg?.chunk_overlay_bootstrap_load_limit_chunks;
 
-        const flushIntervalMs = Number.isInteger(flushIntervalMsRaw) && flushIntervalMsRaw > 0 ? flushIntervalMsRaw : 10_000;
-        const maxChunksPerFlush = Number.isInteger(maxChunksRaw) && maxChunksRaw > 0 ? maxChunksRaw : 64;
-        const loadLimitChunks = Number.isInteger(loadLimitRaw) && loadLimitRaw > 0 ? loadLimitRaw : 4096;
+        const flushIntervalMs =
+            typeof flushIntervalMsRaw === 'number' && Number.isInteger(flushIntervalMsRaw) && flushIntervalMsRaw > 0
+                ? flushIntervalMsRaw
+                : 10_000;
+        const maxChunksPerFlush =
+            typeof maxChunksRaw === 'number' && Number.isInteger(maxChunksRaw) && maxChunksRaw > 0 ? maxChunksRaw : 64;
+        const loadLimitChunks =
+            typeof loadLimitRaw === 'number' && Number.isInteger(loadLimitRaw) && loadLimitRaw > 0 ? loadLimitRaw : 4096;
 
         return { flushIntervalMs, maxChunksPerFlush, loadLimitChunks };
     }
@@ -442,7 +448,7 @@ class World extends Evented<WorldEvents> {
         );
     }
 
-    getConnectionPlayerById(playerId: EntityId): Player | null {
+    getConnectionPlayerById(playerId: EntityId): PlayerLike | null {
         const key = String(playerId);
         const active = this.players[key];
         if (active) {
@@ -452,18 +458,14 @@ class World extends Evented<WorldEvents> {
     }
 
     removeEntityFromAreas(entityId: EntityId): void {
-        const stub = { id: entityId } as unknown as { id: EntityId };
+        const stub = { id: entityId };
 
         for (const area of this.mobAreas) {
-            if (typeof (area as unknown as { removeFromArea?: (entity: unknown) => void }).removeFromArea === 'function') {
-                (area as unknown as { removeFromArea: (entity: unknown) => void }).removeFromArea(stub);
-            }
+            area.removeFromArea(stub);
         }
 
         for (const area of this.chestAreas) {
-            if (typeof (area as unknown as { removeFromArea?: (entity: unknown) => void }).removeFromArea === 'function') {
-                (area as unknown as { removeFromArea: (entity: unknown) => void }).removeFromArea(stub);
-            }
+            area.removeFromArea(stub);
         }
     }
 
@@ -511,7 +513,7 @@ class World extends Evented<WorldEvents> {
         if (!this.playerPersistence) {
             return;
         }
-        const identityKey = resolvePlayerIdentityKey(player);
+        const identityKey = resolveIdentityKey(player);
         if (!identityKey) {
             return;
         }
@@ -526,7 +528,7 @@ class World extends Evented<WorldEvents> {
         if (!this.playerPersistence) {
             return;
         }
-        const identityKey = resolvePlayerIdentityKey(playerIdentity);
+        const identityKey = resolveIdentityKey(playerIdentity);
         if (!identityKey) {
             return;
         }
@@ -540,7 +542,7 @@ class World extends Evented<WorldEvents> {
         if (!this.playerPersistence) {
             return;
         }
-        const identityKey = resolvePlayerIdentityKey(playerIdentity);
+        const identityKey = resolveIdentityKey(playerIdentity);
         if (!identityKey) {
             return;
         }
@@ -554,7 +556,7 @@ class World extends Evented<WorldEvents> {
         if (!this.playerPersistence) {
             return;
         }
-        const identityKey = resolvePlayerIdentityKey(playerIdentity);
+        const identityKey = resolveIdentityKey(playerIdentity);
         if (!identityKey) {
             return;
         }
@@ -572,7 +574,7 @@ class World extends Evented<WorldEvents> {
         if (!this.playerPersistence) {
             return;
         }
-        const identityKey = resolvePlayerIdentityKey(playerIdentity);
+        const identityKey = resolveIdentityKey(playerIdentity);
         if (!identityKey) {
             return;
         }
@@ -590,7 +592,7 @@ class World extends Evented<WorldEvents> {
         if (!this.playerPersistence) {
             return;
         }
-        const identityKey = resolvePlayerIdentityKey(playerIdentity);
+        const identityKey = resolveIdentityKey(playerIdentity);
         if (!identityKey) {
             return;
         }
@@ -604,7 +606,7 @@ class World extends Evented<WorldEvents> {
         if (!this.playerPersistence) {
             return null;
         }
-        const identityKey = resolvePlayerIdentityKey(playerIdentity);
+        const identityKey = resolveIdentityKey(playerIdentity);
         if (!identityKey) {
             return null;
         }
@@ -636,15 +638,11 @@ class World extends Evented<WorldEvents> {
 
         const ctx = Object.freeze({
             apiVersion: SERVER_PLUGIN_API_VERSION,
-            world: this as unknown,
+            world: this,
             ecs: Object.freeze({
-                registerSystem: (
-                    stage: SchedulerStage,
-                    name: string,
-                    run: (state: unknown, ctx: unknown) => void
-                ): void => {
-                    this.ecsPipeline.registerSystem(stage, name, run);
-                },
+                registerSystem: ((stage: SchedulerStage, name: string, run) => {
+                    this.ecsPipeline.registerSystem(stage, name, run as never);
+                }) as ServerPluginEcsApi['registerSystem'],
             }),
         });
 
@@ -701,7 +699,8 @@ class World extends Evented<WorldEvents> {
                         config.y,
                         config.width,
                         config.height,
-                        self
+                        self,
+                        () => self.allocateEntityId_()
                     );
                 },
                 createChestArea(config: MapChestAreaConfig) {
@@ -789,7 +788,7 @@ class World extends Evented<WorldEvents> {
         log.debug('Pushed ' + ids.length + ' new spawns to ' + playerId);
     }
 
-    pushToPlayer(player: WorldPlayer, message: WorldMessage) {
+    pushToPlayer(player: PlayerLike, message: WorldMessage): void {
         const serializedMessage = Array.isArray(message) ? message : message.serialize();
         pushSerializedToPlayerQueue(this.outgoingQueues, player, serializedMessage, logWorldQueueError);
     }
@@ -823,49 +822,46 @@ class World extends Evented<WorldEvents> {
         this.ecsPipeline.tick();
         try {
             this.chunkFlushScheduler?.tick(Date.now());
-        } catch (_) {
-            // ignore best-effort flush failures; dirty chunks will retry later
+            this.chunkFlushTickErrorLatched = false;
+        } catch (err) {
+            if (!this.chunkFlushTickErrorLatched) {
+                log.event('error', 'world.persistence.flush_failed', {
+                    worldId: this.id,
+                    phase: 'tick_flush',
+                    error: String(err),
+                });
+                this.chunkFlushTickErrorLatched = true;
+            }
         }
         flushOutgoingQueues(this.outgoingQueues, (id: string) => this.server.getConnection(id));
     }
 
-    addEntity(entity: WorldEntity): void {
-        if (isSpawnableEntity(entity)) {
-            try {
-                this.ecsPipeline.syncSpawnReplicationEntity(entity);
-            } catch (err) {
-                log.error('ecsPipeline.syncSpawnReplicationEntity failed: ' + String(err));
-            }
+    addEntity(entity: WorldEntitySyncInput): void {
+        try {
+            this.ecsPipeline.syncSpawnReplicationEntity(entity);
+        } catch (err) {
+            log.error('ecsPipeline.syncSpawnReplicationEntity failed: ' + String(err));
         }
 
         try {
-            this.ecsPipeline.syncChestLootEntity(entity as unknown as { id: EntityId; kind?: EntityKind; items?: unknown });
+            this.ecsPipeline.syncChestLootEntity(entity);
         } catch (err) {
             log.error('ecsPipeline.syncChestLootEntity failed: ' + String(err));
         }
 
         try {
-            this.ecsPipeline.syncCombatEntity(entity as unknown as {
-                id: EntityId;
-                hitPoints?: number;
-                maxHitPoints?: number;
-                armorLevel?: number;
-                weaponLevel?: number;
-            });
+            this.ecsPipeline.syncCombatEntity(entity);
         } catch (err) {
             log.error('ecsPipeline.syncCombatEntity failed: ' + String(err));
         }
     }
 
-    removeEntity(entity: WorldEntity): void {
-        if ((entity as { type?: unknown }).type === 'mob') {
-            const area = (entity as unknown as { area?: unknown }).area;
-            if (area && typeof (area as { removeFromArea?: (mob: unknown) => void }).removeFromArea === 'function') {
-                (area as { removeFromArea: (mob: unknown) => void }).removeFromArea(entity);
-            }
+    removeEntity(entity: RemovableWorldEntity): void {
+        if (entity.type === 'mob' && entity.area) {
+            entity.area.removeFromArea(entity);
         }
         try {
-            entity.destroy();
+            entity.destroy?.();
         } catch (_) {
             // ignore legacy destroy failures; ECS is authoritative
         }
@@ -874,9 +870,9 @@ class World extends Evented<WorldEvents> {
 
     addPlayer(player: PlayerLike): void {
         addWorldPlayer({
-            player: player as unknown as { id: EntityId },
-            addEntity: (entity) => this.addEntity(entity as unknown as WorldEntity),
-            players: this.players as unknown as Record<string, unknown>,
+            player,
+            addEntity: (entity) => this.addEntity(entity),
+            players: this.players,
             outgoingQueues: this.outgoingQueues,
         });
 
@@ -884,10 +880,10 @@ class World extends Evented<WorldEvents> {
     }
 
     emitPlayerEnter(player: PlayerLike): void {
-        this.emit('playerEnter', player as unknown as WorldPlayer);
+        this.emit('playerEnter', player);
     }
 
-    removePlayer(player: WorldPlayer): void {
+    removePlayer(player: PlayerLike): void {
         removeWorldPlayer({
             player,
             removeEntity: (entity) => this.removeEntity(entity),
@@ -897,8 +893,8 @@ class World extends Evented<WorldEvents> {
     }
 
     addMob(mob: WorldMob): void {
-        const spawnX = (mob as { spawningX?: number }).spawningX ?? mob.x;
-        const spawnY = (mob as { spawningY?: number }).spawningY ?? mob.y;
+        const spawnX = mob.spawningX ?? mob.x;
+        const spawnY = mob.spawningY ?? mob.y;
         this.ecsPipeline.seedMobFromPrefabSpawn({
             id: mob.id,
             kind: mob.kind,
@@ -906,12 +902,12 @@ class World extends Evented<WorldEvents> {
             y: mob.y,
             spawnX,
             spawnY,
-            orientation: (mob as { orientation?: number }).orientation,
+            orientation: mob.orientation,
         });
     }
 
     addNpc(kind: EntityKind, x: number, y: number): WorldNpc {
-        const npc = new Npc(entityIdFromWire(Number('8' + x + '' + y)), kind, x, y);
+        const npc = new Npc(this.allocateEntityId_(), kind, x, y);
         this.ecsPipeline.seedItemFromSpawn({ id: npc.id, kind: npc.kind, x: npc.x, y: npc.y });
         return npc;
     }
@@ -922,15 +918,20 @@ class World extends Evented<WorldEvents> {
     }
 
     createItem(kind: EntityKind, x: number, y: number): WorldItem {
-        const id = entityIdFromWire(Number('9' + this.itemCount++));
-        const item = new Entity(id, 'item', kind, x, y) as WorldItem;
-        item.isStatic = false;
-        item.isFromChest = false;
+        const id = this.allocateEntityId_();
+        const item = Object.assign(new Entity<WorldItemEvents>(id, 'item', kind, x, y), {
+            isStatic: false,
+            isFromChest: false,
+        });
         this.ecsPipeline.seedItemFromSpawn({ id: item.id, kind: item.kind, x: item.x, y: item.y });
         return item;
     }
 
-    createChest(x: number, y: number, items: unknown[]): WorldItem {
+    allocateEntityId_(): EntityId {
+        return this.ecsPipeline.state.world.createEntity();
+    }
+
+    createChest(x: number, y: number, items: JsonLike[]): WorldItem {
         const chest = this.createItem(Types.Entities.CHEST, x, y);
         this.ecsPipeline.setChestLootTable(chest.id, items);
         return chest;
@@ -964,7 +965,14 @@ class World extends Evented<WorldEvents> {
     spawnStaticEntities(): void {
         spawnStaticEntitiesForWorld({
             staticEntities: this.map.staticEntities,
-            resolveKindFromString: (kindName: string) => Types.getKindFromString(kindName) as EntityKind,
+            nextMobId: () => this.allocateEntityId_(),
+            resolveKindFromString: (kindName: string) => {
+                const kind = Types.getKindFromString(kindName);
+                if (typeof kind !== 'number') {
+                    throw new Error(`Unknown entity kind: ${kindName}`);
+                }
+                return kind;
+            },
             tileIndexToGridPosition: (tileIndex: number) => this.map.tileIndexToGridPosition(tileIndex),
             isNpcKind: (kind: EntityKind) => Types.isNpc(kind),
             isMobKind: (kind: EntityKind) => Types.isMob(kind),
@@ -972,15 +980,15 @@ class World extends Evented<WorldEvents> {
             addNpc: (kind: EntityKind, x: number, y: number) => {
                 this.addNpc(kind, x, y);
             },
-            createMob: (id, kind, x, y) => new MobEntity(id, kind, x, y),
-            addMob: (mob) => this.addMob(mob as WorldMob),
+            createMob: (id, kind, x, y): WorldMob => new MobEntity(id, kind, x, y),
+            addMob: (mob: WorldMob) => this.addMob(mob),
             isChestArea(area): area is ChestArea {
                 return area instanceof ChestArea;
             },
-            addMobToContainingChestArea: (mob) => this.tryAddingMobToChestArea(mob as WorldMob),
+            addMobToContainingChestArea: (mob: WorldMob) => this.tryAddingMobToChestArea(mob),
             createItem: (kind: EntityKind, x: number, y: number) => this.createItem(kind, x, y),
             addStaticItem: (item) => {
-                this.addStaticItem(item as WorldItem);
+                this.addStaticItem(item);
             },
         });
     }
@@ -1001,8 +1009,8 @@ class World extends Evented<WorldEvents> {
         decrementWorldPlayerCount(this);
     }
 
-    getDroppedItem(mob: WorldMob): unknown {
-        const prefab = requireMobPrefab((mob as { kind: EntityKind }).kind);
+    getDroppedItem(mob: WorldMob): WorldItem | null {
+        const prefab = requireMobPrefab(mob.kind);
         return selectDroppedItemForMob({
             mob,
             drops: prefab.drops,
@@ -1023,7 +1031,7 @@ class World extends Evented<WorldEvents> {
         this.ecsPipeline.scheduleItemDespawn(item);
     }
 
-    handleEmptyMobArea(_area) {}
+    handleEmptyMobArea(_area: MobArea): void {}
 
     handleEmptyChestArea(area: EmptyChestArea | null | undefined): void {
         handleEmptyChestAreaRefill(this, area);

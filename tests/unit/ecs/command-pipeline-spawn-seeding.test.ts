@@ -6,7 +6,7 @@ import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipel
 import { requireMobPrefab } from '../../../shared/content/prefabs';
 
 function createPipelineFixture(): WorldEcsCommandPipeline {
-    const host: Record<string, unknown> = {
+    const host = {
         ups: 5,
         map: {
             getCheckpoint() {

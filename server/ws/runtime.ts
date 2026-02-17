@@ -12,6 +12,7 @@ import { AUTH_SESSION_COOKIE_KEY } from '../../shared/auth/cookie-keys';
 import { ConnectionIdGenerator } from './connection-id';
 import { verifySignedAuthSessionToken } from '../auth-session';
 import { parseCookieValue, parseRequestPathname } from '../http-utils';
+import { normalizeIdentityKeyOrNull } from '../identity';
 
 const BunRuntime = globalThis['Bun'];
 const log = Log.getLogger();
@@ -264,8 +265,10 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                             : 'unknown';
                     const connection = new wsWebSocketConnection(this.#createId(), adapter, this, remoteAddress);
                     const accountNameKey = socket.data?.accountNameKey;
-                    if (typeof accountNameKey === 'string' && accountNameKey.trim().length > 0) {
-                        connection.accountNameKey = accountNameKey.trim().toLowerCase();
+                    const normalizedAccountNameKey =
+                        typeof accountNameKey === 'string' ? normalizeIdentityKeyOrNull(accountNameKey) : null;
+                    if (normalizedAccountNameKey !== null) {
+                        connection.accountNameKey = normalizedAccountNameKey;
                     }
                     this.addConnection(connection);
                     this.emit('connect', connection);

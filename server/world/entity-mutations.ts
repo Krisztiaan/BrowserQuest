@@ -6,7 +6,7 @@ type IdentifiedEntity = {
     id: EntityId;
 };
 
-type EntityCollection = Record<string, unknown>;
+type EntityCollection<T> = Record<string, T>;
 
 type AddEntity<T extends IdentifiedEntity> = (entity: T) => void;
 type RemoveEntity<T extends IdentifiedEntity> = (entity: T) => void;
@@ -38,7 +38,7 @@ export function addWorldEntity({
     entities,
 }: {
     entity: IdentifiedEntity;
-    entities: EntityCollection;
+    entities: EntityCollection<IdentifiedEntity>;
 }): void {
     entities[entity.id] = entity;
 }
@@ -51,7 +51,7 @@ export function addWorldPlayer<T extends IdentifiedEntity>({
 }: {
     player: T;
     addEntity: AddEntity<T>;
-    players: EntityCollection;
+    players: EntityCollection<T>;
     outgoingQueues: OutgoingQueues;
 }): void {
     addEntity(player);
@@ -67,7 +67,7 @@ export function removeWorldPlayer<T extends IdentifiedEntity>({
 }: {
     player: T;
     removeEntity: RemoveEntity<T>;
-    players: EntityCollection;
+    players: EntityCollection<T>;
     outgoingQueues: OutgoingQueues;
 }): void {
     removeEntity(player);
@@ -82,7 +82,7 @@ export function addWorldMob<T extends IdentifiedEntity>({
 }: {
     mob: T;
     addEntity: AddEntity<T>;
-    mobs: EntityCollection;
+    mobs: EntityCollection<T>;
 }): void {
     addEntity(mob);
     mobs[mob.id] = mob;
@@ -95,7 +95,7 @@ export function addWorldItem<T extends IdentifiedEntity>({
 }: {
     item: T;
     addEntity: AddEntity<T>;
-    items: EntityCollection;
+    items: EntityCollection<T>;
 }): T {
     addEntity(item);
     items[item.id] = item;
@@ -130,7 +130,7 @@ export function addWorldStaticItem<TItem extends RespawnableStaticItem>({
     addItem: (item: TItem) => TItem;
 }): TItem {
     item.isStatic = true;
-    const flagged = item as unknown as { __bqStaticRespawnBound?: boolean };
+    const flagged = item as RespawnableStaticItem & { __bqStaticRespawnBound?: boolean };
     if (!flagged.__bqStaticRespawnBound) {
         flagged.__bqStaticRespawnBound = true;
         item.on('respawn', buildRespawnHandler(item));
@@ -151,7 +151,7 @@ export function addWorldNpc<TNpc extends IdentifiedEntity>({
     y: number;
     createNpc: CreateNpc<TNpc>;
     addEntity: AddEntity<TNpc>;
-    npcs: EntityCollection;
+    npcs: EntityCollection<TNpc>;
 }): TNpc {
     const npc = createNpc(kind, x, y);
     addEntity(npc);
@@ -170,9 +170,9 @@ export function removeWorldEntity({
     logDebug,
 }: {
     entity: RemovableEntity;
-    entities: EntityCollection;
-    mobs: EntityCollection;
-    items: EntityCollection;
+    entities: EntityCollection<RemovableEntity>;
+    mobs: EntityCollection<RemovableEntity>;
+    items: EntityCollection<RemovableEntity>;
     clearMobAggroLink: ClearMobLinks;
     clearMobHateLinks: ClearMobLinks;
     resolveKindAsString: ResolveKindAsString;

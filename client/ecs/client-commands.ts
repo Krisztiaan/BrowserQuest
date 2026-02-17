@@ -1,6 +1,7 @@
 import type { EntityId } from '../../shared/domain/ids';
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { AudioSoundKey } from '../asset-key-domain';
+import type { RuntimeEntity } from '../client-boundary-types';
 
 export type ClientCommand =
     | Readonly<{ type: 'stopPlayerCombat' }>
@@ -94,7 +95,7 @@ export type ClientCommand =
     | Readonly<{ type: 'applyKillToAchievements'; mobKind: EntityKind }>
     | Readonly<{ type: 'chatMessage'; entityId: EntityId; text: string }>
     | Readonly<{ type: 'equipItem'; entityId: EntityId; itemKind: EntityKind }>
-    | Readonly<{ type: 'dropItem'; item: unknown; mobId: EntityId }>
+    | Readonly<{ type: 'dropItem'; item: RuntimeEntity; mobId: EntityId }>
     | Readonly<{ type: 'itemBlink'; entityId: EntityId }>
     | Readonly<{ type: 'spawnEntityFromKernel'; entityId: EntityId }>
     | Readonly<{ type: 'removeEntityById'; entityId: EntityId }>

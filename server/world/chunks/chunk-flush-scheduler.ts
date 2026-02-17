@@ -40,30 +40,4 @@ export class ChunkFlushScheduler {
         const dirty = this.#store.listDirtyChunks();
         return this.#persistence.flushChunks(dirty, this.#store, nowMs);
     }
-
-    flushOnHibernate(nowMs = Date.now()): { flushed: number } {
-        return this.flushAllNow(nowMs);
-    }
-
-    installBestEffortShutdownHooks(opts?: { nowMs?: () => number }): () => void {
-        const now = opts?.nowMs ?? (() => Date.now());
-        const handler = () => {
-            try {
-                this.flushAllNow(now());
-            } catch (_) {
-                // best-effort
-            }
-        };
-
-        process.once('SIGINT', handler);
-        process.once('SIGTERM', handler);
-        process.once('beforeExit', handler);
-
-        return () => {
-            process.off('SIGINT', handler);
-            process.off('SIGTERM', handler);
-            process.off('beforeExit', handler);
-        };
-    }
 }
-

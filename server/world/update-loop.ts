@@ -2,7 +2,7 @@ type UpdateLoopWorld = {
     processQueues(): void;
 };
 
-type UpdateLoopTimerHandle = unknown;
+type UpdateLoopTimerHandle = ReturnType<typeof setTimeout> | number;
 
 type UpdateLoopDependencies = {
     nowMs?: () => number;
@@ -19,10 +19,10 @@ export const DEFAULT_WORLD_UPDATES_PER_SECOND = 30;
 const DEFAULT_MAX_CATCH_UP_TICKS = 4;
 
 function normalizeUpdatesPerSecond(updatesPerSecond: number | undefined): number {
-    if (!Number.isFinite(updatesPerSecond)) {
+    if (typeof updatesPerSecond !== 'number' || !Number.isFinite(updatesPerSecond)) {
         return DEFAULT_WORLD_UPDATES_PER_SECOND;
     }
-    const rounded = Math.floor(updatesPerSecond as number);
+    const rounded = Math.floor(updatesPerSecond);
     if (rounded <= 0) {
         return DEFAULT_WORLD_UPDATES_PER_SECOND;
     }
@@ -51,11 +51,12 @@ export function startWorldUpdateLoop(
     const clearTimeoutFn =
         runtimeDeps.clearTimeoutFn ??
         function (timerHandle: UpdateLoopTimerHandle) {
-            clearTimeout(timerHandle as Parameters<typeof clearTimeout>[0]);
+            clearTimeout(timerHandle);
         };
+    const maxCatchUpTicksRaw = runtimeDeps.maxCatchUpTicks;
     const maxCatchUpTicks =
-        Number.isInteger(runtimeDeps.maxCatchUpTicks) && (runtimeDeps.maxCatchUpTicks as number) > 0
-            ? (runtimeDeps.maxCatchUpTicks as number)
+        typeof maxCatchUpTicksRaw === 'number' && Number.isInteger(maxCatchUpTicksRaw) && maxCatchUpTicksRaw > 0
+            ? maxCatchUpTicksRaw
             : DEFAULT_MAX_CATCH_UP_TICKS;
 
     const normalizedUps = normalizeUpdatesPerSecond(updatesPerSecond);

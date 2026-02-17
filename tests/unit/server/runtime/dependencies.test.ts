@@ -8,16 +8,18 @@ import type {
 import * as MainRuntimeModule from '../../../../server/runtime';
 
 const MainRuntime = MainRuntimeModule;
+type RuntimeErrorArg = string | Error | object | null | undefined;
+type RuntimePlayerLike = { id?: string | number };
 
 test('main runtime dependency helper uses injected boundaries when provided', () => {
     class MultiVersionWebsocketServer implements RuntimeServer {
         constructor(_port: number) {}
 
         on(_eventName: 'connect', _callback: (connection: RuntimeConnection) => void): void;
-        on(_eventName: 'error', _callback: (...args: unknown[]) => void): void;
+        on(_eventName: 'error', _callback: (...args: RuntimeErrorArg[]) => void): void;
         on(
             _eventName: 'connect' | 'error',
-            _callback: ((...args: unknown[]) => void) | ((connection: RuntimeConnection) => void)
+            _callback: ((...args: RuntimeErrorArg[]) => void) | ((connection: RuntimeConnection) => void)
         ): void {}
         onRequestStatus(_callback: () => string): void {}
     }
@@ -28,7 +30,7 @@ test('main runtime dependency helper uses injected boundaries when provided', ()
         constructor(_id: string, _capacity: number, _server: RuntimeServer) {}
 
         on(_eventName: 'playerAdded' | 'playerRemoved', _callback: () => void): void {}
-        emit(_eventName: 'playerConnect', _player: unknown): void {}
+        emit(_eventName: 'playerConnect', _player: RuntimePlayerLike): void {}
         run(_mapFilePath: string): void {}
         updatePopulation(_totalPlayers?: number): void {}
     }

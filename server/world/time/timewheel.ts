@@ -1,4 +1,6 @@
-export type ScheduledJob<TPayload = unknown> = Readonly<{
+type TimeWheelPayload = string | number | boolean | bigint | symbol | object | null | undefined;
+
+export type ScheduledJob<TPayload = TimeWheelPayload> = Readonly<{
     id: string;
     dueTick: number;
     payload: TPayload;
@@ -19,7 +21,7 @@ function compareItems<TPayload>(a: HeapItem<TPayload>, b: HeapItem<TPayload>): n
     return a.seq - b.seq;
 }
 
-export class TimeWheel<TPayload = unknown> {
+export class TimeWheel<TPayload = TimeWheelPayload> {
     readonly #heap: Array<HeapItem<TPayload>> = [];
     readonly #latestVersionById = new Map<string, number>();
     #nextSeq = 1;
@@ -169,4 +171,3 @@ export class TimeWheel<TPayload = unknown> {
         }
     }
 }
-

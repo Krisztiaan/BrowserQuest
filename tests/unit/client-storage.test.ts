@@ -4,8 +4,6 @@ import Storage, {
     readUsernameCookie,
 } from '../../client/storage';
 
-const LEGACY_STORAGE_KEY = 'data';
-
 type LocalStorageLike = {
     getItem(key: string): string | null;
     setItem(key: string, value: string): void;
@@ -62,39 +60,6 @@ test('storage persists username only in localStorage', () => {
     storage.incrementTotalKills();
 
     expect(mock.getItem(STORAGE_KEY)).toBe('K');
-    expect(mock.getItem(LEGACY_STORAGE_KEY)).toBeNull();
-});
-
-test('storage migrates legacy profile blob to username-only key', () => {
-    const mock = createLocalStorageMock();
-    mock.setItem(
-        LEGACY_STORAGE_KEY,
-        JSON.stringify({
-            hasAlreadyPlayed: true,
-            player: {
-                name: 'Legacy',
-                weapon: 'redsword',
-                armor: 'redarmor',
-                image: 'legacy-image',
-            },
-            achievements: {
-                unlocked: [1, 2, 9999],
-            },
-        })
-    );
-
-    Object.defineProperty(globalThis, 'localStorage', {
-        configurable: true,
-        writable: true,
-        value: mock,
-    });
-
-    const storage = new Storage();
-    expect(storage.hasAlreadyPlayed()).toBe(true);
-    expect(storage.data.player.name).toBe('Legacy');
-    expect(mock.getItem(STORAGE_KEY)).toBe('Legacy');
-    expect(mock.getItem(LEGACY_STORAGE_KEY)).toBeNull();
-    expect(storage.data.achievements.unlocked.includes(9999 as never)).toBe(false);
 });
 
 test('storage applies sanitized achievement progress snapshot from server', () => {

@@ -1,5 +1,6 @@
 import Types from '../../shared/gametypes-browser';
 import { SERVER_PLUGIN_API_VERSION, type ServerPlugin } from './contracts';
+import type { EntityKind } from '../../shared/entity-kind-domain';
 
 type PluginWorldLike = {
     ups: number;
@@ -8,8 +9,8 @@ type PluginWorldLike = {
         getRandomStartingPosition(): { x: number; y: number };
     };
     isValidPosition(x: number, y: number): boolean;
-    createItem(kind: unknown, x: number, y: number): unknown;
-    addItem(item: unknown): void;
+    createItem(kind: EntityKind, x: number, y: number): object;
+    addItem(item: object): void;
 };
 
 const SAMPLE_SPAWN_INTERVAL_SECONDS = 10;
@@ -28,12 +29,11 @@ const plugin: ServerPlugin = {
             mapReady = true;
         });
 
-        ecs.registerSystem('sim', 'sample_spawner', (_state, rawCtx) => {
+        ecs.registerSystem('sim', 'sample_spawner', (_state, ctx) => {
             if (!mapReady) {
                 return;
             }
 
-            const ctx = rawCtx as { tick: number };
             if (typeof ctx.tick !== 'number' || ctx.tick <= 0) {
                 return;
             }

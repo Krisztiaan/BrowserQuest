@@ -1,9 +1,12 @@
-export type TypedEventMap = Record<string, unknown[]>;
+type EventArg = string | number | boolean | bigint | symbol | object | null | undefined;
+type EventArgs = EventArg[];
+
+export type TypedEventMap = Record<string, EventArgs>;
 export type NoEvents = Record<never, never>;
 export type MergeEvents<TLeft extends TypedEventMap, TRight extends TypedEventMap> = TLeft & TRight;
 export type Unsubscribe = () => void;
 
-export type EventCallback<TArgs extends unknown[]> = (...args: TArgs) => void;
+export type EventCallback<TArgs extends EventArgs> = (...args: TArgs) => void;
 
 export interface TypedEventSource<TEvents extends TypedEventMap> {
     on<TEventName extends keyof TEvents>(eventName: TEventName, callback: EventCallback<TEvents[TEventName]>): Unsubscribe;

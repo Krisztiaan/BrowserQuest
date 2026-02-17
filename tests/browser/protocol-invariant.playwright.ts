@@ -49,8 +49,10 @@ async function replaySequence(page: Page, entryPath: '/', suffix: string, mode: 
             };
 
             const parseActions = (raw: string): ReplayAction[] => {
+                type JsonPrimitive = string | number | boolean | null;
+                type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
                 try {
-                    const parsed: unknown = JSON.parse(raw) as unknown;
+                    const parsed = JSON.parse(raw) as JsonValue;
                     if (!Array.isArray(parsed)) return [];
                     if (parsed.length > 0 && Array.isArray(parsed[0])) {
                         return parsed.filter(

@@ -1,9 +1,15 @@
-import type { OutgoingQueues, QueuePlayer, TransportErrorLogger, WorldConnection } from './contracts';
+import type {
+    OutgoingQueues,
+    QueuePlayer,
+    TransportErrorLogger,
+    WorldConnection,
+} from './contracts';
+import type { ServerToClientProtocolAction } from '../../shared/protocol/types';
 
 export function pushSerializedToPlayerQueue(
     outgoingQueues: OutgoingQueues,
     player: QueuePlayer,
-    serializedMessage: unknown,
+    serializedMessage: ServerToClientProtocolAction,
     logError: TransportErrorLogger
 ): void {
     const key = String(player?.id ?? '');
@@ -35,13 +41,28 @@ export function flushOutgoingQueues(
 
         // Avoid single huge JSON.stringify() calls that can stall the event loop (especially when a player
         // receives many SPAWN actions at once). Chunk into smaller batches to keep handshake/ticks responsive.
+        if (queue.length <= MAX_BATCH_ACTIONS) {
+            if (queue.length === 1) {
+                const payload = queue[0];
+                if (payload !== undefined) {
+                    connection.send(payload);
+                }
+            } else {
+                connection.send(queue.slice());
+            }
+            queue.length = 0;
+            continue;
+        }
+
         const queueLength = queue.length;
         for (let batchStart = 0; batchStart < queueLength; batchStart += MAX_BATCH_ACTIONS) {
             const batchEnd = Math.min(batchStart + MAX_BATCH_ACTIONS, queueLength);
             const batchLength = batchEnd - batchStart;
-            const payload =
-                batchLength === 1 ? queue[batchStart] : queue.slice(batchStart, batchEnd);
-            connection.send(payload);
+            const batch = new Array<ServerToClientProtocolAction>(batchLength);
+            for (let i = 0; i < batchLength; i += 1) {
+                batch[i] = queue[batchStart + i]!;
+            }
+            connection.send(batchLength === 1 ? batch[0]! : batch);
         }
         queue.length = 0;
     }

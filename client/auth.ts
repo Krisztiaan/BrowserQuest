@@ -22,15 +22,19 @@ export type PasskeyLogoutResult = Readonly<{
     reason?: string;
 }>;
 
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+type JsonRecord = Record<string, JsonValue>;
+
 type AuthResponsePayload = Readonly<{
-    ok?: unknown;
-    reason?: unknown;
-    accountNameKey?: unknown;
-    displayName?: unknown;
-    options?: unknown;
+    ok?: JsonValue;
+    reason?: JsonValue;
+    accountNameKey?: JsonValue;
+    displayName?: JsonValue;
+    options?: JsonValue;
 }>;
 
-function resolveString(value: unknown): string | null {
+function resolveString(value: JsonValue | undefined): string | null {
     if (typeof value !== 'string') {
         return null;
     }
@@ -103,7 +107,7 @@ function supportsWebAuthn(): boolean {
 async function postOptions(
     pathname: '/auth/passkey/register/options' | '/auth/passkey/login/options',
     username: string
-): Promise<{ ok: true; options: unknown } | PasskeyAuthFailure> {
+): Promise<{ ok: true; options: JsonValue | undefined } | PasskeyAuthFailure> {
     let response: Response;
     try {
         response = await fetch(pathname, {
@@ -133,7 +137,7 @@ async function postOptions(
 async function postVerify(
     pathname: '/auth/passkey/register/verify' | '/auth/passkey/login/verify',
     username: string,
-    responsePayload: unknown
+    responsePayload: JsonValue
 ): Promise<PasskeyAuthResult> {
     let response: Response;
     try {
@@ -178,18 +182,22 @@ async function postVerify(
     };
 }
 
-function parseCreationOptions(options: unknown): PublicKeyCredentialCreationOptions | null {
-    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+function isJsonRecord(value: JsonValue | undefined): value is JsonRecord {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function parseCreationOptions(options: JsonValue | undefined): PublicKeyCredentialCreationOptions | null {
+    if (!isJsonRecord(options)) {
         return null;
     }
-    const record = options as Record<string, unknown>;
+    const record = options;
     const challenge = resolveString(record.challenge);
     const user = record.user;
-    if (!challenge || !user || typeof user !== 'object' || Array.isArray(user)) {
+    if (!challenge || !isJsonRecord(user)) {
         return null;
     }
 
-    const userRecord = user as Record<string, unknown>;
+    const userRecord = user;
     const userId = resolveString(userRecord.id);
     if (!userId) {
         return null;
@@ -197,7 +205,7 @@ function parseCreationOptions(options: unknown): PublicKeyCredentialCreationOpti
 
     const excludeCredentials = Array.isArray(record.excludeCredentials)
         ? record.excludeCredentials
-              .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && !Array.isArray(entry))
+              .filter((entry): entry is JsonRecord => !!entry && typeof entry === 'object' && !Array.isArray(entry))
               .map((entry) => {
                   const id = resolveString(entry.id);
                   if (!id) {
@@ -212,28 +220,28 @@ function parseCreationOptions(options: unknown): PublicKeyCredentialCreationOpti
         : [];
 
     return {
-        ...(record as unknown as PublicKeyCredentialCreationOptions),
+        ...(record as Partial<PublicKeyCredentialCreationOptions>),
         challenge: decodeBase64UrlToArrayBuffer(challenge),
         user: {
-            ...(userRecord as unknown as PublicKeyCredentialUserEntity),
+            ...(userRecord as Partial<PublicKeyCredentialUserEntity>),
             id: decodeBase64UrlToArrayBuffer(userId),
         },
         excludeCredentials,
     };
 }
 
-function parseRequestOptions(options: unknown): PublicKeyCredentialRequestOptions | null {
-    if (!options || typeof options !== 'object' || Array.isArray(options)) {
+function parseRequestOptions(options: JsonValue | undefined): PublicKeyCredentialRequestOptions | null {
+    if (!isJsonRecord(options)) {
         return null;
     }
-    const record = options as Record<string, unknown>;
+    const record = options;
     const challenge = resolveString(record.challenge);
     if (!challenge) {
         return null;
     }
     const allowCredentials = Array.isArray(record.allowCredentials)
         ? record.allowCredentials
-              .filter((entry): entry is Record<string, unknown> => !!entry && typeof entry === 'object' && !Array.isArray(entry))
+              .filter((entry): entry is JsonRecord => !!entry && typeof entry === 'object' && !Array.isArray(entry))
               .map((entry) => {
                   const id = resolveString(entry.id);
                   if (!id) {
@@ -248,14 +256,14 @@ function parseRequestOptions(options: unknown): PublicKeyCredentialRequestOption
         : [];
 
     return {
-        ...(record as unknown as PublicKeyCredentialRequestOptions),
+        ...(record as Partial<PublicKeyCredentialRequestOptions>),
         challenge: decodeBase64UrlToArrayBuffer(challenge),
         allowCredentials,
     };
 }
 
-function serializeRegistrationCredential(credential: PublicKeyCredential): unknown | null {
-    const asJson = credential as PublicKeyCredential & { toJSON?: () => unknown };
+function serializeRegistrationCredential(credential: PublicKeyCredential): JsonValue | null {
+    const asJson = credential as PublicKeyCredential & { toJSON?: () => JsonValue };
     if (typeof asJson.toJSON === 'function') {
         return asJson.toJSON();
     }
@@ -280,8 +288,8 @@ function serializeRegistrationCredential(credential: PublicKeyCredential): unkno
     };
 }
 
-function serializeAuthenticationCredential(credential: PublicKeyCredential): unknown | null {
-    const asJson = credential as PublicKeyCredential & { toJSON?: () => unknown };
+function serializeAuthenticationCredential(credential: PublicKeyCredential): JsonValue | null {
+    const asJson = credential as PublicKeyCredential & { toJSON?: () => JsonValue };
     if (typeof asJson.toJSON === 'function') {
         return asJson.toJSON();
     }

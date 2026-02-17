@@ -16,7 +16,7 @@ test('ecs scheduler probe does nothing when probe mode is disabled', async () =>
 });
 
 test('ecs scheduler probe emits ok when enabled', async () => {
-    const events: Array<{ level: string; status?: unknown }> = [];
+    const events: Array<{ level: string; status?: string }> = [];
     await runEcsSchedulerProbeIfEnabled({
         env: { BQ_ECS_SCHEDULER_PROBE: '1' },
         emitProbeEvent: (level, fields) => {

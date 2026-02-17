@@ -3,13 +3,21 @@ import { installWorldPlayerLifecycle } from '../../server/world/player-lifecycle
 
 type EventName = 'playerConnect' | 'playerEnter';
 type PlayerEventName = 'move' | 'lootMove' | 'exit';
+type PlayerFixture = {
+    id: number;
+    name: string;
+    hasEnteredGame: boolean;
+    lastCheckpoint: null;
+    setPositionResolver(): void;
+    on(eventName: PlayerEventName, callback: (...args: object[]) => void): void;
+};
 
 test('player lifecycle binds disconnect teardown once across repeated playerEnter', () => {
-    const worldHandlers: Record<EventName, Array<(player: unknown) => void>> = {
+    const worldHandlers: Record<EventName, Array<(player: PlayerFixture) => void>> = {
         playerConnect: [],
         playerEnter: [],
     };
-    const playerHandlers: Record<PlayerEventName, Array<(...args: unknown[]) => void>> = {
+    const playerHandlers: Record<PlayerEventName, Array<(...args: object[]) => void>> = {
         move: [],
         lootMove: [],
         exit: [],
@@ -27,7 +35,7 @@ test('player lifecycle binds disconnect teardown once across repeated playerEnte
             },
         },
         playerCount: 1,
-        on(eventName: EventName, callback: (player: unknown) => void) {
+        on(eventName: EventName, callback: (player: PlayerFixture) => void) {
             worldHandlers[eventName].push(callback);
         },
         emit(eventName: 'playerAdded' | 'playerRemoved') {
@@ -51,7 +59,7 @@ test('player lifecycle binds disconnect teardown once across repeated playerEnte
         hasEnteredGame: true,
         lastCheckpoint: null,
         setPositionResolver() {},
-        on(eventName: PlayerEventName, callback: (...args: unknown[]) => void) {
+        on(eventName: PlayerEventName, callback: (...args: object[]) => void) {
             playerHandlers[eventName].push(callback);
         },
     };
@@ -73,4 +81,3 @@ test('player lifecycle binds disconnect teardown once across repeated playerEnte
     expect(decrementPlayerCountCalls).toBe(1);
     expect(emitted.filter((eventName) => eventName === 'playerRemoved')).toHaveLength(1);
 });
-

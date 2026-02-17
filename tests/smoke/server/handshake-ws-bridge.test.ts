@@ -4,9 +4,12 @@ import { killBunProcess } from '../../support/process-cleanup';
 import WebSocket from '../../support/ws-client';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
-type EventRecord = Record<string, unknown>;
+type EventValue = string | number | boolean | null | undefined | EventValue[] | { [key: string]: EventValue };
+type EventRecord = Record<string, EventValue>;
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: JsonValue | object | null | undefined): value is EventRecord {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -71,7 +74,7 @@ async function waitForProcessExit(proc: ReturnType<typeof Bun.spawn>, timeoutMs 
     });
 }
 
-async function readStreamText(stream: ReadableStream<unknown> | number | null | undefined): Promise<string> {
+async function readStreamText(stream: ReadableStream<Uint8Array> | number | null | undefined): Promise<string> {
     if (!stream || typeof stream === 'number') {
         return '';
     }
@@ -90,7 +93,7 @@ async function readStreamText(stream: ReadableStream<unknown> | number | null | 
     return output;
 }
 
-function startStructuredCapture(stream: ReadableStream<unknown> | number | null | undefined, events: EventRecord[]) {
+function startStructuredCapture(stream: ReadableStream<Uint8Array> | number | null | undefined, events: EventRecord[]) {
     if (!stream || typeof stream === 'number') {
         return;
     }
@@ -112,7 +115,7 @@ function startStructuredCapture(stream: ReadableStream<unknown> | number | null 
                     return;
                 }
                 try {
-                    const parsed: unknown = JSON.parse(trimmed);
+                    const parsed = JSON.parse(trimmed) as JsonValue;
                     if (isRecord(parsed)) {
                         events.push(parsed);
                     }
@@ -176,7 +179,7 @@ test("server entry with websocket bridge probe sends initial 'go' handshake", as
             clearTimeout(timeout);
             reject(err instanceof Error ? err : new Error(String(err)));
         });
-        ws.once('message', (data: unknown) => {
+        ws.once('message', (data: string | Blob | ArrayBuffer | Uint8Array) => {
             clearTimeout(timeout);
             if (typeof data !== 'string') {
                 reject(new Error('Unexpected websocket handshake payload type'));

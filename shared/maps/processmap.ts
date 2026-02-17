@@ -1,10 +1,13 @@
 import Types from '../gametypes-browser';
 
 type ExportMode = "client" | "server";
+type ScalarValue = string | number | boolean | null;
+type MapFieldValue = ScalarValue | Array<number | undefined> | undefined;
+type MapRecord = Record<string, MapFieldValue>;
 
 type TiledProperty = {
     name: string;
-    value: unknown;
+    value: ScalarValue;
 };
 
 type TiledTile = {
@@ -43,7 +46,7 @@ type TiledObjectLayer = TiledLayerBase & {
     objects?: TiledObject[];
 };
 
-type TiledLayer = TiledTileLayer | TiledObjectLayer | (TiledLayerBase & Record<string, unknown>);
+type TiledLayer = TiledTileLayer | TiledObjectLayer | (TiledLayerBase & Record<string, ScalarValue | number[] | object | undefined>);
 
 type TiledMapJson = {
     width: number;
@@ -57,7 +60,7 @@ type ExportedDoor = {
     x: number;
     y: number;
     p: number;
-    [key: string]: unknown;
+    [key: string]: MapFieldValue;
 };
 
 type ExportedCheckpoint = {
@@ -81,23 +84,23 @@ type ExportedMap = {
     animated?: Record<number, { l?: number; d?: number }>;
     blocking?: number[];
     plateau?: number[];
-    musicAreas?: Array<{ x: number; y: number; w: number; h: number; id: unknown }>;
-    roamingAreas?: Array<Record<string, unknown>>;
-    chestAreas?: Array<Record<string, unknown>>;
+    musicAreas?: Array<{ x: number; y: number; w: number; h: number; id: ScalarValue | undefined }>;
+    roamingAreas?: Array<MapRecord>;
+    chestAreas?: Array<MapRecord>;
     staticChests?: Array<{ x: number; y: number; i: number[] }>;
     staticEntities?: Record<number, string>;
 };
 
 const GLOBAL_TILE_ID_MASK = 0x1fffffff;
 
-function normalizeGid(value: unknown): number {
+function normalizeGid(value: number | string | boolean | null | undefined): number {
     if (typeof value !== "number" || !Number.isFinite(value)) {
         return 0;
     }
     return value & GLOBAL_TILE_ID_MASK;
 }
 
-function normalizeScalar(value: unknown): unknown {
+function normalizeScalar(value: ScalarValue): ScalarValue {
     if (typeof value !== "string") {
         return value;
     }
@@ -117,12 +120,12 @@ function getProperties(value: { properties?: TiledProperty[] }): TiledProperty[]
     return Array.isArray(value.properties) ? value.properties : [];
 }
 
-function getPropertyValue(value: { properties?: TiledProperty[] }, name: string): unknown {
+function getPropertyValue(value: { properties?: TiledProperty[] }, name: string): ScalarValue | undefined {
     const property = getProperties(value).find((entry) => entry.name === name);
     return property ? normalizeScalar(property.value) : undefined;
 }
 
-function getFirstPropertyValue(value: { properties?: TiledProperty[] }): unknown {
+function getFirstPropertyValue(value: { properties?: TiledProperty[] }): ScalarValue | undefined {
     const property = getProperties(value)[0];
     return property ? normalizeScalar(property.value) : undefined;
 }
@@ -146,7 +149,7 @@ function toLayerTileData(layer: TiledTileLayer): number[] {
     return layer.data.map(normalizeGid);
 }
 
-function toMode(value: unknown): ExportMode {
+function toMode(value: string | undefined): ExportMode {
     return value === "client" ? "client" : "server";
 }
 
@@ -157,12 +160,12 @@ export default function processMap(
     const mode = toMode(options.mode);
     const quiet = options.quiet === true;
     const log = {
-        info: (...args: unknown[]) => {
+        info: (...args: Array<string | number | boolean | object | null | undefined>) => {
             if (!quiet) {
                 console.log(...args);
             }
         },
-        error: (...args: unknown[]) => console.error(...args),
+        error: (...args: Array<string | number | boolean | object | null | undefined>) => console.error(...args),
     };
 
     const tiledLayers = Array.isArray(json.layers) ? json.layers : [];
@@ -236,7 +239,7 @@ export default function processMap(
 
         if (tileset.name === "Mobs" && mode === "server") {
             log.info("Processing static entity properties...");
-            mobsFirstgid = Number.isFinite(tileset.firstgid) ? (tileset.firstgid as number) : 0;
+            mobsFirstgid = typeof tileset.firstgid === 'number' && Number.isFinite(tileset.firstgid) ? tileset.firstgid : 0;
             for (const tile of Array.isArray(tileset.tiles) ? tileset.tiles : []) {
                 const entityType = getPropertyValue(tile, "type");
                 if (typeof entityType === "string" && entityType.length > 0) {
@@ -291,7 +294,7 @@ export default function processMap(
             log.info("Processing chest areas...");
             const chestAreas = (map.chestAreas ??= []);
             for (const area of objectLayer.objects ?? []) {
-                const chestArea: Record<string, unknown> = {
+                const chestArea: MapRecord = {
                     x: area.x / map.tilesize,
                     y: area.y / map.tilesize,
                     w: area.width / map.tilesize,

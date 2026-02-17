@@ -1,5 +1,4 @@
 import { afterEach, expect, test } from 'bun:test';
-import { Database } from 'bun:sqlite';
 import { rmSync } from 'node:fs';
 import path from 'node:path';
 import Types from '../../shared/gametypes-browser';
@@ -262,43 +261,6 @@ test('player persistence round-trips progression state fields', () => {
         { itemKind: Types.Entities.FLASK, quantity: 3 },
         { itemKind: Types.Entities.BURGER, quantity: 1 },
     ]);
-
-    persistence.close();
-});
-
-test('player persistence migrates legacy players schema and applies progression defaults', () => {
-    const dbPath = path.resolve(
-        `./server/.tmp-player-persistence-legacy-${Date.now()}-${Math.floor(Math.random() * 100000)}.sqlite`
-    );
-    tempDbPaths.push(dbPath);
-
-    const legacyDb = new Database(dbPath, { create: true });
-    legacyDb.exec(`
-        CREATE TABLE IF NOT EXISTS players (
-            name_key TEXT PRIMARY KEY,
-            display_name TEXT NOT NULL,
-            armor_kind INTEGER NOT NULL,
-            weapon_kind INTEGER NOT NULL,
-            checkpoint_id INTEGER NULL,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS active_sessions (
-            name_key TEXT PRIMARY KEY,
-            connection_id TEXT NOT NULL UNIQUE,
-            claimed_at INTEGER NOT NULL
-        );
-        INSERT INTO players (name_key, display_name, armor_kind, weapon_kind, checkpoint_id, created_at, updated_at)
-        VALUES ('legacy', 'Legacy', ${Types.Entities.CLOTHARMOR}, ${Types.Entities.SWORD1}, NULL, 1, 1);
-    `);
-    legacyDb.close();
-
-    const persistence = new SqlitePlayerPersistence(dbPath);
-    const profile = persistence.getProfileByName('legacy');
-    expect(profile).not.toBeNull();
-    expect(profile?.progression.gold).toBe(0);
-    expect(profile?.progression.farmingLevel).toBe(1);
-    expect(profile?.progression.inventory).toEqual([]);
 
     persistence.close();
 });

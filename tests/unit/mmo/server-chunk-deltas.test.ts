@@ -4,6 +4,9 @@ import Player from '../../../server/player';
 import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { decodeChunkDeltaPayloadJson } from '../../../shared/protocol/chunks/chunk-delta-codec';
+import type { WorldMessage } from '../../../server/world/contracts';
+
+type FrameInput = ReadonlyArray<number | string> | object | null | undefined;
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -21,7 +24,7 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function isChunkDeltaMessage(msg: unknown): msg is [number, number, number, number, number, string] {
+function isChunkDeltaMessage(msg: FrameInput): msg is [number, number, number, number, number, string] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_DELTA
@@ -37,8 +40,8 @@ test('chunk overlay edits stream versioned CHUNK_DELTA when subscriber version a
     const player = createTestPlayer(23301);
     player.setPosition(1, 1);
 
-    const delivered: unknown[] = [];
-    const host: Record<string, unknown> = {
+    const delivered: WorldMessage[] = [];
+    const host = {
         ups: 50,
         map: {
             getCheckpoint() {
@@ -79,14 +82,14 @@ test('chunk overlay edits stream versioned CHUNK_DELTA when subscriber version a
             return null;
         },
         handleItemDespawn() {},
-        moveEntity(entity: unknown, x: number, y: number) {
-            (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+        moveEntity(entity: { setPosition: (nextX: number, nextY: number) => void }, x: number, y: number) {
+            entity.setPosition(x, y);
         },
         removeEntity() {},
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(playerId: number, message: unknown) {
+        pushToPlayerId(playerId: number, message: WorldMessage) {
             if (playerId === player.id) {
                 delivered.push(message);
             }
@@ -139,4 +142,3 @@ test('chunk overlay edits stream versioned CHUNK_DELTA when subscriber version a
     const decoded2 = decodeChunkDeltaPayloadJson(payloadJson2);
     expect(decoded2?.changes).toContainEqual([1, 1, null]);
 });
-

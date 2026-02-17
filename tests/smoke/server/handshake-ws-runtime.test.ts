@@ -4,7 +4,10 @@ import { killBunProcess } from '../../support/process-cleanup';
 import WebSocket from '../../support/ws-client';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
-type EventRecord = Record<string, unknown>;
+type EventValue = string | number | boolean | null | undefined | EventValue[] | { [key: string]: EventValue };
+type EventRecord = Record<string, EventValue>;
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 async function getFreePort() {
     return new Promise<number>((resolve, reject) => {
@@ -52,7 +55,7 @@ async function waitForCondition(check: () => boolean, timeoutMs: number, label: 
     }
 }
 
-function startStructuredCapture(stream: ReadableStream<unknown> | number | null | undefined, events: EventRecord[]) {
+function startStructuredCapture(stream: ReadableStream<Uint8Array> | number | null | undefined, events: EventRecord[]) {
     if (!stream || typeof stream === 'number') {
         return;
     }
@@ -74,7 +77,7 @@ function startStructuredCapture(stream: ReadableStream<unknown> | number | null 
                     return;
                 }
                 try {
-                    const parsed: unknown = JSON.parse(trimmed) as unknown;
+                    const parsed = JSON.parse(trimmed) as JsonValue;
                     if (parsed && typeof parsed === 'object') {
                         events.push(parsed as EventRecord);
                     }

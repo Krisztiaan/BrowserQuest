@@ -1,12 +1,8 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { AUTH_COOKIE_MAX_AGE_SECONDS } from '../shared/auth/cookie-keys';
+import { normalizeIdentityKeyOrNull } from './identity';
 
 let runtimeSessionSecret: string | null = null;
-
-function normalizeIdentityKey(value: string): string | null {
-    const normalized = value.trim().toLowerCase();
-    return normalized.length > 0 ? normalized : null;
-}
 
 function encodeBase64Url(value: string): string {
     return Buffer.from(value, 'utf8').toString('base64url');
@@ -51,7 +47,7 @@ export function createSignedAuthSessionToken({
     nowMs?: number;
     ttlSeconds?: number;
 }): string {
-    const normalized = normalizeIdentityKey(accountNameKey);
+    const normalized = normalizeIdentityKeyOrNull(accountNameKey);
     if (!normalized) {
         throw new Error('createSignedAuthSessionToken: accountNameKey is required');
     }
@@ -101,7 +97,7 @@ export function verifySignedAuthSessionToken({
     if (!decodedName) {
         return null;
     }
-    const normalizedName = normalizeIdentityKey(decodedName);
+    const normalizedName = normalizeIdentityKeyOrNull(decodedName);
     if (!normalizedName) {
         return null;
     }

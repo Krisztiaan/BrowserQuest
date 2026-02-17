@@ -7,7 +7,6 @@ import {
 } from '../shared/auth/cookie-keys';
 
 export const STORAGE_KEY = 'username';
-const LEGACY_STORAGE_KEY = 'data';
 export const USERNAME_COOKIE_KEY = SHARED_USERNAME_COOKIE_KEY;
 
 type PlayerStorage = {
@@ -30,13 +29,6 @@ type StorageData = {
     hasAlreadyPlayed: boolean;
     player: PlayerStorage;
     achievements: AchievementStorage;
-};
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-type LegacyStorageRecord = {
-    name?: JsonValue;
-    player?: { name?: JsonValue };
-    achievements?: { unlocked?: JsonValue[] };
 };
 
 const MAX_RAT_COUNT = 10;
@@ -127,7 +119,7 @@ function sanitizeUnlockedIds(ids: number[]): AchievementId[] {
 }
 
 class Storage {
-    data: StorageData;
+    data!: StorageData;
 
     constructor() {
         this.resetData();
@@ -145,37 +137,6 @@ class Storage {
             const directUsername = sanitizePlayerName(localStorage.getItem(STORAGE_KEY));
             if (directUsername !== null) {
                 return directUsername;
-            }
-
-            const legacyRaw = localStorage.getItem(LEGACY_STORAGE_KEY);
-            if (legacyRaw) {
-                let legacyName: string | null = null;
-                try {
-                    const parsed = JSON.parse(legacyRaw) as LegacyStorageRecord | null;
-                    if (parsed && typeof parsed === 'object') {
-                        legacyName = sanitizePlayerName(
-                            typeof parsed.name === 'string'
-                                ? parsed.name
-                                : typeof parsed.player?.name === 'string'
-                                  ? parsed.player.name
-                                  : null
-                        );
-
-                        if (Array.isArray(parsed.achievements?.unlocked)) {
-                            this.data.achievements.unlocked = parsed.achievements.unlocked.filter(
-                                (id): id is AchievementId => isAchievementId(id)
-                            );
-                        }
-                    }
-                } catch (_error) {
-                    legacyName = null;
-                }
-
-                if (legacyName !== null) {
-                    localStorage.setItem(STORAGE_KEY, legacyName);
-                    localStorage.removeItem(LEGACY_STORAGE_KEY);
-                    return legacyName;
-                }
             }
         }
 
@@ -227,7 +188,6 @@ class Storage {
         clearUsernameCookie();
         if (this.hasLocalStorage()) {
             localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(LEGACY_STORAGE_KEY);
         }
         this.resetData();
     }

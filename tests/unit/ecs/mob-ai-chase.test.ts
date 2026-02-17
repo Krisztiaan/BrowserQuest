@@ -5,6 +5,15 @@ import { gridPos } from '../../../shared/domain/positions';
 import Player from '../../../server/player';
 import MobEntity from '../../../server/world/mob-entity';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
+import type { WorldMessage } from '../../../server/world/contracts';
+
+type TestEntity = Readonly<{
+    id: number;
+    kind: number;
+    x: number;
+    y: number;
+    setPosition?: (nextX: number, nextY: number) => void;
+}> | Player | MobEntity;
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -48,13 +57,13 @@ function createPipelineFixture({
     ups,
 }: {
     player: Player;
-    entities: Map<number, unknown>;
+    entities: Map<number, TestEntity>;
     isValidPosition: (x: number, y: number) => boolean;
     ups?: number;
-}): { pipeline: WorldEcsCommandPipeline; delivered: unknown[] } {
-    const delivered: unknown[] = [];
+}): { pipeline: WorldEcsCommandPipeline; delivered: WorldMessage[] } {
+    const delivered: WorldMessage[] = [];
 
-    const host: Record<string, unknown> = {
+    const host = {
         ups: typeof ups === 'number' ? ups : 5,
         map: {
             getCheckpoint() {
@@ -93,13 +102,20 @@ function createPipelineFixture({
             return null;
         },
         handleItemDespawn() {},
-        moveEntity(entity: unknown, x: number, y: number) {
-            (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+        moveEntity(entity: TestEntity, x: number, y: number) {
+            if (
+                typeof entity === 'object'
+                && entity !== null
+                && 'setPosition' in entity
+                && typeof entity.setPosition === 'function'
+            ) {
+                entity.setPosition(x, y);
+            }
         },
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(playerId: number, message: unknown) {
+        pushToPlayerId(playerId: number, message: WorldMessage) {
             if (playerId === player.id) {
                 delivered.push(message);
             }
@@ -113,8 +129,8 @@ function createPipelineFixture({
     };
 
     const pipeline = new WorldEcsCommandPipeline(host as never);
-    (host as unknown as { removeEntity: (entity: unknown) => void }).removeEntity = (entity: unknown) => {
-        const id = (entity as { id: number }).id;
+    (host as { removeEntity: (entity: TestEntity) => void }).removeEntity = (entity: TestEntity) => {
+        const id = entity.id;
         entities.delete(id);
         pipeline.removeEntity(id);
     };
@@ -129,7 +145,7 @@ test('server mob_ai steps toward target and stops when adjacent', () => {
     const mobId = entityIdFromWire(7);
     const mob = new MobEntity(mobId, Types.Entities.RAT, 0, 0);
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -164,7 +180,7 @@ test('mob_ai respects per-kind movement cooldown at high UPS (no teleport-chase)
     const mobId = entityIdFromWire(2168);
     const mob = new MobEntity(mobId, Types.Entities.SKELETON, 0, 0);
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -210,7 +226,7 @@ test('mob_ai avoids occupied direct lane and picks alternate adjacent approach',
         y: 2,
     };
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
         [blockingChest.id, blockingChest],
@@ -250,7 +266,7 @@ test('mob_ai treats NPC tiles as occupied (prevents mob/NPC overlap)', () => {
         y: 2,
     };
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
         [blockingNpc.id, blockingNpc],
@@ -290,7 +306,7 @@ test('mob_ai never steps onto an occupied tile when lane is blocked', () => {
         y: 1,
     };
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
         [blockingChest.id, blockingChest],
@@ -323,7 +339,7 @@ test('mob_ai repaths under movement churn (no long chase stall beyond move coold
 
     const mobId = entityIdFromWire(10);
     const mob = new MobEntity(mobId, Types.Entities.RAT, 0, 0);
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -366,7 +382,7 @@ test('mob_ai returns to spawn tile and stops (no pacing oscillation)', () => {
     const mobId = entityIdFromWire(1200);
     const mob = new MobEntity(mobId, Types.Entities.RAT, 2, 0);
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -409,7 +425,7 @@ test('server-authoritative combat kills mob on ATTACK and emits DESPAWN', () => 
     mob.maxHitPoints = 1;
     mob.hitPoints = 1;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -441,7 +457,7 @@ test('server-authoritative combat kills mob on ATTACK and emits DESPAWN', () => 
 test('MOVE command emits authoritative self-ack move to player', () => {
     const player = createTestPlayer(166);
     player.setPosition(5, 5);
-    const entities = new Map<number, unknown>([[player.id, player]]);
+    const entities = new Map<number, TestEntity>([[player.id, player]]);
     const { pipeline, delivered } = createPipelineFixture({
         player,
         entities,
@@ -467,7 +483,7 @@ test('MOVE command emits authoritative self-ack move to player', () => {
 test('invalid MOVE command emits corrective self TELEPORT to authoritative player position', () => {
     const player = createTestPlayer(167);
     player.setPosition(5, 5);
-    const entities = new Map<number, unknown>([[player.id, player]]);
+    const entities = new Map<number, TestEntity>([[player.id, player]]);
     const { pipeline, delivered } = createPipelineFixture({
         player,
         entities,
@@ -498,7 +514,7 @@ test('invalid MOVE command emits corrective self TELEPORT to authoritative playe
 test('server queues adjacent MOVE intents and applies them at move cadence', () => {
     const player = createTestPlayer(170);
     player.setPosition(5, 5);
-    const entities = new Map<number, unknown>([[player.id, player]]);
+    const entities = new Map<number, TestEntity>([[player.id, player]]);
 
     const { pipeline, delivered } = createPipelineFixture({
         player,
@@ -565,7 +581,7 @@ test('server-authoritative combat enforces cooldown between consecutive hits', (
     mob.maxHitPoints = 100;
     mob.hitPoints = 100;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -628,7 +644,7 @@ test('server-authoritative combat rejects out-of-range ATTACK damage', () => {
     mob.maxHitPoints = 100;
     mob.hitPoints = 100;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -664,7 +680,7 @@ test('server-authoritative combat allows extended line reach for large melee wea
     mob.maxHitPoints = 100;
     mob.hitPoints = 100;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -705,7 +721,7 @@ test('extended melee reach stays directional (no diagonal hits)', () => {
     mob.maxHitPoints = 100;
     mob.hitPoints = 100;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -742,7 +758,7 @@ test('server-authoritative combat rejects out-of-range mob damage', () => {
     const mob = new MobEntity(mobId, Types.Entities.RAT, 10, 10);
     mob.weaponLevel = 5;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -775,7 +791,7 @@ test('mob stops dealing damage after player leaves adjacency', () => {
     const mob = new MobEntity(mobId, Types.Entities.RAT, 1, 0);
     mob.weaponLevel = 5;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -823,7 +839,7 @@ test('server-authoritative mob damage uses ECS adjacency only', () => {
     const mob = new MobEntity(mobId, Types.Entities.RAT, 1, 0);
     mob.weaponLevel = 5;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -859,7 +875,7 @@ test('respawn task queue emits mob respawn event on schedule', () => {
     const player = createTestPlayer(107);
     const mobId = entityIdFromWire(14);
     const mob = new MobEntity(mobId, Types.Entities.RAT, 10, 10);
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [mob.id, mob],
     ]);
@@ -896,7 +912,7 @@ test('server-authoritative combat tolerates stale target links after same-tick k
     mob.maxHitPoints = 1;
     mob.hitPoints = 1;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [playerA.id, playerA],
         [playerB.id, playerB],
         [mob.id, mob],
@@ -945,7 +961,7 @@ test('player death clears all mob target links in the same tick', () => {
     const staleMob = new MobEntity(staleMobId, Types.Entities.RAT, 0, 1);
     staleMob.weaponLevel = 5;
 
-    const entities = new Map<number, unknown>([
+    const entities = new Map<number, TestEntity>([
         [player.id, player],
         [aggroMob.id, aggroMob],
         [staleMob.id, staleMob],

@@ -15,7 +15,7 @@ import {
 
 test('client protocol payload helper normalizes protocol action batches', () => {
     const singleAction: ClientProtocolAction = [1, 7, 'hello', 10, 20, 100];
-    const batchAction: unknown = [[3, 42], [22, 99], ['oops']];
+    const batchAction = [[3, 42], [22, 99], ['oops']] as const;
 
     expect(decodeServerToClientProtocolAction(singleAction)).toEqual(singleAction);
     expect(decodeServerToClientProtocolAction(['not-opcode'])).toBeNull();

@@ -22,7 +22,7 @@ class WsClient {
         this.#socket.close();
     }
 
-    on(event: string, handler: (...args: unknown[]) => void) {
+    on(event: string, handler: (...args: Array<string | Blob | ArrayBuffer | Uint8Array | Event>) => void) {
         this.#socket.addEventListener(event, (payload) => {
             if (event === 'message') {
                 const messagePayload = payload as MessageEvent;
@@ -38,7 +38,7 @@ class WsClient {
         return this;
     }
 
-    once(event: string, handler: (...args: unknown[]) => void) {
+    once(event: string, handler: (...args: Array<string | Blob | ArrayBuffer | Uint8Array | Event>) => void) {
         const wrapped = (payload: Event) => {
             this.#socket.removeEventListener(event, wrapped);
             if (event === 'message') {

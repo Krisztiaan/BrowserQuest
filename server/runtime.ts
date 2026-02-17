@@ -2,8 +2,11 @@ import type {
     MainRuntimeDependencies,
     MainRuntimeDependencyOverrides,
     MainRuntimeOptions,
+    RuntimeConnection,
+    RuntimeEventFieldValue,
     RuntimeLogger,
     RuntimeMetrics,
+    RuntimePlayer,
     RuntimeProcessLike,
     RuntimeServer,
     RuntimeServerEventEmitter,
@@ -25,6 +28,9 @@ import { createPasskeyAuthResponse } from './passkey-auth';
 import { parseRequestPathname } from './http-utils';
 
 const WsRuntime = WsRuntimeModule as MainRuntimeDependencies['ws'];
+type SessionAttachArgs = Parameters<typeof attachWorldConnectionSession>[0];
+type SessionConnection = SessionAttachArgs['connection'];
+type SessionWorld = SessionAttachArgs['world'];
 
 const log = Log.getLogger();
 
@@ -32,9 +38,9 @@ function createRuntimeDependencies(overrides?: MainRuntimeDependencyOverrides): 
     const injected = overrides ?? {};
     return {
         ws: injected.ws ?? WsRuntime,
-        WorldServer: injected.WorldServer ?? (WorldServer as MainRuntimeDependencies['WorldServer']),
-        Player: injected.Player ?? (Player as MainRuntimeDependencies['Player']),
-        metricsRuntime: injected.metricsRuntime ?? (MetricsRuntime as MainRuntimeDependencies['metricsRuntime']),
+        WorldServer: injected.WorldServer ?? WorldServer,
+        Player: injected.Player ?? Player,
+        metricsRuntime: injected.metricsRuntime ?? MetricsRuntime,
         logger: injected.logger ?? log,
         processObject: injected.processObject ?? (process as RuntimeProcessLike),
         setIntervalFn:
@@ -53,6 +59,33 @@ function createRuntimeDependencies(overrides?: MainRuntimeDependencyOverrides): 
                 clearInterval(timerHandle as Parameters<typeof clearInterval>[0]);
             },
     };
+}
+
+function isSessionConnection(connection: RuntimeConnection): connection is RuntimeConnection & SessionConnection {
+    return (
+        typeof connection.id === 'string'
+        && typeof connection.listen === 'function'
+        && typeof connection.onClose === 'function'
+        && typeof connection.sendUTF8 === 'function'
+        && typeof connection.close === 'function'
+    );
+}
+
+function isSessionWorld(world: RuntimeWorld): world is RuntimeWorld & SessionWorld {
+    const candidate = world as {
+        isPlayerActive?: unknown;
+        enqueueCommand?: unknown;
+        getConnectionPlayerById?: unknown;
+    };
+    return (
+        typeof candidate.isPlayerActive === 'function'
+        && typeof candidate.enqueueCommand === 'function'
+        && typeof candidate.getConnectionPlayerById === 'function'
+    );
+}
+
+function hasSessionPlayerId(player: RuntimePlayer): player is RuntimePlayer & { id: SessionAttachArgs['playerId'] } {
+    return typeof player.id === 'number';
 }
 
 function createServerEventEmitter(logger: RuntimeLogger): RuntimeServerEventEmitter {
@@ -139,8 +172,12 @@ function flushWorldPersistenceOnShutdown(worlds: RuntimeWorld[]): void {
         if (typeof flushable.flushPersistenceOnShutdown === 'function') {
             try {
                 flushable.flushPersistenceOnShutdown();
-            } catch (_) {
-                // ignore best-effort persistence flush failures during shutdown
+            } catch (err) {
+                const worldId = (world as { id?: string }).id ?? 'unknown';
+                log.event('error', 'server.shutdown.flush_failed', {
+                    worldId,
+                    error: String(err),
+                });
             }
         }
     }
@@ -152,8 +189,12 @@ function closeWorldPersistenceOnShutdown(worlds: RuntimeWorld[]): void {
         if (typeof closeable.closePersistence === 'function') {
             try {
                 closeable.closePersistence();
-            } catch (_) {
-                // ignore close failures during shutdown
+            } catch (err) {
+                const worldId = (world as { id?: string }).id ?? 'unknown';
+                log.event('error', 'server.shutdown.close_failed', {
+                    worldId,
+                    error: String(err),
+                });
             }
         }
     }
@@ -342,8 +383,12 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     const emitServerEvent = createServerEventEmitter(logger);
 
     if (!validationResult.isValid) {
+        const runtimeValidationErrors = validationResult.errors.map((error) => ({
+            field: error.field,
+            reason: error.reason,
+        }) satisfies Record<string, RuntimeEventFieldValue>);
         emitServerEvent('error', SERVER_EVENT_NAMES.CONFIG_INVALID, {
-            errors: validationResult.errors,
+            errors: runtimeValidationErrors,
         });
         logger.error('Invalid server configuration: ' + JSON.stringify(validationResult.errors));
         dependencies.processObject.exit(1);
@@ -430,12 +475,33 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
 
         const connect = function (world: RuntimeWorld | null | undefined) {
             if (world) {
+                if (!isSessionConnection(connection)) {
+                    connection.close('Invalid connection runtime shape.');
+                    emitServerEvent('error', SERVER_EVENT_NAMES.CONNECT_REJECTED, {
+                        reason: 'connection_shape_invalid',
+                    });
+                    return;
+                }
+                if (!isSessionWorld(world)) {
+                    connection.close('Invalid world session runtime shape.');
+                    emitServerEvent('error', SERVER_EVENT_NAMES.CONNECT_REJECTED, {
+                        reason: 'world_shape_invalid',
+                    });
+                    return;
+                }
                 const player = new Player(connection, world);
+                if (!hasSessionPlayerId(player)) {
+                    connection.close('Player identity unavailable.');
+                    emitServerEvent('error', SERVER_EVENT_NAMES.CONNECT_REJECTED, {
+                        reason: 'player_id_missing',
+                    });
+                    return;
+                }
                 world.emit('playerConnect', player);
                 attachWorldConnectionSession({
-                    connection: connection as Parameters<typeof attachWorldConnectionSession>[0]['connection'],
-                    world: world as Parameters<typeof attachWorldConnectionSession>[0]['world'],
-                    playerId: player.id as never,
+                    connection,
+                    world,
+                    playerId: player.id,
                 });
                 return;
             }

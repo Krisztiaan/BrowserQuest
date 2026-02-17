@@ -4,13 +4,14 @@ import { validateMapPayload } from '../map';
 type EmitErrorFn = (message: string) => void;
 type FailFn = (code: number) => void;
 type ValidationIssue = Readonly<{
-    field?: string;
-    reason?: string;
+    field: string;
+    reason: string;
 }>;
 type ValidateConfigFn = (config: object) => { isValid: boolean; errors: ValidationIssue[] };
 type LimitUtf8BytesFn = (text: string, maxBytes: number) => string;
 type ReadFileTextFn = (path: string) => Promise<string>;
-type ValidateMapPayloadFn = (payload: unknown) => Promise<{ ok: boolean; reason?: string }>;
+type LooseValue = string | number | boolean | null | undefined | object;
+type ValidateMapPayloadFn = (payload: LooseValue) => Promise<{ ok: boolean; reason?: string }>;
 
 const defaultReadFileText: ReadFileTextFn = async (path: string) => fs.readFile(path, 'utf8');
 
@@ -91,9 +92,9 @@ export async function ensureMapPreflightValid({
         return false;
     }
 
-    let parsedMapPayload: unknown;
+    let parsedMapPayload: LooseValue;
     try {
-        parsedMapPayload = JSON.parse(rawText);
+        parsedMapPayload = JSON.parse(rawText) as LooseValue;
     } catch (_) {
         emitError(`Startup preflight: map file contains invalid JSON: ${mapFilePath}`);
         fail(1);

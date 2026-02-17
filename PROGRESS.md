@@ -2425,3 +2425,163 @@ Format per entry:
     - `bun run verify:modern` (pass)
   - Next action:
     - All active tickets complete; TODO queue cleared.
+
+## 2026-02-17
+
+- 13:35 UTC
+  - Ticket: Meta (audit remediation ticketization)
+  - Status: `done`
+  - Key actions taken:
+    - Converted the pre-release audit findings into executable tickets (309–318) with scope/acceptance/verification/deps.
+    - Captured the key hidden-risk driver: strict full-file typecheck currently fails outside the narrow solution configs.
+  - Evidence:
+    - `bun run typecheck:server` (pass)
+    - `bun run typecheck:client` (pass; narrow include)
+    - `bun run lint` (pass)
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000` (pass)
+    - strict full-file checks (expected fail until Ticket 310):
+      - `bun x tsc ... $(rg --files -g 'client/**/*.ts')` (fails; 582 TS errors)
+      - `bun x tsc ... server/runtime.ts server/world-server.ts server/entry.ts server/startup/*.ts` (fails; 26 TS errors)
+  - Next action:
+    - Execute Ticket 309.
+
+- 15:20 UTC
+  - Ticket: 309 (Typing: add strict full typecheck lanes)
+  - Start timestamp: 2026-02-17 13:36 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added strict full-check TS configs (`tsconfig.full.server.json`, `tsconfig.full.client.json`).
+    - Added package scripts: `typecheck:full:server`, `typecheck:full:client`, `typecheck:full`.
+  - Evidence:
+    - `bun run typecheck:full` (pass)
+  - Next action:
+    - Execute Ticket 310.
+
+- 15:20 UTC
+  - Ticket: 310 (Typing: fix strict-full typecheck to green)
+  - Start timestamp: 2026-02-17 13:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Tightened runtime/startup/world contracts and guards to eliminate strict lane errors.
+    - Completed strict typing cleanup for server seams and selected strict client boundary modules.
+  - Evidence:
+    - `bun run typecheck:full` (pass)
+    - `bun run lint` (pass)
+    - `bun test --timeout 20000` (pass; 414 pass / 1 skip)
+  - Next action:
+    - Execute Ticket 311.
+
+- 15:20 UTC
+  - Ticket: 311 (Protocol: remove legacy MOVE/TELEPORT client paths)
+  - Start timestamp: 2026-02-17 14:10 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed C2S legacy `MOVE`/`TELEPORT` protocol actions from schema/types/manifest/handler-opcode paths.
+    - Removed client legacy send fallbacks; movement/door traversal now use INTENT-only envelopes.
+    - Updated protocol/smoke tests to modern C2S INTENT paths.
+  - Evidence:
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000` (pass)
+    - `bun test tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/mmo/server-seq-idempotency.test.ts --timeout 20000` (pass)
+  - Next action:
+    - Execute Ticket 312.
+
+- 15:20 UTC
+  - Ticket: 312 (Protocol: remove legacy storage + DB migration branches)
+  - Start timestamp: 2026-02-17 14:52 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed client legacy localStorage migration key path and migration-only unit coverage.
+    - Removed in-process SQLite column migration branches in player/claims persistence.
+    - Documented strict pre-release break: fresh DB/local storage required for incompatible builds.
+  - Evidence:
+    - `bun test tests/unit/client-storage.test.ts tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-claims-store.test.ts --timeout 20000` (pass)
+    - `bun run test:modern-parity` (pass)
+    - `bun test --timeout 20000` (pass; 414 pass / 1 skip)
+  - Next action:
+    - Execute Ticket 313.
+
+- 15:20 UTC
+  - Ticket: 313 (Architecture: split `server/world/ecs-command-pipeline.ts`)
+  - Start timestamp: 2026-02-17 15:00 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Extracted intent payload decoding into `server/world/ecs-command-pipeline/intent-payloads.ts`.
+    - Extracted claim intent handling into `server/world/ecs-command-pipeline/claim-intents.ts`.
+    - Extracted chunk AOI/snapshot/delta streaming helpers and replication routines into `server/world/ecs-command-pipeline/chunk-aoi-streaming.ts`.
+    - Reduced `server/world/ecs-command-pipeline.ts` from 3684 lines to 2874 lines.
+  - Evidence:
+    - `bun run typecheck:full:server` (pass)
+    - `bun run lint` (pass)
+    - `bun test --timeout 20000` (pass)
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000` (pass)
+  - Next action:
+    - Execute Ticket 314.
+
+- 15:20 UTC
+  - Ticket: 314 (Dedup: centralize identity normalization utilities)
+  - Start timestamp: 2026-02-17 15:03 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added canonical identity normalization module: `server/identity.ts`.
+    - Migrated auth/passkey/claims/world/pipeline/ws/player-persistence callsites to shared helpers.
+    - Removed duplicate `normalizeIdentityKey` implementations from server code.
+  - Evidence:
+    - `bun test tests/unit/server/passkey-auth.test.ts tests/unit/mmo/server-permissions.test.ts --timeout 30000` (pass)
+    - `bun run typecheck:full:server` (pass)
+  - Next action:
+    - Execute Ticket 315.
+
+- 15:20 UTC
+  - Ticket: 315 (Reliability: replace swallowed errors with structured signals)
+  - Start timestamp: 2026-02-17 15:08 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Replaced shutdown/flush/close swallowed catches with structured error events in runtime + world persistence paths.
+    - Added flush-tick error latching to avoid per-tick log spam while keeping operator-visible failure signals.
+  - Evidence:
+    - `bun test tests/smoke/server-shutdown-signals.test.ts --timeout 30000` (pass)
+    - `bun test tests/smoke/server-structured-logs.lifecycle.test.ts --timeout 30000` (pass)
+  - Next action:
+    - Execute Ticket 316.
+
+- 15:20 UTC
+  - Ticket: 316 (Tooling: deduplicate build/dev fs helpers)
+  - Start timestamp: 2026-02-17 15:10 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added shared tooling FS helpers in `tools/shared/fs-helpers.ts`.
+    - Removed duplicated path existence/copy primitives across `tools/build/*` and `tools/dev/*` scripts.
+  - Evidence:
+    - `bun run build:client` (pass)
+    - `bun run build:server` (pass)
+    - `bun run build:bundle` (pass)
+  - Next action:
+    - Execute Ticket 317.
+
+- 15:20 UTC
+  - Ticket: 317 (Efficiency: reduce snapshot/transport/indexing overhead)
+  - Start timestamp: 2026-02-17 15:11 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added encode-range caching in chunk snapshot part splitting to avoid repeated encode work.
+    - Reduced transport batching overhead by explicit bounded batch construction and small-queue fast path.
+    - Removed per-insert sort/filter churn in claims indexing; preserved oldest-claim semantics via direct minimum-id selection.
+  - Evidence:
+    - `bun test tests/unit/mmo/server-chunk-aoi-snapshots.test.ts tests/unit/mmo/server-chunk-snapshot-config-caps.test.ts --timeout 30000` (pass)
+    - `bun test tests/unit/mmo/server-permissions.test.ts --timeout 30000` (pass)
+    - `bun test tests/unit/server-world-primitives.test.ts --timeout 30000` (pass)
+  - Next action:
+    - Execute Ticket 318.
+
+- 15:20 UTC
+  - Ticket: 318 (Surface: remove or wire unused shutdown/helper code paths)
+  - Start timestamp: 2026-02-17 15:13 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed unused chunk flush scheduler helper APIs (`flushOnHibernate`, `installBestEffortShutdownHooks`).
+    - Kept only actively wired shutdown/persistence surfaces and validated runtime behavior.
+  - Evidence:
+    - `bun run lint` (pass)
+    - `bun test --timeout 20000` (pass; 414 pass / 1 skip)
+  - Next action:
+    - All active tickets complete; TODO queue cleared.

@@ -39,13 +39,13 @@ async function startModernSession(page: Page, name: string, options?: { testMode
     await page.context().clearCookies();
     await page.addInitScript(
         (enableTestMode: boolean, overrideWsUrl: string) => {
-            const testWindow = window as unknown as { __BQ_TEST_MODE__?: boolean };
+            const testWindow = window as { __BQ_TEST_MODE__?: boolean };
             if (enableTestMode) {
                 testWindow.__BQ_TEST_MODE__ = true;
             } else {
                 delete testWindow.__BQ_TEST_MODE__;
             }
-            (globalThis as unknown as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
+            (globalThis as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
             window.localStorage.clear();
         },
         testMode,
@@ -59,9 +59,9 @@ async function startModernSession(page: Page, name: string, options?: { testMode
             .poll(
                 () =>
                     page.evaluate(() => {
-                        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                            | { isBootstrapped?: () => boolean; startSession?: (name: string) => void }
-                            | undefined;
+                        const api = (globalThis as {
+                            __BQ_TEST_API?: { isBootstrapped?: () => boolean; startSession?: (name: string) => void };
+                        }).__BQ_TEST_API;
                         return (
                             typeof api?.isBootstrapped === 'function' &&
                             typeof api.startSession === 'function' &&
@@ -73,9 +73,7 @@ async function startModernSession(page: Page, name: string, options?: { testMode
             .toBe(true);
     }
     await page.evaluate((nextName: string) => {
-        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-            | { startSession?: (name: string) => void }
-            | undefined;
+        const api = (globalThis as { __BQ_TEST_API?: { startSession?: (name: string) => void } }).__BQ_TEST_API;
         api?.startSession?.(nextName);
     }, name);
     await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });
@@ -119,7 +117,7 @@ test('modern browser deterministic cross-zone control causes player movement', a
             isReady?: () => boolean;
             moveToDifferentZone?: () => ZoneMoveResult;
         };
-        const api = (window as unknown as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
+        const api = (window as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
         if (!api || typeof api.isReady !== 'function' || typeof api.moveToDifferentZone !== 'function') {
             return { ok: false, reason: 'api_unavailable' };
         }
@@ -179,7 +177,7 @@ test('modern browser emits ATTACK/LOOTMOVE via deterministic combat-loot test co
             () =>
                 page.evaluate(() => {
                     type TestApi = { getActionTargets?: () => ActionTargets };
-                    const api = (window as unknown as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
+                    const api = (window as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
                     if (!api || typeof api.getActionTargets !== 'function') {
                         return false;
                     }
@@ -198,7 +196,7 @@ test('modern browser emits ATTACK/LOOTMOVE via deterministic combat-loot test co
             isReady?: () => boolean;
             sendCombatLootProbe?: () => CombatLootResult;
         };
-        const api = (window as unknown as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
+        const api = (window as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
         if (!api || typeof api.isReady !== 'function' || typeof api.sendCombatLootProbe !== 'function') {
             return { ok: false, reason: 'api_unavailable' };
         }
@@ -237,7 +235,7 @@ test('modern browser receives HEALTH updates when a mob attacks the player', asy
             isReady?: () => boolean;
             sendAggroProbe?: () => { ok: boolean; reason?: string; mobId?: string | number };
         };
-        const api = (window as unknown as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
+        const api = (window as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
         if (!api || typeof api.isReady !== 'function' || typeof api.sendAggroProbe !== 'function') {
             return { ok: false, reason: 'api_unavailable' };
         }
@@ -275,7 +273,7 @@ test('modern browser receives HEALTH updates when a mob attacks the player', asy
                         getAggroProbeStatus?: () => Status;
                     };
 
-                    const api = (window as unknown as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
+                    const api = (window as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
                     if (!api || typeof api.getAggroProbeStatus !== 'function') {
                         return {
                             ready: false,

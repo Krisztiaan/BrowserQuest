@@ -9,9 +9,9 @@ import {
     MSG_CHAT,
     MSG_DAMAGE,
     MSG_HELLO,
+    MSG_INTENT,
     MSG_LIST,
     MSG_LOOTMOVE,
-    MSG_MOVE,
     MSG_SPAWN,
     MSG_WELCOME,
     MSG_WHO,
@@ -36,14 +36,23 @@ type RunningServer = {
     proc: ReturnType<typeof Bun.spawn>;
 };
 
-function isActionArray(value: unknown): value is Action {
+type FramePayload =
+    | string
+    | ArrayBuffer
+    | ArrayBufferView
+    | ReadonlyArray<Action | number | string | boolean | null | undefined | object>
+    | object
+    | null
+    | undefined;
+
+function isActionArray(value: FramePayload): value is Action {
     return Array.isArray(value) && value.length > 0 && typeof value[0] === 'number';
 }
 
-function normalizePayloadToActions(payload: unknown): Action[] {
+function normalizePayloadToActions(payload: FramePayload): Action[] {
     if (Array.isArray(payload)) {
         if (payload.length > 0 && Array.isArray(payload[0])) {
-            return (payload as unknown[]).filter((entry): entry is Action => isActionArray(entry));
+            return payload.filter((entry): entry is Action => isActionArray(entry));
         }
         return isActionArray(payload) ? [payload] : [];
     }
@@ -63,7 +72,7 @@ function normalizePayloadToActions(payload: unknown): Action[] {
     return parseProtocolActionBatch(text).filter((entry): entry is Action => isActionArray(entry));
 }
 
-function isSafeInteger(value: unknown): value is number {
+function isSafeInteger(value: number | string | boolean | null | undefined | object): value is number {
     return typeof value === 'number' && Number.isSafeInteger(value);
 }
 
@@ -271,7 +280,7 @@ test(
             combatTargetId = isSafeInteger(candidateTargetId) ? candidateTargetId : null;
         }
 
-        ws.send(JSON.stringify([MSG_MOVE, playerX, playerY]));
+        ws.send(JSON.stringify([MSG_INTENT, 1, 'move.step', JSON.stringify({ x: playerX, y: playerY })]));
         await ensureSocketOpen(ws);
 
         const chatMessage = 'modern-e2e-chat';

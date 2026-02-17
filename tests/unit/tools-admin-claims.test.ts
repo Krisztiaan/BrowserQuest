@@ -5,6 +5,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 type CliResult = ReturnType<typeof spawnSync>;
+type JsonScalar = string | number | boolean | null;
+type JsonValue = JsonScalar | JsonValue[] | { [key: string]: JsonValue };
 
 const REPO_ROOT = path.resolve(import.meta.dir, '..', '..');
 
@@ -25,12 +27,12 @@ function runClaimsCli(args: string[]): CliResult {
     });
 }
 
-function parseJsonStdout(result: CliResult): unknown {
+function parseJsonStdout(result: CliResult): JsonValue {
     const stdout = typeof result.stdout === 'string' ? result.stdout.trim() : '';
     if (!stdout) {
         throw new Error('Expected JSON stdout from admin:claims command.');
     }
-    return JSON.parse(stdout);
+    return JSON.parse(stdout) as JsonValue;
 }
 
 test('admin:claims create/list expose delegated editors in persisted output', () => {

@@ -154,7 +154,7 @@ export class SqliteChunkOverlayPersistence {
             throw new Error(`loadRecentIntoStore: invalid limitChunks: ${String(limit)}`);
         }
 
-        const rows = this.#selectRecent.all(limit) as unknown as OverlayRow[];
+        const rows = this.#selectRecent.all(limit) as OverlayRow[];
         let loaded = 0;
         for (const row of rows) {
             if (this.#applyRowToStore(store, row)) {

@@ -10,7 +10,7 @@ export interface AreaEntity {
     id: number | string;
     type?: string;
     isDead?: boolean;
-    area?: unknown;
+    area?: object | null;
 }
 
 type AreaEvents = {

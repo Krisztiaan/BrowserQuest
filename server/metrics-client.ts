@@ -1,128 +1,80 @@
-type Operation = 'write' | 'read';
-
 interface MetricsConfig {
     memcached_port: string | number;
     memcached_host: string;
 }
 
-interface OperationErrorPayload {
-    operation: Operation;
-    key: string;
-    error: string;
+interface MemcacheClientLike {
+    connect(): Promise<unknown> | unknown;
+    set(key: string, value: string): Promise<unknown> | unknown;
+    get(key: string): Promise<unknown> | unknown;
 }
 
-interface MetricsClientHooks {
-    onReady?: () => void;
-    onError?: (error: unknown) => void;
-    onOperationError?: (payload: OperationErrorPayload) => void;
-}
-
-interface ModernMemcacheClient {
-    on?(event: string, listener: (...args: unknown[]) => void): void;
-    connect(): unknown;
-    set(key: string, value: unknown): unknown;
-    get(key: string): unknown;
-}
-
-type ModernMemcacheClientCtor = new (endpoint: string) => ModernMemcacheClient;
+type MemcacheClientCtor = new (endpoint: string) => MemcacheClientLike;
 
 interface MemcacheModuleShape {
-    Memcache?: ModernMemcacheClientCtor;
-    default?: ModernMemcacheClientCtor;
+    Memcache?: MemcacheClientCtor;
+    default?: MemcacheClientCtor;
 }
 
-interface MetricsClientAdapter {
-    clientType: 'modern';
-    connect(): void;
-    set(key: string, value: unknown, callback: (ok: boolean) => void): void;
-    get(key: string, callback: (result: unknown) => void): void;
+export interface MetricsStoreClient {
+    readonly endpoint: string;
+    connect(): Promise<void>;
+    setString(key: string, value: string): Promise<boolean>;
+    getString(key: string): Promise<string | undefined>;
 }
 
-function normalizeError(error: unknown): string {
-    if (error == null) {
-        return 'unknown_error';
+function resolveClientCtor(memcacheModule: MemcacheModuleShape | null | undefined): MemcacheClientCtor {
+    const clientCtor = memcacheModule?.Memcache ?? memcacheModule?.default;
+    if (typeof clientCtor !== 'function') {
+        throw new Error('Unsupported memcache client API');
     }
-    if (
-        typeof error === "object" &&
-        "message" in error &&
-        typeof (error as { message?: unknown }).message === "string"
-    ) {
-        return (error as { message: string }).message;
+    return clientCtor;
+}
+
+function normalizeEndpoint(config: MetricsConfig): string {
+    const host = String(config.memcached_host ?? '').trim();
+    const portText = String(config.memcached_port ?? '').trim();
+    if (host.length === 0 || portText.length === 0) {
+        throw new Error('Invalid memcache endpoint configuration');
     }
-    if (typeof error === 'string') {
-        return error.length > 0 ? error : 'unknown_error';
+    return `${host}:${portText}`;
+}
+
+function assertBooleanResult(value: unknown, operation: 'set'): boolean {
+    if (typeof value !== 'boolean') {
+        throw new Error(`Memcache ${operation} returned non-boolean result`);
     }
-    if (typeof error === 'number' || typeof error === 'boolean' || typeof error === 'bigint') {
-        return String(error);
+    return value;
+}
+
+function assertStringOrUndefinedResult(value: unknown, operation: 'get'): string | undefined {
+    if (value === undefined) {
+        return undefined;
     }
-    try {
-        return JSON.stringify(error);
-    } catch (_) {
-        const tag: unknown = Object.prototype.toString.call(error) as unknown;
-        return typeof tag === 'string' ? tag : 'unknown_error';
+    if (typeof value !== 'string') {
+        throw new Error(`Memcache ${operation} returned non-string result`);
     }
+    return value;
 }
 
 function createMetricsClient(
     memcacheModule: MemcacheModuleShape | null | undefined,
-    config: MetricsConfig,
-    hooks: MetricsClientHooks = {}
-): MetricsClientAdapter {
-    const onReady = typeof hooks.onReady === 'function' ? hooks.onReady : () => {};
-    const onError = typeof hooks.onError === 'function' ? hooks.onError : () => {};
-    const onOperationError =
-        typeof hooks.onOperationError === 'function' ? hooks.onOperationError : () => {};
-
-    const ModernClient = memcacheModule?.Memcache ?? memcacheModule?.default;
-
-    if (typeof ModernClient !== "function") {
-        throw new Error('Unsupported memcache client API');
-    }
-
-    const modernClient = new ModernClient(
-        `${config.memcached_host}:${config.memcached_port}`
-    );
-    if (typeof modernClient.on === 'function') {
-        modernClient.on('connect', onReady);
-        modernClient.on('error', onError);
-    }
+    config: MetricsConfig
+): MetricsStoreClient {
+    const ClientCtor = resolveClientCtor(memcacheModule);
+    const endpoint = normalizeEndpoint(config);
+    const client = new ClientCtor(endpoint);
 
     return {
-        clientType: 'modern',
-        connect() {
-            Promise.resolve(modernClient.connect())
-                .then(onReady)
-                .catch((error) => {
-                    onError(normalizeError(error));
-                });
+        endpoint,
+        connect(): Promise<void> {
+            return Promise.resolve(client.connect()).then(() => {});
         },
-        set(key, value, callback) {
-            Promise.resolve(modernClient.set(key, value))
-                .then((result) => {
-                    callback(result !== false);
-                })
-                .catch((error) => {
-                    onOperationError({
-                        operation: 'write',
-                        key,
-                        error: normalizeError(error),
-                    });
-                    callback(false);
-                });
+        async setString(key: string, value: string): Promise<boolean> {
+            return assertBooleanResult(await client.set(key, value), 'set');
         },
-        get(key, callback) {
-            Promise.resolve(modernClient.get(key))
-                .then((result) => {
-                    callback(result);
-                })
-                .catch((error) => {
-                    onOperationError({
-                        operation: 'read',
-                        key,
-                        error: normalizeError(error),
-                    });
-                    callback(undefined);
-                });
+        async getString(key: string): Promise<string | undefined> {
+            return assertStringOrUndefinedResult(await client.get(key), 'get');
         },
     };
 }

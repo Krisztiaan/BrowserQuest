@@ -1,20 +1,12 @@
 import Log from '../log';
 import { buildPopulationAction } from '../protocol/outbound-actions';
 import { WORLD_EVENT_NAMES } from '../server-event-names';
-import type { EntityId } from '../../shared/domain/ids';
+import type { WorldMessage } from './contracts';
+import type { PlayerLike } from './player-like';
 
 type Position = { x: number; y: number };
 
-type EnteringPlayer = {
-    id: EntityId;
-    name: string;
-    hasEnteredGame: boolean;
-    lastCheckpoint: { getRandomPosition(): Position } | null;
-    setPositionResolver(resolver: () => Position): void;
-    on(eventName: 'move', callback: (x: number, y: number) => void): void;
-    on(eventName: 'lootMove', callback: (x: number, y: number) => void): void;
-    on(eventName: 'exit', callback: () => void): void;
-};
+type EnteringPlayer = PlayerLike;
 
 type LifecycleWorld = {
     id: string;
@@ -28,14 +20,14 @@ type LifecycleWorld = {
     emit(eventName: 'playerAdded'): void;
     incrementPlayerCount(): void;
     decrementPlayerCount(): void;
-    pushToPlayer(player: EnteringPlayer, message: unknown): void;
+    pushToPlayer(player: EnteringPlayer, message: WorldMessage): void;
     removePlayer(player: EnteringPlayer): void;
 };
 
 const log = Log.getLogger();
 
 export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
-    const lifecycleBoundPlayers = new WeakSet<object>();
+    const lifecycleBoundPlayers = new WeakSet<EnteringPlayer>();
 
     const logPlayerEvent = (
         eventName: typeof WORLD_EVENT_NAMES.PLAYER_JOIN | typeof WORLD_EVENT_NAMES.PLAYER_LEAVE,
@@ -50,7 +42,7 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
 
     world.on('playerConnect', function (player) {
         player.setPositionResolver(function () {
-            if (player.lastCheckpoint) {
+            if (player.lastCheckpoint && typeof player.lastCheckpoint.getRandomPosition === 'function') {
                 return player.lastCheckpoint.getRandomPosition();
             }
             return world.map.getRandomStartingPosition();
@@ -67,7 +59,7 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
 
         world.pushToPlayer(player, buildPopulationAction(world.playerCount));
 
-        if (!lifecycleBoundPlayers.has(player as unknown as object)) {
+        if (!lifecycleBoundPlayers.has(player)) {
             const onMove = function (x: number, y: number) {
                 log.debug(player.name + ' is moving to (' + x + ', ' + y + ').');
             };
@@ -83,7 +75,7 @@ export function installWorldPlayerLifecycle(world: LifecycleWorld): void {
                 world.emit('playerRemoved');
             });
 
-            lifecycleBoundPlayers.add(player as unknown as object);
+            lifecycleBoundPlayers.add(player);
         }
 
         world.emit('playerAdded');

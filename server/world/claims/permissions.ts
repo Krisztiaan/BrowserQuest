@@ -1,14 +1,11 @@
 import type { RectClaim } from './claims-store';
+import { normalizeIdentityKey } from '../../identity';
 
 export type PermissionDecision = Readonly<
     | { ok: true }
     | { ok: false; code: 'claimed_no_access'; reason: string }
     | { ok: false; code: 'claimed_not_owner'; reason: string }
 >;
-
-function normalizeIdentityKey(value: string): string {
-    return value.trim().toLowerCase();
-}
 
 export function canEditClaim({
     actorName,

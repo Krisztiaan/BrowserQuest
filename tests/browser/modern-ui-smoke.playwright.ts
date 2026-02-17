@@ -1,13 +1,25 @@
 import { expect, test, type Page } from '@playwright/test';
 import { attachProtocolObserver } from './protocol-observer';
 
+type TestApi = {
+    isBootstrapped?: () => boolean;
+    startSession?: (name: string) => void;
+};
+
+type BrowserTestGlobals = typeof globalThis & {
+    __BQ_WS_URL__?: string;
+    __BQ_TEST_MODE__?: boolean;
+    __BQ_TEST_API?: TestApi;
+};
+
 async function startModernSession(page: Page, name: string) {
     const wsUrl = 'ws://127.0.0.1:8000/ws';
 
     await page.context().clearCookies();
     await page.addInitScript((overrideWsUrl: string) => {
-        (globalThis as unknown as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
-        (globalThis as unknown as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
+        const globals = globalThis as BrowserTestGlobals;
+        globals.__BQ_WS_URL__ = overrideWsUrl;
+        globals.__BQ_TEST_MODE__ = true;
         window.localStorage.clear();
     }, wsUrl);
 
@@ -17,9 +29,8 @@ async function startModernSession(page: Page, name: string) {
         .poll(
             () =>
                 page.evaluate(() => {
-                    const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                        | { isBootstrapped?: () => boolean; startSession?: (name: string) => void }
-                        | undefined;
+                    const globals = globalThis as BrowserTestGlobals;
+                    const api = globals.__BQ_TEST_API;
                     return (
                         typeof api?.isBootstrapped === 'function' &&
                         typeof api.startSession === 'function' &&
@@ -31,9 +42,8 @@ async function startModernSession(page: Page, name: string) {
         .toBe(true);
 
     await page.evaluate((nextName: string) => {
-        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-            | { startSession?: (name: string) => void }
-            | undefined;
+        const globals = globalThis as BrowserTestGlobals;
+        const api = globals.__BQ_TEST_API;
         api?.startSession?.(nextName);
     }, name);
     await expect(page.locator('body')).toHaveClass(/started/, { timeout: 45_000 });

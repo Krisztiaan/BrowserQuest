@@ -1,12 +1,20 @@
 import { expect, test, type Page } from '@playwright/test';
 
+type DoorTestApi = {
+    isBootstrapped?: () => boolean;
+    startSession?: (name: string) => void;
+    isReady?: () => boolean;
+    getPlayerPos?: () => PlayerPos;
+    clickTile?: (x: number, y: number) => { ok: boolean; reason?: string };
+};
+
 async function startModernSession(page: Page, name: string) {
     const wsUrl = 'ws://127.0.0.1:8000/ws';
 
     await page.context().clearCookies();
     await page.addInitScript((overrideWsUrl: string) => {
-        (globalThis as unknown as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
-        (globalThis as unknown as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
+        (globalThis as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
+        (globalThis as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
         window.localStorage.clear();
     }, wsUrl);
 
@@ -16,9 +24,7 @@ async function startModernSession(page: Page, name: string) {
         .poll(
             () =>
                 page.evaluate(() => {
-                    const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                        | { isBootstrapped?: () => boolean; startSession?: (name: string) => void }
-                        | undefined;
+                    const api = (globalThis as { __BQ_TEST_API?: DoorTestApi }).__BQ_TEST_API;
                     return (
                         typeof api?.isBootstrapped === 'function' &&
                         typeof api.startSession === 'function' &&
@@ -30,9 +36,7 @@ async function startModernSession(page: Page, name: string) {
         .toBe(true);
 
     await page.evaluate((nextName: string) => {
-        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-            | { startSession?: (name: string) => void }
-            | undefined;
+        const api = (globalThis as { __BQ_TEST_API?: DoorTestApi }).__BQ_TEST_API;
         api?.startSession?.(nextName);
     }, name);
 
@@ -41,9 +45,7 @@ async function startModernSession(page: Page, name: string) {
         .poll(
             () =>
                 page.evaluate(() => {
-                    const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                        | { isReady?: () => boolean }
-                        | undefined;
+                    const api = (globalThis as { __BQ_TEST_API?: DoorTestApi }).__BQ_TEST_API;
                     return !!api?.isReady?.();
                 }),
             { timeout: 45_000 }
@@ -55,9 +57,7 @@ type PlayerPos = { ok: boolean; x: number | null; y: number | null; reason?: str
 
 async function getPlayerPos(page: Page): Promise<PlayerPos> {
     return page.evaluate(() => {
-        const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-            | { getPlayerPos?: () => PlayerPos }
-            | undefined;
+        const api = (globalThis as { __BQ_TEST_API?: DoorTestApi }).__BQ_TEST_API;
         return api?.getPlayerPos?.() ?? { ok: false, reason: 'missing_api', x: null, y: null };
     });
 }
@@ -65,9 +65,7 @@ async function getPlayerPos(page: Page): Promise<PlayerPos> {
 async function clickTile(page: Page, x: number, y: number): Promise<{ ok: boolean; reason?: string }> {
     return page.evaluate(
         (args: { x: number; y: number }) => {
-            const api = (globalThis as unknown as { __BQ_TEST_API?: unknown }).__BQ_TEST_API as
-                | { clickTile?: (x: number, y: number) => { ok: boolean; reason?: string } }
-                | undefined;
+            const api = (globalThis as { __BQ_TEST_API?: DoorTestApi }).__BQ_TEST_API;
             return api?.clickTile?.(args.x, args.y) ?? { ok: false, reason: 'missing_api' };
         },
         { x, y }

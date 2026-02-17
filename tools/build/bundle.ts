@@ -1,19 +1,11 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { pathExists } from '../shared/fs-helpers';
 
 const repoRoot = path.resolve(import.meta.dir, '..', '..');
 const serverArtifactRoot = path.join(repoRoot, 'dist', 'server');
 const clientArtifactRoot = path.join(repoRoot, 'dist', 'client');
 const bundleRoot = path.join(repoRoot, 'dist', 'bundle');
-
-async function pathExists(targetPath: string): Promise<boolean> {
-    try {
-        await fs.access(targetPath);
-        return true;
-    } catch (_) {
-        return false;
-    }
-}
 
 function resolveGitCommitSha(): string {
     const result = Bun.spawnSync({

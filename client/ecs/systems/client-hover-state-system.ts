@@ -7,7 +7,7 @@ type HighlightableEntity = {
     setHighlight(isHighlighted: boolean): void;
 };
 
-const isHighlightableEntity = (entity: unknown): entity is HighlightableEntity => {
+const isHighlightableEntity = (entity: object | null | undefined): entity is HighlightableEntity => {
     if (!entity || typeof entity !== 'object') {
         return false;
     }
@@ -20,7 +20,7 @@ export type ClientHoverStateSystemHost = {
     renderer: { mobile: boolean; tablet: boolean; supportsSilhouettes: boolean };
     map: { isColliding(x: number, y: number): boolean; isPlateau(x: number, y: number): boolean } | null;
     kernel: ClientWorldKernel;
-    entities: Record<string, unknown>;
+    entities: Record<string, object | null | undefined>;
 
     hoveringCollidingTile: boolean;
     hoveringPlateauTile: boolean;

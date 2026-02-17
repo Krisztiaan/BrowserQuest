@@ -20,23 +20,30 @@ export const CLIENT_TO_SERVER_PROTOCOL_REGISTRY = CLIENT_TO_SERVER_PROTOCOL_MANI
 export const SERVER_TO_CLIENT_PROTOCOL_REGISTRY = SERVER_TO_CLIENT_PROTOCOL_MANIFEST;
 export const PROTOCOL_REGISTRY = PROTOCOL_MANIFEST;
 
-function safeParseJson(payload: string): unknown {
+type JsonScalar = string | number | boolean | null;
+type JsonValue = JsonScalar | JsonValue[] | { [key: string]: JsonValue };
+type ProtocolDecodeInput = JsonValue | object | undefined;
+
+function safeParseJson(payload: string): ProtocolDecodeInput {
     try {
-        return JSON.parse(payload);
+        const parsed: JsonValue = JSON.parse(payload);
+        return parsed;
     } catch (_) {
         return null;
     }
 }
 
-export function isClientToServerProtocolAction(value: unknown): value is ClientToServerProtocolAction {
+export function isClientToServerProtocolAction(
+    value: ProtocolDecodeInput
+): value is ClientToServerProtocolAction {
     return Array.isArray(value) && checkClientToServerProtocolAction(value);
 }
 
-export function decodeClientToServerProtocolAction(value: unknown): ClientToServerProtocolAction | null {
+export function decodeClientToServerProtocolAction(value: ProtocolDecodeInput): ClientToServerProtocolAction | null {
     return isClientToServerProtocolAction(value) ? value : null;
 }
 
-export function normalizeClientToServerProtocolActionBatch(value: unknown): ClientToServerProtocolAction[] {
+export function normalizeClientToServerProtocolActionBatch(value: ProtocolDecodeInput): ClientToServerProtocolAction[] {
     if (!Array.isArray(value)) {
         return [];
     }
@@ -59,11 +66,11 @@ export function decodeClientToServerProtocolActionBatch(payload: string): Client
     return normalizeClientToServerProtocolActionBatch(safeParseJson(payload));
 }
 
-export function decodeServerToClientProtocolAction(value: unknown): ServerToClientProtocolAction | null {
+export function decodeServerToClientProtocolAction(value: ProtocolDecodeInput): ServerToClientProtocolAction | null {
     return isServerToClientProtocolAction(value) ? value : null;
 }
 
-export function normalizeServerToClientProtocolActionBatch(value: unknown): ServerToClientProtocolAction[] {
+export function normalizeServerToClientProtocolActionBatch(value: ProtocolDecodeInput): ServerToClientProtocolAction[] {
     if (!Array.isArray(value)) {
         return [];
     }

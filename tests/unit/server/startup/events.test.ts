@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import { createProbeEventEmitter, createStructuredEventEmitter } from '../../../../server/startup/events';
+import type { RuntimeEventFields } from '../../../../server/runtime-types';
 
 test('structured-event emitter writes non-error events to info channel with stable payload shape', () => {
     const infoLogs: string[] = [];
@@ -47,7 +48,7 @@ test('structured-event emitter writes error events to error channel', () => {
 });
 
 test('probe-event emitter forwards through structured emitter with probe event name', () => {
-    const emitted: Array<{ level: string; event: string; fields: Record<string, unknown> }> = [];
+    const emitted: Array<{ level: string; event: string; fields: RuntimeEventFields }> = [];
     const emitProbeEvent = createProbeEventEmitter({
         emitStructuredEvent: (level, event, fields = {}) => {
             emitted.push({ level, event, fields });

@@ -1,0 +1,19 @@
+{
+  "extends": "./tsconfig.node.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM"],
+    "types": ["bun-types", "node"],
+    "tsBuildInfoFile": ".tmp/tsbuildinfo/typecheck-full-client.tsbuildinfo"
+  },
+  "include": [
+    "client/achievement-domain.ts",
+    "client/asset-key-domain.ts",
+    "client/client-boundary-types.ts",
+    "client/gameclient-outbound-actions.ts",
+    "client/storage.ts",
+    "client/platform/features.ts",
+    "shared/**/*.ts",
+    "types/**/*.d.ts"
+  ],
+  "exclude": []
+}

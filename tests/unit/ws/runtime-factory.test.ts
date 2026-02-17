@@ -2,7 +2,8 @@ import { expect, test } from 'bun:test';
 import { createWebSocketRuntimeClasses } from '../../../server/ws/runtime-factory';
 import type { ProtocolParsedAction } from '../../../shared/protocol/types';
 
-type Handler = (...args: unknown[]) => void;
+type SocketArg = string | number | boolean | null | undefined | object;
+type Handler = (...args: SocketArg[]) => void;
 
 function createSocketMock() {
     const handlers: Record<string, Handler> = {};
@@ -13,7 +14,7 @@ function createSocketMock() {
         on(event: string, handler: Handler) {
             handlers[event] = handler;
         },
-        emit(event: string, ...args: unknown[]) {
+        emit(event: string, ...args: SocketArg[]) {
             handlers[event]?.(...args);
         },
         close(code: number, reason: string) {
@@ -97,9 +98,9 @@ test('ws runtime class factory emits connection class that forwards valid protoc
     const socket = createSocketMock();
     const server = { removeConnection() {} };
     const conn = new wsWebSocketConnection('id-factory-2', socket, server, '127.0.0.1');
-    let received: unknown = null;
+    let received: ProtocolParsedAction | null = null;
 
-    conn.listen((action: unknown) => {
+    conn.listen((action: ProtocolParsedAction) => {
         received = action;
     });
     socket.emit('message', '[1,2,3]', false);

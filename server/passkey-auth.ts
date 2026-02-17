@@ -16,6 +16,7 @@ import {
 import type { SqlitePlayerPersistence } from './player-persistence';
 import { createSignedAuthSessionToken } from './auth-session';
 import { parseRequestPathname } from './http-utils';
+import { normalizeIdentityKey } from './identity';
 
 type PasskeyAuthPersistence = Pick<
     SqlitePlayerPersistence,
@@ -70,10 +71,6 @@ function resolveString(value: LooseValue): string | null {
     }
     const trimmed = value.trim();
     return trimmed.length > 0 ? trimmed : null;
-}
-
-function normalizeIdentityKey(value: string): string {
-    return value.trim().toLowerCase();
 }
 
 function resolveOriginsFromRequest(request: Request): { origin: string; hostname: string } {

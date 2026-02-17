@@ -6,6 +6,9 @@ import {
     writeUsernameCookie,
 } from '../../client/storage';
 
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
 type LocalStorageLike = {
     getItem(key: string): string | null;
     setItem(key: string, value: string): void;
@@ -72,9 +75,9 @@ class FakePublicKeyCredential {
     type: PublicKeyCredentialType;
     authenticatorAttachment: AuthenticatorAttachment | null;
     response: AuthenticatorResponse;
-    private readonly jsonValue: unknown;
+    private readonly jsonValue: JsonValue;
 
-    constructor(jsonValue: unknown) {
+    constructor(jsonValue: JsonValue) {
         this.id = 'fake-credential-id';
         this.rawId = new Uint8Array([1]).buffer;
         this.type = 'public-key';
@@ -87,7 +90,7 @@ class FakePublicKeyCredential {
         return {};
     }
 
-    toJSON(): unknown {
+    toJSON(): JsonValue {
         return this.jsonValue;
     }
 }
@@ -96,8 +99,8 @@ const originalLocalStorage = globalThis.localStorage;
 const originalDocument = globalThis.document;
 const originalFetch = globalThis.fetch;
 const originalNavigator = globalThis.navigator;
-const originalWindow = (globalThis as typeof globalThis & { window?: unknown }).window;
-const originalPublicKeyCredential = (globalThis as typeof globalThis & { PublicKeyCredential?: unknown }).PublicKeyCredential;
+const originalWindow = globalThis.window;
+const originalPublicKeyCredential = globalThis.PublicKeyCredential;
 
 function installWebAuthnMocks({
     createResult,
@@ -106,7 +109,7 @@ function installWebAuthnMocks({
     createResult?: Credential | null;
     getResult?: Credential | null;
 }): void {
-    const credentialClass = FakePublicKeyCredential as unknown as typeof PublicKeyCredential;
+    const credentialClass = FakePublicKeyCredential as typeof PublicKeyCredential;
     const win = (typeof originalWindow === 'object' && originalWindow !== null ? originalWindow : {}) as {
         PublicKeyCredential?: typeof PublicKeyCredential;
     };
@@ -189,7 +192,7 @@ test('registerWithPasskey runs options+verify flow and persists local username i
                 attestationObject: 'AQ',
                 clientDataJSON: 'AQ',
             },
-        }) as unknown as Credential,
+        }) as Credential,
     });
 
     const fetchCalls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
@@ -291,7 +294,7 @@ test('loginWithPasskey returns request failures without mutating local identity'
                 signature: 'AQ',
                 userHandle: null,
             },
-        }) as unknown as Credential,
+        }) as Credential,
     });
 
     Object.defineProperty(globalThis, 'fetch', {
@@ -396,7 +399,7 @@ test('loginWithPasskey surfaces network failures as deterministic auth errors', 
                 signature: 'AQ',
                 userHandle: null,
             },
-        }) as unknown as Credential,
+        }) as Credential,
     });
 
     Object.defineProperty(globalThis, 'fetch', {

@@ -3,6 +3,7 @@ import Types from '../../../shared/gametypes-browser';
 import Player from '../../../server/player';
 import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
+import type { WorldMessage } from '../../../server/world/contracts';
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -24,8 +25,8 @@ test('stepping onto a door tile produces a server-issued TELEPORT to its destina
     const player = createTestPlayer(21201);
     player.setPosition(4, 5);
 
-    const delivered: unknown[] = [];
-    const host: Record<string, unknown> = {
+    const delivered: WorldMessage[] = [];
+    const host = {
         ups: 50,
         map: {
             getCheckpoint() {
@@ -66,14 +67,14 @@ test('stepping onto a door tile produces a server-issued TELEPORT to its destina
             return null;
         },
         handleItemDespawn() {},
-        moveEntity(entity: unknown, x: number, y: number) {
-            (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+        moveEntity(entity: { setPosition: (nextX: number, nextY: number) => void }, x: number, y: number) {
+            entity.setPosition(x, y);
         },
         removeEntity() {},
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(playerId: number, message: unknown) {
+        pushToPlayerId(playerId: number, message: WorldMessage) {
             if (playerId === player.id) {
                 delivered.push(message);
             }

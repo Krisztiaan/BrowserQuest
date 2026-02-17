@@ -5,6 +5,10 @@ import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { CLAIMS_STORE_RESOURCE } from '../../../server/world/claims/claims-resource';
 import type { RectClaim } from '../../../server/world/claims/claims-store';
+import type { WorldMessage } from '../../../server/world/contracts';
+
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 function createTestPlayer(wireId: number, name: string): Player {
     const connection = {
@@ -39,18 +43,18 @@ function createPipelineHarness({
 }): {
     player: Player;
     pipeline: WorldEcsCommandPipeline;
-    delivered: unknown[];
+    delivered: WorldMessage[];
     persistedClaimUpserts: RectClaim[];
     persistedClaimDeletes: number[];
 } {
     const player = createTestPlayer(wireId, playerName);
     player.setPosition(position.x, position.y);
 
-    const delivered: unknown[] = [];
+    const delivered: WorldMessage[] = [];
     const persistedClaimUpserts: RectClaim[] = [];
     const persistedClaimDeletes: number[] = [];
 
-    const host: Record<string, unknown> = {
+    const host = {
         ups: 50,
         map: {
             getCheckpoint() {
@@ -94,14 +98,14 @@ function createPipelineHarness({
             return null;
         },
         handleItemDespawn() {},
-        moveEntity(entity: unknown, x: number, y: number) {
-            (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+        moveEntity(entity: { setPosition: (nextX: number, nextY: number) => void }, x: number, y: number) {
+            entity.setPosition(x, y);
         },
         removeEntity() {},
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(playerId: number, message: unknown) {
+        pushToPlayerId(playerId: number, message: WorldMessage) {
             if (playerId === player.id) {
                 delivered.push(message);
             }
@@ -147,7 +151,7 @@ function enqueueIntent({
     player: Player;
     seq: number;
     intentTypeId: string;
-    payload: unknown;
+    payload: JsonValue;
 }): void {
     pipeline.enqueue({
         type: 'INTENT',
@@ -158,7 +162,7 @@ function enqueueIntent({
     });
 }
 
-function findRejectMessage(delivered: unknown[]): [number, number, string, string] | undefined {
+function findRejectMessage(delivered: WorldMessage[]): [number, number, string, string] | undefined {
     return delivered.find((msg) => Array.isArray(msg) && msg[0] === Types.Messages.REJECT) as [number, number, string, string] | undefined;
 }
 
@@ -346,4 +350,3 @@ test('delegated editor can update claim bounds but cannot modify claim ACL', () 
     expect(reject?.[3]).toContain('PERMISSION:claimed_not_owner');
     expect(claims.getClaimById(claim.id)?.editorNameKeys).toEqual(['bob']);
 });
-

@@ -23,8 +23,7 @@ function setGrid(
 
 test('attack intent enqueues follow when non-adjacent', () => {
     const playerId = entityIdFromWire(5100);
-    const player = new Player('player', 'K', Types.Entities.WARRIOR);
-    (player as unknown as { id: number }).id = playerId;
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
     setGrid(player, 10, 10);
 
     const mob = new Mob(entityIdFromWire(1701), Types.Entities.RAT);
@@ -71,8 +70,7 @@ test('attack intent enqueues follow when non-adjacent', () => {
 
 test('attack intent emits ATTACK once adjacent even if target already assigned', () => {
     const playerId = entityIdFromWire(5101);
-    const player = new Player('player', 'K', Types.Entities.WARRIOR);
-    (player as unknown as { id: number }).id = playerId;
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
     setGrid(player, 10, 10);
 
     const mob = new Mob(entityIdFromWire(1702), Types.Entities.RAT);
@@ -122,8 +120,7 @@ test('attack intent emits ATTACK once adjacent even if target already assigned',
 
 test('attack intent emits ATTACK at 2-tile line range for heavy melee weapon', () => {
     const playerId = entityIdFromWire(5102);
-    const player = new Player('player', 'K', Types.Entities.WARRIOR);
-    (player as unknown as { id: number }).id = playerId;
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
     player.setWeaponName('axe');
     setGrid(player, 10, 10);
 
@@ -172,8 +169,7 @@ test('attack intent emits ATTACK at 2-tile line range for heavy melee weapon', (
 
 test('attack intent keeps follow when target is diagonal even with heavy melee weapon', () => {
     const playerId = entityIdFromWire(5103);
-    const player = new Player('player', 'K', Types.Entities.WARRIOR);
-    (player as unknown as { id: number }).id = playerId;
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
     player.setWeaponName('axe');
     setGrid(player, 10, 10);
 

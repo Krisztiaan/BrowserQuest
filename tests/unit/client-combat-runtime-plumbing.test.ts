@@ -30,7 +30,10 @@ test('Kernel entity adapter initializes mob HP from prefabs', () => {
     const adapted = adaptKernelEntityForRendering(kernel, view.id);
     expect(adapted.type).toBe('character');
 
-    const entity = (adapted as { entity: unknown }).entity as { maxHitPoints?: number; hitPoints?: number };
+    if (adapted.type !== 'character') {
+        throw new Error('Expected character adapter result');
+    }
+    const entity = adapted.entity as { maxHitPoints?: number; hitPoints?: number };
     expect(typeof entity.maxHitPoints).toBe('number');
     expect((entity.maxHitPoints ?? 0) > 0).toBe(true);
     expect(entity.hitPoints).toBe(entity.maxHitPoints);

@@ -239,7 +239,7 @@ test('player session arms idle timeout immediately on attach', () => {
         void handler;
         void args;
         scheduled.push({ delay: Number(delay) });
-        return 1 as unknown as ReturnType<typeof setTimeout>;
+        return 1 as ReturnType<typeof setTimeout>;
     }) as typeof setTimeout;
     (globalThis as typeof globalThis & { clearTimeout: typeof clearTimeout }).clearTimeout = ((_timer) => {}) as typeof clearTimeout;
 

@@ -1,4 +1,7 @@
 import EntityFactory from '../entityfactory';
+import Item from '../item';
+import Chest from '../chest';
+import Character from '../character';
 import Types from '../../shared/gametypes-browser';
 import { getMobPrefab } from '../../shared/content/prefabs';
 import type { EntityId } from '../../shared/domain/ids';
@@ -12,11 +15,11 @@ type AdaptedCharacter = {
 };
 
 export type AdaptedEntity =
-    | Readonly<{ type: 'item'; entity: unknown }>
-    | Readonly<{ type: 'chest'; entity: unknown }>
+    | Readonly<{ type: 'item'; entity: Item }>
+    | Readonly<{ type: 'chest'; entity: Chest }>
     | Readonly<{
           type: 'character';
-          entity: unknown;
+          entity: Character;
           orientation: number | undefined;
           targetId: EntityId | undefined;
       }>;
@@ -30,27 +33,36 @@ function toKindName(kind: EntityKind | undefined): string | undefined {
 
 export function adaptKernelEntityForRendering(kernel: ClientWorldKernel, id: EntityId): AdaptedEntity {
     const view: KernelEntityView = kernel.getEntityView(id);
+    const entity = EntityFactory.createEntity(view.kind, view.id, view.type === 'player' ? view.name : undefined);
 
     if (Types.isItem(view.kind)) {
-        return { type: 'item', entity: EntityFactory.createEntity(view.kind, view.id) };
+        if (!(entity instanceof Item)) {
+            throw new Error(`Expected item entity for kind=${String(view.kind)} id=${String(view.id)}`);
+        }
+        return { type: 'item', entity };
     }
 
     if (Types.isChest(view.kind)) {
-        return { type: 'chest', entity: EntityFactory.createEntity(view.kind, view.id) };
+        if (!(entity instanceof Chest)) {
+            throw new Error(`Expected chest entity for kind=${String(view.kind)} id=${String(view.id)}`);
+        }
+        return { type: 'chest', entity };
     }
 
-    const name = view.type === 'player' ? view.name : undefined;
-    const character = EntityFactory.createEntity(view.kind, view.id, name) as AdaptedCharacter;
+    if (!(entity instanceof Character)) {
+        throw new Error(`Expected character entity for kind=${String(view.kind)} id=${String(view.id)}`);
+    }
+    const character = entity as AdaptedCharacter & Character;
 
     if (view.type === 'player') {
         character.weaponName = toKindName(view.weapon);
         character.spriteName = toKindName(view.armor);
     }
 
-    if (Types.isMob(view.kind) && typeof (character as unknown as { setMaxHitPoints?: unknown }).setMaxHitPoints === 'function') {
+    if (Types.isMob(view.kind)) {
         const prefab = getMobPrefab(view.kind);
         if (prefab) {
-            (character as unknown as { setMaxHitPoints: (hp: number) => void }).setMaxHitPoints(prefab.combat.maxHitPoints);
+            character.setMaxHitPoints(prefab.combat.maxHitPoints);
         }
     }
 
@@ -61,4 +73,3 @@ export function adaptKernelEntityForRendering(kernel: ClientWorldKernel, id: Ent
         targetId: view.targetId,
     };
 }
-

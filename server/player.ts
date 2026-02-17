@@ -35,7 +35,7 @@ class Player extends Character<PlayerEvents> {
     firepotionTimeout: ReturnType<typeof setTimeout> | null;
     positionResolver: (() => { x: number; y: number }) | null;
 
-    constructor(connection: PlayerConnectionLike, _worldServer: unknown) {
+    constructor(connection: PlayerConnectionLike, _worldServer: object) {
         super(entityIdFromWireString(connection.id), 'player', Types.Entities.WARRIOR, 0, 0);
 
         this.name = '';

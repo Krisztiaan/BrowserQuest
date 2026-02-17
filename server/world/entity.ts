@@ -1,32 +1,33 @@
 import type { EntityId } from '../../shared/domain/ids';
+import type { EntityKind } from '../../shared/entity-kind-domain';
 
 type MobForDrop = {
-    kind: number;
+    kind: EntityKind;
     x: number;
     y: number;
 };
 
 type DropTableEntry = Readonly<{
-    kind: number;
+    kind: EntityKind;
     chance: number;
 }>;
 
-type SelectDroppedItemForMobParams = {
+type SelectDroppedItemForMobParams<TItem> = {
     mob: MobForDrop;
     drops: readonly DropTableEntry[];
     randomInt: (max: number) => number;
-    createAndAddDrop: (kind: number, x: number, y: number) => unknown;
+    createAndAddDrop: (kind: EntityKind, x: number, y: number) => TItem;
 };
 
-export function selectDroppedItemForMob({
+export function selectDroppedItemForMob<TItem>({
     mob,
     drops,
     randomInt,
     createAndAddDrop,
-}: SelectDroppedItemForMobParams): unknown {
+}: SelectDroppedItemForMobParams<TItem>): TItem | null {
     const randomValue = randomInt(100);
     let threshold = 0;
-    let item: unknown = null;
+    let item: TItem | null = null;
 
     for (let i = 0; i < drops.length; i += 1) {
         const entry = drops[i];
@@ -43,18 +44,19 @@ export function selectDroppedItemForMob({
     return item;
 }
 
-type WorldEntities = Record<string, unknown>;
 type LogError = (message: string) => void;
+type LooseValue = string | number | boolean | null | undefined | object;
+type PositionTarget = string | number | boolean | null | undefined | object;
 
-export function getWorldEntityById({
+export function getWorldEntityById<TEntity>({
     entities,
     id,
     logError,
 }: {
-    entities: WorldEntities;
+    entities: Record<string, TEntity>;
     id: EntityId;
     logError: LogError;
-}): unknown {
+}): TEntity | undefined {
     const key = String(id);
     if (key in entities) {
         return entities[key];
@@ -69,7 +71,7 @@ type WorldMapCollisionCheck = {
     isColliding(x: number, y: number): boolean;
 } | null | undefined;
 
-export function isWorldPositionValid(map: WorldMapCollisionCheck, x: unknown, y: unknown): boolean {
+export function isWorldPositionValid(map: WorldMapCollisionCheck, x: LooseValue, y: LooseValue): boolean {
     return Boolean(
         map
             && typeof x === 'number'
@@ -90,9 +92,9 @@ export function findWorldPositionNextTo(
     entity: {
         x: number;
         y: number;
-        getPositionNextTo(target: unknown): GridPosition;
+        getPositionNextTo(target: PositionTarget): GridPosition;
     },
-    target: unknown,
+    target: PositionTarget,
     isValidPosition: (x: number, y: number) => boolean
 ): GridPosition {
     const maxAttempts = 32;

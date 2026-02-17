@@ -1,7 +1,17 @@
 import { expect, test } from 'bun:test';
 import * as MainRuntimeModule from '../../../../server/runtime';
+import type {
+    RuntimeConnection,
+    RuntimeEventFields,
+    RuntimeMetrics,
+    RuntimePlayer,
+    RuntimeProcessLike,
+    RuntimeServer,
+    RuntimeWorld,
+} from '../../../../server/runtime-types';
 
 const MainRuntime = MainRuntimeModule;
+type RuntimeErrorArg = string | Error | object | null | undefined;
 
 function createValidConfig() {
     return {
@@ -11,62 +21,102 @@ function createValidConfig() {
         nb_worlds: 1,
         map_filepath: './assets/maps/tiled/world.json',
         metrics_enabled: false,
+    } as const;
+}
+
+function createDisabledMetrics(): RuntimeMetrics {
+    return {
+        isEnabled: false,
+        isReady: false,
+        ready() {
+            // no-op
+        },
+        getTotalPlayers() {
+            // no-op
+        },
+        updatePlayerCounters() {
+            // no-op
+        },
+        updateWorldDistribution() {
+            // no-op
+        },
     };
+}
+
+class FakeServer implements RuntimeServer {
+    readonly #onConnect: (callback: (connection: RuntimeConnection) => void) => void;
+
+    constructor(_port: number, onConnect: (callback: (connection: RuntimeConnection) => void) => void = () => {}) {
+        this.#onConnect = onConnect;
+    }
+
+    on(eventName: 'connect', callback: (connection: RuntimeConnection) => void): void;
+    on(eventName: 'error', callback: (...args: RuntimeErrorArg[]) => void): void;
+    on(
+        eventName: 'connect' | 'error',
+        callback: ((connection: RuntimeConnection) => void) | ((...args: RuntimeErrorArg[]) => void)
+    ): void {
+        if (eventName === 'connect') {
+            this.#onConnect(callback as (connection: RuntimeConnection) => void);
+        }
+    }
+
+    onRequestStatus(_callback: () => string): void {
+        // no-op
+    }
+}
+
+class FakePlayer implements RuntimePlayer {
+    id = 1 as RuntimePlayer['id'];
+
+    constructor(_connection: RuntimeConnection, _world: RuntimeWorld) {}
 }
 
 test('main runtime exposes lifecycle cleanup handle and onLifecycle receives same cleanup contract', () => {
     const timerHandle = { id: 'timer' };
-    const cleared: unknown[] = [];
+    const cleared: Array<{ id: string }> = [];
     const removedEvents: string[] = [];
-    const processHandlers: Record<string, (value: unknown) => void> = {};
-    const processObject = {
+    const processHandlers: Record<string, (...args: RuntimeErrorArg[]) => void> = {};
+    const processObject: RuntimeProcessLike = {
         env: {},
-        on(eventName: string, handler: (value: unknown) => void) {
+        on(eventName, handler) {
             processHandlers[eventName] = handler;
         },
-        off(eventName: string) {
+        off(eventName) {
             removedEvents.push(eventName);
             delete processHandlers[eventName];
         },
         exit() {
-            // no-op
+            throw new Error('process exit');
         },
     };
-    const FakeServer = function FakeServer(this: {
-        on: (eventName: 'connect' | 'error', callback: unknown) => void;
-        onRequestStatus: (callback: unknown) => void;
-    }) {
-        this.on = () => {
+
+    class CleanupFakeWorld implements RuntimeWorld {
+        playerCount = 0;
+
+        on(_eventName: 'ready' | 'playerAdded' | 'playerRemoved', _callback: () => void): void {
             // no-op
-        };
-        this.onRequestStatus = () => {
+        }
+        emit(_eventName: 'playerConnect', _player: RuntimePlayer): void {
             // no-op
-        };
-    } as unknown as {
-        new (port: number): {
-            on: (eventName: 'connect' | 'error', callback: unknown) => void;
-            onRequestStatus: (callback: unknown) => void;
-        };
-    };
-    const FakeWorld = function FakeWorld(this: { run: (path: string) => void }) {
-        this.run = () => {
+        }
+        run(_mapFilePath: string): void {
             // no-op
-        };
-    } as unknown as {
-        new (name: string, cap: number, server: unknown): { run: (path: string) => void };
-    };
+        }
+        updatePopulation(_totalPlayers?: number): void {
+            // no-op
+        }
+    }
+
     const lifecyclePayloads: Array<{ cleanup: () => void }> = [];
     const runtime = MainRuntime.main(createValidConfig(), {
         dependencies: {
-            ws: { MultiVersionWebsocketServer: FakeServer },
-            WorldServer: FakeWorld,
-            Player: function Player() {},
+            ws: { MultiVersionWebsocketServer: class extends FakeServer {} },
+            WorldServer: CleanupFakeWorld,
+            Player: FakePlayer,
             metricsRuntime: {
                 createMetrics() {
-                    return {
-                        isEnabled: false,
-                        isReady: false,
-                    };
+                    return createDisabledMetrics();
                 },
             },
             logger: {
@@ -84,11 +134,11 @@ test('main runtime exposes lifecycle cleanup handle and onLifecycle receives sam
             setIntervalFn() {
                 return timerHandle;
             },
-            clearIntervalFn(handle: unknown) {
-                cleared.push(handle);
+            clearIntervalFn(handle) {
+                cleared.push(handle as { id: string });
             },
             setTimeoutFn() {
-                // no-op
+                return { id: 'timeout' };
             },
         },
         onLifecycle(payload: { cleanup: () => void }) {
@@ -113,112 +163,81 @@ test('main runtime exposes lifecycle cleanup handle and onLifecycle receives sam
 
 test('main runtime rejects connects until world ready, then accepts new sessions', () => {
     const timerHandle = { id: 'timer' };
-    const processHandlers: Record<string, (...args: unknown[]) => void> = {};
+    const processHandlers: Record<string, (...args: RuntimeErrorArg[]) => void> = {};
     const connectCloseReasons: string[] = [];
-    const connectedPlayers: unknown[] = [];
-    const emittedEvents: Array<{ eventName: string; fields: Record<string, unknown> }> = [];
+    const connectedPlayers: RuntimePlayer[] = [];
+    const emittedEvents: Array<{ eventName: string; fields: RuntimeEventFields }> = [];
     const handshakeFrames: string[] = [];
-    let connectHandler: ((connection: unknown) => void) | null = null;
+    let connectHandler: ((connection: RuntimeConnection) => void) | null = null;
     let worldReadyHandler: (() => void) | null = null;
 
-    const processObject = {
+    const processObject: RuntimeProcessLike = {
         env: {},
-        on(eventName: string, handler: (...args: unknown[]) => void) {
+        on(eventName, handler) {
             processHandlers[eventName] = handler;
         },
-        off(eventName: string) {
+        off(eventName) {
             delete processHandlers[eventName];
         },
         exit() {
-            // no-op
+            throw new Error('process exit');
         },
     };
 
-    const FakeServer = function FakeServer(this: {
-        on: (eventName: 'connect' | 'error', callback: (...args: unknown[]) => void) => void;
-        onRequestStatus: (callback: unknown) => void;
-    }) {
-        this.on = (eventName, callback) => {
-            if (eventName === 'connect') {
-                connectHandler = callback as unknown as (connection: unknown) => void;
-            }
-        };
-        this.onRequestStatus = () => {
-            // no-op
-        };
-    } as unknown as {
-        new (port: number): {
-            on: (eventName: 'connect' | 'error', callback: (...args: unknown[]) => void) => void;
-            onRequestStatus: (callback: unknown) => void;
-        };
-    };
-
-    const FakeWorld = function FakeWorld(
-        this: {
-            playerCount: number;
-            on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
-            emit: (eventName: 'playerConnect', player: unknown) => void;
-            run: (path: string) => void;
-            updatePopulation: (totalPlayers?: number) => void;
+    class ConnectFakeServer extends FakeServer {
+        constructor(port: number) {
+            super(port, (callback) => {
+                connectHandler = callback;
+            });
         }
-    ) {
-        this.playerCount = 0;
-        this.on = (eventName, callback) => {
+    }
+
+    class ConnectFakeWorld implements RuntimeWorld {
+        playerCount = 0;
+
+        on(eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void): void {
             if (eventName === 'ready') {
                 worldReadyHandler = callback;
             }
-        };
-        this.emit = (eventName, player) => {
+        }
+        emit(eventName: 'playerConnect', player: RuntimePlayer): void {
             if (eventName === 'playerConnect') {
                 connectedPlayers.push(player);
             }
-        };
-        this.run = () => {
+        }
+        run(_mapFilePath: string): void {
             // no-op
-        };
-        this.updatePopulation = () => {
+        }
+        updatePopulation(_totalPlayers?: number): void {
             // no-op
-        };
-    } as unknown as {
-        new (name: string, cap: number, server: unknown): {
-            playerCount: number;
-            on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
-            emit: (eventName: 'playerConnect', player: unknown) => void;
-            run: (path: string) => void;
-            updatePopulation: (totalPlayers?: number) => void;
-        };
-    };
-
-    const FakePlayer = function FakePlayer(this: { id: string }) {
-        this.id = 'player-1';
-    } as unknown as { new (connection: unknown, world: unknown): { id: string } };
+        }
+        isPlayerActive(_playerId: RuntimePlayer['id']): boolean {
+            return true;
+        }
+        enqueueCommand(_command: object): void {
+            // no-op
+        }
+        getConnectionPlayerById(_playerId: RuntimePlayer['id']): {
+            isDead?: boolean;
+            firepotionTimeout?: ReturnType<typeof setTimeout> | null;
+            emit(eventName: 'exit'): void;
+        } | null {
+            return {
+                emit(_eventName: 'exit') {
+                    // no-op
+                },
+            };
+        }
+    }
 
     const runtime = MainRuntime.main(createValidConfig(), {
         dependencies: {
-            ws: { MultiVersionWebsocketServer: FakeServer },
-            WorldServer: FakeWorld,
+            ws: { MultiVersionWebsocketServer: ConnectFakeServer },
+            WorldServer: ConnectFakeWorld,
             Player: FakePlayer,
             metricsRuntime: {
                 createMetrics() {
-                    return {
-                        isEnabled: false,
-                        isReady: false,
-                        ready() {
-                            // no-op
-                        },
-                        getTotalPlayers() {
-                            // no-op
-                        },
-                        getOpenWorldCount() {
-                            // no-op
-                        },
-                        updatePlayerCounters() {
-                            // no-op
-                        },
-                        updateWorldDistribution() {
-                            // no-op
-                        },
-                    };
+                    return createDisabledMetrics();
                 },
             },
             logger: {
@@ -228,7 +247,7 @@ test('main runtime rejects connects until world ready, then accepts new sessions
                 error() {
                     // no-op
                 },
-                event(_level: string, eventName: string, fields: Record<string, unknown>) {
+                event(_level: string, eventName: string, fields: RuntimeEventFields) {
                     emittedEvents.push({ eventName, fields });
                 },
             },
@@ -240,7 +259,7 @@ test('main runtime rejects connects until world ready, then accepts new sessions
                 // no-op
             },
             setTimeoutFn() {
-                // no-op
+                return { id: 'timeout' };
             },
         },
     });
@@ -259,8 +278,7 @@ test('main runtime rejects connects until world ready, then accepts new sessions
     expect(connectedPlayers.length).toBe(0);
     expect(
         emittedEvents.some(
-            (entry) =>
-                entry.eventName === 'server.connect.rejected' && entry.fields.reason === 'world_not_ready'
+            (entry) => entry.eventName === 'server.connect.rejected' && entry.fields.reason === 'world_not_ready'
         )
     ).toBe(true);
 
@@ -280,10 +298,10 @@ test('main runtime rejects connects until world ready, then accepts new sessions
         sendUTF8(payload: string) {
             handshakeFrames.push(payload);
         },
-    });
+    } as RuntimeConnection);
 
     expect(connectedPlayers.length).toBe(1);
     expect(handshakeFrames).toEqual(['go']);
 
-    runtime?.cleanup();
+    runtime.cleanup();
 });

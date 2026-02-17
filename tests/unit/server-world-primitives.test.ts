@@ -1,11 +1,14 @@
 import { expect, test } from 'bun:test';
 import Area, { type AreaEntity, type AreaWorldContract } from '../../server/area';
+import MobArea from '../../server/mobarea';
 import { findWorldPositionNextTo } from '../../server/world/entity';
 import { notifyWorldPopulation } from '../../server/world/population-state';
 import { flushOutgoingQueues } from '../../server/world/transport';
+import { entityIdFromWire } from '../../shared/domain/ids';
 import Types from '../../shared/gametypes-browser';
+import type { ServerToClientProtocolAction } from '../../shared/protocol/types';
 
-test('area removeFromArea ignores unknown entity ids', () => {
+test('area removeFromArea ignores missing entity ids', () => {
     const world: AreaWorldContract = {
         isValidPosition() {
             return true;
@@ -37,14 +40,12 @@ test('area _getRandomPositionInsideArea throws when no valid tile exists', () =>
 
 test('notifyWorldPopulation preserves explicit zero totals', () => {
     type PopulationHost = Parameters<typeof notifyWorldPopulation>[0];
-    let serialized: unknown[] | null = null;
+    let serialized: ServerToClientProtocolAction | null = null;
 
     const host: PopulationHost = {
         playerCount: 5,
         pushBroadcast(message) {
-            serialized = (
-                Array.isArray(message) ? message : (message as { serialize?: () => unknown }).serialize?.()
-            ) as unknown[] | null;
+            serialized = Array.isArray(message) ? message : message.serialize();
         },
     };
 
@@ -96,15 +97,35 @@ test('findWorldPositionNextTo falls back to current entity position after bounde
     expect(attempts).toBe(32);
 });
 
+test('mob area spawns mobs with allocator-provided ids', () => {
+    const spawnedMobIds: number[] = [];
+    const allocatedIds = [entityIdFromWire(901), entityIdFromWire(902), entityIdFromWire(903)];
+    let nextIndex = 0;
+    const world = {
+        isValidPosition() {
+            return true;
+        },
+        addMob(entity: { id: number }) {
+            spawnedMobIds.push(entity.id);
+        },
+    };
+
+    const area = new MobArea('m1', 3, 'rat', 10, 10, 2, 2, world, () => allocatedIds[nextIndex++] ?? entityIdFromWire(999));
+    area.spawnMobs();
+
+    expect(spawnedMobIds).toEqual([901, 902, 903]);
+    expect(area.entities.map((entity) => entity.id)).toEqual([901, 902, 903]);
+});
+
 test('flushOutgoingQueues preserves order and bounded batch sizing while draining queues', () => {
-    const sentPayloads: unknown[] = [];
+    const sentPayloads: Array<ServerToClientProtocolAction | ServerToClientProtocolAction[]> = [];
     const playerQueue = Array.from({ length: 120 }, (_, index) => index + 1);
     const outgoingQueues = {
         player1: playerQueue,
     };
 
     flushOutgoingQueues(outgoingQueues, () => ({
-        send(payload: unknown) {
+        send(payload: ServerToClientProtocolAction | ServerToClientProtocolAction[]) {
             sentPayloads.push(payload);
         },
     }));
@@ -113,9 +134,9 @@ test('flushOutgoingQueues preserves order and bounded batch sizing while drainin
     expect(Array.isArray(sentPayloads[0])).toBe(true);
     expect(Array.isArray(sentPayloads[1])).toBe(true);
     expect(Array.isArray(sentPayloads[2])).toBe(true);
-    expect((sentPayloads[0] as unknown[]).length).toBe(50);
-    expect((sentPayloads[1] as unknown[]).length).toBe(50);
-    expect((sentPayloads[2] as unknown[]).length).toBe(20);
+    expect(Array.isArray(sentPayloads[0]) ? sentPayloads[0].length : 0).toBe(50);
+    expect(Array.isArray(sentPayloads[1]) ? sentPayloads[1].length : 0).toBe(50);
+    expect(Array.isArray(sentPayloads[2]) ? sentPayloads[2].length : 0).toBe(20);
     expect((sentPayloads[0] as number[])[0]).toBe(1);
     expect((sentPayloads[1] as number[])[0]).toBe(51);
     expect((sentPayloads[2] as number[])[0]).toBe(101);
@@ -123,18 +144,18 @@ test('flushOutgoingQueues preserves order and bounded batch sizing while drainin
 });
 
 test('flushOutgoingQueues avoids front-splice churn and still flushes payloads', () => {
-    const sentPayloads: unknown[] = [];
-    const playerQueue = [1, 2, 3] as number[] & { splice?: (...args: unknown[]) => never };
+    const sentPayloads: Array<ServerToClientProtocolAction | ServerToClientProtocolAction[]> = [];
+    const playerQueue = [1, 2, 3] as number[] & { splice?: (...args: never[]) => never };
     playerQueue.splice = () => {
         throw new Error('splice should not be used during queue flush');
     };
 
     const outgoingQueues = {
-        player1: playerQueue as unknown as number[],
+        player1: playerQueue,
     };
 
     flushOutgoingQueues(outgoingQueues, () => ({
-        send(payload: unknown) {
+        send(payload: ServerToClientProtocolAction | ServerToClientProtocolAction[]) {
             sentPayloads.push(payload);
         },
     }));

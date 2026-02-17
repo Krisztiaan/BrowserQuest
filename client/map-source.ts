@@ -5,6 +5,10 @@ import processMap from '../shared/maps/processmap';
 const tiledWorldMapUrl = '/assets/maps/tiled/world.json';
 import type { MusicKey } from './asset-key-domain';
 
+type JsonScalar = string | number | boolean | null;
+type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
+type RawMapRecord = { [key: string]: JsonLike };
+
 type ClientRuntimeMap = {
   width: number;
   height: number;
@@ -16,8 +20,8 @@ type ClientRuntimeMap = {
   collisions: number[];
   high: number[];
   animated: Record<number, { l?: number; d?: number }>;
-  doors: Array<Record<string, unknown>>;
-  checkpoints: Array<Record<string, unknown>>;
+  doors: RawMapRecord[];
+  checkpoints: RawMapRecord[];
 };
 
 function cloneClientRuntimeMap(map: ClientRuntimeMap): ClientRuntimeMap {

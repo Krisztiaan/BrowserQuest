@@ -1,5 +1,6 @@
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { EntityId } from '../../shared/domain/ids';
+import { entityIdToWire } from '../../shared/domain/ids';
 
 import Entity from '../entity';
 import { buildDropAction } from '../protocol/outbound-actions';
@@ -26,7 +27,7 @@ export class MobEntity extends Entity<MobEntityEvents> {
     armorLevel: number;
     weaponLevel: number;
     hatelist: HateEntry[];
-    area: unknown;
+    area: object | null;
     isDead: boolean;
     target: EntityId | null;
     maxHitPoints: number;
@@ -69,13 +70,13 @@ export class MobEntity extends Entity<MobEntityEvents> {
         this.hitPoints = prefab.combat.maxHitPoints;
     }
 
-    drop(item: DropItemLike | null | undefined): unknown {
+    drop(item: DropItemLike | null | undefined): ReturnType<typeof buildDropAction> | undefined {
         if (!item) {
             return;
         }
         const haters: number[] = [];
         for (const hateEntry of this.hatelist) {
-            haters.push(hateEntry.id as unknown as number);
+            haters.push(entityIdToWire(hateEntry.id));
         }
         return buildDropAction(this.id, item.id, item.kind, haters);
     }
@@ -87,4 +88,3 @@ export class MobEntity extends Entity<MobEntityEvents> {
 }
 
 export default MobEntity;
-

@@ -1,3 +1,5 @@
+type LogValue = string | number | boolean | null | undefined | object;
+
 class Logger {
     level: 'debug' | 'info' | 'error';
 
@@ -5,19 +7,19 @@ class Logger {
         this.level = level;
     }
 
-    info(message: unknown) {
+    info(message: LogValue) {
         if (this.level === 'debug' || this.level === 'info') {
             console.info(message);
         }
     }
 
-    debug(message: unknown) {
+    debug(message: LogValue) {
         if (this.level === 'debug') {
             console.log(message);
         }
     }
 
-    error(message: unknown, stacktrace?: boolean) {
+    error(message: LogValue, stacktrace?: boolean) {
         console.error(message);
         if (stacktrace === true) {
             console.error(new Error().stack);

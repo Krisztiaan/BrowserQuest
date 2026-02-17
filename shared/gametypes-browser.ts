@@ -92,7 +92,7 @@ interface TypesContract {
     forEachMobOrNpcKind(callback: (kind: EntityKindId, kindName: string) => void): void;
     forEachArmorKind(callback: (kind: EntityKindId, kindName: string) => void): void;
     getOrientationAsString(orientation: number): string | undefined;
-    getRandomItemKind(item: unknown): number | undefined;
+    getRandomItemKind(item: object | null | undefined): number | undefined;
     getMessageTypeAsString(type: number): string;
 }
 
@@ -102,7 +102,7 @@ const Types = {
     Messages: MESSAGE_OPCODES,
     Entities: ENTITY_IDS,
     Orientations: ORIENTATION_IDS,
-} as unknown as TypesContract;
+} as TypesContract;
 
 const kinds: Record<EntityKindName, KindEntry> = ENTITY_KIND_DOMAIN;
 
@@ -255,7 +255,8 @@ Types.getMessageTypeAsString = function (type) {
 };
 
 if (typeof globalThis !== 'undefined') {
-    (globalThis as unknown as { Types?: TypesContract }).Types = Types;
+    const globals = globalThis as typeof globalThis & { Types?: TypesContract };
+    globals.Types = Types;
 }
 
 export { Types };

@@ -1,8 +1,9 @@
 import { SERVER_EVENT_NAMES } from '../server-event-names';
+import type { RuntimeEventFields } from '../runtime-types';
 
 type LogEmitterFn = (message: string) => void;
 type NowIsoFn = () => string;
-type StructuredEventEmitter = (level: string, event: string, fields?: Record<string, unknown>) => void;
+type StructuredEventEmitter = (level: string, event: string, fields?: RuntimeEventFields) => void;
 
 export function createStructuredEventEmitter({
     emitInfo = console.info,
@@ -36,7 +37,7 @@ export function createProbeEventEmitter({
 }: {
     emitStructuredEvent: StructuredEventEmitter;
     probeEvent?: string;
-}): (level: string, fields?: Record<string, unknown>) => void {
+}): (level: string, fields?: RuntimeEventFields) => void {
     return function emitProbeEvent(level, fields = {}) {
         emitStructuredEvent(level, probeEvent, fields);
     };

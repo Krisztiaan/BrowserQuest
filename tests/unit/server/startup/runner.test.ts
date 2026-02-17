@@ -5,7 +5,7 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
     const activeConfig = { port: 8000 };
     const runtimeOptions = { dependencies: { ws: { id: 'ws-runtime' } } };
     const calls: string[] = [];
-    let startArgs: { config: unknown; options: unknown } | null = null;
+    let startArgs: { config: object; options: { dependencies: { ws: { id: string } } } | undefined } | null = null;
 
     const result = await runStartup({
         activeConfig,
@@ -46,7 +46,7 @@ test('startup runner executes bridge probe, runtime-option resolution, and start
 
 test('startup runner passes undefined runtime options through to startServer when resolver returns undefined', async () => {
     const activeConfig = { port: 8001 };
-    let startedOptions: unknown = 'unset';
+    let startedOptions: object | undefined = { marker: 'unset' };
 
     const result = await runStartup({
         activeConfig,

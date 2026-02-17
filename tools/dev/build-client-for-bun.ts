@@ -1,28 +1,15 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { copyPathIfExists } from '../shared/fs-helpers';
 
 const repoRoot = path.resolve(import.meta.dir, '..', '..');
 const outputRoot = path.join(repoRoot, '.tmp', 'dev-client');
 const outputClientRoot = path.join(outputRoot, 'client');
 
-async function pathExists(targetPath: string): Promise<boolean> {
-    try {
-        await fs.access(targetPath);
-        return true;
-    } catch {
-        return false;
-    }
-}
-
 async function copyIntoOutput(sourceRelativePath: string, destinationRelativePath = sourceRelativePath): Promise<void> {
     const sourcePath = path.join(repoRoot, sourceRelativePath);
-    if (!(await pathExists(sourcePath))) {
-        return;
-    }
-
     const destinationPath = path.join(outputRoot, destinationRelativePath);
-    await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-    await fs.cp(sourcePath, destinationPath, { recursive: true, force: true });
+    await copyPathIfExists(sourcePath, destinationPath);
 }
 
 function ensureBuildSucceeded(result: Bun.BuildOutput): void {
@@ -90,4 +77,3 @@ main().catch((error) => {
     console.error(`dev client build failed: ${message}`);
     process.exit(1);
 });
-

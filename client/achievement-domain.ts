@@ -26,6 +26,8 @@ export type AchievementId = (typeof ACHIEVEMENT_ID_BY_KEY)[AchievementKey];
 
 const ACHIEVEMENT_ID_SET = new Set<number>(Object.values(ACHIEVEMENT_ID_BY_KEY));
 
-export function isAchievementId(value: unknown): value is AchievementId {
+type AchievementIdCandidate = number | string | boolean | bigint | object | null | undefined;
+
+export function isAchievementId(value: AchievementIdCandidate): value is AchievementId {
     return typeof value === 'number' && ACHIEVEMENT_ID_SET.has(value);
 }

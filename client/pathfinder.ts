@@ -2,6 +2,8 @@ import AStar from './lib/astar';
 
 type GridPoint = [number, number];
 type GridPath = GridPoint[];
+type PathCandidatePoint = readonly [number, number] | readonly number[];
+type PathCandidate = readonly PathCandidatePoint[] | null | undefined;
 type PathEntity = {
     gridX: number;
     gridY: number;
@@ -9,9 +11,9 @@ type PathEntity = {
     nextGridX?: number;
     nextGridY?: number;
 };
-const isGridPoint = (point: unknown): point is GridPoint =>
+const isGridPoint = (point: PathCandidatePoint): point is GridPoint =>
     Array.isArray(point) && point.length === 2 && typeof point[0] === 'number' && typeof point[1] === 'number';
-const toGridPath = (value: unknown): GridPath => (Array.isArray(value) ? value.filter(isGridPoint) : []);
+const toGridPath = (value: PathCandidate): GridPath => (Array.isArray(value) ? value.filter(isGridPoint) : []);
 
 class Pathfinder {
     width: number;

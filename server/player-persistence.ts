@@ -4,10 +4,11 @@ import path from 'node:path';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
+import { normalizeIdentityKey } from './identity';
 
 const DEFAULT_PLAYER_DB_PATH = './server/.data/player-profiles.sqlite';
-const DEFAULT_ARMOR_KIND = Types.Entities.CLOTHARMOR as EntityKind;
-const DEFAULT_WEAPON_KIND = Types.Entities.SWORD1 as EntityKind;
+type SqliteValue = string | number | bigint | Uint8Array | null;
+type SqliteStatement = ReturnType<Database['prepare']>;
 
 type ProfileRow = {
     name_key: string;
@@ -106,9 +107,52 @@ export type PersistedProgressionState = Readonly<{
     inventory: PersistedInventoryEntry[];
 }>;
 
-function normalizePlayerName(name: string): string {
-    return name.trim().toLowerCase();
+type LooseValue = string | number | boolean | bigint | symbol | object | null | undefined;
+type LooseRecord = Record<string, LooseValue>;
+
+function isRecord(value: LooseValue): value is LooseRecord {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
+
+function isRowObject<Row extends object>(value: LooseValue): value is Row {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function getRow<Row extends object>(statement: SqliteStatement, ...params: readonly SqliteValue[]): Row | null {
+    const value = statement.get(...params) as LooseValue;
+    return isRowObject<Row>(value) ? value : null;
+}
+
+function getRows<Row extends object>(statement: SqliteStatement, ...params: readonly SqliteValue[]): Row[] {
+    const values = statement.all(...params);
+    if (!Array.isArray(values)) {
+        return [];
+    }
+    return values.filter((value): value is Row => isRowObject<Row>(value as LooseValue));
+}
+
+function normalizeEntityKind(value: string | number | null | undefined): EntityKind | null {
+    if (typeof value === 'number') {
+        const candidate = value as EntityKind;
+        return typeof Types.getKindAsString(candidate) === 'string' ? candidate : null;
+    }
+    if (typeof value === 'string') {
+        const normalized = normalizeIdentityKey(value);
+        if (normalized.length === 0) {
+            return null;
+        }
+        const resolved = Types.getKindFromString(normalized);
+        return typeof resolved === 'number' ? (resolved as EntityKind) : null;
+    }
+    return null;
+}
+
+function resolveEntityKind(value: string | number | null | undefined, fallback: EntityKind): EntityKind {
+    return normalizeEntityKind(value) ?? fallback;
+}
+
+const DEFAULT_ARMOR_KIND = resolveEntityKind(Types.Entities.CLOTHARMOR, Types.Entities.CLOTHARMOR);
+const DEFAULT_WEAPON_KIND = resolveEntityKind(Types.Entities.SWORD1, Types.Entities.SWORD1);
 
 function resolveDisplayName(name: string, normalizedName: string): string {
     const trimmed = name.trim();
@@ -131,12 +175,15 @@ function defaultProgressionState(): PersistedProgressionState {
     };
 }
 
-function sanitizeProgressionState(candidate: unknown): PersistedProgressionState {
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
+function sanitizeProgressionState(candidate: JsonValue | object | null | undefined): PersistedProgressionState {
     const fallback = defaultProgressionState();
-    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    if (!isRecord(candidate)) {
         return fallback;
     }
-    const raw = candidate as Record<string, unknown>;
+    const raw = candidate;
     const gold = typeof raw.gold === 'number' && Number.isFinite(raw.gold) ? Math.max(0, Math.trunc(raw.gold)) : fallback.gold;
     const farmingLevel =
         typeof raw.farmingLevel === 'number' && Number.isFinite(raw.farmingLevel)
@@ -153,22 +200,22 @@ function sanitizeProgressionState(candidate: unknown): PersistedProgressionState
     const inventory = Array.isArray(raw.inventory)
         ? raw.inventory
               .map((entry) => {
-                  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+                  if (!isRecord(entry)) {
                       return null;
                   }
-                  const record = entry as Record<string, unknown>;
-                  const itemKind = record.itemKind;
-                  const quantity = record.quantity;
+                  const itemKind = normalizeEntityKind(
+                      typeof entry.itemKind === 'string' || typeof entry.itemKind === 'number' ? entry.itemKind : null
+                  );
+                  const quantity = entry.quantity;
                   if (
-                      (typeof itemKind !== 'number' && typeof itemKind !== 'string')
-                      || typeof quantity !== 'number'
+                      itemKind === null || typeof quantity !== 'number'
                       || !Number.isFinite(quantity)
                   ) {
                       return null;
                   }
                   const safeQuantity = Math.max(1, Math.trunc(quantity));
                   return {
-                      itemKind: itemKind as EntityKind,
+                      itemKind,
                       quantity: safeQuantity,
                   } satisfies PersistedInventoryEntry;
               })
@@ -199,7 +246,7 @@ function encodeProgressionState(state: PersistedProgressionState): string {
     return JSON.stringify(state);
 }
 
-function normalizeTransportValue(value: unknown): AuthenticatorTransportFuture | null {
+function normalizeTransportValue(value: string | null | undefined): AuthenticatorTransportFuture | null {
     switch (value) {
         case 'ble':
         case 'cable':
@@ -214,11 +261,11 @@ function normalizeTransportValue(value: unknown): AuthenticatorTransportFuture |
     }
 }
 
-function decodeTransportsJson(value: unknown): AuthenticatorTransportFuture[] {
+function decodeTransportsJson(value: string | null | undefined): AuthenticatorTransportFuture[] {
     if (typeof value !== 'string' || value.trim().length === 0) {
         return [];
     }
-    let parsed: unknown;
+    let parsed: JsonValue;
     try {
         parsed = JSON.parse(value);
     } catch {
@@ -229,7 +276,8 @@ function decodeTransportsJson(value: unknown): AuthenticatorTransportFuture[] {
     }
     const deduped = new Set<AuthenticatorTransportFuture>();
     for (let i = 0; i < parsed.length; i += 1) {
-        const normalized = normalizeTransportValue(parsed[i]);
+        const candidate = parsed[i];
+        const normalized = normalizeTransportValue(typeof candidate === 'string' ? candidate : undefined);
         if (normalized) {
             deduped.add(normalized);
         }
@@ -248,7 +296,7 @@ function encodeTransportsJson(value: ReadonlyArray<AuthenticatorTransportFuture>
     return JSON.stringify([...deduped]);
 }
 
-function toUint8Array(value: unknown): Uint8Array | null {
+function toUint8Array(value: ArrayBuffer | ArrayBufferView | Uint8Array | null | undefined): Uint8Array | null {
     if (value instanceof Uint8Array) {
         return value.slice();
     }
@@ -256,7 +304,7 @@ function toUint8Array(value: unknown): Uint8Array | null {
         return new Uint8Array(value.slice(0));
     }
     if (ArrayBuffer.isView(value)) {
-        const view = value as ArrayBufferView;
+        const view = value;
         return new Uint8Array(view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength));
     }
     return null;
@@ -267,8 +315,8 @@ function asPersistedPlayerProfile(row: ProfileRow, achievements: PersistedAchiev
         accountNameKey: row.name_key,
         nameKey: row.name_key,
         displayName: row.display_name,
-        armorKind: row.armor_kind as EntityKind,
-        weaponKind: row.weapon_kind as EntityKind,
+        armorKind: resolveEntityKind(row.armor_kind, DEFAULT_ARMOR_KIND),
+        weaponKind: resolveEntityKind(row.weapon_kind, DEFAULT_WEAPON_KIND),
         checkpointId: typeof row.checkpoint_id === 'number' ? row.checkpoint_id : null,
         achievements,
         progression: decodeProgressionState(row.progression_json),
@@ -367,8 +415,6 @@ export class SqlitePlayerPersistence {
             );
             CREATE INDEX IF NOT EXISTS player_passkeys_name_key ON player_passkeys(name_key);
         `);
-        this.#ensurePlayersTableColumns();
-        this.#ensurePasskeysTableColumns();
 
         this.#selectProfile = this.#db.prepare(
             `SELECT name_key, display_name, armor_kind, weapon_kind, checkpoint_id, progression_json
@@ -495,37 +541,6 @@ export class SqlitePlayerPersistence {
         this.#clearSessions.run();
     }
 
-    #ensurePlayersTableColumns(): void {
-        const columns = this.#db
-            .prepare(`PRAGMA table_info(players)`)
-            .all() as Array<{ name?: unknown }>;
-        const hasProgressionJson = columns.some((column) => column?.name === 'progression_json');
-        if (!hasProgressionJson) {
-            this.#db.exec(`ALTER TABLE players ADD COLUMN progression_json TEXT NOT NULL DEFAULT '{}'`);
-        }
-    }
-
-    #ensurePasskeysTableColumns(): void {
-        const columns = this.#db
-            .prepare(`PRAGMA table_info(player_passkeys)`)
-            .all() as Array<{ name?: unknown }>;
-
-        const hasPublicKey = columns.some((column) => column?.name === 'public_key');
-        if (!hasPublicKey) {
-            this.#db.exec(`ALTER TABLE player_passkeys ADD COLUMN public_key BLOB`);
-        }
-
-        const hasCounter = columns.some((column) => column?.name === 'counter');
-        if (!hasCounter) {
-            this.#db.exec(`ALTER TABLE player_passkeys ADD COLUMN counter INTEGER NOT NULL DEFAULT 0`);
-        }
-
-        const hasTransportsJson = columns.some((column) => column?.name === 'transports_json');
-        if (!hasTransportsJson) {
-            this.#db.exec(`ALTER TABLE player_passkeys ADD COLUMN transports_json TEXT NOT NULL DEFAULT '[]'`);
-        }
-    }
-
     #ensureAchievementProgress(nameKey: string): void {
         this.#insertAchievementProgress.run(nameKey, Date.now());
     }
@@ -533,8 +548,8 @@ export class SqlitePlayerPersistence {
     #getAchievementProgressByNameKey(nameKey: string): PersistedAchievementProgress {
         this.#ensureAchievementProgress(nameKey);
 
-        const row = this.#selectAchievementProgress.get(nameKey) as AchievementProgressRow | null;
-        const unlockedRows = this.#selectUnlockedAchievements.all(nameKey) as AchievementUnlockRow[];
+        const row = getRow<AchievementProgressRow>(this.#selectAchievementProgress, nameKey);
+        const unlockedRows = getRows<AchievementUnlockRow>(this.#selectUnlockedAchievements, nameKey);
         const unlockedIds = unlockedRows
             .map((entry) => entry.achievement_id)
             .filter((id) => Number.isSafeInteger(id) && id > 0);
@@ -558,8 +573,8 @@ export class SqlitePlayerPersistence {
         requestedName: string;
         authenticatedAccountNameKey?: string;
     }): ClaimPlayerSessionResult {
-        const normalizedRequestedName = normalizePlayerName(requestedName);
-        const normalizedAuthenticatedName = normalizePlayerName(authenticatedAccountNameKey ?? '');
+        const normalizedRequestedName = normalizeIdentityKey(requestedName);
+        const normalizedAuthenticatedName = normalizeIdentityKey(authenticatedAccountNameKey ?? '');
         const accountNameKey = normalizedAuthenticatedName || normalizedRequestedName;
         if (!accountNameKey) {
             return {
@@ -568,7 +583,7 @@ export class SqlitePlayerPersistence {
             };
         }
 
-        const existingByName = this.#selectSessionByName.get(accountNameKey) as SessionByNameRow | null;
+        const existingByName = getRow<SessionByNameRow>(this.#selectSessionByName, accountNameKey);
         if (existingByName && existingByName.connection_id !== connectionId) {
             return {
                 accepted: false,
@@ -576,7 +591,7 @@ export class SqlitePlayerPersistence {
             };
         }
 
-        const existingByConnection = this.#selectSessionByConnection.get(connectionId) as SessionByConnectionRow | null;
+        const existingByConnection = getRow<SessionByConnectionRow>(this.#selectSessionByConnection, connectionId);
         if (existingByConnection && existingByConnection.name_key !== accountNameKey) {
             return {
                 accepted: false,
@@ -585,7 +600,7 @@ export class SqlitePlayerPersistence {
         }
 
         const displayName = resolveDisplayName(requestedName, accountNameKey);
-        let row = this.#selectProfile.get(accountNameKey) as ProfileRow | null;
+        let row = getRow<ProfileRow>(this.#selectProfile, accountNameKey);
         const now = Date.now();
         if (!row) {
             this.#insertProfile.run(
@@ -598,7 +613,7 @@ export class SqlitePlayerPersistence {
                 now,
                 now
             );
-            row = this.#selectProfile.get(accountNameKey) as ProfileRow | null;
+            row = getRow<ProfileRow>(this.#selectProfile, accountNameKey);
         } else if (row.display_name !== displayName) {
             this.#updateProfileDisplayName.run(accountNameKey, displayName, now);
             row = {
@@ -639,11 +654,11 @@ export class SqlitePlayerPersistence {
         armorKind: EntityKind;
         weaponKind: EntityKind;
     }): void {
-        const normalizedName = normalizePlayerName(playerName);
+        const normalizedName = normalizeIdentityKey(playerName);
         if (!normalizedName) {
             return;
         }
-        const existing = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const existing = getRow<ProfileRow>(this.#selectProfile, normalizedName);
         const displayName = existing?.display_name ?? resolveDisplayName(playerName, normalizedName);
         const now = Date.now();
         this.#upsertEquipment.run(
@@ -664,11 +679,11 @@ export class SqlitePlayerPersistence {
         playerName: string;
         checkpointId: number;
     }): void {
-        const normalizedName = normalizePlayerName(playerName);
+        const normalizedName = normalizeIdentityKey(playerName);
         if (!normalizedName || !Number.isFinite(checkpointId)) {
             return;
         }
-        const existing = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const existing = getRow<ProfileRow>(this.#selectProfile, normalizedName);
         const displayName = existing?.display_name ?? resolveDisplayName(playerName, normalizedName);
         const armorKind = existing ? existing.armor_kind : Number(DEFAULT_ARMOR_KIND);
         const weaponKind = existing ? existing.weapon_kind : Number(DEFAULT_WEAPON_KIND);
@@ -692,12 +707,12 @@ export class SqlitePlayerPersistence {
         playerName: string;
         progression: Partial<PersistedProgressionState>;
     }): void {
-        const normalizedName = normalizePlayerName(playerName);
+        const normalizedName = normalizeIdentityKey(playerName);
         if (!normalizedName) {
             return;
         }
 
-        const existing = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const existing = getRow<ProfileRow>(this.#selectProfile, normalizedName);
         const displayName = existing?.display_name ?? resolveDisplayName(playerName, normalizedName);
         const armorKind = existing ? existing.armor_kind : Number(DEFAULT_ARMOR_KIND);
         const weaponKind = existing ? existing.weapon_kind : Number(DEFAULT_WEAPON_KIND);
@@ -723,11 +738,11 @@ export class SqlitePlayerPersistence {
     }
 
     getProfileByName(playerName: string): PersistedPlayerProfile | null {
-        const normalizedName = normalizePlayerName(playerName);
+        const normalizedName = normalizeIdentityKey(playerName);
         if (!normalizedName) {
             return null;
         }
-        const row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const row = getRow<ProfileRow>(this.#selectProfile, normalizedName);
         if (!row) {
             return null;
         }
@@ -739,11 +754,11 @@ export class SqlitePlayerPersistence {
     }
 
     getAchievementProgressByName(playerName: string): PersistedAchievementProgress | null {
-        const normalizedName = normalizePlayerName(playerName);
+        const normalizedName = normalizeIdentityKey(playerName);
         if (!normalizedName) {
             return null;
         }
-        const row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const row = getRow<ProfileRow>(this.#selectProfile, normalizedName);
         if (!row) {
             return null;
         }
@@ -757,7 +772,7 @@ export class SqlitePlayerPersistence {
         playerName: string;
         achievementId: number;
     }): void {
-        const normalizedName = normalizePlayerName(playerName);
+        const normalizedName = normalizeIdentityKey(playerName);
         if (!normalizedName || !Number.isSafeInteger(achievementId) || achievementId <= 0) {
             return;
         }
@@ -780,7 +795,7 @@ export class SqlitePlayerPersistence {
         damageDelta?: number;
         revivesDelta?: number;
     }): void {
-        const normalizedName = normalizePlayerName(playerName);
+        const normalizedName = normalizeIdentityKey(playerName);
         if (!normalizedName) {
             return;
         }
@@ -802,11 +817,11 @@ export class SqlitePlayerPersistence {
     listPasskeyCredentialsByName(
         accountNameKey: string
     ): Array<Readonly<{ credentialId: string; transports: AuthenticatorTransportFuture[] }>> {
-        const normalizedName = normalizePlayerName(accountNameKey);
+        const normalizedName = normalizeIdentityKey(accountNameKey);
         if (!normalizedName) {
             return [];
         }
-        const rows = this.#selectPasskeyCredentialsByName.all(normalizedName) as PasskeyCredentialByNameRow[];
+        const rows = getRows<PasskeyCredentialByNameRow>(this.#selectPasskeyCredentialsByName, normalizedName);
         const out: Array<Readonly<{ credentialId: string; transports: AuthenticatorTransportFuture[] }>> = [];
         for (let i = 0; i < rows.length; i += 1) {
             const row = rows[i];
@@ -826,7 +841,7 @@ export class SqlitePlayerPersistence {
         if (!normalizedCredentialId) {
             return null;
         }
-        const row = this.#selectPasskeyCredentialByCredential.get(normalizedCredentialId) as PasskeyCredentialByIdRow | null;
+        const row = getRow<PasskeyCredentialByIdRow>(this.#selectPasskeyCredentialByCredential, normalizedCredentialId);
         if (!row) {
             return null;
         }
@@ -856,7 +871,7 @@ export class SqlitePlayerPersistence {
         counter?: number;
         transports?: ReadonlyArray<AuthenticatorTransportFuture>;
     }): PasskeyRegisterResult {
-        const normalizedName = normalizePlayerName(requestedName);
+        const normalizedName = normalizeIdentityKey(requestedName);
         const normalizedCredentialId = credentialId.trim();
         const normalizedPublicKey = toUint8Array(credentialPublicKey);
         const normalizedCounter = Number.isSafeInteger(counter) && counter >= 0 ? counter : 0;
@@ -871,14 +886,15 @@ export class SqlitePlayerPersistence {
             return { accepted: false, reason: 'Invalid passkey public key.' };
         }
 
-        const credentialOwner = this.#selectPasskeyCredentialByCredential.get(normalizedCredentialId) as
-            | PasskeyCredentialByIdRow
-            | null;
+        const credentialOwner = getRow<PasskeyCredentialByIdRow>(
+            this.#selectPasskeyCredentialByCredential,
+            normalizedCredentialId
+        );
         if (credentialOwner && credentialOwner.name_key !== normalizedName) {
             return { accepted: false, reason: 'Passkey credential is already bound to another account.' };
         }
 
-        let row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        let row = getRow<ProfileRow>(this.#selectProfile, normalizedName);
         const now = Date.now();
         const displayName = row?.display_name ?? resolveDisplayName(requestedName, normalizedName);
         if (!row) {
@@ -892,7 +908,7 @@ export class SqlitePlayerPersistence {
                 now,
                 now
             );
-            row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+            row = getRow<ProfileRow>(this.#selectProfile, normalizedName);
         }
 
         this.#insertPasskeyCredential.run(
@@ -925,7 +941,7 @@ export class SqlitePlayerPersistence {
         credentialId: string;
         nextCounter?: number;
     }): PasskeyAuthenticateResult {
-        const normalizedName = normalizePlayerName(requestedName);
+        const normalizedName = normalizeIdentityKey(requestedName);
         const normalizedCredentialId = credentialId.trim();
         if (!normalizedName) {
             return { accepted: false, reason: 'Invalid username.' };
@@ -934,16 +950,16 @@ export class SqlitePlayerPersistence {
             return { accepted: false, reason: 'Invalid passkey credential id.' };
         }
 
-        const hasAnyCredential = this.#selectAnyPasskeyCredentialByName.get(normalizedName) as
-            | PasskeyCredentialByNameRow
-            | null;
+        const hasAnyCredential = getRow<PasskeyCredentialByNameRow>(this.#selectAnyPasskeyCredentialByName, normalizedName);
         if (!hasAnyCredential) {
             return { accepted: false, reason: 'No passkey is registered for this account.' };
         }
 
-        const credential = this.#selectPasskeyCredentialByNameAndCredential.get(normalizedName, normalizedCredentialId) as
-            | PasskeyCredentialByNameRow
-            | null;
+        const credential = getRow<PasskeyCredentialByNameRow>(
+            this.#selectPasskeyCredentialByNameAndCredential,
+            normalizedName,
+            normalizedCredentialId
+        );
         if (!credential) {
             return { accepted: false, reason: 'Passkey assertion did not match this account.' };
         }
@@ -958,7 +974,7 @@ export class SqlitePlayerPersistence {
                 ? nextCounter
                 : currentCounter;
         this.#touchPasskeyCredentialUse.run(normalizedName, normalizedCredentialId, normalizedCounter, now);
-        const row = this.#selectProfile.get(normalizedName) as ProfileRow | null;
+        const row = getRow<ProfileRow>(this.#selectProfile, normalizedName);
         if (!row) {
             return { accepted: false, reason: 'Unable to load player profile.' };
         }

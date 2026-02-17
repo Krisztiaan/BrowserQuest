@@ -10,7 +10,7 @@ type ChestEvents = {
 
 class Chest extends Entity<MergeEvents<EntityEvents, ChestEvents>> {
 
-    constructor(id: string | number, _kind?: unknown) {
+    constructor(id: string | number) {
         super(id, Types.Entities.CHEST);
     }
 

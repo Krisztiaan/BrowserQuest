@@ -4,6 +4,8 @@ import Log from '../../server/log';
 const originalConsoleInfo = console.info;
 const originalConsoleError = console.error;
 const originalLogLevel = Log.getLogger().level;
+type LogValue = string | number | boolean | null | LogValue[] | { [key: string]: LogValue };
+type LogRecord = Record<string, LogValue>;
 
 afterEach(() => {
     console.info = originalConsoleInfo;
@@ -13,7 +15,7 @@ afterEach(() => {
 
 test('logger emits structured JSON events', () => {
     const lines: string[] = [];
-    console.info = (...args: unknown[]) => {
+    console.info = (...args: Array<string | number | boolean | object | null | undefined>) => {
         lines.push(args.join(' '));
     };
 
@@ -22,11 +24,11 @@ test('logger emits structured JSON events', () => {
     log.event('info', 'test.event', { answer: 42 });
 
     expect(lines.length).toBe(1);
-    const parsed: unknown = JSON.parse(lines[0]) as unknown;
+    const parsed = JSON.parse(lines[0]) as LogValue;
     if (!parsed || typeof parsed !== 'object') {
         throw new Error('Expected structured log JSON object');
     }
-    const record = parsed as Record<string, unknown>;
+    const record = parsed as LogRecord;
     expect(record.level).toBe('info');
     expect(record.event).toBe('test.event');
     expect(record.answer).toBe(42);
@@ -35,7 +37,7 @@ test('logger emits structured JSON events', () => {
 
 test('logger suppresses debug events when level is info', () => {
     const lines: string[] = [];
-    console.info = (...args: unknown[]) => {
+    console.info = (...args: Array<string | number | boolean | object | null | undefined>) => {
         lines.push(args.join(' '));
     };
 

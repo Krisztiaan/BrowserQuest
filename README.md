@@ -42,7 +42,7 @@ Verification
 - TypeScript solution build
 - lint + format check
 - test suite
-- Bun production client build
+- Bun production client + server builds
 
 Content Canonicalization (Current)
 ----------------------------------
@@ -77,21 +77,14 @@ Runtime Probes and Shutdown
 Lint/Format Scope
 -----------------
 
-Current lint/format scope is intentionally bounded while legacy modules are incrementally modernized:
+`lint` (error-only via `eslint --quiet`) runs full TypeScript coverage:
 
-- `lint` (error-only via `eslint --quiet`) currently targets:
-  - `client/runtime/connection.ts`
-  - `client/game.ts`
-  - `client/gameclient.ts`
-  - `server/runtime.ts`
-  - `server/player-session.ts`
-  - `server/player-session-command-translation.ts`
-  - `shared/protocol/**/*.ts`
-  - `shared/connection-status.ts`
-- `lint:client-runtime` currently targets:
-  - `client/runtime/connection.ts`
-  - `client/game.ts`
-  - `client/gameclient.ts`
+- `client/**/*.ts`
+- `server/**/*.ts`
+- `shared/**/*.ts`
+- `tests/**/*.ts`
+- `lint:authority` remains available as a focused lane for authority-critical modules.
+- `lint:client-runtime` remains available for quick runtime-only checks.
 - `format`/`format:check` currently target:
   - `server/{log.ts,utils.ts,format.ts}`
   - `client/platform/*.ts`
@@ -125,6 +118,12 @@ Server Config Knobs (Local/VPS)
 - Chunk snapshot streaming caps:
   - `chunk_snapshot_payload_max_utf8_bytes` (default `65536`)
   - `chunk_snapshot_max_parts` (default `128`)
+
+Pre-release Data Compatibility
+------------------------------
+
+- Current pre-release policy is strict cutover: no legacy localStorage or SQLite schema migration paths are executed at runtime.
+- Upgrading between incompatible pre-release builds requires a fresh local browser storage and fresh server DB files (`player_db_path`, `claims_db_path`, `chunk_overlay_db_path`).
 
 Claims Admin CLI
 ----------------

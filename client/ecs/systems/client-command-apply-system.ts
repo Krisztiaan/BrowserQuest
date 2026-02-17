@@ -4,12 +4,14 @@ import Npc from '../../npc';
 import Chest from '../../chest';
 import Character from '../../character';
 import type Player from '../../player';
-import type { EntityId } from '../../../shared/domain/ids';
+import type Sprite from '../../sprite';
+import { entityIdFromWire, type EntityId } from '../../../shared/domain/ids';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
 import { gridPos } from '../../../shared/domain/positions';
 import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 import { getMobPrefab } from '../../../shared/content/prefabs';
+import type { RuntimeEntity } from '../../client-boundary-types';
 import type { ClientCommand } from '../client-commands';
 import type { ClientWorldKernel } from '../world-kernel';
 import { adaptKernelEntityForRendering } from '../kernel-entity-adapter';
@@ -19,17 +21,25 @@ import { debugMoves } from '../../debug-flags';
 type GridIndexedEntity = {
     id: EntityId;
     kind: EntityKind;
+    x: number;
+    y: number;
     gridX: number;
     gridY: number;
-    setSprite(sprite: unknown): void;
+    nextGridX?: number;
+    nextGridY?: number;
+    setSprite(sprite: Sprite | null): void;
     setWeaponName?(name: string): void;
+    setSpriteName?(name: string): void;
     getSpriteName(): string;
-    getWeaponName?(): string;
+    getWeaponName?(): string | null;
     setGridPosition(x: number, y: number): void;
     setMaxHitPoints?(hp: number): void;
+    setOrientation?(orientation: number): void;
+    idle?(): void;
     blink?(speed: number): void;
-    dirtyRect?: unknown;
+    dirtyRect?: DirtyRect | null;
 };
+type DirtyRect = Record<string, number>;
 
 type SpatialRecord = Readonly<{
     gridX: number;
@@ -47,7 +57,7 @@ export type ClientCommandApplySystemHost = {
     started: boolean;
     client:
         | {
-              sendHello(player: unknown): void;
+              sendHello(player: Player): void;
               sendLoot(item: { id: EntityId }): void;
               sendMove(x: number, y: number): void;
               sendChunkSubscribe(chunkX: number, chunkY: number, radius: number): void;
@@ -74,12 +84,12 @@ export type ClientCommandApplySystemHost = {
     stopPlayerCombat(): void;
     makePlayerGoTo(x: number, y: number): void;
     makePlayerGoToItem(item: Item | null): void;
-    getEntityById(id: EntityId): unknown;
-    makeCharacterTeleportTo(entity: unknown, x: number, y: number): void;
-    makeCharacterGoTo(entity: unknown, x: number, y: number): void;
-    createAttackLink(attacker: unknown, target: unknown): void;
+    getEntityById(id: EntityId): GridIndexedEntity | undefined;
+    makeCharacterTeleportTo(entity: Character, x: number, y: number): void;
+    makeCharacterGoTo(entity: Character, x: number, y: number): void;
+    createAttackLink(attacker: Character, target: Character): void;
     removeItem(item: Item | null): void;
-    removeEntity(entity: unknown): void;
+    removeEntity(entity: GridIndexedEntity): void;
     enqueueZoningFrom(x: number, y: number): void;
 
     makePlayerAttack(mob: Mob): void;
@@ -88,11 +98,11 @@ export type ClientCommandApplySystemHost = {
     makeNpcTalk(npc: Npc): void;
 
     // Runtime/welcome side effects
-    renderer: { getEntityBoundingRect(entity: unknown): unknown; getPlayerImage(cb: (img: unknown) => void): void } | null;
+    renderer: { getEntityBoundingRect(entity: GridIndexedEntity): DirtyRect; getPlayerImage(cb: (img: string) => void): void } | null;
     storage: {
         hasAlreadyPlayed(): boolean;
         initPlayer(name: string): void;
-        savePlayer(playerImage: unknown, spriteName: string, weaponName: string): void;
+        savePlayer(playerImage: string, spriteName: string, weaponName: string): void;
         setPlayerName(name: string): void;
         applyAchievementProgressSnapshot(snapshot: {
             unlockedIds: number[];
@@ -115,13 +125,13 @@ export type ClientCommandApplySystemHost = {
     app: { initUnlockedAchievements(unlocked: number[]): void };
     updateBars(): void;
     resetCamera(): void;
-    addEntity(entity: unknown): void;
+    addEntity(entity: GridIndexedEntity): void;
     showNotification(message: string): void;
     tryUnlockingAchievement(key: string): void;
     audioManager: { playSound(key: string): void; updateMusic?(): void } | null;
     createBubble(entityId: EntityId, text: string): void;
     infoManager: { addDamageInfo(value: number | string, x: number, y: number, type: 'received' | 'inflicted' | 'healed'): void };
-    sprites: Record<string, unknown>;
+    sprites: Record<string, Sprite>;
     entities: Record<string, GridIndexedEntity>;
     map: { grid: number[][]; isOutOfBounds(x: number, y: number): boolean; isColliding?(x: number, y: number): boolean } | null;
     obsoleteEntities: GridIndexedEntity[] | null;
@@ -132,7 +142,7 @@ export type ClientCommandApplySystemHost = {
     setPlayerGridPosition(x: number, y: number): void;
     setPlayerMaxHitPoints(hp: number): void;
     setPlayerHealth(points: number): void;
-    addItemFromUnknown(item: unknown, x: number, y: number): void;
+    addItemFromUnknown(item: RuntimeEntity, x: number, y: number): void;
 };
 
 function safeOrientation(orientation: number | undefined): number {
@@ -392,10 +402,10 @@ function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: st
 
     host.updateBars();
     host.resetCamera();
-    host.addEntity(host.player as unknown);
+    host.addEntity(host.player);
     const renderer = host.renderer;
     if (renderer) {
-        (host.player as unknown as GridIndexedEntity).dirtyRect = renderer.getEntityBoundingRect(host.player);
+        host.player.dirtyRect = renderer.getEntityBoundingRect(host.player);
     }
 
     setTimeout(function (): void {
@@ -405,7 +415,7 @@ function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: st
     if (!host.storage.hasAlreadyPlayed()) {
         host.storage.initPlayer(host.player.name);
         if (renderer) {
-            renderer.getPlayerImage(function (playerImage: unknown) {
+            renderer.getPlayerImage(function (playerImage: string) {
                 host.storage.savePlayer(playerImage, host.player.getSpriteName(), host.player.getWeaponName());
             });
         }
@@ -450,7 +460,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (!host.started || !host.client) {
                     break;
                 }
-                host.client.sendHello(host.player as unknown);
+                host.client.sendHello(host.player);
                 break;
             }
             case 'clientSendMove': {
@@ -558,9 +568,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 break;
             }
             case 'setEntityNextGrid': {
-                const entity = host.entities[String(command.entityId)] as unknown as
-                    | undefined
-                    | { nextGridX?: number; nextGridY?: number };
+                const entity = host.entities[String(command.entityId)];
                 if (!entity) {
                     break;
                 }
@@ -581,33 +589,38 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (!(attacker instanceof Mob) || attacker.isMoving() || !attacker.previousTarget) {
                     break;
                 }
-                const prev = attacker.previousTarget as unknown as { id?: unknown };
-                if (typeof prev.id !== 'number') {
+                const previousTargetId = attacker.previousTarget.id;
+                if (typeof previousTargetId !== 'number') {
                     attacker.previousTarget = null;
                     break;
                 }
-                const target = getKnownEntity(prev.id as EntityId);
+                let targetId: EntityId;
+                try {
+                    targetId = entityIdFromWire(previousTargetId);
+                } catch {
+                    attacker.previousTarget = null;
+                    break;
+                }
+                const target = getKnownEntity(targetId);
                 if (!(target instanceof Character)) {
                     attacker.previousTarget = null;
                     break;
                 }
                 attacker.previousTarget = null;
-                host.createAttackLink(attacker as unknown, target as unknown);
+                host.createAttackLink(attacker, target);
                 break;
             }
             case 'combatRepositionAttacker': {
                 const attacker = getKnownEntity(command.attackerId);
-                const target = getKnownEntity(command.targetId) as unknown as
-                    | undefined
-                    | { adjacentTiles?: Record<string, unknown> };
-                if (!(attacker instanceof Character) || !target || !(target instanceof Character)) {
+                const target = getKnownEntity(command.targetId);
+                if (!(attacker instanceof Character) || !(target instanceof Character)) {
                     break;
                 }
 
                 attacker.previousTarget = target;
                 attacker.disengage();
                 attacker.idle();
-                host.makeCharacterGoTo(attacker as unknown, command.x, command.y);
+                host.makeCharacterGoTo(attacker, command.x, command.y);
 
                 target.adjacentTiles[String(command.orientation)] = true;
                 break;
@@ -658,8 +671,8 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
 
                 entity.hitPoints = Math.max(0, entity.hitPoints - command.points);
                 entity.hurt();
-                const x = typeof (entity as unknown as { x?: unknown }).x === 'number' ? (entity as unknown as { x: number }).x : entity.gridX * 16;
-                const y = typeof (entity as unknown as { y?: unknown }).y === 'number' ? (entity as unknown as { y: number }).y : entity.gridY * 16;
+                const x = entity.x;
+                const y = entity.y;
                 host.infoManager.addDamageInfo(command.points, x, y, 'inflicted');
                 break;
             }
@@ -694,7 +707,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     host.kernel.clearClientPendingMoveAcks();
                     host.kernel.clearClientPendingMoveSeqAcks();
 
-                    host.createAttackLink(host.player as unknown, entity as unknown);
+                    host.createAttackLink(host.player, entity);
                     if (host.started && host.client) {
                         host.client.sendAttack(entity);
                     }
@@ -703,14 +716,14 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             }
             case 'playerFollow': {
                 const entity = getKnownEntity(command.targetId);
-                if (entity && typeof (entity as { gridX?: unknown; gridY?: unknown }).gridX === 'number') {
+                if (entity) {
                     if (entity instanceof Character) {
                         host.player.setTarget(entity);
                     }
                     planServerAuthoritativeMoveTo({
                         host,
-                        toX: (entity as { gridX: number }).gridX,
-                        toY: (entity as { gridY: number }).gridY,
+                        toX: entity.gridX,
+                        toY: entity.gridY,
                         stopAdjacentToTarget: true,
                     });
                 }
@@ -875,9 +888,9 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                         entity.nextGridY = -1;
                         entity.movement.stop();
                         entity.idle();
+                        // Use legacy immediate teleport effect when available.
+                        host.makeCharacterTeleportTo(entity, command.x, command.y);
                     }
-                    // Use legacy immediate teleport effect when available.
-                    host.makeCharacterTeleportTo(entity as unknown, command.x, command.y);
                 }
                 host.kernel.clientReplicationLastPos.set(command.entityId, gridPos(command.x, command.y));
                 if (command.entityId === host.playerId) {
@@ -980,12 +993,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 break;
             }
             case 'equipItem': {
-                const entity = getKnownEntity(command.entityId) as
-                    | undefined
-                    | {
-                          setSprite(sprite: unknown): void;
-                          setWeaponName?(name: string): void;
-                      };
+                const entity = getKnownEntity(command.entityId);
                 if (!entity) {
                     break;
                 }
@@ -993,8 +1001,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     const kindName = Types.getKindAsString(command.itemKind);
                     if (kindName) {
                         entity.setSprite(host.sprites[kindName] ?? null);
-                        const armorEntity = entity as { setSpriteName?(name: string): void };
-                        armorEntity.setSpriteName?.(kindName);
+                        entity.setSpriteName?.(kindName);
                     }
                 } else if (Types.isWeapon(command.itemKind)) {
                     const kindName = Types.getKindAsString(command.itemKind);
@@ -1038,24 +1045,23 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     const entity = adapted.entity as GridIndexedEntity;
                     entity.setSprite(host.sprites[entity.getSpriteName()] ?? null);
                     entity.setGridPosition(view.position.x, view.position.y);
-                    host.addEntity(entity as unknown);
+                    host.addEntity(entity);
                     break;
                 }
 
-                const character = adapted.entity as GridIndexedEntity;
+                const character = adapted.entity;
                 character.setSprite(host.sprites[character.getSpriteName()] ?? null);
                 character.setGridPosition(view.position.x, view.position.y);
-                const maybeOrientable = character as unknown as { setOrientation?: (orientation: number) => void };
-                if (typeof maybeOrientable.setOrientation === 'function') {
-                    maybeOrientable.setOrientation(safeOrientation(adapted.orientation));
+                if (typeof character.setOrientation === 'function') {
+                    character.setOrientation(safeOrientation(adapted.orientation));
                 }
-                (character as unknown as { idle?: () => void }).idle?.();
-                host.addEntity(character as unknown);
+                character.idle?.();
+                host.addEntity(character as GridIndexedEntity);
 
                 if (adapted.targetId !== undefined) {
                     const target = getKnownEntity(adapted.targetId);
-                    if (target) {
-                        host.createAttackLink(character as unknown, target as unknown);
+                    if (target instanceof Character) {
+                        host.createAttackLink(character, target);
                     }
                 }
                 break;
@@ -1096,7 +1102,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                                 reason: 'append_failed',
                             });
                         }
-                        host.makeCharacterTeleportTo(entity as unknown, command.x, command.y);
+                        host.makeCharacterTeleportTo(entity, command.x, command.y);
                         break;
                     }
 
@@ -1117,17 +1123,17 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                             reason: 'start_failed_or_non_adjacent',
                         });
                     }
-                    host.makeCharacterTeleportTo(entity as unknown, command.x, command.y);
+                    host.makeCharacterTeleportTo(entity, command.x, command.y);
                 }
                 break;
             }
             case 'createAttackLink': {
                 const attacker = getKnownEntity(command.attackerId);
                 const target = getKnownEntity(command.targetId);
-                if (!attacker || !target) {
+                if (!(attacker instanceof Character) || !(target instanceof Character)) {
                     break;
                 }
-                host.createAttackLink(attacker as unknown, target as unknown);
+                host.createAttackLink(attacker, target);
                 break;
             }
             }

@@ -22,10 +22,10 @@ test('loadServerPlugins loads default plugin modules from config specs', async (
 });
 
 test('wrapWorldServerConstructorWithPlugins passes plugins through constructor seam', () => {
-    const captured: unknown[] = [];
+    const captured: Array<readonly ServerPlugin[] | null> = [];
 
     class BaseWorldServer {
-        constructor(_id: string, _capacity: number, _server: unknown, plugins?: readonly unknown[]) {
+        constructor(_id: string, _capacity: number, _server: object, plugins?: readonly ServerPlugin[]) {
             captured.push(plugins ?? null);
         }
         run(_mapFilePath: string) {
@@ -34,7 +34,7 @@ test('wrapWorldServerConstructorWithPlugins passes plugins through constructor s
         on(_eventName: 'ready' | 'playerAdded' | 'playerRemoved', _callback: () => void) {
             // no-op
         }
-        emit(_eventName: 'playerConnect', _player: unknown) {
+        emit(_eventName: 'playerConnect', _player: { id?: string | number }) {
             // no-op
         }
         updatePopulation(_totalPlayers?: number) {
@@ -49,7 +49,7 @@ test('wrapWorldServerConstructorWithPlugins passes plugins through constructor s
         install() {},
     };
 
-    const Wrapped = wrapWorldServerConstructorWithPlugins(BaseWorldServer as unknown as RuntimeWorldServerConstructor, [
+    const Wrapped = wrapWorldServerConstructorWithPlugins(BaseWorldServer as RuntimeWorldServerConstructor, [
         plugin,
     ]);
     // eslint-disable-next-line @typescript-eslint/no-unused-vars

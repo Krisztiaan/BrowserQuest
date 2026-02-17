@@ -1,4 +1,5 @@
 import { makeChunkKey } from '../chunks/chunk-overlay-store';
+import { normalizeIdentityKey, normalizeIdentityKeyList } from '../../identity';
 
 export type RectClaim = Readonly<{
     id: number;
@@ -24,28 +25,8 @@ function resolveIndexChunkCoords(indexChunkSize: number, x: number, y: number): 
     return { chunkX: Math.floor(x / indexChunkSize), chunkY: Math.floor(y / indexChunkSize) };
 }
 
-function normalizeIdentityKey(value: string): string {
-    return value.trim().toLowerCase();
-}
-
 function normalizeEditorNameKeys(ownerName: string, rawEditorNameKeys: ReadonlyArray<string> | null | undefined): string[] {
-    if (!Array.isArray(rawEditorNameKeys) || rawEditorNameKeys.length === 0) {
-        return [];
-    }
-    const normalizedOwner = normalizeIdentityKey(ownerName);
-    const deduped = new Set<string>();
-    for (let i = 0; i < rawEditorNameKeys.length; i += 1) {
-        const raw = rawEditorNameKeys[i];
-        if (typeof raw !== 'string') {
-            continue;
-        }
-        const normalized = normalizeIdentityKey(raw);
-        if (!normalized || normalized === normalizedOwner) {
-            continue;
-        }
-        deduped.add(normalized);
-    }
-    return [...deduped];
+    return normalizeIdentityKeyList(rawEditorNameKeys, { exclude: ownerName });
 }
 
 function intersectsRect(a: { x1: number; y1: number; x2: number; y2: number }, b: { x1: number; y1: number; x2: number; y2: number }): boolean {
@@ -185,10 +166,10 @@ export class ClaimsStore {
         }
 
         const nextBounds = clampRectBounds(
-            hasX1 ? (x1 as number) : existing.x1,
-            hasY1 ? (y1 as number) : existing.y1,
-            hasX2 ? (x2 as number) : existing.x2,
-            hasY2 ? (y2 as number) : existing.y2
+            hasX1 ? x1 : existing.x1,
+            hasY1 ? y1 : existing.y1,
+            hasX2 ? x2 : existing.x2,
+            hasY2 ? y2 : existing.y2
         );
         const nextEditorNameKeys =
             editorNameKeys === undefined
@@ -258,21 +239,20 @@ export class ClaimsStore {
             }
         }
 
-        const orderedCandidateIds = [...candidateIds].sort((a, b) => a - b);
-        for (let i = 0; i < orderedCandidateIds.length; i += 1) {
-            const id = orderedCandidateIds[i];
-            if (id === undefined) {
-                continue;
-            }
+        let oldestOverlap: RectClaim | null = null;
+        for (const id of candidateIds) {
             const claim = this.#claimsById.get(id);
             if (!claim) {
                 continue;
             }
-            if (intersectsRect(target, claim)) {
-                return claim;
+            if (!intersectsRect(target, claim)) {
+                continue;
+            }
+            if (!oldestOverlap || claim.id < oldestOverlap.id) {
+                oldestOverlap = claim;
             }
         }
-        return null;
+        return oldestOverlap;
     }
 
     deleteClaim(id: number): boolean {
@@ -294,17 +274,21 @@ export class ClaimsStore {
         if (!bucket || bucket.length === 0) {
             return null;
         }
+        let oldestClaim: RectClaim | null = null;
         for (let i = 0; i < bucket.length; i += 1) {
             const id = bucket[i]!;
             const claim = this.#claimsById.get(id);
             if (!claim) {
                 continue;
             }
-            if (x >= claim.x1 && x <= claim.x2 && y >= claim.y1 && y <= claim.y2) {
-                return claim;
+            if (!(x >= claim.x1 && x <= claim.x2 && y >= claim.y1 && y <= claim.y2)) {
+                continue;
+            }
+            if (!oldestClaim || claim.id < oldestClaim.id) {
+                oldestClaim = claim;
             }
         }
-        return null;
+        return oldestClaim;
     }
 
     #upsertLoadedClaim(claim: RectClaim): void {
@@ -356,9 +340,15 @@ export class ClaimsStore {
                     this.#index.set(key, [claim.id]);
                     continue;
                 }
-                if (!bucket.includes(claim.id)) {
+                let exists = false;
+                for (let i = 0; i < bucket.length; i += 1) {
+                    if (bucket[i] === claim.id) {
+                        exists = true;
+                        break;
+                    }
+                }
+                if (!exists) {
                     bucket.push(claim.id);
-                    bucket.sort((a, b) => a - b);
                 }
             }
         }
@@ -376,11 +366,19 @@ export class ClaimsStore {
                 if (!bucket) {
                     continue;
                 }
-                const next = bucket.filter((id) => id !== claim.id);
-                if (next.length === 0) {
+                let writeIndex = 0;
+                for (let readIndex = 0; readIndex < bucket.length; readIndex += 1) {
+                    const current = bucket[readIndex];
+                    if (current !== claim.id) {
+                        bucket[writeIndex] = current!;
+                        writeIndex += 1;
+                    }
+                }
+
+                if (writeIndex === 0) {
                     this.#index.delete(key);
-                } else if (next.length !== bucket.length) {
-                    this.#index.set(key, next);
+                } else if (writeIndex !== bucket.length) {
+                    bucket.length = writeIndex;
                 }
             }
         }

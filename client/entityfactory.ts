@@ -145,7 +145,7 @@ EntityFactory.builders[Types.Entities.CAKE] = function (id) {
 };
 
 EntityFactory.builders[Types.Entities.CHEST] = function (id) {
-    return new Chest(id, Types.Entities.CHEST);
+    return new Chest(id);
 };
 
 //====== NPCs ======

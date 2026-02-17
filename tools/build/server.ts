@@ -1,27 +1,14 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { copyPathIfExists } from '../shared/fs-helpers';
 
 const repoRoot = path.resolve(import.meta.dir, '..', '..');
 const outputRoot = path.join(repoRoot, 'dist', 'server');
 
-async function pathExists(targetPath: string): Promise<boolean> {
-    try {
-        await fs.access(targetPath);
-        return true;
-    } catch (_) {
-        return false;
-    }
-}
-
 async function copyIntoOutput(sourceRelativePath: string): Promise<void> {
     const sourcePath = path.join(repoRoot, sourceRelativePath);
-    if (!(await pathExists(sourcePath))) {
-        return;
-    }
-
     const destinationPath = path.join(outputRoot, sourceRelativePath);
-    await fs.mkdir(path.dirname(destinationPath), { recursive: true });
-    await fs.cp(sourcePath, destinationPath, { recursive: true, force: true });
+    await copyPathIfExists(sourcePath, destinationPath);
 }
 
 async function main(): Promise<void> {

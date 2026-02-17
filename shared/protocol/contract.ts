@@ -1,7 +1,10 @@
 import Types from '../gametypes-browser';
 import type { ProtocolActionValue, ProtocolContract, ProtocolParsedAction } from './types';
 
-function isProtocolActionValue(value: unknown): value is ProtocolActionValue {
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+
+function isProtocolActionValue(value: JsonValue | object | undefined): value is ProtocolActionValue {
     if (
         typeof value === 'number' ||
         typeof value === 'string' ||
@@ -18,7 +21,7 @@ function isProtocolActionValue(value: unknown): value is ProtocolActionValue {
     return value.every((entry) => typeof entry === 'number' && Number.isFinite(entry));
 }
 
-function isProtocolAction(value: unknown): value is ProtocolParsedAction {
+function isProtocolAction(value: JsonValue | object | undefined): value is ProtocolParsedAction {
     if (!Array.isArray(value) || value.length === 0) {
         return false;
     }
@@ -66,12 +69,22 @@ const protocolContract: ProtocolContract = {
     MSG_CHECK: Types.Messages.CHECK,
     MSG_ACHIEVEMENT: Types.Messages.ACHIEVEMENT,
     MSG_ACHIEVEMENTS: Types.Messages.ACHIEVEMENTS,
+    MSG_INTENT: Types.Messages.INTENT,
+    MSG_OUTCOME: Types.Messages.OUTCOME,
+    MSG_REJECT: Types.Messages.REJECT,
+    MSG_ACK: Types.Messages.ACK,
+    MSG_CORRECTION: Types.Messages.CORRECTION,
+    MSG_CHUNK_SUBSCRIBE: Types.Messages.CHUNK_SUBSCRIBE,
+    MSG_CHUNK_UNSUBSCRIBE: Types.Messages.CHUNK_UNSUBSCRIBE,
+    MSG_CHUNK_SNAPSHOT: Types.Messages.CHUNK_SNAPSHOT,
+    MSG_CHUNK_SNAPSHOT_PART: Types.Messages.CHUNK_SNAPSHOT_PART,
+    MSG_CHUNK_DELTA: Types.Messages.CHUNK_DELTA,
     ENTITY_CLOTH_ARMOR: Types.Entities.CLOTHARMOR,
     ENTITY_SWORD_1: Types.Entities.SWORD1,
     parseProtocolActionBatch(payload: string): ProtocolParsedAction[] {
-        let parsed: unknown;
+        let parsed: JsonValue;
         try {
-            parsed = JSON.parse(payload);
+            parsed = JSON.parse(payload) as JsonValue;
         } catch (_) {
             return [];
         }
@@ -129,6 +142,16 @@ export const MSG_OPEN = protocolContract.MSG_OPEN;
 export const MSG_CHECK = protocolContract.MSG_CHECK;
 export const MSG_ACHIEVEMENT = protocolContract.MSG_ACHIEVEMENT;
 export const MSG_ACHIEVEMENTS = protocolContract.MSG_ACHIEVEMENTS;
+export const MSG_INTENT = protocolContract.MSG_INTENT;
+export const MSG_OUTCOME = protocolContract.MSG_OUTCOME;
+export const MSG_REJECT = protocolContract.MSG_REJECT;
+export const MSG_ACK = protocolContract.MSG_ACK;
+export const MSG_CORRECTION = protocolContract.MSG_CORRECTION;
+export const MSG_CHUNK_SUBSCRIBE = protocolContract.MSG_CHUNK_SUBSCRIBE;
+export const MSG_CHUNK_UNSUBSCRIBE = protocolContract.MSG_CHUNK_UNSUBSCRIBE;
+export const MSG_CHUNK_SNAPSHOT = protocolContract.MSG_CHUNK_SNAPSHOT;
+export const MSG_CHUNK_SNAPSHOT_PART = protocolContract.MSG_CHUNK_SNAPSHOT_PART;
+export const MSG_CHUNK_DELTA = protocolContract.MSG_CHUNK_DELTA;
 export const ENTITY_CLOTH_ARMOR = protocolContract.ENTITY_CLOTH_ARMOR;
 export const ENTITY_SWORD_1 = protocolContract.ENTITY_SWORD_1;
 export const parseProtocolActionBatch = protocolContract.parseProtocolActionBatch;

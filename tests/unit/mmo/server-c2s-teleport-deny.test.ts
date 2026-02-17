@@ -3,6 +3,7 @@ import Types from '../../../shared/gametypes-browser';
 import Player from '../../../server/player';
 import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
+import type { WorldMessage } from '../../../server/world/contracts';
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -24,11 +25,11 @@ function createPipelineFixture(params: {
     player: Player;
     isDoor: (x: number, y: number) => boolean;
     getDoorDestination: (x: number, y: number) => { x: number; y: number } | null;
-}): { pipeline: WorldEcsCommandPipeline; delivered: unknown[] } {
+}): { pipeline: WorldEcsCommandPipeline; delivered: WorldMessage[] } {
     const { player, isDoor, getDoorDestination } = params;
-    const delivered: unknown[] = [];
+    const delivered: WorldMessage[] = [];
 
-    const host: Record<string, unknown> = {
+    const host = {
         ups: 50,
         map: {
             getCheckpoint() {
@@ -62,14 +63,14 @@ function createPipelineFixture(params: {
             return null;
         },
         handleItemDespawn() {},
-        moveEntity(entity: unknown, x: number, y: number) {
-            (entity as { setPosition: (nextX: number, nextY: number) => void }).setPosition(x, y);
+        moveEntity(entity: { setPosition: (nextX: number, nextY: number) => void }, x: number, y: number) {
+            entity.setPosition(x, y);
         },
         removeEntity() {},
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId(playerId: number, message: unknown) {
+        pushToPlayerId(playerId: number, message: WorldMessage) {
             if (playerId === player.id) {
                 delivered.push(message);
             }
@@ -146,4 +147,3 @@ test('server allowlists C2S TELEPORT only for door destinations (transitional)',
         )
     ).toBe(true);
 });
-

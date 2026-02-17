@@ -11,11 +11,11 @@ import { getZoneGroupIdFromGrid, isOutOfBoundsGridPosition } from '../../shared/
 function createHostFixture(playerId: number) {
     const kernel = new ClientWorldKernel();
     const player = new Warrior('player', 'K');
-    (player as unknown as { id: number }).id = playerId;
+    player.id = playerId;
     player.kind = Types.Entities.WARRIOR;
     player.setGridPosition(10, 10);
 
-    const entities: Record<string, unknown> = {
+    const entities: Record<string, Warrior> = {
         [String(playerId)]: player,
     };
     const teleports: Array<{ x: number; y: number }> = [];
@@ -66,9 +66,9 @@ function createHostFixture(playerId: number) {
         getEntityById(id: number) {
             return entities[String(id)] ?? null;
         },
-        makeCharacterTeleportTo(entity: unknown, x: number, y: number) {
+        makeCharacterTeleportTo(entity: Warrior, x: number, y: number) {
             teleports.push({ x, y });
-            (entity as Warrior).setGridPosition(x, y);
+            entity.setGridPosition(x, y);
         },
         makeCharacterGoTo() {},
         createAttackLink() {},
@@ -81,9 +81,8 @@ function createHostFixture(playerId: number) {
         makeNpcTalk() {},
         updateBars() {},
         resetCamera() {},
-        addEntity(entity: unknown) {
-            const e = entity as { id: number };
-            entities[String(e.id)] = entity;
+        addEntity(entity: Warrior) {
+            entities[String(entity.id)] = entity;
         },
         showNotification() {},
         tryUnlockingAchievement() {},
@@ -105,7 +104,7 @@ function createHostFixture(playerId: number) {
             player.hitPoints = points;
         },
         addItemFromUnknown() {},
-    } as unknown as Parameters<typeof runClientCommandApplySystem>[0];
+    } as Parameters<typeof runClientCommandApplySystem>[0];
 
     return { host, kernel, player, teleports, chunkSubscriptions, getChunkUnsubscribeCount: () => chunkUnsubscribeCount };
 }
@@ -268,10 +267,10 @@ test('non-local adjacent characterGoTo starts authoritative step without pathfin
     const { host, kernel, teleports } = createHostFixture(playerId);
     const mobId = entityIdFromWire(8123);
     const mob = new Warrior('player', 'mob');
-    (mob as unknown as { id: number }).id = mobId;
+    mob.id = mobId;
     mob.kind = Types.Entities.RAT;
     mob.setGridPosition(20, 20);
-    (host.entities as Record<string, unknown>)[String(mobId)] = mob;
+    host.entities[String(mobId)] = mob;
 
     kernel.enqueueClientCommand({ type: 'characterGoTo', entityId: mobId, x: 21, y: 20 });
     runClientCommandApplySystem(host);
@@ -287,7 +286,7 @@ test('non-local moving character ignores duplicate destination ack without telep
     const { host, kernel, teleports } = createHostFixture(playerId);
     const mobId = entityIdFromWire(8124);
     const mob = new Warrior('player', 'mob');
-    (mob as unknown as { id: number }).id = mobId;
+    mob.id = mobId;
     mob.kind = Types.Entities.RAT;
     mob.setGridPosition(20, 20);
     mob.setPathRequestResolver(() => [
@@ -295,7 +294,7 @@ test('non-local moving character ignores duplicate destination ack without telep
         [21, 20],
     ]);
     mob.moveTo_(21, 20);
-    (host.entities as Record<string, unknown>)[String(mobId)] = mob;
+    host.entities[String(mobId)] = mob;
 
     kernel.enqueueClientCommand({ type: 'characterGoTo', entityId: mobId, x: 21, y: 20 });
     runClientCommandApplySystem(host);
@@ -310,7 +309,7 @@ test('non-local moving character appends adjacent authoritative steps while mid-
     const { host, kernel, teleports } = createHostFixture(playerId);
     const mobId = entityIdFromWire(8125);
     const mob = new Warrior('player', 'mob');
-    (mob as unknown as { id: number }).id = mobId;
+    mob.id = mobId;
     mob.kind = Types.Entities.RAT;
     mob.setGridPosition(20, 20);
     mob.setPathRequestResolver(() => [
@@ -318,7 +317,7 @@ test('non-local moving character appends adjacent authoritative steps while mid-
         [21, 20],
     ]);
     mob.moveTo_(21, 20);
-    (host.entities as Record<string, unknown>)[String(mobId)] = mob;
+    host.entities[String(mobId)] = mob;
 
     kernel.enqueueClientCommand({ type: 'characterGoTo', entityId: mobId, x: 22, y: 20 });
     runClientCommandApplySystem(host);
@@ -334,7 +333,7 @@ test('non-local moving character teleports on non-adjacent authoritative gap whi
     const { host, kernel, teleports } = createHostFixture(playerId);
     const mobId = entityIdFromWire(8126);
     const mob = new Warrior('player', 'mob');
-    (mob as unknown as { id: number }).id = mobId;
+    mob.id = mobId;
     mob.kind = Types.Entities.RAT;
     mob.setGridPosition(20, 20);
     mob.setPathRequestResolver(() => [
@@ -342,7 +341,7 @@ test('non-local moving character teleports on non-adjacent authoritative gap whi
         [21, 20],
     ]);
     mob.moveTo_(21, 20);
-    (host.entities as Record<string, unknown>)[String(mobId)] = mob;
+    host.entities[String(mobId)] = mob;
 
     kernel.enqueueClientCommand({ type: 'characterGoTo', entityId: mobId, x: 24, y: 20 });
     runClientCommandApplySystem(host);
@@ -359,10 +358,10 @@ test('non-local stationary character teleports on non-adjacent authoritative gap
     const { host, kernel, teleports } = createHostFixture(playerId);
     const mobId = entityIdFromWire(8127);
     const mob = new Warrior('player', 'mob');
-    (mob as unknown as { id: number }).id = mobId;
+    mob.id = mobId;
     mob.kind = Types.Entities.RAT;
     mob.setGridPosition(20, 20);
-    (host.entities as Record<string, unknown>)[String(mobId)] = mob;
+    host.entities[String(mobId)] = mob;
 
     kernel.enqueueClientCommand({ type: 'characterGoTo', entityId: mobId, x: 24, y: 20 });
     runClientCommandApplySystem(host);
@@ -377,7 +376,7 @@ test('characterClearTarget hard-stops active movement immediately', () => {
     const { host, kernel } = createHostFixture(playerId);
     const mobId = entityIdFromWire(8128);
     const mob = new Warrior('player', 'mob');
-    (mob as unknown as { id: number }).id = mobId;
+    mob.id = mobId;
     mob.kind = Types.Entities.RAT;
     mob.setGridPosition(20, 20);
     mob.setPathRequestResolver(() => [
@@ -385,7 +384,7 @@ test('characterClearTarget hard-stops active movement immediately', () => {
         [21, 20],
     ]);
     mob.moveTo_(21, 20);
-    (host.entities as Record<string, unknown>)[String(mobId)] = mob;
+    host.entities[String(mobId)] = mob;
 
     kernel.enqueueClientCommand({ type: 'characterClearTarget', entityId: mobId });
     runClientCommandApplySystem(host);
@@ -401,13 +400,13 @@ test('combat system never repositions non-local mobs client-side', () => {
     const mobId = entityIdFromWire(7201);
 
     const player = new Warrior('player', 'K');
-    (player as unknown as { id: number }).id = playerId;
+    player.id = playerId;
     player.kind = Types.Entities.WARRIOR;
     player.setGridPosition(10, 10);
     player.orientation = Types.Orientations.DOWN;
 
     const mob = new Warrior('mob', 'mob');
-    (mob as unknown as { id: number }).id = mobId;
+    mob.id = mobId;
     mob.kind = Types.Entities.SKELETON;
     mob.setGridPosition(11, 11);
     mob.attackingMode = true;

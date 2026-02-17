@@ -1,4 +1,4 @@
-import type { EntityId } from '../../shared/domain/ids';
+import { entityIdFromWire, type EntityId } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
 import { isWithinAttackRange, resolveAttackRangeTiles } from '../../shared/combat/attack-range';
 import { requireMobPrefab } from '../../shared/content/prefabs';
@@ -23,9 +23,6 @@ import {
     buildAckAction,
     buildBlinkAction,
     buildChatAction,
-    buildChunkDeltaAction,
-    buildChunkSnapshotAction,
-    buildChunkSnapshotPartAction,
     buildDespawnAction,
     buildDestroyAction,
     buildDropAction,
@@ -38,7 +35,8 @@ import {
     buildTeleportAction,
     buildWelcomeAction,
 } from '../protocol/outbound-actions';
-import type { ServerToClientProtocolAction, ServerToClientSpawnAction } from '../../shared/protocol/types';
+import type { ServerToClientSpawnAction } from '../../shared/protocol/types';
+import type { WorldMessage } from './contracts';
 import {
     buildSpawnActionFromReplicationState,
     registerSpawnReplicationComponents,
@@ -56,30 +54,52 @@ import { GameModuleRegistry } from '../../shared/modules/module-registry';
 import { encodeProtocolCapabilitiesJson, PROTOCOL_REVISION } from '../../shared/protocol/capabilities';
 import { createIntentSeqState, INTENT_SEQ_STATE_RESOURCE } from '../ecs/intent-seq';
 import { createResourceKey } from '../ecs/resources';
-import { ChunkOverlayStore, makeChunkKey } from './chunks/chunk-overlay-store';
+import { ChunkOverlayStore } from './chunks/chunk-overlay-store';
 import { createChunkAoiState, CHUNK_AOI_STATE_RESOURCE, type ChunkSubscription } from './chunks/chunk-aoi';
-import { encodeChunkSnapshotPayloadJson, encodeChunkSnapshotPayloadJsonParts } from '../../shared/protocol/chunks/chunk-snapshot-codec';
-import { encodeChunkDeltaPayloadJson } from '../../shared/protocol/chunks/chunk-delta-codec';
 import { ClaimsStore, type RectClaim } from './claims/claims-store';
 import { CLAIMS_STORE_RESOURCE } from './claims/claims-resource';
-import { canEditClaim, canEditTile, canManageClaim } from './claims/permissions';
+import { canEditTile } from './claims/permissions';
 import type { ServerConfig } from '../runtime-types';
+import { normalizeIdentityKey, resolveIdentityKey } from '../identity';
+import {
+    applyClaimCreateIntent,
+    applyClaimDeleteIntent,
+    applyClaimUpdateIntent,
+    DEFAULT_CLAIM_INTENT_CONFIG,
+} from './ecs-command-pipeline/claim-intents';
+import {
+    decodeIntentClaimCreate,
+    decodeIntentClaimDelete,
+    decodeIntentClaimUpdate,
+    decodeIntentGridPos,
+    decodeIntentTileEdit,
+} from './ecs-command-pipeline/intent-payloads';
+import {
+    enqueueChunkAoiUpdates,
+    replicateChunkDeltas,
+    replicateChunkSnapshots,
+} from './ecs-command-pipeline/chunk-aoi-streaming';
 
-type InboundIntentContext = Readonly<{
+type InboundIntentContext = {
     modules: GameModuleRegistry;
     state: WorldState<Command, DomainEvent>;
     ctx: SystemContext;
     world: WorldCommandHost;
     player: PlayerLike;
-    intentSourceKind?: 'intent' | 'legacy';
     Position: ComponentType<GridPos>;
     Target: ComponentType<EntityId>;
     movement: ReturnType<typeof registerMovementComponents>;
     mobAi: ReturnType<typeof registerMobAiComponents>;
     replication: ReturnType<typeof registerSpawnReplicationComponents>;
-}>;
+};
 
 type DoorTeleportOutcome = Readonly<{ playerId: EntityId; to: GridPos }>;
+type DroppedItem = Readonly<{ id: EntityId; kind: EntityKind }>;
+type DroppedMob = Readonly<{ kind: EntityKind; x: number; y: number }>;
+type LooseValue = string | number | boolean | bigint | symbol | null | undefined | object;
+type JsonScalar = string | number | boolean | null;
+type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
+type JsonRecord = { [key: string]: JsonLike };
 
 const INTENT_MOVE_STEP = 'move.step';
 const INTENT_DOOR_TELEPORT = 'door.teleport';
@@ -89,6 +109,24 @@ const INTENT_CLAIM_UPDATE = 'claim.update';
 const INTENT_CLAIM_DELETE = 'claim.delete';
 const OUTCOME_DOOR_TELEPORT = 'teleport.door';
 
+function isRecord(value: LooseValue): value is JsonRecord {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function decodeInboundIntentContext(value: LooseValue): InboundIntentContext | null {
+    return isRecord(value) ? (value as object as InboundIntentContext) : null;
+}
+
+function decodeCommandByType<TType extends Command['type']>(
+    value: LooseValue,
+    expectedType: TType
+): Extract<Command, { type: TType }> | null {
+    if (!isRecord(value) || value.type !== expectedType) {
+        return null;
+    }
+    return value as Extract<Command, { type: TType }>;
+}
+
 function createCoreServerModuleRegistry(): GameModuleRegistry {
     const modules = new GameModuleRegistry();
     modules.registerModules([
@@ -96,8 +134,23 @@ function createCoreServerModuleRegistry(): GameModuleRegistry {
             id: 'core.teleport',
             register(registry) {
                 registry.registerOutcomeHandler(OUTCOME_DOOR_TELEPORT, (rawCtx, rawPayload) => {
-                    const ctx = rawCtx as InboundIntentContext;
-                    const payload = rawPayload as DoorTeleportOutcome;
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    if (!ctx || !isRecord(rawPayload as LooseValue)) {
+                        return;
+                    }
+                    const payload = rawPayload as JsonRecord;
+                    const playerIdCandidate = payload.playerId;
+                    const to = payload.to;
+                    if (
+                        typeof playerIdCandidate !== 'number'
+                        || !Number.isInteger(playerIdCandidate)
+                        || !isRecord(to)
+                        || typeof to.x !== 'number'
+                        || typeof to.y !== 'number'
+                    ) {
+                        return;
+                    }
+                    const playerId = entityIdFromWire(playerIdCandidate);
                     applyTeleportOutcome({
                         state: ctx.state,
                         ctx: ctx.ctx,
@@ -107,8 +160,8 @@ function createCoreServerModuleRegistry(): GameModuleRegistry {
                         movement: ctx.movement,
                         replication: ctx.replication,
                         world: ctx.world,
-                        playerId: payload.playerId,
-                        to: payload.to,
+                        playerId,
+                        to: gridPos(to.x, to.y),
                     });
                 });
             },
@@ -118,8 +171,11 @@ function createCoreServerModuleRegistry(): GameModuleRegistry {
             deps: ['core.teleport'],
             register(registry) {
                 registry.registerIntentHandler(INTENT_MOVE_STEP, (rawCtx, rawPayload) => {
-                    const ctx = rawCtx as InboundIntentContext;
-                    const cmd = rawPayload as Extract<Command, { type: 'MOVE' }>;
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'MOVE');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
                     return applyMoveIntentCommand({
                         state: ctx.state,
                         Position: ctx.Position,
@@ -127,7 +183,6 @@ function createCoreServerModuleRegistry(): GameModuleRegistry {
                         movement: ctx.movement,
                         world: ctx.world,
                         cmd,
-                        sourceKind: ctx.intentSourceKind ?? 'legacy',
                     });
                 });
             },
@@ -137,8 +192,11 @@ function createCoreServerModuleRegistry(): GameModuleRegistry {
             deps: ['core.teleport'],
             register(registry) {
                 registry.registerIntentHandler(INTENT_DOOR_TELEPORT, (rawCtx, rawPayload) => {
-                    const ctx = rawCtx as InboundIntentContext;
-                    const cmd = rawPayload as Extract<Command, { type: 'TELEPORT' }>;
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'TELEPORT');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
 
                     const currentPos = ctx.Position.store.get(ctx.player.id) ?? gridPos(ctx.player.x, ctx.player.y);
                     const doorDestination = ctx.world.map.getDoorDestination(currentPos.x, currentPos.y);
@@ -164,8 +222,11 @@ function createCoreServerModuleRegistry(): GameModuleRegistry {
             id: 'core.tiles',
             register(registry) {
                 registry.registerIntentHandler(INTENT_TILE_EDIT, (rawCtx, rawPayload) => {
-                    const ctx = rawCtx as InboundIntentContext;
-                    const cmd = rawPayload as Extract<Command, { type: 'TILE_EDIT' }>;
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'TILE_EDIT');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
                     const claims = ctx.state.resources.require(CLAIMS_STORE_RESOURCE);
                     const claim = claims.getClaimAt(cmd.x, cmd.y);
                     const decision = canEditTile({
@@ -195,18 +256,39 @@ function createCoreServerModuleRegistry(): GameModuleRegistry {
             id: 'core.claims',
             register(registry) {
                 registry.registerIntentHandler(INTENT_CLAIM_CREATE, (rawCtx, rawPayload) => {
-                    const ctx = rawCtx as InboundIntentContext;
-                    const cmd = rawPayload as Extract<Command, { type: 'CLAIM_CREATE' }>;
-                    return applyClaimCreateIntent({ state: ctx.state, world: ctx.world, player: ctx.player, cmd });
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'CLAIM_CREATE');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    return applyClaimCreateIntent({
+                        state: ctx.state,
+                        world: ctx.world,
+                        player: ctx.player,
+                        cmd,
+                        limits: DEFAULT_CLAIM_INTENT_CONFIG,
+                    });
                 });
                 registry.registerIntentHandler(INTENT_CLAIM_UPDATE, (rawCtx, rawPayload) => {
-                    const ctx = rawCtx as InboundIntentContext;
-                    const cmd = rawPayload as Extract<Command, { type: 'CLAIM_UPDATE' }>;
-                    return applyClaimUpdateIntent({ state: ctx.state, world: ctx.world, player: ctx.player, cmd });
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'CLAIM_UPDATE');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    return applyClaimUpdateIntent({
+                        state: ctx.state,
+                        world: ctx.world,
+                        player: ctx.player,
+                        cmd,
+                        limits: DEFAULT_CLAIM_INTENT_CONFIG,
+                    });
                 });
                 registry.registerIntentHandler(INTENT_CLAIM_DELETE, (rawCtx, rawPayload) => {
-                    const ctx = rawCtx as InboundIntentContext;
-                    const cmd = rawPayload as Extract<Command, { type: 'CLAIM_DELETE' }>;
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'CLAIM_DELETE');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
                     return applyClaimDeleteIntent({ state: ctx.state, world: ctx.world, player: ctx.player, cmd });
                 });
             },
@@ -253,10 +335,18 @@ function resolveWeaponLevel(kind: EntityKind): number {
     }
 }
 
+function toKnownEntityKind(value: number): EntityKind | null {
+    const candidate = value as EntityKind;
+    if (Types.getKindAsString(candidate) === undefined) {
+        return null;
+    }
+    return candidate;
+}
+
 type WorldCommandHost = Readonly<{
     ups: number;
     map: {
-        getCheckpoint(id: string | number): { id?: string | number } | null;
+        getCheckpoint(id: string | number): { id?: string | number } | null | undefined;
         isDoor(x: number, y: number): boolean;
         getDoorDestination(x: number, y: number): { x: number; y: number } | null;
         getGroupIdFromPosition(x: number, y: number): string;
@@ -271,12 +361,11 @@ type WorldCommandHost = Readonly<{
     isPlayerActive(playerId: EntityId): boolean;
     pushSpawnsToPlayerId(playerId: EntityId, entities: EntityId[]): void;
     isValidPosition(x: number, y: number): boolean;
-    getDroppedItem(mob: unknown): unknown;
-    handleItemDespawn(item: unknown): void;
-    moveEntity(entity: unknown, x: number, y: number): void;
-    removeEntity(entity: unknown): void;
-    addItemFromChest(kind: unknown, x: number, y: number): unknown;
-    pushToPlayerId(playerId: EntityId, message: unknown): void;
+    getDroppedItem(mob: DroppedMob): DroppedItem | null;
+    handleItemDespawn(item: Readonly<{ id: EntityId }>): void;
+    removeEntity(entity: PlayerLike): void;
+    addItemFromChest(kind: EntityKind, x: number, y: number): DroppedItem;
+    pushToPlayerId(playerId: EntityId, message: WorldMessage): void;
     persistPlayerEquipment(player: PlayerLike): void;
     persistPlayerCheckpoint(playerName: string, checkpointId: number): void;
     persistPlayerAchievementUnlock(playerName: string, achievementId: number): void;
@@ -294,13 +383,6 @@ const MAX_CHUNK_SNAPSHOTS_PER_TICK_PER_PLAYER = 8;
 const DEFAULT_MAX_CHUNK_SNAPSHOT_PAYLOAD_UTF8_BYTES = 64 * 1024;
 const DEFAULT_MAX_CHUNK_SNAPSHOT_PARTS = 128;
 const MAX_CHUNK_DELTA_CHANGES_PER_MESSAGE = 256;
-const MAX_PENDING_CHUNKS_PER_PLAYER = 1024;
-const MAX_PENDING_SNAPSHOT_STREAMS_PER_PLAYER = 32;
-const MAX_PENDING_SNAPSHOT_PARTS_PER_PLAYER = 2048;
-const CLAIM_COORD_ABS_MAX = 1_000_000;
-const MAX_CLAIMS_PER_OWNER = 64;
-const MAX_CLAIM_AREA_TILES = 64 * 64;
-const MAX_CLAIM_EDITORS = 16;
 
 function resolveMaxChunkSnapshotPayloadUtf8BytesFromEnv(): number {
     const raw = process.env.BQ_TEST_CHUNK_SNAPSHOT_MAX_UTF8_BYTES;
@@ -314,102 +396,15 @@ function resolveMaxChunkSnapshotPayloadUtf8BytesFromEnv(): number {
     return parsed;
 }
 
-function resolvePositiveIntegerOrNull(value: unknown): number | null {
+function resolvePositiveIntegerOrNull(value: LooseValue): number | null {
     if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
         return null;
     }
     return value;
 }
 
-function resolvePlayerIdentityKey(player: { accountNameKey?: unknown; name?: unknown } | null | undefined): string | null {
-    if (!player || typeof player !== 'object') {
-        return null;
-    }
-    const accountNameKey = player.accountNameKey;
-    if (typeof accountNameKey === 'string') {
-        const normalized = accountNameKey.trim().toLowerCase();
-        if (normalized.length > 0) {
-            return normalized;
-        }
-    }
-    const displayName = player.name;
-    if (typeof displayName === 'string') {
-        const normalized = displayName.trim().toLowerCase();
-        if (normalized.length > 0) {
-            return normalized;
-        }
-    }
-    return null;
-}
-
-function normalizeIdentityKey(value: string): string {
-    return value.trim().toLowerCase();
-}
-
-function normalizeEditorNameKeys(rawEditorNameKeys: ReadonlyArray<string>, ownerNameKey: string): string[] {
-    const out: string[] = [];
-    const deduped = new Set<string>();
-    for (let i = 0; i < rawEditorNameKeys.length; i += 1) {
-        const raw = rawEditorNameKeys[i];
-        if (typeof raw !== 'string') {
-            continue;
-        }
-        const normalized = normalizeIdentityKey(raw);
-        if (!normalized || normalized === ownerNameKey || deduped.has(normalized)) {
-            continue;
-        }
-        deduped.add(normalized);
-        out.push(normalized);
-        if (out.length >= MAX_CLAIM_EDITORS) {
-            break;
-        }
-    }
-    return out;
-}
-
-function resolveClaimBounds(x1: number, y1: number, x2: number, y2: number): { x1: number; y1: number; x2: number; y2: number } {
-    const minX = Math.min(x1, x2);
-    const maxX = Math.max(x1, x2);
-    const minY = Math.min(y1, y2);
-    const maxY = Math.max(y1, y2);
-    return { x1: minX, y1: minY, x2: maxX, y2: maxY };
-}
-
-function validateClaimBounds({
-    world,
-    x1,
-    y1,
-    x2,
-    y2,
-}: {
-    world: WorldCommandHost;
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-}): { ok: true; bounds: { x1: number; y1: number; x2: number; y2: number } } | { ok: false; reason: string } {
-    const bounds = resolveClaimBounds(x1, y1, x2, y2);
-    if (
-        Math.abs(bounds.x1) > CLAIM_COORD_ABS_MAX
-        || Math.abs(bounds.y1) > CLAIM_COORD_ABS_MAX
-        || Math.abs(bounds.x2) > CLAIM_COORD_ABS_MAX
-        || Math.abs(bounds.y2) > CLAIM_COORD_ABS_MAX
-    ) {
-        return { ok: false, reason: 'CLAIM:coords_out_of_range' };
-    }
-
-    if (!world.isValidPosition(bounds.x1, bounds.y1) || !world.isValidPosition(bounds.x2, bounds.y2)) {
-        return { ok: false, reason: 'CLAIM:out_of_bounds' };
-    }
-
-    const width = bounds.x2 - bounds.x1 + 1;
-    const height = bounds.y2 - bounds.y1 + 1;
-    const area = width * height;
-    if (!Number.isSafeInteger(area) || area <= 0 || area > MAX_CLAIM_AREA_TILES) {
-        return { ok: false, reason: 'CLAIM:area_too_large' };
-    }
-
-    return { ok: true, bounds };
+function resolvePlayerIdentityKey(player: { accountNameKey?: string; name?: string } | null | undefined): string | null {
+    return resolveIdentityKey(player);
 }
 
 function isAdjacentNonDiagonal(a: GridPos, b: GridPos): boolean {
@@ -681,11 +676,17 @@ function applyHello({
 }): void {
     const wasDead = player.isDead === true;
     const resolvedName = cmd.profile?.displayName ?? cmd.name;
-    const resolvedAccountNameKey = (cmd.profile?.accountNameKey ?? cmd.profile?.nameKey ?? cmd.name).trim().toLowerCase();
+    const resolvedAccountNameKey =
+        resolveIdentityKey({
+            accountNameKey: cmd.profile?.accountNameKey ?? cmd.profile?.nameKey ?? cmd.name,
+            name: resolvedName,
+        })
+        ?? normalizeIdentityKey(resolvedName);
     const resolvedArmorKind = cmd.profile?.armorKind ?? cmd.armorKind;
     const resolvedWeaponKind = cmd.profile?.weaponKind ?? cmd.weaponKind;
+    const emptyUnlockedIds: number[] = [];
     const baseAchievements = cmd.profile?.achievements ?? {
-        unlockedIds: [] as number[],
+        unlockedIds: emptyUnlockedIds,
         ratCount: 0,
         skeletonCount: 0,
         totalKills: 0,
@@ -696,7 +697,7 @@ function applyHello({
     if (typeof cmd.profile?.checkpointId === 'number' && Number.isFinite(cmd.profile.checkpointId)) {
         const checkpoint = world.map.getCheckpoint(cmd.profile.checkpointId);
         if (checkpoint) {
-            player.lastCheckpoint = checkpoint as typeof player.lastCheckpoint;
+            player.lastCheckpoint = checkpoint;
         }
     }
 
@@ -774,7 +775,6 @@ function applyMoveIntentCommand({
     movement,
     world,
     cmd,
-    sourceKind,
 }: {
     state: WorldState<Command, DomainEvent>;
     Position: ComponentType<GridPos>;
@@ -782,7 +782,6 @@ function applyMoveIntentCommand({
     movement: ReturnType<typeof registerMovementComponents>;
     world: WorldCommandHost;
     cmd: Extract<Command, { type: 'MOVE' }>;
-    sourceKind: 'intent' | 'legacy';
 }): { ok: false; reason: string } | void {
     const { MoveQueue } = movement;
     const existing = MoveQueue.store.get(player.id)?.entries ?? [];
@@ -800,37 +799,15 @@ function applyMoveIntentCommand({
     if (dist !== 1) {
         // Client got ahead or desynced; clear queued intents and force correction.
         state.world.removeComponent(player.id, MoveQueue);
-        if (sourceKind === 'legacy') {
-            const outbox = state.resources.require(OUTBOX_RESOURCE);
-            outbox.push({
-                kind: 'to_player',
-                playerId: player.id,
-                action: buildTeleportAction(player.id, currentPos.x, currentPos.y),
-            });
-            return;
-        }
         return { ok: false, reason: 'Invalid move.step (non-adjacent).' };
     }
 
     if (!world.isValidPosition(cmd.to.x, cmd.to.y)) {
-        if (sourceKind === 'legacy') {
-            const outbox = state.resources.require(OUTBOX_RESOURCE);
-            outbox.push({
-                kind: 'to_player',
-                playerId: player.id,
-                action: buildTeleportAction(player.id, currentPos.x, currentPos.y),
-            });
-            return;
-        }
         return { ok: false, reason: 'Invalid move.step (position blocked).' };
     }
 
     const MAX_QUEUE = 16;
     if (existing.length >= MAX_QUEUE) {
-        if (sourceKind === 'legacy') {
-            // Avoid unbounded buffering; client will keep sending new positions as it steps.
-            return;
-        }
         return { ok: false, reason: 'move.step queue full.' };
     }
     state.world.addComponent(player.id, MoveQueue, { entries: [...existing, cmd.to] });
@@ -1038,30 +1015,20 @@ function resolveMoveCooldownTicks(kind: EntityKind, ups: number): number {
     return Math.max(1, Math.ceil((ups * ms) / 1000));
 }
 
-function resolveCombatNumber({
+function resolveCombatStat({
     state,
     component,
     entityId,
-    legacy,
-    key,
     fallback,
 }: {
     state: WorldState<Command, DomainEvent>;
     component: ComponentType<number>;
     entityId: EntityId;
-    legacy: unknown;
-    key: 'hitPoints' | 'maxHitPoints' | 'armorLevel' | 'weaponLevel';
     fallback?: number;
 }): number {
     const ecsValue = state.world.getComponent(entityId, component);
     if (typeof ecsValue === 'number') {
         return ecsValue;
-    }
-
-    const legacyValue = (legacy as Record<string, unknown> | null)?.[key];
-    if (typeof legacyValue === 'number') {
-        state.world.addComponent(entityId, component, legacyValue);
-        return legacyValue;
     }
 
     const value = typeof fallback === 'number' ? fallback : 0;
@@ -1100,21 +1067,11 @@ function handleMobDeath({
 
     const dropPos = pos ?? spawn;
     const droppedItem = world.getDroppedItem({ kind: mobKind, x: dropPos.x, y: dropPos.y });
-    if (
-        droppedItem &&
-        typeof droppedItem === 'object' &&
-        typeof (droppedItem as { id?: unknown }).id === 'number' &&
-        typeof (droppedItem as { kind?: unknown }).kind === 'number'
-    ) {
+    if (droppedItem) {
         outbox.push({
             kind: 'broadcast_nearby',
             actorId: mobId,
-            action: buildDropAction(
-                mobId,
-                (droppedItem as { id: EntityId }).id,
-                (droppedItem as { kind: EntityKind }).kind,
-                haters
-            ) as unknown as ServerToClientProtocolAction,
+            action: buildDropAction(mobId, droppedItem.id, droppedItem.kind, haters),
             fallbackGroupId,
         });
         world.handleItemDespawn(droppedItem);
@@ -1143,25 +1100,20 @@ function handlePlayerDeath({
     world: WorldCommandHost;
     playerId: EntityId;
 }): void {
-    const legacyPlayer = world.getConnectionPlayerById(playerId) as
-        | {
-              isDead?: boolean;
-              firepotionTimeout?: ReturnType<typeof setTimeout> | null;
-          }
-        | null;
+    const player = world.getConnectionPlayerById(playerId);
 
-    if (legacyPlayer) {
-        legacyPlayer.isDead = true;
-        if (legacyPlayer.firepotionTimeout) {
-            clearTimeout(legacyPlayer.firepotionTimeout);
+    if (player) {
+        player.isDead = true;
+        if (player.firepotionTimeout) {
+            clearTimeout(player.firepotionTimeout);
         }
     }
 
     clearTargetsForDeadEntity({ state, replication, deadEntityId: playerId });
     clearPlayerFromMobAggro({ state, mobAi, replication, world, playerId, tickNow: ctx.tick });
 
-    if (legacyPlayer) {
-        world.removeEntity(legacyPlayer);
+    if (player) {
+        world.removeEntity(player);
     }
 }
 
@@ -1307,23 +1259,16 @@ function runServerAuthoritativeCombatSystem({
             continue;
         }
 
-        const legacyAttacker: unknown = null;
-        const legacyTarget: unknown = null;
-
-        const attackerWeapon = resolveCombatNumber({
+        const attackerWeapon = resolveCombatStat({
             state,
             component: combat.WeaponLevel,
             entityId: engagement.attackerId,
-            legacy: legacyAttacker,
-            key: 'weaponLevel',
             fallback: 1,
         });
-        const targetArmor = resolveCombatNumber({
+        const targetArmor = resolveCombatStat({
             state,
             component: combat.ArmorLevel,
             entityId: engagement.targetId,
-            legacy: legacyTarget,
-            key: 'armorLevel',
             fallback: 1,
         });
 
@@ -1333,12 +1278,10 @@ function runServerAuthoritativeCombatSystem({
         }
 
         if (isPlayerVsMob) {
-            const mobHp = resolveCombatNumber({
+            const mobHp = resolveCombatStat({
                 state,
                 component: combat.HitPoints,
                 entityId: engagement.targetId,
-                legacy: legacyTarget,
-                key: 'hitPoints',
                 fallback: 1,
             });
             const nextMobHp = Math.max(0, mobHp - damage);
@@ -1371,7 +1314,7 @@ function runServerAuthoritativeCombatSystem({
                     ?? state.world.getComponent(engagement.targetId, replication.Position)
                     ?? gridPos(0, 0);
                 const haters =
-                    mobAi.MobHate.store.get(engagement.targetId)?.entries.map((entry) => entry.id as unknown as number) ??
+                    mobAi.MobHate.store.get(engagement.targetId)?.entries.map((entry) => Number(entry.id)) ??
                     [];
                 handleMobDeath({
                     state,
@@ -1388,12 +1331,10 @@ function runServerAuthoritativeCombatSystem({
             continue;
         }
 
-        const playerHp = resolveCombatNumber({
+        const playerHp = resolveCombatStat({
             state,
             component: combat.HitPoints,
             entityId: engagement.targetId,
-            legacy: legacyTarget,
-            key: 'hitPoints',
             fallback: 1,
         });
         const nextPlayerHp = Math.max(0, playerHp - damage);
@@ -1725,176 +1666,6 @@ function applyChatCommand(state: WorldState<Command, DomainEvent>, playerId: Ent
     }
 }
 
-function applyClaimCreateIntent({
-    state,
-    world,
-    player,
-    cmd,
-}: {
-    state: WorldState<Command, DomainEvent>;
-    world: WorldCommandHost;
-    player: PlayerLike;
-    cmd: Extract<Command, { type: 'CLAIM_CREATE' }>;
-}): { ok: false; reason: string } | { ok: true } {
-    const actorNameKey = resolvePlayerIdentityKey(player);
-    if (!actorNameKey) {
-        return { ok: false, reason: 'PERMISSION:identity_required' };
-    }
-
-    const claims = state.resources.require(CLAIMS_STORE_RESOURCE);
-    if (claims.countClaimsByOwner(actorNameKey) >= MAX_CLAIMS_PER_OWNER) {
-        return { ok: false, reason: 'CLAIM:owner_quota_exceeded' };
-    }
-
-    const boundsValidation = validateClaimBounds({
-        world,
-        x1: cmd.x1,
-        y1: cmd.y1,
-        x2: cmd.x2,
-        y2: cmd.y2,
-    });
-    if (!boundsValidation.ok) {
-        return { ok: false, reason: boundsValidation.reason };
-    }
-    const { bounds } = boundsValidation;
-
-    const overlap = claims.findFirstOverlappingClaim(bounds);
-    if (overlap) {
-        return { ok: false, reason: 'CLAIM:overlap' };
-    }
-
-    const editorNameKeys = normalizeEditorNameKeys(cmd.editorNameKeys, actorNameKey);
-    let claim: RectClaim;
-    try {
-        claim = claims.createClaim({
-            ownerName: actorNameKey,
-            editorNameKeys,
-            x1: bounds.x1,
-            y1: bounds.y1,
-            x2: bounds.x2,
-            y2: bounds.y2,
-        });
-    } catch (err) {
-        return { ok: false, reason: `CLAIM:create_failed:${String(err)}` };
-    }
-    world.persistClaimUpsert?.(claim);
-    return { ok: true };
-}
-
-function applyClaimUpdateIntent({
-    state,
-    world,
-    player,
-    cmd,
-}: {
-    state: WorldState<Command, DomainEvent>;
-    world: WorldCommandHost;
-    player: PlayerLike;
-    cmd: Extract<Command, { type: 'CLAIM_UPDATE' }>;
-}): { ok: false; reason: string } | { ok: true } {
-    const actorNameKey = resolvePlayerIdentityKey(player);
-    if (!actorNameKey) {
-        return { ok: false, reason: 'PERMISSION:identity_required' };
-    }
-
-    const claims = state.resources.require(CLAIMS_STORE_RESOURCE);
-    const claim = claims.getClaimById(cmd.claimId);
-    if (!claim) {
-        return { ok: false, reason: 'CLAIM:not_found' };
-    }
-
-    const editDecision = canEditClaim({ actorName: actorNameKey, claim });
-    if (!editDecision.ok) {
-        return { ok: false, reason: `PERMISSION:${editDecision.code}` };
-    }
-
-    const boundsValidation = validateClaimBounds({
-        world,
-        x1: cmd.x1,
-        y1: cmd.y1,
-        x2: cmd.x2,
-        y2: cmd.y2,
-    });
-    if (!boundsValidation.ok) {
-        return { ok: false, reason: boundsValidation.reason };
-    }
-    const { bounds } = boundsValidation;
-
-    const overlap = claims.findFirstOverlappingClaim({ ...bounds, excludeClaimId: claim.id });
-    if (overlap) {
-        return { ok: false, reason: 'CLAIM:overlap' };
-    }
-
-    const updates: {
-        id: number;
-        x1: number;
-        y1: number;
-        x2: number;
-        y2: number;
-        editorNameKeys?: ReadonlyArray<string>;
-    } = {
-        id: claim.id,
-        x1: bounds.x1,
-        y1: bounds.y1,
-        x2: bounds.x2,
-        y2: bounds.y2,
-    };
-
-    if (cmd.editorNameKeys !== undefined) {
-        const ownerDecision = canManageClaim({ actorName: actorNameKey, claim });
-        if (!ownerDecision.ok) {
-            return { ok: false, reason: `PERMISSION:${ownerDecision.code}` };
-        }
-        updates.editorNameKeys = normalizeEditorNameKeys(cmd.editorNameKeys, claim.ownerName);
-    }
-
-    let updated: RectClaim | null;
-    try {
-        updated = claims.updateClaim(updates);
-    } catch (err) {
-        return { ok: false, reason: `CLAIM:update_failed:${String(err)}` };
-    }
-    if (!updated) {
-        return { ok: false, reason: 'CLAIM:not_found' };
-    }
-    world.persistClaimUpsert?.(updated);
-    return { ok: true };
-}
-
-function applyClaimDeleteIntent({
-    state,
-    world,
-    player,
-    cmd,
-}: {
-    state: WorldState<Command, DomainEvent>;
-    world: WorldCommandHost;
-    player: PlayerLike;
-    cmd: Extract<Command, { type: 'CLAIM_DELETE' }>;
-}): { ok: false; reason: string } | { ok: true } {
-    const actorNameKey = resolvePlayerIdentityKey(player);
-    if (!actorNameKey) {
-        return { ok: false, reason: 'PERMISSION:identity_required' };
-    }
-
-    const claims = state.resources.require(CLAIMS_STORE_RESOURCE);
-    const claim = claims.getClaimById(cmd.claimId);
-    if (!claim) {
-        return { ok: false, reason: 'CLAIM:not_found' };
-    }
-
-    const decision = canManageClaim({ actorName: actorNameKey, claim });
-    if (!decision.ok) {
-        return { ok: false, reason: `PERMISSION:${decision.code}` };
-    }
-
-    if (!claims.deleteClaim(claim.id)) {
-        return { ok: false, reason: 'CLAIM:not_found' };
-    }
-    world.persistClaimDelete?.(claim.id);
-    return { ok: true };
-}
-
 function createApplyInboundCommandsSystem(
     world: WorldCommandHost,
     Position: ComponentType<GridPos>,
@@ -2071,7 +1842,6 @@ function createApplyInboundCommandsSystem(
                         break;
                     }
 
-                    (intentCtx as unknown as { intentSourceKind?: 'intent' }).intentSourceKind = 'intent';
                     const result = handler(intentCtx, bridged);
                     if (result && typeof result === 'object' && 'ok' in result && result.ok === false) {
                         reject(result.reason);
@@ -2086,12 +1856,15 @@ function createApplyInboundCommandsSystem(
                 }
                 case 'MOVE':
                     {
-                        (intentCtx as unknown as { intentSourceKind?: 'legacy' }).intentSourceKind = 'legacy';
                         const handler = modules.getIntentHandler(INTENT_MOVE_STEP);
                         if (!handler) {
                             throw new Error(`Missing intent handler: ${INTENT_MOVE_STEP}`);
                         }
-                        handler(intentCtx, cmd);
+                        const result = handler(intentCtx, cmd);
+                        if (result && typeof result === 'object' && 'ok' in result && result.ok === false) {
+                            const pos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
+                            world.pushToPlayerId(cmd.source.playerId, buildTeleportAction(player.id, pos.x, pos.y));
+                        }
                     }
                     break;
                 case 'TILE_EDIT':
@@ -2209,162 +1982,6 @@ function createApplyInboundCommandsSystem(
             }
         }
     };
-}
-
-function safeParseJson(payload: string): unknown {
-    try {
-        return JSON.parse(payload);
-    } catch (_) {
-        return null;
-    }
-}
-
-function decodeIntentGridPos(payloadJson: string): GridPos | null {
-    const parsed = safeParseJson(payloadJson);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return null;
-    }
-    const record = parsed as Record<string, unknown>;
-    const x = record.x;
-    const y = record.y;
-    if (typeof x !== 'number' || typeof y !== 'number' || !Number.isInteger(x) || !Number.isInteger(y)) {
-        return null;
-    }
-    return gridPos(x, y);
-}
-
-function decodeIntentTileEdit(payloadJson: string): { x: number; y: number; value: number | null } | null {
-    const parsed = safeParseJson(payloadJson);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return null;
-    }
-    const record = parsed as Record<string, unknown>;
-    const x = record.x;
-    const y = record.y;
-    const value = record.value;
-    const TILE_COORD_ABS_MAX = 1_000_000;
-    const TILE_VALUE_MAX = 0xffff_ffff;
-    if (
-        typeof x !== 'number'
-        || typeof y !== 'number'
-        || !Number.isInteger(x)
-        || !Number.isInteger(y)
-        || Math.abs(x) > TILE_COORD_ABS_MAX
-        || Math.abs(y) > TILE_COORD_ABS_MAX
-    ) {
-        return null;
-    }
-    if (value === null) {
-        return { x, y, value: null };
-    }
-    if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > TILE_VALUE_MAX) {
-        return null;
-    }
-    return { x, y, value };
-}
-
-function parseEditorsPayload(record: Record<string, unknown>): string[] | undefined | null {
-    if (!Object.prototype.hasOwnProperty.call(record, 'editors')) {
-        return undefined;
-    }
-    const editorsRaw = record.editors;
-    if (!Array.isArray(editorsRaw)) {
-        return null;
-    }
-    if (editorsRaw.length > MAX_CLAIM_EDITORS) {
-        return null;
-    }
-    const editorNameKeys: string[] = [];
-    for (let i = 0; i < editorsRaw.length; i += 1) {
-        const raw = editorsRaw[i];
-        if (typeof raw !== 'string') {
-            return null;
-        }
-        editorNameKeys.push(raw);
-    }
-    return editorNameKeys;
-}
-
-function decodeIntentClaimCreate(payloadJson: string): { x1: number; y1: number; x2: number; y2: number; editorNameKeys: string[] } | null {
-    const parsed = safeParseJson(payloadJson);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return null;
-    }
-    const record = parsed as Record<string, unknown>;
-    const x1 = record.x1;
-    const y1 = record.y1;
-    const x2 = record.x2;
-    const y2 = record.y2;
-    if (
-        typeof x1 !== 'number'
-        || typeof y1 !== 'number'
-        || typeof x2 !== 'number'
-        || typeof y2 !== 'number'
-        || !Number.isInteger(x1)
-        || !Number.isInteger(y1)
-        || !Number.isInteger(x2)
-        || !Number.isInteger(y2)
-    ) {
-        return null;
-    }
-    const editors = parseEditorsPayload(record);
-    if (editors === null) {
-        return null;
-    }
-    return { x1, y1, x2, y2, editorNameKeys: editors ?? [] };
-}
-
-function decodeIntentClaimUpdate(payloadJson: string): {
-    claimId: number;
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-    editorNameKeys?: string[];
-} | null {
-    const parsed = safeParseJson(payloadJson);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return null;
-    }
-    const record = parsed as Record<string, unknown>;
-    const claimId = record.id;
-    const x1 = record.x1;
-    const y1 = record.y1;
-    const x2 = record.x2;
-    const y2 = record.y2;
-    if (
-        typeof claimId !== 'number'
-        || !Number.isSafeInteger(claimId)
-        || claimId <= 0
-        || typeof x1 !== 'number'
-        || typeof y1 !== 'number'
-        || typeof x2 !== 'number'
-        || typeof y2 !== 'number'
-        || !Number.isInteger(x1)
-        || !Number.isInteger(y1)
-        || !Number.isInteger(x2)
-        || !Number.isInteger(y2)
-    ) {
-        return null;
-    }
-    const editors = parseEditorsPayload(record);
-    if (editors === null) {
-        return null;
-    }
-    return { claimId, x1, y1, x2, y2, ...(editors !== undefined ? { editorNameKeys: editors } : {}) };
-}
-
-function decodeIntentClaimDelete(payloadJson: string): { claimId: number } | null {
-    const parsed = safeParseJson(payloadJson);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        return null;
-    }
-    const record = parsed as Record<string, unknown>;
-    const claimId = record.id;
-    if (typeof claimId !== 'number' || !Number.isSafeInteger(claimId) || claimId <= 0) {
-        return null;
-    }
-    return { claimId };
 }
 
 export class WorldEcsCommandPipeline {
@@ -3018,7 +2635,7 @@ export class WorldEcsCommandPipeline {
         }
     }
 
-    syncChestLootEntity(entity: Readonly<{ id: EntityId; kind?: EntityKind; items?: unknown }>): void {
+    syncChestLootEntity(entity: Readonly<{ id: EntityId; kind?: EntityKind; items?: JsonLike }>): void {
         if (entity.kind !== Types.Entities.CHEST) {
             return;
         }
@@ -3028,7 +2645,7 @@ export class WorldEcsCommandPipeline {
         }
 
         const rawItems = entity.items;
-        const items = Array.isArray(rawItems) ? (rawItems as unknown[]) : [];
+        const items = Array.isArray(rawItems) ? rawItems : [];
 
         const loot: EntityKind[] = [];
         for (let i = 0; i < items.length; i += 1) {
@@ -3036,21 +2653,19 @@ export class WorldEcsCommandPipeline {
             if (typeof item !== 'number') {
                 continue;
             }
-            if (item === Types.Entities.CHEST) {
+            const kind = toKnownEntityKind(item);
+            if (kind === null || kind === Types.Entities.CHEST) {
                 continue;
             }
-            if (Types.getKindAsString(item as EntityKind) === undefined) {
-                continue;
-            }
-            loot.push(item as EntityKind);
+            loot.push(kind);
         }
 
         this.state.world.ensureEntity(entity.id);
         this.state.world.addComponent(entity.id, this.chests.ChestLootTable, { items: loot });
     }
 
-    setChestLootTable(chestId: EntityId, rawItems: unknown): void {
-        const items = Array.isArray(rawItems) ? (rawItems as unknown[]) : [];
+    setChestLootTable(chestId: EntityId, rawItems: JsonLike): void {
+        const items = Array.isArray(rawItems) ? rawItems : [];
 
         const loot: EntityKind[] = [];
         for (let i = 0; i < items.length; i += 1) {
@@ -3058,13 +2673,11 @@ export class WorldEcsCommandPipeline {
             if (typeof item !== 'number') {
                 continue;
             }
-            if (item === Types.Entities.CHEST) {
+            const kind = toKnownEntityKind(item);
+            if (kind === null || kind === Types.Entities.CHEST) {
                 continue;
             }
-            if (Types.getKindAsString(item as EntityKind) === undefined) {
-                continue;
-            }
-            loot.push(item as EntityKind);
+            loot.push(kind);
         }
 
         this.state.world.ensureEntity(chestId);
@@ -3239,453 +2852,27 @@ export class WorldEcsCommandPipeline {
     }
 
     #replicateChunkSnapshots(): void {
-        const outbox = this.state.resources.require(OUTBOX_RESOURCE);
-        const overlays = this.state.resources.require(CHUNK_OVERLAY_STORE_RESOURCE);
-        const chunkAoi = this.state.resources.require(CHUNK_AOI_STATE_RESOURCE);
-
-        for (const [playerId, sub] of chunkAoi.byPlayerId.entries()) {
-            if (!this.#world.isPlayerActive(playerId)) {
-                chunkAoi.byPlayerId.delete(playerId);
-                continue;
-            }
-
-            const pos = this.Position.store.get(playerId);
-            if (!pos) {
-                continue;
-            }
-            const center = resolveChunkCoords(overlays.chunkSize, pos.x, pos.y);
-
-            if (sub.lastCenterChunkX !== center.chunkX || sub.lastCenterChunkY !== center.chunkY) {
-                sub.lastCenterChunkX = center.chunkX;
-                sub.lastCenterChunkY = center.chunkY;
-                pruneChunkSubscriptionWindow(sub, center.chunkX, center.chunkY);
-                enqueueChunkAoiUpdates(sub, center.chunkX, center.chunkY);
-            } else {
-                pruneChunkSubscriptionWindow(sub, center.chunkX, center.chunkY);
-            }
-
-            let sent = 0;
-            while (sent < MAX_CHUNK_SNAPSHOTS_PER_TICK_PER_PLAYER) {
-                const inflight = sub.pendingSnapshotParts[0] ?? null;
-                if (inflight) {
-                    const partIndex = inflight.nextPartIndex;
-                    const payloadJson = inflight.parts[partIndex] ?? null;
-                    if (payloadJson === null) {
-                        sub.pendingSnapshotParts.shift();
-                        sub.inFlightSnapshotKeys.delete(inflight.key);
-                        continue;
-                    }
-
-                    outbox.push({
-                        kind: 'to_player',
-                        playerId,
-                        action: buildChunkSnapshotPartAction(
-                            inflight.chunkX,
-                            inflight.chunkY,
-                            inflight.version,
-                            partIndex,
-                            inflight.parts.length,
-                            payloadJson
-                        ),
-                    });
-                    inflight.nextPartIndex += 1;
-                    sent += 1;
-
-                    if (inflight.nextPartIndex >= inflight.parts.length) {
-                        sub.pendingSnapshotParts.shift();
-                        sub.inFlightSnapshotKeys.delete(inflight.key);
-                        sub.knownChunks.add(inflight.key);
-                        sub.knownChunkVersions.set(inflight.key, inflight.version);
-                    }
-                    continue;
-                }
-
-                const next = sub.pendingChunks.shift();
-                if (!next) {
-                    break;
-                }
-                const key = makeChunkKey(next.chunkX, next.chunkY);
-                sub.pendingChunkKeys.delete(key);
-                if (sub.knownChunks.has(key) || sub.inFlightSnapshotKeys.has(key)) {
-                    continue;
-                }
-
-	                this.#world.ensureChunkOverlayLoaded?.(next.chunkX, next.chunkY);
-	                const chunk = overlays.getChunk(next.chunkX, next.chunkY);
-                const version = chunk?.version ?? 0;
-                const overrides = chunk ? extractOverrides(chunk.present, chunk.values, chunk.size) : [];
-
-                const encoded = (() => {
-                    try {
-                        return encodeChunkSnapshotPayloadJson({
-                            chunkSize: overlays.chunkSize,
-                            overrides,
-                            maxUtf8Bytes: this.#maxChunkSnapshotPayloadUtf8Bytes,
-                        });
-                    } catch (_) {
-                        return null;
-                    }
-                })();
-
-                if (encoded !== null) {
-                    outbox.push({
-                        kind: 'to_player',
-                        playerId,
-                        action: buildChunkSnapshotAction(next.chunkX, next.chunkY, version, encoded),
-                    });
-                    sub.knownChunks.add(key);
-                    sub.knownChunkVersions.set(key, version);
-                    sent += 1;
-                    continue;
-                }
-
-                let parts: string[];
-                try {
-                    parts = encodeChunkSnapshotPayloadJsonParts({
-                        chunkSize: overlays.chunkSize,
-                        overrides,
-                        maxUtf8Bytes: this.#maxChunkSnapshotPayloadUtf8Bytes,
-                    });
-                } catch (_) {
-                    // Retry later; don't mark known/in-flight.
-                    enqueuePendingChunk(sub, next.chunkX, next.chunkY);
-                    sent += 1;
-                    continue;
-                }
-
-                if (parts.length <= 1) {
-                    const payloadJson = parts[0] ?? null;
-                    if (payloadJson === null) {
-                        continue;
-                    }
-                    outbox.push({
-                        kind: 'to_player',
-                        playerId,
-                        action: buildChunkSnapshotAction(next.chunkX, next.chunkY, version, payloadJson),
-                    });
-                    sub.knownChunks.add(key);
-                    sub.knownChunkVersions.set(key, version);
-                    sent += 1;
-                    continue;
-                }
-
-                const overflowParts = parts.length > this.#maxChunkSnapshotParts;
-                const queued = enqueueSnapshotPartStream(sub, {
-                    key,
-                    chunkX: next.chunkX,
-                    chunkY: next.chunkY,
-                    version,
-                    parts,
-                    nextPartIndex: 0,
-                });
-                if (!queued) {
-                    enqueuePendingChunk(sub, next.chunkX, next.chunkY);
-                    sent += 1;
-                    continue;
-                }
-                if (overflowParts) {
-                    // Deterministic overflow fallback: stream a high-part snapshot instead of indefinitely requeueing.
-                    continue;
-                }
-            }
-        }
+        replicateChunkSnapshots({
+            world: this.#world,
+            outbox: this.state.resources.require(OUTBOX_RESOURCE),
+            overlays: this.state.resources.require(CHUNK_OVERLAY_STORE_RESOURCE),
+            chunkAoi: this.state.resources.require(CHUNK_AOI_STATE_RESOURCE),
+            getPlayerPosition: (playerId) => this.Position.store.get(playerId),
+            maxChunkSnapshotPayloadUtf8Bytes: this.#maxChunkSnapshotPayloadUtf8Bytes,
+            maxChunkSnapshotParts: this.#maxChunkSnapshotParts,
+            maxSnapshotsPerTickPerPlayer: MAX_CHUNK_SNAPSHOTS_PER_TICK_PER_PLAYER,
+        });
     }
 
     #replicateChunkDeltas(): void {
-        const outbox = this.state.resources.require(OUTBOX_RESOURCE);
-        const overlays = this.state.resources.require(CHUNK_OVERLAY_STORE_RESOURCE);
-        const chunkAoi = this.state.resources.require(CHUNK_AOI_STATE_RESOURCE);
-
-        const pending = overlays.listChunksWithPendingDelta();
-        for (let i = 0; i < pending.length; i += 1) {
-            const chunk = pending[i];
-            if (!chunk) {
-                continue;
-            }
-            const key = makeChunkKey(chunk.chunkX, chunk.chunkY);
-            const delta = overlays.drainPendingDeltaForChunk(chunk.chunkX, chunk.chunkY);
-            if (!delta || delta.changes.length === 0) {
-                continue;
-            }
-
-            if (delta.changes.length > MAX_CHUNK_DELTA_CHANGES_PER_MESSAGE) {
-                const overrides = extractOverrides(chunk.present, chunk.values, chunk.size);
-                const encoded = (() => {
-                    try {
-                        return encodeChunkSnapshotPayloadJson({
-                            chunkSize: overlays.chunkSize,
-                            overrides,
-                            maxUtf8Bytes: this.#maxChunkSnapshotPayloadUtf8Bytes,
-                        });
-                    } catch (_) {
-                        return null;
-                    }
-                })();
-
-                const parts = (() => {
-                    if (encoded !== null) {
-                        return null;
-                    }
-                    try {
-                        return encodeChunkSnapshotPayloadJsonParts({
-                            chunkSize: overlays.chunkSize,
-                            overrides,
-                            maxUtf8Bytes: this.#maxChunkSnapshotPayloadUtf8Bytes,
-                        });
-                    } catch (_) {
-                        return null;
-                    }
-                })();
-
-                for (const [playerId, sub] of chunkAoi.byPlayerId.entries()) {
-                    if (!this.#world.isPlayerActive(playerId)) {
-                        chunkAoi.byPlayerId.delete(playerId);
-                        continue;
-                    }
-                    if (!sub.knownChunkVersions.has(key)) {
-                        continue;
-                    }
-                    if (encoded !== null) {
-                        outbox.push({
-                            kind: 'to_player',
-                            playerId,
-                            action: buildChunkSnapshotAction(chunk.chunkX, chunk.chunkY, chunk.version, encoded),
-                        });
-                        sub.knownChunkVersions.set(key, chunk.version);
-                        continue;
-                    }
-                    if (!parts || parts.length <= 1) {
-                        continue;
-                    }
-                    // Stream parts via the bounded snapshot path; suppress deltas until fully applied.
-                    sub.knownChunkVersions.delete(key);
-                    if (!sub.inFlightSnapshotKeys.has(key)) {
-                        const overflowParts = parts.length > this.#maxChunkSnapshotParts;
-                        const queued = enqueueSnapshotPartStream(sub, {
-                            key,
-                            chunkX: chunk.chunkX,
-                            chunkY: chunk.chunkY,
-                            version: chunk.version,
-                            parts,
-                            nextPartIndex: 0,
-                        });
-                        if (!queued) {
-                            enqueuePendingChunk(sub, chunk.chunkX, chunk.chunkY, { front: true });
-                        } else if (overflowParts) {
-                            // Deterministic overflow fallback: allow high-part snapshot resync to complete.
-                            continue;
-                        }
-                    }
-                }
-                continue;
-            }
-
-            const payloadJson = encodeChunkDeltaPayloadJson({ chunkSize: overlays.chunkSize, changes: delta.changes });
-            for (const [playerId, sub] of chunkAoi.byPlayerId.entries()) {
-                if (!this.#world.isPlayerActive(playerId)) {
-                    chunkAoi.byPlayerId.delete(playerId);
-                    continue;
-                }
-                const known = sub.knownChunkVersions.get(key);
-                if (known === undefined) {
-                    continue;
-                }
-                if (known !== delta.fromVersion) {
-                    if (known >= delta.toVersion) {
-                        continue;
-                    }
-                    // Resync contract: stop sending deltas for this chunk until we re-stream a snapshot (bounded by
-                    // the snapshot budgeted path).
-                    sub.knownChunks.delete(key);
-                    sub.knownChunkVersions.delete(key);
-                    if (!sub.inFlightSnapshotKeys.has(key)) {
-                        enqueuePendingChunk(sub, chunk.chunkX, chunk.chunkY, { front: true });
-                    }
-                    continue;
-                }
-                outbox.push({
-                    kind: 'to_player',
-                    playerId,
-                    action: buildChunkDeltaAction(chunk.chunkX, chunk.chunkY, delta.fromVersion, delta.toVersion, payloadJson),
-                });
-                sub.knownChunkVersions.set(key, delta.toVersion);
-            }
-        }
+        replicateChunkDeltas({
+            world: this.#world,
+            outbox: this.state.resources.require(OUTBOX_RESOURCE),
+            overlays: this.state.resources.require(CHUNK_OVERLAY_STORE_RESOURCE),
+            chunkAoi: this.state.resources.require(CHUNK_AOI_STATE_RESOURCE),
+            maxChunkSnapshotPayloadUtf8Bytes: this.#maxChunkSnapshotPayloadUtf8Bytes,
+            maxChunkSnapshotParts: this.#maxChunkSnapshotParts,
+            maxChunkDeltaChangesPerMessage: MAX_CHUNK_DELTA_CHANGES_PER_MESSAGE,
+        });
     }
-}
-
-function resolveChunkCoords(chunkSize: number, x: number, y: number): { chunkX: number; chunkY: number } {
-    const chunkX = Math.floor(x / chunkSize);
-    const chunkY = Math.floor(y / chunkSize);
-    return { chunkX, chunkY };
-}
-
-function decodeChunkCoordFromKeyPart(value: bigint): number {
-    const raw = Number(value & 0xffff_ffffn);
-    return raw >= 0x8000_0000 ? raw - 0x1_0000_0000 : raw;
-}
-
-function decodeChunkKey(key: bigint): { chunkX: number; chunkY: number } {
-    const chunkX = decodeChunkCoordFromKeyPart(key >> 32n);
-    const chunkY = decodeChunkCoordFromKeyPart(key);
-    return { chunkX, chunkY };
-}
-
-function isChunkInAoiWindow(
-    chunkX: number,
-    chunkY: number,
-    centerChunkX: number | null,
-    centerChunkY: number | null,
-    radius: number
-): boolean {
-    if (centerChunkX === null || centerChunkY === null) {
-        return true;
-    }
-    return Math.abs(chunkX - centerChunkX) <= radius && Math.abs(chunkY - centerChunkY) <= radius;
-}
-
-function enforcePendingChunkQueueBounds(sub: ChunkSubscription): void {
-    while (sub.pendingChunks.length > MAX_PENDING_CHUNKS_PER_PLAYER) {
-        const dropped = sub.pendingChunks.pop();
-        if (!dropped) {
-            break;
-        }
-        sub.pendingChunkKeys.delete(makeChunkKey(dropped.chunkX, dropped.chunkY));
-    }
-}
-
-function enforcePendingSnapshotStreamBounds(sub: ChunkSubscription): void {
-    const kept: ChunkSubscription['pendingSnapshotParts'] = [];
-    const keys = new Set<bigint>();
-    let totalParts = 0;
-
-    for (let i = 0; i < sub.pendingSnapshotParts.length; i += 1) {
-        const stream = sub.pendingSnapshotParts[i];
-        if (!stream) {
-            continue;
-        }
-
-        if (
-            !isChunkInAoiWindow(stream.chunkX, stream.chunkY, sub.lastCenterChunkX, sub.lastCenterChunkY, sub.radius)
-            || keys.has(stream.key)
-            || kept.length >= MAX_PENDING_SNAPSHOT_STREAMS_PER_PLAYER
-            || totalParts + stream.parts.length > MAX_PENDING_SNAPSHOT_PARTS_PER_PLAYER
-        ) {
-            continue;
-        }
-
-        kept.push(stream);
-        keys.add(stream.key);
-        totalParts += stream.parts.length;
-    }
-
-    sub.pendingSnapshotParts = kept;
-    sub.inFlightSnapshotKeys.clear();
-    keys.forEach((key) => sub.inFlightSnapshotKeys.add(key));
-}
-
-function enqueueSnapshotPartStream(
-    sub: ChunkSubscription,
-    stream: ChunkSubscription['pendingSnapshotParts'][number]
-): boolean {
-    if (sub.inFlightSnapshotKeys.has(stream.key)) {
-        return false;
-    }
-    sub.pendingSnapshotParts.push(stream);
-    sub.inFlightSnapshotKeys.add(stream.key);
-    enforcePendingSnapshotStreamBounds(sub);
-    return sub.inFlightSnapshotKeys.has(stream.key);
-}
-
-function pruneChunkSubscriptionWindow(sub: ChunkSubscription, centerChunkX: number, centerChunkY: number): void {
-    for (const key of sub.knownChunks) {
-        const coords = decodeChunkKey(key);
-        if (!isChunkInAoiWindow(coords.chunkX, coords.chunkY, centerChunkX, centerChunkY, sub.radius)) {
-            sub.knownChunks.delete(key);
-            sub.knownChunkVersions.delete(key);
-        }
-    }
-
-    for (const [key] of sub.knownChunkVersions.entries()) {
-        const coords = decodeChunkKey(key);
-        if (!isChunkInAoiWindow(coords.chunkX, coords.chunkY, centerChunkX, centerChunkY, sub.radius)) {
-            sub.knownChunkVersions.delete(key);
-            sub.knownChunks.delete(key);
-        }
-    }
-
-    const pending: ChunkSubscription['pendingChunks'] = [];
-    const keys = new Set<bigint>();
-    for (let i = 0; i < sub.pendingChunks.length; i += 1) {
-        const next = sub.pendingChunks[i];
-        if (!next) {
-            continue;
-        }
-        if (!isChunkInAoiWindow(next.chunkX, next.chunkY, centerChunkX, centerChunkY, sub.radius)) {
-            continue;
-        }
-        const key = makeChunkKey(next.chunkX, next.chunkY);
-        if (keys.has(key) || sub.knownChunks.has(key) || sub.inFlightSnapshotKeys.has(key)) {
-            continue;
-        }
-        pending.push(next);
-        keys.add(key);
-        if (pending.length >= MAX_PENDING_CHUNKS_PER_PLAYER) {
-            break;
-        }
-    }
-    sub.pendingChunks = pending;
-    sub.pendingChunkKeys.clear();
-    keys.forEach((key) => sub.pendingChunkKeys.add(key));
-
-    enforcePendingChunkQueueBounds(sub);
-    enforcePendingSnapshotStreamBounds(sub);
-}
-
-function enqueuePendingChunk(
-    sub: ChunkSubscription,
-    chunkX: number,
-    chunkY: number,
-    options?: { front?: boolean }
-): boolean {
-    if (!isChunkInAoiWindow(chunkX, chunkY, sub.lastCenterChunkX, sub.lastCenterChunkY, sub.radius)) {
-        return false;
-    }
-
-    const key = makeChunkKey(chunkX, chunkY);
-    if (sub.knownChunks.has(key) || sub.inFlightSnapshotKeys.has(key) || sub.pendingChunkKeys.has(key)) {
-        return false;
-    }
-
-    if (options?.front === true) {
-        sub.pendingChunks.unshift({ chunkX, chunkY });
-    } else {
-        sub.pendingChunks.push({ chunkX, chunkY });
-    }
-    sub.pendingChunkKeys.add(key);
-    enforcePendingChunkQueueBounds(sub);
-    return sub.pendingChunkKeys.has(key);
-}
-
-function enqueueChunkAoiUpdates(sub: ChunkSubscription, centerChunkX: number, centerChunkY: number): void {
-    const radius = sub.radius;
-    for (let dy = -radius; dy <= radius; dy += 1) {
-        for (let dx = -radius; dx <= radius; dx += 1) {
-            enqueuePendingChunk(sub, centerChunkX + dx, centerChunkY + dy);
-        }
-    }
-}
-
-function extractOverrides(present: Uint8Array, values: Uint32Array, size: number): Array<[number, number, number]> {
-    const overrides: Array<[number, number, number]> = [];
-    const cellCount = size * size;
-    for (let i = 0; i < cellCount; i += 1) {
-        if (!present[i]) {
-            continue;
-        }
-        const localX = i % size;
-        const localY = Math.floor(i / size);
-        overrides.push([localX, localY, values[i]!]);
-    }
-    return overrides;
 }
