@@ -141,7 +141,7 @@ class Pathfinder {
                     continue;
                 }
                 const row = this.grid[y];
-                if (!row || row[x] === undefined) {
+                if (row?.[x] === undefined) {
                     continue;
                 }
 

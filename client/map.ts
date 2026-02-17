@@ -406,7 +406,7 @@ class Map {
         this.collisions.forEach(function (tileIndex: number) {
             const pos = self.tileIndexToGridPosition(tileIndex + 1);
             const row = self.grid[pos.y];
-            if (row && row[pos.x] !== undefined) {
+            if (row?.[pos.x] !== undefined) {
                 row[pos.x] = 1;
             }
         });
@@ -414,7 +414,7 @@ class Map {
         this.blocking.forEach(function (tileIndex: number) {
             const pos = self.tileIndexToGridPosition(tileIndex + 1);
             const row = self.grid[pos.y];
-            if (row && row[pos.x] !== undefined) {
+            if (row?.[pos.x] !== undefined) {
                 row[pos.x] = 1;
             }
         });

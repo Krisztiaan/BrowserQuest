@@ -61,7 +61,12 @@ test('encodeChunkSnapshotPayloadJsonParts splits oversized payloads into multipl
         i + 1,
     ]);
 
-    const one = encodeChunkSnapshotPayloadJson({ chunkSize, overrides: [overrides[0]!], maxUtf8Bytes: 10_000 });
+    const firstOverride = overrides[0];
+    expect(firstOverride).toBeTruthy();
+    if (!firstOverride) {
+        throw new Error('Missing first override for snapshot cap probe.');
+    }
+    const one = encodeChunkSnapshotPayloadJson({ chunkSize, overrides: [firstOverride], maxUtf8Bytes: 10_000 });
     const cap = one.length + 20;
 
     expect(() => encodeChunkSnapshotPayloadJson({ chunkSize, overrides, maxUtf8Bytes: cap })).toThrow();

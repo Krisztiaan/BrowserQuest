@@ -73,7 +73,7 @@ export type WsErrorLike = string | Error | number | boolean | bigint | null | un
 export interface WsConnectionLike {
     on(
         event: string,
-        handler: (...args: Array<WsFrameData | WsErrorLike | boolean>) => void
+        handler: (...args: Array<WsFrameData | WsErrorLike>) => void
     ): void;
     send(data: string): void;
     close(code?: number, reason?: string): void;

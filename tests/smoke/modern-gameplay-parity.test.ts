@@ -2,6 +2,7 @@ import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
 import { killBunProcess } from '../support/process-cleanup';
+import { formatUnknown, toError } from '../support/format';
 import {
     ENTITY_CLOTH_ARMOR,
     ENTITY_SWORD_1,
@@ -45,7 +46,7 @@ type FramePayload =
     | null
     | undefined;
 
-function isActionArray(value: FramePayload): value is Action {
+function isActionArray(value: unknown): value is Action {
     return Array.isArray(value) && value.length > 0 && typeof value[0] === 'number';
 }
 
@@ -66,7 +67,7 @@ function normalizePayloadToActions(payload: FramePayload): Action[] {
         const view = payload;
         text = Buffer.from(view.buffer, view.byteOffset, view.byteLength).toString('utf8');
     } else {
-        text = String(payload);
+        text = formatUnknown(payload);
     }
 
     return parseProtocolActionBatch(text).filter((entry): entry is Action => isActionArray(entry));
@@ -159,7 +160,7 @@ async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
         });
         ws.once('error', (err) => {
             clearTimeout(timeout);
-            reject(err instanceof Error ? err : new Error(String(err)));
+            reject(toError(err));
         });
     });
 }

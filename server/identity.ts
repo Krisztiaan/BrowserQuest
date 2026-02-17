@@ -36,7 +36,7 @@ export function normalizeIdentityKeyList(
     values: ReadonlyArray<string> | null | undefined,
     options?: { exclude?: string | null; maxItems?: number }
 ): string[] {
-    if (!Array.isArray(values) || values.length === 0) {
+    if (!values || values.length === 0) {
         return [];
     }
 
@@ -49,7 +49,11 @@ export function normalizeIdentityKeyList(
     const out: string[] = [];
     const seen = new Set<string>();
     for (let i = 0; i < values.length; i += 1) {
-        const normalized = normalizeIdentityKeyOrNull(values[i]);
+        const raw = values[i];
+        if (typeof raw !== 'string') {
+            continue;
+        }
+        const normalized = normalizeIdentityKeyOrNull(raw);
         if (normalized === null || normalized === excluded || seen.has(normalized)) {
             continue;
         }

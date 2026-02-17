@@ -21,11 +21,16 @@ type CharacterLike = {
 type CombatTarget = CharacterLike & {
     removeAttacker?: (attacker: CharacterLike) => void;
 };
+type CombatAttacker = CharacterLike & {
+    stop(): void;
+    disengage(): void;
+    idle(): void;
+};
 
 type PathRequestResolver = (x: number, y: number) => Path;
 
 export type CharacterEvents = {
-    dirty: [character: Character<any>];
+    dirty: [entity: Entity];
     startPathing: [path: Path];
     stopPathing: [x: number, y: number];
     beforeStep: [];
@@ -33,7 +38,7 @@ export type CharacterEvents = {
     aggro: [character: CharacterLike];
     checkAggro: [];
     death: [];
-    hasMoved: [character: Character<any>];
+    hasMoved: [character: CharacterLike];
 };
 
 export type CharacterEventSource<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = CharacterEvents> =
@@ -59,7 +64,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     target: CombatTarget | null;
     unconfirmedTarget: CharacterLike | null;
     previousTarget: CharacterLike | null;
-    attackers: Record<string, Character>;
+    attackers: Record<string, CombatAttacker>;
 
     hitPoints: number;
     maxHitPoints: number;
@@ -437,7 +442,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     }
 
     // Registers a character as a current attacker of this one.
-    addAttacker(character: Character): void {
+    addAttacker(character: CombatAttacker): void {
         if (!this.isAttackedBy(character)) {
             this.attackers[String(character.id)] = character;
         }
@@ -451,7 +456,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     }
 
     // Loops through all the characters currently attacking this one.
-    forEachAttacker(callback: (attacker: Character) => void): void {
+    forEachAttacker(callback: (attacker: CombatAttacker) => void): void {
         Object.keys(this.attackers).forEach((id) => {
             const attacker = this.attackers[id];
             if (attacker) {
@@ -527,7 +532,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
 
     hasMoved(): void {
         this.setDirty();
-        this.emit('hasMoved', this);
+        this.emit('hasMoved', this as unknown as TEvents['hasMoved'][0]);
     }
 
     hurt(): void {

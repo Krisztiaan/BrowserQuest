@@ -1,5 +1,5 @@
 import * as memcacheModule from 'memcache';
-import MetricsClient, { type MetricsStoreClient } from './metrics-client';
+import MetricsClient, { type MemcacheModuleShape, type MetricsStoreClient } from './metrics-client';
 import Log from './log';
 import { Evented } from '../shared/evented';
 import type { RuntimeEventFields } from './runtime-types';
@@ -44,7 +44,7 @@ function toMetricInteger(value: string | undefined): number {
 function normalizeServerNames(config: MetricsConfig): string[] {
     const input = Array.isArray(config.game_servers) ? config.game_servers : [];
     const names = input
-        .map((entry) => (typeof entry?.name === 'string' ? entry.name.trim() : ''))
+        .map((entry) => (typeof entry.name === 'string' ? entry.name.trim() : ''))
         .filter((name) => name.length > 0);
     if (typeof config.server_name === 'string' && config.server_name.trim().length > 0) {
         names.push(config.server_name.trim());
@@ -66,7 +66,8 @@ class Metrics extends Evented<MetricsEvents> {
         const runtimeOptions = options ?? {};
 
         this.config = config;
-        this.store = (runtimeOptions.createStore ?? ((cfg) => MetricsClient.createMetricsClient(memcacheModule, cfg)))(config);
+        this.store = (runtimeOptions.createStore ??
+            ((cfg) => MetricsClient.createMetricsClient(memcacheModule as unknown as MemcacheModuleShape, cfg)))(config);
         this.isEnabled = true;
         this.isReady = false;
         this.unavailableSignals = new Set();

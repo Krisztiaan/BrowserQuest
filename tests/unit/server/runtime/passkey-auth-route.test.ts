@@ -32,7 +32,9 @@ test('main runtime wires passkey auth handler when websocket server exposes auth
         },
     };
 
-    let passkeyAuthHandler: ((request: Request) => Response | Promise<Response>) | null = null;
+    let passkeyAuthHandler: (request: Request) => Promise<Response> = () =>
+        Promise.reject(new Error('Passkey auth handler was not installed.'));
+    let passkeyHandlerInstalled = false;
 
     class FakeServer implements RuntimeServer {
         constructor(_port: number) {
@@ -58,7 +60,8 @@ test('main runtime wires passkey auth handler when websocket server exposes auth
         }
 
         onRequestPasskeyAuth(callback: (request: Request) => Response | Promise<Response>): void {
-            passkeyAuthHandler = callback;
+            passkeyHandlerInstalled = true;
+            passkeyAuthHandler = (request: Request) => Promise.resolve(callback(request));
         }
     }
 
@@ -123,9 +126,9 @@ test('main runtime wires passkey auth handler when websocket server exposes auth
         },
     });
 
-    expect(typeof passkeyAuthHandler).toBe('function');
+    expect(passkeyHandlerInstalled).toBe(true);
 
-    const response = await passkeyAuthHandler!(
+    const response = await passkeyAuthHandler(
         new Request('http://localhost/auth/passkey/register/options', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

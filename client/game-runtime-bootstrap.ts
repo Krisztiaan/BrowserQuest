@@ -3,8 +3,8 @@ import type Game from './game';
 import { initializeGameSpatialState } from './game-spatial-state';
 
 export function bootstrapGameRuntime(game: Game, onStarted: () => void): void {
-    if (!game.renderer || !game.map) {
-        throw new Error('Cannot bootstrap game runtime without renderer and map');
+    if (!game.map) {
+        throw new Error('Cannot bootstrap game runtime without map');
     }
 
     game.loadAudio();

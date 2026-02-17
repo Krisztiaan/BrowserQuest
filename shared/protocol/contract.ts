@@ -1,10 +1,11 @@
 import Types from '../gametypes-browser';
 import type { ProtocolActionValue, ProtocolContract, ProtocolParsedAction } from './types';
 
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+function isFiniteNumber(value: unknown): value is number {
+    return typeof value === 'number' && Number.isFinite(value);
+}
 
-function isProtocolActionValue(value: JsonValue | object | undefined): value is ProtocolActionValue {
+function isProtocolActionValue(value: unknown): value is ProtocolActionValue {
     if (
         typeof value === 'number' ||
         typeof value === 'string' ||
@@ -18,15 +19,20 @@ function isProtocolActionValue(value: JsonValue | object | undefined): value is 
         return false;
     }
 
-    return value.every((entry) => typeof entry === 'number' && Number.isFinite(entry));
+    for (let i = 0; i < value.length; i += 1) {
+        if (!isFiniteNumber(value[i])) {
+            return false;
+        }
+    }
+    return true;
 }
 
-function isProtocolAction(value: JsonValue | object | undefined): value is ProtocolParsedAction {
+function isProtocolAction(value: unknown): value is ProtocolParsedAction {
     if (!Array.isArray(value) || value.length === 0) {
         return false;
     }
 
-    if (typeof value[0] !== 'number') {
+    if (!isFiniteNumber(value[0])) {
         return false;
     }
 
@@ -82,9 +88,9 @@ const protocolContract: ProtocolContract = {
     ENTITY_CLOTH_ARMOR: Types.Entities.CLOTHARMOR,
     ENTITY_SWORD_1: Types.Entities.SWORD1,
     parseProtocolActionBatch(payload: string): ProtocolParsedAction[] {
-        let parsed: JsonValue;
+        let parsed: unknown;
         try {
-            parsed = JSON.parse(payload) as JsonValue;
+            parsed = JSON.parse(payload) as unknown;
         } catch (_) {
             return [];
         }
@@ -92,11 +98,12 @@ const protocolContract: ProtocolContract = {
         if (!Array.isArray(parsed)) {
             return [];
         }
+        const parsedArray: unknown[] = parsed;
 
-        if (parsed.length > 0 && Array.isArray(parsed[0])) {
+        if (parsedArray.length > 0 && Array.isArray(parsedArray[0])) {
             const out: ProtocolParsedAction[] = [];
-            for (let i = 0; i < parsed.length; i += 1) {
-                const entry = parsed[i];
+            for (let i = 0; i < parsedArray.length; i += 1) {
+                const entry = parsedArray[i];
                 if (!isProtocolAction(entry)) {
                     return [];
                 }
@@ -105,8 +112,8 @@ const protocolContract: ProtocolContract = {
             return out;
         }
 
-        if (isProtocolAction(parsed)) {
-            return [parsed];
+        if (isProtocolAction(parsedArray)) {
+            return [parsedArray];
         }
 
         return [];

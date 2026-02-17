@@ -106,13 +106,34 @@ function toValidConfig(config: MetricsConfig): ValidMetricsConfig | null {
 }
 
 function resolveErrorMessage(err: RuntimeErrorLike): string {
+    const resolveObjectTag = (value: object): string => {
+        const ctor = (value as { constructor?: { name?: unknown } }).constructor;
+        return typeof ctor?.name === 'string' && ctor.name.length > 0 ? `[object ${ctor.name}]` : '[object Object]';
+    };
     if (err instanceof Error && typeof err.message === 'string' && err.message.length > 0) {
         return err.message;
     }
-    if (typeof err === 'string' && err.length > 0) {
+    if (typeof err === 'string') {
         return err;
     }
-    return String(err);
+    if (
+        typeof err === 'number'
+        || typeof err === 'boolean'
+        || typeof err === 'bigint'
+        || err === null
+        || err === undefined
+    ) {
+        return String(err);
+    }
+    try {
+        const json = JSON.stringify(err);
+        if (typeof json === 'string') {
+            return json;
+        }
+    } catch {
+        // fall through
+    }
+    return resolveObjectTag(err);
 }
 
 function createMetrics(
@@ -130,9 +151,7 @@ function createMetrics(
         const payload: EventFields = { reason };
         if (fields && typeof fields === 'object' && !Array.isArray(fields)) {
             for (const [key, value] of Object.entries(fields)) {
-                if (value !== undefined) {
-                    payload[key] = value;
-                }
+                payload[key] = value;
             }
         }
         emitEvent('error', SERVER_EVENT_NAMES.METRICS_UNAVAILABLE, payload);

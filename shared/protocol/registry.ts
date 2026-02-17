@@ -20,13 +20,11 @@ export const CLIENT_TO_SERVER_PROTOCOL_REGISTRY = CLIENT_TO_SERVER_PROTOCOL_MANI
 export const SERVER_TO_CLIENT_PROTOCOL_REGISTRY = SERVER_TO_CLIENT_PROTOCOL_MANIFEST;
 export const PROTOCOL_REGISTRY = PROTOCOL_MANIFEST;
 
-type JsonScalar = string | number | boolean | null;
-type JsonValue = JsonScalar | JsonValue[] | { [key: string]: JsonValue };
-type ProtocolDecodeInput = JsonValue | object | undefined;
+type ProtocolDecodeInput = unknown;
 
 function safeParseJson(payload: string): ProtocolDecodeInput {
     try {
-        const parsed: JsonValue = JSON.parse(payload);
+        const parsed: unknown = JSON.parse(payload);
         return parsed;
     } catch (_) {
         return null;
@@ -49,8 +47,9 @@ export function normalizeClientToServerProtocolActionBatch(value: ProtocolDecode
     }
     if (value.length > 0 && Array.isArray(value[0])) {
         const out: ClientToServerProtocolAction[] = [];
-        for (let i = 0; i < value.length; i += 1) {
-            const entry = value[i];
+        const entries: unknown[] = value;
+        for (let i = 0; i < entries.length; i += 1) {
+            const entry = entries[i];
             if (!isClientToServerProtocolAction(entry)) {
                 return [];
             }
@@ -67,7 +66,8 @@ export function decodeClientToServerProtocolActionBatch(payload: string): Client
 }
 
 export function decodeServerToClientProtocolAction(value: ProtocolDecodeInput): ServerToClientProtocolAction | null {
-    return isServerToClientProtocolAction(value) ? value : null;
+    const candidate = value as Parameters<typeof isServerToClientProtocolAction>[0];
+    return isServerToClientProtocolAction(candidate) ? candidate : null;
 }
 
 export function normalizeServerToClientProtocolActionBatch(value: ProtocolDecodeInput): ServerToClientProtocolAction[] {
@@ -76,17 +76,20 @@ export function normalizeServerToClientProtocolActionBatch(value: ProtocolDecode
     }
     if (value.length > 0 && Array.isArray(value[0])) {
         const out: ServerToClientProtocolAction[] = [];
-        for (let i = 0; i < value.length; i += 1) {
-            const entry = value[i];
-            if (!isServerToClientProtocolAction(entry)) {
+        const entries: unknown[] = value;
+        for (let i = 0; i < entries.length; i += 1) {
+            const entry = entries[i];
+            const candidate = entry as Parameters<typeof isServerToClientProtocolAction>[0];
+            if (!isServerToClientProtocolAction(candidate)) {
                 return [];
             }
-            out.push(entry);
+            out.push(candidate);
         }
         return out;
     }
 
-    return isServerToClientProtocolAction(value) ? [value] : [];
+    const candidate = value as Parameters<typeof isServerToClientProtocolAction>[0];
+    return isServerToClientProtocolAction(candidate) ? [candidate] : [];
 }
 
 export function decodeServerToClientProtocolActionBatch(payload: string): ServerToClientProtocolAction[] {

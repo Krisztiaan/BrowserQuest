@@ -893,8 +893,8 @@ class World extends Evented<WorldEvents> {
     }
 
     addMob(mob: WorldMob): void {
-        const spawnX = mob.spawningX ?? mob.x;
-        const spawnY = mob.spawningY ?? mob.y;
+        const spawnX = mob.spawningX;
+        const spawnY = mob.spawningY;
         this.ecsPipeline.seedMobFromPrefabSpawn({
             id: mob.id,
             kind: mob.kind,

@@ -276,7 +276,10 @@ export class ClaimsStore {
         }
         let oldestClaim: RectClaim | null = null;
         for (let i = 0; i < bucket.length; i += 1) {
-            const id = bucket[i]!;
+            const id = bucket[i];
+            if (id === undefined) {
+                continue;
+            }
             const claim = this.#claimsById.get(id);
             if (!claim) {
                 continue;
@@ -369,10 +372,11 @@ export class ClaimsStore {
                 let writeIndex = 0;
                 for (let readIndex = 0; readIndex < bucket.length; readIndex += 1) {
                     const current = bucket[readIndex];
-                    if (current !== claim.id) {
-                        bucket[writeIndex] = current!;
-                        writeIndex += 1;
+                    if (current === undefined || current === claim.id) {
+                        continue;
                     }
+                    bucket[writeIndex] = current;
+                    writeIndex += 1;
                 }
 
                 if (writeIndex === 0) {

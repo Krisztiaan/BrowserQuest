@@ -16,6 +16,26 @@ type LocalStorageLike = {
     clear(): void;
 };
 
+function resolveRequestPathname(input: RequestInfo | URL): string {
+    if (typeof input === 'string') {
+        return input;
+    }
+    if (input instanceof URL) {
+        return input.toString();
+    }
+    if (input instanceof Request) {
+        return input.url;
+    }
+    return '';
+}
+
+function parseJsonBodyValue(value: BodyInit | null | undefined): JsonValue {
+    if (typeof value !== 'string') {
+        throw new Error('Expected a JSON string body.');
+    }
+    return JSON.parse(value) as JsonValue;
+}
+
 function createLocalStorageMock(): LocalStorageLike {
     const store = new Map<string, string>();
     return {
@@ -47,7 +67,7 @@ function createDocumentCookieMock(): Document {
         set(value: string) {
             const parts = value.split(';').map((part) => part.trim());
             const [nameValue, ...attributes] = parts;
-            if (!nameValue || !nameValue.includes('=')) {
+            if (!nameValue?.includes('=')) {
                 return;
             }
             const separator = nameValue.indexOf('=');
@@ -110,15 +130,17 @@ function installWebAuthnMocks({
     getResult?: Credential | null;
 }): void {
     const credentialClass = FakePublicKeyCredential as typeof PublicKeyCredential;
-    const win = (typeof originalWindow === 'object' && originalWindow !== null ? originalWindow : {}) as {
+    const win = (originalWindow as { PublicKeyCredential?: typeof PublicKeyCredential } | undefined) ?? {
+    };
+    const windowWithCredential = win as {
         PublicKeyCredential?: typeof PublicKeyCredential;
     };
-    win.PublicKeyCredential = credentialClass;
+    windowWithCredential.PublicKeyCredential = credentialClass;
 
     Object.defineProperty(globalThis, 'window', {
         configurable: true,
         writable: true,
-        value: win,
+        value: windowWithCredential,
     });
     Object.defineProperty(globalThis, 'PublicKeyCredential', {
         configurable: true,
@@ -130,8 +152,8 @@ function installWebAuthnMocks({
         writable: true,
         value: {
             credentials: {
-                create: async () => createResult ?? null,
-                get: async () => getResult ?? null,
+                create: () => Promise.resolve(createResult ?? null),
+                get: () => Promise.resolve(getResult ?? null),
             },
         },
     });
@@ -199,42 +221,48 @@ test('registerWithPasskey runs options+verify flow and persists local username i
     Object.defineProperty(globalThis, 'fetch', {
         configurable: true,
         writable: true,
-        value: async (input: RequestInfo | URL, init?: RequestInit) => {
+        value: (input: RequestInfo | URL, init?: RequestInit) => {
             fetchCalls.push({ input, init });
-            const pathname = String(input);
+            const pathname = resolveRequestPathname(input);
             if (pathname === '/auth/passkey/register/options') {
-                return new Response(
-                    JSON.stringify({
-                        ok: true,
-                        options: {
-                            challenge: 'AQ',
-                            rp: { name: 'BrowserQuest', id: 'localhost' },
-                            user: {
-                                id: 'AQ',
-                                name: 'alice',
-                                displayName: 'Alice',
+                return Promise.resolve(
+                    new Response(
+                        JSON.stringify({
+                            ok: true,
+                            options: {
+                                challenge: 'AQ',
+                                rp: { name: 'BrowserQuest', id: 'localhost' },
+                                user: {
+                                    id: 'AQ',
+                                    name: 'alice',
+                                    displayName: 'Alice',
+                                },
+                                pubKeyCredParams: [{ type: 'public-key', alg: -7 }],
+                                excludeCredentials: [],
                             },
-                            pubKeyCredParams: [],
-                            excludeCredentials: [],
-                        },
-                    }),
-                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                        }),
+                        { status: 200, headers: { 'Content-Type': 'application/json' } }
+                    )
                 );
             }
             if (pathname === '/auth/passkey/register/verify') {
-                return new Response(
-                    JSON.stringify({
-                        ok: true,
-                        accountNameKey: 'alice',
-                        displayName: 'Alice',
-                    }),
-                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                return Promise.resolve(
+                    new Response(
+                        JSON.stringify({
+                            ok: true,
+                            accountNameKey: 'alice',
+                            displayName: 'Alice',
+                        }),
+                        { status: 200, headers: { 'Content-Type': 'application/json' } }
+                    )
                 );
             }
-            return new Response(JSON.stringify({ ok: false, reason: 'unexpected endpoint' }), {
-                status: 500,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return Promise.resolve(
+                new Response(JSON.stringify({ ok: false, reason: 'unexpected endpoint' }), {
+                    status: 500,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
         },
     });
 
@@ -249,11 +277,11 @@ test('registerWithPasskey runs options+verify flow and persists local username i
     expect(fetchCalls[0]?.input).toBe('/auth/passkey/register/options');
     expect(fetchCalls[0]?.init?.method).toBe('POST');
     expect(fetchCalls[0]?.init?.credentials).toBe('same-origin');
-    expect(JSON.parse(String(fetchCalls[0]?.init?.body))).toEqual({
+    expect(parseJsonBodyValue(fetchCalls[0]?.init?.body)).toEqual({
         username: 'Alice',
     });
     expect(fetchCalls[1]?.input).toBe('/auth/passkey/register/verify');
-    expect(JSON.parse(String(fetchCalls[1]?.init?.body))).toEqual({
+    expect(parseJsonBodyValue(fetchCalls[1]?.init?.body)).toEqual({
         username: 'Alice',
         response: {
             id: 'cred-1',
@@ -300,25 +328,29 @@ test('loginWithPasskey returns request failures without mutating local identity'
     Object.defineProperty(globalThis, 'fetch', {
         configurable: true,
         writable: true,
-        value: async (input: RequestInfo | URL) => {
-            const pathname = String(input);
+        value: (input: RequestInfo | URL) => {
+            const pathname = resolveRequestPathname(input);
             if (pathname === '/auth/passkey/login/options') {
-                return new Response(
-                    JSON.stringify({
-                        ok: true,
-                        options: {
-                            challenge: 'AQ',
-                            rpId: 'localhost',
-                            allowCredentials: [{ id: 'AQ', type: 'public-key' }],
-                        },
-                    }),
-                    { status: 200, headers: { 'Content-Type': 'application/json' } }
+                return Promise.resolve(
+                    new Response(
+                        JSON.stringify({
+                            ok: true,
+                            options: {
+                                challenge: 'AQ',
+                                rpId: 'localhost',
+                                allowCredentials: [{ id: 'AQ', type: 'public-key' }],
+                            },
+                        }),
+                        { status: 200, headers: { 'Content-Type': 'application/json' } }
+                    )
                 );
             }
-            return new Response(JSON.stringify({ ok: false, reason: 'Passkey assertion did not match this account.' }), {
-                status: 401,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return Promise.resolve(
+                new Response(JSON.stringify({ ok: false, reason: 'Passkey assertion did not match this account.' }), {
+                    status: 401,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
         },
     });
 
@@ -336,9 +368,9 @@ test('passkey auth helpers validate required inputs before hitting network', asy
     Object.defineProperty(globalThis, 'fetch', {
         configurable: true,
         writable: true,
-        value: async () => {
+        value: () => {
             fetchCalls += 1;
-            return new Response();
+            return Promise.resolve(new Response());
         },
     });
 
@@ -368,12 +400,14 @@ test('logoutPasskeySession posts logout and clears local identity state', async 
     Object.defineProperty(globalThis, 'fetch', {
         configurable: true,
         writable: true,
-        value: async (input: RequestInfo | URL, init?: RequestInit) => {
+        value: (input: RequestInfo | URL, init?: RequestInit) => {
             fetchCalls.push({ input, init });
-            return new Response(JSON.stringify({ ok: true }), {
-                status: 200,
-                headers: { 'Content-Type': 'application/json' },
-            });
+            return Promise.resolve(
+                new Response(JSON.stringify({ ok: true }), {
+                    status: 200,
+                    headers: { 'Content-Type': 'application/json' },
+                })
+            );
         },
     });
 
@@ -405,9 +439,7 @@ test('loginWithPasskey surfaces network failures as deterministic auth errors', 
     Object.defineProperty(globalThis, 'fetch', {
         configurable: true,
         writable: true,
-        value: async () => {
-            throw new Error('socket hang up');
-        },
+        value: () => Promise.reject(new Error('socket hang up')),
     });
 
     const result = await loginWithPasskey({ username: 'alice' });

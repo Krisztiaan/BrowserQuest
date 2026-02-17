@@ -7,6 +7,7 @@ import Player from '../../../server/player';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { gridPos } from '../../../shared/domain/positions';
 import type { WorldMessage } from '../../../server/world/contracts';
+import { joinFormattedArgs } from '../../support/format';
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -57,7 +58,7 @@ test('client stores server capabilities from extended WELCOME and ignores unreco
     const logged: string[] = [];
     const originalInfo = console.info;
     console.info = (...args: Array<string | number | boolean | object | null | undefined>) => {
-        logged.push(args.join(' '));
+        logged.push(joinFormattedArgs(args));
     };
     try {
         client.receiveOutcome([Types.Messages.OUTCOME, 1, 'future.outcome', '{}']);
@@ -67,7 +68,7 @@ test('client stores server capabilities from extended WELCOME and ignores unreco
     }
 
     expect(logged.length).toBe(1);
-    expect(String(logged[0])).toMatch(/Ignoring .*outcomeTypeId:\s*future\.outcome/);
+    expect(logged[0] ?? '').toMatch(/Ignoring .*outcomeTypeId:\s*future\.outcome/);
 });
 
 test('server rejects unrecognized INTENT intentTypeId without disconnecting', () => {

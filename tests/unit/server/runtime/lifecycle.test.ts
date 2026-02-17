@@ -200,10 +200,8 @@ test('main runtime rejects connects until world ready, then accepts new sessions
                 worldReadyHandler = callback;
             }
         }
-        emit(eventName: 'playerConnect', player: RuntimePlayer): void {
-            if (eventName === 'playerConnect') {
-                connectedPlayers.push(player);
-            }
+        emit(_eventName: 'playerConnect', player: RuntimePlayer): void {
+            connectedPlayers.push(player);
         }
         run(_mapFilePath: string): void {
             // no-op

@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
 import Log from '../../server/log';
+import { joinFormattedArgs } from '../support/format';
 
 const originalConsoleInfo = console.info;
 const originalConsoleError = console.error;
@@ -16,7 +17,7 @@ afterEach(() => {
 test('logger emits structured JSON events', () => {
     const lines: string[] = [];
     console.info = (...args: Array<string | number | boolean | object | null | undefined>) => {
-        lines.push(args.join(' '));
+        lines.push(joinFormattedArgs(args));
     };
 
     Log.setLevel(Log.INFO);
@@ -38,7 +39,7 @@ test('logger emits structured JSON events', () => {
 test('logger suppresses debug events when level is info', () => {
     const lines: string[] = [];
     console.info = (...args: Array<string | number | boolean | object | null | undefined>) => {
-        lines.push(args.join(' '));
+        lines.push(joinFormattedArgs(args));
     };
 
     Log.setLevel(Log.INFO);

@@ -39,8 +39,8 @@ for (const fatalCase of fatalCases) {
 
         expect(fatalEvent.level).toBe('error');
         expect(fatalEvent.source).toBe(fatalCase.source);
-        expect(typeof fatalEvent.message).toBe('string');
-        expect(String(fatalEvent.message)).toContain(fatalCase.messageFragment);
+        const fatalMessage = typeof fatalEvent.message === 'string' ? fatalEvent.message : '';
+        expect(fatalMessage).toContain(fatalCase.messageFragment);
         if (fatalCase.expectsStack) {
             expect(typeof fatalEvent.stack).toBe('string');
         }

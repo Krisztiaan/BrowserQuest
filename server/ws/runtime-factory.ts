@@ -195,8 +195,11 @@ export function createWebSocketRuntimeClasses({
                     return;
                 }
 
-                const text =
-                    typeof data === 'string' ? data : Buffer.isBuffer(data) ? data.toString('utf8') : String(data);
+                if (typeof data !== 'string' && !Buffer.isBuffer(data)) {
+                    this.closeUnsupportedData('Unsupported websocket frame payload type.');
+                    return;
+                }
+                const text = typeof data === 'string' ? data : data.toString('utf8');
 
                 const actions = Protocol.parseProtocolActionBatch(text);
                 if (actions.length !== 1) {
@@ -220,9 +223,10 @@ export function createWebSocketRuntimeClasses({
             });
 
             this._connection.on('error', (err) => {
-                log.error('WebSocket connection error: ' + err);
+                const errorText = formatCloseReason(err);
+                log.error('WebSocket connection error: ' + errorText);
                 logConnectionEvent('error', WS_EVENT_NAMES.CONNECTION_ERROR, this, {
-                    error: String(err),
+                    error: errorText,
                 });
             });
         }
@@ -282,8 +286,9 @@ export function createWebSocketRuntimeClasses({
 
             this._wss.on('error', (err) => {
                 const resolvedErr = err ?? new Error('websocket_server_error');
-                log.error('WebSocket server error: ' + resolvedErr);
-                log.event('error', WS_EVENT_NAMES.SERVER_ERROR, { error: String(resolvedErr) });
+                const errorText = formatCloseReason(resolvedErr);
+                log.error('WebSocket server error: ' + errorText);
+                log.event('error', WS_EVENT_NAMES.SERVER_ERROR, { error: errorText });
                 this.emit('error', resolvedErr);
             });
 

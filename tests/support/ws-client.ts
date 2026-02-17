@@ -22,11 +22,23 @@ class WsClient {
         this.#socket.close();
     }
 
+    static #isSupportedMessageData(value: unknown): value is string | Blob | ArrayBuffer | Uint8Array {
+        return (
+            typeof value === 'string'
+            || value instanceof Blob
+            || value instanceof ArrayBuffer
+            || value instanceof Uint8Array
+        );
+    }
+
     on(event: string, handler: (...args: Array<string | Blob | ArrayBuffer | Uint8Array | Event>) => void) {
-        this.#socket.addEventListener(event, (payload) => {
+        this.#socket.addEventListener(event, (payload: Event) => {
             if (event === 'message') {
-                const messagePayload = payload as MessageEvent;
-                handler(messagePayload.data);
+                if (payload instanceof MessageEvent && WsClient.#isSupportedMessageData(payload.data)) {
+                    handler(payload.data);
+                } else {
+                    handler(payload);
+                }
                 return;
             }
             if (event === 'error') {
@@ -42,8 +54,11 @@ class WsClient {
         const wrapped = (payload: Event) => {
             this.#socket.removeEventListener(event, wrapped);
             if (event === 'message') {
-                const messagePayload = payload as MessageEvent;
-                handler(messagePayload.data);
+                if (payload instanceof MessageEvent && WsClient.#isSupportedMessageData(payload.data)) {
+                    handler(payload.data);
+                } else {
+                    handler(payload);
+                }
                 return;
             }
             if (event === 'error') {

@@ -47,7 +47,7 @@ export function applyDynamicOccupancyOverlayToGrid({
             return;
         }
         const row = grid[y];
-        if (!row || row[x] === undefined) {
+        if (row?.[x] === undefined) {
             return;
         }
         const k = key(x, y);
@@ -88,7 +88,7 @@ export function applyDynamicOccupancyOverlayToGrid({
                 continue;
             }
             const row = grid[y];
-            if (!row || row[x] === undefined) {
+            if (row?.[x] === undefined) {
                 continue;
             }
             row[x] = value;
@@ -96,4 +96,3 @@ export function applyDynamicOccupancyOverlayToGrid({
         original.clear();
     };
 }
-

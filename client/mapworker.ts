@@ -38,7 +38,7 @@ function generateCollisionGrid(map: WorkerMap): void {
   for (const tileIndex of map.collisions) {
     const pos = tileIndexToGridPosition(tileIndex + 1, map.width);
     const row = grid[pos.y];
-    if (row && row[pos.x] !== undefined) {
+    if (row?.[pos.x] !== undefined) {
       row[pos.x] = 1;
     }
   }
@@ -46,7 +46,7 @@ function generateCollisionGrid(map: WorkerMap): void {
   for (const tileIndex of map.blocking) {
     const pos = tileIndexToGridPosition(tileIndex + 1, map.width);
     const row = grid[pos.y];
-    if (row && row[pos.x] !== undefined) {
+    if (row?.[pos.x] !== undefined) {
       row[pos.x] = 1;
     }
   }

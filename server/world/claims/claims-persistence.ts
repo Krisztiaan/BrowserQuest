@@ -96,7 +96,7 @@ export class SqliteClaimsPersistence {
         this.#upsertClaim.run(
             claim.id,
             claim.ownerName,
-            JSON.stringify(Array.isArray(claim.editorNameKeys) ? [...claim.editorNameKeys] : []),
+            JSON.stringify(claim.editorNameKeys.slice()),
             claim.x1,
             claim.y1,
             claim.x2,

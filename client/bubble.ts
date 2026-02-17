@@ -81,7 +81,7 @@ class BubbleManager {
 
         Object.keys(this.bubbles).forEach((id) => {
             const bubble = this.bubbles[id];
-            if (bubble && bubble.isOver(time)) {
+            if (bubble?.isOver(time)) {
                 bubble.destroy();
                 bubblesToDelete.push(bubble.id);
             }

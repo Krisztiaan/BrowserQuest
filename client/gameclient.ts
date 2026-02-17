@@ -55,10 +55,44 @@ function isRecord(value: JsonValue | object | null | undefined): value is Record
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function toJsonValue(value: unknown): JsonValue | null {
+    if (value === null) {
+        return null;
+    }
+    if (typeof value === 'string' || typeof value === 'boolean') {
+        return value;
+    }
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+    if (Array.isArray(value)) {
+        const parsedArray: JsonValue[] = [];
+        for (const entry of value) {
+            const parsedEntry = toJsonValue(entry);
+            if (parsedEntry === null && entry !== null) {
+                return null;
+            }
+            parsedArray.push(parsedEntry);
+        }
+        return parsedArray;
+    }
+    if (typeof value === 'object') {
+        const parsedRecord: { [key: string]: JsonValue } = {};
+        for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
+            const parsedEntry = toJsonValue(entry);
+            if (parsedEntry === null && entry !== null) {
+                return null;
+            }
+            parsedRecord[key] = parsedEntry;
+        }
+        return parsedRecord;
+    }
+    return null;
+}
+
 function safeParseJson(payload: string): JsonValue | null {
     try {
-        const parsed: JsonValue = JSON.parse(payload);
-        return parsed;
+        return toJsonValue(JSON.parse(payload));
     } catch (_) {
         return null;
     }

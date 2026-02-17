@@ -55,6 +55,19 @@ function byteLengthUtf8(value: string): number {
     return Buffer.byteLength(value, 'utf8');
 }
 
+function decodeSocketMessageData(raw: unknown): string | null {
+    if (typeof raw === 'string') {
+        return raw;
+    }
+    if (raw instanceof Uint8Array) {
+        return new TextDecoder().decode(raw);
+    }
+    if (raw instanceof ArrayBuffer) {
+        return new TextDecoder().decode(new Uint8Array(raw));
+    }
+    return null;
+}
+
 function recordSample(target: number[], value: number, cap = 5000): void {
     if (!Number.isFinite(value)) return;
     if (target.length >= cap) return;
@@ -175,28 +188,19 @@ export class BotClient {
             ws.addEventListener('error', () => {
                 this.metrics.connectErrors += 1;
             });
-            ws.addEventListener('close', (evt) => {
+            ws.addEventListener('close', (evt: CloseEvent) => {
                 this.metrics.closes += 1;
-                const closeEvt = evt as CloseEvent;
-                if (typeof closeEvt.code === 'number') {
-                    this.metrics.closeCode = closeEvt.code;
+                if (typeof evt.code === 'number') {
+                    this.metrics.closeCode = evt.code;
                 }
-                if (typeof closeEvt.reason === 'string') {
-                    this.metrics.closeReason = closeEvt.reason;
+                if (typeof evt.reason === 'string') {
+                    this.metrics.closeReason = evt.reason;
                 }
                 clearTimeout(stopAt);
                 resolve();
             });
-            ws.addEventListener('message', (evt) => {
-                const raw = (evt as MessageEvent).data;
-                const data =
-                    typeof raw === 'string'
-                        ? raw
-                        : raw instanceof Uint8Array
-                          ? new TextDecoder().decode(raw)
-                          : raw instanceof ArrayBuffer
-                            ? new TextDecoder().decode(new Uint8Array(raw))
-                            : null;
+            ws.addEventListener('message', (evt: MessageEvent<unknown>) => {
+                const data = decodeSocketMessageData(evt.data);
                 if (data === 'go') {
                     this.#isGo = true;
                     this.#sendHello();
@@ -214,7 +218,7 @@ export class BotClient {
 
     #sendRaw(action: unknown): void {
         const ws = this.#ws;
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
+        if (ws?.readyState !== WebSocket.OPEN) {
             return;
         }
         const json = safeStringify(action);

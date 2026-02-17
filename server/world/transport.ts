@@ -57,12 +57,25 @@ export function flushOutgoingQueues(
         const queueLength = queue.length;
         for (let batchStart = 0; batchStart < queueLength; batchStart += MAX_BATCH_ACTIONS) {
             const batchEnd = Math.min(batchStart + MAX_BATCH_ACTIONS, queueLength);
-            const batchLength = batchEnd - batchStart;
-            const batch = new Array<ServerToClientProtocolAction>(batchLength);
-            for (let i = 0; i < batchLength; i += 1) {
-                batch[i] = queue[batchStart + i]!;
+            const batch: ServerToClientProtocolAction[] = [];
+            for (let i = batchStart; i < batchEnd; i += 1) {
+                const payload = queue[i];
+                if (payload === undefined) {
+                    continue;
+                }
+                batch.push(payload);
             }
-            connection.send(batchLength === 1 ? batch[0]! : batch);
+            if (batch.length === 0) {
+                continue;
+            }
+            if (batch.length === 1) {
+                const single = batch[0];
+                if (single !== undefined) {
+                    connection.send(single);
+                }
+                continue;
+            }
+            connection.send(batch);
         }
         queue.length = 0;
     }

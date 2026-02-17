@@ -80,7 +80,8 @@ test('door traversal teleports to a different tile and stays stable on repeated 
     const clicked = await clickTile(page, originDoor.x, originDoor.y);
     expect(clicked.ok).toBe(true);
 
-    let arrivalDoor: { x: number; y: number } | null = null;
+    let arrivalDoor = { x: originDoor.x, y: originDoor.y };
+    let arrived = false;
     await expect
         .poll(async () => {
             const pos = await getPlayerPos(page);
@@ -91,13 +92,11 @@ test('door traversal teleports to a different tile and stays stable on repeated 
                 return false;
             }
             arrivalDoor = { x: pos.x, y: pos.y };
+            arrived = true;
             return true;
         }, { timeout: 30_000 })
         .toBe(true);
-    expect(arrivalDoor).not.toBeNull();
-    if (!arrivalDoor) {
-        throw new Error('Expected door arrival position');
-    }
+    expect(arrived).toBe(true);
 
     const exitClicked = await clickTile(page, arrivalDoor.x, arrivalDoor.y);
     expect(exitClicked.ok).toBe(true);

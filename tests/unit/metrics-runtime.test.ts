@@ -129,7 +129,8 @@ test('metrics runtime emits init-failed fallback when memcache adapter throws', 
     assertNoopMetricsAdapter(result);
     expect(result.isEnabled).toBe(false);
     expect(result.meta.reason).toBe('init_failed');
-    expect(String(result.meta.error)).toContain('adapter unavailable');
+    expect(typeof result.meta.error).toBe('string');
+    expect(result.meta.error).toContain('adapter unavailable');
     expect(emitted.length).toBe(1);
     expect(emitted[0].fields.reason).toBe('init_failed');
 });

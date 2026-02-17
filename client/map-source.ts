@@ -39,8 +39,7 @@ async function ensureClientRuntimeMapLoaded(): Promise<void> {
     return;
   }
 
-  if (pendingMapLoad === null) {
-    pendingMapLoad = (async () => {
+  pendingMapLoad ??= (async () => {
       const response = await fetch(tiledWorldMapUrl, { credentials: 'same-origin' });
       if (!response.ok) {
         throw new Error(`Failed to fetch runtime map source (${response.status}).`);
@@ -48,7 +47,6 @@ async function ensureClientRuntimeMapLoaded(): Promise<void> {
       const tiledWorldMap = (await response.json()) as Parameters<typeof processMap>[0];
       cachedClientRuntimeMap = processMap(tiledWorldMap, { mode: 'client', quiet: true }) as ClientRuntimeMap;
     })();
-  }
 
   try {
     await pendingMapLoad;

@@ -313,6 +313,9 @@ function resolvePasskeyTransports(value: ReadonlyArray<string> | null | undefine
     }
     const out = new Set<AuthenticatorTransportFuture>();
     for (const raw of value) {
+        if (typeof raw !== 'string') {
+            continue;
+        }
         switch (raw) {
             case 'ble':
             case 'cable':
@@ -328,6 +331,56 @@ function resolvePasskeyTransports(value: ReadonlyArray<string> | null | undefine
         }
     }
     return [...out];
+}
+
+type RegistrationCredentialLike = Readonly<{
+    id: string;
+    publicKey: Uint8Array;
+    counter: number;
+    transports?: ReadonlyArray<string>;
+}>;
+
+function isRegistrationCredentialLike(value: unknown): value is RegistrationCredentialLike {
+    if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+        return false;
+    }
+    const candidate = value as Record<string, unknown>;
+    if (typeof candidate.id !== 'string') {
+        return false;
+    }
+    if (!(candidate.publicKey instanceof Uint8Array)) {
+        return false;
+    }
+    if (typeof candidate.counter !== 'number' || !Number.isFinite(candidate.counter) || candidate.counter < 0) {
+        return false;
+    }
+    const transports = candidate.transports;
+    if (transports === undefined) {
+        return true;
+    }
+    if (!Array.isArray(transports)) {
+        return false;
+    }
+    for (let i = 0; i < transports.length; i += 1) {
+        if (typeof transports[i] !== 'string') {
+            return false;
+        }
+    }
+    return true;
+}
+
+function resolveVerifiedRegistrationCredential(
+    verification: Awaited<ReturnType<typeof verifyRegistrationResponse>>
+): RegistrationCredentialLike | null {
+    if (!verification.verified) {
+        return null;
+    }
+    const registrationInfoValue: unknown = Reflect.get(verification as Record<string, unknown>, 'registrationInfo');
+    if (typeof registrationInfoValue !== 'object' || registrationInfoValue === null || Array.isArray(registrationInfoValue)) {
+        return null;
+    }
+    const credentialValue: unknown = Reflect.get(registrationInfoValue as Record<string, unknown>, 'credential');
+    return isRegistrationCredentialLike(credentialValue) ? credentialValue : null;
 }
 
 function setPendingChallenge({
@@ -558,14 +611,14 @@ export async function createPasskeyAuthResponse({
             });
         }
 
-        if (!verification.verified || !verification.registrationInfo) {
+        const credential = resolveVerifiedRegistrationCredential(verification);
+        if (!credential) {
             return createJsonResponse({
                 status: 401,
                 payload: { ok: false, reason: 'Passkey registration verification failed.' },
             });
         }
 
-        const credential = verification.registrationInfo.credential;
         const registered = persistence.registerPasskeyCredential({
             requestedName: requestedDisplayName,
             credentialId: credential.id,
@@ -618,7 +671,7 @@ export async function createPasskeyAuthResponse({
     }
 
     const storedCredential = persistence.getPasskeyCredentialByCredentialId(credentialId);
-    if (!storedCredential || storedCredential.accountNameKey !== normalizedName) {
+    if (storedCredential?.accountNameKey !== normalizedName) {
         return createJsonResponse({
             status: 401,
             payload: { ok: false, reason: 'Passkey assertion did not match this account.' },

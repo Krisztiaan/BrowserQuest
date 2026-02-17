@@ -57,7 +57,8 @@ export class ChunkOverlay {
 
     getLocal(localX: number, localY: number): number | null {
         const i = this.#idx(localX, localY);
-        return this.present[i] ? this.values[i]! : null;
+        const value = this.values[i];
+        return this.present[i] === 1 && value !== undefined ? value : null;
     }
 
     #markPendingDelta(i: number, baseVersion: number): void {
@@ -79,7 +80,7 @@ export class ChunkOverlay {
         const baseVersion = this.version;
         const next = toUint32(value);
         const wasPresent = this.present[i] === 1;
-        const prevValue = this.values[i]!;
+        const prevValue = this.values[i] ?? 0;
         if (wasPresent && prevValue === next) {
             return false;
         }
@@ -118,10 +119,14 @@ export class ChunkOverlay {
         const toVersion = this.version;
         const changes: Array<[number, number, number | null]> = [];
         for (let j = 0; j < this.#pendingDeltaIndices.length; j += 1) {
-            const idx = this.#pendingDeltaIndices[j]!;
+            const idx = this.#pendingDeltaIndices[j];
+            if (idx === undefined) {
+                continue;
+            }
             const localX = idx % this.size;
             const localY = Math.floor(idx / this.size);
-            const next = this.present[idx] ? this.values[idx]! : null;
+            const nextValue = this.values[idx];
+            const next = this.present[idx] === 1 && nextValue !== undefined ? nextValue : null;
             changes.push([localX, localY, next]);
             this.#pendingDeltaMask[idx] = 0;
         }

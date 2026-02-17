@@ -103,7 +103,6 @@ function isMapDefinition(payload: LooseValue): payload is MapDefinition {
         Array.isArray(candidate.chestAreas) &&
         Array.isArray(candidate.staticChests) &&
         typeof candidate.staticEntities === 'object' &&
-        candidate.staticEntities !== null &&
         !Array.isArray(candidate.staticEntities)
     );
 }
@@ -151,7 +150,7 @@ async function readAndNormalizeMapDefinition(filepath: string): Promise<MapDefin
     }
 
     try {
-        const parsed = JSON.parse(file);
+        const parsed: LooseValue = JSON.parse(file) as LooseValue;
         return await normalizeMapDefinition(parsed);
     } catch (parseErr) {
         const parseMessage = parseErr instanceof Error ? parseErr.message : String(parseErr);
@@ -212,7 +211,7 @@ class Map {
         this.staticChests = [];
         this.staticEntities = {};
         this.doors = [];
-        this.doorIndex = new globalThis.Map();
+        this.doorIndex = new globalThis.Map<number, DoorDefinition>();
         this.zoneWidth = 0;
         this.zoneHeight = 0;
         this.groupWidth = 0;
@@ -281,7 +280,7 @@ class Map {
 
     initDoors(doors?: DoorDefinition[]): void {
         this.doors = doors ?? [];
-        this.doorIndex = new globalThis.Map();
+        this.doorIndex = new globalThis.Map<number, DoorDefinition>();
 
         for (const door of this.doors) {
             this.doorIndex.set(this.GridPositionToTileIndex(door.x, door.y), door);

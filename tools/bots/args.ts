@@ -38,7 +38,6 @@ export type SoakArgs = Readonly<{
 
 function printUsageAndExit(code: number): never {
     // Keep this terse; TODO.md is the canonical plan. This is for quick CLI help.
-    // eslint-disable-next-line no-console
     console.error(
         [
             'Usage: bun run bots:soak -- [options]',

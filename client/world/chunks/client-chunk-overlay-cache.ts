@@ -277,7 +277,11 @@ export class ClientChunkOverlayCache {
         }
 
         const idx = localY * chunkSize + localX;
-        return chunk.present[idx] ? chunk.values[idx]! : null;
+        if (chunk.present[idx] !== 1) {
+            return null;
+        }
+        const value = chunk.values[idx];
+        return value ?? null;
     }
 
     forEachPresentGlobal(callback: (x: number, y: number, value: number) => void): void {

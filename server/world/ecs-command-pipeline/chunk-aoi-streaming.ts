@@ -178,7 +178,11 @@ export function extractOverrides(present: Uint8Array, values: Uint32Array, size:
         }
         const localX = i % size;
         const localY = Math.floor(i / size);
-        overrides.push([localX, localY, values[i]!]);
+        const value = values[i];
+        if (value === undefined) {
+            continue;
+        }
+        overrides.push([localX, localY, value]);
     }
     return overrides;
 }

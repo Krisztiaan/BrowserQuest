@@ -67,30 +67,32 @@ function base64Decode(base64: string): Uint8Array | null {
     }
 }
 
-function isRecord(value: JsonLike | object | null | undefined): value is JsonRecord {
+function isRecord(value: unknown): value is JsonRecord {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function validateDecodedChunkSize(chunkSize: JsonLike | object | null | undefined): number | null {
+function validateDecodedChunkSize(chunkSize: unknown): number | null {
     if (typeof chunkSize !== 'number' || !Number.isSafeInteger(chunkSize) || chunkSize <= 0 || chunkSize > 256) {
         return null;
     }
     return chunkSize;
 }
 
-function validateDecodedOverrides(overrides: JsonLike | object | null | undefined, chunkSize: number): ChunkSnapshotOverride[] | null {
+function validateDecodedOverrides(overrides: unknown, chunkSize: number): ChunkSnapshotOverride[] | null {
     if (!Array.isArray(overrides)) {
         return null;
     }
     const out: ChunkSnapshotOverride[] = [];
-    for (let i = 0; i < overrides.length; i += 1) {
-        const entry = overrides[i];
+    const entries: unknown[] = overrides;
+    for (let i = 0; i < entries.length; i += 1) {
+        const entry = entries[i];
         if (!Array.isArray(entry) || entry.length !== 3) {
             return null;
         }
-        const x = entry[0];
-        const y = entry[1];
-        const value = entry[2];
+        const parts: unknown[] = entry;
+        const x = parts[0];
+        const y = parts[1];
+        const value = parts[2];
         if (
             typeof x !== 'number'
             || typeof y !== 'number'

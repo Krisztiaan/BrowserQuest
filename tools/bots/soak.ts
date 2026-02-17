@@ -69,9 +69,15 @@ function stats(values: number[]): { min: number | null; avg: number | null; p95:
     let min = Number.POSITIVE_INFINITY;
     let max = Number.NEGATIVE_INFINITY;
     for (let i = 0; i < values.length; i += 1) {
-        const v = values[i]!;
+        const v = values[i];
+        if (v === undefined) {
+            continue;
+        }
         if (v < min) min = v;
         if (v > max) max = v;
+    }
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+        return { min: null, avg: null, p95: null, max: null };
     }
     return { min, avg: mean(values), p95: percentile(values, 0.95), max };
 }
@@ -169,7 +175,6 @@ const args = (() => {
     try {
         return parseSoakArgs(process.argv.slice(2));
     } catch (err) {
-        // eslint-disable-next-line no-console
         console.error(String(err));
         process.exit(2);
     }
@@ -220,7 +225,6 @@ try {
     const elapsedSeconds = Math.max(1, Math.round((Date.now() - startedAt) / 1000));
 
     const aggregate = { ...summarize(results), seconds: elapsedSeconds };
-    // eslint-disable-next-line no-console
     console.log(
         JSON.stringify(
             {
@@ -284,7 +288,6 @@ try {
     }
 } catch (err) {
     exitCode = 1;
-    // eslint-disable-next-line no-console
     console.error(String(err));
 } finally {
     await cleanupLocalServer(server);

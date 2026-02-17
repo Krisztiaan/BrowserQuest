@@ -32,10 +32,12 @@ test('WorldServer.addPlayer syncs spawn replication once through addEntity', () 
     const player = createPlayer('25101');
 
     let spawnSyncCalls = 0;
-    const originalSyncSpawn = world.ecsPipeline.syncSpawnReplicationEntity.bind(world.ecsPipeline);
+    const originalSyncSpawn = world.ecsPipeline.syncSpawnReplicationEntity.bind(
+        world.ecsPipeline
+    ) as typeof world.ecsPipeline.syncSpawnReplicationEntity;
     world.ecsPipeline.syncSpawnReplicationEntity = ((...args: Parameters<typeof originalSyncSpawn>) => {
         spawnSyncCalls += 1;
-        return originalSyncSpawn(...args);
+        originalSyncSpawn(...args);
     }) as typeof world.ecsPipeline.syncSpawnReplicationEntity;
 
     world.addPlayer(player);
@@ -49,10 +51,10 @@ test('WorldServer.removePlayer removes ecs entity exactly once', () => {
     world.addPlayer(player);
 
     let removeEntityCalls = 0;
-    const originalRemove = world.ecsPipeline.removeEntity.bind(world.ecsPipeline);
+    const originalRemove = world.ecsPipeline.removeEntity.bind(world.ecsPipeline) as typeof world.ecsPipeline.removeEntity;
     world.ecsPipeline.removeEntity = ((...args: Parameters<typeof originalRemove>) => {
         removeEntityCalls += 1;
-        return originalRemove(...args);
+        originalRemove(...args);
     }) as typeof world.ecsPipeline.removeEntity;
 
     world.removePlayer(player);

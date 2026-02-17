@@ -492,7 +492,7 @@ class App {
 
     initEquipmentIcons(): void {
         const game = this.game;
-        if (!game || !game.player) {
+        if (!game?.player) {
             return;
         }
         const scale = game.renderer.getScaleFactor();

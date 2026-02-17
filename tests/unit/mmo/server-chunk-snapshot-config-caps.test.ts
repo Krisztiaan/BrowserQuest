@@ -7,8 +7,6 @@ import { ClientChunkOverlayCache } from '../../../client/world/chunks/client-chu
 import { decodeChunkSnapshotPayloadJson, encodeChunkSnapshotPayloadJson, encodeChunkSnapshotPayloadJsonParts } from '../../../shared/protocol/chunks/chunk-snapshot-codec';
 import type { WorldMessage } from '../../../server/world/contracts';
 
-type FrameInput = ReadonlyArray<number | string> | object | null | undefined;
-
 function createTestPlayer(wireId: number): Player {
     const connection = {
         id: String(wireId),
@@ -25,7 +23,7 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function isChunkSnapshotPartMessage(msg: FrameInput): msg is [number, number, number, number, number, number, string] {
+function isChunkSnapshotPartMessage(msg: WorldMessage): msg is [number, number, number, number, number, number, string] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_SNAPSHOT_PART
@@ -185,7 +183,22 @@ test('WorldEcsCommandPipeline.setServerConfig applies chunk snapshot caps (no en
             const parts = slice.filter(isChunkSnapshotPartMessage);
             seenParts += parts.length;
             for (const part of parts) {
-                const [, chunkX, chunkY, version, partIndex, partCount, payloadJson] = part;
+                const chunkX: unknown = part[1];
+                const chunkY: unknown = part[2];
+                const version: unknown = part[3];
+                const partIndex: unknown = part[4];
+                const partCount: unknown = part[5];
+                const payloadJson: unknown = part[6];
+                if (
+                    typeof chunkX !== 'number'
+                    || typeof chunkY !== 'number'
+                    || typeof version !== 'number'
+                    || typeof partIndex !== 'number'
+                    || typeof partCount !== 'number'
+                    || typeof payloadJson !== 'string'
+                ) {
+                    continue;
+                }
                 const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
                 expect(decoded).toBeTruthy();
                 if (!decoded) continue;
@@ -348,7 +361,22 @@ test('snapshot overflow fallback streams high-part snapshots instead of indefini
             const parts = slice.filter(isChunkSnapshotPartMessage);
             seenParts += parts.length;
             for (const part of parts) {
-                const [, chunkX, chunkY, version, partIndex, partCount, payloadJson] = part;
+                const chunkX: unknown = part[1];
+                const chunkY: unknown = part[2];
+                const version: unknown = part[3];
+                const partIndex: unknown = part[4];
+                const partCount: unknown = part[5];
+                const payloadJson: unknown = part[6];
+                if (
+                    typeof chunkX !== 'number'
+                    || typeof chunkY !== 'number'
+                    || typeof version !== 'number'
+                    || typeof partIndex !== 'number'
+                    || typeof partCount !== 'number'
+                    || typeof payloadJson !== 'string'
+                ) {
+                    continue;
+                }
                 const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
                 expect(decoded).toBeTruthy();
                 if (!decoded) continue;

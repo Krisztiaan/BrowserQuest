@@ -2,7 +2,7 @@ import Item from '../../item';
 import Mob from '../../mob';
 import Npc from '../../npc';
 import Chest from '../../chest';
-import Character from '../../character';
+import Character, { type CharacterEvents } from '../../character';
 import type Player from '../../player';
 import type Sprite from '../../sprite';
 import { entityIdFromWire, isEntityId, type EntityId } from '../../../shared/domain/ids';
@@ -11,6 +11,7 @@ import { gridPos } from '../../../shared/domain/positions';
 import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 import { getMobPrefab } from '../../../shared/content/prefabs';
+import type { MergeEvents, TypedEventMap } from '../../../shared/typed-event-emitter';
 import type { RuntimeEntity } from '../../client-boundary-types';
 import type { ClientCommand } from '../client-commands';
 import type { ClientWorldKernel } from '../world-kernel';
@@ -60,6 +61,7 @@ type SpatialRecord = Readonly<{
     kind: EntityKind;
     isPlayer: boolean;
 }>;
+type CharacterEventEnvelope = MergeEvents<CharacterEvents, TypedEventMap>;
 
 export type ClientCommandApplySystemHost = {
     kernel: ClientWorldKernel;
@@ -94,9 +96,12 @@ export type ClientCommandApplySystemHost = {
     makePlayerGoTo(x: number, y: number): void;
     makePlayerGoToItem(item: Item | null): void;
     getEntityById(id: EntityId): GridIndexedEntity | undefined;
-    makeCharacterTeleportTo(entity: Character<any>, x: number, y: number): void;
-    makeCharacterGoTo(entity: Character<any>, x: number, y: number): void;
-    createAttackLink(attacker: Character<any>, target: Character<any>): void;
+    makeCharacterTeleportTo<TEvents extends CharacterEventEnvelope>(entity: Character<TEvents>, x: number, y: number): void;
+    makeCharacterGoTo<TEvents extends CharacterEventEnvelope>(entity: Character<TEvents>, x: number, y: number): void;
+    createAttackLink<TAttackerEvents extends CharacterEventEnvelope, TTargetEvents extends CharacterEventEnvelope>(
+        attacker: Character<TAttackerEvents>,
+        target: Character<TTargetEvents>
+    ): void;
     removeItem(item: Item | null): void;
     removeEntity(entity: GridIndexedEntity): void;
     enqueueZoningFrom(x: number, y: number): void;
@@ -176,7 +181,11 @@ function safeOrientation(orientation: number | undefined): number {
         : Types.Orientations.DOWN;
 }
 
-function startAuthoritativeAdjacentStep(entity: Character<any>, x: number, y: number): boolean {
+function startAuthoritativeAdjacentStep<TEvents extends CharacterEventEnvelope>(
+    entity: Character<TEvents>,
+    x: number,
+    y: number
+): boolean {
     const distance = Math.abs(entity.gridX - x) + Math.abs(entity.gridY - y);
     if (distance !== 1) {
         return false;
@@ -190,7 +199,11 @@ function startAuthoritativeAdjacentStep(entity: Character<any>, x: number, y: nu
     return entity.isMoving();
 }
 
-function appendAuthoritativeAdjacentStep(entity: Character<any>, x: number, y: number): boolean {
+function appendAuthoritativeAdjacentStep<TEvents extends CharacterEventEnvelope>(
+    entity: Character<TEvents>,
+    x: number,
+    y: number
+): boolean {
     const path = entity.path;
     if (!path || path.length === 0) {
         return false;
@@ -210,7 +223,7 @@ function appendAuthoritativeAdjacentStep(entity: Character<any>, x: number, y: n
     return true;
 }
 
-function hardStopCharacterMovement(entity: Character<any>): void {
+function hardStopCharacterMovement<TEvents extends CharacterEventEnvelope>(entity: Character<TEvents>): void {
     entity.stop();
     entity.path = null;
     entity.newDestination = null;
@@ -260,7 +273,10 @@ function planServerAuthoritativeMoveTo({
     }
 
     const steps = rawSteps.map((entry) => gridPos(entry[0], entry[1]));
-    const target = steps[steps.length - 1]!;
+    const target = steps.at(-1);
+    if (!target) {
+        return;
+    }
     debugMoves('plan:set', { toX, toY, stopAdjacentToTarget, steps: steps.length, target });
     host.kernel.setClientMovePlan({
         target,
@@ -299,7 +315,7 @@ function setPathingCell(host: ClientCommandApplySystemHost, x: number, y: number
         return;
     }
     const row = grid[y];
-    if (!row || row[x] === undefined) {
+    if (row?.[x] === undefined) {
         return;
     }
     row[x] = value;
@@ -1086,7 +1102,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (typeof character.setOrientation === 'function') {
                     character.setOrientation(safeOrientation(adapted.orientation));
                 }
-                character.idle?.();
+                character.idle();
                 if (isGridIndexedEntity(character)) {
                     host.addEntity(character);
                 }
@@ -1120,7 +1136,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     if (entity.isMoving()) {
                         const path = entity.path;
                         const tail = path && path.length > 0 ? path[path.length - 1] : undefined;
-                        if (tail && tail[0] === command.x && tail[1] === command.y) {
+                        if (tail?.[0] === command.x && tail[1] === command.y) {
                             break;
                         }
                         if (appendAuthoritativeAdjacentStep(entity, command.x, command.y)) {

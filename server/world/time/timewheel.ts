@@ -31,9 +31,6 @@ export class TimeWheel<TPayload = TimeWheelPayload> {
     }
 
     schedule(job: ScheduledJob<TPayload>): void {
-        if (!job || typeof job !== 'object') {
-            throw new Error('TimeWheel.schedule: job is required');
-        }
         if (typeof job.id !== 'string' || job.id.trim() === '') {
             throw new Error('TimeWheel.schedule: job.id is required');
         }
@@ -107,7 +104,10 @@ export class TimeWheel<TPayload = TimeWheelPayload> {
 
     #gcTop(): void {
         while (this.#heap.length > 0) {
-            const top = this.#heap[0]!;
+            const top = this.#heap[0];
+            if (!top) {
+                return;
+            }
             if (!this.#isStale(top)) {
                 return;
             }
@@ -125,8 +125,11 @@ export class TimeWheel<TPayload = TimeWheelPayload> {
         if (n === 0) {
             return null;
         }
-        const top = this.#heap[0]!;
-        const last = this.#heap.pop()!;
+        const top = this.#heap[0];
+        const last = this.#heap.pop();
+        if (!top || !last) {
+            return null;
+        }
         if (n > 1) {
             this.#heap[0] = last;
             this.#siftDown(0);
@@ -138,11 +141,13 @@ export class TimeWheel<TPayload = TimeWheelPayload> {
         let i = index;
         while (i > 0) {
             const parent = Math.floor((i - 1) / 2);
-            if (compareItems(this.#heap[i]!, this.#heap[parent]!) >= 0) {
+            const current = this.#heap[i];
+            const parentItem = this.#heap[parent];
+            if (!current || !parentItem || compareItems(current, parentItem) >= 0) {
                 break;
             }
-            const tmp = this.#heap[i]!;
-            this.#heap[i] = this.#heap[parent]!;
+            const tmp = current;
+            this.#heap[i] = parentItem;
             this.#heap[parent] = tmp;
             i = parent;
         }
@@ -151,21 +156,30 @@ export class TimeWheel<TPayload = TimeWheelPayload> {
     #siftDown(index: number): void {
         let i = index;
         const n = this.#heap.length;
-        while (true) {
+        for (;;) {
             const left = i * 2 + 1;
             const right = left + 1;
             let smallest = i;
-            if (left < n && compareItems(this.#heap[left]!, this.#heap[smallest]!) < 0) {
+            const smallestItem = this.#heap[smallest];
+            const leftItem = left < n ? this.#heap[left] : undefined;
+            if (leftItem && smallestItem && compareItems(leftItem, smallestItem) < 0) {
                 smallest = left;
             }
-            if (right < n && compareItems(this.#heap[right]!, this.#heap[smallest]!) < 0) {
+            const nextSmallestItem = this.#heap[smallest];
+            const rightItem = right < n ? this.#heap[right] : undefined;
+            if (rightItem && nextSmallestItem && compareItems(rightItem, nextSmallestItem) < 0) {
                 smallest = right;
             }
             if (smallest === i) {
                 break;
             }
-            const tmp = this.#heap[i]!;
-            this.#heap[i] = this.#heap[smallest]!;
+            const current = this.#heap[i];
+            const next = this.#heap[smallest];
+            if (!current || !next) {
+                break;
+            }
+            const tmp = current;
+            this.#heap[i] = next;
             this.#heap[smallest] = tmp;
             i = smallest;
         }

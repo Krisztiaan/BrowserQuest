@@ -57,7 +57,7 @@ test('mobile door traversal uses cameraX/cameraY even when values are 0', () => 
                 requestedAtMs: Date.now(),
             },
             setClientPendingDoorTraversal() {},
-            clearClientPendingDoorTraversal() {
+            clearClientPendingDoorTraversal(this: { clientPendingDoorTraversal: null | { requestedAtMs: number } }) {
                 this.clientPendingDoorTraversal = null;
             },
         },
@@ -101,7 +101,7 @@ test('clicking a door tile while already standing on it triggers traversal', () 
             hasTarget() {
                 return false;
             },
-            setGridPosition(x: number, y: number) {
+            setGridPosition(this: { gridX: number; gridY: number }, x: number, y: number) {
                 moved = true;
                 this.gridX = x;
                 this.gridY = y;
@@ -140,13 +140,27 @@ test('clicking a door tile while already standing on it triggers traversal', () 
             clientDoorTraversalArmed: false,
             clientPendingDoorTraversal: null,
             clientClickIntent: { x: 3, y: 4 },
-            clearClientClickIntent() {
+            clearClientClickIntent(this: { clientClickIntent: { x: number; y: number } | null }) {
                 this.clientClickIntent = null;
             },
             enqueueClientCommand() {},
             setClientInteractionIntent() {},
             clearClientLootAttempt() {},
-            setClientPendingDoorTraversal(pending: {
+            setClientPendingDoorTraversal(this: {
+                clientPendingDoorTraversal:
+                    | null
+                    | {
+                          doorX: number;
+                          doorY: number;
+                          toX: number;
+                          toY: number;
+                          orientation: number;
+                          portal: boolean;
+                          cameraX?: number;
+                          cameraY?: number;
+                          requestedAtMs: number;
+                      };
+            }, pending: {
                 doorX: number;
                 doorY: number;
                 toX: number;
@@ -158,7 +172,21 @@ test('clicking a door tile while already standing on it triggers traversal', () 
             }) {
                 this.clientPendingDoorTraversal = { ...pending, requestedAtMs: Date.now() };
             },
-            clearClientPendingDoorTraversal() {
+            clearClientPendingDoorTraversal(this: {
+                clientPendingDoorTraversal:
+                    | null
+                    | {
+                          doorX: number;
+                          doorY: number;
+                          toX: number;
+                          toY: number;
+                          orientation: number;
+                          portal: boolean;
+                          cameraX?: number;
+                          cameraY?: number;
+                          requestedAtMs: number;
+                      };
+            }) {
                 this.clientPendingDoorTraversal = null;
             },
             drainClientCommands() {

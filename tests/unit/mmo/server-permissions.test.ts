@@ -282,8 +282,13 @@ test('claim create/update/delete intents mutate claim store and call persistence
     const claims = harness.pipeline.state.resources.require(CLAIMS_STORE_RESOURCE);
     const created = claims.listClaims();
     expect(created.length).toBe(1);
-    expect(created[0]?.ownerName).toBe('alice');
-    expect(created[0]?.editorNameKeys).toEqual(['bob']);
+    const createdClaim = created[0];
+    expect(createdClaim).toBeTruthy();
+    if (!createdClaim) {
+        throw new Error('Expected created claim.');
+    }
+    expect(createdClaim.ownerName).toBe('alice');
+    expect(createdClaim.editorNameKeys).toEqual(['bob']);
     expect(harness.persistedClaimUpserts.length).toBe(1);
 
     enqueueIntent({
@@ -291,11 +296,11 @@ test('claim create/update/delete intents mutate claim store and call persistence
         player: harness.player,
         seq: 1,
         intentTypeId: 'claim.update',
-        payload: { id: created[0]!.id, x1: 5, y1: 5, x2: 7, y2: 7, editors: ['bob', 'charlie'] },
+        payload: { id: createdClaim.id, x1: 5, y1: 5, x2: 7, y2: 7, editors: ['bob', 'charlie'] },
     });
     harness.pipeline.tick();
 
-    const updated = claims.getClaimById(created[0]!.id);
+    const updated = claims.getClaimById(createdClaim.id);
     expect(updated).toBeTruthy();
     expect(updated?.x2).toBe(7);
     expect(updated?.editorNameKeys).toEqual(['bob', 'charlie']);
@@ -306,12 +311,12 @@ test('claim create/update/delete intents mutate claim store and call persistence
         player: harness.player,
         seq: 2,
         intentTypeId: 'claim.delete',
-        payload: { id: created[0]!.id },
+        payload: { id: createdClaim.id },
     });
     harness.pipeline.tick();
 
-    expect(claims.getClaimById(created[0]!.id)).toBeNull();
-    expect(harness.persistedClaimDeletes).toEqual([created[0]!.id]);
+    expect(claims.getClaimById(createdClaim.id)).toBeNull();
+    expect(harness.persistedClaimDeletes).toEqual([createdClaim.id]);
     expect(
         harness.delivered.filter((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK).map((msg) => (msg as [number, number])[1])
     ).toEqual([0, 1, 2]);

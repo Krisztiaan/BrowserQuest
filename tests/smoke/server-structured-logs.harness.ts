@@ -1,6 +1,7 @@
 import net from 'node:net';
 import { killBunProcess } from '../support/process-cleanup';
 import WebSocket from '../support/ws-client';
+import { toError } from '../support/format';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
@@ -213,7 +214,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
             const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 4000);
             ws.once('error', (err) => {
                 clearTimeout(timeout);
-                reject(err instanceof Error ? err : new Error(String(err)));
+                reject(toError(err));
             });
             ws.on('message', (data) => {
                 if (typeof data === 'string' ? data === 'go' : false) {

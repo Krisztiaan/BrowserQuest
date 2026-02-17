@@ -6,8 +6,6 @@ import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipel
 import { decodeChunkDeltaPayloadJson } from '../../../shared/protocol/chunks/chunk-delta-codec';
 import type { WorldMessage } from '../../../server/world/contracts';
 
-type FrameInput = ReadonlyArray<number | string> | object | null | undefined;
-
 function createTestPlayer(wireId: number): Player {
     const connection = {
         id: String(wireId),
@@ -24,7 +22,7 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function isChunkDeltaMessage(msg: FrameInput): msg is [number, number, number, number, number, string] {
+function isChunkDeltaMessage(msg: WorldMessage): msg is [number, number, number, number, number, string] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_DELTA
@@ -124,9 +122,17 @@ test('chunk overlay edits stream versioned CHUNK_DELTA when subscriber version a
     pipeline.tick();
     const tick2 = delivered.slice(beforeTick2).filter(isChunkDeltaMessage);
     expect(tick2).toHaveLength(1);
-    const [, chunkX, chunkY, fromVersion, toVersion, payloadJson] = tick2[0]!;
+    const firstTick2 = tick2[0];
+    expect(firstTick2).toBeTruthy();
+    if (!firstTick2) {
+        throw new Error('Expected first CHUNK_DELTA message.');
+    }
+    const [, chunkX, chunkY, fromVersion, toVersion, payloadJson] = firstTick2;
     expect([chunkX, chunkY]).toEqual([0, 0]);
     expect([fromVersion, toVersion]).toEqual([0, 1]);
+    if (typeof payloadJson !== 'string') {
+        throw new Error('Expected first CHUNK_DELTA payload to be a string.');
+    }
     const decoded = decodeChunkDeltaPayloadJson(payloadJson);
     expect(decoded?.chunkSize).toBe(32);
     expect(decoded?.changes).toContainEqual([1, 1, 123]);
@@ -136,9 +142,17 @@ test('chunk overlay edits stream versioned CHUNK_DELTA when subscriber version a
     pipeline.tick();
     const tick3 = delivered.slice(beforeTick3).filter(isChunkDeltaMessage);
     expect(tick3).toHaveLength(1);
-    const [, chunkX2, chunkY2, fromVersion2, toVersion2, payloadJson2] = tick3[0]!;
+    const firstTick3 = tick3[0];
+    expect(firstTick3).toBeTruthy();
+    if (!firstTick3) {
+        throw new Error('Expected second CHUNK_DELTA message.');
+    }
+    const [, chunkX2, chunkY2, fromVersion2, toVersion2, payloadJson2] = firstTick3;
     expect([chunkX2, chunkY2]).toEqual([0, 0]);
     expect([fromVersion2, toVersion2]).toEqual([1, 2]);
+    if (typeof payloadJson2 !== 'string') {
+        throw new Error('Expected second CHUNK_DELTA payload to be a string.');
+    }
     const decoded2 = decodeChunkDeltaPayloadJson(payloadJson2);
     expect(decoded2?.changes).toContainEqual([1, 1, null]);
 });

@@ -4,14 +4,14 @@ interface MetricsConfig {
 }
 
 interface MemcacheClientLike {
-    connect(): Promise<unknown> | unknown;
-    set(key: string, value: string): Promise<unknown> | unknown;
-    get(key: string): Promise<unknown> | unknown;
+    connect(): Promise<void> | void;
+    set(key: string, value: string): Promise<boolean> | boolean;
+    get(key: string): Promise<string | undefined> | string | undefined;
 }
 
 type MemcacheClientCtor = new (endpoint: string) => MemcacheClientLike;
 
-interface MemcacheModuleShape {
+export interface MemcacheModuleShape {
     Memcache?: MemcacheClientCtor;
     default?: MemcacheClientCtor;
 }
@@ -32,8 +32,8 @@ function resolveClientCtor(memcacheModule: MemcacheModuleShape | null | undefine
 }
 
 function normalizeEndpoint(config: MetricsConfig): string {
-    const host = String(config.memcached_host ?? '').trim();
-    const portText = String(config.memcached_port ?? '').trim();
+    const host = String(config.memcached_host).trim();
+    const portText = String(config.memcached_port).trim();
     if (host.length === 0 || portText.length === 0) {
         throw new Error('Invalid memcache endpoint configuration');
     }

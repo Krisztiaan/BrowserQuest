@@ -103,12 +103,7 @@ function createPipelineFixture({
         },
         handleItemDespawn() {},
         moveEntity(entity: TestEntity, x: number, y: number) {
-            if (
-                typeof entity === 'object'
-                && entity !== null
-                && 'setPosition' in entity
-                && typeof entity.setPosition === 'function'
-            ) {
+            if (typeof entity.setPosition === 'function') {
                 entity.setPosition(x, y);
             }
         },

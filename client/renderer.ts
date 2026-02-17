@@ -304,7 +304,7 @@ class Renderer {
                 strokeSize = 5;
         }
 
-        if (text === null || text === undefined || !Number.isFinite(x) || !Number.isFinite(y)) {
+        if (!Number.isFinite(x) || !Number.isFinite(y)) {
             return;
         }
         const label = String(text);
@@ -438,7 +438,7 @@ class Renderer {
         const s = this.upscaledRendering ? 1 : this.scale;
         Array.prototype.forEach.call(arguments, function (arg: DrawScaledImageArg) {
             const isInvalidNumber = typeof arg === 'number' && (Number.isNaN(arg) || arg < 0);
-            if (arg === undefined || arg === null || isInvalidNumber) {
+            if (isInvalidNumber) {
                 log.error('x:' + x + ' y:' + y + ' w:' + w + ' h:' + h + ' dx:' + dx + ' dy:' + dy, true);
                 throw Error('A problem occured when trying to draw on the canvas');
             }

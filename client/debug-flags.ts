@@ -14,7 +14,8 @@ function readGlobalDebugFlag(flag: '__BQ_DEBUG_CLICKS__' | '__BQ_DEBUG_MOVES__' 
 
 function readQueryFlag(queryKey: string): boolean {
     try {
-        const url = typeof globalThis.location?.href === 'string' ? new URL(globalThis.location.href) : null;
+        const locationHref = (globalThis as { location?: { href?: string } }).location?.href;
+        const url = typeof locationHref === 'string' ? new URL(locationHref) : null;
         if (!url) {
             return false;
         }
@@ -33,7 +34,8 @@ function readQueryFlag(queryKey: string): boolean {
 
 function readLocalStorageFlag(storageKey: string): boolean {
     try {
-        const raw = globalThis.localStorage?.getItem(storageKey);
+        const storage = (globalThis as { localStorage?: Pick<Storage, 'getItem'> }).localStorage;
+        const raw = storage?.getItem(storageKey);
         if (!raw) {
             return false;
         }

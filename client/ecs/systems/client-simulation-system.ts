@@ -37,7 +37,11 @@ type NonCharacterEntity = {
     currentAnimation?: { update(time: number): boolean } | null;
     setDirty(): void;
 };
-type SimulationEntity = Character<any> | NonCharacterEntity;
+type SimulationEntity = Character | NonCharacterEntity;
+type SimulationPlayer = Pick<
+    Character,
+    'id' | 'x' | 'y' | 'gridX' | 'gridY' | 'isMoving' | 'isAttacking' | 'isNear' | 'isAttackedBy'
+>;
 type AnimatedTileLike = AnimatedTile & {
     isDirty?: boolean;
     dirtyRect?: DirtyRect;
@@ -47,7 +51,7 @@ export type ClientSimulationSystemHost = Readonly<{
     started: boolean;
     currentTime: number;
     playerAggroTimer: Pick<Timer, 'isOver'>;
-    player: Character<any> | null;
+    player: SimulationPlayer | null;
     playerId: EntityId | null;
     kernel: {
         enqueueClientCommand(command: { type: 'clientSendAggro'; mobId: EntityId }): void;
@@ -65,7 +69,7 @@ export type ClientSimulationSystemHost = Readonly<{
         gridW: number;
         gridH: number;
         setPosition(x: number, y: number): void;
-        isVisible(entity: Character<any>): boolean;
+        isVisible(entity: SimulationPlayer): boolean;
     };
     currentZoning: StepTransition | null;
     zoningOrientation: number | null;

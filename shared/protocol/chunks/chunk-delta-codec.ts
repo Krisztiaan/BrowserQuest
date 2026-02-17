@@ -28,11 +28,13 @@ function validateChanges(changes: JsonLike | object | undefined, chunkSize: numb
     }
     const out: ChunkDeltaChange[] = [];
     for (let i = 0; i < changes.length; i += 1) {
-        const entry = changes[i];
+        const entry: unknown = changes[i];
         if (!Array.isArray(entry) || entry.length !== 3) {
             return null;
         }
-        const [x, y, value] = entry;
+        const x: unknown = entry[0];
+        const y: unknown = entry[1];
+        const value: unknown = entry[2];
         if (
             typeof x !== 'number'
             || typeof y !== 'number'

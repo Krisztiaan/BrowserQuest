@@ -144,25 +144,25 @@ function validateClientToServerActionBySchema(
         return true;
     }
 
-    if (schema.kind === 'oneOf') {
-        for (let optIndex = 0; optIndex < schema.options.length; optIndex += 1) {
-            const opt = schema.options[optIndex];
-            if (opt?.args.length !== payload.length) {
-                continue;
-            }
-            let ok = true;
-            for (let i = 0; i < opt.args.length; i += 1) {
-                const argKind = opt.args[i];
-                if (!argKind || !validateClientToServerArg(argKind, payload[i])) {
-                    ok = false;
-                    break;
-                }
-            }
-            if (ok) {
-                return true;
+    for (let optIndex = 0; optIndex < schema.options.length; optIndex += 1) {
+        const opt = schema.options[optIndex];
+        if (!opt) {
+            continue;
+        }
+        if (opt.args.length !== payload.length) {
+            continue;
+        }
+        let ok = true;
+        for (let i = 0; i < opt.args.length; i += 1) {
+            const argKind = opt.args[i];
+            if (!argKind || !validateClientToServerArg(argKind, payload[i])) {
+                ok = false;
+                break;
             }
         }
-        return false;
+        if (ok) {
+            return true;
+        }
     }
 
     return false;

@@ -25,15 +25,26 @@ function isNonEmptyString(value: string | null | undefined): value is string {
     return typeof value === 'string' && value.trim().length > 0;
 }
 
-function isObjectRecord(value: PluginLooseValue): value is Record<string, PluginLooseValue> {
+function isPluginLooseValue(value: unknown): value is PluginLooseValue {
+    return (
+        value === null
+        || value === undefined
+        || typeof value === 'string'
+        || typeof value === 'number'
+        || typeof value === 'boolean'
+        || typeof value === 'object'
+    );
+}
+
+function isObjectRecord(value: unknown): value is Record<string, PluginLooseValue> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isConfigLike(value: PluginLooseValue): value is ConfigLike {
+function isConfigLike(value: unknown): value is ConfigLike {
     return isObjectRecord(value);
 }
 
-function isPluginCandidate(value: PluginLooseValue): value is PluginCandidate {
+function isPluginCandidate(value: unknown): value is PluginCandidate {
     return isObjectRecord(value);
 }
 
@@ -49,16 +60,34 @@ export function getPluginSpecsFromConfig(config: PluginLooseValue): string[] {
     return specs;
 }
 
+function toPluginExportArray(value: PluginLooseValue): PluginLooseValue[] | null {
+    if (!Array.isArray(value)) {
+        return null;
+    }
+    const entries: readonly unknown[] = value;
+    const out: PluginLooseValue[] = [];
+    for (let i = 0; i < entries.length; i += 1) {
+        const entry = entries[i];
+        if (!isPluginLooseValue(entry)) {
+            return null;
+        }
+        out.push(entry);
+    }
+    return out;
+}
+
 function normalizePluginExports(mod: PluginModuleLike): PluginLooseValue[] {
     const defaultExport = mod.default;
-    if (Array.isArray(defaultExport)) {
-        return defaultExport;
+    const defaultExportArray = toPluginExportArray(defaultExport);
+    if (defaultExportArray) {
+        return defaultExportArray;
     }
     if (defaultExport !== undefined) {
         return [defaultExport];
     }
-    if (Array.isArray(mod.plugins)) {
-        return mod.plugins;
+    const pluginsArray = toPluginExportArray(mod.plugins);
+    if (pluginsArray) {
+        return pluginsArray;
     }
     return [];
 }
@@ -118,7 +147,7 @@ export async function loadServerPlugins(
             continue;
         }
         const resolved = resolvePluginSpecifier(spec, baseDir);
-        const importedModule: PluginLooseValue = await import(resolved);
+        const importedModule: unknown = await import(resolved);
         if (!isObjectRecord(importedModule)) {
             throw new Error(`Plugin module ${spec} did not export an object module namespace.`);
         }

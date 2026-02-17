@@ -284,7 +284,7 @@ const loadImageAsset = function (src: string): Promise<HTMLImageElement> {
     });
 };
 
-const parsePreviewPayload = function (value: object | null | undefined): PreviewPayload {
+const parsePreviewPayload = function (value: unknown): PreviewPayload {
     if (!value || typeof value !== 'object') {
         return {};
     }
@@ -326,7 +326,8 @@ const loadLoadCharacterPreviewRuntime = async function (): Promise<PreviewRuntim
             cache: 'no-store',
         });
         if (response.ok) {
-            const parsed = parsePreviewPayload(await response.json());
+            const payloadJson: unknown = await response.json();
+            const parsed = parsePreviewPayload(payloadJson);
             payload.armorSpriteName = parsed.armorSpriteName;
             payload.weaponSpriteName = parsed.weaponSpriteName;
         }
@@ -520,7 +521,7 @@ const installTestApi = function (): void {
         },
 
         getPlayerPos: function () {
-            if (!game?.map?.isLoaded || !game.player) {
+            if (!game?.map?.isLoaded) {
                 return { ok: false, reason: 'not_ready', x: null, y: null };
             }
             return { ok: true, x: game.player.gridX, y: game.player.gridY };
@@ -1037,10 +1038,6 @@ const installTestApi = function (): void {
                     return;
                 }
                 const currentMap = currentGame.map;
-                if (!currentMap) {
-                    stopKillProbe();
-                    return;
-                }
 
                 const liveMob = currentGame.entities[String(killMobId)];
                 if (!(liveMob instanceof Mob) || liveMob.isDead) {
@@ -1291,7 +1288,7 @@ const initApp = function (): void {
         if (toggleLegal) {
             toggleLegal.addEventListener('click', function () {
                 app.toggleScrollContent('legal');
-                if (game?.renderer?.mobile) {
+                if (game?.renderer.mobile) {
                     if (parchment?.classList.contains('legal')) {
                         toggleLegal.textContent = 'close';
                     } else {
@@ -1454,9 +1451,6 @@ function initGame(): void {
             game = runtimeGame;
 
             (function (app: App, game: Game): void {
-                if (!game.renderer) {
-                    throw new Error('Game renderer must be initialized after game construction');
-                }
                 const renderer = game.renderer;
                 game.setStorage(app.storage);
                 app.setGame(game);
@@ -1858,7 +1852,8 @@ function initGame(): void {
             })(runtimeApp, runtimeGame);
         })
         .catch(function (err) {
-            log.error(err, true);
+            const message = err instanceof Error ? err.message : String(err);
+            log.error(message, true);
         });
 }
 

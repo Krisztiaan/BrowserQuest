@@ -2,6 +2,7 @@ import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import { killBunProcess } from '../../support/process-cleanup';
 import WebSocket from '../../support/ws-client';
+import { toError } from '../../support/format';
 
 const repoRoot = new URL('../../..', import.meta.url).pathname;
 
@@ -75,7 +76,7 @@ async function runHandshakeScenario(config: {
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 3000);
         ws.once('error', (err) => {
             clearTimeout(timeout);
-            reject(err instanceof Error ? err : new Error(String(err)));
+            reject(toError(err));
         });
         ws.once('message', (data) => {
             clearTimeout(timeout);

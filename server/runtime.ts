@@ -253,24 +253,23 @@ function createFatalReporter(
 
     return function (label, err) {
         const eventName = fatalEvents[label] ?? SERVER_EVENT_NAMES.FATAL_UNKNOWN;
+        const resolveObjectTag = (value: object): string => {
+            const ctor = (value as { constructor?: { name?: unknown } }).constructor;
+            return typeof ctor?.name === 'string' && ctor.name.length > 0 ? `[object ${ctor.name}]` : '[object Object]';
+        };
+        const safeJson = (value: unknown): string => {
+            try {
+                const json = JSON.stringify(value);
+                return typeof json === 'string' ? json : value !== null && typeof value === 'object' ? resolveObjectTag(value) : String(value);
+            } catch {
+                return value !== null && typeof value === 'object' ? resolveObjectTag(value) : String(value);
+            }
+        };
         if (typeof err === 'object' && err !== null && 'stack' in err) {
-            const safeJson = (value: string | Error | object | null | undefined): string => {
-                try {
-                    const json = JSON.stringify(value);
-                    return typeof json === 'string' ? json : String(Object.prototype.toString.call(value));
-                } catch {
-                    return String(Object.prototype.toString.call(value));
-                }
-            };
-            const stackValue = err.stack;
-            const stack = typeof stackValue === 'string' ? stackValue : String(stackValue);
-            const messageValue = 'message' in err ? err.message : undefined;
-            const message =
-                typeof messageValue === 'string'
-                    ? messageValue
-                    : messageValue !== undefined
-                        ? safeJson(messageValue)
-                        : safeJson(err);
+            const stackValue: unknown = Reflect.get(err as unknown as Record<string, unknown>, 'stack');
+            const stack = typeof stackValue === 'string' ? stackValue : safeJson(stackValue);
+            const messageValue: unknown = Reflect.get(err as unknown as Record<string, unknown>, 'message');
+            const message = typeof messageValue === 'string' ? messageValue : safeJson(messageValue ?? err);
             logger.error(label + ': ' + stack);
             emitServerEvent('error', eventName, {
                 source: label,
@@ -278,10 +277,11 @@ function createFatalReporter(
                 stack: stack,
             });
         } else {
-            logger.error(label + ': ' + err);
+            const message = typeof err === 'string' ? err : safeJson(err);
+            logger.error(label + ': ' + message);
             emitServerEvent('error', eventName, {
                 source: label,
-                message: String(err),
+                message,
             });
         }
     };

@@ -160,7 +160,7 @@ const spriteCatalog = [
 
 const sprites: Record<string, SpriteJson> = {};
 for (const sprite of spriteCatalog) {
-  if (sprite && typeof sprite === "object" && typeof sprite.id === "string" && sprite.id.length > 0) {
+  if (typeof sprite.id === "string" && sprite.id.length > 0) {
     sprites[sprite.id] = sprite as SpriteJson;
   }
 }

@@ -110,25 +110,29 @@ export type PersistedProgressionState = Readonly<{
 type LooseValue = string | number | boolean | bigint | symbol | object | null | undefined;
 type LooseRecord = Record<string, LooseValue>;
 
-function isRecord(value: LooseValue): value is LooseRecord {
+function isRecord(value: unknown): value is LooseRecord {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isRowObject<Row extends object>(value: LooseValue): value is Row {
+function isRowObject(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function getRow<Row extends object>(statement: SqliteStatement, ...params: readonly SqliteValue[]): Row | null {
-    const value = statement.get(...params) as LooseValue;
-    return isRowObject<Row>(value) ? value : null;
+function getRow<Row extends object>(
+    statement: SqliteStatement & { readonly __rowType?: Row },
+    ...params: readonly SqliteValue[]
+): Row | null;
+function getRow(statement: SqliteStatement, ...params: readonly SqliteValue[]): Record<string, unknown> | null {
+    const value: unknown = statement.get(...params);
+    return isRowObject(value) ? value : null;
 }
 
 function getRows<Row extends object>(statement: SqliteStatement, ...params: readonly SqliteValue[]): Row[] {
-    const values = statement.all(...params);
+    const values: unknown = statement.all(...params);
     if (!Array.isArray(values)) {
         return [];
     }
-    return values.filter((value): value is Row => isRowObject<Row>(value as LooseValue));
+    return values.filter((value): value is Row => isRowObject(value));
 }
 
 function normalizeEntityKind(value: string | number | null | undefined): EntityKind | null {
@@ -175,10 +179,7 @@ function defaultProgressionState(): PersistedProgressionState {
     };
 }
 
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-
-function sanitizeProgressionState(candidate: JsonValue | object | null | undefined): PersistedProgressionState {
+function sanitizeProgressionState(candidate: unknown): PersistedProgressionState {
     const fallback = defaultProgressionState();
     if (!isRecord(candidate)) {
         return fallback;
@@ -199,7 +200,7 @@ function sanitizeProgressionState(candidate: JsonValue | object | null | undefin
             : null;
     const inventory = Array.isArray(raw.inventory)
         ? raw.inventory
-              .map((entry) => {
+              .map((entry: unknown) => {
                   if (!isRecord(entry)) {
                       return null;
                   }
@@ -236,7 +237,8 @@ function decodeProgressionState(jsonText: string | null | undefined): PersistedP
         return defaultProgressionState();
     }
     try {
-        return sanitizeProgressionState(JSON.parse(jsonText));
+        const parsed: unknown = JSON.parse(jsonText);
+        return sanitizeProgressionState(parsed);
     } catch (_) {
         return defaultProgressionState();
     }
@@ -265,7 +267,7 @@ function decodeTransportsJson(value: string | null | undefined): AuthenticatorTr
     if (typeof value !== 'string' || value.trim().length === 0) {
         return [];
     }
-    let parsed: JsonValue;
+    let parsed: unknown;
     try {
         parsed = JSON.parse(value);
     } catch {
@@ -275,8 +277,9 @@ function decodeTransportsJson(value: string | null | undefined): AuthenticatorTr
         return [];
     }
     const deduped = new Set<AuthenticatorTransportFuture>();
-    for (let i = 0; i < parsed.length; i += 1) {
-        const candidate = parsed[i];
+    const parsedValues: unknown[] = parsed;
+    for (let i = 0; i < parsedValues.length; i += 1) {
+        const candidate = parsedValues[i];
         const normalized = normalizeTransportValue(typeof candidate === 'string' ? candidate : undefined);
         if (normalized) {
             deduped.add(normalized);

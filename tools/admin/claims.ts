@@ -8,7 +8,6 @@ type ArgSpec = Readonly<{
 }>;
 
 function printUsageAndExit(code: number): never {
-    // eslint-disable-next-line no-console
     console.error(
         [
             'Usage: bun run admin:claims -- <command> [options]',
@@ -123,20 +122,16 @@ function runList({ dbPath, json }: { dbPath: string; json: boolean }): void {
     try {
         const claims = persistence.loadAllClaims();
         if (json) {
-            // eslint-disable-next-line no-console
             console.log(JSON.stringify({ dbPath: persistence.databasePath, claims }, null, 2));
             return;
         }
 
-        // eslint-disable-next-line no-console
         console.log(`db: ${persistence.databasePath}`);
         if (claims.length === 0) {
-            // eslint-disable-next-line no-console
             console.log('(no claims)');
             return;
         }
         for (const claim of claims) {
-            // eslint-disable-next-line no-console
             console.log(
                 `#${claim.id} owner=${claim.ownerName} editors=${claim.editorNameKeys.join(',') || '-'} rect=(${claim.x1},${claim.y1})..(${claim.x2},${claim.y2}) updatedAtMs=${claim.updatedAtMs}`
             );
@@ -172,13 +167,10 @@ function runCreate({
         const claim = store.createClaim({ ownerName, editorNameKeys, x1, y1, x2, y2 });
         persistence.upsertClaim(claim);
         if (json) {
-            // eslint-disable-next-line no-console
             console.log(JSON.stringify({ dbPath: persistence.databasePath, claim }, null, 2));
             return;
         }
-        // eslint-disable-next-line no-console
         console.log(`db: ${persistence.databasePath}`);
-        // eslint-disable-next-line no-console
         console.log(`created claim #${claim.id}`);
     } finally {
         persistence.close();
@@ -221,26 +213,20 @@ function runUpdate({
         });
         if (!updated) {
             if (json) {
-                // eslint-disable-next-line no-console
                 console.log(JSON.stringify({ dbPath: persistence.databasePath, updated: false, id }, null, 2));
                 process.exit(1);
             }
-            // eslint-disable-next-line no-console
             console.error(`db: ${persistence.databasePath}`);
-            // eslint-disable-next-line no-console
             console.error(`claim #${id} not found`);
             process.exit(1);
         }
 
         persistence.upsertClaim(updated);
         if (json) {
-            // eslint-disable-next-line no-console
             console.log(JSON.stringify({ dbPath: persistence.databasePath, claim: updated }, null, 2));
             return;
         }
-        // eslint-disable-next-line no-console
         console.log(`db: ${persistence.databasePath}`);
-        // eslint-disable-next-line no-console
         console.log(`updated claim #${updated.id}`);
     } finally {
         persistence.close();
@@ -253,25 +239,19 @@ function runDelete({ dbPath, json, id }: { dbPath: string; json: boolean; id: nu
         const existing = persistence.loadAllClaims().some((claim) => claim.id === id);
         if (!existing) {
             if (json) {
-                // eslint-disable-next-line no-console
                 console.log(JSON.stringify({ dbPath: persistence.databasePath, deleted: false, id }, null, 2));
                 process.exit(1);
             }
-            // eslint-disable-next-line no-console
             console.error(`db: ${persistence.databasePath}`);
-            // eslint-disable-next-line no-console
             console.error(`claim #${id} not found`);
             process.exit(1);
         }
         persistence.deleteClaim(id);
         if (json) {
-            // eslint-disable-next-line no-console
             console.log(JSON.stringify({ dbPath: persistence.databasePath, deleted: true, id }, null, 2));
             return;
         }
-        // eslint-disable-next-line no-console
         console.log(`db: ${persistence.databasePath}`);
-        // eslint-disable-next-line no-console
         console.log(`deleted claim #${id}`);
     } finally {
         persistence.close();
@@ -413,7 +393,6 @@ try {
         fail(`Unknown command: ${cmd}`);
     }
 } catch (err) {
-    // eslint-disable-next-line no-console
     console.error(String(err));
     printUsageAndExit(2);
 }

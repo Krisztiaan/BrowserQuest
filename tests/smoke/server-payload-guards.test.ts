@@ -4,6 +4,7 @@ import WebSocket from '../support/ws-client';
 import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol/contract';
 import WsCloseCodes from '../../shared/ws-close-codes';
 import { killBunProcess } from '../support/process-cleanup';
+import { toError } from '../support/format';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 const CLOSE_INVALID_PAYLOAD = WsCloseCodes.INVALID_PAYLOAD;
@@ -54,7 +55,7 @@ async function waitForGo(ws: WebSocket, timeoutMs = 8000) {
         });
         ws.once('error', (err) => {
             clearTimeout(timeout);
-            reject(err instanceof Error ? err : new Error(String(err)));
+            reject(toError(err));
         });
     });
 }

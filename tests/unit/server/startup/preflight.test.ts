@@ -99,7 +99,7 @@ test('map preflight helper accepts readable valid JSON map files', async () => {
         fail: (code) => {
             failCode = code;
         },
-        readFileText: async () => '{"width":1,"height":1,"collisions":[],"roamingAreas":[],"chestAreas":[],"staticChests":[],"staticEntities":{}}',
+        readFileText: () => Promise.resolve('{"width":1,"height":1,"collisions":[],"roamingAreas":[],"chestAreas":[],"staticChests":[],"staticEntities":{}}'),
     });
 
     expect(isValid).toBe(true);
@@ -117,8 +117,8 @@ test('map preflight helper fails for parseable but semantically invalid map payl
         fail: (code) => {
             failCode = code;
         },
-        readFileText: async () => '{"width":1}',
-        validateMapPayloadFn: async () => ({ ok: false, reason: 'missing required map fields' }),
+        readFileText: () => Promise.resolve('{"width":1}'),
+        validateMapPayloadFn: () => Promise.resolve({ ok: false, reason: 'missing required map fields' }),
     });
 
     expect(isValid).toBe(false);
@@ -137,9 +137,7 @@ test('map preflight helper fails for missing or invalid map JSON', async () => {
         fail: (code) => {
             failMissing = code;
         },
-        readFileText: async () => {
-            throw new Error('ENOENT');
-        },
+        readFileText: () => Promise.reject(new Error('ENOENT')),
     });
 
     expect(missingOk).toBe(false);
@@ -154,7 +152,7 @@ test('map preflight helper fails for missing or invalid map JSON', async () => {
         fail: (code) => {
             failJson = code;
         },
-        readFileText: async () => '{bad json',
+        readFileText: () => Promise.resolve('{bad json'),
     });
 
     expect(jsonOk).toBe(false);

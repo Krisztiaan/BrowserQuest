@@ -81,7 +81,7 @@ export async function runStartup({
             const plugins = await loadServerPlugins(pluginSpecs, { baseDir: cwd ?? process.cwd() });
 
             const optionsObject = runtimeOptions ?? { dependencies: {} };
-            const dependencies = optionsObject.dependencies ?? {};
+            const dependencies = optionsObject.dependencies;
             const resolvedDependencies = createRuntimeDependencies(dependencies);
             const baseWorldServer = resolvedDependencies.WorldServer;
             if (!isRuntimeWorldServerConstructor(baseWorldServer)) {

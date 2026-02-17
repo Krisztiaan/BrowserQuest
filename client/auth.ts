@@ -50,7 +50,11 @@ function encodeArrayBufferToBase64Url(value: ArrayBuffer): string {
     const bytes = new Uint8Array(value);
     let binary = '';
     for (let i = 0; i < bytes.length; i += 1) {
-        binary += String.fromCharCode(bytes[i]!);
+        const byte = bytes[i];
+        if (byte === undefined) {
+            throw new Error('Invalid ArrayBuffer byte index');
+        }
+        binary += String.fromCharCode(byte);
     }
     return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
@@ -207,7 +211,7 @@ function toJsonValue(value: unknown): JsonValue | undefined {
         }
         return parsedArray;
     }
-    if (isJsonRecord(value) || (typeof value === 'object' && value !== null)) {
+    if (typeof value === 'object') {
         const parsedRecord: JsonRecord = {};
         for (const [key, recordValue] of Object.entries(value as Record<string, unknown>)) {
             const parsedRecordValue = toJsonValue(recordValue);
@@ -335,7 +339,8 @@ function parseRequestOptions(options: JsonValue | undefined): PublicKeyCredentia
 function serializeRegistrationCredential(credential: PublicKeyCredential): JsonValue | null {
     const asJson = credential as PublicKeyCredential & { toJSON?: () => JsonValue };
     if (typeof asJson.toJSON === 'function') {
-        return asJson.toJSON();
+        const jsonValue = toJsonValue(asJson.toJSON());
+        return jsonValue ?? null;
     }
 
     const response = credential.response;
@@ -370,7 +375,8 @@ function serializeRegistrationCredential(credential: PublicKeyCredential): JsonV
 function serializeAuthenticationCredential(credential: PublicKeyCredential): JsonValue | null {
     const asJson = credential as PublicKeyCredential & { toJSON?: () => JsonValue };
     if (typeof asJson.toJSON === 'function') {
-        return asJson.toJSON();
+        const jsonValue = toJsonValue(asJson.toJSON());
+        return jsonValue ?? null;
     }
 
     const response = credential.response;

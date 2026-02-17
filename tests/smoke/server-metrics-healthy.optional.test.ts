@@ -2,6 +2,7 @@ import net from 'node:net';
 import { afterEach, expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
 import { killBunProcess } from '../support/process-cleanup';
+import { toError } from '../support/format';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 const runHealthySmoke = process.env.BQ_TEST_METRICS_HEALTH === '1';
@@ -173,7 +174,7 @@ maybeTest('optional: healthy metrics path starts with memcache backend and no fa
         const timeout = setTimeout(() => reject(new Error('Timed out waiting for handshake')), 4000);
         ws.once('error', (err) => {
             clearTimeout(timeout);
-            reject(err instanceof Error ? err : new Error(String(err)));
+            reject(toError(err));
         });
         ws.once('message', (data: string | Blob | ArrayBuffer | Uint8Array) => {
             clearTimeout(timeout);

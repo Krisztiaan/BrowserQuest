@@ -3090,3 +3090,84 @@ Format per entry:
     - strict client totals: `31 -> 0`.
   - Next action:
     - commit batch I and continue with any new strict issues surfaced by future changes.
+
+- 19:27 UTC
+  - Ticket: 338 (Passkey registration strict contract fix)
+  - Start timestamp: 2026-02-17 19:27 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - fix failing passkey registration test while keeping strict WebAuthn creation-option requirements.
+      - reduce auth lint warnings from strict serialization path where possible.
+    - Out of scope:
+      - auth route redesign.
+  - Key actions taken:
+    - captured current failures: `bun test` has one failing auth test; `bun run lint` baseline is `233` warnings.
+    - isolated failing fixture mismatch (`pubKeyCredParams: []`) vs parser enforcing required creation params.
+  - Evidence:
+    - `bun run lint > /tmp/lint-after-batchI.log 2>&1` => `warning_count=233`.
+    - `bun test --timeout 20000 > /tmp/test-after-batchI.log 2>&1` => single failure at `tests/unit/client-auth.test.ts:242`.
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 19:27 UTC`.
+  - Next action:
+    - patch auth + test fixture contract, rerun focused auth test and client typecheck.
+
+- 19:29 UTC
+  - Ticket: 338 (Passkey registration strict contract fix)
+  - Start timestamp: 2026-02-17 19:27 UTC
+  - Status: `done`
+  - Key actions taken:
+    - enforced JSON-safe toJSON handling in auth credential serializers (`toJsonValue` normalization).
+    - removed unsafe non-null assertion in base64url encoder with explicit bounds check.
+    - updated registration options test fixture to include required `pubKeyCredParams` entry.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/client-auth.test.ts` => `5 pass, 0 fail`.
+    - `bun run typecheck:client` => `exit=0`.
+    - `bun x eslint --max-warnings=0 client/auth.ts` => `exit=0`.
+  - Next action:
+    - start Ticket 339 lint burn-down in client runtime seams.
+
+- 19:29 UTC
+  - Ticket: 339 (Lint burn-down batch A)
+  - Start timestamp: 2026-02-17 19:29 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - reduce client runtime lint warnings with strict typing and lifecycle guards.
+    - Out of scope:
+      - server/shared lint backlog.
+  - Key actions taken:
+    - moved queue to client lint batch A after closing Ticket 338.
+  - Evidence:
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 19:29 UTC`.
+  - Next action:
+    - re-baseline lint warnings and patch top client warning clusters.
+
+- 20:25 UTC
+  - Ticket: 339 (Lint burn-down batch A)
+  - Start timestamp: 2026-02-17 19:29 UTC
+  - Status: `done`
+  - Key actions taken:
+    - completed client runtime lint hardening (removed unsafe anys/non-null assertions and tightened runtime guards across app/map/pathfinder/runtime/chunk cache seams).
+    - resolved bot client export/usage seam and related strict diagnostics while keeping server-authoritative movement intent flow.
+  - Evidence:
+    - `bun x eslint --max-warnings=10000 "client/**/*.{ts,js}" -f json > /tmp/eslint-client-ticket339-final.json` => `warning_total=0`.
+    - `bun run typecheck:client > /tmp/typecheck-client-ticket340-final.log 2>&1` => `exit=0`.
+  - Next action:
+    - execute Ticket 340 server/shared/tools strict diagnostics and verify full repo lint.
+
+- 20:25 UTC
+  - Ticket: 340 (Lint burn-down batch B)
+  - Start timestamp: 2026-02-17 20:25 UTC
+  - Status: `done`
+  - Key actions taken:
+    - burned down remaining server/shared/tools warnings to zero with strict guards/typing fixes (`passkey-auth`, runtime fatal reporting, transport batching, protocol schema/registry contracts, bot/admin tooling).
+    - removed stale lint suppressions and completed strict test-suite lint cleanups (unsafe stringification, non-null assertions, async stubs, message tuple guards, `this` typing in mock hosts).
+    - added shared test helper `tests/support/format.ts` for safe error/log formatting to enforce consistent non-unsafe diagnostics.
+  - Evidence:
+    - `bun x eslint --max-warnings=10000 "server/**/*.{ts,js}" "shared/**/*.{ts,js}" "tools/**/*.ts" -f json > /tmp/eslint-server-shared-ticket340-pass3.json` => `warnings=0, errors=0`.
+    - `bun x eslint --max-warnings=10000 "client/**/*.{ts,js}" "server/**/*.{ts,js}" "shared/**/*.{ts,js}" "tools/**/*.ts" "tests/**/*.ts" -f json > /tmp/eslint-full-post340-pass2.json` => `warnings=0`.
+    - `bun run lint > /tmp/lint-ticket340-final-pass2.log 2>&1` => `exit=0`.
+    - `bun run typecheck > /tmp/typecheck-ticket340-final-pass2.log 2>&1` => `exit=0`.
+    - `bun test --timeout 20000 > /tmp/test-ticket340-final.log 2>&1` => `exit=0`.
+  - Next action:
+    - snapshot final diff and create one lump commit for Tickets 339/340.

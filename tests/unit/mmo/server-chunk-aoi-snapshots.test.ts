@@ -7,8 +7,6 @@ import { CHUNK_AOI_STATE_RESOURCE } from '../../../server/world/chunks/chunk-aoi
 import { makeChunkKey } from '../../../server/world/chunks/chunk-overlay-store';
 import type { WorldMessage } from '../../../server/world/contracts';
 
-type FrameInput = ReadonlyArray<number | string> | object | null | undefined;
-
 function createTestPlayer(wireId: number): Player {
     const connection = {
         id: String(wireId),
@@ -25,7 +23,7 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function isChunkSnapshotMessage(msg: FrameInput): msg is [number, number, number, number, string] {
+function isChunkSnapshotMessage(msg: WorldMessage): msg is [number, number, number, number, string] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_SNAPSHOT
@@ -152,7 +150,11 @@ test('CHUNK_SUBSCRIBE streams bounded CHUNK_SNAPSHOTs and includes overlay overr
         return;
     }
     expect(center[3]).toBe(1);
-    const payload = JSON.parse(center[4]) as {
+    const payloadJson: unknown = center[4];
+    if (typeof payloadJson !== 'string') {
+        throw new Error('Expected CHUNK_SNAPSHOT payload to be a string.');
+    }
+    const payload = JSON.parse(payloadJson) as {
         schemaVersion: number;
         encoding: string;
         chunkSize: number;

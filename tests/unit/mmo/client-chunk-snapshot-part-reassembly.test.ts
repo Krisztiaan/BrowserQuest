@@ -18,7 +18,12 @@ test('ClientChunkOverlayCache applies CHUNK_SNAPSHOT_PART sequences atomically o
         i + 1000,
     ]);
 
-    const one = encodeChunkSnapshotPayloadJson({ chunkSize, overrides: [overrides[0]!], maxUtf8Bytes: 10_000 });
+    const firstOverride = overrides[0];
+    expect(firstOverride).toBeTruthy();
+    if (!firstOverride) {
+        throw new Error('Missing first override for snapshot cap probe.');
+    }
+    const one = encodeChunkSnapshotPayloadJson({ chunkSize, overrides: [firstOverride], maxUtf8Bytes: 10_000 });
     const cap = one.length + 20;
 
     const parts = encodeChunkSnapshotPayloadJsonParts({ chunkSize, overrides, maxUtf8Bytes: cap });
@@ -27,7 +32,10 @@ test('ClientChunkOverlayCache applies CHUNK_SNAPSHOT_PART sequences atomically o
     const cache = new ClientChunkOverlayCache();
     let appliedCount = 0;
     for (let partIndex = 0; partIndex < parts.length; partIndex += 1) {
-        const payloadJson = parts[partIndex]!;
+        const payloadJson = parts[partIndex];
+        if (typeof payloadJson !== 'string') {
+            throw new Error('Expected snapshot part payload to be a string.');
+        }
         const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
         expect(decoded).toBeTruthy();
         if (!decoded) {
@@ -51,4 +59,3 @@ test('ClientChunkOverlayCache applies CHUNK_SNAPSHOT_PART sequences atomically o
     expect(cache.getGlobal(0, 0)).toBe(1000);
     expect(cache.getGlobal(31, 31)).toBe(2023);
 });
-

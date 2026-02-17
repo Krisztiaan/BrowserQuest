@@ -3,6 +3,16 @@ import Types from '../../shared/gametypes-browser';
 import Pathfinder from '../../client/pathfinder';
 import { applyDynamicOccupancyOverlayToGrid } from '../../client/runtime/pathing-dynamic-occupancy';
 
+type OccupancyRecord = {
+    gridX: number;
+    gridY: number;
+    nextGridX: number;
+    nextGridY: number;
+    isMoving: boolean;
+    kind: number;
+    isDead: boolean;
+};
+
 function makeGrid(width: number, height: number, fill = 0): number[][] {
     const grid: number[][] = [];
     for (let y = 0; y < height; y += 1) {
@@ -17,7 +27,7 @@ function makeGrid(width: number, height: number, fill = 0): number[][] {
 
 test('dynamic occupancy overlay blocks live entities and restores the shared grid', () => {
     const grid = makeGrid(5, 5, 0);
-    const records = new Map<number, any>();
+    const records = new Map<number, OccupancyRecord>();
 
     records.set(100, {
         gridX: 2,
@@ -73,4 +83,3 @@ test('dynamic occupancy overlay blocks live entities and restores the shared gri
     expect(grid[1]?.[1]).toBe(0);
     expect(grid[2]?.[1]).toBe(0);
 });
-

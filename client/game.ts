@@ -36,7 +36,7 @@ import type { AchievementDefinition } from './game-achievements';
 import Item from './item';
 import Mob from './mob';
 import Npc from './npc';
-import Character from './character';
+import Character, { type CharacterEvents } from './character';
 import type Chest from './chest';
 import config from './config';
 import log from './platform/log';
@@ -48,7 +48,7 @@ import { SPRITE_KEYS } from './asset-key-domain';
 import type { CursorKey, MusicKey, SpriteKey } from './asset-key-domain';
 import type Storage from './storage';
 import { Evented } from '../shared/evented';
-import type { TypedEventSource } from '../shared/typed-event-emitter';
+import type { MergeEvents, TypedEventMap, TypedEventSource } from '../shared/typed-event-emitter';
 import type { EntityId } from '../shared/domain/ids';
 import { isEntityId } from '../shared/domain/ids';
 import { ClientWorldKernel } from './ecs/world-kernel';
@@ -113,6 +113,7 @@ type DirtyRect = {
 type DirtyRectSource = GridIndexedEntity | DirtyAnimatedTile | null;
 type BubbleAnchor = { id: EntityId | string | number; x: number; y: number };
 type RuntimeServerConfig = { wsUrl: string; dispatcher: boolean };
+type CharacterEventEnvelope = MergeEvents<CharacterEvents, TypedEventMap>;
 type AppLike = {
     config: { server?: RuntimeServerConfig } | null;
     initAchievementList(achievements: Record<string, AchievementDefinition>): void;
@@ -157,7 +158,7 @@ function applyChunkOverlayPathingToGrid({
             return;
         }
         const row = grid[y];
-        if (!row || row[x] === undefined) {
+        if (row?.[x] === undefined) {
             return;
         }
 
@@ -177,7 +178,7 @@ function applyChunkOverlayPathingToGrid({
                 continue;
             }
             const row = grid[y];
-            if (!row || row[x] === undefined) {
+            if (row?.[x] === undefined) {
                 continue;
             }
             row[x] = prev;
@@ -382,7 +383,7 @@ class Game extends Evented<GameEvents> {
 
         // Characters expect a path resolver callback; without it, clicks/moves log errors and do nothing.
         const self = this;
-        const install = function (character: Character<any>): void {
+        const install = function <TEvents extends CharacterEventEnvelope>(character: Character<TEvents>): void {
             character.setPathRequestResolver(function (x: number, y: number) {
                 return self.findPath(character, x, y, buildPathingIgnoreList(character));
             });
@@ -406,10 +407,6 @@ class Game extends Evented<GameEvents> {
 
     loadMap(): void {
         const renderer = this.renderer;
-        if (!renderer) {
-            throw new Error('Game renderer must be initialized before map load');
-        }
-
         const map = new GameMap(!renderer.upscaledRendering, this);
         this.map = map;
         map.setCollisionOverrideResolver((x, y) => this.kernel.clientChunkOverlayCache.getGlobal(x, y));
@@ -620,7 +617,7 @@ class Game extends Evented<GameEvents> {
             if (m.isAnimatedTile(id)) {
                 const length = m.getTileAnimationLength(id);
                 const delay = m.getTileAnimationDelay(id);
-                if (length === undefined || delay === undefined) {
+                if (typeof length !== 'number' || typeof delay !== 'number') {
                     return;
                 }
                 const tile = new AnimatedTile(id, length, delay, index),
@@ -699,7 +696,7 @@ class Game extends Evented<GameEvents> {
             const outcome = resolveStartupWaitOutcome({
                 mapLoaded: map?.isLoaded === true,
                 spritesLoaded: self.spritesLoaded(),
-                mapLoadError: map?.getLoadError?.() ?? null,
+                mapLoadError: map ? map.getLoadError() : null,
                 elapsedMs: Date.now() - startWaitAt,
             });
             if (outcome === 'ready') {
@@ -759,7 +756,10 @@ class Game extends Evented<GameEvents> {
      * Links two entities in an attacker<-->target relationship.
      * This is just a utility method to wrap a set of instructions.
      */
-    createAttackLink(attacker: Character<any>, target: Character<any>): void {
+    createAttackLink<TAttackerEvents extends CharacterEventEnvelope, TTargetEvents extends CharacterEventEnvelope>(
+        attacker: Character<TAttackerEvents>,
+        target: Character<TTargetEvents>
+    ): void {
         if (attacker.hasTarget()) {
             attacker.removeTarget();
         }
@@ -802,7 +802,7 @@ class Game extends Evented<GameEvents> {
     /**
      * Moves a character to a given location on the world grid.
      */
-    makeCharacterGoTo(character: Character<any>, x: number, y: number): void {
+    makeCharacterGoTo<TEvents extends CharacterEventEnvelope>(character: Character<TEvents>, x: number, y: number): void {
         if (this.map && !this.map.isOutOfBounds(x, y)) {
             character.go(x, y);
         }
@@ -811,7 +811,11 @@ class Game extends Evented<GameEvents> {
     /**
      *
      */
-    makeCharacterTeleportTo(character: Character<any>, x: number, y: number): void {
+    makeCharacterTeleportTo<TEvents extends CharacterEventEnvelope>(
+        character: Character<TEvents>,
+        x: number,
+        y: number
+    ): void {
         if (this.map && !this.map.isOutOfBounds(x, y)) {
             character.setGridPosition(x, y);
 
@@ -924,7 +928,7 @@ class Game extends Evented<GameEvents> {
     forEachVisibleEntityByDepth(callback: (entity: GridIndexedEntity) => void) {
         const map = this.map;
         const renderer = this.renderer;
-        if (!map || !renderer) {
+        if (!map) {
             return;
         }
 
@@ -1011,8 +1015,8 @@ class Game extends Evented<GameEvents> {
      * Finds a path to a grid position for the specified character.
      * The path will pass through any entity present in the ignore list.
      */
-    findPath(
-        character: Character<any> & PathingIgnoreEntity & { id: EntityId | string | number },
+    findPath<TEvents extends CharacterEventEnvelope>(
+        character: Character<TEvents> & PathingIgnoreEntity & { id: EntityId | string | number },
         x: number,
         y: number,
         ignoreList?: PathingIgnoreEntity[]
@@ -1079,9 +1083,7 @@ class Game extends Evented<GameEvents> {
      * Toggles the visibility of the FPS counter and other debugging info.
      */
     toggleDebugInfo(): void {
-        if (this.renderer) {
-            this.renderer.isDebugInfoVisible = !this.renderer.isDebugInfoVisible;
-        }
+        this.renderer.isDebugInfoVisible = !this.renderer.isDebugInfoVisible;
     }
 
     /**
