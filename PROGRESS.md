@@ -2747,3 +2747,61 @@ Format per entry:
     - `rg -c "^client/game.ts\(" /tmp/typecheck-client-batchB-after4.log` => `57`.
   - Next action:
     - Clear active queue in `TODO.md`; prepare next burn-down batch focused on `client/entityfactory.ts` and `client/renderer.ts`.
+
+- 16:41 UTC
+  - Ticket: 325 (Strict client burn-down batch C1: `client/entityfactory.ts` contract alignment + constructor table guards)
+  - Start timestamp: 2026-02-17 16:41 UTC
+  - Status: `in_progress`
+  - Scope:
+    - In scope:
+      - align factory/runtime entity id typing with observed runtime entities.
+      - remove constructor map optionality mismatches in `Mobs`/`Items`/`NPCs`.
+    - Out of scope:
+      - non-factory gameplay/entity behavior changes.
+  - Key actions taken:
+    - Rebaselined strict diagnostics for batch C.
+    - Captured focused diagnostics: `client/entityfactory.ts`=`90`, `client/renderer.ts`=`39`, `client/game.ts`=`57`.
+    - Opened Tickets 325/326 in `TODO.md` with acceptance criteria and verification plan.
+  - Evidence:
+    - `date -u +"%Y-%m-%d %H:%M UTC"` => `2026-02-17 16:41 UTC`.
+    - `bun run typecheck:client > /tmp/typecheck-client-batchC-before2.log 2>&1` => exit `1`.
+    - `rg -c "^client/entityfactory.ts\(" /tmp/typecheck-client-batchC-before2.log` => `90`.
+    - `rg -c "^client/renderer.ts\(" /tmp/typecheck-client-batchC-before2.log` => `39`.
+    - `rg -c "^client/game.ts\(" /tmp/typecheck-client-batchC-before2.log` => `57`.
+    - `rg -c "error TS" /tmp/typecheck-client-batchC-before2.log` => `337`.
+  - Next action:
+    - Patch entity factory contract + constructor map typings, then execute renderer guard pass.
+
+- 16:45 UTC
+  - Ticket: 325 (Strict client burn-down batch C1: `client/entityfactory.ts` contract alignment + constructor table guards)
+  - Start timestamp: 2026-02-17 16:41 UTC
+  - Status: `done`
+  - Key actions taken:
+    - tightened runtime entity contract in `client/client-boundary-types.ts` to match actual client entity instances (`id`, `kind` required; runtime id widened for transitional wire/runtime usage).
+    - converted constructor tables in `client/mobs.ts`, `client/items.ts`, and `client/npcs.ts` from index-signature declarations to key-preserving objects with `satisfies` constraints.
+    - added required `override` modifiers on mob `idle()` overrides surfaced by strict diagnostics.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchC-after.log 2>&1` => exit `2`.
+    - `awk '/^client\\/entityfactory.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchC-after.log` => `0`.
+    - `awk '/^client\\/(mobs|items|npcs)\\.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchC-after.log` => `0`.
+    - strict total reduced `337 -> 202`.
+  - Next action:
+    - close Ticket 326 renderer guard pass and prepare lump commit for batch C.
+
+- 16:45 UTC
+  - Ticket: 326 (Strict client burn-down batch C2: `client/renderer.ts` initialization/nullability/bounding guards)
+  - Start timestamp: 2026-02-17 16:41 UTC
+  - Status: `done`
+  - Key actions taken:
+    - added explicit renderer field initialization/definite-assignment guards for strict class safety (`FPS`, `scale`, `camera`, `tablet`, `mobile`).
+    - enforced concrete bounding rect typing and aligned `client/game.ts` `DirtyRect` shape with renderer bounds contract.
+    - guarded tileset-dependent drawing with early returns and removed nullable draw calls.
+    - added runtime-safe guards in rendering loops for nullable pathing rows, fade alpha, shadow/spark sprite lookups, and optional shadow offset.
+  - Evidence:
+    - `bun run typecheck:client > /tmp/typecheck-client-batchC-after.log 2>&1` => exit `2`.
+    - `awk '/^client\\/renderer.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchC-after.log` => `0`.
+    - `awk '/^client\\/game.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchC-after.log` => `57` (unchanged from batch-C baseline).
+    - `awk '/^client\\/main.ts\\(/ {c++} END {print c+0}' /tmp/typecheck-client-batchC-after.log` => `0`.
+    - strict total reduced `337 -> 202`.
+  - Next action:
+    - commit batch C changes (`entityfactory` + `renderer` strict burn-down) and continue next priority diagnostics batch.

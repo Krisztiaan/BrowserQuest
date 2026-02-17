@@ -61,7 +61,7 @@ class Deathknight extends Mob {
         this.aggroRange = 3;
     }
 
-    idle(orientation: number): void {
+    override idle(orientation: number): void {
         if (!this.hasTarget()) {
             super.idle(Types.Orientations.DOWN);
         } else {
@@ -151,7 +151,7 @@ class Boss extends Mob {
         this.aggroRange = 3;
     }
 
-    idle(orientation: number): void {
+    override idle(orientation: number): void {
         if (!this.hasTarget()) {
             super.idle(Types.Orientations.DOWN);
         } else {
@@ -160,7 +160,7 @@ class Boss extends Mob {
     }
 }
 
-const Mobs: Record<string, MobCtor> = {
+const Mobs = {
     Rat,
     Skeleton,
     Skeleton2,
@@ -174,6 +174,6 @@ const Mobs: Record<string, MobCtor> = {
     Bat,
     Wizard,
     Boss,
-};
+} satisfies Record<string, MobCtor>;
 
 export default Mobs;

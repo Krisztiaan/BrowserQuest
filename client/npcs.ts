@@ -102,7 +102,7 @@ class Octocat extends Npc {
     }
 }
 
-const NPCs: Record<string, NpcCtor> = {
+const NPCs = {
     Guard,
     King,
     Agent,
@@ -119,6 +119,6 @@ const NPCs: Record<string, NpcCtor> = {
     DesertNpc,
     LavaNpc,
     Octocat,
-};
+} satisfies Record<string, NpcCtor>;
 
 export default NPCs;

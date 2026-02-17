@@ -97,7 +97,16 @@ type GridIndexedEntity = {
 };
 type DirtyAnimatedTile = AnimatedTile & { isDirty?: boolean };
 type GridPath = Array<[number, number]>;
-type DirtyRect = Record<string, number>;
+type DirtyRect = {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+};
 type DirtyRectSource = GridIndexedEntity | DirtyAnimatedTile | null;
 type BubbleAnchor = { id: EntityId; x: number; y: number };
 type RuntimeServerConfig = { wsUrl: string; dispatcher: boolean };

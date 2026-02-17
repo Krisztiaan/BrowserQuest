@@ -10,7 +10,16 @@ import { disableCanvasImageSmoothing, type PixelArtCanvasContext } from './canva
 
 type RendererContext2D = PixelArtCanvasContext;
 type DrawScaledImageArg = number | RendererContext2D | CanvasImageSource;
-type BoundingRect = Record<string, number>;
+type BoundingRect = {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+};
 type RenderSprite = {
     image: CanvasImageSource;
     width: number;
@@ -121,12 +130,12 @@ class Renderer {
     canvas: HTMLCanvasElement;
     backcanvas: HTMLCanvasElement;
     forecanvas: HTMLCanvasElement;
-    FPS: number;
+    FPS = 50;
     tilesize: number;
     upscaledRendering: boolean;
     supportsSilhouettes: boolean;
-    scale: number;
-    camera: Camera;
+    scale = 1;
+    camera!: Camera;
     lastTime: Date;
     frameCount: number;
     maxFPS: number;
@@ -134,12 +143,12 @@ class Renderer {
     isDebugInfoVisible: boolean;
     animatedTileCount: number;
     highTileCount: number;
-    tablet: boolean;
-    mobile: boolean;
+    tablet = false;
+    mobile = false;
     fixFlickeringTimer: Timer;
     tileset: HTMLImageElement | null;
     lastTargetPos: { x: number; y: number } | null;
-    targetRect: Record<string, number> | null;
+    targetRect: BoundingRect | null;
 
     constructor(
         game: RendererGameLike,
@@ -186,8 +195,8 @@ class Renderer {
         return this.canvas.height;
     }
 
-    setTileset(tileset: HTMLImageElement | undefined): void {
-        this.tileset = tileset;
+    setTileset(tileset: HTMLImageElement | null | undefined): void {
+        this.tileset = tileset ?? null;
     }
 
     getScaleFactor(): number {
@@ -343,8 +352,12 @@ class Renderer {
 
         if (grid && this.game.debugPathing) {
             for (let y = 0; y < grid.length; y += 1) {
-                for (let x = 0; x < grid[y].length; x += 1) {
-                    if (grid[y][x] === 1 && this.game.camera.isVisiblePosition(x, y)) {
+                const row = grid[y];
+                if (!row) {
+                    continue;
+                }
+                for (let x = 0; x < row.length; x += 1) {
+                    if (row[x] === 1 && this.game.camera.isVisiblePosition(x, y)) {
                         this.drawCellHighlight(x, y, 'rgba(50, 50, 255, 0.5)');
                     }
                 }
@@ -500,7 +513,7 @@ class Renderer {
 
             if (entity.isFading) {
                 this.context.save();
-                this.context.globalAlpha = entity.fadingAlpha;
+                this.context.globalAlpha = entity.fadingAlpha ?? 1;
             }
 
             if (!this.mobile && !this.tablet) {
@@ -519,7 +532,7 @@ class Renderer {
             }
 
             if (entity.isVisible?.()) {
-                if (entity.hasShadow?.()) {
+                if (entity.hasShadow?.() && shadow) {
                     this.context.drawImage(
                         shadow.image,
                         0,
@@ -527,7 +540,7 @@ class Renderer {
                         shadow.width * os,
                         shadow.height * os,
                         0,
-                        entity.shadowOffsetY * ds,
+                        (entity.shadowOffsetY ?? 0) * ds,
                         shadow.width * os * ds,
                         shadow.height * os * ds
                     );
@@ -544,7 +557,7 @@ class Renderer {
                     let sw = 0;
                     let sh = 0;
 
-                    if (sparksAnim) {
+                    if (sparks && sparksAnim) {
                         sparkFrame = sparksAnim.currentFrame;
                         sx = sparks.width * sparkFrame.index * os;
                         sy = sparks.height * sparksAnim.row * os;
@@ -675,8 +688,13 @@ class Renderer {
         let spr = entity.sprite;
 
         if (entity instanceof Player && entity.hasWeapon()) {
-            const weapon = this.game.sprites[entity.getWeaponName()];
-            spr = weapon;
+            const weaponName = entity.getWeaponName();
+            if (typeof weaponName === 'string') {
+                const weapon = this.game.sprites[weaponName];
+                if (weapon) {
+                    spr = weapon;
+                }
+            }
         }
 
         if (spr) {
@@ -755,33 +773,41 @@ class Renderer {
     }
 
     drawTerrain(): void {
-        const self = this,
-            m = this.game.map,
-            tilesetwidth = this.tileset.width / m.tilesize;
+        const self = this;
+        const m = this.game.map;
+        const tileset = this.tileset;
+        if (!tileset) {
+            return;
+        }
+        const tilesetwidth = tileset.width / m.tilesize;
 
         this.game.forEachVisibleTile(function (id: number, index: number) {
             if (shouldDrawTerrainTile(m, id)) {
                 // Keep a base terrain underlay even for animated ground tiles.
                 // This prevents faint seams when animated frames contain transparent edge pixels.
-                self.drawTile(self.background, id, self.tileset, tilesetwidth, m.width, index);
+                self.drawTile(self.background, id, tileset, tilesetwidth, m.width, index);
             }
         }, 1);
     }
 
     drawAnimatedTiles(dirtyOnly = false): void {
-        const self = this,
-            m = this.game.map,
-            tilesetwidth = this.tileset.width / m.tilesize;
+        const self = this;
+        const m = this.game.map;
+        const tileset = this.tileset;
+        if (!tileset) {
+            return;
+        }
+        const tilesetwidth = tileset.width / m.tilesize;
 
         this.animatedTileCount = 0;
         this.game.forEachAnimatedTile(function (tile: RenderAnimatedTile) {
             if (dirtyOnly) {
                 if (tile.isDirty) {
-                    self.drawTile(self.context, tile.id, self.tileset, tilesetwidth, m.width, tile.index);
+                    self.drawTile(self.context, tile.id, tileset, tilesetwidth, m.width, tile.index);
                     tile.isDirty = false;
                 }
             } else {
-                self.drawTile(self.context, tile.id, self.tileset, tilesetwidth, m.width, tile.index);
+                self.drawTile(self.context, tile.id, tileset, tilesetwidth, m.width, tile.index);
                 self.animatedTileCount += 1;
             }
         });
@@ -792,14 +818,18 @@ class Renderer {
     }
 
     drawHighTiles(ctx: RendererContext2D): void {
-        const self = this,
-            m = this.game.map,
-            tilesetwidth = this.tileset.width / m.tilesize;
+        const self = this;
+        const m = this.game.map;
+        const tileset = this.tileset;
+        if (!tileset) {
+            return;
+        }
+        const tilesetwidth = tileset.width / m.tilesize;
 
         this.highTileCount = 0;
         this.game.forEachVisibleTile(function (id: number, index: number) {
             if (m.isHighTile(id)) {
-                self.drawTile(ctx, id, self.tileset, tilesetwidth, m.width, index);
+                self.drawTile(ctx, id, tileset, tilesetwidth, m.width, index);
                 self.highTileCount += 1;
             }
         }, 1);

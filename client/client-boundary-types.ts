@@ -15,9 +15,11 @@ export type ClientInboundActionByOpcode<Opcode extends ClientInboundProtocolActi
 export type ClientProtocolAction = ClientInboundProtocolAction;
 export type ClientProtocolBatch = ClientProtocolAction[];
 
+export type RuntimeEntityId = EntityId | number | string;
+
 export interface RuntimeEntity {
-    id?: EntityId;
-    kind?: EntityKind;
+    id: RuntimeEntityId;
+    kind: EntityKind;
     weaponName?: string | null;
     spriteName?: string;
     wasDropped?: boolean;

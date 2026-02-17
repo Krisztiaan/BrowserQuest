@@ -27,7 +27,7 @@ function createItemCtor(definition: ItemDefinition): ItemCtor {
     };
 }
 
-const Items: Record<string, ItemCtor> = {
+const Items = {
     Sword2: createItemCtor({ kind: Types.Entities.SWORD2, type: 'weapon' }),
     Axe: createItemCtor({ kind: Types.Entities.AXE, type: 'weapon' }),
     RedSword: createItemCtor({ kind: Types.Entities.REDSWORD, type: 'weapon' }),
@@ -49,6 +49,6 @@ const Items: Record<string, ItemCtor> = {
             player.startInvincibility();
         },
     }),
-};
+} satisfies Record<string, ItemCtor>;
 
 export default Items;
