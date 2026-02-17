@@ -5,6 +5,8 @@ import path from 'node:path';
 import { SqlitePlayerPersistence } from '../../../server/player-persistence';
 import { createPasskeyAuthResponse } from '../../../server/passkey-auth';
 import { ACCOUNT_COOKIE_KEY, AUTH_SESSION_COOKIE_KEY, USERNAME_COOKIE_KEY } from '../../../shared/auth/cookie-keys';
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 function withTempPlayerDb<T>(fn: (dbPath: string) => Promise<T> | T): Promise<T> | T {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-passkey-auth-'));
@@ -19,8 +21,8 @@ function withTempPlayerDb<T>(fn: (dbPath: string) => Promise<T> | T): Promise<T>
     return run();
 }
 
-function createJsonRequest(pathname: string, payload: unknown, method = 'POST'): Request {
-    return new Request(`http://localhost${pathname}`, {
+function createJsonRequest(pathname: string, payload: JsonValue, method = 'POST', origin = 'http://localhost'): Request {
+    return new Request(`${origin}${pathname}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -264,6 +266,24 @@ test('passkey auth logout endpoint clears auth cookies', async () => {
             expect(setCookie).toContain(`${ACCOUNT_COOKIE_KEY}=`);
             expect(setCookie).toContain(`${USERNAME_COOKIE_KEY}=`);
             expect(setCookie).toContain('Max-Age=0');
+        } finally {
+            persistence.close();
+        }
+    });
+});
+
+test('passkey auth cookies include Secure on HTTPS requests', async () => {
+    await withTempPlayerDb(async (dbPath) => {
+        const persistence = new SqlitePlayerPersistence(dbPath);
+        try {
+            const response = await createPasskeyAuthResponse({
+                request: createJsonRequest('/auth/passkey/logout', {}, 'POST', 'https://localhost'),
+                persistence,
+            });
+
+            expect(response.status).toBe(200);
+            const setCookie = response.headers.get('set-cookie') ?? '';
+            expect(setCookie).toContain('Secure');
         } finally {
             persistence.close();
         }

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import type { PersistedPlayerProfile } from './player-persistence';
 import { AUTH_SESSION_COOKIE_KEY, USERNAME_COOKIE_KEY } from '../shared/auth/cookie-keys';
 import { verifySignedAuthSessionToken } from './auth-session';
+import { parseCookieValue } from './http-utils';
 
 const DEFAULT_ARMOR_SPRITE = 'clotharmor';
 const DEFAULT_WEAPON_SPRITE = 'sword1';
@@ -34,42 +35,11 @@ type ProfilePreviewPayload = Readonly<{
     weaponSpriteName: string;
     hasProfile: boolean;
 }>;
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 const spriteSpecCache = new Map<string, SpriteSpec | null>();
 const spriteDataUriCache = new Map<string, string | null>();
-
-function parseCookieValue(cookieHeader: string | null | undefined, key: string): string | null {
-    if (typeof cookieHeader !== 'string' || cookieHeader.length === 0) {
-        return null;
-    }
-
-    const entries = cookieHeader.split(';');
-    for (let index = 0; index < entries.length; index += 1) {
-        const entry = entries[index];
-        if (!entry) {
-            continue;
-        }
-        const separatorIndex = entry.indexOf('=');
-        if (separatorIndex <= 0) {
-            continue;
-        }
-        const entryKey = entry.slice(0, separatorIndex).trim();
-        if (entryKey !== key) {
-            continue;
-        }
-        const rawValue = entry.slice(separatorIndex + 1).trim();
-        if (!rawValue) {
-            return null;
-        }
-        try {
-            const decoded = decodeURIComponent(rawValue).trim();
-            return decoded.length > 0 ? decoded : null;
-        } catch {
-            return null;
-        }
-    }
-    return null;
-}
 
 function resolveArmorSpriteName(profile: PersistedPlayerProfile | null): string {
     if (!profile || !Types.isArmor(profile.armorKind)) {
@@ -93,6 +63,24 @@ function resolveWeaponSpriteName(profile: PersistedPlayerProfile | null): string
     return kindName;
 }
 
+function isSpriteSpec(value: JsonValue | object | null | undefined): value is SpriteSpec {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        return false;
+    }
+    const candidate = value as {
+        id?: string;
+        width?: number;
+        height?: number;
+    };
+    return (
+        typeof candidate.id === 'string'
+        && typeof candidate.width === 'number'
+        && Number.isFinite(candidate.width)
+        && typeof candidate.height === 'number'
+        && Number.isFinite(candidate.height)
+    );
+}
+
 function loadSpriteSpec(spriteName: string): SpriteSpec | null {
     const cached = spriteSpecCache.get(spriteName);
     if (cached !== undefined) {
@@ -101,19 +89,13 @@ function loadSpriteSpec(spriteName: string): SpriteSpec | null {
 
     try {
         const jsonUrl = new URL(`../client/sprites/${spriteName}.json`, import.meta.url);
-        const parsed = JSON.parse(readFileSync(jsonUrl, 'utf8')) as unknown;
-        if (
-            typeof parsed !== 'object'
-            || parsed === null
-            || typeof (parsed as { width?: unknown }).width !== 'number'
-            || typeof (parsed as { height?: unknown }).height !== 'number'
-        ) {
+        const parsed = JSON.parse(readFileSync(jsonUrl, 'utf8')) as JsonValue;
+        if (!isSpriteSpec(parsed)) {
             spriteSpecCache.set(spriteName, null);
             return null;
         }
-        const spec = parsed as SpriteSpec;
-        spriteSpecCache.set(spriteName, spec);
-        return spec;
+        spriteSpecCache.set(spriteName, parsed);
+        return parsed;
     } catch {
         spriteSpecCache.set(spriteName, null);
         return null;

@@ -5,50 +5,16 @@ import CLOSE_CODES from '../../shared/ws-close-codes';
 import { Evented } from '../../shared/evented';
 import path from 'node:path';
 import { createWebSocketRuntimeClasses } from './runtime-factory';
+import type { JsonValue, RuntimeEventFields, WsFrameData } from './runtime-types';
 import { getHealthzResponseBody, getVersionResponseBody } from '../runtime-health-response';
 import { WS_EVENT_NAMES } from '../server-event-names';
 import { AUTH_SESSION_COOKIE_KEY } from '../../shared/auth/cookie-keys';
 import { ConnectionIdGenerator } from './connection-id';
 import { verifySignedAuthSessionToken } from '../auth-session';
+import { parseCookieValue, parseRequestPathname } from '../http-utils';
 
 const BunRuntime = globalThis['Bun'];
 const log = Log.getLogger();
-
-function parseRequestPathname(requestUrl: string | undefined): string {
-    try {
-        return new URL(requestUrl ?? '/', 'http://localhost').pathname;
-    } catch (_) {
-        return '/';
-    }
-}
-
-function parseCookieValue(cookieHeader: string | null | undefined, key: string): string | null {
-    if (typeof cookieHeader !== 'string' || cookieHeader.length === 0) {
-        return null;
-    }
-    const entries = cookieHeader.split(';');
-    for (const rawEntry of entries) {
-        const separatorIndex = rawEntry.indexOf('=');
-        if (separatorIndex <= 0) {
-            continue;
-        }
-        const entryKey = rawEntry.slice(0, separatorIndex).trim();
-        if (entryKey !== key) {
-            continue;
-        }
-        const rawValue = rawEntry.slice(separatorIndex + 1).trim();
-        if (!rawValue) {
-            return null;
-        }
-        try {
-            const decoded = decodeURIComponent(rawValue).trim();
-            return decoded.length > 0 ? decoded : null;
-        } catch (_) {
-            return null;
-        }
-    }
-    return null;
-}
 
 function resolveStaticRoot(raw: string | undefined): string | null {
     if (typeof raw !== 'string') {
@@ -107,13 +73,16 @@ async function createStaticFileResponse(staticRoot: string | null, requestPath: 
     return null;
 }
 
-function appendFields(baseFields: Record<string, unknown>, extraFields?: Record<string, unknown>) {
+function appendFields(baseFields: RuntimeEventFields, extraFields?: RuntimeEventFields) {
     if (!extraFields) {
         return baseFields;
     }
     for (const key in extraFields) {
         if (Object.prototype.hasOwnProperty.call(extraFields, key)) {
-            baseFields[key] = extraFields[key];
+            const value = extraFields[key];
+            if (value !== undefined) {
+                baseFields[key] = value;
+            }
         }
     }
     return baseFields;
@@ -123,7 +92,7 @@ function logConnectionEvent(
     level: string,
     eventName: string,
     connection: { id: string; remoteAddress: string },
-    extraFields?: Record<string, unknown>
+    extraFields?: RuntimeEventFields
 ) {
     log.event(
         level,
@@ -163,27 +132,46 @@ const wsWebSocketConnection = runtimeClasses.wsWebSocketConnection;
 
 type BunWebSocketServerEvents = {
     connect: [connection: InstanceType<typeof wsWebSocketConnection>];
-    error: [error: unknown];
+    error: [error: Error | string];
 };
 
-class BunSocketAdapter {
-    #socket: { send(data: unknown): void; close(code?: number, reason?: string): void };
-    #handlers: Record<string, (...args: unknown[]) => void>;
+type BunSocketData = {
+    remoteAddress?: string | number | boolean | bigint;
+    accountNameKey?: string | null;
+};
 
-    constructor(socket: { send(data: unknown): void; close(code?: number, reason?: string): void }) {
+type BunSocketLike = {
+    data?: BunSocketData;
+    send(data: string): void;
+    close(code?: number, reason?: string): void;
+};
+
+type BunConnectionRef = { id: string; send(message: JsonValue): void };
+
+class BunSocketAdapter {
+    #socket: BunSocketLike;
+    #handlers: Record<
+        string,
+        (...args: Array<WsFrameData | boolean | string | Error | number | bigint | object | null | undefined>) => void
+    >;
+
+    constructor(socket: BunSocketLike) {
         this.#socket = socket;
         this.#handlers = {};
     }
 
-    on(event: string, handler: (...args: unknown[]) => void) {
+    on(
+        event: string,
+        handler: (...args: Array<WsFrameData | boolean | string | Error | number | bigint | object | null | undefined>) => void
+    ): void {
         this.#handlers[event] = handler;
     }
 
-    emit(event: string, ...args: unknown[]) {
+    emit(event: string, ...args: Array<WsFrameData | boolean | string | Error | number | bigint | object | null | undefined>) {
         this.#handlers[event]?.(...args);
     }
 
-    send(data: unknown) {
+    send(data: string) {
         this.#socket.send(data);
     }
 
@@ -194,10 +182,10 @@ class BunSocketAdapter {
 
 class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
     port: number;
-    _connections: Record<string, { id: string; send(message: unknown): void }>;
+    _connections: Record<string, BunConnectionRef>;
     _connectionIds: ConnectionIdGenerator;
     _socketAdapters: WeakMap<object, BunSocketAdapter>;
-    _server: unknown;
+    _server: ReturnType<typeof BunRuntime.serve>;
     private staticRoot: string | null;
     private statusProvider?: () => string;
     private profilePreviewProvider?: (request: Request) => Response;
@@ -244,10 +232,10 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                     const sessionToken = parseCookieValue(request.headers.get('cookie'), AUTH_SESSION_COOKIE_KEY);
                     const accountNameKey = verifySignedAuthSessionToken({ token: sessionToken });
                     if (
-                        (server as { upgrade: (request: Request, options?: unknown) => boolean }).upgrade(request, {
+                        server.upgrade(request, {
                             data: {
                                 remoteAddress: this.#resolveRemoteAddress(server, request),
-                                accountNameKey,
+                                accountNameKey: accountNameKey ?? undefined,
                             },
                         })
                     ) {
@@ -263,13 +251,9 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
             },
             websocket: {
                 maxPayloadLength: 64 * 1024,
-                open: (socket: {
-                    data?: { remoteAddress?: unknown; accountNameKey?: unknown };
-                    send(data: unknown): void;
-                    close(code?: number, reason?: string): void;
-                }) => {
+                open: (socket: BunSocketLike) => {
                     const adapter = new BunSocketAdapter(socket);
-                    this._socketAdapters.set(socket as unknown as object, adapter);
+                    this._socketAdapters.set(socket, adapter);
                     const remote = socket.data?.remoteAddress;
                     const remoteAddress =
                         typeof remote === 'string' ||
@@ -281,14 +265,13 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                     const connection = new wsWebSocketConnection(this.#createId(), adapter, this, remoteAddress);
                     const accountNameKey = socket.data?.accountNameKey;
                     if (typeof accountNameKey === 'string' && accountNameKey.trim().length > 0) {
-                        (connection as InstanceType<typeof wsWebSocketConnection> & { accountNameKey?: string }).accountNameKey =
-                            accountNameKey.trim().toLowerCase();
+                        connection.accountNameKey = accountNameKey.trim().toLowerCase();
                     }
                     this.addConnection(connection);
                     this.emit('connect', connection);
                     logConnectionEvent('info', WS_EVENT_NAMES.CONNECTION_OPEN, connection, undefined);
                 },
-                message: (socket: object, message: unknown) => {
+                message: (socket: object, message: WsFrameData) => {
                     const adapter = this._socketAdapters.get(socket);
                     if (!adapter) {
                         return;
@@ -310,13 +293,14 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
         log.event('info', WS_EVENT_NAMES.SERVER_LISTEN, { port });
     }
 
-    #resolveRemoteAddress(server: unknown, request: Request): string {
+    #resolveRemoteAddress(
+        server: { requestIP?: (request: Request) => { address?: string } | null },
+        request: Request
+    ): string {
         try {
-            if (
-                typeof (server as { requestIP?: (request: Request) => { address?: unknown } }).requestIP === 'function'
-            ) {
-                const ip = (server as { requestIP: (request: Request) => { address?: unknown } }).requestIP(request);
-                if (typeof ip.address === 'string') {
+            if (typeof server.requestIP === 'function') {
+                const ip = server.requestIP(request);
+                if (ip && typeof ip.address === 'string') {
                     return ip.address;
                 }
             }
@@ -343,7 +327,7 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
     }
 
     forEachConnection(
-        callback: (connection: { id: string; send(message: unknown): void }, connectionId: string) => void
+        callback: (connection: BunConnectionRef, connectionId: string) => void
     ) {
         Object.keys(this._connections).forEach((connectionId) => {
             const connection = this._connections[connectionId];
@@ -353,7 +337,7 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
         });
     }
 
-    addConnection(connection: { id: string; send(message: unknown): void }) {
+    addConnection(connection: BunConnectionRef) {
         this._connections[connection.id] = connection;
     }
 
@@ -365,7 +349,7 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
         return this._connections[id];
     }
 
-    broadcast(message: unknown) {
+    broadcast(message: JsonValue) {
         this.forEachConnection((connection) => {
             connection.send(message);
         });

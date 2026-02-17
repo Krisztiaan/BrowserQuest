@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import * as MainRuntimeModule from '../../../../server/runtime';
+import type { RuntimeConnection, RuntimeServer, RuntimeWorld } from '../../../../server/runtime-types';
 
 const MainRuntime = MainRuntimeModule;
 
@@ -33,65 +34,69 @@ test('main runtime wires passkey auth handler when websocket server exposes auth
 
     let passkeyAuthHandler: ((request: Request) => Response | Promise<Response>) | null = null;
 
-    const FakeServer = function FakeServer(this: {
-        on: (eventName: 'connect' | 'error', callback: (...args: unknown[]) => void) => void;
-        onRequestStatus: (callback: () => string) => void;
-        onRequestPasskeyAuth: (callback: (request: Request) => Response | Promise<Response>) => void;
-    }) {
-        this.on = () => {
+    class FakeServer implements RuntimeServer {
+        constructor(_port: number) {
             // no-op
-        };
-        this.onRequestStatus = () => {
-            // no-op
-        };
-        this.onRequestPasskeyAuth = (callback) => {
-            passkeyAuthHandler = callback;
-        };
-    } as unknown as {
-        new (port: number): {
-            on: (eventName: 'connect' | 'error', callback: (...args: unknown[]) => void) => void;
-            onRequestStatus: (callback: () => string) => void;
-            onRequestPasskeyAuth: (callback: (request: Request) => Response | Promise<Response>) => void;
-        };
-    };
-
-    const FakeWorld = function FakeWorld(
-        this: {
-            playerCount: number;
-            on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
-            emit: (eventName: 'playerConnect', player: unknown) => void;
-            run: (path: string) => void;
-            updatePopulation: (totalPlayers?: number) => void;
         }
-    ) {
-        this.playerCount = 0;
-        this.on = (_eventName, callback) => {
+
+        on(_eventName: 'connect', _callback: (connection: RuntimeConnection) => void): void;
+        on(
+            _eventName: 'error',
+            _callback: (...args: Array<string | Error | object | null | undefined>) => void
+        ): void;
+        on(
+            _eventName: 'connect' | 'error',
+            _callback:
+                | ((connection: RuntimeConnection) => void)
+                | ((...args: Array<string | Error | object | null | undefined>) => void)
+        ): void {
+            // no-op
+        }
+
+        onRequestStatus(_callback: () => string): void {
+            // no-op
+        }
+
+        onRequestPasskeyAuth(callback: (request: Request) => Response | Promise<Response>): void {
+            passkeyAuthHandler = callback;
+        }
+    }
+
+    class FakeWorld implements RuntimeWorld {
+        playerCount = 0;
+
+        constructor(_name: string, _cap: number, _server: RuntimeServer) {
+            // no-op
+        }
+
+        on(_eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void): void {
             callback();
-        };
-        this.emit = () => {
+        }
+
+        emit(_eventName: 'playerConnect', _player: { id?: string | number }): void {
             // no-op
-        };
-        this.run = () => {
+        }
+
+        run(_path: string): void {
             // no-op
-        };
-        this.updatePopulation = () => {
+        }
+
+        updatePopulation(_totalPlayers?: number): void {
             // no-op
-        };
-    } as unknown as {
-        new (name: string, cap: number, server: unknown): {
-            playerCount: number;
-            on: (eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void) => void;
-            emit: (eventName: 'playerConnect', player: unknown) => void;
-            run: (path: string) => void;
-            updatePopulation: (totalPlayers?: number) => void;
-        };
-    };
+        }
+    }
+
+    class FakePlayer {
+        constructor(_connection: RuntimeConnection, _world: RuntimeWorld) {
+            // no-op
+        }
+    }
 
     const runtime = MainRuntime.main(createValidConfig(), {
         dependencies: {
             ws: { MultiVersionWebsocketServer: FakeServer },
             WorldServer: FakeWorld,
-            Player: function Player() {},
+            Player: FakePlayer,
             metricsRuntime: {
                 createMetrics() {
                     return {
@@ -99,7 +104,6 @@ test('main runtime wires passkey auth handler when websocket server exposes auth
                         isReady: false,
                         ready() {},
                         getTotalPlayers() {},
-                        getOpenWorldCount() {},
                         updatePlayerCounters() {},
                         updateWorldDistribution() {},
                     };

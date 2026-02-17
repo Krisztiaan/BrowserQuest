@@ -7,6 +7,7 @@ import type {
     RuntimeProcessLike,
     RuntimeServer,
     RuntimeServerEventEmitter,
+    RuntimeIntervalHandle,
     RuntimeWorld,
     ServerConfig,
 } from './runtime-types';
@@ -21,6 +22,7 @@ import { attachWorldConnectionSession } from './player-session';
 import { DEFAULT_PLAYER_DB_PATH, SqlitePlayerPersistence } from './player-persistence';
 import { createProfilePreviewJsonResponse, createProfilePreviewResponse } from './profile-preview';
 import { createPasskeyAuthResponse } from './passkey-auth';
+import { parseRequestPathname } from './http-utils';
 
 const WsRuntime = WsRuntimeModule as MainRuntimeDependencies['ws'];
 
@@ -30,11 +32,11 @@ function createRuntimeDependencies(overrides?: MainRuntimeDependencyOverrides): 
     const injected = overrides ?? {};
     return {
         ws: injected.ws ?? WsRuntime,
-        WorldServer: injected.WorldServer ?? (WorldServer as unknown as MainRuntimeDependencies['WorldServer']),
-        Player: injected.Player ?? (Player as unknown as MainRuntimeDependencies['Player']),
-        metricsRuntime: injected.metricsRuntime ?? (MetricsRuntime as unknown as MainRuntimeDependencies['metricsRuntime']),
+        WorldServer: injected.WorldServer ?? (WorldServer as MainRuntimeDependencies['WorldServer']),
+        Player: injected.Player ?? (Player as MainRuntimeDependencies['Player']),
+        metricsRuntime: injected.metricsRuntime ?? (MetricsRuntime as MainRuntimeDependencies['metricsRuntime']),
         logger: injected.logger ?? log,
-        processObject: injected.processObject ?? (process as unknown as RuntimeProcessLike),
+        processObject: injected.processObject ?? (process as RuntimeProcessLike),
         setIntervalFn:
             injected.setIntervalFn ??
             function (handler, timeoutMs) {
@@ -63,7 +65,7 @@ function createPopulationCheckTimer(
     metrics: RuntimeMetrics,
     getWorlds: () => RuntimeWorld[],
     setIntervalFn: MainRuntimeDependencies['setIntervalFn']
-): unknown {
+): RuntimeIntervalHandle {
     let lastTotalPlayers = 0;
 
     return setIntervalFn(function () {
@@ -81,7 +83,7 @@ function createPopulationCheckTimer(
 }
 
 function createPopulationCheckCleanup(
-    timerHandle: unknown,
+    timerHandle: RuntimeIntervalHandle,
     clearIntervalFn: MainRuntimeDependencies['clearIntervalFn']
 ): () => void {
     return function () {
@@ -157,14 +159,6 @@ function closeWorldPersistenceOnShutdown(worlds: RuntimeWorld[]): void {
     }
 }
 
-function parseRequestPathname(requestUrl: string | undefined): string {
-    try {
-        return new URL(requestUrl ?? '/', 'http://localhost').pathname;
-    } catch {
-        return '/';
-    }
-}
-
 function createPopulationChangeHandler(
     metrics: RuntimeMetrics,
     getWorlds: () => RuntimeWorld[],
@@ -210,7 +204,7 @@ function initializeMetricsPopulation(metrics: RuntimeMetrics, onPopulationChange
 function createFatalReporter(
     emitServerEvent: RuntimeServerEventEmitter,
     logger: RuntimeLogger
-): (label: string, err: unknown) => void {
+): (label: string, err: string | Error | object | null | undefined) => void {
     const fatalEvents: Record<string, RuntimeEventName> = {
         uncaughtException: SERVER_EVENT_NAMES.FATAL_UNCAUGHT_EXCEPTION,
         unhandledRejection: SERVER_EVENT_NAMES.FATAL_UNHANDLED_REJECTION,
@@ -219,7 +213,7 @@ function createFatalReporter(
     return function (label, err) {
         const eventName = fatalEvents[label] ?? SERVER_EVENT_NAMES.FATAL_UNKNOWN;
         if (typeof err === 'object' && err !== null && 'stack' in err) {
-            const safeJson = (value: unknown): string => {
+            const safeJson = (value: string | Error | object | null | undefined): string => {
                 try {
                     const json = JSON.stringify(value);
                     return typeof json === 'string' ? json : String(Object.prototype.toString.call(value));
@@ -227,8 +221,9 @@ function createFatalReporter(
                     return String(Object.prototype.toString.call(value));
                 }
             };
-            const stack = String((err as { stack?: unknown }).stack);
-            const messageValue = 'message' in err ? (err as { message?: unknown }).message : undefined;
+            const stackValue = err.stack;
+            const stack = typeof stackValue === 'string' ? stackValue : String(stackValue);
+            const messageValue = 'message' in err ? err.message : undefined;
             const message =
                 typeof messageValue === 'string'
                     ? messageValue
@@ -253,12 +248,12 @@ function createFatalReporter(
 
 function installFatalHandlers(
     processObject: RuntimeProcessLike,
-    reportFatal: (label: string, err: unknown) => void
+    reportFatal: (label: string, err: string | Error | object | null | undefined) => void
 ): () => void {
-    const uncaughtHandler = function (e: unknown) {
+    const uncaughtHandler = function (e: string | Error | object | null | undefined) {
         reportFatal('uncaughtException', e);
     };
-    const rejectionHandler = function (reason: unknown) {
+    const rejectionHandler = function (reason: string | Error | object | null | undefined) {
         reportFatal('unhandledRejection', reason);
     };
 
@@ -309,7 +304,7 @@ function installShutdownHandlers(
 function triggerFatalTestEvent(
     env: RuntimeProcessLike['env'] | undefined,
     setTimeoutFn: MainRuntimeDependencies['setTimeoutFn'],
-    reportFatal: (label: string, err: unknown) => void
+    reportFatal: (label: string, err: string | Error | object | null | undefined) => void
 ): void {
     const runtimeEnv = env ?? {};
     const fatalTestTrigger = runtimeEnv.BQ_TEST_TRIGGER_FATAL_EVENT;
@@ -324,7 +319,7 @@ function triggerFatalTestEvent(
     }
 }
 
-function createRuntimeCleanup(teardownHandlers?: unknown[]): () => void {
+function createRuntimeCleanup(teardownHandlers?: Array<() => void>): () => void {
     const handlers = Array.isArray(teardownHandlers) ? teardownHandlers : [];
     let cleanedUp = false;
 
@@ -334,9 +329,7 @@ function createRuntimeCleanup(teardownHandlers?: unknown[]): () => void {
         }
         cleanedUp = true;
         handlers.forEach(function (handler) {
-            if (typeof handler === 'function') {
-                (handler as () => void)();
-            }
+            handler();
         });
     };
 }
@@ -440,8 +433,8 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
                 const player = new Player(connection, world);
                 world.emit('playerConnect', player);
                 attachWorldConnectionSession({
-                    connection: connection as unknown as Parameters<typeof attachWorldConnectionSession>[0]['connection'],
-                    world: world as unknown as Parameters<typeof attachWorldConnectionSession>[0]['world'],
+                    connection: connection as Parameters<typeof attachWorldConnectionSession>[0]['connection'],
+                    world: world as Parameters<typeof attachWorldConnectionSession>[0]['world'],
                     playerId: player.id as never,
                 });
                 return;
@@ -452,35 +445,22 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
             });
         };
 
-        if (metrics.isEnabled) {
-            metrics.getOpenWorldCount(function (open_world_count) {
-                let openWorldCount = Number.parseInt(String(open_world_count), 10);
-                if (!Number.isFinite(openWorldCount) || openWorldCount < 0) {
-                    openWorldCount = worlds.length;
-                }
-                // choose the least populated world among open worlds
-                const openWorlds = worlds.slice(0, openWorldCount);
-                const world =
-                    openWorlds.length === 0
-                        ? null
-                        : openWorlds.reduce(function (minWorld, candidate) {
-                              return candidate.playerCount < minWorld.playerCount ? candidate : minWorld;
-                          });
-                connect(world);
-            });
-        } else {
-            // simply fill each world sequentially until they are full
-            const world = worlds.find(function (candidateWorld) {
-                return candidateWorld.playerCount < config.nb_players_per_world;
-            });
-            if (world) {
-                world.updatePopulation();
-            }
-            connect(world);
+        const availableWorlds = worlds.filter(function (candidateWorld) {
+            return candidateWorld.playerCount < config.nb_players_per_world;
+        });
+        const world =
+            availableWorlds.length === 0
+                ? null
+                : availableWorlds.reduce(function (minWorld, candidate) {
+                      return candidate.playerCount < minWorld.playerCount ? candidate : minWorld;
+                  });
+        if (world) {
+            world.updatePopulation();
         }
+        connect(world);
     });
 
-    server.on('error', function (...args: unknown[]) {
+    server.on('error', function (...args: Array<string | Error | object | null | undefined>) {
         const message = args.map(String).join(', ');
         logger.error(message);
         emitServerEvent('error', SERVER_EVENT_NAMES.ERROR, {

@@ -1,9 +1,13 @@
 import { WS_EVENT_NAMES } from '../server-event-names';
 import type { ProtocolParsedAction } from '../../shared/protocol/types';
 import type {
+    HttpUpgradeRequestLike,
+    JsonValue,
     WebSocketRuntimeClasses,
     WebSocketRuntimeConnection,
     WebSocketRuntimeFactoryDeps,
+    WsConnectionLike,
+    WsErrorLike,
 } from './runtime-types';
 import { getHealthzResponseBody, getVersionResponseBody } from '../runtime-health-response';
 import { TypedEventEmitter } from '../../shared/typed-event-emitter';
@@ -11,10 +15,11 @@ import { Evented } from '../../shared/evented';
 import { AUTH_SESSION_COOKIE_KEY } from '../../shared/auth/cookie-keys';
 import { ConnectionIdGenerator } from './connection-id';
 import { verifySignedAuthSessionToken } from '../auth-session';
+import { parseCookieValue } from '../http-utils';
 
 type WebSocketRuntimeServerEvents = {
     connect: [connection: WebSocketRuntimeConnection];
-    error: [error: unknown];
+    error: [error: WsErrorLike];
 };
 
 export function createWebSocketRuntimeClasses({
@@ -29,63 +34,24 @@ export function createWebSocketRuntimeClasses({
 }: WebSocketRuntimeFactoryDeps): WebSocketRuntimeClasses {
     type RuntimeConnection = Connection;
 
-    type WsConnectionLike = {
-        on(event: 'message', handler: (data: unknown, isBinary: boolean) => void): void;
-        on(event: 'close', handler: () => void): void;
-        on(event: 'error', handler: (error: unknown) => void): void;
-        send(data: string): void;
-        close(code?: number, reason?: string): void;
-    };
-
-    function resolveRemoteAddress(request: unknown): string {
-        if (!request || typeof request !== 'object' || !('socket' in request)) {
-            return 'unknown';
+    function resolveRemoteAddress(request: HttpUpgradeRequestLike | null | undefined): string {
+        const socket = request?.socket;
+        if (!socket) {
+            return 'unavailable';
         }
-        const socket = request.socket;
-        if (!socket || typeof socket !== 'object' || !('remoteAddress' in socket)) {
-            return 'unknown';
-        }
-        return typeof socket.remoteAddress === 'string' ? socket.remoteAddress : 'unknown';
+        return typeof socket.remoteAddress === 'string' ? socket.remoteAddress : 'unavailable';
     }
 
-    function resolveAccountNameKeyFromRequest(request: unknown): string | null {
-        if (!request || typeof request !== 'object' || !('headers' in request)) {
+    function resolveAccountNameKeyFromRequest(request: HttpUpgradeRequestLike | null | undefined): string | null {
+        const cookieHeader = request?.headers?.cookie;
+        const sessionToken = parseCookieValue(cookieHeader, AUTH_SESSION_COOKIE_KEY);
+        if (sessionToken === null) {
             return null;
         }
-        const headers = request.headers;
-        if (!headers || typeof headers !== 'object') {
-            return null;
-        }
-        const cookieHeader = 'cookie' in headers ? headers.cookie : undefined;
-        if (typeof cookieHeader !== 'string' || cookieHeader.length === 0) {
-            return null;
-        }
-
-        const entries = cookieHeader.split(';');
-        for (const entry of entries) {
-            const separatorIndex = entry.indexOf('=');
-            if (separatorIndex <= 0) {
-                continue;
-            }
-            const key = entry.slice(0, separatorIndex).trim();
-            if (key !== AUTH_SESSION_COOKIE_KEY) {
-                continue;
-            }
-            const rawValue = entry.slice(separatorIndex + 1).trim();
-            if (!rawValue) {
-                return null;
-            }
-            try {
-                const decoded = decodeURIComponent(rawValue).trim();
-                return verifySignedAuthSessionToken({ token: decoded });
-            } catch (_) {
-                return null;
-            }
-        }
-        return null;
+        return verifySignedAuthSessionToken({ token: sessionToken });
     }
 
-    function formatCloseReason(error: unknown): string {
+    function formatCloseReason(error: WsErrorLike): string {
         if (error === null || error === undefined) {
             return '';
         }
@@ -121,7 +87,7 @@ export function createWebSocketRuntimeClasses({
             this._connectionIds = new ConnectionIdGenerator();
         }
 
-        broadcast(_message: unknown): void {
+        broadcast(_message: JsonValue): void {
             throw new Error('Not implemented');
         }
 
@@ -152,15 +118,16 @@ export function createWebSocketRuntimeClasses({
         _server: { removeConnection(id: string): void };
         id: string;
         remoteAddress: string;
+        accountNameKey?: string;
         events: TypedEventEmitter<{ close: []; listen: [action: ProtocolParsedAction] }>;
 
         constructor(
             id: string,
-            connection: unknown,
+            connection: WsConnectionLike,
             server: { removeConnection(id: string): void },
             remoteAddress: string
         ) {
-            this._connection = connection as WsConnectionLike;
+            this._connection = connection;
             this._server = server;
             this.id = id;
             this.remoteAddress = remoteAddress;
@@ -175,11 +142,11 @@ export function createWebSocketRuntimeClasses({
             this.events.on('listen', callback);
         }
 
-        broadcast(_message: unknown): void {
+        broadcast(_message: JsonValue): void {
             throw new Error('Not implemented');
         }
 
-        send(_message: unknown): void {
+        send(_message: JsonValue): void {
             throw new Error('Not implemented');
         }
 
@@ -187,10 +154,10 @@ export function createWebSocketRuntimeClasses({
             throw new Error('Not implemented');
         }
 
-        close(logError: unknown, closeCode?: number) {
+        close(logError: WsErrorLike, closeCode?: number) {
             const reason = formatCloseReason(logError);
             const sanitizedReason = reason.length > 120 ? reason.slice(0, 117) + '...' : reason;
-            const code = Number.isInteger(closeCode) ? closeCode : CLOSE_CODES.NORMAL;
+            const code = typeof closeCode === 'number' && Number.isInteger(closeCode) ? closeCode : CLOSE_CODES.NORMAL;
             log.info('Closing connection to ' + this.remoteAddress + '. Error: ' + reason);
             logConnectionEvent('info', WS_EVENT_NAMES.CONNECTION_CLOSE_REQUEST, this, {
                 code,
@@ -204,11 +171,11 @@ export function createWebSocketRuntimeClasses({
             }
         }
 
-        closeInvalidPayload(logError: unknown) {
+        closeInvalidPayload(logError: WsErrorLike) {
             this.close(logError, CLOSE_CODES.INVALID_PAYLOAD);
         }
 
-        closeUnsupportedData(logError: unknown) {
+        closeUnsupportedData(logError: WsErrorLike) {
             this.close(logError, CLOSE_CODES.UNSUPPORTED_DATA);
         }
     }
@@ -216,7 +183,7 @@ export function createWebSocketRuntimeClasses({
     class wsWebSocketConnection extends Connection {
         constructor(
             id: string,
-            connection: unknown,
+            connection: WsConnectionLike,
             server: { removeConnection(id: string): void },
             remoteAddress: string
         ) {
@@ -260,7 +227,7 @@ export function createWebSocketRuntimeClasses({
             });
         }
 
-        override send(message: unknown): void {
+        override send(message: JsonValue): void {
             this.sendUTF8(JSON.stringify(message));
         }
 
@@ -313,24 +280,24 @@ export function createWebSocketRuntimeClasses({
                 perMessageDeflate: false,
             });
 
-            this._wss.on('error', (err: unknown) => {
-                log.error('WebSocket server error: ' + err);
-                log.event('error', WS_EVENT_NAMES.SERVER_ERROR, { error: String(err) });
-                this.emit('error', err);
+            this._wss.on('error', (err) => {
+                const resolvedErr = err ?? new Error('websocket_server_error');
+                log.error('WebSocket server error: ' + resolvedErr);
+                log.event('error', WS_EVENT_NAMES.SERVER_ERROR, { error: String(resolvedErr) });
+                this.emit('error', resolvedErr);
             });
 
-            this._wss.on('connection', (connection: unknown, req: unknown) => {
+            this._wss.on('connection', (connection, req) => {
                 const remoteAddress = resolveRemoteAddress(req);
                 const wsConnection = new wsWebSocketConnection(
                     this._createId(),
-                    connection as WsConnectionLike,
+                    connection,
                     this,
                     remoteAddress
                 );
                 const accountNameKey = resolveAccountNameKeyFromRequest(req);
                 if (accountNameKey) {
-                    (wsConnection as wsWebSocketConnection & { accountNameKey?: string }).accountNameKey =
-                        accountNameKey;
+                    wsConnection.accountNameKey = accountNameKey;
                 }
 
                 this.emit('connect', wsConnection);
@@ -343,7 +310,7 @@ export function createWebSocketRuntimeClasses({
             return this._connectionIds.nextId();
         }
 
-        override broadcast(message: unknown): void {
+        override broadcast(message: JsonValue): void {
             this.forEachConnection((connection) => {
                 connection.send(message);
             });

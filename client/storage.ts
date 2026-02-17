@@ -2,7 +2,6 @@ import { supportsLocalStorage } from './platform/features';
 import type { AchievementId } from './achievement-domain';
 import { isAchievementId } from './achievement-domain';
 import {
-    ACCOUNT_COOKIE_KEY,
     AUTH_COOKIE_MAX_AGE_SECONDS,
     USERNAME_COOKIE_KEY as SHARED_USERNAME_COOKIE_KEY,
 } from '../shared/auth/cookie-keys';
@@ -31,6 +30,13 @@ type StorageData = {
     hasAlreadyPlayed: boolean;
     player: PlayerStorage;
     achievements: AchievementStorage;
+};
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+type LegacyStorageRecord = {
+    name?: JsonValue;
+    player?: { name?: JsonValue };
+    achievements?: { unlocked?: JsonValue[] };
 };
 
 const MAX_RAT_COUNT = 10;
@@ -97,37 +103,6 @@ export function clearUsernameCookie(): void {
     document.cookie = `${USERNAME_COOKIE_KEY}=; Max-Age=0; Path=/; SameSite=Lax`;
 }
 
-export function readAccountCookie(): string | null {
-    const raw = getCookieRawValue(ACCOUNT_COOKIE_KEY);
-    if (raw === null) {
-        return null;
-    }
-    try {
-        return sanitizePlayerName(decodeURIComponent(raw));
-    } catch {
-        return null;
-    }
-}
-
-export function writeAccountCookie(name: string): void {
-    if (!canUseCookies()) {
-        return;
-    }
-    const trimmedName = sanitizePlayerName(name);
-    if (trimmedName === null) {
-        clearAccountCookie();
-        return;
-    }
-    document.cookie = `${ACCOUNT_COOKIE_KEY}=${encodeURIComponent(trimmedName)}; Max-Age=${AUTH_COOKIE_MAX_AGE_SECONDS}; Path=/; SameSite=Lax`;
-}
-
-export function clearAccountCookie(): void {
-    if (!canUseCookies()) {
-        return;
-    }
-    document.cookie = `${ACCOUNT_COOKIE_KEY}=; Max-Age=0; Path=/; SameSite=Lax`;
-}
-
 function clampCounter(value: number, max: number): number {
     if (!Number.isFinite(value)) {
         return 0;
@@ -176,16 +151,14 @@ class Storage {
             if (legacyRaw) {
                 let legacyName: string | null = null;
                 try {
-                    const parsed = JSON.parse(legacyRaw) as
-                        | {
-                              name?: unknown;
-                              player?: { name?: unknown };
-                              achievements?: { unlocked?: unknown[] };
-                          }
-                        | null;
+                    const parsed = JSON.parse(legacyRaw) as LegacyStorageRecord | null;
                     if (parsed && typeof parsed === 'object') {
                         legacyName = sanitizePlayerName(
-                            typeof parsed.name === 'string' ? parsed.name : parsed.player?.name
+                            typeof parsed.name === 'string'
+                                ? parsed.name
+                                : typeof parsed.player?.name === 'string'
+                                  ? parsed.player.name
+                                  : null
                         );
 
                         if (Array.isArray(parsed.achievements?.unlocked)) {

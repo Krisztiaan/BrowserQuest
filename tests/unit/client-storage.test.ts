@@ -1,10 +1,7 @@
 import { afterEach, expect, test } from 'bun:test';
 import Storage, {
     STORAGE_KEY,
-    clearAccountCookie,
-    readAccountCookie,
     readUsernameCookie,
-    writeAccountCookie,
 } from '../../client/storage';
 
 const LEGACY_STORAGE_KEY = 'data';
@@ -165,18 +162,4 @@ test('storage syncs username cookie on save and clear', () => {
 
     storage.clear();
     expect(readUsernameCookie()).toBeNull();
-});
-
-test('account cookie helpers roundtrip sanitized names and clear properly', () => {
-    Object.defineProperty(globalThis, 'document', {
-        configurable: true,
-        writable: true,
-        value: { cookie: '' },
-    });
-
-    writeAccountCookie('  AccountHero  ');
-    expect(readAccountCookie()).toBe('AccountHero');
-
-    clearAccountCookie();
-    expect(readAccountCookie()).toBeNull();
 });

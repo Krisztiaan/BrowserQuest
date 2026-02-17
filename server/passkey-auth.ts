@@ -15,6 +15,7 @@ import {
 } from '../shared/auth/cookie-keys';
 import type { SqlitePlayerPersistence } from './player-persistence';
 import { createSignedAuthSessionToken } from './auth-session';
+import { parseRequestPathname } from './http-utils';
 
 type PasskeyAuthPersistence = Pick<
     SqlitePlayerPersistence,
@@ -57,16 +58,13 @@ const DEFAULT_CHALLENGE_TTL_MS = 5 * 60 * 1000;
 const pendingRegisterChallenges = new Map<string, PendingChallenge>();
 const pendingLoginChallenges = new Map<string, PendingChallenge>();
 const textEncoder = new TextEncoder();
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
+type JsonRecord = Record<string, JsonValue>;
+type LooseValue = string | number | boolean | null | undefined | object;
+type ResponsePayload = JsonPrimitive | object;
 
-function parseRequestPathname(requestUrl: string | undefined): string {
-    try {
-        return new URL(requestUrl ?? '/', 'http://localhost').pathname;
-    } catch {
-        return '/';
-    }
-}
-
-function resolveString(value: unknown): string | null {
+function resolveString(value: LooseValue): string | null {
     if (typeof value !== 'string') {
         return null;
     }
@@ -120,22 +118,38 @@ function resolveRelyingPartyName(): string {
     return resolveString(process.env.BQ_WEBAUTHN_RP_NAME) ?? 'BrowserQuest';
 }
 
+function isSecureRequest(request: Request): boolean {
+    try {
+        return new URL(request.url).protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
 function buildCookie({
     name,
     value,
     maxAge,
     httpOnly = false,
+    secure = false,
 }: {
     name: string;
     value: string;
     maxAge: number;
     httpOnly?: boolean;
+    secure?: boolean;
 }): string {
-    const base = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
-    return httpOnly ? `${base}; HttpOnly` : base;
+    let cookie = `${name}=${encodeURIComponent(value)}; Max-Age=${maxAge}; Path=/; SameSite=Lax`;
+    if (httpOnly) {
+        cookie += '; HttpOnly';
+    }
+    if (secure) {
+        cookie += '; Secure';
+    }
+    return cookie;
 }
 
-function createAuthSuccessCookies(accountNameKey: string, displayName: string): string[] {
+function createAuthSuccessCookies(accountNameKey: string, displayName: string, secure: boolean): string[] {
     const sessionToken = createSignedAuthSessionToken({ accountNameKey });
     return [
         buildCookie({
@@ -143,39 +157,45 @@ function createAuthSuccessCookies(accountNameKey: string, displayName: string): 
             value: sessionToken,
             maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
             httpOnly: true,
+            secure,
         }),
         buildCookie({
             name: ACCOUNT_COOKIE_KEY,
             value: accountNameKey,
             maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
             httpOnly: true,
+            secure,
         }),
         buildCookie({
             name: USERNAME_COOKIE_KEY,
             value: displayName,
             maxAge: AUTH_COOKIE_MAX_AGE_SECONDS,
+            secure,
         }),
     ];
 }
 
-function createAuthClearCookies(): string[] {
+function createAuthClearCookies(secure: boolean): string[] {
     return [
         buildCookie({
             name: AUTH_SESSION_COOKIE_KEY,
             value: '',
             maxAge: 0,
             httpOnly: true,
+            secure,
         }),
         buildCookie({
             name: ACCOUNT_COOKIE_KEY,
             value: '',
             maxAge: 0,
             httpOnly: true,
+            secure,
         }),
         buildCookie({
             name: USERNAME_COOKIE_KEY,
             value: '',
             maxAge: 0,
+            secure,
         }),
     ];
 }
@@ -186,7 +206,7 @@ function createJsonResponse({
     cookies,
 }: {
     status: number;
-    payload: unknown;
+    payload: ResponsePayload;
     cookies?: ReadonlyArray<string>;
 }): Response {
     const headers = new Headers({
@@ -199,17 +219,21 @@ function createJsonResponse({
     return new Response(JSON.stringify(payload), { status, headers });
 }
 
-async function parseJsonBody(request: Request): Promise<Record<string, unknown> | null> {
-    let parsed: unknown;
+function isJsonRecord(value: JsonValue | object | null | undefined): value is JsonRecord {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+async function parseJsonBody(request: Request): Promise<JsonRecord | null> {
+    let parsed: JsonValue;
     try {
-        parsed = await request.json();
+        parsed = (await request.json()) as JsonValue;
     } catch {
         return null;
     }
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    if (!isJsonRecord(parsed)) {
         return null;
     }
-    return parsed as Record<string, unknown>;
+    return parsed;
 }
 
 async function parsePasskeyAuthOptionsPayload(request: Request): Promise<PasskeyAuthOptionsPayload | null> {
@@ -231,12 +255,12 @@ async function parsePasskeyRegisterVerifyPayload(request: Request): Promise<Pass
     }
     const username = resolveString(parsed.username);
     const response = parsed.response;
-    if (!username || !response || typeof response !== 'object' || Array.isArray(response)) {
+    if (!username || !isRegistrationResponseJson(response)) {
         return null;
     }
     return {
         username,
-        response: response as RegistrationResponseJSON,
+        response,
     };
 }
 
@@ -247,16 +271,46 @@ async function parsePasskeyLoginVerifyPayload(request: Request): Promise<Passkey
     }
     const username = resolveString(parsed.username);
     const response = parsed.response;
-    if (!username || !response || typeof response !== 'object' || Array.isArray(response)) {
+    if (!username || !isAuthenticationResponseJson(response)) {
         return null;
     }
     return {
         username,
-        response: response as AuthenticationResponseJSON,
+        response,
     };
 }
 
-function resolvePasskeyTransports(value: unknown): AuthenticatorTransportFuture[] {
+function isRegistrationResponseJson(
+    value: JsonValue | object | null | undefined
+): value is RegistrationResponseJSON {
+    if (!isJsonRecord(value)) {
+        return false;
+    }
+    const response = value.response;
+    return (
+        typeof value.id === 'string'
+        && typeof value.rawId === 'string'
+        && typeof value.type === 'string'
+        && isJsonRecord(response)
+    );
+}
+
+function isAuthenticationResponseJson(
+    value: JsonValue | object | null | undefined
+): value is AuthenticationResponseJSON {
+    if (!isJsonRecord(value)) {
+        return false;
+    }
+    const response = value.response;
+    return (
+        typeof value.id === 'string'
+        && typeof value.rawId === 'string'
+        && typeof value.type === 'string'
+        && isJsonRecord(response)
+    );
+}
+
+function resolvePasskeyTransports(value: ReadonlyArray<string> | null | undefined): AuthenticatorTransportFuture[] {
     if (!Array.isArray(value)) {
         return [];
     }
@@ -357,6 +411,7 @@ export async function createPasskeyAuthResponse({
     const verifyAuthenticationResponseFn = deps.verifyAuthenticationResponseFn ?? verifyAuthenticationResponse;
 
     const now = nowMs();
+    const secureCookies = isSecureRequest(request);
     pruneExpiredChallenges(pendingRegisterChallenges, now);
     pruneExpiredChallenges(pendingLoginChallenges, now);
 
@@ -367,7 +422,7 @@ export async function createPasskeyAuthResponse({
         return createJsonResponse({
             status: 200,
             payload: { ok: true },
-            cookies: createAuthClearCookies(),
+            cookies: createAuthClearCookies(secureCookies),
         });
     }
 
@@ -535,7 +590,7 @@ export async function createPasskeyAuthResponse({
                 accountNameKey: registered.accountNameKey,
                 displayName: registered.profile.displayName,
             },
-            cookies: createAuthSuccessCookies(registered.accountNameKey, registered.profile.displayName),
+            cookies: createAuthSuccessCookies(registered.accountNameKey, registered.profile.displayName, secureCookies),
         });
     }
 
@@ -621,6 +676,6 @@ export async function createPasskeyAuthResponse({
             accountNameKey: authenticated.accountNameKey,
             displayName: authenticated.profile.displayName,
         },
-        cookies: createAuthSuccessCookies(authenticated.accountNameKey, authenticated.profile.displayName),
+        cookies: createAuthSuccessCookies(authenticated.accountNameKey, authenticated.profile.displayName, secureCookies),
     });
 }
