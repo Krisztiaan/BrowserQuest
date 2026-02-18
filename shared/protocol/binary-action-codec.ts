@@ -685,14 +685,13 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             const chunkX = action[1];
             const chunkY = action[2];
             const version = action[3];
-            const payloadJson = action[4];
+            const payloadBytes = action[4];
             writer.writeVarU32(Number(chunkX) >>> 0);
             writer.writeVarU32(Number(chunkY) >>> 0);
             writer.writeVarU32(Number(version) >>> 0);
-            if (typeof payloadJson !== 'string') {
-                throw new Error('invalid chunk snapshot payload');
-            }
-            writer.writeString(payloadJson);
+            const bytes = toByteArray(payloadBytes);
+            writer.writeVarU32(bytes.length);
+            writer.writeBytes(bytes);
             return;
         }
         case Types.Messages.CHUNK_SNAPSHOT_PART: {
@@ -701,16 +700,15 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             const version = action[3];
             const partIndex = action[4];
             const partCount = action[5];
-            const payloadJson = action[6];
+            const payloadBytes = action[6];
             writer.writeVarU32(Number(chunkX) >>> 0);
             writer.writeVarU32(Number(chunkY) >>> 0);
             writer.writeVarU32(Number(version) >>> 0);
             writer.writeVarU32(Number(partIndex) >>> 0);
             writer.writeVarU32(Number(partCount) >>> 0);
-            if (typeof payloadJson !== 'string') {
-                throw new Error('invalid chunk snapshot part payload');
-            }
-            writer.writeString(payloadJson);
+            const bytes = toByteArray(payloadBytes);
+            writer.writeVarU32(bytes.length);
+            writer.writeBytes(bytes);
             return;
         }
         case Types.Messages.CHUNK_DELTA: {
@@ -718,15 +716,14 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             const chunkY = action[2];
             const fromVersion = action[3];
             const toVersion = action[4];
-            const payloadJson = action[5];
+            const payloadBytes = action[5];
             writer.writeVarU32(Number(chunkX) >>> 0);
             writer.writeVarU32(Number(chunkY) >>> 0);
             writer.writeVarU32(Number(fromVersion) >>> 0);
             writer.writeVarU32(Number(toVersion) >>> 0);
-            if (typeof payloadJson !== 'string') {
-                throw new Error('invalid chunk delta payload');
-            }
-            writer.writeString(payloadJson);
+            const bytes = toByteArray(payloadBytes);
+            writer.writeVarU32(bytes.length);
+            writer.writeBytes(bytes);
             return;
         }
         default:
@@ -952,8 +949,9 @@ function decodeServerToClientAction(reader: ByteReader): unknown[] {
             const chunkX = reader.readVarU32();
             const chunkY = reader.readVarU32();
             const version = reader.readVarU32();
-            const payloadJson = reader.readString();
-            return [opcode, chunkX, chunkY, version, payloadJson];
+            const payloadLen = reader.readVarU32();
+            const payload = reader.readBytes(payloadLen);
+            return [opcode, chunkX, chunkY, version, Array.from(payload)];
         }
         case Types.Messages.CHUNK_SNAPSHOT_PART: {
             const chunkX = reader.readVarU32();
@@ -961,16 +959,18 @@ function decodeServerToClientAction(reader: ByteReader): unknown[] {
             const version = reader.readVarU32();
             const partIndex = reader.readVarU32();
             const partCount = reader.readVarU32();
-            const payloadJson = reader.readString();
-            return [opcode, chunkX, chunkY, version, partIndex, partCount, payloadJson];
+            const payloadLen = reader.readVarU32();
+            const payload = reader.readBytes(payloadLen);
+            return [opcode, chunkX, chunkY, version, partIndex, partCount, Array.from(payload)];
         }
         case Types.Messages.CHUNK_DELTA: {
             const chunkX = reader.readVarU32();
             const chunkY = reader.readVarU32();
             const fromVersion = reader.readVarU32();
             const toVersion = reader.readVarU32();
-            const payloadJson = reader.readString();
-            return [opcode, chunkX, chunkY, fromVersion, toVersion, payloadJson];
+            const payloadLen = reader.readVarU32();
+            const payload = reader.readBytes(payloadLen);
+            return [opcode, chunkX, chunkY, fromVersion, toVersion, Array.from(payload)];
         }
         default:
             throw new Error(`unknown s2c opcode: ${opcode}`);

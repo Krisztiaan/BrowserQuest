@@ -40,6 +40,23 @@ Format per entry:
   - Next action:
     - Implement binary chunk snapshot/delta payloads (Ticket 397).
 
+- 11:42 UTC
+  - Ticket: 397 (FixedBin v2: binary chunk snapshot/delta payloads)
+  - Status: `done`
+  - Key actions taken:
+    - Replaced CHUNK_SNAPSHOT/CHUNK_SNAPSHOT_PART/CHUNK_DELTA payloads with binary bytes (no JSON strings) end-to-end.
+    - Updated chunk AOI streaming to produce binary payloads and to split snapshots into parts based on byte size caps.
+    - Updated client chunk receive handlers to decode binary chunk payloads and apply overlays without JSON parsing.
+    - Tightened protocol schema validation with a new `ba` (byte array) arg kind and switched INTENT + chunk payload schemas to use it.
+    - Updated FixedBin spec doc for chunk payload layouts.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/ws/runtime-parity.test.ts --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/smoke/server-payload-guards.test.ts --timeout 30000`
+    - `rg -n "decodeChunkSnapshotPayloadJson\\(" client/gameclient.ts` -> `0` matches
+  - Next action:
+    - Refresh protocol wire benchmarks (direction-specific fixedbin rows) and update `docs/protocol-wire.md` (Ticket 398).
+
 - 10:46 UTC
   - Ticket: 392 (FixedBin v1 spec + invariants)
   - Status: `in_progress`

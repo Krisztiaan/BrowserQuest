@@ -27,7 +27,7 @@ import type { TypedEventSource } from '../shared/typed-event-emitter';
 import { Evented } from '../shared/evented';
 import {
     decodeServerToClientProtocolActionBatchBinary,
-    encodeProtocolActionBinary,
+    encodeClientToServerProtocolActionBinary,
 } from '../shared/protocol/registry';
 import {
     DISPATCHER_CONNECT_STATUS,
@@ -48,8 +48,8 @@ import { decodeSpawnAction } from '../shared/replication/spawn-snapshot';
 import { adaptKernelEntityForRendering } from './ecs/kernel-entity-adapter';
 import { ClientWorldKernel } from './ecs/world-kernel';
 import { decodeProtocolCapabilitiesJson, type ProtocolCapabilities } from '../shared/protocol/capabilities';
-import { decodeChunkSnapshotPayloadJson } from '../shared/protocol/chunks/chunk-snapshot-codec';
-import { decodeChunkDeltaPayloadJson } from '../shared/protocol/chunks/chunk-delta-codec';
+import { decodeChunkSnapshotPayloadBinary } from '../shared/protocol/chunks/chunk-snapshot-codec';
+import { decodeChunkDeltaPayloadBinary } from '../shared/protocol/chunks/chunk-delta-codec';
 import { safeParseJsonValue, type JsonValue } from '../shared/json/safe-json';
 import {
     encodeClaimCreateIntentPayload,
@@ -317,7 +317,7 @@ class GameClient extends Evented<GameClientEvents> {
         if (this.connection?.readyState !== WebSocket.OPEN) {
             return;
         }
-        const data = encodeProtocolActionBinary(json);
+        const data = encodeClientToServerProtocolActionBinary(json);
         this.connection.send(data);
     }
 
@@ -574,16 +574,16 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveChunkSnapshot(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT>): void {
-        const [, chunkX, chunkY, version, payloadJson] = data;
+        const [, chunkX, chunkY, version, payloadBytes] = data;
         if (
             typeof chunkX !== 'number'
             || typeof chunkY !== 'number'
             || typeof version !== 'number'
-            || typeof payloadJson !== 'string'
+            || !Array.isArray(payloadBytes)
         ) {
             return;
         }
-        const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
+        const decoded = decodeChunkSnapshotPayloadBinary(payloadBytes);
         if (!decoded) {
             return;
         }
@@ -597,18 +597,18 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveChunkSnapshotPart(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT_PART>): void {
-        const [, chunkX, chunkY, version, partIndex, partCount, payloadJson] = data;
+        const [, chunkX, chunkY, version, partIndex, partCount, payloadBytes] = data;
         if (
             typeof chunkX !== 'number'
             || typeof chunkY !== 'number'
             || typeof version !== 'number'
             || typeof partIndex !== 'number'
             || typeof partCount !== 'number'
-            || typeof payloadJson !== 'string'
+            || !Array.isArray(payloadBytes)
         ) {
             return;
         }
-        const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
+        const decoded = decodeChunkSnapshotPayloadBinary(payloadBytes);
         if (!decoded) {
             return;
         }
@@ -624,17 +624,17 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveChunkDelta(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_DELTA>): void {
-        const [, chunkX, chunkY, fromVersion, toVersion, payloadJson] = data;
+        const [, chunkX, chunkY, fromVersion, toVersion, payloadBytes] = data;
         if (
             typeof chunkX !== 'number'
             || typeof chunkY !== 'number'
             || typeof fromVersion !== 'number'
             || typeof toVersion !== 'number'
-            || typeof payloadJson !== 'string'
+            || !Array.isArray(payloadBytes)
         ) {
             return;
         }
-        const decoded = decodeChunkDeltaPayloadJson(payloadJson);
+        const decoded = decodeChunkDeltaPayloadBinary(payloadBytes);
         if (!decoded) {
             return;
         }

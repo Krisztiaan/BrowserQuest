@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 11:32 UTC
+Last updated: 2026-02-18 11:42 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,25 +34,8 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 397 - FixedBin v2: binary chunk snapshot/delta payloads (no JSON strings)
-  - Status: `in_progress`
-  - Scope:
-    - Included: Replace CHUNK_SNAPSHOT/CHUNK_SNAPSHOT_PART/CHUNK_DELTA payloads with binary bytes (sparse fixed layout), end-to-end.
-    - Included: Update client receive handlers and server outbound action builders to use the new binary chunk codec.
-    - Included: Update protocol types/schema/manifest to reflect bytes payload shape.
-    - Out of scope: Further compression (zstd/brotli) or AOI algorithm changes.
-  - Acceptance criteria:
-    - Chunk streaming still functions in `bun dev` gameplay (smoke parity remains green).
-    - No chunk payload JSON parsing in client hot path for gameplay frames.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-    - `rg -n \"decodeChunkSnapshotPayloadJson\\(\" client/gameclient.ts` -> should be `0` matches
-  - Dependencies/blockers:
-    - Depends on Ticket 396.
-
 - Ticket 398 - Protocol wire benchmarks: direction-specific fixedbin rows + updated corpus
-  - Status: `todo`
+  - Status: `in_progress`
   - Scope:
     - Included: Update `tools/bench/protocol-wire.ts` to benchmark fixedbin using direction-specific codec entrypoints (c2s vs s2c).
     - Included: Update corpus samples to match FixedBin v2 (chunk bytes, intent/outcome enums).

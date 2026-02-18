@@ -322,3 +322,330 @@ export function decodeChunkSnapshotPayloadJson(
 
     return { schemaVersion: 1, encoding: 'gzip+base64', chunkSize, overrides };
 }
+
+// ---- Binary wire codec (FixedBin v2 chunk payloads; no JSON strings) ----
+
+export const CHUNK_SNAPSHOT_BINARY_SCHEMA_VERSION = 1 as const;
+
+function varu32Len(value: number): number {
+    if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
+        throw new Error('invalid varu32');
+    }
+    let remaining = value >>> 0;
+    let len = 1;
+    while (remaining >= 0x80) {
+        remaining >>>= 7;
+        len += 1;
+    }
+    return len;
+}
+
+function isByte(value: unknown): value is number {
+    return typeof value === 'number' && Number.isInteger(value) && value >= 0 && value <= 0xff;
+}
+
+function toByteArray(payload: unknown): Uint8Array | null {
+    if (!Array.isArray(payload)) {
+        return null;
+    }
+    const out = new Uint8Array(payload.length);
+    for (let i = 0; i < payload.length; i += 1) {
+        const value = payload[i];
+        if (!isByte(value)) {
+            return null;
+        }
+        out[i] = value;
+    }
+    return out;
+}
+
+class BinWriter {
+    private buffer: Uint8Array;
+    private offset = 0;
+
+    constructor(initialCapacity = 256) {
+        this.buffer = new Uint8Array(initialCapacity);
+    }
+
+    private ensure(neededBytes: number): void {
+        if (this.offset + neededBytes <= this.buffer.length) {
+            return;
+        }
+        let nextLength = this.buffer.length;
+        while (this.offset + neededBytes > nextLength) {
+            nextLength *= 2;
+        }
+        const next = new Uint8Array(nextLength);
+        next.set(this.buffer);
+        this.buffer = next;
+    }
+
+    writeU8(value: number): void {
+        this.ensure(1);
+        this.buffer[this.offset] = value & 0xff;
+        this.offset += 1;
+    }
+
+    writeU16Le(value: number): void {
+        this.ensure(2);
+        this.buffer[this.offset] = value & 0xff;
+        this.buffer[this.offset + 1] = (value >>> 8) & 0xff;
+        this.offset += 2;
+    }
+
+    writeVarU32(value: number): void {
+        if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
+            throw new Error('invalid varu32');
+        }
+        this.ensure(5);
+        let remaining = value >>> 0;
+        while (remaining >= 0x80) {
+            this.buffer[this.offset] = (remaining & 0x7f) | 0x80;
+            this.offset += 1;
+            remaining >>>= 7;
+        }
+        this.buffer[this.offset] = remaining & 0xff;
+        this.offset += 1;
+    }
+
+    toUint8Array(): Uint8Array {
+        return this.buffer.slice(0, this.offset);
+    }
+}
+
+class BinReader {
+    private offset = 0;
+    constructor(private readonly bytes: Uint8Array) {}
+
+    private require(neededBytes: number): boolean {
+        return this.offset + neededBytes <= this.bytes.length;
+    }
+
+    readU8(): number | null {
+        if (!this.require(1)) {
+            return null;
+        }
+        const value = this.bytes[this.offset] ?? 0;
+        this.offset += 1;
+        return value;
+    }
+
+    readU16Le(): number | null {
+        if (!this.require(2)) {
+            return null;
+        }
+        const b0 = this.bytes[this.offset] ?? 0;
+        const b1 = this.bytes[this.offset + 1] ?? 0;
+        this.offset += 2;
+        return b0 | (b1 << 8);
+    }
+
+    readVarU32(): number | null {
+        const bytes = this.bytes;
+        let offset = this.offset;
+        let shift = 0;
+        let value = 0;
+        while (shift < 35) {
+            if (offset >= bytes.length) {
+                return null;
+            }
+            const byte = bytes[offset] ?? 0;
+            offset += 1;
+            value |= (byte & 0x7f) << shift;
+            if ((byte & 0x80) === 0) {
+                this.offset = offset;
+                return value >>> 0;
+            }
+            shift += 7;
+        }
+        return null;
+    }
+
+    remaining(): number {
+        return this.bytes.length - this.offset;
+    }
+}
+
+function validateChunkSizeBinary(chunkSize: number): void {
+    if (!Number.isInteger(chunkSize) || chunkSize <= 0 || chunkSize > 256) {
+        throw new Error(`invalid chunkSize: ${String(chunkSize)}`);
+    }
+}
+
+export function encodeChunkSnapshotPayloadBinary({
+    chunkSize,
+    overrides,
+    maxBytes = DEFAULT_MAX_CHUNK_SNAPSHOT_PAYLOAD_UTF8_BYTES,
+}: {
+    chunkSize: number;
+    overrides: ChunkSnapshotOverride[];
+    maxBytes?: number;
+}): number[] {
+    validateChunkSizeBinary(chunkSize);
+    if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
+        throw new Error(`encodeChunkSnapshotPayloadBinary: invalid maxBytes: ${String(maxBytes)}`);
+    }
+
+    // Estimate exact size to fail fast without allocating/encoding.
+    let size = 1 + varu32Len(chunkSize) + varu32Len(overrides.length);
+    for (let i = 0; i < overrides.length; i += 1) {
+        const entry = overrides[i];
+        if (!entry) {
+            continue;
+        }
+        const x = entry[0];
+        const y = entry[1];
+        const value = entry[2];
+        if (
+            !Number.isInteger(x)
+            || !Number.isInteger(y)
+            || !Number.isInteger(value)
+            || x < 0
+            || y < 0
+            || value < 0
+            || x >= chunkSize
+            || y >= chunkSize
+        ) {
+            throw new Error('encodeChunkSnapshotPayloadBinary: invalid override');
+        }
+        size += 2 + varu32Len(value);
+    }
+
+    if (size > maxBytes) {
+        throw new Error(`encodeChunkSnapshotPayloadBinary: payload exceeds cap (cap=${maxBytes}B, size=${size}B)`);
+    }
+
+    const writer = new BinWriter(size);
+    writer.writeU8(CHUNK_SNAPSHOT_BINARY_SCHEMA_VERSION);
+    writer.writeVarU32(chunkSize);
+    writer.writeVarU32(overrides.length);
+    for (let i = 0; i < overrides.length; i += 1) {
+        const [x, y, value] = overrides[i] ?? [0, 0, 0];
+        const idx = y * chunkSize + x;
+        writer.writeU16Le(idx);
+        writer.writeVarU32(value);
+    }
+    return Array.from(writer.toUint8Array());
+}
+
+export function encodeChunkSnapshotPayloadBinaryParts({
+    chunkSize,
+    overrides,
+    maxBytes = DEFAULT_MAX_CHUNK_SNAPSHOT_PAYLOAD_UTF8_BYTES,
+}: {
+    chunkSize: number;
+    overrides: ChunkSnapshotOverride[];
+    maxBytes?: number;
+}): number[][] {
+    validateChunkSizeBinary(chunkSize);
+    if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
+        throw new Error(`encodeChunkSnapshotPayloadBinaryParts: invalid maxBytes: ${String(maxBytes)}`);
+    }
+
+    const base = 1 + varu32Len(chunkSize);
+    const parts: number[][] = [];
+    let current: ChunkSnapshotOverride[] = [];
+    let currentSum = 0;
+
+    const flush = (): void => {
+        if (current.length === 0) {
+            return;
+        }
+        parts.push(
+            encodeChunkSnapshotPayloadBinary({
+                chunkSize,
+                overrides: current,
+                maxBytes,
+            })
+        );
+        current = [];
+        currentSum = 0;
+    };
+
+    for (let i = 0; i < overrides.length; i += 1) {
+        const entry = overrides[i];
+        if (!entry) {
+            continue;
+        }
+        const x = entry[0];
+        const y = entry[1];
+        const value = entry[2];
+        if (
+            !Number.isInteger(x)
+            || !Number.isInteger(y)
+            || !Number.isInteger(value)
+            || x < 0
+            || y < 0
+            || value < 0
+            || x >= chunkSize
+            || y >= chunkSize
+        ) {
+            throw new Error('encodeChunkSnapshotPayloadBinaryParts: invalid override');
+        }
+
+        const itemSize = 2 + varu32Len(value);
+        const nextCount = current.length + 1;
+        const nextSum = currentSum + itemSize;
+        const nextTotal = base + varu32Len(nextCount) + nextSum;
+
+        if (nextTotal > maxBytes && current.length > 0) {
+            flush();
+        }
+
+        // If even a single override can't fit, the caller must treat this as "cannot send".
+        if (base + varu32Len(1) + itemSize > maxBytes) {
+            throw new Error('encodeChunkSnapshotPayloadBinaryParts: cannot fit even 1 override under cap');
+        }
+
+        current.push(entry);
+        currentSum += itemSize;
+    }
+
+    flush();
+
+    if (parts.length === 0) {
+        return [encodeChunkSnapshotPayloadBinary({ chunkSize, overrides: [], maxBytes })];
+    }
+    return parts;
+}
+
+export function decodeChunkSnapshotPayloadBinary(
+    payloadBytes: unknown
+): { schemaVersion: 1; encoding: 'binary'; chunkSize: number; overrides: ChunkSnapshotOverride[] } | null {
+    const bytes = toByteArray(payloadBytes);
+    if (!bytes) {
+        return null;
+    }
+    const reader = new BinReader(bytes);
+    const schemaVersion = reader.readU8();
+    if (schemaVersion !== CHUNK_SNAPSHOT_BINARY_SCHEMA_VERSION) {
+        return null;
+    }
+    const chunkSize = reader.readVarU32();
+    if (chunkSize === null) {
+        return null;
+    }
+    if (!Number.isInteger(chunkSize) || chunkSize <= 0 || chunkSize > 256) {
+        return null;
+    }
+    const count = reader.readVarU32();
+    if (count === null) {
+        return null;
+    }
+    const maxIdx = chunkSize * chunkSize;
+    const overrides: ChunkSnapshotOverride[] = [];
+    for (let i = 0; i < count; i += 1) {
+        const idx = reader.readU16Le();
+        const value = reader.readVarU32();
+        if (idx === null || value === null || idx < 0 || idx >= maxIdx) {
+            return null;
+        }
+        const x = idx % chunkSize;
+        const y = Math.floor(idx / chunkSize);
+        overrides.push([x, y, value]);
+    }
+    if (reader.remaining() !== 0) {
+        return null;
+    }
+    return { schemaVersion: 1, encoding: 'binary', chunkSize, overrides };
+}

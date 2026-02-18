@@ -380,7 +380,10 @@ Body:
 - `varu32 chunkX`
 - `varu32 chunkY`
 - `varu32 version`
-- `S payloadJson`
+- `varu32 payloadByteCount`
+- `payloadByteCount` × `u8` payload bytes (raw)
+
+Payload bytes are the binary chunk snapshot encoding (see `shared/protocol/chunks/chunk-snapshot-codec.ts`).
 
 #### `CHUNK_SNAPSHOT_PART` (38)
 
@@ -390,7 +393,8 @@ Body:
 - `varu32 version`
 - `varu32 partIndex`
 - `varu32 partCount`
-- `S payloadJson`
+- `varu32 payloadByteCount`
+- `payloadByteCount` × `u8` payload bytes (raw)
 
 #### `CHUNK_DELTA` (37)
 
@@ -399,7 +403,10 @@ Body:
 - `varu32 chunkY`
 - `varu32 fromVersion`
 - `varu32 toVersion`
-- `S payloadJson`
+- `varu32 payloadByteCount`
+- `payloadByteCount` × `u8` payload bytes (raw)
+
+Payload bytes are the binary chunk delta encoding (see `shared/protocol/chunks/chunk-delta-codec.ts`).
 
 ## Compatibility Notes
 

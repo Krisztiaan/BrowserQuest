@@ -6,8 +6,11 @@ import type { GridPos } from '../../../shared/domain/positions';
 import type { Queue } from '../../ecs/queues';
 import type { OutboxMessage } from '../../ecs/outbox';
 import { buildChunkDeltaAction, buildChunkSnapshotAction, buildChunkSnapshotPartAction } from '../../protocol/outbound-actions';
-import { encodeChunkDeltaPayloadJson } from '../../../shared/protocol/chunks/chunk-delta-codec';
-import { encodeChunkSnapshotPayloadJson, encodeChunkSnapshotPayloadJsonParts } from '../../../shared/protocol/chunks/chunk-snapshot-codec';
+import { encodeChunkDeltaPayloadBinary } from '../../../shared/protocol/chunks/chunk-delta-codec';
+import {
+    encodeChunkSnapshotPayloadBinary,
+    encodeChunkSnapshotPayloadBinaryParts,
+} from '../../../shared/protocol/chunks/chunk-snapshot-codec';
 
 const MAX_PENDING_CHUNKS_PER_PLAYER = 1024;
 const MAX_PENDING_SNAPSHOT_STREAMS_PER_PLAYER = 32;
@@ -239,29 +242,29 @@ export function replicateChunkSnapshots({
         }
 
         let sent = 0;
-        while (sent < maxSnapshotsPerTickPerPlayer) {
-            const inflight = sub.pendingSnapshotParts[0] ?? null;
-            if (inflight) {
-                const partIndex = inflight.nextPartIndex;
-                const payloadJson = inflight.parts[partIndex] ?? null;
-                if (payloadJson === null) {
-                    sub.pendingSnapshotParts.shift();
-                    sub.inFlightSnapshotKeys.delete(inflight.key);
-                    continue;
-                }
+	        while (sent < maxSnapshotsPerTickPerPlayer) {
+	            const inflight = sub.pendingSnapshotParts[0] ?? null;
+	            if (inflight) {
+	                const partIndex = inflight.nextPartIndex;
+	                const payloadBytes = inflight.parts[partIndex] ?? null;
+	                if (payloadBytes === null) {
+	                    sub.pendingSnapshotParts.shift();
+	                    sub.inFlightSnapshotKeys.delete(inflight.key);
+	                    continue;
+	                }
 
-                outbox.push({
-                    kind: 'to_player',
-                    playerId,
-                    action: buildChunkSnapshotPartAction(
-                        inflight.chunkX,
-                        inflight.chunkY,
-                        inflight.version,
-                        partIndex,
-                        inflight.parts.length,
-                        payloadJson
-                    ),
-                });
+	                outbox.push({
+	                    kind: 'to_player',
+	                    playerId,
+	                    action: buildChunkSnapshotPartAction(
+	                        inflight.chunkX,
+	                        inflight.chunkY,
+	                        inflight.version,
+	                        partIndex,
+	                        inflight.parts.length,
+	                        payloadBytes
+	                    ),
+	                });
                 inflight.nextPartIndex += 1;
                 sent += 1;
 
@@ -287,60 +290,60 @@ export function replicateChunkSnapshots({
             world.ensureChunkOverlayLoaded?.(next.chunkX, next.chunkY);
             const chunk = overlays.getChunk(next.chunkX, next.chunkY);
             const version = chunk?.version ?? 0;
-            const overrides = chunk ? extractOverrides(chunk.present, chunk.values, chunk.size) : [];
+	            const overrides = chunk ? extractOverrides(chunk.present, chunk.values, chunk.size) : [];
 
-            const encoded = (() => {
-                try {
-                    return encodeChunkSnapshotPayloadJson({
-                        chunkSize: overlays.chunkSize,
-                        overrides,
-                        maxUtf8Bytes: maxChunkSnapshotPayloadUtf8Bytes,
-                    });
-                } catch (_) {
-                    return null;
-                }
-            })();
+	            const encoded = (() => {
+	                try {
+	                    return encodeChunkSnapshotPayloadBinary({
+	                        chunkSize: overlays.chunkSize,
+	                        overrides,
+	                        maxBytes: maxChunkSnapshotPayloadUtf8Bytes,
+	                    });
+	                } catch (_) {
+	                    return null;
+	                }
+	            })();
 
-            if (encoded !== null) {
-                outbox.push({
-                    kind: 'to_player',
-                    playerId,
-                    action: buildChunkSnapshotAction(next.chunkX, next.chunkY, version, encoded),
-                });
-                sub.knownChunks.add(key);
-                sub.knownChunkVersions.set(key, version);
-                sent += 1;
-                continue;
-            }
+	            if (encoded !== null) {
+	                outbox.push({
+	                    kind: 'to_player',
+	                    playerId,
+	                    action: buildChunkSnapshotAction(next.chunkX, next.chunkY, version, encoded),
+	                });
+	                sub.knownChunks.add(key);
+	                sub.knownChunkVersions.set(key, version);
+	                sent += 1;
+	                continue;
+	            }
 
-            let parts: string[];
-            try {
-                parts = encodeChunkSnapshotPayloadJsonParts({
-                    chunkSize: overlays.chunkSize,
-                    overrides,
-                    maxUtf8Bytes: maxChunkSnapshotPayloadUtf8Bytes,
-                });
-            } catch (_) {
-                enqueuePendingChunk(sub, next.chunkX, next.chunkY);
-                sent += 1;
-                continue;
-            }
+	            let parts: number[][];
+	            try {
+	                parts = encodeChunkSnapshotPayloadBinaryParts({
+	                    chunkSize: overlays.chunkSize,
+	                    overrides,
+	                    maxBytes: maxChunkSnapshotPayloadUtf8Bytes,
+	                });
+	            } catch (_) {
+	                enqueuePendingChunk(sub, next.chunkX, next.chunkY);
+	                sent += 1;
+	                continue;
+	            }
 
-            if (parts.length <= 1) {
-                const payloadJson = parts[0] ?? null;
-                if (payloadJson === null) {
-                    continue;
-                }
-                outbox.push({
-                    kind: 'to_player',
-                    playerId,
-                    action: buildChunkSnapshotAction(next.chunkX, next.chunkY, version, payloadJson),
-                });
-                sub.knownChunks.add(key);
-                sub.knownChunkVersions.set(key, version);
-                sent += 1;
-                continue;
-            }
+	            if (parts.length <= 1) {
+	                const payloadBytes = parts[0] ?? null;
+	                if (payloadBytes === null) {
+	                    continue;
+	                }
+	                outbox.push({
+	                    kind: 'to_player',
+	                    playerId,
+	                    action: buildChunkSnapshotAction(next.chunkX, next.chunkY, version, payloadBytes),
+	                });
+	                sub.knownChunks.add(key);
+	                sub.knownChunkVersions.set(key, version);
+	                sent += 1;
+	                continue;
+	            }
 
             const overflowParts = parts.length > maxChunkSnapshotParts;
             const queued = enqueueSnapshotPartStream(sub, {
@@ -392,34 +395,34 @@ export function replicateChunkDeltas({
             continue;
         }
 
-        if (delta.changes.length > maxChunkDeltaChangesPerMessage) {
-            const overrides = extractOverrides(chunk.present, chunk.values, chunk.size);
-            const encoded = (() => {
-                try {
-                    return encodeChunkSnapshotPayloadJson({
-                        chunkSize: overlays.chunkSize,
-                        overrides,
-                        maxUtf8Bytes: maxChunkSnapshotPayloadUtf8Bytes,
-                    });
-                } catch (_) {
-                    return null;
-                }
-            })();
+	        if (delta.changes.length > maxChunkDeltaChangesPerMessage) {
+	            const overrides = extractOverrides(chunk.present, chunk.values, chunk.size);
+	            const encoded = (() => {
+	                try {
+	                    return encodeChunkSnapshotPayloadBinary({
+	                        chunkSize: overlays.chunkSize,
+	                        overrides,
+	                        maxBytes: maxChunkSnapshotPayloadUtf8Bytes,
+	                    });
+	                } catch (_) {
+	                    return null;
+	                }
+	            })();
 
-            const parts = (() => {
-                if (encoded !== null) {
-                    return null;
-                }
-                try {
-                    return encodeChunkSnapshotPayloadJsonParts({
-                        chunkSize: overlays.chunkSize,
-                        overrides,
-                        maxUtf8Bytes: maxChunkSnapshotPayloadUtf8Bytes,
-                    });
-                } catch (_) {
-                    return null;
-                }
-            })();
+	            const parts = (() => {
+	                if (encoded !== null) {
+	                    return null;
+	                }
+	                try {
+	                    return encodeChunkSnapshotPayloadBinaryParts({
+	                        chunkSize: overlays.chunkSize,
+	                        overrides,
+	                        maxBytes: maxChunkSnapshotPayloadUtf8Bytes,
+	                    });
+	                } catch (_) {
+	                    return null;
+	                }
+	            })();
 
             for (const [playerId, sub] of chunkAoi.byPlayerId.entries()) {
                 if (!world.isPlayerActive(playerId)) {
@@ -429,17 +432,17 @@ export function replicateChunkDeltas({
                 if (!sub.knownChunkVersions.has(key)) {
                     continue;
                 }
-                if (encoded !== null) {
-                    outbox.push({
-                        kind: 'to_player',
-                        playerId,
-                        action: buildChunkSnapshotAction(chunk.chunkX, chunk.chunkY, chunk.version, encoded),
-                    });
-                    sub.knownChunkVersions.set(key, chunk.version);
-                    continue;
-                }
-                if (!parts || parts.length <= 1) {
-                    continue;
+	                if (encoded !== null) {
+	                    outbox.push({
+	                        kind: 'to_player',
+	                        playerId,
+	                        action: buildChunkSnapshotAction(chunk.chunkX, chunk.chunkY, chunk.version, encoded),
+	                    });
+	                    sub.knownChunkVersions.set(key, chunk.version);
+	                    continue;
+	                }
+	                if (!parts || parts.length <= 1) {
+	                    continue;
                 }
                 sub.knownChunkVersions.delete(key);
                 if (!sub.inFlightSnapshotKeys.has(key)) {
@@ -459,11 +462,11 @@ export function replicateChunkDeltas({
                     }
                 }
             }
-            continue;
-        }
+	            continue;
+	        }
 
-        const payloadJson = encodeChunkDeltaPayloadJson({ chunkSize: overlays.chunkSize, changes: delta.changes });
-        for (const [playerId, sub] of chunkAoi.byPlayerId.entries()) {
+	        const payloadBytes = encodeChunkDeltaPayloadBinary({ chunkSize: overlays.chunkSize, changes: delta.changes });
+	        for (const [playerId, sub] of chunkAoi.byPlayerId.entries()) {
             if (!world.isPlayerActive(playerId)) {
                 chunkAoi.byPlayerId.delete(playerId);
                 continue;
@@ -483,12 +486,12 @@ export function replicateChunkDeltas({
                 }
                 continue;
             }
-            outbox.push({
-                kind: 'to_player',
-                playerId,
-                action: buildChunkDeltaAction(chunk.chunkX, chunk.chunkY, delta.fromVersion, delta.toVersion, payloadJson),
-            });
-            sub.knownChunkVersions.set(key, delta.toVersion);
-        }
-    }
-}
+	            outbox.push({
+	                kind: 'to_player',
+	                playerId,
+	                action: buildChunkDeltaAction(chunk.chunkX, chunk.chunkY, delta.fromVersion, delta.toVersion, payloadBytes),
+	            });
+	            sub.knownChunkVersions.set(key, delta.toVersion);
+	        }
+	    }
+	}

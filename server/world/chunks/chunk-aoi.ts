@@ -15,7 +15,7 @@ export type ChunkSubscription = {
         chunkX: number;
         chunkY: number;
         version: number;
-        parts: string[];
+        parts: number[][];
         nextPartIndex: number;
     }>;
 };

@@ -79,7 +79,13 @@ export type ServerToClientAckAction = [typeof Types.Messages.ACK, number];
 export type ServerToClientCorrectionAction =
     | [typeof Types.Messages.CORRECTION, number, number, number]
     | [typeof Types.Messages.CORRECTION, number, string, string];
-export type ServerToClientChunkSnapshotAction = [typeof Types.Messages.CHUNK_SNAPSHOT, number, number, number, string];
+export type ServerToClientChunkSnapshotAction = [
+    typeof Types.Messages.CHUNK_SNAPSHOT,
+    number,
+    number,
+    number,
+    number[],
+];
 export type ServerToClientChunkSnapshotPartAction = [
     typeof Types.Messages.CHUNK_SNAPSHOT_PART,
     number,
@@ -87,7 +93,7 @@ export type ServerToClientChunkSnapshotPartAction = [
     number,
     number,
     number,
-    string,
+    number[],
 ];
 export type ServerToClientChunkDeltaAction = [
     typeof Types.Messages.CHUNK_DELTA,
@@ -95,7 +101,7 @@ export type ServerToClientChunkDeltaAction = [
     number,
     number,
     number,
-    string,
+    number[],
 ];
 
 export type ServerToClientProtocolAction =

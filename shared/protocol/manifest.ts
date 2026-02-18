@@ -3,8 +3,8 @@ import type { ClientToServerProtocolAction, ProtocolOpcode, ServerToClientProtoc
 
 export type ProtocolDirection = 'client_to_server' | 'server_to_client';
 
-type ClientToServerArg = 'n' | 's' | 'na';
-type ServerToClientArg = 'n' | 's' | 'ns' | 'na' | 'pv' | 'lit1';
+type ClientToServerArg = 'n' | 's' | 'na' | 'ba';
+type ServerToClientArg = 'n' | 's' | 'ns' | 'na' | 'ba' | 'pv' | 'lit1';
 
 type ActionSchema<TArg extends string> =
     | Readonly<{ kind: 'fixed'; args: ReadonlyArray<TArg> }>
@@ -43,7 +43,7 @@ export const CLIENT_TO_SERVER_PROTOCOL_MANIFEST = [
     { key: 'OPEN', opcode: Types.Messages.OPEN, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'CHECK', opcode: Types.Messages.CHECK, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'ACHIEVEMENT', opcode: Types.Messages.ACHIEVEMENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'INTENT', opcode: Types.Messages.INTENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 's', 'na'] } },
+    { key: 'INTENT', opcode: Types.Messages.INTENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 's', 'ba'] } },
     { key: 'CHUNK_SUBSCRIBE', opcode: Types.Messages.CHUNK_SUBSCRIBE, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 'n', 'n'] } },
     { key: 'CHUNK_UNSUBSCRIBE', opcode: Types.Messages.CHUNK_UNSUBSCRIBE, direction: 'client_to_server', schema: { kind: 'fixed', args: [] } },
 ] as const satisfies ReadonlyArray<ClientToServerProtocolManifestEntry>;
@@ -99,19 +99,19 @@ export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
         key: 'CHUNK_SNAPSHOT',
         opcode: Types.Messages.CHUNK_SNAPSHOT,
         direction: 'server_to_client',
-        schema: { kind: 'fixed', args: ['n', 'n', 'n', 's'] },
+        schema: { kind: 'fixed', args: ['n', 'n', 'n', 'ba'] },
     },
     {
         key: 'CHUNK_SNAPSHOT_PART',
         opcode: Types.Messages.CHUNK_SNAPSHOT_PART,
         direction: 'server_to_client',
-        schema: { kind: 'fixed', args: ['n', 'n', 'n', 'n', 'n', 's'] },
+        schema: { kind: 'fixed', args: ['n', 'n', 'n', 'n', 'n', 'ba'] },
     },
     {
         key: 'CHUNK_DELTA',
         opcode: Types.Messages.CHUNK_DELTA,
         direction: 'server_to_client',
-        schema: { kind: 'fixed', args: ['n', 'n', 'n', 'n', 's'] },
+        schema: { kind: 'fixed', args: ['n', 'n', 'n', 'n', 'ba'] },
     },
 ] as const satisfies ReadonlyArray<ServerToClientProtocolManifestEntry>;
 

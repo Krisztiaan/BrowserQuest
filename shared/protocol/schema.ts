@@ -6,7 +6,7 @@ import {
     type ServerToClientProtocolManifestEntry,
 } from './manifest';
 
-type MessageTypeFormat = Array<'n' | 's' | 'na'>;
+type MessageTypeFormat = Array<'n' | 's' | 'na' | 'ba'>;
 export type ClientToServerFormatSchema = Record<number, MessageTypeFormat>;
 type ProtocolSchemaInput = number | string | boolean | null | number[] | object | undefined;
 type ProtocolSchemaAction = readonly ProtocolSchemaInput[];
@@ -29,6 +29,13 @@ function isNumberOrString(value: ProtocolSchemaInput): value is number | string 
 
 function isNumberArray(value: ProtocolSchemaInput): value is number[] {
     return Array.isArray(value) && value.every(isFiniteNumber);
+}
+
+function isByteArray(value: ProtocolSchemaInput): value is number[] {
+    return (
+        Array.isArray(value)
+        && value.every((entry) => typeof entry === 'number' && Number.isInteger(entry) && entry >= 0 && entry <= 0xff)
+    );
 }
 
 function isProtocolActionValue(value: ProtocolSchemaInput): value is ProtocolActionValue {
@@ -59,7 +66,7 @@ function toProtocolSchemaAction(
     return value.every(isProtocolSchemaInput) ? value : null;
 }
 
-function validateClientToServerArg(kind: 'n' | 's' | 'na', value: ProtocolSchemaInput): boolean {
+function validateClientToServerArg(kind: 'n' | 's' | 'na' | 'ba', value: ProtocolSchemaInput): boolean {
     switch (kind) {
         case 'n':
             return isFiniteInteger(value);
@@ -67,10 +74,15 @@ function validateClientToServerArg(kind: 'n' | 's' | 'na', value: ProtocolSchema
             return isString(value);
         case 'na':
             return isNumberArray(value);
+        case 'ba':
+            return isByteArray(value);
     }
 }
 
-function validateServerToClientArg(kind: 'n' | 's' | 'ns' | 'na' | 'pv' | 'lit1', value: ProtocolSchemaInput): boolean {
+function validateServerToClientArg(
+    kind: 'n' | 's' | 'ns' | 'na' | 'ba' | 'pv' | 'lit1',
+    value: ProtocolSchemaInput
+): boolean {
     switch (kind) {
         case 'n':
             return isFiniteNumber(value);
@@ -80,6 +92,8 @@ function validateServerToClientArg(kind: 'n' | 's' | 'ns' | 'na' | 'pv' | 'lit1'
             return isNumberOrString(value);
         case 'na':
             return isNumberArray(value);
+        case 'ba':
+            return isByteArray(value);
         case 'pv':
             return isProtocolActionValue(value);
         case 'lit1':

@@ -69,9 +69,9 @@ export function buildChunkSnapshotAction(
     chunkX: number,
     chunkY: number,
     version: number,
-    payloadJson: string
+    payloadBytes: number[]
 ): ServerToClientChunkSnapshotAction {
-    return [Types.Messages.CHUNK_SNAPSHOT, chunkX, chunkY, version, payloadJson];
+    return [Types.Messages.CHUNK_SNAPSHOT, chunkX, chunkY, version, payloadBytes];
 }
 
 export function buildChunkSnapshotPartAction(
@@ -80,9 +80,9 @@ export function buildChunkSnapshotPartAction(
     version: number,
     partIndex: number,
     partCount: number,
-    payloadJson: string
+    payloadBytes: number[]
 ): ServerToClientChunkSnapshotPartAction {
-    return [Types.Messages.CHUNK_SNAPSHOT_PART, chunkX, chunkY, version, partIndex, partCount, payloadJson];
+    return [Types.Messages.CHUNK_SNAPSHOT_PART, chunkX, chunkY, version, partIndex, partCount, payloadBytes];
 }
 
 export function buildChunkDeltaAction(
@@ -90,9 +90,9 @@ export function buildChunkDeltaAction(
     chunkY: number,
     fromVersion: number,
     toVersion: number,
-    payloadJson: string
+    payloadBytes: number[]
 ): ServerToClientChunkDeltaAction {
-    return [Types.Messages.CHUNK_DELTA, chunkX, chunkY, fromVersion, toVersion, payloadJson];
+    return [Types.Messages.CHUNK_DELTA, chunkX, chunkY, fromVersion, toVersion, payloadBytes];
 }
 
 export function buildDespawnAction(id: EntityId): ServerToClientDespawnAction {
