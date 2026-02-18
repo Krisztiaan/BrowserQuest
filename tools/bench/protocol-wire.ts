@@ -1,6 +1,6 @@
 import {
-    decodeClientToServerBinaryActionBatchPayload,
-    encodeClientToServerBinaryActionBatchPayload,
+    decodeBinaryActionBatchPayload,
+    encodeBinaryActionBatchPayload,
 } from '../../shared/protocol/binary-action-codec';
 import Types from '../../shared/gametypes-browser';
 
@@ -255,20 +255,16 @@ function zigZagDecode(value: number): number {
     return (value >>> 1) ^ -(value & 1);
 }
 
-function customEncodeBatch(batch: WireBatch): Uint8Array {
-    return encodeClientToServerBinaryActionBatchPayload(batch);
+function fixedBinEncodeBatch(batch: WireBatch): Uint8Array {
+    return encodeBinaryActionBatchPayload(batch as unknown[]);
 }
 
-function customDecodeBatch(frame: Uint8Array): WireBatch {
-    const decoded = decodeClientToServerBinaryActionBatchPayload(frame) as WireBatch;
-    if (decoded.length === 1) {
-        const single = decoded[0];
-        if (!Array.isArray(single)) {
-            throw new Error('invalid runtime custom payload');
-        }
-        return single as WireBatch;
+function fixedBinDecodeBatch(frame: Uint8Array): WireBatch {
+    const decoded = decodeBinaryActionBatchPayload(frame);
+    if (!Array.isArray(decoded)) {
+        throw new Error('invalid fixedbin payload');
     }
-    return decoded;
+    return decoded as WireBatch;
 }
 
 function msgpackWriteInt(writer: ByteWriter, value: number): void {
@@ -832,7 +828,7 @@ function main(): void {
         benchmarkCodec('msgpack-subset', frames, msgpackEncodeBatch, msgpackDecodeBatch),
         benchmarkCodec('protobuf-generic', frames, protobufEncodeBatch, protobufDecodeBatch),
         benchmarkCodec('custom-efficient-v1', frames, customEfficientEncodeBatch, customEfficientDecodeBatch),
-        benchmarkCodec('runtime-custom-v4', frames, customEncodeBatch, customDecodeBatch),
+        benchmarkCodec('fixedbin-v1', frames, fixedBinEncodeBatch, fixedBinDecodeBatch),
     ];
 
     printResults(results, frames.length);
