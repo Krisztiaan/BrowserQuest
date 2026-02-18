@@ -13,6 +13,72 @@ Format per entry:
 
 ---
 
+## 2026-02-18
+
+- 09:30 UTC
+  - Ticket: 389 (runtime codec cutover to fastest binary path)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Ticketized the codec removal/cutover work in `TODO.md` (Tickets 389-391).
+    - Started implementation prep by mapping all runtime and test callsites of `binary-action-codec`.
+  - Evidence:
+    - `rg -n "binary-action-codec|encodeClientToServerBinaryActionBatchPayload|decodeServerToClientBinaryActionBatchPayload" shared server client tests tools -S`
+    - `sed -n '1,260p' shared/protocol/registry.ts`
+    - `sed -n '1,260p' shared/protocol/binary-wire.ts`
+  - Next action:
+    - Replace schema-driven runtime encode/decode internals with the custom-efficient codec path and run targeted verification.
+
+- 09:40 UTC
+  - Ticket: 389 (runtime codec cutover to fastest binary path)
+  - Status: `done`
+  - Key actions taken:
+    - Replaced `shared/protocol/binary-action-codec.ts` schema-driven runtime internals with a custom-efficient binary batch codec.
+    - Removed manifest/schema runtime branching from encode/decode hot paths while preserving existing exported API names.
+    - Bumped wire version to `BINARY_PROTOCOL_V4`.
+  - Evidence:
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/ws/runtime-parity.test.ts`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/smoke/server-payload-guards.test.ts --timeout 30000`
+  - Next action:
+    - Complete registry-boundary hardening and benchmark/docs alignment tickets.
+
+- 09:40 UTC
+  - Ticket: 390 (binary decode hardening at registry boundary)
+  - Status: `done`
+  - Key actions taken:
+    - Updated registry binary decode helpers to normalize/validate decoded payloads before returning typed action batches.
+    - Kept validation at boundary while keeping runtime codec hot-path logic lean.
+  - Evidence:
+    - `bun test tests/unit/protocol/registry.test.ts tests/smoke/server-payload-guards.test.ts --timeout 30000`
+  - Next action:
+    - Finish benchmark rerun and docs updates for ticket 391.
+
+- 09:40 UTC
+  - Ticket: 391 (benchmark/docs alignment to runtime codec)
+  - Status: `done`
+  - Key actions taken:
+    - Re-ran `tools/bench/protocol-wire.ts`, renamed runtime row to `runtime-custom-v4`, and aligned benchmark harness to runtime wrapper path.
+    - Updated `docs/protocol-wire.md` for binary v4 contract and latest measured benchmark output.
+  - Evidence:
+    - `bun tools/bench/protocol-wire.ts`
+    - `git diff docs/protocol-wire.md tools/bench/protocol-wire.ts`
+  - Next action:
+    - Mark tickets 389-391 complete in `TODO.md`.
+
+- 09:41 UTC
+  - Ticket: 389-391 (final verification sweep)
+  - Status: `done`
+  - Key actions taken:
+    - Re-ran typecheck and end-to-end protocol/runtime/smoke verification after final codec simplifications.
+    - Re-ran protocol benchmark and refreshed docs table/relative deltas with final numbers.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts`
+    - `bun test tests/unit/ws/runtime-factory.test.ts tests/unit/ws/runtime-parity.test.ts`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/smoke/server-payload-guards.test.ts --timeout 30000`
+    - `bun tools/bench/protocol-wire.ts`
+  - Next action:
+    - Share results and decide whether to keep or remove frame header overhead in a follow-up perf ticket.
+
 ## 2026-02-14
 
 - 17:01 UTC
@@ -3854,3 +3920,312 @@ Format per entry:
     - `bun tools/bench/protocol-wire.ts`
   - Next action:
     - Ready to commit Ticket 370.
+
+- 02:23 UTC
+  - Ticket: 371 (Lossless image optimization + modern image format migration)
+  - Start timestamp: 2026-02-18 02:23 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited all image/runtime callsites to map `.png` dependencies in client CSS/TS, `index.html`, and server profile preview composition.
+    - Confirmed available lossless tooling (`cwebp`) and measured conversion behavior to avoid regressions on assets where lossless WebP is larger.
+    - Defined ticket sequence for image -> audio -> modern-only cleanup in `TODO.md`.
+  - Evidence:
+    - `rg -n "\\.png" client index.html assets tools server shared`
+    - `sed -n '1,240p' server/profile-preview.ts`
+    - `command -v cwebp`
+  - Next action:
+    - Convert runtime PNG assets to lossless WebP and update references.
+
+- 08:45 UTC
+  - Ticket: 371 (Lossless image optimization + modern image format migration)
+  - Start timestamp: 2026-02-18 02:23 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Converted runtime sprite/UI PNG assets under `client/public/img` to lossless WebP and removed PNG runtime copies.
+    - Updated runtime image resolution and direct callsites to `.webp` (`client/image-assets.ts`, `client/main/character-preview.ts`, `client/css/main.css`, `index.html`).
+    - Updated server profile preview composition path/MIME to WebP and aligned unit assertions.
+    - Kept map tileset authoring references consistent with new runtime extension where relevant.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/server-profile-preview.test.ts`
+    - `bun run build:client`
+    - Conversion stats: `converted=239`, `saved_bytes=1183857` from `client/public/img/*.png -> *.webp`.
+  - Next action:
+    - Execute Ticket 372 (transparent audio encode + single modern codec path).
+
+- 08:45 UTC
+  - Ticket: 372 (Transparent audio re-encode + single modern codec path)
+  - Start timestamp: 2026-02-18 08:45 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Re-encoded runtime audio keys to Opus-in-Ogg (`libopus`, VBR) and removed MP3 runtime assets.
+    - Switched client audio loader extension to `.ogg` (`client/audio.ts`).
+    - Removed non-key extra audio assets (`npctalk.*`) and verified all required key-backed assets exist as `.ogg`.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/client-audio-manager.test.ts`
+    - `bun run build:client`
+    - Validation script output: `missing 0`, `mp3_present 0`.
+  - Next action:
+    - Execute Ticket 373 (modern-browser-only font/legacy asset trim).
+
+- 08:45 UTC
+  - Ticket: 373 (Trim to modern browser only: fonts + dead legacy assets)
+  - Start timestamp: 2026-02-18 08:45 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Reduced `@font-face` sources to WOFF-only in `client/css/main.css` (removed EOT/TTF/SVG references).
+    - Removed legacy font files from `client/fonts` that are no longer referenced.
+    - Removed unused legacy cursor asset (`client/public/img/common/empty.cur`).
+    - Verified no remaining runtime references to removed legacy font formats.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun run build:client`
+    - `rg -n "graphicpixel-webfont\\.(eot|ttf|svg)|advocut-webfont\\.(eot|ttf|svg)|empty\\.cur" client index.html server tests tools assets`
+  - Next action:
+    - Tickets 371-373 complete; return results.
+
+- 08:47 UTC
+  - Ticket: 374 (Protocol benchmark: add Protobuf codec)
+  - Start timestamp: 2026-02-18 08:47 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited existing protocol benchmark harness and runtime codec integration points.
+    - Ticketized follow-on work for Protobuf + efficient custom codec + docs update in `TODO.md`.
+  - Evidence:
+    - `sed -n '1,560p' tools/bench/protocol-wire.ts`
+    - `sed -n '1,220p' docs/protocol-wire.md`
+    - `git diff TODO.md`
+  - Next action:
+    - Implement Protobuf codec encode/decode and add it to benchmark rows.
+
+- 08:50 UTC
+  - Ticket: 374 (Protocol benchmark: add Protobuf codec)
+  - Start timestamp: 2026-02-18 08:47 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added a Protobuf generic value-envelope codec to `tools/bench/protocol-wire.ts`.
+    - Implemented protobuf wire encode/decode helpers (varint, zigzag, wire-type parsing, length-delimited nested value/list messages).
+    - Wired the new codec into benchmark output as `protobuf-generic`.
+  - Evidence:
+    - `bun tools/bench/protocol-wire.ts`
+      - `protobuf-generic`: encode `80.91` ms, decode `33.43` ms, total bytes `773418`
+  - Next action:
+    - Execute Ticket 375 (high-efficiency custom codec benchmark path).
+
+- 08:50 UTC
+  - Ticket: 375 (Protocol benchmark: high-efficiency custom codec)
+  - Start timestamp: 2026-02-18 08:50 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added `custom-efficient-v1` codec to `tools/bench/protocol-wire.ts` with:
+      - compact one-byte type tags,
+      - zigzag varints for int32 values,
+      - packed int-array encoding,
+      - static protocol-string dictionary IDs for hot strings.
+    - Added decode symmetry and trailing-bytes validation.
+    - Wired the codec into benchmark output.
+  - Evidence:
+    - `bun tools/bench/protocol-wire.ts`
+      - `custom-efficient-v1`: encode `20.14` ms, decode `20.98` ms, total bytes `238689`
+  - Next action:
+    - Execute Ticket 376 (document results and recommendation).
+
+- 08:51 UTC
+  - Ticket: 376 (Document protocol benchmark expansion + recommendation)
+  - Start timestamp: 2026-02-18 08:51 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated `docs/protocol-wire.md` to include `protobuf-generic` and `custom-efficient-v1` benchmark rows.
+    - Refreshed relative-vs-JSON deltas and documented recommendation based on measured outcomes.
+    - Verified tools TypeScript build after harness changes.
+  - Evidence:
+    - `bun run typecheck:tools`
+    - `bun tools/bench/protocol-wire.ts`
+    - `git diff docs/protocol-wire.md`
+  - Next action:
+    - Return implementation and benchmark results.
+
+- 08:52 UTC
+  - Ticket: 377 (Runtime codec cutover to custom-efficient v2)
+  - Start timestamp: 2026-02-18 08:52 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited binary wire/version and runtime encode/decode callsites to scope a no-fallback payload codec cutover.
+    - Ticketized runtime cutover + benchmark/doc synchronization + final verification in `TODO.md`.
+  - Evidence:
+    - `rg -n "BINARY_PROTOCOL_V1|binary-action-codec|encodeBinaryActionBatchPayload|decodeBinaryActionBatchPayload" shared server client tests tools`
+    - `sed -n '1,220p' shared/protocol/binary-wire.ts`
+    - `sed -n '1,220p' shared/protocol/binary-action-codec.ts`
+    - `git diff TODO.md`
+  - Next action:
+    - Implement custom-efficient payload codec in runtime and bump protocol version to v2.
+
+- 08:54 UTC
+  - Ticket: 377 (Runtime codec cutover to custom-efficient v2)
+  - Start timestamp: 2026-02-18 08:52 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Replaced runtime gameplay payload codec implementation in `shared/protocol/binary-action-codec.ts` from MessagePack to custom-efficient binary.
+    - Added custom payload primitives (tagged values, varint+zigzag ints, packed int arrays, static string dictionary, strict trailing-byte checks).
+    - Bumped runtime binary protocol version constant to v2 in `shared/protocol/binary-wire.ts`.
+    - Kept no-fallback policy: decode now accepts only current version payloads.
+  - Evidence:
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts`
+  - Next action:
+    - Execute Ticket 378 (benchmark harness/runtime row sync).
+
+- 08:54 UTC
+  - Ticket: 378 (Benchmark harness/runtime row sync for v2)
+  - Start timestamp: 2026-02-18 08:54 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated benchmark runtime row label from `msgpack-full-runtime` to `custom-efficient-runtime-v2`.
+    - Re-ran protocol benchmark on the cutover runtime codec.
+  - Evidence:
+    - `bun tools/bench/protocol-wire.ts`
+      - `custom-efficient-runtime-v2`: encode `30.06` ms, decode `18.92` ms, total bytes `614702`
+  - Next action:
+    - Execute Ticket 379 (docs/tests/dependency cleanup).
+
+- 08:55 UTC
+  - Ticket: 379 (Docs/tests/dependency cleanup)
+  - Start timestamp: 2026-02-18 08:55 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated protocol docs from Binary v1/MessagePack runtime to Binary v2/custom-efficient runtime.
+    - Updated binary codec test names to match custom-efficient runtime wording.
+    - Removed stale `@msgpack/msgpack` dependency from project.
+    - Verified no stale references to v1/msgpack runtime remain.
+  - Evidence:
+    - `bun remove @msgpack/msgpack`
+    - `rg -n "@msgpack/msgpack|msgpack-full-runtime|BINARY_PROTOCOL_V1|full MessagePack runtime" shared server client tests tools docs package.json || true`
+    - `git diff docs/protocol-wire.md tests/unit/protocol/binary-action-codec.test.ts package.json`
+  - Next action:
+    - Execute Ticket 380 (final integrated verification pass).
+
+- 08:55 UTC
+  - Ticket: 380 (Final integrated verification)
+  - Start timestamp: 2026-02-18 08:55 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ran integrated typecheck + smoke + protocol/runtime unit tests + protocol benchmark after v2 cutover.
+    - Confirmed modern gameplay parity remains green under custom-efficient runtime wire.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts`
+    - `bun tools/bench/protocol-wire.ts`
+  - Next action:
+    - Return implementation results and commit options.
+
+- 09:02 UTC
+  - Ticket: 381 (Asset conversion integrity: fix malformed CSS asset URLs)
+  - Start timestamp: 2026-02-18 09:02 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited current worktree and origin-master worktree asset references to identify restore-vs-fix scope.
+    - Confirmed no runtime-required deleted asset currently needs restoration.
+    - Isolated malformed CSS URL rewrite pattern in `client/css/main.css` as primary breakage.
+  - Evidence:
+    - `rg -n "url\\('/img/[^']+\\.webp\\)" client/css/main.css`
+    - `node` reference checks over `index.html`, `client`, `server`, `shared`
+    - `git status --porcelain`
+  - Next action:
+    - Patch malformed URL quoting in `client/css/main.css`, then run verification checks and close ticket.
+
+- 09:03 UTC
+  - Ticket: 381 (Asset conversion integrity: fix malformed CSS asset URLs)
+  - Start timestamp: 2026-02-18 09:02 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Fixed all malformed CSS image URL entries in `client/css/main.css` by restoring proper quoted WebP URLs.
+    - Revalidated static asset references used by runtime source files and CSS.
+    - Reconfirmed no deleted legacy image asset is required by current runtime references.
+  - Evidence:
+    - `rg -n "url\\('/img/[^']+\\.webp\\)" client/css/main.css | wc -l` -> `0`
+    - `rg -n "url\\(''\\)" client/css/main.css | wc -l` -> `0`
+    - `node` static image reference check (`index.html`, `client`, `server`, `shared`) -> `unique-static-img-refs 28 missing 0`
+    - `node` CSS image reference check -> `css-img-refs 23 missing 0`
+    - `rg -n "empty\\.cur|gplus|spritesheet\\.png" index.html client server shared || true`
+  - Next action:
+    - Return fix summary and changed-file references.
+
+- 09:03 UTC
+  - Ticket: 385 (Protocol v3 schema-specific codec optimization)
+  - Start timestamp: 2026-02-18 09:03 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited protocol action unions/manifests/schemas to define a schema-specific binary v3 codec shape.
+    - Identified hot-path hooks for fused decode+validation and direction-specific encode in runtime/client send paths.
+  - Evidence:
+    - `sed -n '1,320p' shared/protocol/types.ts`
+    - `sed -n '1,420p' shared/protocol/schema.ts`
+    - `sed -n '1,320p' shared/protocol/manifest.ts`
+    - `rg -n "encodeProtocolActionBinary|encodeBinaryActionBatchPayload|decodeClientToServerProtocolActionBatchBinary|decodeServerToClientProtocolActionBatchBinary" server client shared tests tools`
+  - Next action:
+    - Implement v3 schema-specific codec and direction-aware payload envelope in `shared/protocol/binary-action-codec.ts`.
+
+- 09:22 UTC
+  - Ticket: 385 (Protocol v3 schema-specific codec optimization)
+  - Start timestamp: 2026-02-18 09:03 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Implemented runtime binary codec v3 in `shared/protocol/binary-action-codec.ts` with:
+      - v3 frame version support and direction/root payload envelope,
+      - schema-driven per-opcode action decode/encode,
+      - int32 varint numeric payloads and static string dictionary.
+    - Added hot opcode fast paths for encode/decode to reduce schema dispatch overhead in common gameplay actions.
+    - Fixed a server decode mismatch in fast-path `EQUIP` handling by routing that opcode through generic schema decode.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Execute Ticket 386 (fuse registry decode+validation and hot-path encode callsites).
+
+- 09:23 UTC
+  - Ticket: 386 (Registry decode+validation fusion + hot-path encode routing)
+  - Start timestamp: 2026-02-18 09:22 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added direction-specific runtime codec APIs and switched registry binary decoders to use them directly (single-pass decode for each direction).
+    - Added direction-specific registry binary encoders and switched client/server hot send paths:
+      - client outbound path (`client/gameclient.ts`) now uses c2s-specific binary encoder.
+      - server outbound WS runtime (`server/ws/runtime-factory.ts`) now uses s2c-specific binary encoder.
+      - bot harness outbound path (`tools/bots/bot-client.ts`) now uses c2s-specific binary encoder.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts`
+  - Next action:
+    - Execute Ticket 387 (bench/docs refresh).
+
+- 09:25 UTC
+  - Ticket: 387 (Benchmark/docs refresh for runtime v3)
+  - Start timestamp: 2026-02-18 09:23 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated protocol wire benchmark corpus to valid manifest-aligned action samples using `Types.Messages.*`.
+    - Updated runtime row naming and direction-aware bench encode/decode routing for v3 frames.
+    - Refreshed `docs/protocol-wire.md` to v3 contract language and latest benchmark output.
+  - Evidence:
+    - `bun tools/bench/protocol-wire.ts`
+      - `schema-runtime-v3`: encode `38.47` ms, decode `39.11` ms, total bytes `492050`
+    - `git diff docs/protocol-wire.md tools/bench/protocol-wire.ts`
+  - Next action:
+    - Execute Ticket 388 (final integrated verification + closeout).
+
+- 09:26 UTC
+  - Ticket: 388 (Final integrated verification + closeout)
+  - Start timestamp: 2026-02-18 09:25 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ran full targeted verification set after v3 codec + callsite integration.
+    - Confirmed modern gameplay smoke parity remains green on runtime v3.
+    - Updated `TODO.md` to clear active tickets and mark 385-388 complete.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts`
+    - `bun tools/bench/protocol-wire.ts`
+    - `git diff TODO.md PROGRESS.md`
+  - Next action:
+    - Return results and benchmark tradeoffs.

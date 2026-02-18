@@ -1,4 +1,8 @@
-import { decodeBinaryActionBatchPayload, encodeBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
+import {
+    decodeClientToServerBinaryActionBatchPayload,
+    encodeClientToServerBinaryActionBatchPayload,
+} from '../../shared/protocol/binary-action-codec';
+import Types from '../../shared/gametypes-browser';
 
 type WireValue = null | boolean | number | string | WireValue[];
 type WireBatch = WireValue[];
@@ -17,24 +21,31 @@ const TEXT_DECODER = new TextDecoder();
 const FRAMES = 20_000;
 
 const SERVER_SAMPLES: WireBatch[] = [
-    [[32, 1], [4, 500000000, 158, 117]],
-    [[31, 2, 'move.step', 'Invalid move.step (non-adjacent).'], [33, 2, 158, 117]],
-    [7, 174, 500000000],
-    [[15, 500000000, 155, 113], [10, 108], [10, 103]],
-    [36, 7, 6, 0, '{"schemaVersion":1,"encoding":"json","chunkSize":32,"overrides":[]}'],
-    [[2, 184, 2, 156, 117, 1], [4, 500000000, 155, 115], [10, 62, 1]],
+    [[Types.Messages.ACK, 1], [Types.Messages.MOVE, 500000000, 158, 117]],
+    [
+        [Types.Messages.REJECT, 2, 'move.step', 'Invalid move.step (non-adjacent).'],
+        [Types.Messages.CORRECTION, 2, 158, 117],
+    ],
+    [Types.Messages.ATTACK, 174, 500000000],
+    [[Types.Messages.TELEPORT, 500000000, 155, 113], [Types.Messages.HP, 108], [Types.Messages.HP, 103]],
+    [Types.Messages.CHUNK_SNAPSHOT, 7, 6, 0, '{"schemaVersion":1,"encoding":"json","chunkSize":32,"overrides":[]}'],
+    [
+        [Types.Messages.SPAWN, 184, 2, 156, 117, 1],
+        [Types.Messages.MOVE, 500000000, 155, 115],
+        [Types.Messages.HEALTH, 62, 1],
+    ],
 ];
 
 const CLIENT_SAMPLES: WireBatch[] = [
-    [1, 'bench', 2, 60],
-    [11, 'benchmark chat payload'],
-    [22],
-    [26, 1, 'move.step', '{"x":155,"y":114}'],
-    [26, 2, 'claim.create', '{"x1":10,"y1":10,"x2":12,"y2":12,"editors":["bob"]}'],
-    [28, 184],
-    [9, 184],
-    [6, 155, 113, 174],
-    [34, 8, 4, 3],
+    [Types.Messages.HELLO, 'bench', 2, 60],
+    [Types.Messages.CHAT, 'benchmark chat payload'],
+    [Types.Messages.ZONE],
+    [Types.Messages.INTENT, 1, 'move.step', [155, 114]],
+    [Types.Messages.INTENT, 2, 'claim.create', [10, 10, 12, 12]],
+    [Types.Messages.LOOT, 184],
+    [Types.Messages.ATTACK, 184],
+    [Types.Messages.LOOTMOVE, 155, 113, 174],
+    [Types.Messages.CHUNK_SUBSCRIBE, 8, 4, 3],
 ];
 
 function cloneValue<T extends WireValue>(value: T): T {
@@ -125,6 +136,15 @@ class ByteWriter {
         this.offset += 4;
     }
 
+    writeVarUint(value: number): void {
+        let remaining = value >>> 0;
+        while (remaining >= 0x80) {
+            this.writeU8((remaining & 0x7f) | 0x80);
+            remaining >>>= 7;
+        }
+        this.writeU8(remaining);
+    }
+
     writeI32(value: number): void {
         this.writeU32(value >>> 0);
     }
@@ -184,6 +204,20 @@ class ByteReader {
         return value >>> 0;
     }
 
+    readVarUint(): number {
+        let shift = 0;
+        let value = 0;
+        while (shift < 35) {
+            const byte = this.readU8();
+            value |= (byte & 0x7f) << shift;
+            if ((byte & 0x80) === 0) {
+                return value >>> 0;
+            }
+            shift += 7;
+        }
+        throw new Error('varuint overflow');
+    }
+
     readI32(): number {
         const unsigned = this.readU32();
         return unsigned | 0;
@@ -203,21 +237,38 @@ class ByteReader {
         return value;
     }
 
+    skip(length: number): void {
+        this.require(length);
+        this.offset += length;
+    }
+
     remaining(): number {
         return this.bytes.length - this.offset;
     }
 }
 
+function zigZagEncode(value: number): number {
+    return ((value << 1) ^ (value >> 31)) >>> 0;
+}
+
+function zigZagDecode(value: number): number {
+    return (value >>> 1) ^ -(value & 1);
+}
+
 function customEncodeBatch(batch: WireBatch): Uint8Array {
-    return encodeBinaryActionBatchPayload(batch);
+    return encodeClientToServerBinaryActionBatchPayload(batch);
 }
 
 function customDecodeBatch(frame: Uint8Array): WireBatch {
-    const decoded = decodeBinaryActionBatchPayload(frame);
-    if (!Array.isArray(decoded)) {
-        throw new Error('invalid runtime custom payload');
+    const decoded = decodeClientToServerBinaryActionBatchPayload(frame) as WireBatch;
+    if (decoded.length === 1) {
+        const single = decoded[0];
+        if (!Array.isArray(single)) {
+            throw new Error('invalid runtime custom payload');
+        }
+        return single as WireBatch;
     }
-    return decoded as WireBatch;
+    return decoded;
 }
 
 function msgpackWriteInt(writer: ByteWriter, value: number): void {
@@ -357,6 +408,319 @@ function msgpackDecodeBatch(bytes: Uint8Array): WireBatch {
     return decoded;
 }
 
+const PROTOBUF_WIRE_VARINT = 0;
+const PROTOBUF_WIRE_FIXED64 = 1;
+const PROTOBUF_WIRE_LENGTH_DELIMITED = 2;
+const PROTOBUF_WIRE_FIXED32 = 5;
+
+function protobufWriteTag(writer: ByteWriter, fieldNumber: number, wireType: number): void {
+    writer.writeVarUint((fieldNumber << 3) | wireType);
+}
+
+function protobufSkipUnknownField(reader: ByteReader, wireType: number): void {
+    if (wireType === PROTOBUF_WIRE_VARINT) {
+        reader.readVarUint();
+        return;
+    }
+    if (wireType === PROTOBUF_WIRE_FIXED64) {
+        reader.skip(8);
+        return;
+    }
+    if (wireType === PROTOBUF_WIRE_LENGTH_DELIMITED) {
+        reader.skip(reader.readVarUint());
+        return;
+    }
+    if (wireType === PROTOBUF_WIRE_FIXED32) {
+        reader.skip(4);
+        return;
+    }
+    throw new Error(`unsupported protobuf wire type: ${wireType}`);
+}
+
+function protobufEncodeValueMessage(value: WireValue): Uint8Array {
+    const writer = new ByteWriter();
+    if (value === null) {
+        protobufWriteTag(writer, 6, PROTOBUF_WIRE_VARINT);
+        writer.writeVarUint(1);
+        return writer.bytes();
+    }
+    if (typeof value === 'boolean') {
+        protobufWriteTag(writer, 4, PROTOBUF_WIRE_VARINT);
+        writer.writeVarUint(value ? 1 : 0);
+        return writer.bytes();
+    }
+    if (typeof value === 'number') {
+        if (Number.isInteger(value) && value >= -2_147_483_648 && value <= 2_147_483_647) {
+            protobufWriteTag(writer, 1, PROTOBUF_WIRE_VARINT);
+            writer.writeVarUint(zigZagEncode(value));
+        } else {
+            protobufWriteTag(writer, 2, PROTOBUF_WIRE_FIXED64);
+            writer.writeF64(value);
+        }
+        return writer.bytes();
+    }
+    if (typeof value === 'string') {
+        const encoded = TEXT_ENCODER.encode(value);
+        protobufWriteTag(writer, 3, PROTOBUF_WIRE_LENGTH_DELIMITED);
+        writer.writeVarUint(encoded.length);
+        writer.writeBytes(encoded);
+        return writer.bytes();
+    }
+
+    const listWriter = new ByteWriter();
+    for (const entry of value) {
+        const encodedEntry = protobufEncodeValueMessage(entry);
+        protobufWriteTag(listWriter, 1, PROTOBUF_WIRE_LENGTH_DELIMITED);
+        listWriter.writeVarUint(encodedEntry.length);
+        listWriter.writeBytes(encodedEntry);
+    }
+    const encodedList = listWriter.bytes();
+    protobufWriteTag(writer, 5, PROTOBUF_WIRE_LENGTH_DELIMITED);
+    writer.writeVarUint(encodedList.length);
+    writer.writeBytes(encodedList);
+    return writer.bytes();
+}
+
+function protobufDecodeListMessage(payload: Uint8Array): WireValue[] {
+    const reader = new ByteReader(payload);
+    const out: WireValue[] = [];
+    while (reader.remaining() > 0) {
+        const tag = reader.readVarUint();
+        const fieldNumber = tag >>> 3;
+        const wireType = tag & 0x7;
+        if (fieldNumber !== 1 || wireType !== PROTOBUF_WIRE_LENGTH_DELIMITED) {
+            protobufSkipUnknownField(reader, wireType);
+            continue;
+        }
+        const length = reader.readVarUint();
+        out.push(protobufDecodeValueMessage(reader.readBytes(length)));
+    }
+    return out;
+}
+
+function protobufDecodeValueMessage(payload: Uint8Array): WireValue {
+    const reader = new ByteReader(payload);
+    let decoded: WireValue | undefined;
+    while (reader.remaining() > 0) {
+        const tag = reader.readVarUint();
+        const fieldNumber = tag >>> 3;
+        const wireType = tag & 0x7;
+
+        if (fieldNumber === 1 && wireType === PROTOBUF_WIRE_VARINT) {
+            decoded = zigZagDecode(reader.readVarUint());
+            continue;
+        }
+        if (fieldNumber === 2 && wireType === PROTOBUF_WIRE_FIXED64) {
+            decoded = reader.readF64();
+            continue;
+        }
+        if (fieldNumber === 3 && wireType === PROTOBUF_WIRE_LENGTH_DELIMITED) {
+            decoded = TEXT_DECODER.decode(reader.readBytes(reader.readVarUint()));
+            continue;
+        }
+        if (fieldNumber === 4 && wireType === PROTOBUF_WIRE_VARINT) {
+            decoded = reader.readVarUint() !== 0;
+            continue;
+        }
+        if (fieldNumber === 5 && wireType === PROTOBUF_WIRE_LENGTH_DELIMITED) {
+            decoded = protobufDecodeListMessage(reader.readBytes(reader.readVarUint()));
+            continue;
+        }
+        if (fieldNumber === 6 && wireType === PROTOBUF_WIRE_VARINT) {
+            reader.readVarUint();
+            decoded = null;
+            continue;
+        }
+
+        protobufSkipUnknownField(reader, wireType);
+    }
+    if (decoded === undefined) {
+        throw new Error('invalid protobuf value message');
+    }
+    return decoded;
+}
+
+function protobufEncodeBatch(batch: WireBatch): Uint8Array {
+    const writer = new ByteWriter();
+    for (const value of batch) {
+        const encodedValue = protobufEncodeValueMessage(value);
+        protobufWriteTag(writer, 1, PROTOBUF_WIRE_LENGTH_DELIMITED);
+        writer.writeVarUint(encodedValue.length);
+        writer.writeBytes(encodedValue);
+    }
+    return writer.bytes();
+}
+
+function protobufDecodeBatch(bytes: Uint8Array): WireBatch {
+    const reader = new ByteReader(bytes);
+    const out: WireValue[] = [];
+    while (reader.remaining() > 0) {
+        const tag = reader.readVarUint();
+        const fieldNumber = tag >>> 3;
+        const wireType = tag & 0x7;
+        if (fieldNumber !== 1 || wireType !== PROTOBUF_WIRE_LENGTH_DELIMITED) {
+            protobufSkipUnknownField(reader, wireType);
+            continue;
+        }
+        const length = reader.readVarUint();
+        out.push(protobufDecodeValueMessage(reader.readBytes(length)));
+    }
+    return out;
+}
+
+const CUSTOM_TAG_NULL = 0x00;
+const CUSTOM_TAG_FALSE = 0x01;
+const CUSTOM_TAG_TRUE = 0x02;
+const CUSTOM_TAG_INT = 0x03;
+const CUSTOM_TAG_FLOAT64 = 0x04;
+const CUSTOM_TAG_STRING = 0x05;
+const CUSTOM_TAG_ARRAY = 0x06;
+const CUSTOM_TAG_INT_ARRAY = 0x07;
+const CUSTOM_TAG_STATIC_STRING = 0x08;
+
+const CUSTOM_STATIC_STRINGS = [
+    'move.step',
+    'Invalid move.step (non-adjacent).',
+    'claim.create',
+    '{"x":155,"y":114}',
+    '{"x1":10,"y1":10,"x2":12,"y2":12,"editors":["bob"]}',
+    '{"schemaVersion":1,"encoding":"json","chunkSize":32,"overrides":[]}',
+    'benchmark chat payload',
+    'bench',
+] as const;
+
+const CUSTOM_STATIC_STRING_TO_ID = new Map<string, number>(
+    CUSTOM_STATIC_STRINGS.map((value, index) => [value, index])
+);
+
+function customEfficientEncodeValue(writer: ByteWriter, value: WireValue): void {
+    if (value === null) {
+        writer.writeU8(CUSTOM_TAG_NULL);
+        return;
+    }
+    if (value === false) {
+        writer.writeU8(CUSTOM_TAG_FALSE);
+        return;
+    }
+    if (value === true) {
+        writer.writeU8(CUSTOM_TAG_TRUE);
+        return;
+    }
+    if (typeof value === 'number') {
+        if (Number.isInteger(value) && value >= -2_147_483_648 && value <= 2_147_483_647) {
+            writer.writeU8(CUSTOM_TAG_INT);
+            writer.writeVarUint(zigZagEncode(value));
+        } else {
+            writer.writeU8(CUSTOM_TAG_FLOAT64);
+            writer.writeF64(value);
+        }
+        return;
+    }
+    if (typeof value === 'string') {
+        const staticId = CUSTOM_STATIC_STRING_TO_ID.get(value);
+        if (staticId !== undefined) {
+            writer.writeU8(CUSTOM_TAG_STATIC_STRING);
+            writer.writeVarUint(staticId);
+            return;
+        }
+        const encoded = TEXT_ENCODER.encode(value);
+        writer.writeU8(CUSTOM_TAG_STRING);
+        writer.writeVarUint(encoded.length);
+        writer.writeBytes(encoded);
+        return;
+    }
+
+    const allInts = value.every(
+        (entry) => typeof entry === 'number'
+            && Number.isInteger(entry)
+            && entry >= -2_147_483_648
+            && entry <= 2_147_483_647
+    );
+    if (allInts) {
+        writer.writeU8(CUSTOM_TAG_INT_ARRAY);
+        writer.writeVarUint(value.length);
+        for (const entry of value) {
+            writer.writeVarUint(zigZagEncode(entry as number));
+        }
+        return;
+    }
+
+    writer.writeU8(CUSTOM_TAG_ARRAY);
+    writer.writeVarUint(value.length);
+    for (const entry of value) {
+        customEfficientEncodeValue(writer, entry);
+    }
+}
+
+function customEfficientDecodeValue(reader: ByteReader): WireValue {
+    const tag = reader.readU8();
+    if (tag === CUSTOM_TAG_NULL) {
+        return null;
+    }
+    if (tag === CUSTOM_TAG_FALSE) {
+        return false;
+    }
+    if (tag === CUSTOM_TAG_TRUE) {
+        return true;
+    }
+    if (tag === CUSTOM_TAG_INT) {
+        return zigZagDecode(reader.readVarUint());
+    }
+    if (tag === CUSTOM_TAG_FLOAT64) {
+        return reader.readF64();
+    }
+    if (tag === CUSTOM_TAG_STRING) {
+        return TEXT_DECODER.decode(reader.readBytes(reader.readVarUint()));
+    }
+    if (tag === CUSTOM_TAG_STATIC_STRING) {
+        const value = CUSTOM_STATIC_STRINGS[reader.readVarUint()];
+        if (value === undefined) {
+            throw new Error('invalid static string id');
+        }
+        return value;
+    }
+    if (tag === CUSTOM_TAG_ARRAY) {
+        const length = reader.readVarUint();
+        const out: WireValue[] = [];
+        for (let i = 0; i < length; i += 1) {
+            out.push(customEfficientDecodeValue(reader));
+        }
+        return out;
+    }
+    if (tag === CUSTOM_TAG_INT_ARRAY) {
+        const length = reader.readVarUint();
+        const out: number[] = [];
+        for (let i = 0; i < length; i += 1) {
+            out.push(zigZagDecode(reader.readVarUint()));
+        }
+        return out;
+    }
+
+    throw new Error(`invalid custom-efficient tag: ${tag}`);
+}
+
+function customEfficientEncodeBatch(batch: WireBatch): Uint8Array {
+    const writer = new ByteWriter();
+    writer.writeVarUint(batch.length);
+    for (const value of batch) {
+        customEfficientEncodeValue(writer, value);
+    }
+    return writer.bytes();
+}
+
+function customEfficientDecodeBatch(bytes: Uint8Array): WireBatch {
+    const reader = new ByteReader(bytes);
+    const length = reader.readVarUint();
+    const out: WireValue[] = [];
+    for (let i = 0; i < length; i += 1) {
+        out.push(customEfficientDecodeValue(reader));
+    }
+    if (reader.remaining() !== 0) {
+        throw new Error('custom-efficient trailing bytes');
+    }
+    return out;
+}
+
 function jsonEncodeBatch(batch: WireBatch): Uint8Array {
     return TEXT_ENCODER.encode(JSON.stringify(batch));
 }
@@ -466,7 +830,9 @@ function main(): void {
     const results = [
         benchmarkCodec('json', frames, jsonEncodeBatch, jsonDecodeBatch),
         benchmarkCodec('msgpack-subset', frames, msgpackEncodeBatch, msgpackDecodeBatch),
-        benchmarkCodec('msgpack-full-runtime', frames, customEncodeBatch, customDecodeBatch),
+        benchmarkCodec('protobuf-generic', frames, protobufEncodeBatch, protobufDecodeBatch),
+        benchmarkCodec('custom-efficient-v1', frames, customEfficientEncodeBatch, customEfficientDecodeBatch),
+        benchmarkCodec('runtime-custom-v4', frames, customEncodeBatch, customDecodeBatch),
     ];
 
     printResults(results, frames.length);

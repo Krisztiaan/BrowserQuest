@@ -1,5 +1,5 @@
 /**
- * Binary gameplay wire contract (v1).
+ * Binary gameplay wire contract (v3).
  *
  * Header layout:
  * - byte 0: magic 'B' (0x42)
@@ -12,7 +12,8 @@
 export const BINARY_WIRE_MAGIC_B = 0x42;
 export const BINARY_WIRE_MAGIC_Q = 0x51;
 
-export const BINARY_PROTOCOL_V1 = 1 as const;
+export const BINARY_PROTOCOL_V4 = 4 as const;
+export const BINARY_PROTOCOL_VERSION = BINARY_PROTOCOL_V4;
 
 export const BINARY_FRAME_KIND_ACTION_BATCH = 1 as const;
 
@@ -23,7 +24,7 @@ export type BinaryFrameKind = typeof BINARY_FRAME_KIND_ACTION_BATCH;
 export type BinaryWireHeader = Readonly<{
     magicB: typeof BINARY_WIRE_MAGIC_B;
     magicQ: typeof BINARY_WIRE_MAGIC_Q;
-    version: typeof BINARY_PROTOCOL_V1;
+    version: typeof BINARY_PROTOCOL_VERSION;
     kind: BinaryFrameKind;
     payloadBytes: number;
 }>;
@@ -33,4 +34,4 @@ export type BinaryWireHeader = Readonly<{
  * No JSON gameplay frame fallback is kept after binary cutover verification.
  */
 export const BINARY_WIRE_NO_FALLBACK_POLICY =
-    'no-fallback gameplay WS transport after v1 cutover verification' as const;
+    'no-fallback gameplay WS transport after v4 cutover verification' as const;

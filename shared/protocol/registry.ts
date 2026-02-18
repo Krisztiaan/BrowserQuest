@@ -4,7 +4,14 @@ import type {
     ServerToClientProtocolAction,
 } from './types';
 import { checkClientToServerProtocolAction, isServerToClientProtocolAction } from './schema';
-import { decodeBinaryActionBatchPayload, encodeBinaryActionBatchPayload } from './binary-action-codec';
+import {
+    decodeBinaryActionBatchPayload,
+    decodeClientToServerBinaryActionBatchPayload,
+    decodeServerToClientBinaryActionBatchPayload,
+    encodeBinaryActionBatchPayload,
+    encodeClientToServerBinaryActionBatchPayload,
+    encodeServerToClientBinaryActionBatchPayload,
+} from './binary-action-codec';
 import {
     decodeClientToServerProtocolActionBatchJson,
     decodeServerToClientProtocolActionBatchJson,
@@ -65,7 +72,7 @@ export function decodeClientToServerProtocolActionBatch(payload: string): Client
 
 export function decodeClientToServerProtocolActionBatchBinary(payload: ArrayBuffer | Uint8Array): ClientToServerProtocolAction[] {
     try {
-        return normalizeClientToServerProtocolActionBatch(decodeBinaryActionBatchPayload(payload));
+        return normalizeClientToServerProtocolActionBatch(decodeClientToServerBinaryActionBatchPayload(payload));
     } catch {
         return [];
     }
@@ -104,7 +111,7 @@ export function decodeServerToClientProtocolActionBatch(payload: string): Server
 
 export function decodeServerToClientProtocolActionBatchBinary(payload: ArrayBuffer | Uint8Array): ServerToClientProtocolAction[] {
     try {
-        return normalizeServerToClientProtocolActionBatch(decodeBinaryActionBatchPayload(payload));
+        return normalizeServerToClientProtocolActionBatch(decodeServerToClientBinaryActionBatchPayload(payload));
     } catch {
         return [];
     }
@@ -124,4 +131,24 @@ export function encodeProtocolActionBinary(action: ProtocolAction): Uint8Array {
 
 export function encodeProtocolActionBatchBinary(actions: ReadonlyArray<ProtocolAction>): Uint8Array {
     return encodeBinaryActionBatchPayload(actions);
+}
+
+export function encodeClientToServerProtocolActionBinary(action: ClientToServerProtocolAction): Uint8Array {
+    return encodeClientToServerBinaryActionBatchPayload([action]);
+}
+
+export function encodeClientToServerProtocolActionBatchBinary(
+    actions: ReadonlyArray<ClientToServerProtocolAction>
+): Uint8Array {
+    return encodeClientToServerBinaryActionBatchPayload(actions);
+}
+
+export function encodeServerToClientProtocolActionBinary(action: ServerToClientProtocolAction): Uint8Array {
+    return encodeServerToClientBinaryActionBatchPayload([action]);
+}
+
+export function encodeServerToClientProtocolActionBatchBinary(
+    actions: ReadonlyArray<ServerToClientProtocolAction>
+): Uint8Array {
+    return encodeServerToClientBinaryActionBatchPayload(actions);
 }
