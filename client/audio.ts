@@ -1,16 +1,9 @@
 import Area from './area';
-import Detect from './platform/detect';
 import log from './platform/log';
 import { AUDIO_SOUND_KEYS, MUSIC_KEYS } from './asset-key-domain';
 import type { AudioSoundKey, MusicKey } from './asset-key-domain';
 
-type ManagedAudio = HTMLAudioElement & {
-    fadingOut?: ReturnType<typeof setInterval> | null;
-    fadingIn?: ReturnType<typeof setInterval> | null;
-};
-
 type AreaMusic = {
-    sound: ManagedAudio | null;
     name: MusicKey;
 };
 
@@ -26,264 +19,293 @@ type AudioGame = {
     };
 };
 
+type AreaMusicRegion = Area & {
+    musicName: MusicKey;
+};
+
+type ActiveMusic = {
+    name: MusicKey;
+    source: AudioBufferSourceNode;
+};
+
+type AudioContextCtor = new () => AudioContext;
+
+const AUDIO_EXTENSION = 'mp3';
+const SOUND_BASE_PATH = 'audio/sounds/';
+const MUSIC_BASE_PATH = 'audio/music/';
+
 class AudioManager {
     enabled: boolean;
-    extension: string;
-    sounds: Partial<Record<MusicKey | AudioSoundKey, ManagedAudio[]>>;
     game: AudioGame;
-    currentMusic: AreaMusic | null;
-    areas: Array<Area & { musicName: MusicKey }>;
-    musicNames: MusicKey[];
-    soundNames: AudioSoundKey[];
+    areas: AreaMusicRegion[];
+
+    private context: AudioContext | null;
+    private masterGain: GainNode | null;
+    private musicGain: GainNode | null;
+    private sfxGain: GainNode | null;
+    private uiGain: GainNode | null;
+    private audioBuffers: Partial<Record<MusicKey | AudioSoundKey, AudioBuffer>>;
+    private preloadPromise: Promise<void> | null;
+    private currentMusic: ActiveMusic | null;
+    private unlockListenersInstalled: boolean;
 
     constructor(game: AudioGame) {
         this.enabled = true;
-        this.extension = Detect.canPlayMP3() ? 'mp3' : 'ogg';
-        this.sounds = {};
         this.game = game;
-        this.currentMusic = null;
         this.areas = [];
-        this.musicNames = [...MUSIC_KEYS];
-        this.soundNames = [...AUDIO_SOUND_KEYS];
 
-        const loadMusicFiles = (): void => {
-            // disable music on mobile devices
-            if (!this.game.renderer.mobile) {
-                log.info('Loading music files...');
-                // Load the village music first, as players always start here
-                const firstMusic = this.musicNames.shift();
-                if (firstMusic) {
-                    this.loadMusic(firstMusic, () => {
-                        // Then, load all the other music files
-                        this.musicNames.forEach((name) => {
-                            this.loadMusic(name);
-                        });
-                    });
-                }
-            }
-        };
+        this.context = null;
+        this.masterGain = null;
+        this.musicGain = null;
+        this.sfxGain = null;
+        this.uiGain = null;
+        this.audioBuffers = {};
+        this.preloadPromise = null;
+        this.currentMusic = null;
+        this.unlockListenersInstalled = false;
 
-        const loadSoundFiles = (): void => {
-            let counter = this.soundNames.length;
-            log.info('Loading sound files...');
-            this.soundNames.forEach((name) => {
-                this.loadSound(name, () => {
-                    counter -= 1;
-                    if (counter === 0) {
-                        loadMusicFiles();
-                    }
-                });
-            });
-        };
+        const contextCtor = this.resolveAudioContextCtor();
+        if (!contextCtor) {
+            log.error('WebAudio is not supported in this browser. Audio is disabled.');
+            this.enabled = false;
+            return;
+        }
 
-        loadSoundFiles();
+        this.context = new contextCtor();
+        this.masterGain = this.context.createGain();
+        this.musicGain = this.context.createGain();
+        this.sfxGain = this.context.createGain();
+        this.uiGain = this.context.createGain();
+
+        this.masterGain.gain.value = 1;
+        this.musicGain.gain.value = 1;
+        this.sfxGain.gain.value = 1;
+        this.uiGain.gain.value = 1;
+
+        this.musicGain.connect(this.masterGain);
+        this.sfxGain.connect(this.masterGain);
+        this.uiGain.connect(this.masterGain);
+        this.masterGain.connect(this.context.destination);
+
+        this.installUnlockListeners();
+        this.preloadPromise = this.preloadAssets();
     }
 
     toggle(): void {
+        if (!this.context || !this.masterGain) {
+            return;
+        }
+
         if (this.enabled) {
             this.enabled = false;
-
-            if (this.currentMusic) {
-                this.resetMusic(this.currentMusic);
-            }
-        } else {
-            this.enabled = true;
-
-            if (this.currentMusic) {
-                this.currentMusic = null;
-            }
-            this.updateMusic();
+            this.stopCurrentMusic();
+            this.masterGain.gain.value = 0;
+            return;
         }
-    }
 
-    load(
-        basePath: string,
-        name: MusicKey | AudioSoundKey,
-        onLoaded?: (() => void) | null,
-        channels = 1
-    ): void {
-        const path = basePath + name + '.' + this.extension;
-        const sound = document.createElement('audio') as ManagedAudio;
-
-        const onReady = () => {
-            sound.removeEventListener('canplaythrough', onReady, false);
-            log.debug(path + ' is ready to play.');
-            if (onLoaded) {
-                onLoaded();
-            }
-        };
-        sound.addEventListener('canplaythrough', onReady, false);
-        sound.addEventListener('error', () => {
-            log.error('Error: ' + path + ' could not be loaded.');
-            this.sounds[name] = [];
-        }, false);
-
-        sound.preload = 'auto';
-        sound.src = path;
-        sound.load();
-
-        this.sounds[name] = [sound];
-        for (let i = 0; i < channels - 1; i += 1) {
-            this.sounds[name].push(sound.cloneNode(true) as ManagedAudio);
-        }
-    }
-
-    loadSound(name: AudioSoundKey, handleLoaded?: (() => void) | null): void {
-        this.load('audio/sounds/', name, handleLoaded, 4);
-    }
-
-    loadMusic(name: MusicKey, handleLoaded?: (() => void) | null): void {
-        this.load('audio/music/', name, handleLoaded, 1);
-        const music = this.sounds[name]?.[0];
-        if (music) {
-            music.loop = true;
-            music.addEventListener(
-                'ended',
-                function (): void {
-                    void music.play();
-                },
-                false
-            );
-        }
-    }
-
-    getSound(name: MusicKey | AudioSoundKey): ManagedAudio | null {
-        const soundPool = this.sounds[name];
-        if (!soundPool || soundPool.length === 0) {
-            return null;
-        }
-        let sound = soundPool.find((entry) => entry.ended || entry.paused) ?? null;
-        if (sound && sound.ended) {
-            sound.currentTime = 0;
-        } else {
-            const first = soundPool[0];
-            if (!first) {
-                return null;
-            }
-            sound = first;
-        }
-        return sound;
+        this.enabled = true;
+        this.masterGain.gain.value = 1;
+        this.updateMusic();
     }
 
     playSound(name: AudioSoundKey): void {
-        const sound = this.enabled && this.getSound(name);
-        if (sound) {
-            void sound.play();
+        if (!this.enabled || !this.context || !this.sfxGain) {
+            return;
         }
+
+        const buffer = this.audioBuffers[name];
+        if (!buffer) {
+            return;
+        }
+
+        if (this.context.state !== 'running') {
+            void this.resumeAudioContext();
+            return;
+        }
+
+        const source = this.context.createBufferSource();
+        source.buffer = buffer;
+        source.connect(this.sfxGain);
+        source.start(0);
     }
 
     addArea(x: number, y: number, width: number, height: number, musicName: MusicKey): void {
-        const area = new Area(x, y, width, height) as Area & { musicName: MusicKey };
+        const area = new Area(x, y, width, height) as AreaMusicRegion;
         area.musicName = musicName;
         this.areas.push(area);
     }
 
     getSurroundingMusic(entity: AudioEntity | null): AreaMusic | null {
-        let music: AreaMusic | null = null;
         const area = this.areas.find((candidate) => candidate.contains(entity));
-
-        if (area) {
-            music = { sound: this.getSound(area.musicName), name: area.musicName };
+        if (!area) {
+            return null;
         }
-        return music;
+        return { name: area.musicName };
     }
 
     updateMusic(): void {
-        if (this.enabled) {
-            const music = this.getSurroundingMusic(this.game.player);
+        if (!this.enabled) {
+            this.stopCurrentMusic();
+            return;
+        }
 
-            if (music) {
-                if (!this.isCurrentMusic(music)) {
-                    if (this.currentMusic) {
-                        this.fadeOutCurrentMusic();
-                    }
-                    this.playMusic(music);
-                }
-            } else {
-                this.fadeOutCurrentMusic();
+        const music = this.getSurroundingMusic(this.game.player);
+        if (!music) {
+            this.stopCurrentMusic();
+            return;
+        }
+
+        if (this.currentMusic?.name === music.name) {
+            return;
+        }
+
+        this.playMusic(music.name);
+    }
+
+    private resolveAudioContextCtor(): AudioContextCtor | null {
+        const globalScope = globalThis as typeof globalThis & { webkitAudioContext?: AudioContextCtor };
+        if (typeof globalScope.AudioContext === 'function') {
+            return globalScope.AudioContext;
+        }
+        if (typeof globalScope.webkitAudioContext === 'function') {
+            return globalScope.webkitAudioContext;
+        }
+        return null;
+    }
+
+    private installUnlockListeners(): void {
+        if (this.unlockListenersInstalled || typeof document === 'undefined') {
+            return;
+        }
+
+        document.addEventListener('pointerdown', this.handleUnlockGesture, { passive: true });
+        document.addEventListener('touchstart', this.handleUnlockGesture, { passive: true });
+        document.addEventListener('keydown', this.handleUnlockGesture);
+        this.unlockListenersInstalled = true;
+    }
+
+    private removeUnlockListeners(): void {
+        if (!this.unlockListenersInstalled || typeof document === 'undefined') {
+            return;
+        }
+
+        document.removeEventListener('pointerdown', this.handleUnlockGesture);
+        document.removeEventListener('touchstart', this.handleUnlockGesture);
+        document.removeEventListener('keydown', this.handleUnlockGesture);
+        this.unlockListenersInstalled = false;
+    }
+
+    private readonly handleUnlockGesture = (): void => {
+        void this.resumeAudioContext();
+    };
+
+    private async resumeAudioContext(): Promise<void> {
+        const context = this.context;
+        if (!context) {
+            return;
+        }
+
+        if (context.state !== 'running') {
+            try {
+                await context.resume();
+            } catch (error) {
+                log.debug('Audio context resume deferred: ' + String(error));
+                return;
             }
         }
-    }
 
-    isCurrentMusic(music: AreaMusic): boolean {
-        return !!(music.name === this.currentMusic?.name);
-    }
-
-    playMusic(music: AreaMusic | null): void {
-        if (this.enabled && music?.sound) {
-            if (music.sound.fadingOut) {
-                this.fadeInMusic(music);
-            } else {
-                music.sound.volume = 1;
-                void music.sound.play();
-            }
-            this.currentMusic = music;
+        if (context.state !== 'running') {
+            return;
         }
+
+        this.removeUnlockListeners();
+        this.updateMusic();
     }
 
-    resetMusic(music: AreaMusic | null): void {
-        if (music && music.sound && music.sound.readyState > 0) {
-            music.sound.pause();
-            music.sound.currentTime = 0;
+    private async preloadAssets(): Promise<void> {
+        if (!this.context) {
+            return;
         }
-    }
 
-    fadeOutMusic(music: AreaMusic | null, onEnded: (music: AreaMusic) => void): void {
-        if (music && music.sound && !music.sound.fadingOut) {
-            this.clearFadeIn(music);
-            music.sound.fadingOut = setInterval(() => {
-                const step = 0.02;
-                const volume = music.sound ? music.sound.volume - step : 0;
+        log.info('Loading sound files...');
+        await Promise.all(AUDIO_SOUND_KEYS.map((name) => this.preloadBuffer(name, SOUND_BASE_PATH)));
 
-                if (this.enabled && music.sound && volume >= step) {
-                    music.sound.volume = volume;
-                } else if (music.sound) {
-                    music.sound.volume = 0;
-                    this.clearFadeOut(music);
-                    onEnded(music);
-                }
-            }, 50);
+        if (this.game.renderer.mobile) {
+            return;
         }
+
+        log.info('Loading music files...');
+        const [firstMusic, ...remainingMusic] = [...MUSIC_KEYS];
+        await this.preloadBuffer(firstMusic, MUSIC_BASE_PATH);
+        await Promise.all(remainingMusic.map((name) => this.preloadBuffer(name, MUSIC_BASE_PATH)));
     }
 
-    fadeInMusic(music: AreaMusic | null): void {
-        if (music && music.sound && !music.sound.fadingIn) {
-            this.clearFadeOut(music);
-            music.sound.fadingIn = setInterval(() => {
-                const step = 0.01;
-                const volume = music.sound ? music.sound.volume + step : 1;
-
-                if (this.enabled && music.sound && volume < 1 - step) {
-                    music.sound.volume = volume;
-                } else if (music.sound) {
-                    music.sound.volume = 1;
-                    this.clearFadeIn(music);
-                }
-            }, 30);
+    private async preloadBuffer(name: MusicKey | AudioSoundKey, basePath: string): Promise<void> {
+        if (!this.context) {
+            return;
         }
-    }
 
-    clearFadeOut(music: AreaMusic): void {
-        if (music.sound && music.sound.fadingOut) {
-            clearInterval(music.sound.fadingOut);
-            music.sound.fadingOut = null;
-        }
-    }
+        const path = `${basePath}${name}.${AUDIO_EXTENSION}`;
 
-    clearFadeIn(music: AreaMusic): void {
-        if (music.sound && music.sound.fadingIn) {
-            clearInterval(music.sound.fadingIn);
-            music.sound.fadingIn = null;
-        }
-    }
-
-    fadeOutCurrentMusic(): void {
-        if (this.currentMusic) {
-            this.fadeOutMusic(this.currentMusic, (music) => {
-                this.resetMusic(music);
+        try {
+            const response = await fetch(path, {
+                method: 'GET',
+                cache: 'force-cache',
             });
-            this.currentMusic = null;
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const encoded = await response.arrayBuffer();
+            const decoded = await this.context.decodeAudioData(encoded.slice(0));
+            this.audioBuffers[name] = decoded;
+            log.debug(path + ' is ready to play.');
+        } catch {
+            log.error('Error: ' + path + ' could not be loaded.');
         }
+    }
+
+    private playMusic(name: MusicKey): void {
+        if (!this.context || !this.musicGain) {
+            return;
+        }
+
+        const startPlayback = (): void => {
+            const buffer = this.audioBuffers[name];
+            if (!buffer || !this.context || !this.musicGain) {
+                return;
+            }
+
+            this.stopCurrentMusic();
+
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+            source.loop = true;
+            source.connect(this.musicGain);
+            source.start(0);
+            this.currentMusic = { name, source };
+        };
+
+        if (this.context.state !== 'running') {
+            void this.resumeAudioContext().then(() => {
+                if (this.context?.state === 'running' && this.enabled) {
+                    startPlayback();
+                }
+            });
+            return;
+        }
+
+        startPlayback();
+    }
+
+    private stopCurrentMusic(): void {
+        if (!this.currentMusic) {
+            return;
+        }
+
+        this.currentMusic.source.stop();
+        this.currentMusic.source.disconnect();
+        this.currentMusic = null;
     }
 }
 

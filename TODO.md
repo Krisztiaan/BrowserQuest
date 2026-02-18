@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:15 UTC
+Last updated: 2026-02-18 01:24 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,26 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 359 - WebAudio runtime foundation (no fallback path) (`todo`)
-  - Scope:
-    - Included: create a new WebAudio-backed runtime (single `AudioContext`) for SFX/music playback.
-    - Included: preload/decode audio assets into `AudioBuffer`s and route playback through gain buses (`master`, `music`, `sfx`, `ui`).
-    - Included: explicit user-gesture unlock/resume flow for suspended contexts.
-    - Included: no HTMLAudio fallback implementation.
-    - Out of scope: advanced DSP effects/reverb/spatialization.
-  - Acceptance criteria:
-    - Audio starts and plays through WebAudio graph only.
-    - Existing gameplay audio events produce audible output after context unlock.
-    - No runtime use of `HTMLAudioElement` in the active playback path.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun x eslint --max-warnings=0 client/audio.ts client/game.ts client/ecs/systems/client-command-apply-system.ts`
-    - `rg -n "createElement\\('audio'\\)|new Audio\\(|canplaythrough|HTMLAudioElement" client`
-    - Manual runtime: open game, unlock audio, validate SFX + music start.
-  - Dependencies/blockers:
-    - Depends on Ticket 358 completion to avoid mixed attribution with preview CPU cost.
-    - Requires browser support for WebAudio (`AudioContext`) in target clients (no fallback by requirement).
 
 - Ticket 360 - Command/event integration on WebAudio transport (`todo`)
   - Scope:

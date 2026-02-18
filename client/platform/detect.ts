@@ -1,5 +1,3 @@
-import { canPlayMP3 } from './features';
-
 function supportsWebSocket(): boolean {
     return typeof globalThis.WebSocket === 'function';
 }
@@ -53,7 +51,6 @@ const Detect = {
     isPhone,
     isTablet,
     isWindows,
-    canPlayMP3,
     isFirefoxAndroid,
 };
 

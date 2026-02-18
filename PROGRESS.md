@@ -3614,3 +3614,22 @@ Format per entry:
     - `bun x eslint --max-warnings=0 client/main/character-preview.ts client/main.ts`
   - Next action:
     - Execute Ticket 359 (WebAudio runtime foundation, no fallback path).
+
+- 01:24 UTC
+  - Ticket: 359 (WebAudio runtime foundation, no fallback path)
+  - Start timestamp: 2026-02-18 01:16 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Replaced `HTMLAudioElement` pool runtime with a WebAudio graph implementation in `client/audio.ts`:
+      - single `AudioContext`,
+      - `master`/`music`/`sfx`/`ui` gain buses,
+      - decoded `AudioBuffer` registry for music + sfx assets.
+    - Added explicit user-gesture unlock/resume lifecycle for suspended contexts (`pointerdown`/`touchstart`/`keydown`) and cleanup once running.
+    - Switched asset loading to `fetch` + `decodeAudioData` with mp3-only runtime path (no fallback audio branch).
+    - Removed now-unused mp3 capability probing code that relied on `<audio>` element creation from `client/platform/features.ts` and `client/platform/detect.ts`.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/audio.ts client/game.ts client/ecs/systems/client-command-apply-system.ts client/platform/detect.ts client/platform/features.ts`
+    - `rg -n "createElement\\('audio'\\)|new Audio\\(|canplaythrough|HTMLAudioElement" client`
+  - Next action:
+    - Execute Ticket 360 (command/event integration on WebAudio transport).
