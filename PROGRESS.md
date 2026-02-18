@@ -3684,3 +3684,18 @@ Format per entry:
     - `bun test tests/unit/client-audio-manager.test.ts`
   - Next action:
     - Execute Ticket 363 (legacy audio-path cleanup + perf verification sweep).
+
+- 01:26 UTC
+  - Ticket: 363 (Legacy audio-path removal + perf verification)
+  - Start timestamp: 2026-02-18 01:25 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Completed cleanup of legacy HTMLAudio runtime path from active client codebase; WebAudio is now the only gameplay audio transport.
+    - Removed remaining mp3 capability fallback probing branch tied to `<audio>` element feature detection.
+    - Re-verified preview-path cleanup from Ticket 358 (`toDataURL` and `/profile/preview.svg` load-screen fallback removal) alongside audio path checks.
+  - Evidence:
+    - `rg -n "createElement\\('audio'\\)|new Audio\\(|canplaythrough|HTMLAudioElement|canPlayMP3|Modernizr\\.audio" client`
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/audio.ts client/main/character-preview.ts client/main.ts`
+  - Next action:
+    - Execute Ticket 364 (binary wire contract + codec decision lock).

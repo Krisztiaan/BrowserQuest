@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:25 UTC
+Last updated: 2026-02-18 01:26 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,23 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 363 - Legacy audio path removal + perf verification (`todo`)
-  - Scope:
-    - Included: remove dead HTMLAudio pool code and related listeners/timers once WebAudio path is live.
-    - Included: remove now-unused fallback-only code paths and types.
-    - Included: run benchmark comparison and document before/after hotspot deltas.
-    - Out of scope: cross-platform QA matrix beyond agreed runtime targets.
-  - Acceptance criteria:
-    - No active fallback code remains; WebAudio is the sole runtime path.
-    - `toDataURL` preview hotspot removed (Ticket 358) and audio hotspot reduced versus baseline capture.
-    - Cleanup does not break build/test/typecheck.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun x eslint --max-warnings=0 client/audio.ts client/main/character-preview.ts client/main.ts`
-    - Manual benchmark capture under the same session profile used for current `benchmarks/` artifacts.
-  - Dependencies/blockers:
-    - Depends on Ticket 358, Ticket 359, Ticket 360, Ticket 361, Ticket 362.
 
 - Ticket 364 - Binary wire contract + codec decision lock (`todo`)
   - Scope:
