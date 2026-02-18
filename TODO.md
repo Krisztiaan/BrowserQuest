@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 11:42 UTC
+Last updated: 2026-02-18 11:47 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,18 +34,4 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 398 - Protocol wire benchmarks: direction-specific fixedbin rows + updated corpus
-  - Status: `in_progress`
-  - Scope:
-    - Included: Update `tools/bench/protocol-wire.ts` to benchmark fixedbin using direction-specific codec entrypoints (c2s vs s2c).
-    - Included: Update corpus samples to match FixedBin v2 (chunk bytes, intent/outcome enums).
-    - Included: Update `docs/protocol-wire.md` with the new benchmark output.
-    - Out of scope: Adding new codecs.
-  - Acceptance criteria:
-    - Benchmark prints separate rows for fixedbin c2s and s2c.
-    - `docs/protocol-wire.md` matches latest output.
-  - Verification plan:
-    - `bun tools/bench/protocol-wire.ts`
-    - `git diff docs/protocol-wire.md tools/bench/protocol-wire.ts`
-  - Dependencies/blockers:
-    - Depends on Ticket 397.
+- None.

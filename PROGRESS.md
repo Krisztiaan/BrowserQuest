@@ -57,6 +57,22 @@ Format per entry:
   - Next action:
     - Refresh protocol wire benchmarks (direction-specific fixedbin rows) and update `docs/protocol-wire.md` (Ticket 398).
 
+- 11:47 UTC
+  - Ticket: 398 (Protocol wire benchmarks: direction-specific fixedbin rows + updated corpus)
+  - Status: `done`
+  - Key actions taken:
+    - Updated protocol wire benchmark harness to:
+      - include binary chunk payload samples (FixedBin v2 corpus),
+      - avoid mutating byte-array payload blobs (keeps generated frames valid),
+      - print separate benchmark tables for mixed vs client-only vs server-only corpora,
+      - benchmark FixedBin using both generic and direction-specific entrypoints (`fixedbin-v2-mixed`, `fixedbin-v2-c2s`, `fixedbin-v2-s2c`).
+    - Refreshed `docs/protocol-wire.md` with latest benchmark output and current binary version.
+  - Evidence:
+    - `bun tools/bench/protocol-wire.ts`
+    - `git diff docs/protocol-wire.md tools/bench/protocol-wire.ts`
+  - Next action:
+    - Commit ticket 398 changes and clear it from `TODO.md`.
+
 - 10:46 UTC
   - Ticket: 392 (FixedBin v1 spec + invariants)
   - Status: `in_progress`

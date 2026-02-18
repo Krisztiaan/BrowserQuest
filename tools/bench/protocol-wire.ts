@@ -1,7 +1,13 @@
 import {
     decodeBinaryActionBatchPayload,
     encodeBinaryActionBatchPayload,
+    decodeClientToServerBinaryActionBatchPayload,
+    decodeServerToClientBinaryActionBatchPayload,
+    encodeClientToServerBinaryActionBatchPayload,
+    encodeServerToClientBinaryActionBatchPayload,
 } from '../../shared/protocol/binary-action-codec';
+import { encodeChunkDeltaPayloadBinary } from '../../shared/protocol/chunks/chunk-delta-codec';
+import { encodeChunkSnapshotPayloadBinary } from '../../shared/protocol/chunks/chunk-snapshot-codec';
 import Types from '../../shared/gametypes-browser';
 
 type WireValue = null | boolean | number | string | WireValue[];
@@ -20,6 +26,15 @@ const TEXT_ENCODER = new TextEncoder();
 const TEXT_DECODER = new TextDecoder();
 const FRAMES = 20_000;
 
+const EMPTY_CHUNK_SNAPSHOT = encodeChunkSnapshotPayloadBinary({ chunkSize: 32, overrides: [] });
+const SMALL_CHUNK_DELTA = encodeChunkDeltaPayloadBinary({
+    chunkSize: 32,
+    changes: [
+        [0, 0, 12],
+        [1, 0, null],
+    ],
+});
+
 const SERVER_SAMPLES: WireBatch[] = [
     [[Types.Messages.ACK, 1], [Types.Messages.MOVE, 500000000, 158, 117]],
     [
@@ -28,7 +43,8 @@ const SERVER_SAMPLES: WireBatch[] = [
     ],
     [Types.Messages.ATTACK, 174, 500000000],
     [[Types.Messages.TELEPORT, 500000000, 155, 113], [Types.Messages.HP, 108], [Types.Messages.HP, 103]],
-    [Types.Messages.CHUNK_SNAPSHOT, 7, 6, 0, '{"schemaVersion":1,"encoding":"json","chunkSize":32,"overrides":[]}'],
+    [Types.Messages.CHUNK_SNAPSHOT, 7, 6, 0, EMPTY_CHUNK_SNAPSHOT],
+    [Types.Messages.CHUNK_DELTA, 7, 6, 0, 1, SMALL_CHUNK_DELTA],
     [
         [Types.Messages.SPAWN, 184, 2, 156, 117, 1],
         [Types.Messages.MOVE, 500000000, 155, 115],
@@ -65,8 +81,20 @@ function mutateNumber(value: number, frameIndex: number): number {
     return value;
 }
 
+function isByteArrayValue(value: WireValue): value is number[] {
+    return (
+        Array.isArray(value)
+        && value.length > 0
+        && value.every((entry) => typeof entry === 'number' && Number.isInteger(entry) && entry >= 0 && entry <= 0xff)
+    );
+}
+
 function mutateValue(value: WireValue, frameIndex: number): WireValue {
     if (Array.isArray(value)) {
+        // Treat byte arrays as opaque payload blobs; mutating arbitrary bytes produces invalid protocol payloads.
+        if (isByteArrayValue(value)) {
+            return value;
+        }
         return value.map((entry) => mutateValue(entry, frameIndex));
     }
     if (typeof value === 'number') {
@@ -75,9 +103,8 @@ function mutateValue(value: WireValue, frameIndex: number): WireValue {
     return value;
 }
 
-function buildFrameCorpus(): WireBatch[] {
+function buildFrameCorpus(source: WireBatch[]): WireBatch[] {
     const corpus: WireBatch[] = [];
-    const source = [...SERVER_SAMPLES, ...CLIENT_SAMPLES];
 
     for (let i = 0; i < FRAMES; i += 1) {
         const base = source[i % source.length] ?? source[0];
@@ -265,6 +292,44 @@ function fixedBinDecodeBatch(frame: Uint8Array): WireBatch {
         throw new Error('invalid fixedbin payload');
     }
     return decoded as WireBatch;
+}
+
+function fixedBinC2SEncodeBatch(batch: WireBatch): Uint8Array {
+    return encodeClientToServerBinaryActionBatchPayload(batch as unknown[]);
+}
+
+function fixedBinC2SDecodeBatch(frame: Uint8Array): WireBatch {
+    const decoded = decodeClientToServerBinaryActionBatchPayload(frame) as WireBatch;
+    if (!Array.isArray(decoded)) {
+        throw new Error('invalid fixedbin c2s payload');
+    }
+    if (decoded.length === 1) {
+        const single = decoded[0];
+        if (!Array.isArray(single)) {
+            throw new Error('invalid fixedbin c2s single payload');
+        }
+        return single as WireBatch;
+    }
+    return decoded;
+}
+
+function fixedBinS2CEncodeBatch(batch: WireBatch): Uint8Array {
+    return encodeServerToClientBinaryActionBatchPayload(batch as unknown[]);
+}
+
+function fixedBinS2CDecodeBatch(frame: Uint8Array): WireBatch {
+    const decoded = decodeServerToClientBinaryActionBatchPayload(frame) as WireBatch;
+    if (!Array.isArray(decoded)) {
+        throw new Error('invalid fixedbin s2c payload');
+    }
+    if (decoded.length === 1) {
+        const single = decoded[0];
+        if (!Array.isArray(single)) {
+            throw new Error('invalid fixedbin s2c single payload');
+        }
+        return single as WireBatch;
+    }
+    return decoded;
 }
 
 function msgpackWriteInt(writer: ByteWriter, value: number): void {
@@ -781,10 +846,9 @@ function benchmarkCodec(
     };
 }
 
-function printResults(results: CodecResult[], frames: number): void {
-    console.log('Protocol Wire Benchmark');
+function printResults(title: string, results: CodecResult[], frames: number): void {
+    console.log(title);
     console.log(`frames: ${frames}`);
-    console.log('');
     console.log('| codec | encode ms | decode ms | total bytes | avg bytes/frame | p95 bytes/frame |');
     console.log('|---|---:|---:|---:|---:|---:|');
 
@@ -804,7 +868,6 @@ function printResults(results: CodecResult[], frames: number): void {
         return;
     }
 
-    console.log('');
     console.log('Relative vs json baseline');
     for (const result of results) {
         if (result.codec === 'json') {
@@ -822,16 +885,50 @@ function printResults(results: CodecResult[], frames: number): void {
 }
 
 function main(): void {
-    const frames = buildFrameCorpus();
-    const results = [
-        benchmarkCodec('json', frames, jsonEncodeBatch, jsonDecodeBatch),
-        benchmarkCodec('msgpack-subset', frames, msgpackEncodeBatch, msgpackDecodeBatch),
-        benchmarkCodec('protobuf-generic', frames, protobufEncodeBatch, protobufDecodeBatch),
-        benchmarkCodec('custom-efficient-v1', frames, customEfficientEncodeBatch, customEfficientDecodeBatch),
-        benchmarkCodec('fixedbin-v1', frames, fixedBinEncodeBatch, fixedBinDecodeBatch),
-    ];
+    const mixedFrames = buildFrameCorpus([...SERVER_SAMPLES, ...CLIENT_SAMPLES]);
+    const clientFrames = buildFrameCorpus(CLIENT_SAMPLES);
+    const serverFrames = buildFrameCorpus(SERVER_SAMPLES);
 
-    printResults(results, frames.length);
+    console.log('Protocol Wire Benchmark');
+    console.log('');
+
+    printResults(
+        'Mixed corpus (C2S + S2C)',
+        [
+            benchmarkCodec('json', mixedFrames, jsonEncodeBatch, jsonDecodeBatch),
+            benchmarkCodec('msgpack-subset', mixedFrames, msgpackEncodeBatch, msgpackDecodeBatch),
+            benchmarkCodec('protobuf-generic', mixedFrames, protobufEncodeBatch, protobufDecodeBatch),
+            benchmarkCodec('custom-efficient-v1', mixedFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
+            benchmarkCodec('fixedbin-v2-mixed', mixedFrames, fixedBinEncodeBatch, fixedBinDecodeBatch),
+        ],
+        mixedFrames.length
+    );
+    console.log('');
+
+    printResults(
+        'Client-only corpus (C2S)',
+        [
+            benchmarkCodec('json', clientFrames, jsonEncodeBatch, jsonDecodeBatch),
+            benchmarkCodec('msgpack-subset', clientFrames, msgpackEncodeBatch, msgpackDecodeBatch),
+            benchmarkCodec('protobuf-generic', clientFrames, protobufEncodeBatch, protobufDecodeBatch),
+            benchmarkCodec('custom-efficient-v1', clientFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
+            benchmarkCodec('fixedbin-v2-c2s', clientFrames, fixedBinC2SEncodeBatch, fixedBinC2SDecodeBatch),
+        ],
+        clientFrames.length
+    );
+    console.log('');
+
+    printResults(
+        'Server-only corpus (S2C)',
+        [
+            benchmarkCodec('json', serverFrames, jsonEncodeBatch, jsonDecodeBatch),
+            benchmarkCodec('msgpack-subset', serverFrames, msgpackEncodeBatch, msgpackDecodeBatch),
+            benchmarkCodec('protobuf-generic', serverFrames, protobufEncodeBatch, protobufDecodeBatch),
+            benchmarkCodec('custom-efficient-v1', serverFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
+            benchmarkCodec('fixedbin-v2-s2c', serverFrames, fixedBinS2CEncodeBatch, fixedBinS2CDecodeBatch),
+        ],
+        serverFrames.length
+    );
 }
 
 main();
