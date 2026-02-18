@@ -5,6 +5,8 @@ import {
     PLAYER_SESSION_DISPATCH_OPCODES,
 } from '../../../shared/protocol/handler-opcodes';
 import { CLIENT_TO_SERVER_FORMAT_SCHEMA } from '../../../shared/protocol/schema';
+import { encodeMoveStepIntentPayload } from '../../../shared/protocol/intents';
+import { gridPos } from '../../../shared/domain/positions';
 import {
     CLIENT_TO_SERVER_PROTOCOL_REGISTRY,
     SERVER_TO_CLIENT_PROTOCOL_REGISTRY,
@@ -25,6 +27,11 @@ import {
 function sortedUnique(values: number[]): number[] {
     return [...new Set(values)].sort((a, b) => a - b);
 }
+
+const movePayload10_20 = encodeMoveStepIntentPayload(gridPos(10, 20)) ?? [];
+const movePayload4_5 = encodeMoveStepIntentPayload(gridPos(4, 5)) ?? [];
+const movePayload8_9 = encodeMoveStepIntentPayload(gridPos(8, 9)) ?? [];
+const movePayload7_8 = encodeMoveStepIntentPayload(gridPos(7, 8)) ?? [];
 
 test('client-to-server protocol registry stays aligned with schema opcodes', () => {
     const registryOpcodes = sortedUnique(CLIENT_TO_SERVER_PROTOCOL_REGISTRY.map((entry) => entry.opcode));
@@ -72,13 +79,13 @@ test('server-to-client protocol registry stays aligned with canonical opcode set
 });
 
 test('registry decode helpers accept valid actions and reject invalid actions', () => {
-    expect(decodeClientToServerProtocolAction([Types.Messages.INTENT, 1, 'move.step', '{"x":10,"y":20}'])).toEqual([
+    expect(decodeClientToServerProtocolAction([Types.Messages.INTENT, 1, 'move.step', movePayload10_20])).toEqual([
         Types.Messages.INTENT,
         1,
         'move.step',
-        '{"x":10,"y":20}',
+        movePayload10_20,
     ]);
-    expect(decodeClientToServerProtocolAction([Types.Messages.INTENT, 1.5, 'move.step', '{"x":10,"y":20}'])).toBeNull();
+    expect(decodeClientToServerProtocolAction([Types.Messages.INTENT, 1.5, 'move.step', movePayload10_20])).toBeNull();
 
     expect(decodeServerToClientProtocolAction([Types.Messages.CHAT, 5, 'hi'])).toEqual([Types.Messages.CHAT, 5, 'hi']);
     expect(decodeServerToClientProtocolAction([Types.Messages.CHAT, 5, 99])).toBeNull();
@@ -89,11 +96,11 @@ test('registry batch helpers normalize single and multi action payloads', () => 
     expect(
         normalizeClientToServerProtocolActionBatch([
             [Types.Messages.ZONE],
-            [Types.Messages.INTENT, 2, 'move.step', '{"x":4,"y":5}'],
+            [Types.Messages.INTENT, 2, 'move.step', movePayload4_5],
         ])
     ).toEqual([
         [Types.Messages.ZONE],
-        [Types.Messages.INTENT, 2, 'move.step', '{"x":4,"y":5}'],
+        [Types.Messages.INTENT, 2, 'move.step', movePayload4_5],
     ]);
     expect(normalizeClientToServerProtocolActionBatch([[Types.Messages.ZONE], ['bad']])).toEqual([]);
     expect(normalizeServerToClientProtocolActionBatch([Types.Messages.POPULATION, 3, 10])).toEqual([
@@ -116,16 +123,16 @@ test('registry string batch decoders parse and validate payload frames', () => {
         decodeClientToServerProtocolActionBatch(
             JSON.stringify([
                 [Types.Messages.ZONE],
-                [Types.Messages.INTENT, 1, 'move.step', '{"x":8,"y":9}'],
+                [Types.Messages.INTENT, 1, 'move.step', movePayload8_9],
             ])
         )
     ).toEqual([
         [Types.Messages.ZONE],
-        [Types.Messages.INTENT, 1, 'move.step', '{"x":8,"y":9}'],
+        [Types.Messages.INTENT, 1, 'move.step', movePayload8_9],
     ]);
     expect(
         decodeClientToServerProtocolActionBatch(
-            JSON.stringify([[Types.Messages.INTENT, 1.5, 'move.step', '{"x":8,"y":9}']])
+            JSON.stringify([[Types.Messages.INTENT, 1.5, 'move.step', movePayload8_9]])
         )
     ).toEqual([]);
     expect(decodeClientToServerProtocolActionBatch('[[21],["bad"]]')).toEqual([]);
@@ -140,13 +147,13 @@ test('registry string batch decoders parse and validate payload frames', () => {
 
 test('registry encode helpers preserve protocol action payload shapes', () => {
     expect(encodeProtocolAction([Types.Messages.ZONE])).toBe(JSON.stringify([Types.Messages.ZONE]));
-    expect(encodeProtocolActionBatch([[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', '{"x":7,"y":8}']])).toBe(
-        JSON.stringify([[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', '{"x":7,"y":8}']])
+    expect(encodeProtocolActionBatch([[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', movePayload7_8]])).toBe(
+        JSON.stringify([[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', movePayload7_8]])
     );
 });
 
 test('registry binary helpers round-trip valid protocol batches', () => {
-    const clientBatch = [[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', '{"x":7,"y":8}']] as const;
+    const clientBatch = [[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', movePayload7_8]] as const;
     const serverBatch = [[Types.Messages.POPULATION, 3, 10], [Types.Messages.HP, 100]] as const;
 
     expect(decodeClientToServerProtocolActionBatchBinary(encodeProtocolActionBatchBinary(clientBatch))).toEqual(clientBatch);

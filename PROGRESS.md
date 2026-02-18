@@ -3820,3 +3820,37 @@ Format per entry:
     - `rg -n "decodeServerToClientProtocolActionBatch\\(message\\)|JSON\\.stringify\\(json\\)|JSON\\.parse\\(payload\\)" client/gameclient.ts shared/protocol/registry.ts server/ws/runtime.ts server/ws/runtime-factory.ts`
   - Next action:
     - Cycle complete (Tickets 358-369).
+
+- 01:56 UTC
+  - Ticket: 370 (WS custom binary codec cutover)
+  - Start timestamp: 2026-02-18 01:55 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited current binary codec (`shared/protocol/binary-action-codec.ts`) and benchmark harness (`tools/bench/protocol-wire.ts`) to identify msgpack-subset dependencies and replacement surface.
+    - Ticketized custom codec cutover in `TODO.md` with explicit acceptance criteria and verification plan.
+  - Evidence:
+    - `sed -n '1,340p' shared/protocol/binary-action-codec.ts`
+    - `sed -n '1,260p' tools/bench/protocol-wire.ts`
+    - `sed -n '1,260p' docs/protocol-wire.md`
+  - Next action:
+    - Implement custom binary payload codec and run full verification set.
+
+- 02:00 UTC
+  - Ticket: 370 (WS custom binary codec cutover)
+  - Start timestamp: 2026-02-18 01:55 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Replaced `shared/protocol/binary-action-codec.ts` payload implementation with a native custom tagged binary codec:
+      - direct tokens for small ints/short strings,
+      - varint + zigzag int32 encoding,
+      - explicit tags for null/bool/float64/string/generic-array/number-array.
+    - Preserved the existing outer gameplay frame contract (`BQ` magic/version/kind/payload-length) while changing only payload internals.
+    - Added dedicated unit coverage for custom codec roundtrip + malformed-token rejection (`tests/unit/protocol/binary-action-codec.test.ts`).
+    - Updated protocol registry tests to match current binary intent payload shapes and kept runtime/smoke transport green.
+    - Updated benchmark harness to measure the runtime custom codec path and refreshed `docs/protocol-wire.md` decision/output.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts tests/smoke/modern-gameplay-parity.test.ts`
+    - `bun tools/bench/protocol-wire.ts`
+  - Next action:
+    - Ready to commit Ticket 370.

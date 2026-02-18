@@ -1,10 +1,4 @@
-import {
-    BINARY_FRAME_HEADER_BYTES,
-    BINARY_FRAME_KIND_ACTION_BATCH,
-    BINARY_PROTOCOL_V1,
-    BINARY_WIRE_MAGIC_B,
-    BINARY_WIRE_MAGIC_Q,
-} from '../../shared/protocol/binary-wire';
+import { decodeBinaryActionBatchPayload, encodeBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
 
 type WireValue = null | boolean | number | string | WireValue[];
 type WireBatch = WireValue[];
@@ -214,128 +208,16 @@ class ByteReader {
     }
 }
 
-const CUSTOM_TAG_NULL = 0x00;
-const CUSTOM_TAG_FALSE = 0x01;
-const CUSTOM_TAG_TRUE = 0x02;
-const CUSTOM_TAG_INT32 = 0x10;
-const CUSTOM_TAG_FLOAT64 = 0x11;
-const CUSTOM_TAG_STRING = 0x20;
-const CUSTOM_TAG_ARRAY = 0x30;
-
-function customEncodeValue(writer: ByteWriter, value: WireValue): void {
-    if (value === null) {
-        writer.writeU8(CUSTOM_TAG_NULL);
-        return;
-    }
-
-    if (typeof value === 'boolean') {
-        writer.writeU8(value ? CUSTOM_TAG_TRUE : CUSTOM_TAG_FALSE);
-        return;
-    }
-
-    if (typeof value === 'number') {
-        if (Number.isInteger(value) && value >= -2_147_483_648 && value <= 2_147_483_647) {
-            writer.writeU8(CUSTOM_TAG_INT32);
-            writer.writeI32(value);
-            return;
-        }
-
-        writer.writeU8(CUSTOM_TAG_FLOAT64);
-        writer.writeF64(value);
-        return;
-    }
-
-    if (typeof value === 'string') {
-        writer.writeU8(CUSTOM_TAG_STRING);
-        const bytes = TEXT_ENCODER.encode(value);
-        writer.writeU16(bytes.length);
-        writer.writeBytes(bytes);
-        return;
-    }
-
-    writer.writeU8(CUSTOM_TAG_ARRAY);
-    writer.writeU16(value.length);
-    for (const entry of value) {
-        customEncodeValue(writer, entry);
-    }
-}
-
-function customDecodeValue(reader: ByteReader): WireValue {
-    const tag = reader.readU8();
-    if (tag === CUSTOM_TAG_NULL) {
-        return null;
-    }
-    if (tag === CUSTOM_TAG_FALSE) {
-        return false;
-    }
-    if (tag === CUSTOM_TAG_TRUE) {
-        return true;
-    }
-    if (tag === CUSTOM_TAG_INT32) {
-        return reader.readI32();
-    }
-    if (tag === CUSTOM_TAG_FLOAT64) {
-        return reader.readF64();
-    }
-    if (tag === CUSTOM_TAG_STRING) {
-        const bytes = reader.readBytes(reader.readU16());
-        return TEXT_DECODER.decode(bytes);
-    }
-    if (tag === CUSTOM_TAG_ARRAY) {
-        const length = reader.readU16();
-        const out: WireValue[] = [];
-        for (let i = 0; i < length; i += 1) {
-            out.push(customDecodeValue(reader));
-        }
-        return out;
-    }
-    throw new Error(`unknown custom tag: ${tag}`);
-}
-
 function customEncodeBatch(batch: WireBatch): Uint8Array {
-    const payloadWriter = new ByteWriter();
-    customEncodeValue(payloadWriter, batch);
-    const payload = payloadWriter.bytes();
-
-    const frameWriter = new ByteWriter(BINARY_FRAME_HEADER_BYTES + payload.length);
-    frameWriter.writeU8(BINARY_WIRE_MAGIC_B);
-    frameWriter.writeU8(BINARY_WIRE_MAGIC_Q);
-    frameWriter.writeU8(BINARY_PROTOCOL_V1);
-    frameWriter.writeU8(BINARY_FRAME_KIND_ACTION_BATCH);
-    frameWriter.writeU32(payload.length);
-    frameWriter.writeBytes(payload);
-    return frameWriter.bytes();
+    return encodeBinaryActionBatchPayload(batch);
 }
 
 function customDecodeBatch(frame: Uint8Array): WireBatch {
-    const reader = new ByteReader(frame);
-    const magicB = reader.readU8();
-    const magicQ = reader.readU8();
-    const version = reader.readU8();
-    const frameKind = reader.readU8();
-    const payloadBytes = reader.readU32();
-
-    if (magicB !== BINARY_WIRE_MAGIC_B || magicQ !== BINARY_WIRE_MAGIC_Q) {
-        throw new Error('invalid custom frame magic');
+    const decoded = decodeBinaryActionBatchPayload(frame);
+    if (!Array.isArray(decoded)) {
+        throw new Error('invalid runtime custom payload');
     }
-    if (version !== BINARY_PROTOCOL_V1) {
-        throw new Error('invalid custom frame version');
-    }
-    if (frameKind !== BINARY_FRAME_KIND_ACTION_BATCH) {
-        throw new Error('invalid custom frame kind');
-    }
-
-    const payload = reader.readBytes(payloadBytes);
-    if (reader.remaining() !== 0) {
-        throw new Error('invalid custom trailing bytes');
-    }
-
-    const payloadReader = new ByteReader(payload);
-    const decoded = customDecodeValue(payloadReader);
-    if (!Array.isArray(decoded) || payloadReader.remaining() !== 0) {
-        throw new Error('invalid custom payload');
-    }
-    return decoded;
+    return decoded as WireBatch;
 }
 
 function msgpackWriteInt(writer: ByteWriter, value: number): void {
@@ -584,7 +466,7 @@ function main(): void {
     const results = [
         benchmarkCodec('json', frames, jsonEncodeBatch, jsonDecodeBatch),
         benchmarkCodec('msgpack-subset', frames, msgpackEncodeBatch, msgpackDecodeBatch),
-        benchmarkCodec('binary-v1-custom', frames, customEncodeBatch, customDecodeBatch),
+        benchmarkCodec('custom-runtime', frames, customEncodeBatch, customDecodeBatch),
     ];
 
     printResults(results, frames.length);
