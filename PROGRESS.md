@@ -15,6 +15,19 @@ Format per entry:
 
 ## 2026-02-18
 
+- 12:17 UTC
+  - Ticket: 400 (Benchmark methodology: remove stringify cost from timed loops)
+  - Status: `done`
+  - Key actions taken:
+    - Moved benchmark roundtrip correctness checks out of the timed encode/decode loops in `tools/bench/protocol-wire.ts`.
+    - Normalized `Uint8Array` vs `number[]` for correctness checks to match the runtime protocol boundary behavior.
+    - Refreshed `docs/protocol-wire.md` with updated benchmark output.
+  - Evidence:
+    - `bun tools/bench/protocol-wire.ts`
+    - `git diff docs/protocol-wire.md tools/bench/protocol-wire.ts`
+  - Next action:
+    - Ticketize the next decode hot path reduction (likely direct decode+dispatch for hot opcodes / fewer per-action allocations).
+
 - 12:10 UTC
   - Ticket: 399 (Reduce binary decode allocations)
   - Status: `done`

@@ -9,8 +9,9 @@ import {
 import { encodeChunkDeltaPayloadBinary } from '../../shared/protocol/chunks/chunk-delta-codec';
 import { encodeChunkSnapshotPayloadBinary } from '../../shared/protocol/chunks/chunk-snapshot-codec';
 import Types from '../../shared/gametypes-browser';
+import { isDeepStrictEqual } from 'node:util';
 
-type WireValue = null | boolean | number | string | WireValue[];
+type WireValue = null | boolean | number | string | Uint8Array | WireValue[];
 type WireBatch = WireValue[];
 
 type CodecResult = {
@@ -63,6 +64,16 @@ const CLIENT_SAMPLES: WireBatch[] = [
     [Types.Messages.LOOTMOVE, 155, 113, 174],
     [Types.Messages.CHUNK_SUBSCRIBE, 8, 4, 3],
 ];
+
+function normalizeBinaryValues(value: unknown): unknown {
+    if (value instanceof Uint8Array) {
+        return Array.from(value);
+    }
+    if (Array.isArray(value)) {
+        return value.map((entry) => normalizeBinaryValues(entry));
+    }
+    return value;
+}
 
 function cloneValue<T extends WireValue>(value: T): T {
     return JSON.parse(JSON.stringify(value)) as T;
@@ -819,19 +830,33 @@ function benchmarkCodec(
     }
     const encodeMs = performance.now() - encodeStart;
 
+    // Correctness checks must not be part of the measured timing.
+    const sampleCount = Math.min(100, frames.length);
+    for (let i = 0; i < sampleCount; i += 1) {
+        const encodedFrame = encoded[i];
+        const original = frames[i];
+        if (!encodedFrame || !original) {
+            throw new Error(`missing benchmark sample at index ${i}`);
+        }
+        const decoded = decode(encodedFrame);
+        const decodedNorm = normalizeBinaryValues(decoded);
+        const originalNorm = normalizeBinaryValues(original);
+        if (!isDeepStrictEqual(decodedNorm, originalNorm)) {
+            throw new Error(`${codec} roundtrip mismatch at frame ${i}`);
+        }
+    }
+
     const decodeStart = performance.now();
+    let lastDecoded: WireBatch | null = null;
     for (let i = 0; i < encoded.length; i += 1) {
         const encodedFrame = encoded[i];
         if (!encodedFrame) {
             throw new Error(`missing encoded frame at index ${i}`);
         }
-        const decoded = decode(encodedFrame);
-        if (i < 100) {
-            const original = frames[i];
-            if (JSON.stringify(decoded) !== JSON.stringify(original)) {
-                throw new Error(`${codec} roundtrip mismatch at frame ${i}`);
-            }
-        }
+        lastDecoded = decode(encodedFrame);
+    }
+    if (!lastDecoded) {
+        throw new Error(`${codec} decode produced no frames`);
     }
     const decodeMs = performance.now() - decodeStart;
 
