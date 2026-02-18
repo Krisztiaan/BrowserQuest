@@ -64,6 +64,13 @@ export type MoveCommand = Readonly<{
     to: GridPos;
 }>;
 
+export type MoveToCommand = Readonly<{
+    type: 'MOVE_TO';
+    source: CommandSource;
+    to: GridPos;
+    stopAdjacentToTarget: boolean;
+}>;
+
 export type LootMoveCommand = Readonly<{
     type: 'LOOTMOVE';
     source: CommandSource;
@@ -168,6 +175,7 @@ export type Command =
     | ZoneCommand
     | ChatCommand
     | MoveCommand
+    | MoveToCommand
     | LootMoveCommand
     | AggroCommand
     | AttackCommand

@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 17:52 UTC
+Last updated: 2026-02-18 18:18 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,41 +34,8 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 402 - Server authoritative movement v2: accept `move.to` and compute path server-side (no step spam)
-  - Status: `todo`
-  - Scope:
-    - Included: Server implements `move.to` intent handler:
-      - Validate target tile (bounds + collision rules).
-      - Compute path from authoritative position to target using a shared pathfinder module (see below).
-      - Populate server MoveQueue from computed path, capped (both by step count and by a node-visit budget).
-      - ACK the intent seq on accept.
-      - Respect `stopAdjacentToTarget` by trimming the final step from the path when needed.
-    - Included: Implement shared pathfinding for client/server code sharing:
-      - Move A* implementation out of `client/lib/astar.ts` into `shared/world/pathfinding/astar.ts` (or equivalent).
-      - Move `client/pathfinder.ts` logic into `shared/world/pathfinding/pathfinder.ts` and use it from both client and server.
-      - Client keeps its dynamic overlays (chunk overlays + dynamic occupancy) around the shared pathfinder call.
-      - Server uses `server/map.ts` collision grid, plus a server-side occupancy overlay (players/mobs/chests/npcs) at path compute time.
-    - Included: Server becomes tolerant to minor client divergence by design:
-      - `move.to` never rejects for "non-adjacent" (it has no adjacency claim).
-      - Keep strict invariants: max speed, collision, door rules.
-    - Included: Define rejection reasons for invalid targets (blocked/out of bounds/no path).
-    - Included: Movement-queue semantics for path-follow:
-      - Being blocked by a transient occupant should not force a teleport correction; instead, pause (do not advance), and retry later.
-      - Only hard-correct when the authoritative position itself is invalid/inconsistent (should not happen in normal play).
-    - Out of scope: WASD `move.input` server handling (Ticket 405).
-  - Acceptance criteria:
-    - A single `move.to` can move the player along a multi-step path without client streaming steps.
-    - Existing `move.step` rejects (`MOVE_STEP_REJECT_*`) are not emitted for `move.to`.
-    - Client can follow an NPC/mob/chest by reissuing `move.to` as the target moves (no per-step INTENT spam).
-    - Smoke gameplay parity still passes.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on Ticket 401.
-
 - Ticket 403 - Client click-to-move v2: send `move.to` once per click, keep visuals smooth via prediction + reconcile
-  - Status: `todo`
+  - Status: `in_progress`
   - Scope:
     - Included: Switch click movement to emit `INTENT(move.to)` instead of streaming `INTENT(move.step)`.
     - Included: Client-side prediction for the local player:

@@ -15,6 +15,34 @@ Format per entry:
 
 ## 2026-02-18
 
+- 18:18 UTC
+  - Ticket: 402 (Server authoritative movement v2: `move.to` + shared pathfinding)
+  - Status: `done`
+  - Key actions taken:
+    - Extracted A* + pathfinder into `shared/world/pathfinding/*` and re-exported from the existing client entrypoints for compatibility.
+    - Implemented server `INTENT(move.to)` bridging to `Command(MOVE_TO)` and a server-side `move.to` handler that:
+      - validates bounds + collision grid availability
+      - applies a transient occupancy overlay (players/mobs/npcs/chests) during path compute
+      - computes a capped path and populates `MoveQueue` in one shot (no per-step spam)
+      - supports `stopAdjacentToTarget` (for chasing entities standing on a blocked tile)
+    - Updated movement sim semantics so transient occupancy blocks pause path-follow (no forced teleport correction + queue clear).
+    - Refactored `move.to` handler into a dedicated module (`server/world/intents/move-to-intent.ts`) and added focused unit coverage.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts tests/unit/mmo/server-move-to-intent-registry.test.ts tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Start Ticket 403 (client click-to-move v2: send `move.to` once per click + prediction/reconcile).
+
+- 17:55 UTC
+  - Ticket: 402 (Server authoritative movement v2: `move.to` + shared pathfinding)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Start implementing server `move.to` handler and shared pathfinding extraction.
+  - Evidence:
+    - `git diff TODO.md PROGRESS.md`
+  - Next action:
+    - Extract A* + pathfinder into `shared/world/pathfinding/*`, switch client to use shared implementation, then implement server `move.to` bridging + handler.
+
 - 17:52 UTC
   - Ticket: 401 (Movement intents v2: `move.to` + `move.input`)
   - Status: `done`

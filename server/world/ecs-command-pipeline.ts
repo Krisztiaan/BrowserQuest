@@ -70,6 +70,7 @@ import {
     decodeClaimDeleteIntentPayload,
     decodeClaimUpdateIntentPayload,
     decodeDoorTeleportIntentPayload,
+    decodeMoveToIntentPayload,
     decodeMoveStepIntentPayload,
     decodeTileEditIntentPayload,
 } from '../../shared/protocol/intents';
@@ -94,11 +95,14 @@ import {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
     OUTCOME_DOOR_TELEPORT,
     type InboundIntentContext,
+    type IntentWorldHost,
 } from './ecs-command-pipeline/core-module-registry';
+import { applyMoveToIntentCommand as applyMoveToIntentCommandImpl } from './intents/move-to-intent';
 
 type DoorTeleportOutcome = Readonly<{ playerId: EntityId; to: GridPos }>;
 type DroppedItem = Readonly<{ id: EntityId; kind: EntityKind }>;
@@ -161,6 +165,11 @@ type WorldCommandHost = Readonly<{
         getDoorDestination(x: number, y: number): { x: number; y: number } | null;
         getGroupIdFromPosition(x: number, y: number): string;
         forEachAdjacentGroup(groupId: string | null | undefined, callback: (groupId: string) => void): void;
+        // Server map supports these, but some older host surfaces didn't type them.
+        grid?: number[][];
+        width?: number;
+        height?: number;
+        isOutOfBounds?(x: number, y: number): boolean;
     };
     getConnectionPlayerById(playerId: EntityId): PlayerLike | null;
     removeEntityFromAreas(entityId: EntityId): void;
@@ -590,7 +599,7 @@ function applyMoveIntentCommand({
     Position: ComponentType<GridPos>;
     player: PlayerLike;
     movement: ReturnType<typeof registerMovementComponents>;
-    world: WorldCommandHost;
+    world: IntentWorldHost;
     cmd: Extract<Command, { type: 'MOVE' }>;
 }): { ok: false; reason: string } | void {
     const { MoveQueue } = movement;
@@ -1597,6 +1606,16 @@ function createApplyInboundCommandsSystem(
                         bridged = to
                             ? ({ type: 'MOVE', source: cmd.source, to } satisfies Extract<Command, { type: 'MOVE' }>)
                             : null;
+                    } else if (cmd.intentTypeId === INTENT_MOVE_TO) {
+                        const decoded = decodeMoveToIntentPayload(cmd.payloadBytes);
+                        bridged = decoded
+                            ? ({
+                                  type: 'MOVE_TO',
+                                  source: cmd.source,
+                                  to: gridPos(decoded.x, decoded.y),
+                                  stopAdjacentToTarget: decoded.stopAdjacentToTarget,
+                              } satisfies Extract<Command, { type: 'MOVE_TO' }>)
+                            : null;
                     } else if (cmd.intentTypeId === INTENT_DOOR_TELEPORT) {
                         const to = decodeDoorTeleportIntentPayload(cmd.payloadBytes);
                         bridged = to
@@ -1681,6 +1700,10 @@ function createApplyInboundCommandsSystem(
                             world.pushToPlayerId(cmd.source.playerId, buildTeleportAction(player.id, pos.x, pos.y));
                         }
                     }
+                    break;
+                case 'MOVE_TO':
+                    // MOVE_TO is only intended to exist as an internal bridged payload inside the INTENT handler.
+                    // If it ever lands in the inbound command queue, ignore it (do not crash the server).
                     break;
                 case 'TILE_EDIT':
                     {
@@ -1843,11 +1866,22 @@ export class WorldEcsCommandPipeline {
                     Position,
                     player,
                     movement,
-                    world: world as WorldCommandHost,
+                    world,
                     cmd,
                 });
             },
-            applyTeleportOutcome({ state, ctx, Position, Target, mobAi, movement, replication, world, playerId, to }) {
+            applyMoveToIntentCommand({ state, Position, Kind, player, movement, world, cmd }) {
+                return applyMoveToIntentCommandImpl({
+                    state,
+                    Position,
+                    Kind,
+                    player,
+                    movement,
+                    world,
+                    cmd,
+                });
+            },
+            applyTeleportOutcome({ state, ctx, Position, Target, mobAi, movement, replication, world: _intentWorld, playerId, to }) {
                 applyTeleportOutcome({
                     state,
                     ctx,
@@ -1856,7 +1890,7 @@ export class WorldEcsCommandPipeline {
                     mobAi,
                     movement,
                     replication,
-                    world: world as WorldCommandHost,
+                    world,
                     playerId,
                     to,
                 });
@@ -1952,8 +1986,7 @@ export class WorldEcsCommandPipeline {
 
                 const occupant = occupiedBy.get(positionKey(next.x, next.y));
                 if (occupant !== undefined && occupant !== playerId) {
-                    teleportCorrect(playerId, from);
-                    state.world.removeComponent(playerId, MoveQueue);
+                    // Transient collision (another actor is occupying the next tile). Do not hard-correct; just wait.
                     return;
                 }
 

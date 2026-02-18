@@ -6,6 +6,7 @@ import {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
     OUTCOME_DOOR_TELEPORT,
@@ -15,10 +16,12 @@ export {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
     OUTCOME_DOOR_TELEPORT,
 } from '../../../shared/protocol/intents';
+import type { EntityKind } from '../../../shared/entity-kind-domain';
 import type { Command } from '../../ecs/commands';
 import type { ComponentType } from '../../ecs/component-registry';
 import type { DomainEvent } from '../../ecs/events';
@@ -48,6 +51,12 @@ type LooseValue = string | number | boolean | bigint | symbol | null | undefined
 export type IntentWorldHost = Readonly<{
     map: {
         getDoorDestination(x: number, y: number): { x: number; y: number } | null;
+        // Server-side movement intents (e.g. move.to) need collision grid + bounds, but older host
+        // surfaces may omit them. Handlers must guard at runtime and reject if unavailable.
+        grid?: number[][];
+        width?: number;
+        height?: number;
+        isOutOfBounds?(x: number, y: number): boolean;
     };
     isValidPosition(x: number, y: number): boolean;
     ensureChunkOverlayLoadedForTile?(x: number, y: number): boolean;
@@ -77,6 +86,16 @@ type ApplyMoveIntentCommand = (params: {
     cmd: Extract<Command, { type: 'MOVE' }>;
 }) => { ok: false; reason: string } | void;
 
+type ApplyMoveToIntentCommand = (params: {
+    state: WorldState<Command, DomainEvent>;
+    Position: ComponentType<GridPos>;
+    Kind: ComponentType<EntityKind>;
+    player: PlayerLike;
+    movement: ReturnType<typeof registerMovementComponents>;
+    world: IntentWorldHost;
+    cmd: Extract<Command, { type: 'MOVE_TO' }>;
+}) => { ok: false; reason: string } | void;
+
 type ApplyTeleportOutcome = (params: {
     state: WorldState<Command, DomainEvent>;
     ctx: SystemContext;
@@ -94,6 +113,7 @@ type CoreModuleRegistryOptions = Readonly<{
     chunkOverlayStoreResource: ResourceKey<ChunkOverlayStore>;
     resolvePlayerIdentityKey(player: PlayerLike): string | null;
     applyMoveIntentCommand: ApplyMoveIntentCommand;
+    applyMoveToIntentCommand: ApplyMoveToIntentCommand;
     applyTeleportOutcome: ApplyTeleportOutcome;
 }>;
 
@@ -167,6 +187,23 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     return options.applyMoveIntentCommand({
                         state: ctx.state,
                         Position: ctx.Position,
+                        player: ctx.player,
+                        movement: ctx.movement,
+                        world: ctx.world,
+                        cmd,
+                    });
+                });
+
+                registry.registerIntentHandler(INTENT_MOVE_TO, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'MOVE_TO');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    return options.applyMoveToIntentCommand({
+                        state: ctx.state,
+                        Position: ctx.Position,
+                        Kind: ctx.replication.Kind,
                         player: ctx.player,
                         movement: ctx.movement,
                         world: ctx.world,
