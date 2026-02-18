@@ -6,6 +6,12 @@ import type {
 import { checkClientToServerProtocolAction, isServerToClientProtocolAction } from './schema';
 import { decodeBinaryActionBatchPayload, encodeBinaryActionBatchPayload } from './binary-action-codec';
 import {
+    decodeClientToServerProtocolActionBatchJson,
+    decodeServerToClientProtocolActionBatchJson,
+    encodeProtocolActionBatchJson,
+    encodeProtocolActionJson,
+} from './registry-json';
+import {
     CLIENT_TO_SERVER_PROTOCOL_MANIFEST,
     PROTOCOL_MANIFEST,
     SERVER_TO_CLIENT_PROTOCOL_MANIFEST,
@@ -22,15 +28,6 @@ export const SERVER_TO_CLIENT_PROTOCOL_REGISTRY = SERVER_TO_CLIENT_PROTOCOL_MANI
 export const PROTOCOL_REGISTRY = PROTOCOL_MANIFEST;
 
 type ProtocolDecodeInput = unknown;
-
-function safeParseJson(payload: string): ProtocolDecodeInput {
-    try {
-        const parsed: unknown = JSON.parse(payload);
-        return parsed;
-    } catch (_) {
-        return null;
-    }
-}
 
 export function isClientToServerProtocolAction(
     value: ProtocolDecodeInput
@@ -63,7 +60,7 @@ export function normalizeClientToServerProtocolActionBatch(value: ProtocolDecode
 }
 
 export function decodeClientToServerProtocolActionBatch(payload: string): ClientToServerProtocolAction[] {
-    return normalizeClientToServerProtocolActionBatch(safeParseJson(payload));
+    return normalizeClientToServerProtocolActionBatch(decodeClientToServerProtocolActionBatchJson(payload));
 }
 
 export function decodeClientToServerProtocolActionBatchBinary(payload: ArrayBuffer | Uint8Array): ClientToServerProtocolAction[] {
@@ -102,7 +99,7 @@ export function normalizeServerToClientProtocolActionBatch(value: ProtocolDecode
 }
 
 export function decodeServerToClientProtocolActionBatch(payload: string): ServerToClientProtocolAction[] {
-    return normalizeServerToClientProtocolActionBatch(safeParseJson(payload));
+    return normalizeServerToClientProtocolActionBatch(decodeServerToClientProtocolActionBatchJson(payload));
 }
 
 export function decodeServerToClientProtocolActionBatchBinary(payload: ArrayBuffer | Uint8Array): ServerToClientProtocolAction[] {
@@ -114,11 +111,11 @@ export function decodeServerToClientProtocolActionBatchBinary(payload: ArrayBuff
 }
 
 export function encodeProtocolAction(action: ProtocolAction): string {
-    return JSON.stringify(action);
+    return encodeProtocolActionJson(action);
 }
 
 export function encodeProtocolActionBatch(actions: ReadonlyArray<ProtocolAction>): string {
-    return JSON.stringify(actions);
+    return encodeProtocolActionBatchJson(actions);
 }
 
 export function encodeProtocolActionBinary(action: ProtocolAction): Uint8Array {

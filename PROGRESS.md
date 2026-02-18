@@ -3743,3 +3743,26 @@ Format per entry:
     - `bun x eslint --max-warnings=0 shared/protocol/registry.ts shared/protocol/*.ts`
   - Next action:
     - Execute Ticket 366 (WS runtime/client transport binary cutover).
+
+- 01:39 UTC
+  - Ticket: 366 (WS runtime/client transport binary cutover)
+  - Start timestamp: 2026-02-18 01:33 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Switched client gameplay WS path to binary-only action frames:
+      - explicit `socket.binaryType = 'arraybuffer'`,
+      - outbound frames via `encodeProtocolActionBinary`,
+      - inbound dispatch via `decodeServerToClientProtocolActionBatchBinary`.
+    - Updated server WS runtime/factory gameplay frame handling to binary-only:
+      - reject text gameplay frames with `UNSUPPORTED_DATA`,
+      - decode inbound actions via `decodeClientToServerProtocolActionBatchBinary`,
+      - encode outbound gameplay actions into binary frames.
+    - Removed direct JSON parse/stringify calls from active gameplay transport files in this ticket scope (`client/gameclient.ts`, `server/ws/runtime-factory.ts`, `shared/protocol/registry.ts`) by moving JSON helper logic into `shared/protocol/registry-json.ts`.
+    - Updated runtime parity/factory tests for binary semantics and upgraded smoke parity test + WS test client to send/consume binary gameplay frames.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/client-gameclient-reconnect-silent.test.ts tests/unit/player-session.test.ts`
+    - `rg -n "JSON\\.stringify\\(|JSON\\.parse\\(" client/gameclient.ts server/ws/runtime.ts server/ws/runtime-factory.ts shared/protocol/registry.ts`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts`
+  - Next action:
+    - Execute Ticket 367 (intent payload binaryization; remove nested JSON payload strings).

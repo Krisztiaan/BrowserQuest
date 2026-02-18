@@ -25,7 +25,10 @@ import {
 } from './gameclient-outbound-actions';
 import type { TypedEventSource } from '../shared/typed-event-emitter';
 import { Evented } from '../shared/evented';
-import { decodeServerToClientProtocolActionBatch } from '../shared/protocol/registry';
+import {
+    decodeServerToClientProtocolActionBatchBinary,
+    encodeProtocolActionBinary,
+} from '../shared/protocol/registry';
 import {
     DISPATCHER_CONNECT_STATUS,
     HANDSHAKE_CONTROL,
@@ -47,6 +50,7 @@ import { ClientWorldKernel } from './ecs/world-kernel';
 import { decodeProtocolCapabilitiesJson, type ProtocolCapabilities } from '../shared/protocol/capabilities';
 import { decodeChunkSnapshotPayloadJson } from '../shared/protocol/chunks/chunk-snapshot-codec';
 import { decodeChunkDeltaPayloadJson } from '../shared/protocol/chunks/chunk-delta-codec';
+import { safeParseJsonValue, type JsonValue } from '../shared/json/safe-json';
 import {
     encodeClaimCreateIntentPayload,
     encodeClaimDeleteIntentPayload,
@@ -64,54 +68,28 @@ import {
 import { nextIntentSeq } from '../shared/protocol/intent-seq';
 import { debugMoves } from './debug-flags';
 
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-
 function isRecord(value: JsonValue | object | null | undefined): value is Record<string, JsonValue> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function toJsonValue(value: unknown): JsonValue | null {
-    if (value === null) {
-        return null;
+function normalizeBinaryFrameData(data: ArrayBuffer | Uint8Array | ArrayBufferView): ArrayBuffer | Uint8Array {
+    if (data instanceof ArrayBuffer || data instanceof Uint8Array) {
+        return data;
     }
-    if (typeof value === 'string' || typeof value === 'boolean') {
-        return value;
-    }
-    if (typeof value === 'number') {
-        return Number.isFinite(value) ? value : null;
-    }
-    if (Array.isArray(value)) {
-        const parsedArray: JsonValue[] = [];
-        for (const entry of value) {
-            const parsedEntry = toJsonValue(entry);
-            if (parsedEntry === null && entry !== null) {
-                return null;
-            }
-            parsedArray.push(parsedEntry);
-        }
-        return parsedArray;
-    }
-    if (typeof value === 'object') {
-        const parsedRecord: { [key: string]: JsonValue } = {};
-        for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-            const parsedEntry = toJsonValue(entry);
-            if (parsedEntry === null && entry !== null) {
-                return null;
-            }
-            parsedRecord[key] = parsedEntry;
-        }
-        return parsedRecord;
-    }
-    return null;
+    return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
 }
 
-function safeParseJson(payload: string): JsonValue | null {
-    try {
-        return toJsonValue(JSON.parse(payload));
-    } catch (_) {
-        return null;
+function formatProtocolValueForLog(value: unknown): string {
+    if (Array.isArray(value)) {
+        return `[${value.map((entry) => formatProtocolValueForLog(entry)).join(',')}]`;
     }
+    if (typeof value === 'string') {
+        return `"${value.replaceAll('\\', '\\\\').replaceAll('"', '\\"')}"`;
+    }
+    if (value === null) {
+        return 'null';
+    }
+    return String(value);
 }
 
 type ClientPlayerLike = {
@@ -210,6 +188,7 @@ class GameClient extends Evented<GameClientEvents> {
         log.info('Trying to connect to server : ' + url);
 
         const socket = new WebSocket(url);
+        socket.binaryType = 'arraybuffer';
         this.connection = socket;
 
         if (dispatcherMode) {
@@ -219,7 +198,7 @@ class GameClient extends Evented<GameClientEvents> {
                     return;
                 }
 
-                const reply = safeParseJson(e.data);
+                const reply = safeParseJsonValue(e.data);
                 if (!isRecord(reply)) {
                     alert('Unknown error while connecting to BrowserQuest.');
                     return;
@@ -255,9 +234,27 @@ class GameClient extends Evented<GameClientEvents> {
                     self.isTimeout = true;
                     return;
                 }
-
+                if (e.data instanceof ArrayBuffer) {
+                    self.receiveMessage(normalizeBinaryFrameData(e.data));
+                    return;
+                }
+                if (e.data instanceof Blob) {
+                    void e.data
+                        .arrayBuffer()
+                        .then((buffer) => {
+                            self.receiveMessage(normalizeBinaryFrameData(buffer));
+                        })
+                        .catch((error: unknown) => {
+                            log.error('Failed to read binary websocket frame: ' + String(error));
+                        });
+                    return;
+                }
+                if (ArrayBuffer.isView(e.data)) {
+                    self.receiveMessage(normalizeBinaryFrameData(e.data));
+                    return;
+                }
                 if (typeof e.data === 'string') {
-                    self.receiveMessage(e.data);
+                    log.error('Unsupported text gameplay frame received.');
                 }
             };
 
@@ -320,17 +317,26 @@ class GameClient extends Evented<GameClientEvents> {
         if (this.connection?.readyState !== WebSocket.OPEN) {
             return;
         }
-        const data = JSON.stringify(json);
+        const data = encodeProtocolActionBinary(json);
         this.connection.send(data);
     }
 
-    receiveMessage(message: string): void {
+    receiveMessage(message: ArrayBuffer | Uint8Array): void {
         if (!this.isListening) {
             return;
         }
 
-        log.debug('data: ' + message);
-        const actions = decodeServerToClientProtocolActionBatch(message);
+        const actions = decodeServerToClientProtocolActionBatchBinary(message);
+        if (actions.length > 0) {
+            if (actions.length === 1) {
+                const action = actions[0];
+                if (action) {
+                    log.debug('data: ' + formatProtocolValueForLog(action));
+                }
+            } else {
+                log.debug('data: ' + formatProtocolValueForLog(actions));
+            }
+        }
         if (actions.length === 1) {
             const action = actions[0];
             if (action) {

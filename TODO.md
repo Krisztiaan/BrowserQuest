@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:31 UTC
+Last updated: 2026-02-18 01:39 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,25 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 366 - WS runtime/client transport binary cutover (`todo`)
-  - Scope:
-    - Included: switch game WS send/receive paths to binary payloads (`ArrayBuffer`/`Uint8Array`) in client and server runtime adapters.
-    - Included: set client socket binary mode explicitly and handle binary payload dispatch in `client/gameclient.ts`.
-    - Included: remove JSON stringify/parse in active game WS transport paths.
-    - Included: no runtime fallback to text JSON frames for gameplay sockets.
-    - Out of scope: HTTP endpoint payload formats.
-  - Acceptance criteria:
-    - Gameplay WS frames are binary in both directions.
-    - Active client/server WS game transport paths no longer depend on `JSON.stringify`/`JSON.parse` for protocol action batches.
-    - Runtime smoke flow (connect, move, combat, chat) succeeds on binary transport.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/client-gameclient-reconnect-silent.test.ts tests/unit/player-session.test.ts`
-    - `rg -n "JSON\\.stringify\\(|JSON\\.parse\\(" client/gameclient.ts server/ws/runtime.ts server/ws/runtime-factory.ts shared/protocol/registry.ts`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts`
-  - Dependencies/blockers:
-    - Depends on Ticket 365.
 
 - Ticket 367 - Intent payload binaryization (remove nested JSON payload strings) (`todo`)
   - Scope:

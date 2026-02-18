@@ -23,9 +23,13 @@ import {
     MSG_WELCOME,
     MSG_WHO,
     MSG_ZONE,
-    parseProtocolActionBatch,
     type ProtocolAction,
 } from '../support/protocol/contract';
+import {
+    decodeServerToClientProtocolActionBatchBinary,
+    encodeProtocolActionBinary,
+} from '../../shared/protocol/registry';
+import { encodeMoveStepIntentPayload } from '../../shared/protocol/intents';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
@@ -64,19 +68,19 @@ function normalizePayloadToActions(payload: FramePayload): Action[] {
         return isActionArray(payload) ? [payload] : [];
     }
 
-    let text = '';
     if (typeof payload === 'string') {
-        text = payload;
-    } else if (payload instanceof ArrayBuffer) {
-        text = Buffer.from(payload).toString('utf8');
-    } else if (ArrayBuffer.isView(payload)) {
-        const view = payload;
-        text = Buffer.from(view.buffer, view.byteOffset, view.byteLength).toString('utf8');
-    } else {
-        text = formatUnknown(payload);
+        return [];
     }
-
-    return parseProtocolActionBatch(text).filter((entry): entry is Action => isActionArray(entry));
+    if (payload instanceof ArrayBuffer) {
+        return decodeServerToClientProtocolActionBatchBinary(payload).filter((entry): entry is Action => isActionArray(entry));
+    }
+    if (ArrayBuffer.isView(payload)) {
+        const view = payload;
+        const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+        return decodeServerToClientProtocolActionBatchBinary(bytes).filter((entry): entry is Action => isActionArray(entry));
+    }
+    void formatUnknown(payload);
+    return [];
 }
 
 function isSafeInteger(value: number | string | boolean | null | undefined | object): value is number {
@@ -185,7 +189,7 @@ test(
         const stream = createActionStream(ws);
         await waitForGoHandshake(ws);
 
-        ws.send(JSON.stringify([MSG_HELLO, 'modern-e2e', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
+        ws.send(encodeProtocolActionBinary([MSG_HELLO, 'modern-e2e', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
         const welcome = await waitForNextAction(stream, (action) => action[0] === MSG_WELCOME, 'WELCOME', 120000);
         const playerX = welcome[3];
         const playerY = welcome[4];
@@ -204,7 +208,7 @@ test(
 
         let combatTargetId: number | null = null;
         if (nearbyEntityIds.length > 0) {
-            ws.send(JSON.stringify([MSG_WHO, ...nearbyEntityIds.slice(0, 30)]));
+            ws.send(encodeProtocolActionBinary([MSG_WHO, ...nearbyEntityIds.slice(0, 30)]));
             await waitForNextAction(stream, (action) => action[0] === MSG_SPAWN, 'SPAWN');
 
             const spawns = stream.actions.filter((action) => action[0] === MSG_SPAWN);
@@ -217,20 +221,24 @@ test(
             combatTargetId = isSafeInteger(candidateTargetId) ? candidateTargetId : null;
         }
 
-        ws.send(JSON.stringify([MSG_INTENT, 1, 'move.step', JSON.stringify({ x: playerX, y: playerY })]));
+        const movePayload = encodeMoveStepIntentPayload({ x: playerX, y: playerY });
+        if (movePayload === null) {
+            throw new Error('Failed to encode move.step payload');
+        }
+        ws.send(encodeProtocolActionBinary([MSG_INTENT, 1, 'move.step', movePayload]));
         await ensureSocketOpen(ws);
 
         const chatMessage = 'modern-e2e-chat';
-        ws.send(JSON.stringify([MSG_CHAT, chatMessage]));
+        ws.send(encodeProtocolActionBinary([MSG_CHAT, chatMessage]));
         await ensureSocketOpen(ws);
 
-        ws.send(JSON.stringify([MSG_ZONE]));
+        ws.send(encodeProtocolActionBinary([MSG_ZONE]));
         await ensureSocketOpen(ws);
 
         if (combatTargetId !== null) {
-            ws.send(JSON.stringify([MSG_ATTACK, combatTargetId]));
+            ws.send(encodeProtocolActionBinary([MSG_ATTACK, combatTargetId]));
             for (let i = 0; i < 6; i += 1) {
-                ws.send(JSON.stringify([MSG_ATTACK, combatTargetId]));
+                ws.send(encodeProtocolActionBinary([MSG_ATTACK, combatTargetId]));
             }
 
             // Damage events are random; if one arrives, validate shape.
@@ -248,7 +256,7 @@ test(
             }
             await ensureSocketOpen(ws);
 
-            ws.send(JSON.stringify([MSG_LOOTMOVE, playerX, playerY, combatTargetId]));
+            ws.send(encodeProtocolActionBinary([MSG_LOOTMOVE, playerX, playerY, combatTargetId]));
             await ensureSocketOpen(ws);
         }
 
@@ -258,7 +266,7 @@ test(
         const reconnect = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
         const reconnectStream = createActionStream(reconnect);
         await waitForGoHandshake(reconnect);
-        reconnect.send(JSON.stringify([MSG_HELLO, 'modern-e2e-reconnect', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
+        reconnect.send(encodeProtocolActionBinary([MSG_HELLO, 'modern-e2e-reconnect', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
         await waitForNextAction(
             reconnectStream,
             (action) => action[0] === MSG_WELCOME,

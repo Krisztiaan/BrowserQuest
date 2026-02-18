@@ -75,7 +75,7 @@ export interface WsConnectionLike {
         event: string,
         handler: (...args: Array<WsFrameData | WsErrorLike>) => void
     ): void;
-    send(data: string): void;
+    send(data: string | Uint8Array | ArrayBuffer): void;
     close(code?: number, reason?: string): void;
 }
 

@@ -143,7 +143,7 @@ type BunSocketData = {
 
 type BunSocketLike = {
     data?: BunSocketData;
-    send(data: string): void;
+    send(data: string | Uint8Array | ArrayBuffer): void;
     close(code?: number, reason?: string): void;
 };
 
@@ -172,7 +172,7 @@ class BunSocketAdapter {
         this.#handlers[event]?.(...args);
     }
 
-    send(data: string) {
+    send(data: string | Uint8Array | ArrayBuffer) {
         this.#socket.send(data);
     }
 

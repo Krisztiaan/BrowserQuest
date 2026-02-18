@@ -14,7 +14,7 @@ class WsClient {
         return this.#socket.readyState;
     }
 
-    send(data: string) {
+    send(data: string | Blob | ArrayBuffer | ArrayBufferView | Uint8Array) {
         this.#socket.send(data);
     }
 

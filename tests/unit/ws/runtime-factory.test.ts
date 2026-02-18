@@ -1,14 +1,19 @@
 import { expect, test } from 'bun:test';
 import { createWebSocketRuntimeClasses } from '../../../server/ws/runtime-factory';
 import type { ProtocolParsedAction } from '../../../shared/protocol/types';
+import Types from '../../../shared/gametypes-browser';
+import {
+    decodeServerToClientProtocolActionBatchBinary,
+    encodeProtocolActionBinary,
+} from '../../../shared/protocol/registry';
 
-type SocketArg = string | number | boolean | null | undefined | object;
+type SocketArg = string | number | boolean | null | undefined | object | Uint8Array | ArrayBuffer;
 type Handler = (...args: SocketArg[]) => void;
 
 function createSocketMock() {
     const handlers: Record<string, Handler> = {};
     let closed: { code: number; reason: string } | null = null;
-    const sent: string[] = [];
+    const sent: Array<string | Uint8Array | ArrayBuffer> = [];
 
     return {
         on(event: string, handler: Handler) {
@@ -20,7 +25,7 @@ function createSocketMock() {
         close(code: number, reason: string) {
             closed = { code, reason };
         },
-        send(data: string) {
+        send(data: string | Uint8Array | ArrayBuffer) {
             sent.push(data);
         },
         getClosed() {
@@ -32,7 +37,7 @@ function createSocketMock() {
     };
 }
 
-function createFactoryDeps(overrideProtocolParser?: (payload: string) => ProtocolParsedAction[]) {
+function createFactoryDeps() {
     return {
         log: {
             info: () => {
@@ -49,7 +54,7 @@ function createFactoryDeps(overrideProtocolParser?: (payload: string) => Protoco
             random: () => 7,
         },
         Protocol: {
-            parseProtocolActionBatch: overrideProtocolParser ?? (() => []),
+            parseProtocolActionBatch: (_payload: string): ProtocolParsedAction[] => [],
         },
         CLOSE_CODES: {
             NORMAL: 1000,
@@ -73,8 +78,8 @@ function createFactoryDeps(overrideProtocolParser?: (payload: string) => Protoco
     };
 }
 
-test('ws runtime class factory emits connection class that enforces single-action payloads', () => {
-    const deps = createFactoryDeps(() => []);
+test('ws runtime class factory rejects text gameplay frames', () => {
+    const deps = createFactoryDeps();
     const { wsWebSocketConnection } = createWebSocketRuntimeClasses(deps);
 
     const socket = createSocketMock();
@@ -88,11 +93,11 @@ test('ws runtime class factory emits connection class that enforces single-actio
     socket.emit('message', '{"invalid":true}', false);
 
     expect(listened).toBe(false);
-    expect(socket.getClosed()?.code).toBe(deps.CLOSE_CODES.INVALID_PAYLOAD);
+    expect(socket.getClosed()?.code).toBe(deps.CLOSE_CODES.UNSUPPORTED_DATA);
 });
 
 test('ws runtime class factory emits connection class that forwards valid protocol actions', () => {
-    const deps = createFactoryDeps(() => [[1, 2, 3]]);
+    const deps = createFactoryDeps();
     const { wsWebSocketConnection } = createWebSocketRuntimeClasses(deps);
 
     const socket = createSocketMock();
@@ -103,10 +108,13 @@ test('ws runtime class factory emits connection class that forwards valid protoc
     conn.listen((action: ProtocolParsedAction) => {
         received = action;
     });
-    socket.emit('message', '[1,2,3]', false);
-    conn.send([4, 5, 6]);
+    socket.emit('message', encodeProtocolActionBinary([Types.Messages.ZONE]), true);
+    conn.send([Types.Messages.HP, 55]);
 
-    expect(received).toEqual([1, 2, 3]);
+    expect(received).toEqual([Types.Messages.ZONE]);
     expect(socket.getClosed()).toBeNull();
-    expect(socket.getSent()).toEqual(['[4,5,6]']);
+    const sent = socket.getSent();
+    expect(sent.length).toBe(1);
+    const decoded = decodeServerToClientProtocolActionBatchBinary(sent[0] as Uint8Array | ArrayBuffer);
+    expect(decoded).toEqual([[Types.Messages.HP, 55]]);
 });

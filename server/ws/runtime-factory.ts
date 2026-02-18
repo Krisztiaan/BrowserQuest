@@ -1,5 +1,7 @@
 import { WS_EVENT_NAMES } from '../server-event-names';
 import type { ProtocolParsedAction } from '../../shared/protocol/types';
+import { decodeClientToServerProtocolActionBatchBinary } from '../../shared/protocol/registry';
+import { encodeBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
 import type {
     HttpUpgradeRequestLike,
     JsonValue,
@@ -25,7 +27,7 @@ type WebSocketRuntimeServerEvents = {
 export function createWebSocketRuntimeClasses({
     log,
     Utils: _Utils,
-    Protocol,
+    Protocol: _Protocol,
     CLOSE_CODES,
     WebSocket,
     createHttpServer,
@@ -64,12 +66,33 @@ export function createWebSocketRuntimeClasses({
         if (error instanceof Error) {
             return error.message ? `${error.name}: ${error.message}` : error.name;
         }
-        try {
-            const json = JSON.stringify(error);
-            return typeof json === 'string' ? json : 'unknown_error';
-        } catch (_) {
-            return 'unknown_error';
+        if (typeof error === 'object') {
+            const candidate = error as { toString?: () => string };
+            if (typeof candidate.toString === 'function') {
+                return candidate.toString();
+            }
         }
+        return 'unknown_error';
+    }
+
+    function coerceBinaryPayload(data: unknown): ArrayBuffer | Uint8Array | null {
+        if (data instanceof ArrayBuffer || data instanceof Uint8Array) {
+            return data;
+        }
+        if (Buffer.isBuffer(data)) {
+            return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+        }
+        return null;
+    }
+
+    function encodeOutgoingPayload(message: JsonValue): Uint8Array | null {
+        if (!Array.isArray(message)) {
+            return null;
+        }
+        if (message.length > 0 && Array.isArray(message[0])) {
+            return encodeBinaryActionBatchPayload(message as ReadonlyArray<unknown>);
+        }
+        return encodeBinaryActionBatchPayload([message as ReadonlyArray<unknown>]);
     }
 
     class Server extends Evented<WebSocketRuntimeServerEvents> {
@@ -190,18 +213,18 @@ export function createWebSocketRuntimeClasses({
             super(id, connection, server, remoteAddress);
 
             this._connection.on('message', (data, isBinary) => {
-                if (isBinary) {
-                    this.closeUnsupportedData('Binary websocket frames are not supported.');
+                if (!isBinary) {
+                    this.closeUnsupportedData('Text websocket frames are not supported for gameplay.');
                     return;
                 }
 
-                if (typeof data !== 'string' && !Buffer.isBuffer(data)) {
+                const payload = coerceBinaryPayload(data);
+                if (!payload) {
                     this.closeUnsupportedData('Unsupported websocket frame payload type.');
                     return;
                 }
-                const text = typeof data === 'string' ? data : data.toString('utf8');
 
-                const actions = Protocol.parseProtocolActionBatch(text);
+                const actions = decodeClientToServerProtocolActionBatchBinary(payload);
                 if (actions.length !== 1) {
                     this.closeInvalidPayload('Invalid message: expected a single protocol action Array.');
                     return;
@@ -232,7 +255,12 @@ export function createWebSocketRuntimeClasses({
         }
 
         override send(message: JsonValue): void {
-            this.sendUTF8(JSON.stringify(message));
+            const payload = encodeOutgoingPayload(message);
+            if (!payload) {
+                log.error('Attempted to send unsupported non-array protocol payload.');
+                return;
+            }
+            this._connection.send(payload);
         }
 
         override sendUTF8(data: string): void {

@@ -22,7 +22,7 @@ class MockWebSocket {
         MockWebSocket.instances.push(this);
     }
 
-    send(_data: string): void {}
+    send(_data: string | ArrayBufferLike | ArrayBufferView | Blob): void {}
 
     close(): void {
         this.readyState = MockWebSocket.CLOSED;
