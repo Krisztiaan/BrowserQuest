@@ -15,6 +15,16 @@ Format per entry:
 
 ## 2026-02-18
 
+- 17:34 UTC
+  - Ticket: (ticketization refinement)
+  - Status: `done`
+  - Key actions taken:
+    - Refined Tickets 401-408 with concrete wire/payload layouts, pathfinding sharing plan (client/server), and stricter movement semantics for prediction/reconcile.
+  - Evidence:
+    - `git diff TODO.md`
+  - Next action:
+    - Start Ticket 401 (add new intent IDs + payload codecs + update FixedBin intent enum mapping) and proceed in dependency order.
+
 - 12:35 UTC
   - Ticket: (ticketization)
   - Status: `done`

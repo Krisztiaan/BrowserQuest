@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 12:35 UTC
+Last updated: 2026-02-18 17:34 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,19 +34,27 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 401 - Movement intents v2: introduce `move.to` + `move.input` payload codecs + capability surfacing
+- Ticket 401 - Movement intents v2: introduce `move.to` + `move.input` payload codecs + FixedBin intent-id mapping update
   - Status: `todo`
   - Scope:
     - Included: Add new intent type ids in `shared/protocol/intents.ts`:
       - `move.to` (click-to-move target request)
       - `move.input` (WASD input-state request)
-    - Included: Add encode/decode helpers for both payloads (fixed-size binary payloads; no JSON).
-    - Included: Surface new intent type ids in server capabilities (so clients can gate on `supportsIntent()`).
-    - Included: Update any schema/registry validation required for the new intent payload shapes.
+    - Included: Define payload layouts and add encode/decode helpers (byte payloads; no JSON):
+      - `move.to` payload: `targetX:i32le` + `targetY:i32le` + `flags:u8`
+        - flags bit0: `stopAdjacentToTarget` (for follow/talk/open/attack approaches)
+        - other bits reserved (must be 0 for now)
+      - `move.input` payload: `keysMask:u8`
+        - bit0=W, bit1=A, bit2=S, bit3=D
+        - other bits reserved (must be 0 for now)
+    - Included: Update FixedBin v2 intent-type enum mapping (`WIRE_INTENT_TYPE_IDS` in `shared/protocol/binary-action-codec.ts`)
+      - Add `move.to` and `move.input` at the end (stable ordering; never reorder once shipped).
+      - Update `docs/protocol-fixedbin.md` to reflect the new intent enum entries.
+    - Included: Update any unit tests that assert intent type id mappings / roundtrips.
     - Out of scope: Switching client/server behavior to use these intents (follow-up tickets).
   - Acceptance criteria:
-    - `supportsIntent('move.to')` / `supportsIntent('move.input')` can become true after HELLO capabilities handshake.
-    - Payload codecs round-trip in unit tests.
+    - Payload codecs round-trip in unit tests (`encode -> decode`).
+    - FixedBin v2 can encode/decode batches containing INTENTs with the new type IDs (mapping exists on both ends).
     - Typecheck passes.
   - Verification plan:
     - `bun run typecheck`
@@ -59,17 +67,27 @@ Cycle completion gate:
   - Scope:
     - Included: Server implements `move.to` intent handler:
       - Validate target tile (bounds + collision rules).
-      - Compute path from authoritative position to target.
-      - Populate server MoveQueue from computed path, capped by configured maximum.
+      - Compute path from authoritative position to target using a shared pathfinder module (see below).
+      - Populate server MoveQueue from computed path, capped (both by step count and by a node-visit budget).
       - ACK the intent seq on accept.
+      - Respect `stopAdjacentToTarget` by trimming the final step from the path when needed.
+    - Included: Implement shared pathfinding for client/server code sharing:
+      - Move A* implementation out of `client/lib/astar.ts` into `shared/world/pathfinding/astar.ts` (or equivalent).
+      - Move `client/pathfinder.ts` logic into `shared/world/pathfinding/pathfinder.ts` and use it from both client and server.
+      - Client keeps its dynamic overlays (chunk overlays + dynamic occupancy) around the shared pathfinder call.
+      - Server uses `server/map.ts` collision grid, plus a server-side occupancy overlay (players/mobs/chests/npcs) at path compute time.
     - Included: Server becomes tolerant to minor client divergence by design:
       - `move.to` never rejects for "non-adjacent" (it has no adjacency claim).
       - Keep strict invariants: max speed, collision, door rules.
     - Included: Define rejection reasons for invalid targets (blocked/out of bounds/no path).
+    - Included: Movement-queue semantics for path-follow:
+      - Being blocked by a transient occupant should not force a teleport correction; instead, pause (do not advance), and retry later.
+      - Only hard-correct when the authoritative position itself is invalid/inconsistent (should not happen in normal play).
     - Out of scope: WASD `move.input` server handling (Ticket 405).
   - Acceptance criteria:
     - A single `move.to` can move the player along a multi-step path without client streaming steps.
     - Existing `move.step` rejects (`MOVE_STEP_REJECT_*`) are not emitted for `move.to`.
+    - Client can follow an NPC/mob/chest by reissuing `move.to` as the target moves (no per-step INTENT spam).
     - Smoke gameplay parity still passes.
   - Verification plan:
     - `bun run typecheck`
@@ -82,10 +100,17 @@ Cycle completion gate:
   - Scope:
     - Included: Switch click movement to emit `INTENT(move.to)` instead of streaming `INTENT(move.step)`.
     - Included: Client-side prediction for the local player:
-      - Start local movement immediately (don’t wait for S2C MOVE per-step) using the same pathfinder result already computed client-side.
-      - Maintain an input queue keyed by intent `seq` for reconciliation.
+      - Start local movement immediately using the client pathfinder result (same overlays as today), without waiting for the first S2C MOVE.
+      - Maintain a minimal movement prediction state:
+        - last authoritative tile (from S2C MOVE/TELEPORT/CORRECTION)
+        - current predicted tile/path segment
+        - last sent `move.to` seq (for logging/correlation)
     - Included: Server reconciliation:
-      - On S2C MOVE/TELEPORT/CORRECTION, reconcile local predicted state to authoritative (smooth when small, snap when large).
+      - On S2C MOVE/TELEPORT/CORRECTION:
+        - if authoritative tile matches predicted next tile: keep animating smoothly
+        - if drift is small (1 tile): rebase current animation origin (no hard snap)
+        - if drift is large: snap to server tile and clear predicted local path
+      - On S2C REJECT for `move.to`: clear prediction state and stop local movement.
     - Included: Coexistence policy:
       - Click-to-move target is cancelled when WASD keys become active (Ticket 404), and may be reinstated only by a new click.
     - Out of scope: Changing S2C movement replication format (vector tick; Ticket 406).
@@ -103,8 +128,14 @@ Cycle completion gate:
   - Status: `todo`
   - Scope:
     - Included: Add a dedicated WASD input system (keydown/keyup) that maintains `keysMask` state for W/A/S/D.
+      - Ignore movement keys while chat/name inputs are focused.
+      - Ensure key repeat does not generate redundant sends (only transitions).
     - Included: Send `INTENT(move.input)` only on state change (not every frame).
     - Included: Client prediction for local movement while keys are held.
+      - Disallow diagonal tile motion: resolve a single cardinal direction when multiple keys are held.
+      - Direction resolution policy:
+        - prefer the most recently pressed movement key still held
+        - server mirrors this using the observed key transition stream (no extra bytes needed)
     - Included: Coexistence with click-to-move:
       - While any movement key is down, click-to-move plan is cancelled/paused.
       - When keysMask returns to 0, movement stops (does not auto-resume old click target).
@@ -123,14 +154,18 @@ Cycle completion gate:
 - Ticket 405 - Reconciliation protocol v1: explicit movement state ack + authoritative base snapshot
   - Status: `todo`
   - Scope:
-    - Included: Add an explicit S2C movement reconciliation action (new opcode) that carries:
-      - `ackSeq` (last processed movement input seq for the local player)
-      - authoritative `gridX/gridY` (and optionally nextGrid/facing)
-      - a server tick marker (monotonic) to support interpolation budgets
+    - Included: Add an explicit S2C movement reconciliation action (new opcode) for the local player only:
+      - Proposed name: `MOVE_SYNC`
+      - Payload: `ackSeq:varu32` + `pos:pos20` + `tick:varu32` + `flags:u8`
+        - flags bit0: `suppressed` (client should stop predicting until next input)
+        - other bits reserved
+      - Add FixedBin v2 layout + docs for this opcode (`docs/protocol-fixedbin.md`).
     - Included: Client consumes this message to:
       - drop pending inputs up to `ackSeq`
       - rebase predicted movement and smooth-correct small drift
-    - Included: Server sends this reconciliation message at a fixed cadence (e.g. every N ticks) and on corrections.
+    - Included: Server emits this reconciliation message:
+      - at a fixed cadence (e.g. every 4-8 ticks) while the player is moving
+      - immediately on any correction/teleport outcome
     - Out of scope: Vectorizing all entity replication (Ticket 406).
   - Acceptance criteria:
     - Under simulated jitter/delay, local player movement remains smooth and drift is corrected without hard rejects.
@@ -144,9 +179,18 @@ Cycle completion gate:
 - Ticket 406 - Server-to-client perf: vectorized “entity state” replication (SoA) for hot movement/tick updates
   - Status: `todo`
   - Scope:
-    - Included: Introduce a new S2C opcode for batched entity state deltas (struct-of-arrays layout):
-      - entity ids + positions + movement flags + orientation + target (as needed)
-      - encoded in a fixed binary layout with typed-array-friendly blocks
+    - Included: Introduce a new S2C opcode for batched entity movement/state deltas:
+      - Proposed name: `ENTITY_STATE_BATCH`
+      - Layout optimized for decode speed (minimal branching + sequential reads):
+        - `tick:varu32`
+        - `count:varu32`
+        - for each entity:
+          - `id:varu32`
+          - `pos:pos20`
+          - `flags:u8` (bits for hasTarget/hasOrientation/isMoving etc)
+          - optional `orientation:u8` (only if flag set)
+          - optional `targetId:varu32` (only if flag set)
+      - Keep it “mostly fixed” so hot clients can decode in a tight loop and apply directly.
     - Included: Client applies this message without constructing per-entity action arrays in hot loops.
     - Included: Remove/stop emitting the legacy hot-path per-entity MOVE spam where replaced by the vector message.
     - Out of scope: Any new transport (still WebSocket).
@@ -163,8 +207,12 @@ Cycle completion gate:
 - Ticket 407 - Binary codec perf vNext: reduce allocations and per-field overhead in FixedBin decode/apply
   - Status: `todo`
   - Scope:
-    - Included: Implement a “decode+dispatch” path for hot S2C opcodes to avoid building intermediate `unknown[]` arrays.
-    - Included: Eliminate avoidable copies in binary decode (use views/subarrays where safe; avoid `.slice()` churn).
+    - Included: Implement a “decode+dispatch” fast path for hot S2C opcodes:
+      - Decode directly from `ByteReader` into kernel/apply routines (no `unknown[]` allocation per action).
+      - Keep the existing exported helpers as the compatibility boundary for tests/tools; runtime can use the fast path.
+    - Included: Eliminate avoidable copies in binary decode:
+      - Ensure `ByteReader.readBytes` returns `subarray` views for payload blobs (already true); avoid any caller converting to JS arrays.
+      - Prefer `Uint8Array` byte payloads at protocol boundaries (already in Ticket 399) and keep them unconverted.
     - Included: Keep wire contract (FixedBin v2 / binary v6) unless a bump is justified by measured wins.
     - Out of scope: WASM codecs (we are not paying WASM boundary cost here).
   - Acceptance criteria:
@@ -184,6 +232,7 @@ Cycle completion gate:
       - input-to-motion latency for local player
       - correction frequency/magnitude
       - outbound message rate (C2S) during click and WASD
+      - Prefer a deterministic injection point (e.g. WS runtime send/receive wrappers or bot harness) over DevTools/manual testing.
     - Included: Update `tools/bench/protocol-wire.ts` corpora to include new movement messages and vector state messages.
     - Included: Refresh `docs/protocol-wire.md` with new results + interpretation.
   - Acceptance criteria:
