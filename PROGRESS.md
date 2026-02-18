@@ -3648,3 +3648,23 @@ Format per entry:
     - `bun test tests/unit/client-loot-feedback.test.ts tests/unit/ecs/client-door-portal-system.test.ts tests/unit/client-player-death-flow.test.ts`
   - Next action:
     - Execute Ticket 361 (WebAudio music controller for deterministic transitions/crossfade).
+
+- 01:23 UTC
+  - Ticket: 361 (WebAudio music controller: looping + area transitions)
+  - Start timestamp: 2026-02-18 01:21 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Implemented deterministic music crossfade transitions in `client/audio.ts` with configurable fade duration.
+    - Added explicit overlap guards for rapid area transitions:
+      - active fading-out loop list,
+      - forced cleanup of stale fading-out sources before each new transition.
+    - Preserved area-driven `updateMusic()` behavior while preventing duplicate same-track loop source creation.
+    - Added targeted unit coverage in `tests/unit/client-audio-manager.test.ts` for:
+      - no duplicate loop source creation on same-area updates,
+      - bounded fading-out source count under rapid area switching.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/audio.ts tests/unit/client-audio-manager.test.ts`
+    - `bun test tests/unit/client-audio-manager.test.ts`
+  - Next action:
+    - Execute Ticket 362 (SFX scheduling policy: dedupe/cooldown/voice budget).

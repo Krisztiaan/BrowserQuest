@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:20 UTC
+Last updated: 2026-02-18 01:23 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,23 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 361 - WebAudio music controller (looping + area transitions) (`todo`)
-  - Scope:
-    - Included: replace current music-loop/fade logic with WebAudio node scheduling.
-    - Included: preserve area-based music switching behavior from `updateMusic()`.
-    - Included: implement deterministic crossfade behavior with configurable fade durations.
-    - Out of scope: dynamic soundtrack remixing.
-  - Acceptance criteria:
-    - Music transitions are smooth (no abrupt restarts/pop) across area changes.
-    - Music does not spawn duplicate overlapping loop sources during rapid transitions.
-    - Current zone/music-area semantics remain functionally equivalent.
-  - Verification plan:
-    - `bun run typecheck`
-    - Manual runtime traversal across multiple music areas with repeated transitions.
-    - Add targeted unit coverage if a transition state machine is introduced.
-  - Dependencies/blockers:
-    - Depends on Ticket 359 and Ticket 360.
 
 - Ticket 362 - SFX scheduling policy on WebAudio (dedupe/cooldown/voice budget) (`todo`)
   - Scope:

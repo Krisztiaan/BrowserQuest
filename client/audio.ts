@@ -26,6 +26,8 @@ type AreaMusicRegion = Area & {
 type ActiveMusic = {
     name: MusicKey;
     source: AudioBufferSourceNode;
+    gain: GainNode;
+    stopHandle: ReturnType<typeof setTimeout> | null;
 };
 
 type AudioContextCtor = new () => AudioContext;
@@ -33,6 +35,7 @@ type AudioContextCtor = new () => AudioContext;
 const AUDIO_EXTENSION = 'mp3';
 const SOUND_BASE_PATH = 'audio/sounds/';
 const MUSIC_BASE_PATH = 'audio/music/';
+const MUSIC_FADE_DURATION_SECONDS = 0.4;
 
 class AudioManager {
     enabled: boolean;
@@ -47,6 +50,7 @@ class AudioManager {
     private audioBuffers: Partial<Record<MusicKey | AudioSoundKey, AudioBuffer>>;
     private preloadPromise: Promise<void> | null;
     private currentMusic: ActiveMusic | null;
+    private fadingOutMusic: ActiveMusic[];
     private unlockListenersInstalled: boolean;
 
     constructor(game: AudioGame) {
@@ -62,6 +66,7 @@ class AudioManager {
         this.audioBuffers = {};
         this.preloadPromise = null;
         this.currentMusic = null;
+        this.fadingOutMusic = [];
         this.unlockListenersInstalled = false;
 
         const contextCtor = this.resolveAudioContextCtor();
@@ -159,7 +164,7 @@ class AudioManager {
             return;
         }
 
-        this.playMusic(music.name);
+        this.transitionToMusic(music.name);
     }
 
     private resolveAudioContextCtor(): AudioContextCtor | null {
@@ -265,28 +270,32 @@ class AudioManager {
         }
     }
 
-    private playMusic(name: MusicKey): void {
+    private transitionToMusic(name: MusicKey): void {
         if (!this.context || !this.musicGain) {
             return;
         }
 
+        const context = this.context;
         const startPlayback = (): void => {
-            const buffer = this.audioBuffers[name];
-            if (!buffer || !this.context || !this.musicGain) {
+            this.stopFadingOutMusic();
+
+            const nextMusic = this.createLoopingMusic(name);
+            if (!nextMusic) {
                 return;
             }
 
-            this.stopCurrentMusic();
+            nextMusic.gain.gain.setValueAtTime(0, context.currentTime);
+            nextMusic.gain.gain.linearRampToValueAtTime(1, context.currentTime + MUSIC_FADE_DURATION_SECONDS);
 
-            const source = this.context.createBufferSource();
-            source.buffer = buffer;
-            source.loop = true;
-            source.connect(this.musicGain);
-            source.start(0);
-            this.currentMusic = { name, source };
+            const previousMusic = this.currentMusic;
+            if (previousMusic) {
+                this.fadeOutAndStop(previousMusic);
+            }
+
+            this.currentMusic = nextMusic;
         };
 
-        if (this.context.state !== 'running') {
+        if (context.state !== 'running') {
             void this.resumeAudioContext().then(() => {
                 if (this.context?.state === 'running' && this.enabled) {
                     startPlayback();
@@ -298,13 +307,83 @@ class AudioManager {
         startPlayback();
     }
 
+    private createLoopingMusic(name: MusicKey): ActiveMusic | null {
+        if (!this.context || !this.musicGain) {
+            return null;
+        }
+
+        const buffer = this.audioBuffers[name];
+        if (!buffer) {
+            return null;
+        }
+
+        const source = this.context.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+
+        const gain = this.context.createGain();
+        gain.gain.value = 1;
+
+        source.connect(gain);
+        gain.connect(this.musicGain);
+        source.start(0);
+
+        return {
+            name,
+            source,
+            gain,
+            stopHandle: null,
+        };
+    }
+
+    private fadeOutAndStop(music: ActiveMusic): void {
+        if (!this.context) {
+            return;
+        }
+
+        music.gain.gain.cancelScheduledValues(this.context.currentTime);
+        music.gain.gain.setValueAtTime(music.gain.gain.value, this.context.currentTime);
+        music.gain.gain.linearRampToValueAtTime(0, this.context.currentTime + MUSIC_FADE_DURATION_SECONDS);
+
+        const stopDelayMs = Math.ceil(MUSIC_FADE_DURATION_SECONDS * 1000) + 50;
+        music.stopHandle = setTimeout(() => {
+            music.source.stop();
+            music.source.disconnect();
+            music.gain.disconnect();
+            music.stopHandle = null;
+            this.fadingOutMusic = this.fadingOutMusic.filter((entry) => entry !== music);
+        }, stopDelayMs);
+
+        this.fadingOutMusic.push(music);
+    }
+
+    private stopFadingOutMusic(): void {
+        for (const music of this.fadingOutMusic) {
+            if (music.stopHandle) {
+                clearTimeout(music.stopHandle);
+                music.stopHandle = null;
+            }
+            music.source.stop();
+            music.source.disconnect();
+            music.gain.disconnect();
+        }
+        this.fadingOutMusic = [];
+    }
+
     private stopCurrentMusic(): void {
+        this.stopFadingOutMusic();
+
         if (!this.currentMusic) {
             return;
         }
 
         this.currentMusic.source.stop();
         this.currentMusic.source.disconnect();
+        this.currentMusic.gain.disconnect();
+        if (this.currentMusic.stopHandle) {
+            clearTimeout(this.currentMusic.stopHandle);
+            this.currentMusic.stopHandle = null;
+        }
         this.currentMusic = null;
     }
 }
