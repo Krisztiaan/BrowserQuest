@@ -74,8 +74,9 @@ export type ClientCommandApplySystemHost = {
 	      sendLoot(item: { id: EntityId }): void;
 	      sendMove(x: number, y: number): void;
 	      sendMoveTo(x: number, y: number, stopAdjacentToTarget: boolean): void;
+	      sendMoveInput(keysMask: number): void;
 	      sendChunkSubscribe(chunkX: number, chunkY: number, radius: number): void;
-              sendChunkUnsubscribe(): void;
+	              sendChunkUnsubscribe(): void;
               sendZone(): void;
               sendChat(text: string): void;
               sendAchievement(id: number): void;
@@ -578,6 +579,13 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 }
                 host.client.sendMoveTo(command.x, command.y, command.stopAdjacentToTarget);
                 host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                break;
+            }
+            case 'clientSendMoveInput': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendMoveInput(command.keysMask);
                 break;
             }
             case 'clientSendChunkSubscribe': {

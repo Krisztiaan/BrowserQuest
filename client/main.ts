@@ -7,6 +7,7 @@ import type Game from './game';
 import { bindFullscreenToggle } from './main/fullscreen-toggle';
 import { hydrateLoadCharacterPreview } from './main/character-preview';
 import { installTestApi } from './main/test-api';
+import { MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_S, MOVE_INPUT_KEY_W } from '../shared/protocol/intents';
 
 let app: App | null = null;
 let game: Game | null = null;
@@ -652,6 +653,36 @@ function initGame(): void {
                     nameFocused = nameInput && activeElement === nameInput;
 
                 if (!chatFocused && !nameFocused) {
+                    const moveBit =
+                        key === 87
+                            ? MOVE_INPUT_KEY_W
+                            : key === 65
+                                ? MOVE_INPUT_KEY_A
+                                : key === 83
+                                    ? MOVE_INPUT_KEY_S
+                                    : key === 68
+                                        ? MOVE_INPUT_KEY_D
+                                        : null;
+                    if (moveBit !== null && game.started) {
+                        // Ignore key repeat: send move.input only on transitions.
+                        if (e.repeat) {
+                            return false;
+                        }
+                        const prevMask = game.kernel.clientMoveInputKeysMask >>> 0;
+                        game.kernel.pressClientMoveInputKey(moveBit);
+                        const nextMask = game.kernel.clientMoveInputKeysMask >>> 0;
+                        if (nextMask !== prevMask) {
+                            // Held-key movement overrides click-to-move immediately.
+                            game.kernel.clearClientMovePlan();
+                            game.kernel.clearClientPendingMoveSeqAcks();
+                            game.kernel.clientMovementSuppressed = false;
+                            game.kernel.enqueueClientCommand({ type: 'playerStop' });
+                            game.kernel.enqueueClientCommand({ type: 'stopPlayerCombat' });
+                        }
+                        e.preventDefault();
+                        return false;
+                    }
+
                     if (key === 13) {
                         // Enter
                         if (game.ready && chatInput) {
@@ -681,18 +712,37 @@ function initGame(): void {
                         e.preventDefault();
                         return false;
                     }
-                    if (key === 65) {
-                        // a
-                        // game.player.hit();
-                        e.preventDefault();
-                        return false;
-                    }
                 } else {
                     if (key === 13 && game.ready && chatInput) {
                         chatInput.focus();
                         e.preventDefault();
                         return false;
                     }
+                }
+            });
+
+            document.addEventListener('keyup', function (e: KeyboardEvent) {
+                const key = e.which;
+                const moveBit =
+                    key === 87
+                        ? MOVE_INPUT_KEY_W
+                        : key === 65
+                            ? MOVE_INPUT_KEY_A
+                            : key === 83
+                                ? MOVE_INPUT_KEY_S
+                                : key === 68
+                                    ? MOVE_INPUT_KEY_D
+                                    : null;
+                if (moveBit === null || !game.started) {
+                    return;
+                }
+
+                const prevMask = game.kernel.clientMoveInputKeysMask >>> 0;
+                game.kernel.releaseClientMoveInputKey(moveBit);
+                const nextMask = game.kernel.clientMoveInputKeysMask >>> 0;
+                if (prevMask !== 0 && nextMask === 0) {
+                    game.kernel.clientMovementSuppressed = false;
+                    game.kernel.enqueueClientCommand({ type: 'playerStop' });
                 }
             });
 

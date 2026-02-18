@@ -56,6 +56,7 @@ import {
     encodeClaimDeleteIntentPayload,
     encodeClaimUpdateIntentPayload,
     encodeDoorTeleportIntentPayload,
+    encodeMoveInputIntentPayload,
     encodeMoveToIntentPayload,
     encodeMoveStepIntentPayload,
     encodeTileEditIntentPayload,
@@ -63,6 +64,7 @@ import {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
@@ -547,6 +549,12 @@ class GameClient extends Evented<GameClientEvents> {
             this.kernel.clearClientPendingMoveSeqAcks();
             this.kernel.clientMovementSuppressed = false;
         }
+        if (intentTypeId === INTENT_MOVE_INPUT) {
+            // `move.input` rejection should stop held-key prediction and prevent "stuck key" state.
+            this.kernel.enqueueClientCommand({ type: 'playerStop' });
+            this.kernel.clearClientMoveInput();
+            this.kernel.clientMovementSuppressed = false;
+        }
         if (intentTypeId === INTENT_MOVE_STEP) {
             this.kernel.clientMovementSuppressed = true;
             this.kernel.clearClientPendingMoveSeqAcks();
@@ -726,6 +734,24 @@ class GameClient extends Evented<GameClientEvents> {
             return;
         }
         debugMoves('out:INTENT(move.to)', { seq, x, y, stopAdjacentToTarget });
+    }
+
+    sendMoveInput(keysMask: number): void {
+        if (!this.supportsIntent(INTENT_MOVE_INPUT)) {
+            debugMoves('out:INTENT(move.input):unavailable', { keysMask });
+            return;
+        }
+
+        const payloadBytes = encodeMoveInputIntentPayload({ keysMask });
+        if (payloadBytes === null) {
+            return;
+        }
+
+        const seq = this.sendIntent(INTENT_MOVE_INPUT, payloadBytes);
+        if (seq === null) {
+            return;
+        }
+        debugMoves('out:INTENT(move.input)', { seq, keysMask });
     }
 
     sendTileEdit(x: number, y: number, value: number | null): number | null {

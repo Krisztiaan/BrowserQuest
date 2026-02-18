@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 19:08 UTC
+Last updated: 2026-02-18 19:30 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,35 +34,8 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 404 - WASD support v1: `move.input` intent (input-state), prediction, and coexistence with click-to-move
-  - Status: `in_progress`
-  - Scope:
-    - Included: Add a dedicated WASD input system (keydown/keyup) that maintains `keysMask` state for W/A/S/D.
-      - Ignore movement keys while chat/name inputs are focused.
-      - Ensure key repeat does not generate redundant sends (only transitions).
-    - Included: Send `INTENT(move.input)` only on state change (not every frame).
-    - Included: Client prediction for local movement while keys are held.
-      - Disallow diagonal tile motion: resolve a single cardinal direction when multiple keys are held.
-      - Direction resolution policy:
-        - prefer the most recently pressed movement key still held
-        - server mirrors this using the observed key transition stream (no extra bytes needed)
-    - Included: Coexistence with click-to-move:
-      - While any movement key is down, click-to-move plan is cancelled/paused.
-      - When keysMask returns to 0, movement stops (does not auto-resume old click target).
-    - Out of scope: Transport changes (WebTransport/WebRTC) and fallbacks (explicitly not required).
-  - Acceptance criteria:
-    - WASD moves the local player; releasing keys stops movement.
-    - Input messages are emitted only on transitions (keydown/keyup), not continuously.
-    - Click-to-move still works when no keys are held.
-  - Verification plan:
-    - `bun run typecheck`
-    - Add a smoke test scenario (or extend `tests/smoke/modern-gameplay-parity.test.ts`) that performs at least one WASD move and verifies server ack + position sync.
-  - Dependencies/blockers:
-    - Depends on Ticket 401.
-    - Depends on Ticket 405 for server handling and reconciliation envelope.
-
 - Ticket 405 - Reconciliation protocol v1: explicit movement state ack + authoritative base snapshot
-  - Status: `todo`
+  - Status: `in_progress`
   - Scope:
     - Included: Add an explicit S2C movement reconciliation action (new opcode) for the local player only:
       - Proposed name: `MOVE_SYNC`

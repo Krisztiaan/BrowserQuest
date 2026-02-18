@@ -19,6 +19,7 @@ import {
     MSG_INTENT,
     MSG_LIST,
     MSG_LOOTMOVE,
+    MSG_MOVE,
     MSG_SPAWN,
     MSG_WELCOME,
     MSG_WHO,
@@ -29,7 +30,7 @@ import {
     decodeServerToClientProtocolActionBatchBinary,
     encodeProtocolActionBinary,
 } from '../../shared/protocol/registry';
-import { encodeMoveStepIntentPayload } from '../../shared/protocol/intents';
+import { encodeMoveInputIntentPayload, encodeMoveStepIntentPayload, MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_S, MOVE_INPUT_KEY_W } from '../../shared/protocol/intents';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
@@ -191,12 +192,14 @@ test(
 
         ws.send(encodeProtocolActionBinary([MSG_HELLO, 'modern-e2e', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
         const welcome = await waitForNextAction(stream, (action) => action[0] === MSG_WELCOME, 'WELCOME', 120000);
+        const localPlayerId = welcome[1];
         const playerX = welcome[3];
         const playerY = welcome[4];
 
         expect(typeof welcome[1]).toBe('number');
         expect(typeof playerX).toBe('number');
         expect(typeof playerY).toBe('number');
+        expect(typeof localPlayerId).toBe('number');
 
         let nearbyEntityIds: number[] = [];
         try {
@@ -226,6 +229,40 @@ test(
             throw new Error('Failed to encode move.step payload');
         }
         ws.send(encodeProtocolActionBinary([MSG_INTENT, 1, 'move.step', movePayload]));
+        await ensureSocketOpen(ws);
+
+        // Basic move.input parity: try up to 4 directions and assert at least one authoritative MOVE arrives.
+        const directions = [MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_W, MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_S] as const;
+        let moveInputSeq = 2;
+        let sawMoveInputMove = false;
+        for (const keysMask of directions) {
+            const payload = encodeMoveInputIntentPayload({ keysMask });
+            if (payload === null) {
+                throw new Error('Failed to encode move.input payload');
+            }
+            ws.send(encodeProtocolActionBinary([MSG_INTENT, moveInputSeq, 'move.input', payload]));
+            moveInputSeq += 1;
+
+            try {
+                await waitForNextAction(
+                    stream,
+                    (action) =>
+                        action[0] === MSG_MOVE && action[1] === localPlayerId && typeof action[2] === 'number' && typeof action[3] === 'number',
+                    'MOVE from move.input',
+                    1500
+                );
+                sawMoveInputMove = true;
+                break;
+            } catch (_) {
+                // Stop and try another direction.
+                const stop = encodeMoveInputIntentPayload({ keysMask: 0 });
+                if (stop !== null) {
+                    ws.send(encodeProtocolActionBinary([MSG_INTENT, moveInputSeq, 'move.input', stop]));
+                    moveInputSeq += 1;
+                }
+            }
+        }
+        expect(sawMoveInputMove).toBe(true);
         await ensureSocketOpen(ws);
 
         const chatMessage = 'modern-e2e-chat';

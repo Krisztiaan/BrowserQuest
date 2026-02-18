@@ -71,6 +71,12 @@ export type MoveToCommand = Readonly<{
     stopAdjacentToTarget: boolean;
 }>;
 
+export type MoveInputCommand = Readonly<{
+    type: 'MOVE_INPUT';
+    source: CommandSource;
+    keysMask: number;
+}>;
+
 export type LootMoveCommand = Readonly<{
     type: 'LOOTMOVE';
     source: CommandSource;
@@ -176,6 +182,7 @@ export type Command =
     | ChatCommand
     | MoveCommand
     | MoveToCommand
+    | MoveInputCommand
     | LootMoveCommand
     | AggroCommand
     | AttackCommand

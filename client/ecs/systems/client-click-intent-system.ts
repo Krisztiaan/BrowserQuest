@@ -99,6 +99,11 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
         return;
     }
 
+    if (host.kernel.clientMoveInputKeysMask !== 0) {
+        debugClicks('ignore:move_input_active');
+        return;
+    }
+
     const map = host.map;
     const resolveDoorClick = (x: number, y: number): { x: number; y: number } | null => {
         if (!map.isDoor) {

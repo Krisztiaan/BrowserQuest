@@ -15,6 +15,40 @@ Format per entry:
 
 ## 2026-02-18
 
+- 19:10 UTC
+  - Ticket: 404 (WASD support v1: `move.input` intent (input-state), prediction, and coexistence with click-to-move)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Started WASD movement pipeline audit: client key capture (`client/main.ts`), kernel state (`client/ecs/world-kernel.ts`), client transport (`client/gameclient.ts`), and server intent bridging (`server/world/ecs-command-pipeline.ts`).
+  - Evidence:
+    - `rg -n "INTENT_MOVE_INPUT|move\\.input|MOVE_INPUT_KEY|clientMoveInput" client server shared`
+  - Next action:
+    - Implement C2S `INTENT(move.input)` send on key transitions, server-side `move.input` handling that drives authoritative steps, and client prediction + reconcile for held-key movement. Extend smoke parity to validate at least one `move.input` step.
+
+- 19:30 UTC
+  - Ticket: 404 (WASD support v1: `move.input` intent (input-state), prediction, and coexistence with click-to-move)
+  - Status: `done`
+  - Key actions taken:
+    - Implemented WASD key capture and `keysMask` state transitions (no repeat spam), plus click-to-move cancellation while keys are held.
+    - Implemented client prediction for held-key movement (single-step followPath loop) and drift-tolerant reconciliation while predicting.
+    - Implemented server `INTENT(move.input)` handling with authoritative held-key stepping (overrides queued click-to-move).
+    - Extended modern gameplay smoke parity to require at least one authoritative `MOVE` produced by `move.input`.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test --timeout 30000 --bail tests/unit/mmo/server-move-input-intent.test.ts tests/smoke/modern-gameplay-parity.test.ts`
+  - Next action:
+    - Execute Ticket 405: explicit movement reconciliation (`MOVE_SYNC`) to harden prediction under jitter/delay without relying on logs.
+
+- 19:31 UTC
+  - Ticket: 405 (Reconciliation protocol v1: explicit movement state ack + authoritative base snapshot)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Started design/implementation audit for adding an explicit local-player movement sync opcode (`MOVE_SYNC`) to remove ambiguity around prediction suppression/ack state.
+  - Evidence:
+    - `rg -n "CORRECTION|ACK|clientMovementSuppressed|clientPendingMoveSeqAcks" client server shared`
+  - Next action:
+    - Implement `MOVE_SYNC` opcode end-to-end (manifest, binary codec, server emit cadence, client apply), then add smoke coverage under injected delay/jitter.
+
 - 19:08 UTC
   - Ticket: 403 (Client click-to-move v2: send `move.to` once per click + prediction/reconcile)
   - Status: `done`

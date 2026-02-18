@@ -70,9 +70,14 @@ import {
     decodeClaimDeleteIntentPayload,
     decodeClaimUpdateIntentPayload,
     decodeDoorTeleportIntentPayload,
+    decodeMoveInputIntentPayload,
     decodeMoveToIntentPayload,
     decodeMoveStepIntentPayload,
     decodeTileEditIntentPayload,
+    MOVE_INPUT_KEY_A,
+    MOVE_INPUT_KEY_D,
+    MOVE_INPUT_KEY_S,
+    MOVE_INPUT_KEY_W,
 } from '../../shared/protocol/intents';
 import {
     classifyIntentSeq,
@@ -95,6 +100,7 @@ import {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
@@ -628,6 +634,51 @@ function applyMoveIntentCommand({
         return validation;
     }
     state.world.addComponent(player.id, MoveQueue, { entries: [...existing, cmd.to] });
+}
+
+function applyMoveInputIntentCommand({
+    state,
+    player,
+    movement,
+    cmd,
+}: {
+    state: WorldState<Command, DomainEvent>;
+    player: PlayerLike;
+    movement: ReturnType<typeof registerMovementComponents>;
+    cmd: Extract<Command, { type: 'MOVE_INPUT' }>;
+}): void {
+    const { MoveInput, MoveQueue } = movement;
+    const prev = MoveInput.store.get(player.id) ?? { keysMask: 0, recentKeys: [] };
+    const nextMask = cmd.keysMask >>> 0;
+
+    if (nextMask === 0) {
+        // Key state went idle: stop any held-key motion and clear prior click-to-move queue.
+        state.world.removeComponent(player.id, MoveInput);
+        state.world.removeComponent(player.id, MoveQueue);
+        return;
+    }
+
+    const newlyPressed = nextMask & ~prev.keysMask;
+    let nextRecent = prev.recentKeys.slice();
+    const pushKey = (bit: number) => {
+        const idx = nextRecent.indexOf(bit);
+        if (idx >= 0) {
+            nextRecent.splice(idx, 1);
+        }
+        nextRecent.push(bit);
+    };
+    // Deterministic ordering for multi-bit transitions (rare, but keep stable).
+    if (newlyPressed & MOVE_INPUT_KEY_W) pushKey(MOVE_INPUT_KEY_W);
+    if (newlyPressed & MOVE_INPUT_KEY_A) pushKey(MOVE_INPUT_KEY_A);
+    if (newlyPressed & MOVE_INPUT_KEY_S) pushKey(MOVE_INPUT_KEY_S);
+    if (newlyPressed & MOVE_INPUT_KEY_D) pushKey(MOVE_INPUT_KEY_D);
+    if (nextRecent.length > 4) {
+        nextRecent = nextRecent.slice(nextRecent.length - 4);
+    }
+
+    // `move.input` overrides any previous click-to-move queue (authoritative held-key control).
+    state.world.removeComponent(player.id, MoveQueue);
+    state.world.addComponent(player.id, MoveInput, { keysMask: nextMask, recentKeys: nextRecent });
 }
 
 function applyLootMoveCommand({
@@ -1616,6 +1667,15 @@ function createApplyInboundCommandsSystem(
                                   stopAdjacentToTarget: decoded.stopAdjacentToTarget,
                               } satisfies Extract<Command, { type: 'MOVE_TO' }>)
                             : null;
+                    } else if (cmd.intentTypeId === INTENT_MOVE_INPUT) {
+                        const decoded = decodeMoveInputIntentPayload(cmd.payloadBytes);
+                        bridged = decoded
+                            ? ({
+                                  type: 'MOVE_INPUT',
+                                  source: cmd.source,
+                                  keysMask: decoded.keysMask,
+                              } satisfies Extract<Command, { type: 'MOVE_INPUT' }>)
+                            : null;
                     } else if (cmd.intentTypeId === INTENT_DOOR_TELEPORT) {
                         const to = decodeDoorTeleportIntentPayload(cmd.payloadBytes);
                         bridged = to
@@ -1703,6 +1763,10 @@ function createApplyInboundCommandsSystem(
                     break;
                 case 'MOVE_TO':
                     // MOVE_TO is only intended to exist as an internal bridged payload inside the INTENT handler.
+                    // If it ever lands in the inbound command queue, ignore it (do not crash the server).
+                    break;
+                case 'MOVE_INPUT':
+                    // MOVE_INPUT is only intended to exist as an internal bridged payload inside the INTENT handler.
                     // If it ever lands in the inbound command queue, ignore it (do not crash the server).
                     break;
                 case 'TILE_EDIT':
@@ -1881,6 +1945,14 @@ export class WorldEcsCommandPipeline {
                     cmd,
                 });
             },
+            applyMoveInputIntentCommand({ state, player, movement, cmd }) {
+                return applyMoveInputIntentCommand({
+                    state,
+                    player,
+                    movement,
+                    cmd,
+                });
+            },
             applyTeleportOutcome({ state, ctx, Position, Target, mobAi, movement, replication, world: _intentWorld, playerId, to }) {
                 applyTeleportOutcome({
                     state,
@@ -1915,6 +1987,75 @@ export class WorldEcsCommandPipeline {
                 modules
             )
         );
+        this.#scheduler.register('sim', 'player_move_input', (state, _ctx: SystemContext) => {
+            const Kind = this.replication.Kind;
+            const Position = this.Position;
+            const { MoveInput, MoveQueue } = this.movement;
+            const { HitPoints } = this.combat;
+
+            const resolveActiveKey = (input: { keysMask: number; recentKeys: number[] }): number | null => {
+                const mask = input.keysMask >>> 0;
+                const recent = input.recentKeys;
+                for (let i = recent.length - 1; i >= 0; i -= 1) {
+                    const bit = recent[i] ?? 0;
+                    if ((mask & bit) !== 0) {
+                        return bit;
+                    }
+                }
+                // Fallback for missing recent ordering.
+                if (mask & MOVE_INPUT_KEY_W) return MOVE_INPUT_KEY_W;
+                if (mask & MOVE_INPUT_KEY_A) return MOVE_INPUT_KEY_A;
+                if (mask & MOVE_INPUT_KEY_S) return MOVE_INPUT_KEY_S;
+                if (mask & MOVE_INPUT_KEY_D) return MOVE_INPUT_KEY_D;
+                return null;
+            };
+
+            MoveInput.store.forEach((playerId, input) => {
+                const kind = Kind.store.get(playerId);
+                if (kind === undefined || !Types.isPlayer(kind)) {
+                    state.world.removeComponent(playerId, MoveInput);
+                    state.world.removeComponent(playerId, MoveQueue);
+                    return;
+                }
+
+                const hp = HitPoints.store.get(playerId) ?? 0;
+                if (hp <= 0) {
+                    state.world.removeComponent(playerId, MoveInput);
+                    state.world.removeComponent(playerId, MoveQueue);
+                    return;
+                }
+
+                const from = Position.store.get(playerId);
+                if (!from) {
+                    state.world.removeComponent(playerId, MoveQueue);
+                    return;
+                }
+
+                const activeKey = resolveActiveKey(input);
+                if (activeKey === null) {
+                    state.world.removeComponent(playerId, MoveQueue);
+                    return;
+                }
+
+                let dx = 0;
+                let dy = 0;
+                if (activeKey === MOVE_INPUT_KEY_W) dy = -1;
+                else if (activeKey === MOVE_INPUT_KEY_A) dx = -1;
+                else if (activeKey === MOVE_INPUT_KEY_S) dy = 1;
+                else if (activeKey === MOVE_INPUT_KEY_D) dx = 1;
+
+                const nextX = from.x + dx;
+                const nextY = from.y + dy;
+                if (!this.#world.isValidPosition(nextX, nextY)) {
+                    // Pressing into a wall should just not move; don't enqueue invalid steps.
+                    state.world.removeComponent(playerId, MoveQueue);
+                    return;
+                }
+
+                // Held-key movement is always a single-step "desired next tile" (keeps input responsive).
+                state.world.addComponent(playerId, MoveQueue, { entries: [gridPos(nextX, nextY)] });
+            });
+        });
         this.#scheduler.register('sim', 'player_move', (state, ctx: SystemContext) => {
             const Kind = this.replication.Kind;
             const Position = this.Position;

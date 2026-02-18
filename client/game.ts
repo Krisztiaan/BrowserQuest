@@ -63,6 +63,8 @@ import {
     runClientInteractionIntentSystem,
 } from './ecs/systems/client-interaction-intent-system';
 import { runClientKernelReplicationSyncSystem } from './ecs/systems/client-kernel-replication-sync-system';
+import { runClientMoveInputPredictionSystem } from './ecs/systems/client-move-input-prediction-system';
+import { runClientPlayerMoveInputOutboxSystem } from './ecs/systems/client-player-move-input-outbox-system';
 import { runClientPlayerMoveOutboxSystem } from './ecs/systems/client-player-move-outbox-system';
 import { runClientDoorPortalSystem } from './ecs/systems/client-door-portal-system';
 import { runClientRuntimeEventSystem } from './ecs/systems/client-runtime-event-system';
@@ -334,6 +336,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler.add('pre_update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientHoverStateSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientClickIntentSystem(game));
+        this.frameScheduler.add('pre_update', (game) => runClientMoveInputPredictionSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientCursorSystem(game));
         this.frameScheduler.add('update', (game) => runClientSimulationSystem(game));
@@ -341,6 +344,7 @@ class Game extends Evented<GameEvents> {
         this.frameScheduler.add('update', (game) => runClientCommandApplySystem(game));
         this.frameScheduler.add('post_update', (game) => runClientDoorPortalSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientSpatialSyncSystem(game));
+        this.frameScheduler.add('post_update', (game) => runClientPlayerMoveInputOutboxSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientPlayerMoveOutboxSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientEnvironmentSystem(game));
         this.frameScheduler.add('post_update', (game) => runClientInteractionIntentSystem(game));

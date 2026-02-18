@@ -6,6 +6,7 @@ import {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
@@ -16,6 +17,7 @@ export {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
@@ -96,6 +98,13 @@ type ApplyMoveToIntentCommand = (params: {
     cmd: Extract<Command, { type: 'MOVE_TO' }>;
 }) => { ok: false; reason: string } | void;
 
+type ApplyMoveInputIntentCommand = (params: {
+    state: WorldState<Command, DomainEvent>;
+    player: PlayerLike;
+    movement: ReturnType<typeof registerMovementComponents>;
+    cmd: Extract<Command, { type: 'MOVE_INPUT' }>;
+}) => { ok: false; reason: string } | void;
+
 type ApplyTeleportOutcome = (params: {
     state: WorldState<Command, DomainEvent>;
     ctx: SystemContext;
@@ -114,6 +123,7 @@ type CoreModuleRegistryOptions = Readonly<{
     resolvePlayerIdentityKey(player: PlayerLike): string | null;
     applyMoveIntentCommand: ApplyMoveIntentCommand;
     applyMoveToIntentCommand: ApplyMoveToIntentCommand;
+    applyMoveInputIntentCommand: ApplyMoveInputIntentCommand;
     applyTeleportOutcome: ApplyTeleportOutcome;
 }>;
 
@@ -207,6 +217,20 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                         player: ctx.player,
                         movement: ctx.movement,
                         world: ctx.world,
+                        cmd,
+                    });
+                });
+
+                registry.registerIntentHandler(INTENT_MOVE_INPUT, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'MOVE_INPUT');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    return options.applyMoveInputIntentCommand({
+                        state: ctx.state,
+                        player: ctx.player,
+                        movement: ctx.movement,
                         cmd,
                     });
                 });

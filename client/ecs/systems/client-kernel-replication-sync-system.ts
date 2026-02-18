@@ -64,7 +64,7 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         // Only characters path; items/chests are static.
         if (kind !== undefined && !Types.isItem(kind) && !Types.isChest(kind)) {
             const isLocalPlayer = host.playerId !== null && id === host.playerId;
-            const hasPredictionPlan = isLocalPlayer && kernel.clientMovePlan !== null;
+            const hasPredictionPlan = isLocalPlayer && (kernel.clientMovePlan !== null || kernel.clientMoveInputKeysMask !== 0);
             if (hasPredictionPlan) {
                 const record = kernel.clientSpatialRecords.get(id);
                 if (record) {

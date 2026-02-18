@@ -4,6 +4,7 @@ import { entityIdFromWire } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
 import type { SpawnSnapshot } from '../../shared/replication/spawn-snapshot';
 import Types from '../../shared/gametypes-browser';
+import { MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_S, MOVE_INPUT_KEY_W } from '../../shared/protocol/intents';
 import type { ClientCommand } from './client-commands';
 import type { ClientRuntimeEvent } from './runtime-events';
 import { ClientChunkOverlayCache } from '../world/chunks/client-chunk-overlay-cache';
@@ -157,6 +158,9 @@ export class ClientWorldKernel {
     readonly clientPendingMoveAcks: GridPos[] = [];
     readonly clientPendingMoveSeqAcks: number[] = [];
     clientMovementSuppressed = false;
+    clientMoveInputKeysMask = 0;
+    readonly clientMoveInputRecentKeys: number[] = [];
+    clientMoveInputDirty = false;
     clientDoorTraversalArmed = false;
     clientPendingDoorTraversal: ClientPendingDoorTraversal | null = null;
     clientLocalPlayerDead = false;
@@ -218,6 +222,65 @@ export class ClientWorldKernel {
 
     clearClientPendingMoveAcks(): void {
         this.clientPendingMoveAcks.length = 0;
+    }
+
+    pressClientMoveInputKey(bit: number): void {
+        const mask = this.clientMoveInputKeysMask >>> 0;
+        if ((mask & bit) !== 0) {
+            return;
+        }
+        this.clientMoveInputKeysMask = (mask | (bit >>> 0)) >>> 0;
+        const idx = this.clientMoveInputRecentKeys.indexOf(bit);
+        if (idx >= 0) {
+            this.clientMoveInputRecentKeys.splice(idx, 1);
+        }
+        this.clientMoveInputRecentKeys.push(bit);
+        if (this.clientMoveInputRecentKeys.length > 4) {
+            this.clientMoveInputRecentKeys.splice(0, this.clientMoveInputRecentKeys.length - 4);
+        }
+        this.clientMoveInputDirty = true;
+    }
+
+    releaseClientMoveInputKey(bit: number): void {
+        const mask = this.clientMoveInputKeysMask >>> 0;
+        if ((mask & bit) === 0) {
+            return;
+        }
+        this.clientMoveInputKeysMask = (mask & ~(bit >>> 0)) >>> 0;
+        this.clientMoveInputDirty = true;
+    }
+
+    clearClientMoveInput(): void {
+        if (this.clientMoveInputKeysMask === 0 && this.clientMoveInputRecentKeys.length === 0 && !this.clientMoveInputDirty) {
+            return;
+        }
+        this.clientMoveInputKeysMask = 0;
+        this.clientMoveInputRecentKeys.length = 0;
+        this.clientMoveInputDirty = true;
+    }
+
+    consumeClientMoveInputDirty(): number | null {
+        if (!this.clientMoveInputDirty) {
+            return null;
+        }
+        this.clientMoveInputDirty = false;
+        return this.clientMoveInputKeysMask >>> 0;
+    }
+
+    resolveClientMoveInputActiveKey(): number | null {
+        const mask = this.clientMoveInputKeysMask >>> 0;
+        const recent = this.clientMoveInputRecentKeys;
+        for (let i = recent.length - 1; i >= 0; i -= 1) {
+            const bit = recent[i] ?? 0;
+            if ((mask & bit) !== 0) {
+                return bit;
+            }
+        }
+        if (mask & MOVE_INPUT_KEY_W) return MOVE_INPUT_KEY_W;
+        if (mask & MOVE_INPUT_KEY_A) return MOVE_INPUT_KEY_A;
+        if (mask & MOVE_INPUT_KEY_S) return MOVE_INPUT_KEY_S;
+        if (mask & MOVE_INPUT_KEY_D) return MOVE_INPUT_KEY_D;
+        return null;
     }
 
     enqueueClientPendingMoveSeqAck(seq: number): void {
@@ -408,6 +471,9 @@ export class ClientWorldKernel {
         this.clientLastSentMovePos = null;
         this.clearClientPendingMoveAcks();
         this.clearClientPendingMoveSeqAcks();
+        this.clientMoveInputKeysMask = 0;
+        this.clientMoveInputRecentKeys.length = 0;
+        this.clientMoveInputDirty = false;
         this.clientDoorTraversalArmed = false;
         this.clientPendingDoorTraversal = null;
         this.clientLocalPlayerDead = false;
