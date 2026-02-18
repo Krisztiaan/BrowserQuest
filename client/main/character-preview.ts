@@ -28,15 +28,17 @@ type PreviewRuntime = {
     frameCount: number;
 };
 
-export const SERVER_PLAYER_IMAGE_SRC = '/profile/preview.svg';
 const SERVER_PLAYER_PREVIEW_JSON_URL = '/profile/preview.json';
-export const LEGACY_THINGY_PLAYER_IMAGE_SRC = '/img/common/thingy.png';
 const DEFAULT_ARMOR_SPRITE = 'clotharmor';
 const DEFAULT_WEAPON_SPRITE = 'sword1';
 const SHADOW_SPRITE = 'shadow16';
 const IDLE_ANIMATION_INTERVAL_MS = 260;
 
-let loadCharacterPreviewInterval: ReturnType<typeof setInterval> | null = null;
+type PreviewController = {
+    start: () => void;
+    stop: () => void;
+    dispose: () => void;
+};
 
 const getSpriteSpec = function (spriteName: string): SpriteSpec | null {
     const spriteSpec = sprites[spriteName];
@@ -172,87 +174,195 @@ const loadLoadCharacterPreviewRuntime = async function (): Promise<PreviewRuntim
     };
 };
 
-export const hydrateLoadCharacterPreview = function (playerImage: HTMLImageElement): void {
-    if (loadCharacterPreviewInterval) {
-        clearInterval(loadCharacterPreviewInterval);
-        loadCharacterPreviewInterval = null;
+export const hydrateLoadCharacterPreview = function (previewCanvas: HTMLCanvasElement): void {
+    const context = previewCanvas.getContext('2d');
+    if (!context) {
+        return;
     }
+    context.imageSmoothingEnabled = false;
 
-    void loadLoadCharacterPreviewRuntime().then((runtime) => {
-        if (!runtime) {
-            playerImage.src = SERVER_PLAYER_IMAGE_SRC;
-            return;
+    let intervalHandle: ReturnType<typeof setInterval> | null = null;
+    let wantsRunning = false;
+    let disposed = false;
+    let runtimePromise: Promise<PreviewRuntime | null> | null = null;
+    let runtime: PreviewRuntime | null = null;
+    let runtimeToken = 0;
+
+    const stopInterval = function (): void {
+        if (intervalHandle) {
+            clearInterval(intervalHandle);
+            intervalHandle = null;
         }
+    };
 
-        const previewCanvas = document.createElement('canvas');
-        previewCanvas.width = runtime.armorSpec.width;
-        previewCanvas.height = runtime.armorSpec.height;
-        const context = previewCanvas.getContext('2d');
-        if (!context) {
-            playerImage.src = SERVER_PLAYER_IMAGE_SRC;
-            return;
-        }
+    const clearPreview = function (): void {
+        context.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+    };
 
-        context.imageSmoothingEnabled = false;
-        const armorOffset = getSpriteOffset(runtime.armorSpec);
-        const weaponOffset = getSpriteOffset(runtime.weaponSpec);
+    const drawRuntimeFrame = function (activeRuntime: PreviewRuntime, frameIndex: number): void {
+        const armorOffset = getSpriteOffset(activeRuntime.armorSpec);
+        const weaponOffset = getSpriteOffset(activeRuntime.weaponSpec);
+        const armorFrameIndex = frameIndex % getIdleDownLength(activeRuntime.armorSpec);
+        const weaponFrameIndex = frameIndex % getIdleDownLength(activeRuntime.weaponSpec);
 
-        const drawFrame = function (frameIndex: number): void {
-            const armorFrameIndex = frameIndex % getIdleDownLength(runtime.armorSpec);
-            const weaponFrameIndex = frameIndex % getIdleDownLength(runtime.weaponSpec);
+        context.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+        context.drawImage(
+            activeRuntime.shadowImage,
+            0,
+            0,
+            activeRuntime.shadowSpec.width,
+            activeRuntime.shadowSpec.height,
+            -armorOffset.x,
+            -armorOffset.y,
+            activeRuntime.shadowSpec.width,
+            activeRuntime.shadowSpec.height
+        );
+        context.drawImage(
+            activeRuntime.armorImage,
+            activeRuntime.armorSpec.width * armorFrameIndex,
+            activeRuntime.armorSpec.height * activeRuntime.armorIdleRow,
+            activeRuntime.armorSpec.width,
+            activeRuntime.armorSpec.height,
+            0,
+            0,
+            activeRuntime.armorSpec.width,
+            activeRuntime.armorSpec.height
+        );
+        context.drawImage(
+            activeRuntime.weaponImage,
+            activeRuntime.weaponSpec.width * weaponFrameIndex,
+            activeRuntime.weaponSpec.height * activeRuntime.weaponIdleRow,
+            activeRuntime.weaponSpec.width,
+            activeRuntime.weaponSpec.height,
+            weaponOffset.x - armorOffset.x,
+            weaponOffset.y - armorOffset.y,
+            activeRuntime.weaponSpec.width,
+            activeRuntime.weaponSpec.height
+        );
+    };
 
-            context.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
-            context.drawImage(
-                runtime.shadowImage,
-                0,
-                0,
-                runtime.shadowSpec.width,
-                runtime.shadowSpec.height,
-                -armorOffset.x,
-                -armorOffset.y,
-                runtime.shadowSpec.width,
-                runtime.shadowSpec.height
-            );
-            context.drawImage(
-                runtime.armorImage,
-                runtime.armorSpec.width * armorFrameIndex,
-                runtime.armorSpec.height * runtime.armorIdleRow,
-                runtime.armorSpec.width,
-                runtime.armorSpec.height,
-                0,
-                0,
-                runtime.armorSpec.width,
-                runtime.armorSpec.height
-            );
-            context.drawImage(
-                runtime.weaponImage,
-                runtime.weaponSpec.width * weaponFrameIndex,
-                runtime.weaponSpec.height * runtime.weaponIdleRow,
-                runtime.weaponSpec.width,
-                runtime.weaponSpec.height,
-                weaponOffset.x - armorOffset.x,
-                weaponOffset.y - armorOffset.y,
-                runtime.weaponSpec.width,
-                runtime.weaponSpec.height
-            );
-            playerImage.src = previewCanvas.toDataURL('image/png');
-        };
+    const ensureRuntime = function (): Promise<PreviewRuntime | null> {
+        runtimePromise ??= loadLoadCharacterPreviewRuntime();
+        return runtimePromise.then((loadedRuntime) => {
+            if (!loadedRuntime) {
+                return null;
+            }
+            if (
+                previewCanvas.width !== loadedRuntime.armorSpec.width
+                || previewCanvas.height !== loadedRuntime.armorSpec.height
+            ) {
+                previewCanvas.width = loadedRuntime.armorSpec.width;
+                previewCanvas.height = loadedRuntime.armorSpec.height;
+                context.imageSmoothingEnabled = false;
+            }
+            return loadedRuntime;
+        });
+    };
 
-        drawFrame(0);
-
-        if (runtime.frameCount > 1) {
-            let frameIndex = 1;
-            loadCharacterPreviewInterval = setInterval(function () {
-                if (!document.body.classList.contains('returning')) {
-                    if (loadCharacterPreviewInterval) {
-                        clearInterval(loadCharacterPreviewInterval);
-                        loadCharacterPreviewInterval = null;
-                    }
+    const controller: PreviewController = {
+        start: function (): void {
+            if (disposed) {
+                return;
+            }
+            wantsRunning = true;
+            if (intervalHandle || runtime) {
+                return;
+            }
+            const startToken = runtimeToken + 1;
+            runtimeToken = startToken;
+            void ensureRuntime().then((loadedRuntime) => {
+                if (disposed || !wantsRunning || runtimeToken !== startToken) {
                     return;
                 }
-                drawFrame(frameIndex);
-                frameIndex = (frameIndex + 1) % runtime.frameCount;
-            }, IDLE_ANIMATION_INTERVAL_MS);
+                if (!loadedRuntime) {
+                    clearPreview();
+                    return;
+                }
+                runtime = loadedRuntime;
+                drawRuntimeFrame(runtime, 0);
+                if (runtime.frameCount <= 1) {
+                    return;
+                }
+
+                let frameIndex = 1;
+                intervalHandle = setInterval(function () {
+                    if (!wantsRunning || disposed || !runtime) {
+                        stopInterval();
+                        return;
+                    }
+                    drawRuntimeFrame(runtime, frameIndex);
+                    frameIndex = (frameIndex + 1) % runtime.frameCount;
+                }, IDLE_ANIMATION_INTERVAL_MS);
+            });
+        },
+        stop: function (): void {
+            wantsRunning = false;
+            runtime = null;
+            runtimeToken += 1;
+            stopInterval();
+        },
+        dispose: function (): void {
+            if (disposed) {
+                return;
+            }
+            disposed = true;
+            wantsRunning = false;
+            runtime = null;
+            runtimeToken += 1;
+            stopInterval();
+            clearPreview();
+        },
+    };
+
+    const parchment = document.getElementById('parchment');
+    const isPreviewVisible = function (): boolean {
+        if (!parchment) {
+            return false;
         }
+        const body = document.body;
+        return body.classList.contains('returning')
+            && parchment.classList.contains('loadcharacter')
+            && !body.classList.contains('game');
+    };
+
+    const syncLifecycle = function (): void {
+        if (isPreviewVisible()) {
+            controller.start();
+        } else {
+            controller.stop();
+        }
+    };
+
+    const classObserver = new MutationObserver(function (): void {
+        syncLifecycle();
     });
+    classObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    if (parchment) {
+        classObserver.observe(parchment, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    const onVisibilityChange = function (): void {
+        if (document.hidden) {
+            controller.stop();
+            return;
+        }
+        syncLifecycle();
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    const onPageHide = function (): void {
+        controller.stop();
+    };
+    window.addEventListener('pagehide', onPageHide);
+
+    syncLifecycle();
+
+    const disposePreview = function (): void {
+        classObserver.disconnect();
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+        window.removeEventListener('pagehide', onPageHide);
+        controller.dispose();
+    };
+
+    window.addEventListener('beforeunload', disposePreview, { once: true });
 };

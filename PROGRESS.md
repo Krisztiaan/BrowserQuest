@@ -3511,3 +3511,106 @@ Format per entry:
     - `bun x eslint --max-warnings=0 client/ecs/systems/client-player-move-outbox-system.ts client/ecs/systems/client-command-apply-system.ts tests/unit/ecs/client-player-move-outbox-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
   - Next action:
     - Runtime-check in browser (`bun dev`) for multi-step click pathing smoothness and verify no recurring `Invalid move.step (non-adjacent)` rejects under repeated clicks.
+
+- 00:15 UTC
+  - Ticket: 358–359 (No-fallback preview refactor ticketization + next hotspot analysis)
+  - Start timestamp: 2026-02-18 00:08 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited benchmark artifacts under `benchmarks/` to isolate post-`toDataURL` hotspot ordering.
+    - Confirmed dominant preview hotspot was from load-character animation path (`drawFrame -> toDataURL`) and quantified remaining sampled time once excluded.
+    - Identified next largest remaining sampled leaf as audio dispatch (`AudioManager.playSound` / `play`), and mapped source callsite.
+    - Added detailed active tickets in `TODO.md`:
+      - Ticket 358: canvas-only load-character preview rewrite with explicit no-fallback requirement and lifecycle controls.
+      - Ticket 359: follow-up audio `playSound` churn investigation/mitigation after Ticket 358.
+  - Evidence:
+    - `jq '.recording.samples[0] as $s | [range(0; ($s.durations|length)) as $i | {leaf:($s.stackTraces[$i].stackFrames[0].name // "<anon>"), caller:($s.stackTraces[$i].stackFrames[1].name // "<none>"), callerUrl:($s.stackTraces[$i].stackFrames[1].url // ""), callerLine:($s.stackTraces[$i].stackFrames[1].line // null), dur_ms:($s.durations[$i]*1000)} | select(.leaf != "toDataURL")] as $e | {total_non_toDataURL_ms:($e|map(.dur_ms)|add), top_leaf:($e|sort_by(.leaf)|group_by(.leaf)|map({leaf:.[0].leaf,total_ms:(map(.dur_ms)|add),samples:length,max_ms:(map(.dur_ms)|max)})|sort_by(-.total_ms)|.[0:20]), top_caller:($e|sort_by(.caller,.callerUrl,.callerLine)|group_by(.caller,.callerUrl,.callerLine)|map({caller:.[0].caller,url:.[0].callerUrl,line:.[0].callerLine,total_ms:(map(.dur_ms)|add),samples:length,max_ms:(map(.dur_ms)|max)})|sort_by(-.total_ms)|.[0:20])}' benchmarks/8000.app.krsz.dev-recording.json`
+    - `nl -ba client/main/character-preview.ts | sed -n '175,260p'`
+    - `nl -ba client/audio.ts | sed -n '150,180p'`
+    - `nl -ba .tmp/dev-client/client/home.js | sed -n '10210,10320p'`
+  - Next action:
+    - Implement Ticket 358 (canvas-only preview pipeline, no fallback path).
+
+- 00:20 UTC
+  - Ticket: 359–363 (WebAudio-only migration ticketization, no fallback)
+  - Start timestamp: 2026-02-18 00:18 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Re-scoped audio follow-up from incremental `playSound` tuning to full WebAudio-only migration per user direction.
+    - Expanded backlog into granular dependency-ordered tickets in `TODO.md`:
+      - Ticket 359: WebAudio runtime foundation (AudioContext, decode pipeline, buses, unlock flow),
+      - Ticket 360: command/event integration on WebAudio transport,
+      - Ticket 361: WebAudio music controller + area transition crossfades,
+      - Ticket 362: SFX scheduling policy (dedupe/cooldown/voice budget),
+      - Ticket 363: legacy HTMLAudio path removal + perf verification.
+    - Marked no-fallback constraint explicitly in scope/acceptance for the migration chain.
+  - Evidence:
+    - `cat TODO.md`
+    - `date -u '+%Y-%m-%d %H:%M UTC'`
+    - `nl -ba client/audio.ts | sed -n '1,360p'`
+  - Next action:
+    - Execute Ticket 358 first, then start Ticket 359 WebAudio foundation implementation.
+
+- 00:29 UTC
+  - Ticket: 364–369 (Binary/custom WS transport migration ticketization, no fallback)
+  - Start timestamp: 2026-02-18 00:25 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited current gameplay wire path to confirm active JSON transport hot points in client/server/shared protocol boundaries.
+    - Captured concrete protocol touch points for migration planning (`client/gameclient.ts`, `shared/protocol/registry.ts`, `server/ws/runtime.ts`, `server/ws/runtime-factory.ts`, intent payload helpers, and WS smoke tests).
+    - Added dependency-ordered tickets in `TODO.md`:
+      - Ticket 364: binary wire contract + benchmark-backed codec decision lock (`JSON` vs `MessagePack` vs custom binary),
+      - Ticket 365: shared binary action codec implementation,
+      - Ticket 366: WS runtime/client binary cutover with no JSON fallback in gameplay sockets,
+      - Ticket 367: intent payload binaryization (remove nested payload JSON strings),
+      - Ticket 368: binary-first test harness + smoke migration,
+      - Ticket 369: perf/memory validation and JSON path removal.
+    - Explicitly encoded no-fallback cutover requirements in scope/acceptance for transport tickets.
+  - Evidence:
+    - `sed -n '1,260p' TODO.md`
+    - `rg -n "encodeServerToClientProtocolActionBatch|decodeServerToClientProtocolActionBatch|JSON\\.parse|JSON\\.stringify|send\\(|onmessage|binaryType|ArrayBuffer|Uint8Array|MessagePack|msgpack" client server shared tests -S`
+    - `rg --files shared/protocol server/ws server/world client | head -n 200`
+    - `ls -la benchmarks | sed -n '1,200p'`
+    - `date -u '+%Y-%m-%d %H:%M UTC'`
+  - Next action:
+    - Execute Ticket 358 first (preview no-fallback refactor), then begin Ticket 364 protocol benchmark/contract lock before implementing binary transport.
+
+- 00:51 UTC
+  - Ticket: Backlog/plan normalization for idiomatic completion flow
+  - Start timestamp: 2026-02-18 00:46 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Normalized `TODO.md` into a strict phase-based completion path for Tickets 358-369 with explicit execution rules and cycle-exit gates.
+    - Tightened ambiguous verification wording (benchmark step for Ticket 358 is now required for phase exit).
+    - Aligned `mmo-plan.md` with active backlog direction:
+      - added an explicit current execution profile,
+      - updated transport defaults to binary-first gameplay WS,
+      - updated protocol efficiency section to no-fallback cutover framing.
+    - Updated stale wording in transport batching notes to serialization-oriented language instead of JSON-only assumptions.
+  - Evidence:
+    - `sed -n '1,360p' TODO.md`
+    - `sed -n '1,260p' mmo-plan.md`
+    - `sed -n '950,1045p' mmo-plan.md`
+    - `sed -n '1198,1238p' mmo-plan.md`
+    - `date -u '+%Y-%m-%d %H:%M UTC'`
+  - Next action:
+    - Execute Ticket 358 implementation against the newly normalized phase order.
+
+- 01:15 UTC
+  - Ticket: 358 (Load-character preview rewrite, canvas-only/no fallbacks)
+  - Start timestamp: 2026-02-18 00:55 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Replaced load-character preview pipeline to render directly into the visible `#playerimage` canvas (removed offscreen canvas -> `toDataURL` image assignment loop).
+    - Converted load-character DOM preview node from `<img>` to `<canvas>` and removed all `/profile/preview.svg` fallback source/error handling in client startup flow.
+    - Removed legacy profile-image assignment path from returning-player load flow for preview rendering.
+    - Added explicit preview lifecycle controls driven by UI visibility:
+      - start only when `body.returning` + `#parchment.loadcharacter` and not in gameplay,
+      - stop on state transitions, page hide, and tab hidden events.
+    - Kept preview composition from armor/weapon/shadow sprite layers via `/profile/preview.json` metadata.
+  - Evidence:
+    - `rg -n "toDataURL\\(|/profile/preview\\.svg|SERVER_PLAYER_IMAGE_SRC|LEGACY_THINGY_PLAYER_IMAGE_SRC" client/main.ts client/main/character-preview.ts index.html`
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/main/character-preview.ts client/main.ts`
+  - Next action:
+    - Execute Ticket 359 (WebAudio runtime foundation, no fallback path).

@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-17 23:39 UTC
+Last updated: 2026-02-18 01:15 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -12,6 +12,216 @@ Definition of done (per ticket):
 - A `PROGRESS.md` entry exists with timestamp + evidence.
 - Once `done`, remove the ticket from `TODO.md` (history lives in `PROGRESS.md` + git).
 
+## Current Cycle Completion Path
+
+Cycle objective: complete the active performance/observability modernization chain with no fallback runtime branches.
+
+- Phase 1 (Ticket 358): remove load-character preview `toDataURL` hotspot and enforce canvas-only lifecycle control.
+- Phase 2 (Tickets 359-363): ship WebAudio-only runtime, integrate all events/music, then remove legacy audio path.
+- Phase 3 (Tickets 364-369): ship binary gameplay WS transport end-to-end, then remove JSON gameplay transport path.
+
+Execution rules for this cycle:
+
+- Keep exactly one ticket `in_progress` at a time.
+- Do not start the next phase until the prior phase verification plan is fully green and logged in `PROGRESS.md`.
+- Treat "optional" benchmark/profiling steps as required for phase-exit decisions in this cycle.
+
+Cycle completion gate:
+
+- Tickets 358-369 are all `done` and removed from this file.
+- Typecheck and targeted unit/smoke verification pass for the final integrated state.
+- Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
+
 ## Active Tickets
 
-- None.
+- Ticket 359 - WebAudio runtime foundation (no fallback path) (`todo`)
+  - Scope:
+    - Included: create a new WebAudio-backed runtime (single `AudioContext`) for SFX/music playback.
+    - Included: preload/decode audio assets into `AudioBuffer`s and route playback through gain buses (`master`, `music`, `sfx`, `ui`).
+    - Included: explicit user-gesture unlock/resume flow for suspended contexts.
+    - Included: no HTMLAudio fallback implementation.
+    - Out of scope: advanced DSP effects/reverb/spatialization.
+  - Acceptance criteria:
+    - Audio starts and plays through WebAudio graph only.
+    - Existing gameplay audio events produce audible output after context unlock.
+    - No runtime use of `HTMLAudioElement` in the active playback path.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/audio.ts client/game.ts client/ecs/systems/client-command-apply-system.ts`
+    - `rg -n "createElement\\('audio'\\)|new Audio\\(|canplaythrough|HTMLAudioElement" client`
+    - Manual runtime: open game, unlock audio, validate SFX + music start.
+  - Dependencies/blockers:
+    - Depends on Ticket 358 completion to avoid mixed attribution with preview CPU cost.
+    - Requires browser support for WebAudio (`AudioContext`) in target clients (no fallback by requirement).
+
+- Ticket 360 - Command/event integration on WebAudio transport (`todo`)
+  - Scope:
+    - Included: migrate all current `playSound`/music trigger callsites to WebAudio manager API.
+    - Included: preserve semantic mapping for current keys (`hurt`, `death`, `achievement`, `teleport`, etc.).
+    - Included: keep current toggles/settings behavior compatible with new manager.
+    - Out of scope: new sound content.
+  - Acceptance criteria:
+    - No gameplay system uses legacy pool selection semantics from HTMLAudio.
+    - All existing command-side audio events still trigger correct sound keys.
+    - No regression in mute/toggle behavior.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/audio.ts client/game.ts client/ecs/systems/client-door-portal-system.ts client/ecs/systems/client-command-apply-system.ts`
+    - Manual runtime: combat + loot + death/revive + zone portal cues.
+  - Dependencies/blockers:
+    - Depends on Ticket 359 foundation.
+
+- Ticket 361 - WebAudio music controller (looping + area transitions) (`todo`)
+  - Scope:
+    - Included: replace current music-loop/fade logic with WebAudio node scheduling.
+    - Included: preserve area-based music switching behavior from `updateMusic()`.
+    - Included: implement deterministic crossfade behavior with configurable fade durations.
+    - Out of scope: dynamic soundtrack remixing.
+  - Acceptance criteria:
+    - Music transitions are smooth (no abrupt restarts/pop) across area changes.
+    - Music does not spawn duplicate overlapping loop sources during rapid transitions.
+    - Current zone/music-area semantics remain functionally equivalent.
+  - Verification plan:
+    - `bun run typecheck`
+    - Manual runtime traversal across multiple music areas with repeated transitions.
+    - Add targeted unit coverage if a transition state machine is introduced.
+  - Dependencies/blockers:
+    - Depends on Ticket 359 and Ticket 360.
+
+- Ticket 362 - SFX scheduling policy on WebAudio (dedupe/cooldown/voice budget) (`todo`)
+  - Scope:
+    - Included: frame-local SFX intent queue with duplicate coalescing.
+    - Included: per-key cooldowns and max concurrent voice budget.
+    - Included: priority policy so critical cues win under saturation.
+    - Out of scope: content-side rebalancing of all volume levels.
+  - Acceptance criteria:
+    - Combat-heavy bursts no longer flood playback with redundant duplicate voices.
+    - Critical cues are still heard under load.
+    - Debug counters/logs expose requested/played/dropped by reason.
+  - Verification plan:
+    - `bun run typecheck`
+    - Manual runtime combat stress pass.
+    - Benchmark re-capture under same scenario; compare post-preview hotspot ranking.
+  - Dependencies/blockers:
+    - Depends on Ticket 360.
+
+- Ticket 363 - Legacy audio path removal + perf verification (`todo`)
+  - Scope:
+    - Included: remove dead HTMLAudio pool code and related listeners/timers once WebAudio path is live.
+    - Included: remove now-unused fallback-only code paths and types.
+    - Included: run benchmark comparison and document before/after hotspot deltas.
+    - Out of scope: cross-platform QA matrix beyond agreed runtime targets.
+  - Acceptance criteria:
+    - No active fallback code remains; WebAudio is the sole runtime path.
+    - `toDataURL` preview hotspot removed (Ticket 358) and audio hotspot reduced versus baseline capture.
+    - Cleanup does not break build/test/typecheck.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/audio.ts client/main/character-preview.ts client/main.ts`
+    - Manual benchmark capture under the same session profile used for current `benchmarks/` artifacts.
+  - Dependencies/blockers:
+    - Depends on Ticket 358, Ticket 359, Ticket 360, Ticket 361, Ticket 362.
+
+- Ticket 364 - Binary wire contract + codec decision lock (`todo`)
+  - Scope:
+    - Included: benchmark wire encoding candidates for game WS traffic (`JSON`, `MessagePack`, custom binary) using representative captured batches from `benchmarks/`.
+    - Included: lock a single production wire contract version (`v1`) with explicit frame header, action-batch envelope, and numeric type constraints.
+    - Included: document no-fallback cutover policy for game WS transport (no dual runtime path after cutover).
+    - Out of scope: implementing runtime transport changes.
+  - Acceptance criteria:
+    - A concrete binary protocol contract is defined in-repo (versioned and implementation-ready).
+    - Candidate benchmark output exists with CPU + payload-size comparison on the same sample set.
+    - Decision rationale for selected codec is recorded with explicit tradeoffs.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun tools/bench/protocol-wire.ts`
+    - `rg -n "BINARY_PROTOCOL_V1|wire contract|no-fallback" shared/protocol docs TODO.md`
+  - Dependencies/blockers:
+    - Requires stable benchmark corpus from `benchmarks/` captures.
+
+- Ticket 365 - Shared binary action codec implementation (`todo`)
+  - Scope:
+    - Included: add shared encoder/decoder for client<->server protocol action batches on binary frames (top-level protocol arrays).
+    - Included: preserve existing opcode semantics from `shared/protocol/registry.ts` while replacing JSON string transport for gameplay WS payloads.
+    - Included: strict decode guards for malformed/truncated payloads.
+    - Out of scope: nested intent payload schema changes.
+  - Acceptance criteria:
+    - Round-trip encode/decode coverage exists for representative inbound/outbound action batches.
+    - Decoder rejects malformed payloads without crashing runtime.
+    - Binary codec is available from shared protocol entrypoints for both client and server use.
+  - Verification plan:
+    - `bun test tests/unit/protocol/registry.test.ts tests/unit/mmo/protocol-chunks-schema.test.ts tests/unit/mmo/protocol-seq-ack-schema.test.ts`
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 shared/protocol/registry.ts shared/protocol/*.ts`
+  - Dependencies/blockers:
+    - Depends on Ticket 364.
+
+- Ticket 366 - WS runtime/client transport binary cutover (`todo`)
+  - Scope:
+    - Included: switch game WS send/receive paths to binary payloads (`ArrayBuffer`/`Uint8Array`) in client and server runtime adapters.
+    - Included: set client socket binary mode explicitly and handle binary payload dispatch in `client/gameclient.ts`.
+    - Included: remove JSON stringify/parse in active game WS transport paths.
+    - Included: no runtime fallback to text JSON frames for gameplay sockets.
+    - Out of scope: HTTP endpoint payload formats.
+  - Acceptance criteria:
+    - Gameplay WS frames are binary in both directions.
+    - Active client/server WS game transport paths no longer depend on `JSON.stringify`/`JSON.parse` for protocol action batches.
+    - Runtime smoke flow (connect, move, combat, chat) succeeds on binary transport.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun test tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/client-gameclient-reconnect-silent.test.ts tests/unit/player-session.test.ts`
+    - `rg -n "JSON\\.stringify\\(|JSON\\.parse\\(" client/gameclient.ts server/ws/runtime.ts server/ws/runtime-factory.ts shared/protocol/registry.ts`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts`
+  - Dependencies/blockers:
+    - Depends on Ticket 365.
+
+- Ticket 367 - Intent payload binaryization (remove nested JSON payload strings) (`todo`)
+  - Scope:
+    - Included: replace `MSG_INTENT` nested `payloadJson` string contract with typed binary payload encoding per intent kind.
+    - Included: migrate shared intent encode/decode helpers to binary payload representations.
+    - Included: remove runtime nested `JSON.stringify/JSON.parse` for intent payload handling.
+    - Out of scope: adding new gameplay intents.
+  - Acceptance criteria:
+    - Client outbound intent creation sends typed binary payloads only.
+    - Server intent bridge decodes typed payloads without JSON parse.
+    - Existing movement/build/claim intent behavior remains functionally equivalent.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/intents.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/player-session.test.ts`
+    - `rg -n "payloadJson|JSON\\.stringify\\(\\{ x:|JSON\\.parse\\(payload" shared/protocol/intents.ts client/gameclient-outbound-actions.ts server/player-session-command-translation.ts server/world/ecs-command-pipeline.ts`
+  - Dependencies/blockers:
+    - Depends on Ticket 365 and Ticket 366.
+
+- Ticket 368 - Binary-first test harness + smoke migration (`todo`)
+  - Scope:
+    - Included: update WS test helpers/harnesses to send and assert binary gameplay frames by default.
+    - Included: migrate protocol/browser/smoke tests that currently hardcode JSON text WS frames.
+    - Included: preserve assertions for ACK/CORRECTION/REJECT/combat/chat semantics under binary transport.
+    - Out of scope: non-WS HTTP API test payload changes.
+  - Acceptance criteria:
+    - Existing relevant smoke/unit/browser protocol tests pass using binary gameplay transport.
+    - Test utilities provide ergonomic binary frame helpers (encode/decode wrappers) for future coverage.
+    - Legacy JSON frame assumptions are removed from active gameplay test paths.
+  - Verification plan:
+    - `bun test tests/unit/mmo/protocol-chunks-schema.test.ts tests/unit/mmo/protocol-seq-ack-schema.test.ts tests/browser/protocol-invariant.playwright.ts tests/smoke/modern-gameplay-parity.test.ts tests/smoke/server-payload-guards.test.ts`
+    - `bun run typecheck`
+  - Dependencies/blockers:
+    - Depends on Ticket 366 and Ticket 367.
+
+- Ticket 369 - Binary transport perf/memory validation + JSON path removal (`todo`)
+  - Scope:
+    - Included: capture before/after benchmarks for CPU hot paths, WS payload bytes, and memory pressure with binary transport enabled.
+    - Included: remove dead JSON gameplay transport code after binary verification passes.
+    - Included: document measured deltas and regression guardrails in `PROGRESS.md`.
+    - Out of scope: asset compression/content-size optimization unrelated to WS protocol.
+  - Acceptance criteria:
+    - Benchmark artifacts show measurable improvement in at least one primary bottleneck axis (CPU parse/serialize, payload bytes, or memory churn) without gameplay regressions.
+    - No active JSON gameplay WS transport path remains in runtime code.
+    - Typecheck/tests pass after dead-path cleanup.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts`
+    - `bun tools/bench/protocol-wire.ts`
+    - `rg -n "decodeServerToClientProtocolActionBatch\\(message\\)|JSON\\.stringify\\(json\\)|JSON\\.parse\\(payload\\)" client/gameclient.ts shared/protocol/registry.ts server/ws/runtime.ts server/ws/runtime-factory.ts`
+  - Dependencies/blockers:
+    - Depends on Ticket 364, Ticket 365, Ticket 366, Ticket 367, Ticket 368.

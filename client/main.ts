@@ -5,11 +5,7 @@ import type { AchievementId } from './achievement-domain';
 import { TRANSITIONEND } from './platform/util';
 import type Game from './game';
 import { bindFullscreenToggle } from './main/fullscreen-toggle';
-import {
-    hydrateLoadCharacterPreview,
-    LEGACY_THINGY_PLAYER_IMAGE_SRC,
-    SERVER_PLAYER_IMAGE_SRC,
-} from './main/character-preview';
+import { hydrateLoadCharacterPreview } from './main/character-preview';
 import { installTestApi } from './main/test-api';
 
 let app: App | null = null;
@@ -55,18 +51,10 @@ const initApp = function (): void {
             lists = document.getElementById('lists'),
             notifications = document.querySelector('#notifications div'),
             playerName = document.getElementById('playername'),
-            playerImage = document.getElementById('playerimage') as HTMLImageElement | null,
+            playerImage = document.getElementById('playerimage') as HTMLCanvasElement | null,
             resizeCheck = document.getElementById('resize-check');
 
         if (playerImage) {
-            playerImage.src = SERVER_PLAYER_IMAGE_SRC;
-            playerImage.addEventListener('error', function () {
-                if (playerImage.src.endsWith(SERVER_PLAYER_IMAGE_SRC)) {
-                    playerImage.removeAttribute('src');
-                    return;
-                }
-                playerImage.src = SERVER_PLAYER_IMAGE_SRC;
-            });
             hydrateLoadCharacterPreview(playerImage);
         }
 
@@ -258,13 +246,6 @@ const initApp = function (): void {
             if (data.player.name && data.player.name !== '') {
                 if (playerName) {
                     playerName.innerHTML = data.player.name;
-                }
-                if (
-                    playerImage &&
-                    data.player.image.trim().length > 0 &&
-                    !data.player.image.includes(LEGACY_THINGY_PLAYER_IMAGE_SRC)
-                ) {
-                    playerImage.src = data.player.image;
                 }
             }
         }
