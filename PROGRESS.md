@@ -15,6 +15,30 @@ Format per entry:
 
 ## 2026-02-18
 
+- 22:20 UTC
+  - Ticket: 409 (Movement pathing v3: enable constrained diagonal routing)
+  - Status: `done`
+  - Key actions taken:
+    - Enabled constrained diagonal A* variant (`variant: 'Diagonal'`) for client click-to-move and server `move.to` planning.
+    - Expanded diagonal edges into deterministic cardinal micro-steps (horizontal then vertical) to keep runtime movement/animation semantics 4-directional while improving route quality.
+    - Added unit coverage ensuring diagonal expansion happens when available and that constrained mode forbids corner-cutting when an orth neighbor is blocked.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts tests/unit/mmo/server-client-collision-parity.test.ts tests/unit/client-pathing-dynamic-occupancy.test.ts --timeout 30000`
+  - Next action:
+    - Close Ticket 409 in `TODO.md`, then start Ticket 410 (pathfinding perf/quality improvements + micro-bench).
+
+- 22:19 UTC
+  - Ticket: 409 (Movement pathing v3: enable constrained diagonal routing)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Started shared pathfinding integration audit and identified that client/server movement planners were still using 4-neighbor A* despite diagonal-support existing in `shared/world/pathfinding/astar.ts`.
+  - Evidence:
+    - `rg -n "AStarVariant|DiagonalMode|collectSuccessors" shared/world/pathfinding/astar.ts`
+    - `rg -n "findPath\\(" client/game.ts server/world/intents/move-to-intent.ts shared/world/pathfinding/pathfinder.ts`
+  - Next action:
+    - Enable `variant: 'Diagonal'` for client click-to-move and server `move.to`, expand diagonal edges into cardinal steps for runtime movement compatibility, then run Ticket 409 verification tests.
+
 - 22:13 UTC
   - Ticket: 408 (Protocol measurement: latency/jitter harness + movement/replication corpora refresh)
   - Status: `done`

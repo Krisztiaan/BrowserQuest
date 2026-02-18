@@ -15,12 +15,36 @@ export type PathEntity = Readonly<{
 
 type FindPathOptions = Readonly<{
     maxVisited?: number;
+    // Keep this as an AStar option surface so client/server can share planning semantics.
+    variant?: AStarOptions['variant'];
 }>;
 
 const isGridPoint = (point: PathCandidatePoint): point is GridPoint =>
     Array.isArray(point) && point.length === 2 && typeof point[0] === 'number' && typeof point[1] === 'number';
 
 const toGridPath = (value: PathCandidate): GridPath => (Array.isArray(value) ? value.filter(isGridPoint) : []);
+
+function expandDiagonalSteps(path: GridPath): GridPath {
+    if (path.length <= 1) {
+        return path;
+    }
+    const expanded: GridPath = [path[0] as GridPoint];
+    for (let i = 1; i < path.length; i += 1) {
+        const prev = expanded[expanded.length - 1];
+        const cur = path[i];
+        if (!prev || !cur) {
+            continue;
+        }
+        const dx = cur[0] - prev[0];
+        const dy = cur[1] - prev[1];
+        if (Math.abs(dx) === 1 && Math.abs(dy) === 1) {
+            // Deterministic expansion for client/server parity: horizontal, then vertical.
+            expanded.push([prev[0] + dx, prev[1]]);
+        }
+        expanded.push(cur);
+    }
+    return expanded;
+}
 
 class Pathfinder {
     width: number;
@@ -64,8 +88,13 @@ class Pathfinder {
         this.grid = grid;
         this.applyIgnoreList_(true);
         const astarOpts: AStarOptions | undefined =
-            options?.maxVisited !== undefined ? { maxVisited: options.maxVisited } : undefined;
+            options?.maxVisited !== undefined || options?.variant !== undefined
+                ? { maxVisited: options?.maxVisited, variant: options?.variant }
+                : undefined;
         let path = toGridPath(AStar(this.grid, start, end, astarOpts));
+        if (options?.variant === 'Diagonal' || options?.variant === 'DiagonalFree') {
+            path = expandDiagonalSteps(path);
+        }
 
         if (path.length === 0 && findIncomplete === true) {
             // If no path was found, try and find an incomplete one
@@ -85,7 +114,10 @@ class Pathfinder {
      * returns an incomplete path to the chosen destination.
      */
     findIncompletePath_(start: GridPoint, end: GridPoint, astarOpts: AStarOptions | undefined): GridPath {
-        const perfect = toGridPath(AStar(this.blankGrid, start, end, astarOpts));
+        let perfect = toGridPath(AStar(this.blankGrid, start, end, astarOpts));
+        if (astarOpts?.variant === 'Diagonal' || astarOpts?.variant === 'DiagonalFree') {
+            perfect = expandDiagonalSteps(perfect);
+        }
         let incomplete: GridPath = [];
 
         for (let i = perfect.length - 1; i > 0; i -= 1) {
@@ -98,6 +130,9 @@ class Pathfinder {
 
             if (this.grid && this.grid[y]?.[x] === 0) {
                 incomplete = toGridPath(AStar(this.grid, start, [x, y], astarOpts));
+                if (astarOpts?.variant === 'Diagonal' || astarOpts?.variant === 'DiagonalFree') {
+                    incomplete = expandDiagonalSteps(incomplete);
+                }
                 break;
             }
         }
@@ -177,4 +212,3 @@ class Pathfinder {
 }
 
 export default Pathfinder;
-

@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 22:13 UTC
+Last updated: 2026-02-18 22:20 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,24 +34,8 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 409 - Movement pathing v3: enable constrained diagonal routing
-  - Status: `in_progress`
-  - Scope:
-    - Included: Enable diagonal path generation for shared A* (`Diagonal`/constrained mode) in click-to-move and server `move.to` planning.
-    - Included: Preserve corner safety rules (no corner cutting through blocked orthogonal neighbors).
-    - Included: Add/extend unit coverage for diagonal candidate generation and server/client path parity.
-    - Out of scope: `DiagonalFree` behavior, navmesh migration, or any fallback dual-path runtime.
-  - Acceptance criteria:
-    - Shared pathfinding can generate diagonal routes where valid, with constrained corner checks enforced.
-    - Client prediction and server authority continue to agree on chosen route shape for representative diagonal scenarios.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/unit/mmo/server-move-to-intent.test.ts tests/unit/mmo/server-client-collision-parity.test.ts tests/unit/client-pathing-dynamic-occupancy.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Queue after Ticket 408.
-
 - Ticket 410 - Pathfinding perf/quality v1: `ngraph.path`-inspired A* improvements
-  - Status: `todo`
+  - Status: `in_progress`
   - Scope:
     - Included: Evaluate and implement selected `../ngraph.path`-style improvements in shared pathfinding hot paths (open-set handling, visitation bookkeeping, and neighbor expansion efficiency).
     - Included: Add a repeatable pathfinding micro-benchmark for large/obstacle-dense maps and record before/after results.

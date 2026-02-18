@@ -176,7 +176,7 @@ export function applyMoveToIntentCommand({
                 candidate.x,
                 candidate.y,
                 false,
-                { maxVisited: MOVE_TO_MAX_VISITED }
+                { maxVisited: MOVE_TO_MAX_VISITED, variant: 'Diagonal' }
             );
             if (path.length <= 1) {
                 continue;
@@ -201,4 +201,3 @@ export function applyMoveToIntentCommand({
         restoreOccupancy();
     }
 }
-
