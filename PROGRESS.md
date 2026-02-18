@@ -3800,3 +3800,23 @@ Format per entry:
     - `bun run typecheck`
   - Next action:
     - Execute Ticket 369 (perf/memory validation + JSON gameplay path cleanup).
+
+- 01:47 UTC
+  - Ticket: 369 (Binary transport perf/memory validation + JSON path removal)
+  - Start timestamp: 2026-02-18 01:46 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Re-ran protocol wire benchmark to validate payload-size and decode cost deltas against JSON baseline on current code.
+    - Removed remaining dead JSON gameplay transport dependency wiring from WS runtime factory interface (`Protocol.parseProtocolActionBatch` injection removed).
+    - Migrated bot harness gameplay transport (`tools/bots/bot-client.ts`) to binary send/receive so perf tooling no longer depends on JSON gameplay framing.
+    - Re-verified core binary gameplay runtime path (smoke + runtime parity + client seq reconciliation).
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts`
+    - `bun tools/bench/protocol-wire.ts`
+      - `json`: encode 13.22 ms, decode 16.75 ms, total bytes 694743
+      - `msgpack-subset`: encode 27.66 ms, decode 15.84 ms, total bytes 481386
+      - Relative vs json: bytes `-30.71%`, decode `-5.45%` (encode slower, expected in v1)
+    - `rg -n "decodeServerToClientProtocolActionBatch\\(message\\)|JSON\\.stringify\\(json\\)|JSON\\.parse\\(payload\\)" client/gameclient.ts shared/protocol/registry.ts server/ws/runtime.ts server/ws/runtime-factory.ts`
+  - Next action:
+    - Cycle complete (Tickets 358-369).

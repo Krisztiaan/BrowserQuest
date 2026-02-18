@@ -53,9 +53,6 @@ function createFactoryDeps() {
         Utils: {
             random: () => 7,
         },
-        Protocol: {
-            parseProtocolActionBatch: (_payload: string): ProtocolParsedAction[] => [],
-        },
         CLOSE_CODES: {
             NORMAL: 1000,
             UNSUPPORTED_DATA: 1003,

@@ -27,7 +27,6 @@ type WebSocketRuntimeServerEvents = {
 export function createWebSocketRuntimeClasses({
     log,
     Utils: _Utils,
-    Protocol: _Protocol,
     CLOSE_CODES,
     WebSocket,
     createHttpServer,

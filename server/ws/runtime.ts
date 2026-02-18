@@ -1,6 +1,5 @@
 import Log from '../log';
 import Utils from '../utils';
-import Protocol from '../../shared/protocol/contract';
 import CLOSE_CODES from '../../shared/ws-close-codes';
 import { Evented } from '../../shared/evented';
 import path from 'node:path';
@@ -111,7 +110,6 @@ function logConnectionEvent(
 const runtimeClasses = createWebSocketRuntimeClasses({
     log,
     Utils,
-    Protocol,
     CLOSE_CODES,
     WebSocket: {
         WebSocketServer: class UnsupportedWebSocketServer {

@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:46 UTC
+Last updated: 2026-02-18 01:47 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,20 +34,4 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 369 - Binary transport perf/memory validation + JSON path removal (`todo`)
-  - Scope:
-    - Included: capture before/after benchmarks for CPU hot paths, WS payload bytes, and memory pressure with binary transport enabled.
-    - Included: remove dead JSON gameplay transport code after binary verification passes.
-    - Included: document measured deltas and regression guardrails in `PROGRESS.md`.
-    - Out of scope: asset compression/content-size optimization unrelated to WS protocol.
-  - Acceptance criteria:
-    - Benchmark artifacts show measurable improvement in at least one primary bottleneck axis (CPU parse/serialize, payload bytes, or memory churn) without gameplay regressions.
-    - No active JSON gameplay WS transport path remains in runtime code.
-    - Typecheck/tests pass after dead-path cleanup.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/unit/ws/runtime-parity.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts`
-    - `bun tools/bench/protocol-wire.ts`
-    - `rg -n "decodeServerToClientProtocolActionBatch\\(message\\)|JSON\\.stringify\\(json\\)|JSON\\.parse\\(payload\\)" client/gameclient.ts shared/protocol/registry.ts server/ws/runtime.ts server/ws/runtime-factory.ts`
-  - Dependencies/blockers:
-    - Depends on Ticket 364, Ticket 365, Ticket 366, Ticket 367, Ticket 368.
+- No active tickets. Current cycle (358-369) is complete.

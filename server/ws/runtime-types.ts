@@ -14,10 +14,6 @@ export interface WebSocketRuntimeUtils {
     random(max: number): number;
 }
 
-export interface WebSocketRuntimeProtocol {
-    parseProtocolActionBatch(payload: string): ProtocolParsedAction[];
-}
-
 export interface WebSocketRuntimeCloseCodes {
     NORMAL: number;
     UNSUPPORTED_DATA: number;
@@ -82,7 +78,6 @@ export interface WsConnectionLike {
 export interface WebSocketRuntimeFactoryDeps {
     log: WebSocketRuntimeLogger;
     Utils: WebSocketRuntimeUtils;
-    Protocol: WebSocketRuntimeProtocol;
     CLOSE_CODES: WebSocketRuntimeCloseCodes;
     WebSocket: WebSocketModuleLike;
     createHttpServer: CreateHttpServer;

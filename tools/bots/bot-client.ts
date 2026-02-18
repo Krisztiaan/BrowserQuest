@@ -1,9 +1,10 @@
 import Types from '../../shared/gametypes-browser';
-import { decodeServerToClientProtocolActionBatch } from '../../shared/protocol/registry';
+import { decodeServerToClientProtocolActionBatchBinary } from '../../shared/protocol/registry';
 import { decodeProtocolCapabilitiesJson, type ProtocolCapabilities } from '../../shared/protocol/capabilities';
 import { decodeChunkSnapshotPayloadJson } from '../../shared/protocol/chunks/chunk-snapshot-codec';
 import { decodeChunkDeltaPayloadJson } from '../../shared/protocol/chunks/chunk-delta-codec';
 import { gridPos } from '../../shared/domain/positions';
+import { encodeBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
 import {
     createHelloAction,
     createIntentAction,
@@ -49,23 +50,19 @@ function nowMs(): number {
     return Date.now();
 }
 
-function safeStringify(action: unknown): string {
-    return JSON.stringify(action);
-}
-
 function byteLengthUtf8(value: string): number {
-    return Buffer.byteLength(value, 'utf8');
+    return new TextEncoder().encode(value).byteLength;
 }
 
-function decodeSocketMessageData(raw: unknown): string | null {
+function decodeSocketMessageData(raw: unknown): string | Uint8Array | ArrayBuffer | null {
     if (typeof raw === 'string') {
         return raw;
     }
     if (raw instanceof Uint8Array) {
-        return new TextDecoder().decode(raw);
+        return raw;
     }
     if (raw instanceof ArrayBuffer) {
-        return new TextDecoder().decode(new Uint8Array(raw));
+        return raw;
     }
     return null;
 }
@@ -209,11 +206,18 @@ export class BotClient {
                     return;
                 }
                 if (typeof data !== 'string') {
+                    this.metrics.messagesIn += 1;
+                    if (data instanceof Uint8Array) {
+                        this.metrics.bytesIn += data.byteLength;
+                        this.#handleServerMessage(data);
+                        return;
+                    }
+                    if (data instanceof ArrayBuffer) {
+                        this.metrics.bytesIn += data.byteLength;
+                        this.#handleServerMessage(data);
+                    }
                     return;
                 }
-                this.metrics.messagesIn += 1;
-                this.metrics.bytesIn += byteLengthUtf8(data);
-                this.#handleServerMessage(data);
             });
         });
     }
@@ -223,9 +227,12 @@ export class BotClient {
         if (ws?.readyState !== WebSocket.OPEN) {
             return;
         }
-        const json = safeStringify(action);
-        this.metrics.bytesOut += byteLengthUtf8(json);
-        ws.send(json);
+        if (!Array.isArray(action)) {
+            return;
+        }
+        const payload = encodeBinaryActionBatchPayload([action]);
+        this.metrics.bytesOut += payload.byteLength;
+        ws.send(payload);
     }
 
     #sendHello(): void {
@@ -331,8 +338,8 @@ export class BotClient {
         this.#sendRaw(createIntentAction(seq, 'tile.edit', payloadBytes));
     }
 
-    #handleServerMessage(message: string): void {
-        const actions = decodeServerToClientProtocolActionBatch(message);
+    #handleServerMessage(message: ArrayBuffer | Uint8Array): void {
+        const actions = decodeServerToClientProtocolActionBatchBinary(message);
         this.metrics.actionsIn += actions.length;
 
         for (let i = 0; i < actions.length; i += 1) {
