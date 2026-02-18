@@ -17,7 +17,7 @@ export type ClientToServerZoneAction = [typeof Types.Messages.ZONE];
 export type ClientToServerOpenAction = [typeof Types.Messages.OPEN, number];
 export type ClientToServerCheckAction = [typeof Types.Messages.CHECK, number];
 export type ClientToServerAchievementAction = [typeof Types.Messages.ACHIEVEMENT, number];
-export type ClientToServerIntentAction = [typeof Types.Messages.INTENT, number, string, string];
+export type ClientToServerIntentAction = [typeof Types.Messages.INTENT, number, string, number[]];
 export type ClientToServerChunkSubscribeAction = [typeof Types.Messages.CHUNK_SUBSCRIBE, number, number, number];
 export type ClientToServerChunkUnsubscribeAction = [typeof Types.Messages.CHUNK_UNSUBSCRIBE];
 

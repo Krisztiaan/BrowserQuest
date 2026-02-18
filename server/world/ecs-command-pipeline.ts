@@ -1593,17 +1593,17 @@ function createApplyInboundCommandsSystem(
 
                     let bridged: Command | null = null;
                     if (cmd.intentTypeId === INTENT_MOVE_STEP) {
-                        const to = decodeMoveStepIntentPayload(cmd.payloadJson);
+                        const to = decodeMoveStepIntentPayload(cmd.payloadBytes);
                         bridged = to
                             ? ({ type: 'MOVE', source: cmd.source, to } satisfies Extract<Command, { type: 'MOVE' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_DOOR_TELEPORT) {
-                        const to = decodeDoorTeleportIntentPayload(cmd.payloadJson);
+                        const to = decodeDoorTeleportIntentPayload(cmd.payloadBytes);
                         bridged = to
                             ? ({ type: 'TELEPORT', source: cmd.source, to } satisfies Extract<Command, { type: 'TELEPORT' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_TILE_EDIT) {
-                        const edit = decodeTileEditIntentPayload(cmd.payloadJson);
+                        const edit = decodeTileEditIntentPayload(cmd.payloadBytes);
                         bridged = edit
                             ? ({
                                   type: 'TILE_EDIT',
@@ -1614,7 +1614,7 @@ function createApplyInboundCommandsSystem(
                               } satisfies Extract<Command, { type: 'TILE_EDIT' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_CLAIM_CREATE) {
-                        const claim = decodeClaimCreateIntentPayload(cmd.payloadJson);
+                        const claim = decodeClaimCreateIntentPayload(cmd.payloadBytes);
                         bridged = claim
                             ? ({
                                   type: 'CLAIM_CREATE',
@@ -1627,7 +1627,7 @@ function createApplyInboundCommandsSystem(
                               } satisfies Extract<Command, { type: 'CLAIM_CREATE' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_CLAIM_UPDATE) {
-                        const claim = decodeClaimUpdateIntentPayload(cmd.payloadJson);
+                        const claim = decodeClaimUpdateIntentPayload(cmd.payloadBytes);
                         bridged = claim
                             ? ({
                                   type: 'CLAIM_UPDATE',
@@ -1641,7 +1641,7 @@ function createApplyInboundCommandsSystem(
                               } satisfies Extract<Command, { type: 'CLAIM_UPDATE' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_CLAIM_DELETE) {
-                        const claim = decodeClaimDeleteIntentPayload(cmd.payloadJson);
+                        const claim = decodeClaimDeleteIntentPayload(cmd.payloadBytes);
                         bridged = claim
                             ? ({
                                   type: 'CLAIM_DELETE',

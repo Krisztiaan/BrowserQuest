@@ -38,7 +38,7 @@ export type IntentCommand = Readonly<{
     source: CommandSource;
     seq: number;
     intentTypeId: string;
-    payloadJson: string;
+    payloadBytes: ReadonlyArray<number>;
 }>;
 
 export type WhoCommand = Readonly<{

@@ -654,7 +654,7 @@ class GameClient extends Evented<GameClientEvents> {
         );
     }
 
-    sendIntent(intentTypeId: string, payloadJson: string, options?: { trackMoveAck?: boolean }): number | null {
+    sendIntent(intentTypeId: string, payloadBytes: number[], options?: { trackMoveAck?: boolean }): number | null {
         if (!this.supportsIntent(intentTypeId)) {
             return null;
         }
@@ -663,7 +663,7 @@ class GameClient extends Evented<GameClientEvents> {
         if (options?.trackMoveAck) {
             this.kernel.enqueueClientPendingMoveSeqAck(seq);
         }
-        this.sendMessage(createIntentAction(seq, intentTypeId, payloadJson));
+        this.sendMessage(createIntentAction(seq, intentTypeId, payloadBytes));
         return seq;
     }
 
@@ -690,12 +690,12 @@ class GameClient extends Evented<GameClientEvents> {
             return;
         }
 
-        const payloadJson = encodeMoveStepIntentPayload(gridPos(x, y));
-        if (payloadJson === null) {
+        const payloadBytes = encodeMoveStepIntentPayload(gridPos(x, y));
+        if (payloadBytes === null) {
             return;
         }
 
-        const seq = this.sendIntent(INTENT_MOVE_STEP, payloadJson, { trackMoveAck: true });
+        const seq = this.sendIntent(INTENT_MOVE_STEP, payloadBytes, { trackMoveAck: true });
         if (seq === null) {
             return;
         }
@@ -703,11 +703,11 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     sendTileEdit(x: number, y: number, value: number | null): number | null {
-        const payloadJson = encodeTileEditIntentPayload({ x, y, value });
-        if (payloadJson === null) {
+        const payloadBytes = encodeTileEditIntentPayload({ x, y, value });
+        if (payloadBytes === null) {
             return null;
         }
-        return this.sendIntent(INTENT_TILE_EDIT, payloadJson);
+        return this.sendIntent(INTENT_TILE_EDIT, payloadBytes);
     }
 
     sendClaimCreate({
@@ -723,11 +723,11 @@ class GameClient extends Evented<GameClientEvents> {
         y2: number;
         editors?: ReadonlyArray<string>;
     }): number | null {
-        const payloadJson = encodeClaimCreateIntentPayload({ x1, y1, x2, y2, editors: [...editors] });
-        if (payloadJson === null) {
+        const payloadBytes = encodeClaimCreateIntentPayload({ x1, y1, x2, y2, editors: [...editors] });
+        if (payloadBytes === null) {
             return null;
         }
-        return this.sendIntent(INTENT_CLAIM_CREATE, payloadJson);
+        return this.sendIntent(INTENT_CLAIM_CREATE, payloadBytes);
     }
 
     sendClaimUpdate({
@@ -745,7 +745,7 @@ class GameClient extends Evented<GameClientEvents> {
         y2: number;
         editors?: ReadonlyArray<string>;
     }): number | null {
-        const payloadJson = encodeClaimUpdateIntentPayload({
+        const payloadBytes = encodeClaimUpdateIntentPayload({
             id,
             x1,
             y1,
@@ -753,18 +753,18 @@ class GameClient extends Evented<GameClientEvents> {
             y2,
             ...(editors !== undefined ? { editors: [...editors] } : {}),
         });
-        if (payloadJson === null) {
+        if (payloadBytes === null) {
             return null;
         }
-        return this.sendIntent(INTENT_CLAIM_UPDATE, payloadJson);
+        return this.sendIntent(INTENT_CLAIM_UPDATE, payloadBytes);
     }
 
     sendClaimDelete(id: number): number | null {
-        const payloadJson = encodeClaimDeleteIntentPayload({ id });
-        if (payloadJson === null) {
+        const payloadBytes = encodeClaimDeleteIntentPayload({ id });
+        if (payloadBytes === null) {
             return null;
         }
-        return this.sendIntent(INTENT_CLAIM_DELETE, payloadJson);
+        return this.sendIntent(INTENT_CLAIM_DELETE, payloadBytes);
     }
 
     sendLootMove(item: IdCarrier, x: number, y: number): void {
@@ -788,11 +788,11 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     sendTeleport(x: number, y: number): void {
-        const payloadJson = encodeDoorTeleportIntentPayload(gridPos(x, y));
-        if (payloadJson === null) {
+        const payloadBytes = encodeDoorTeleportIntentPayload(gridPos(x, y));
+        if (payloadBytes === null) {
             return;
         }
-        this.sendIntent(INTENT_DOOR_TELEPORT, payloadJson);
+        this.sendIntent(INTENT_DOOR_TELEPORT, payloadBytes);
     }
 
     sendWho(ids: number[]): void {

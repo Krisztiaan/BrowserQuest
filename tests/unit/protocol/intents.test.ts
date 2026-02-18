@@ -32,36 +32,36 @@ test('intent id constants remain stable', () => {
 });
 
 test('move/door intent codecs round-trip valid payloads', () => {
-    const moveJson = encodeMoveStepIntentPayload({ x: 12, y: 7 });
-    expect(moveJson).toBe('{"x":12,"y":7}');
-    expect(decodeMoveStepIntentPayload(moveJson ?? '')).toEqual({ x: 12, y: 7 });
+    const moveBytes = encodeMoveStepIntentPayload({ x: 12, y: 7 });
+    expect(moveBytes).toEqual([12, 0, 0, 0, 7, 0, 0, 0]);
+    expect(decodeMoveStepIntentPayload(moveBytes ?? [])).toEqual({ x: 12, y: 7 });
 
-    const doorJson = encodeDoorTeleportIntentPayload({ x: 44, y: 55 });
-    expect(doorJson).toBe('{"x":44,"y":55}');
-    expect(decodeDoorTeleportIntentPayload(doorJson ?? '')).toEqual({ x: 44, y: 55 });
+    const doorBytes = encodeDoorTeleportIntentPayload({ x: 44, y: 55 });
+    expect(doorBytes).toEqual([44, 0, 0, 0, 55, 0, 0, 0]);
+    expect(decodeDoorTeleportIntentPayload(doorBytes ?? [])).toEqual({ x: 44, y: 55 });
 });
 
 test('tile edit codec validates bounds and nullable values', () => {
-    expect(encodeTileEditIntentPayload({ x: 2, y: 3, value: 99 })).toBe('{"x":2,"y":3,"value":99}');
-    expect(encodeTileEditIntentPayload({ x: 2, y: 3, value: null })).toBe('{"x":2,"y":3,"value":null}');
+    expect(encodeTileEditIntentPayload({ x: 2, y: 3, value: 99 })).toEqual([2, 0, 0, 0, 3, 0, 0, 0, 1, 99, 0, 0, 0]);
+    expect(encodeTileEditIntentPayload({ x: 2, y: 3, value: null })).toEqual([2, 0, 0, 0, 3, 0, 0, 0, 0]);
     expect(encodeTileEditIntentPayload({ x: 2.5, y: 3, value: 99 })).toBeNull();
     expect(encodeTileEditIntentPayload({ x: 2, y: 3, value: -1 })).toBeNull();
 
-    expect(decodeTileEditIntentPayload('{"x":2,"y":3,"value":99}')).toEqual({ x: 2, y: 3, value: 99 });
-    expect(decodeTileEditIntentPayload('{"x":2,"y":3,"value":null}')).toEqual({ x: 2, y: 3, value: null });
-    expect(decodeTileEditIntentPayload('{"x":2,"y":3,"value":-1}')).toBeNull();
+    expect(decodeTileEditIntentPayload([2, 0, 0, 0, 3, 0, 0, 0, 1, 99, 0, 0, 0])).toEqual({ x: 2, y: 3, value: 99 });
+    expect(decodeTileEditIntentPayload([2, 0, 0, 0, 3, 0, 0, 0, 0])).toEqual({ x: 2, y: 3, value: null });
+    expect(decodeTileEditIntentPayload([2, 0, 0, 0, 3, 0, 0, 0, 1, 255, 255, 255, 255])).toBeNull();
 });
 
 test('claim intent codecs round-trip valid payloads', () => {
-    const createJson = encodeClaimCreateIntentPayload({
+    const createBytes = encodeClaimCreateIntentPayload({
         x1: 1,
         y1: 2,
         x2: 3,
         y2: 4,
         editors: ['alice', 'bob'],
     });
-    expect(createJson).toBe('{"x1":1,"y1":2,"x2":3,"y2":4,"editors":["alice","bob"]}');
-    expect(decodeClaimCreateIntentPayload(createJson ?? '')).toEqual({
+    expect(createBytes).not.toBeNull();
+    expect(decodeClaimCreateIntentPayload(createBytes ?? [])).toEqual({
         x1: 1,
         y1: 2,
         x2: 3,
@@ -69,7 +69,7 @@ test('claim intent codecs round-trip valid payloads', () => {
         editors: ['alice', 'bob'],
     });
 
-    const updateJson = encodeClaimUpdateIntentPayload({
+    const updateBytes = encodeClaimUpdateIntentPayload({
         id: 10,
         x1: 1,
         y1: 2,
@@ -77,8 +77,8 @@ test('claim intent codecs round-trip valid payloads', () => {
         y2: 4,
         editors: ['alice'],
     });
-    expect(updateJson).toBe('{"id":10,"x1":1,"y1":2,"x2":3,"y2":4,"editors":["alice"]}');
-    expect(decodeClaimUpdateIntentPayload(updateJson ?? '')).toEqual({
+    expect(updateBytes).not.toBeNull();
+    expect(decodeClaimUpdateIntentPayload(updateBytes ?? [])).toEqual({
         id: 10,
         x1: 1,
         y1: 2,
@@ -87,13 +87,13 @@ test('claim intent codecs round-trip valid payloads', () => {
         editors: ['alice'],
     });
 
-    const deleteJson = encodeClaimDeleteIntentPayload({ id: 11 });
-    expect(deleteJson).toBe('{"id":11}');
-    expect(decodeClaimDeleteIntentPayload(deleteJson ?? '')).toEqual({ id: 11 });
+    const deleteBytes = encodeClaimDeleteIntentPayload({ id: 11 });
+    expect(deleteBytes).toEqual([11, 0, 0, 0]);
+    expect(decodeClaimDeleteIntentPayload(deleteBytes ?? [])).toEqual({ id: 11 });
 });
 
 test('claim intent decoders reject invalid payloads', () => {
-    expect(decodeClaimCreateIntentPayload('{"x1":1,"y1":2,"x2":3,"y2":4,"editors":[1]}')).toBeNull();
-    expect(decodeClaimUpdateIntentPayload('{"id":0,"x1":1,"y1":2,"x2":3,"y2":4}')).toBeNull();
-    expect(decodeClaimDeleteIntentPayload('{"id":0}')).toBeNull();
+    expect(decodeClaimCreateIntentPayload([1, 0, 0, 0])).toBeNull();
+    expect(decodeClaimUpdateIntentPayload([0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0])).toBeNull();
+    expect(decodeClaimDeleteIntentPayload([0, 0, 0, 0])).toBeNull();
 });

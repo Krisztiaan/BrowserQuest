@@ -6,7 +6,7 @@ import {
     type ServerToClientProtocolManifestEntry,
 } from './manifest';
 
-type MessageTypeFormat = Array<'n' | 's'>;
+type MessageTypeFormat = Array<'n' | 's' | 'na'>;
 export type ClientToServerFormatSchema = Record<number, MessageTypeFormat>;
 type ProtocolSchemaInput = number | string | boolean | null | number[] | object | undefined;
 type ProtocolSchemaAction = readonly ProtocolSchemaInput[];
@@ -59,12 +59,14 @@ function toProtocolSchemaAction(
     return value.every(isProtocolSchemaInput) ? value : null;
 }
 
-function validateClientToServerArg(kind: 'n' | 's', value: ProtocolSchemaInput): boolean {
+function validateClientToServerArg(kind: 'n' | 's' | 'na', value: ProtocolSchemaInput): boolean {
     switch (kind) {
         case 'n':
             return isFiniteInteger(value);
         case 's':
             return isString(value);
+        case 'na':
+            return isNumberArray(value);
     }
 }
 

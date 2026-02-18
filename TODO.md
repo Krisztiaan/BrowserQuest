@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:39 UTC
+Last updated: 2026-02-18 01:45 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,23 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 367 - Intent payload binaryization (remove nested JSON payload strings) (`todo`)
-  - Scope:
-    - Included: replace `MSG_INTENT` nested `payloadJson` string contract with typed binary payload encoding per intent kind.
-    - Included: migrate shared intent encode/decode helpers to binary payload representations.
-    - Included: remove runtime nested `JSON.stringify/JSON.parse` for intent payload handling.
-    - Out of scope: adding new gameplay intents.
-  - Acceptance criteria:
-    - Client outbound intent creation sends typed binary payloads only.
-    - Server intent bridge decodes typed payloads without JSON parse.
-    - Existing movement/build/claim intent behavior remains functionally equivalent.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/unit/protocol/intents.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/player-session.test.ts`
-    - `rg -n "payloadJson|JSON\\.stringify\\(\\{ x:|JSON\\.parse\\(payload" shared/protocol/intents.ts client/gameclient-outbound-actions.ts server/player-session-command-translation.ts server/world/ecs-command-pipeline.ts`
-  - Dependencies/blockers:
-    - Depends on Ticket 365 and Ticket 366.
 
 - Ticket 368 - Binary-first test harness + smoke migration (`todo`)
   - Scope:

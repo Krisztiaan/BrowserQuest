@@ -5,6 +5,13 @@ import GameClient from '../../../client/gameclient';
 import { encodeProtocolCapabilitiesJson } from '../../../shared/protocol/capabilities';
 import type { ClientToServerProtocolAction } from '../../../shared/protocol/types';
 import { runClientPlayerMoveOutboxSystem } from '../../../client/ecs/systems/client-player-move-outbox-system';
+import {
+    encodeClaimCreateIntentPayload,
+    encodeClaimDeleteIntentPayload,
+    encodeMoveStepIntentPayload,
+    encodeTileEditIntentPayload,
+} from '../../../shared/protocol/intents';
+import { gridPos } from '../../../shared/domain/positions';
 
 test('client refuses movement sends until move.step capability is known', () => {
     const kernel = new ClientWorldKernel();
@@ -37,8 +44,8 @@ test('client sends sequenced INTENT for movement and consumes ACK by seq', () =>
     client.sendMove(5, 7);
 
     expect(sent.length).toBe(2);
-    expect(sent[0]).toEqual([Types.Messages.INTENT, 1, 'move.step', JSON.stringify({ x: 5, y: 6 })]);
-    expect(sent[1]).toEqual([Types.Messages.INTENT, 2, 'move.step', JSON.stringify({ x: 5, y: 7 })]);
+    expect(sent[0]).toEqual([Types.Messages.INTENT, 1, 'move.step', encodeMoveStepIntentPayload(gridPos(5, 6)) ?? []]);
+    expect(sent[1]).toEqual([Types.Messages.INTENT, 2, 'move.step', encodeMoveStepIntentPayload(gridPos(5, 7)) ?? []]);
     expect(kernel.clientPendingMoveSeqAcks).toEqual([1, 2]);
 
     client.receiveAck([Types.Messages.ACK, 1]);
@@ -93,9 +100,9 @@ test('client sends sequenced non-movement intents for tile/claim operations when
     expect(claimSeq).toBe(2);
     expect(deleteSeq).toBe(3);
     expect(sent).toEqual([
-        [Types.Messages.INTENT, 1, 'tile.edit', JSON.stringify({ x: 10, y: 11, value: 123 })],
-        [Types.Messages.INTENT, 2, 'claim.create', JSON.stringify({ x1: 10, y1: 10, x2: 12, y2: 12, editors: ['bob'] })],
-        [Types.Messages.INTENT, 3, 'claim.delete', JSON.stringify({ id: 1 })],
+        [Types.Messages.INTENT, 1, 'tile.edit', encodeTileEditIntentPayload({ x: 10, y: 11, value: 123 }) ?? []],
+        [Types.Messages.INTENT, 2, 'claim.create', encodeClaimCreateIntentPayload({ x1: 10, y1: 10, x2: 12, y2: 12, editors: ['bob'] }) ?? []],
+        [Types.Messages.INTENT, 3, 'claim.delete', encodeClaimDeleteIntentPayload({ id: 1 }) ?? []],
     ]);
     expect(kernel.clientPendingMoveSeqAcks.length).toBe(0);
 });

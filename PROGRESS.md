@@ -3766,3 +3766,23 @@ Format per entry:
     - `bun test tests/smoke/modern-gameplay-parity.test.ts`
   - Next action:
     - Execute Ticket 367 (intent payload binaryization; remove nested JSON payload strings).
+
+- 01:45 UTC
+  - Ticket: 367 (Intent payload binaryization)
+  - Start timestamp: 2026-02-18 01:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Replaced `INTENT` payload contract from JSON string to typed binary payload bytes (`number[]`) across protocol + runtime path:
+      - `shared/protocol/intents.ts` now uses explicit binary payload codecs per intent kind.
+      - `shared/protocol/types.ts` + `shared/protocol/manifest.ts` + `shared/protocol/schema.ts` updated so `INTENT` payload is numeric byte-array validated by schema.
+    - Migrated client/server intent bridge to byte payloads:
+      - `client/gameclient-outbound-actions.ts` and `client/gameclient.ts` now send byte payloads.
+      - `server/player-session-command-translation.ts` validates/accepts byte payload arrays.
+      - `server/ecs/commands.ts` + `server/world/ecs-command-pipeline.ts` now carry/decode `payloadBytes`.
+    - Updated affected tests and bot tooling callsites for new intent payload shape (`tools/bots/bot-client.ts`, intent/seq reconciliation tests, and protocol intent tests).
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/intents.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/player-session.test.ts`
+    - `rg -n "payloadJson|JSON\\.stringify\\(\\{ x:|JSON\\.parse\\(payload" shared/protocol/intents.ts client/gameclient-outbound-actions.ts server/player-session-command-translation.ts server/world/ecs-command-pipeline.ts`
+  - Next action:
+    - Execute Ticket 368 (binary-first test harness + smoke/browser protocol migration).

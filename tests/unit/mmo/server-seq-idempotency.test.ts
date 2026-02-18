@@ -6,6 +6,7 @@ import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipel
 import { INTENT_SEQ_STATE_RESOURCE } from '../../../server/ecs/intent-seq';
 import type { WorldMessage } from '../../../server/world/contracts';
 import type { ServerToClientProtocolAction } from '../../../shared/protocol/types';
+import { encodeMoveStepIntentPayload } from '../../../shared/protocol/intents';
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -123,7 +124,7 @@ test('server ignores duplicate seq INTENT movement (idempotent) and acks', () =>
         source: { connectionId: 'c', playerId: player.id },
         seq: 1,
         intentTypeId: 'move.step',
-        payloadJson: JSON.stringify({ x: 1, y: 0 }),
+        payloadBytes: encodeMoveStepIntentPayload(gridPos(1, 0)) ?? [],
     });
     pipeline.tick();
     expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(1, 0));
@@ -134,7 +135,7 @@ test('server ignores duplicate seq INTENT movement (idempotent) and acks', () =>
         source: { connectionId: 'c', playerId: player.id },
         seq: 1,
         intentTypeId: 'move.step',
-        payloadJson: JSON.stringify({ x: 2, y: 0 }),
+        payloadBytes: encodeMoveStepIntentPayload(gridPos(2, 0)) ?? [],
     });
     pipeline.tick();
 
@@ -153,7 +154,7 @@ test('server rejects stale seq and emits a correction', () => {
         source: { connectionId: 'c', playerId: player.id },
         seq: 2,
         intentTypeId: 'move.step',
-        payloadJson: JSON.stringify({ x: 1, y: 0 }),
+        payloadBytes: encodeMoveStepIntentPayload(gridPos(1, 0)) ?? [],
     });
     pipeline.tick();
     expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(1, 0));
@@ -164,7 +165,7 @@ test('server rejects stale seq and emits a correction', () => {
         source: { connectionId: 'c', playerId: player.id },
         seq: 1,
         intentTypeId: 'move.step',
-        payloadJson: JSON.stringify({ x: 0, y: 0 }),
+        payloadBytes: encodeMoveStepIntentPayload(gridPos(0, 0)) ?? [],
     });
     pipeline.tick();
 
@@ -192,7 +193,7 @@ test('server rejects invalid move.step (non-adjacent) and emits CORRECTION (no A
         source: { connectionId: 'c', playerId: player.id },
         seq: 1,
         intentTypeId: 'move.step',
-        payloadJson: JSON.stringify({ x: 2, y: 0 }),
+        payloadBytes: encodeMoveStepIntentPayload(gridPos(2, 0)) ?? [],
     });
     pipeline.tick();
 
@@ -216,7 +217,7 @@ test('server rejects invalid move.step (non-adjacent) and emits CORRECTION (no A
         source: { connectionId: 'c', playerId: player.id },
         seq: 1,
         intentTypeId: 'move.step',
-        payloadJson: JSON.stringify({ x: 2, y: 0 }),
+        payloadBytes: encodeMoveStepIntentPayload(gridPos(2, 0)) ?? [],
     });
     pipeline.tick();
 

@@ -24,9 +24,9 @@ export function createHelloAction(name: string, armorKind: number, weaponKind: n
 export function createIntentAction(
     seq: number,
     intentTypeId: string,
-    payloadJson: string
+    payloadBytes: number[]
 ): OutboundAction<typeof Types.Messages.INTENT> {
-    return [Types.Messages.INTENT, seq, intentTypeId, payloadJson];
+    return [Types.Messages.INTENT, seq, intentTypeId, payloadBytes];
 }
 
 export function createLootMoveAction(

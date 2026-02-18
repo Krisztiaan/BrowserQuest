@@ -15,6 +15,7 @@ const CHAT_MAX_CODEPOINTS = 60;
 const WHO_MAX_IDS = 1000;
 const CAPABILITIES_JSON_MAX_UTF8_BYTES = 4096;
 const INTENT_TYPE_ID_MAX_UTF8_BYTES = 96;
+const INTENT_PAYLOAD_MAX_BYTES = 4096;
 const CHUNK_COORD_ABS_MAX = 1_000_000;
 const CHUNK_RADIUS_MAX = 8;
 
@@ -206,15 +207,16 @@ export function translateClientActionToCommand(
         case Types.Messages.INTENT: {
             const seq = message[1];
             const intentTypeId = message[2];
-            const payloadJson = message[3];
+            const payloadBytes = message[3];
 
             if (
                 typeof seq !== 'number'
                 || !isValidIntentSeq(seq)
                 || typeof intentTypeId !== 'string'
                 || !Utils.hasMaxUtf8Bytes(intentTypeId, INTENT_TYPE_ID_MAX_UTF8_BYTES)
-                || typeof payloadJson !== 'string'
-                || !Utils.hasMaxUtf8Bytes(payloadJson, CAPABILITIES_JSON_MAX_UTF8_BYTES)
+                || !Array.isArray(payloadBytes)
+                || payloadBytes.length > INTENT_PAYLOAD_MAX_BYTES
+                || payloadBytes.some((value) => typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 255)
             ) {
                 closeInvalidPayload('Invalid INTENT payload.');
                 return null;
@@ -225,7 +227,7 @@ export function translateClientActionToCommand(
                 source,
                 seq,
                 intentTypeId,
-                payloadJson,
+                payloadBytes,
             };
         }
         case Types.Messages.CHUNK_SUBSCRIBE: {

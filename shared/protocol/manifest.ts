@@ -3,7 +3,7 @@ import type { ClientToServerProtocolAction, ProtocolOpcode, ServerToClientProtoc
 
 export type ProtocolDirection = 'client_to_server' | 'server_to_client';
 
-type ClientToServerArg = 'n' | 's';
+type ClientToServerArg = 'n' | 's' | 'na';
 type ServerToClientArg = 'n' | 's' | 'ns' | 'na' | 'pv' | 'lit1';
 
 type ActionSchema<TArg extends string> =
@@ -43,7 +43,7 @@ export const CLIENT_TO_SERVER_PROTOCOL_MANIFEST = [
     { key: 'OPEN', opcode: Types.Messages.OPEN, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'CHECK', opcode: Types.Messages.CHECK, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'ACHIEVEMENT', opcode: Types.Messages.ACHIEVEMENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'INTENT', opcode: Types.Messages.INTENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 's', 's'] } },
+    { key: 'INTENT', opcode: Types.Messages.INTENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 's', 'na'] } },
     { key: 'CHUNK_SUBSCRIBE', opcode: Types.Messages.CHUNK_SUBSCRIBE, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 'n', 'n'] } },
     { key: 'CHUNK_UNSUBSCRIBE', opcode: Types.Messages.CHUNK_UNSUBSCRIBE, direction: 'client_to_server', schema: { kind: 'fixed', args: [] } },
 ] as const satisfies ReadonlyArray<ClientToServerProtocolManifestEntry>;

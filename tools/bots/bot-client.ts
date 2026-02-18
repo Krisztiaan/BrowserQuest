@@ -3,10 +3,12 @@ import { decodeServerToClientProtocolActionBatch } from '../../shared/protocol/r
 import { decodeProtocolCapabilitiesJson, type ProtocolCapabilities } from '../../shared/protocol/capabilities';
 import { decodeChunkSnapshotPayloadJson } from '../../shared/protocol/chunks/chunk-snapshot-codec';
 import { decodeChunkDeltaPayloadJson } from '../../shared/protocol/chunks/chunk-delta-codec';
+import { gridPos } from '../../shared/domain/positions';
 import {
     createHelloAction,
     createIntentAction,
 } from '../../client/gameclient-outbound-actions';
+import { encodeMoveStepIntentPayload, encodeTileEditIntentPayload } from '../../shared/protocol/intents';
 import { ClientChunkOverlayCache } from '../../client/world/chunks/client-chunk-overlay-cache';
 
 export type BotMetrics = {
@@ -289,7 +291,11 @@ export class BotClient {
 
         const seq = this.#intentSeq++;
         this.#pendingAcks.set(seq, { sentAtMs: nowMs(), kind: 'move' });
-        this.#sendRaw(createIntentAction(seq, 'move.step', JSON.stringify(next)));
+        const payloadBytes = encodeMoveStepIntentPayload(gridPos(next.x, next.y));
+        if (!payloadBytes) {
+            return;
+        }
+        this.#sendRaw(createIntentAction(seq, 'move.step', payloadBytes));
     }
 
     #sendChunkSubscribe(): void {
@@ -318,7 +324,11 @@ export class BotClient {
         const seq = this.#intentSeq++;
         this.#pendingAcks.set(seq, { sentAtMs: nowMs(), kind: 'tile' });
         this.metrics.tileEditsSent += 1;
-        this.#sendRaw(createIntentAction(seq, 'tile.edit', JSON.stringify({ x, y, value })));
+        const payloadBytes = encodeTileEditIntentPayload({ x, y, value });
+        if (!payloadBytes) {
+            return;
+        }
+        this.#sendRaw(createIntentAction(seq, 'tile.edit', payloadBytes));
     }
 
     #handleServerMessage(message: string): void {
