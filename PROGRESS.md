@@ -68,6 +68,19 @@ Format per entry:
   - Next action:
     - Execute Ticket 406 (vectorized S2C entity state replication).
 
+- 20:08 UTC
+  - Ticket: 406 (Server-to-client perf: vectorized “entity state” replication (SoA) for hot movement/tick updates)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited current MOVE spam source: `DomainEvent(ENTITY_MOVED)` is mapped to S2C `MOVE` and broadcast via interest replication (`server/ecs/command-systems.ts`, `server/world/ecs-command-pipeline/interest-replication.ts`).
+    - Identified the integration seam for a vectorized `ENTITY_STATE_BATCH` emission path: coalesce `ENTITY_MOVED` events per tick into a single S2C batch per observer group (or per observer) instead of per-entity `MOVE`.
+  - Evidence:
+    - `rg -n "ENTITY_MOVED|mapDomainEventToProtocolAction|Types\\.Messages\\.MOVE" server`
+    - `sed -n '1,120p' server/ecs/command-systems.ts`
+    - `sed -n '1,220p' server/world/ecs-command-pipeline/interest-replication.ts`
+  - Next action:
+    - Implement `ENTITY_STATE_BATCH` opcode + FixedBin layout, server-side per-tick coalescing keyed by interest groups, and client decode/apply without per-entity action allocation; then rerun `bun tools/bench/protocol-wire.ts`.
+
 - 19:08 UTC
   - Ticket: 403 (Client click-to-move v2: send `move.to` once per click + prediction/reconcile)
   - Status: `done`
