@@ -1,6 +1,6 @@
 # MMO Plan (Stardew × WoW) — Server-Authoritative ECS, Independent Shards
 
-Status: draft
+Status: active draft (execution-aligned as of 2026-02-18)
 
 This document proposes a pragmatic, resilient simulation + netcode + persistence architecture for a moderately sized MMO world game (farming, building, battling, shared mines), targeting:
 
@@ -18,6 +18,15 @@ The plan is designed to be idiomatic to our current direction: server-side ECS t
 ## Roadmap (Itemized)
 
 Source of truth for execution is `TODO.md` (active tickets only).
+
+### Current execution profile (active)
+
+This is the active delivery contract for the current backlog cycle:
+
+- No fallback implementation branches by default (`AGENTS.md` policy).
+- Client audio target is WebAudio-only runtime (no `HTMLAudioElement` pool compatibility branch).
+- Gameplay WebSocket transport target is binary-first end-to-end; remove JSON gameplay transport path after cutover verification.
+- Keep protocol manifest/schema validation and opcode semantics stable while changing wire encoding.
 
 - [x] Milestone 199: stable core + feature modules (Tickets 214–216)
 - [x] Milestone 200: lock down client→server `TELEPORT` (Ticket 210)
@@ -84,16 +93,20 @@ These are “safe to decide now” because they mostly affect knobs and extensio
 ### 0.3 Net transport + payload limits
 
 - **Default**
-  - JSON envelopes for control/opcodes; large payload fields may be compressed and base64-encoded.
-  - Target cap: **64KB** per message (tunable).
+  - Gameplay WS transport uses binary frames (`ArrayBuffer`/`Uint8Array`) with a versioned wire contract.
+  - Protocol semantics remain opcode-array + manifest validated.
+  - Target cap: **64KB** per gameplay frame (tunable).
   - If a chunk snapshot exceeds cap: split into `CHUNK_SNAPSHOT_PART` frames; client reassembles and applies atomically.
   - If a snapshot would require “too many parts”: treat as “resync required” and retry under tighter scope (e.g. smaller chunks / different region settings).
+  - No fallback JSON gameplay WS path after binary cutover verification.
 - **Pros**
-  - Fast iteration, debuggable in dev, lower friction for content experiments.
+  - Lower parse/serialize overhead and allocation churn in hot gameplay loops.
+  - Preserves protocol structure and safety while improving runtime efficiency.
 - **Cons**
-  - Base64+JSON overhead; binary becomes attractive as snapshot volume grows.
+  - Binary tooling/debugging is less ergonomic than plain JSON inspection.
 - **Alternatives**
-  - Binary framing (flatbuffers/protobuf/custom) for chunk snapshots/deltas (less overhead, more tooling).
+  - MessagePack framing with similar manifest semantics (faster rollout, less compact than tailored binary).
+  - Fully custom binary codec for maximal compactness (higher implementation/test burden).
 
 ### 0.4 Sequencing, idempotency, throttling, and replay safety
 
@@ -990,19 +1003,14 @@ For a transition period:
 - ignore/deny legacy result-like messages (notably C2S `TELEPORT`)
 - keep legacy S2C messages while clients migrate, then consolidate
 
-### 8.3 Protocol payload efficiency (JSON now, binary later)
+### 8.3 Protocol payload efficiency (binary-first, no fallback after cutover)
 
-Our current wire format is JSON arrays. This is fine early, but at ~2000 concurrent players it becomes a real cost.
+Target approach for the active cycle:
 
-Pragmatic approach:
-
-1) Keep opcodes + manifest/schema validation (good ergonomics and safety).
-2) For chunk snapshots/deltas, ship `payloadCompressed` as:
-   - base64 string in JSON initially (simple but overhead), then
-   - switch to WebSocket binary frames (ArrayBuffer) once stable.
-3) Consider a binary codec later that still preserves the manifest layer:
-   - opcode byte + varint args
-   - typed blob messages for chunk overlays
+1) Keep opcodes + manifest/schema validation (safety/debuggability remains).
+2) Encode gameplay WS action batches on binary frames end-to-end (client + server).
+3) Remove JSON gameplay WS transport path after binary tests + perf checks are green.
+4) Keep HTTP/control routes on JSON unless they are proven hot.
 
 ### 8.4 Sequence numbers: scope and storage
 
@@ -1215,7 +1223,7 @@ Planned extensions:
 
 Current batching:
 
-- `server/world/transport.ts` chunks outgoing queues to avoid huge JSON stringify stalls
+- `server/world/transport.ts` chunks outgoing queues to avoid huge serialization stalls
 
 Planned improvements:
 

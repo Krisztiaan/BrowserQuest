@@ -43,3 +43,9 @@ This file defines execution standards for agents working in this repository.
   - Verification has passed.
   - Final status/progress documentation is updated.
 
+## 5) No Fallback Implementations
+
+- Do not implement fallback code paths unless the user explicitly requests a fallback.
+- When a direction is chosen (for example, WebAudio-only), remove or avoid alternate legacy paths (for example, `HTMLAudioElement` pools).
+- Do not keep "temporary compatibility" branches by default.
+- If a no-fallback decision increases risk, document the risk in ticket scope/acceptance criteria and proceed without adding fallback paths.
