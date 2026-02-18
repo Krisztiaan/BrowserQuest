@@ -84,6 +84,7 @@ class FakeAudioContext {
 
 const originalAudioContext = (globalThis as typeof globalThis & { AudioContext?: unknown }).AudioContext;
 const originalFetch = globalThis.fetch;
+const waitForNextTask = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
 
 beforeEach(() => {
     (globalThis as typeof globalThis & { AudioContext?: unknown }).AudioContext = FakeAudioContext;
@@ -138,4 +139,76 @@ test('rapid area transitions keep at most one fading-out music source', () => {
     manager.updateMusic();
 
     expect(internals.fadingOutMusic.length).toBeLessThanOrEqual(1);
+});
+
+test('sfx dedupe coalesces duplicate requests in the same flush window', async () => {
+    const manager = new AudioManager({
+        player: { gridX: 5, gridY: 5 },
+        renderer: { mobile: false },
+    });
+
+    const internals = manager as unknown as { audioBuffers: Partial<Record<string, AudioBuffer>> };
+    internals.audioBuffers.hurt = {} as AudioBuffer;
+
+    manager.playSound('hurt');
+    manager.playSound('hurt');
+    manager.playSound('hurt');
+    await waitForNextTask();
+
+    const stats = manager.getSfxStats();
+    expect(stats.played).toBe(1);
+    expect(stats.droppedDuplicate).toBe(2);
+});
+
+test('sfx cooldown drops repeated requests that arrive too quickly', async () => {
+    const manager = new AudioManager({
+        player: { gridX: 5, gridY: 5 },
+        renderer: { mobile: false },
+    });
+
+    const internals = manager as unknown as { audioBuffers: Partial<Record<string, AudioBuffer>> };
+    internals.audioBuffers.hurt = {} as AudioBuffer;
+
+    manager.playSound('hurt');
+    await waitForNextTask();
+    manager.playSound('hurt');
+    await waitForNextTask();
+
+    const stats = manager.getSfxStats();
+    expect(stats.played).toBe(1);
+    expect(stats.droppedCooldown).toBeGreaterThanOrEqual(1);
+});
+
+test('priority policy preempts low-priority active voices when budget is saturated', async () => {
+    const manager = new AudioManager({
+        player: { gridX: 5, gridY: 5 },
+        renderer: { mobile: false },
+    });
+
+    const internals = manager as unknown as {
+        context: FakeAudioContext;
+        audioBuffers: Partial<Record<string, AudioBuffer>>;
+        activeSfxVoices: Array<{ key: string; source: MockAudioSource; priority: number; startedAtMs: number }>;
+    };
+    internals.audioBuffers.death = {} as AudioBuffer;
+
+    const seededVoices = Array.from({ length: 10 }).map((_, index) => {
+        const source = internals.context.createBufferSource() as unknown as MockAudioSource;
+        source.buffer = {} as AudioBuffer;
+        return {
+            key: 'hit1',
+            source,
+            priority: 1,
+            startedAtMs: index,
+        };
+    });
+    internals.activeSfxVoices = seededVoices;
+
+    manager.playSound('death');
+    await waitForNextTask();
+
+    const preemptedCount = seededVoices.filter((voice) => voice.source.stopped > 0).length;
+    expect(preemptedCount).toBeGreaterThanOrEqual(1);
+    expect(internals.activeSfxVoices.length).toBe(10);
+    expect(manager.getSfxStats().played).toBeGreaterThanOrEqual(1);
 });

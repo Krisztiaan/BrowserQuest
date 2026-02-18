@@ -30,12 +30,61 @@ type ActiveMusic = {
     stopHandle: ReturnType<typeof setTimeout> | null;
 };
 
+type ActiveSfxVoice = {
+    key: AudioSoundKey;
+    source: AudioBufferSourceNode;
+    priority: number;
+    startedAtMs: number;
+};
+
+type SfxStats = {
+    requested: number;
+    played: number;
+    droppedDisabled: number;
+    droppedNoBuffer: number;
+    droppedDuplicate: number;
+    droppedCooldown: number;
+    droppedVoiceBudget: number;
+};
+
 type AudioContextCtor = new () => AudioContext;
 
 const AUDIO_EXTENSION = 'mp3';
 const SOUND_BASE_PATH = 'audio/sounds/';
 const MUSIC_BASE_PATH = 'audio/music/';
 const MUSIC_FADE_DURATION_SECONDS = 0.4;
+const MAX_SFX_VOICES = 10;
+const SFX_STATS_LOG_THROTTLE_MS = 1000;
+const SOUND_COOLDOWN_MS: Readonly<Partial<Record<AudioSoundKey, number>>> = {
+    hit1: 80,
+    hit2: 80,
+    hurt: 100,
+    chat: 120,
+    loot: 100,
+    heal: 160,
+    npc: 220,
+    'npc-end': 220,
+    teleport: 250,
+};
+const SOUND_PRIORITY: Readonly<Partial<Record<AudioSoundKey, number>>> = {
+    death: 100,
+    revive: 95,
+    achievement: 90,
+    teleport: 85,
+    hurt: 70,
+    heal: 65,
+    kill1: 60,
+    kill2: 60,
+    chest: 55,
+    loot: 50,
+    chat: 35,
+    npc: 30,
+    'npc-end': 30,
+    hit1: 20,
+    hit2: 20,
+    firefox: 10,
+    noloot: 10,
+};
 
 class AudioManager {
     enabled: boolean;
@@ -51,6 +100,12 @@ class AudioManager {
     private preloadPromise: Promise<void> | null;
     private currentMusic: ActiveMusic | null;
     private fadingOutMusic: ActiveMusic[];
+    private queuedSfx: AudioSoundKey[];
+    private queuedSfxFlushHandle: ReturnType<typeof setTimeout> | null;
+    private activeSfxVoices: ActiveSfxVoice[];
+    private sfxLastPlayedAtMs: Partial<Record<AudioSoundKey, number>>;
+    private sfxStats: SfxStats;
+    private lastSfxStatsLogAtMs: number;
     private unlockListenersInstalled: boolean;
 
     constructor(game: AudioGame) {
@@ -67,6 +122,20 @@ class AudioManager {
         this.preloadPromise = null;
         this.currentMusic = null;
         this.fadingOutMusic = [];
+        this.queuedSfx = [];
+        this.queuedSfxFlushHandle = null;
+        this.activeSfxVoices = [];
+        this.sfxLastPlayedAtMs = {};
+        this.sfxStats = {
+            requested: 0,
+            played: 0,
+            droppedDisabled: 0,
+            droppedNoBuffer: 0,
+            droppedDuplicate: 0,
+            droppedCooldown: 0,
+            droppedVoiceBudget: 0,
+        };
+        this.lastSfxStatsLogAtMs = 0;
         this.unlockListenersInstalled = false;
 
         const contextCtor = this.resolveAudioContextCtor();
@@ -114,24 +183,15 @@ class AudioManager {
     }
 
     playSound(name: AudioSoundKey): void {
+        this.sfxStats.requested += 1;
+
         if (!this.enabled || !this.context || !this.sfxGain) {
+            this.sfxStats.droppedDisabled += 1;
             return;
         }
 
-        const buffer = this.audioBuffers[name];
-        if (!buffer) {
-            return;
-        }
-
-        if (this.context.state !== 'running') {
-            void this.resumeAudioContext();
-            return;
-        }
-
-        const source = this.context.createBufferSource();
-        source.buffer = buffer;
-        source.connect(this.sfxGain);
-        source.start(0);
+        this.queuedSfx.push(name);
+        this.scheduleSfxFlush();
     }
 
     addArea(x: number, y: number, width: number, height: number, musicName: MusicKey): void {
@@ -165,6 +225,10 @@ class AudioManager {
         }
 
         this.transitionToMusic(music.name);
+    }
+
+    getSfxStats(): Readonly<SfxStats> {
+        return { ...this.sfxStats };
     }
 
     private resolveAudioContextCtor(): AudioContextCtor | null {
@@ -372,6 +436,8 @@ class AudioManager {
 
     private stopCurrentMusic(): void {
         this.stopFadingOutMusic();
+        this.stopAllSfxVoices();
+        this.clearQueuedSfx();
 
         if (!this.currentMusic) {
             return;
@@ -385,6 +451,167 @@ class AudioManager {
             this.currentMusic.stopHandle = null;
         }
         this.currentMusic = null;
+    }
+
+    private scheduleSfxFlush(): void {
+        if (this.queuedSfxFlushHandle) {
+            return;
+        }
+
+        this.queuedSfxFlushHandle = setTimeout(() => {
+            this.queuedSfxFlushHandle = null;
+            this.flushQueuedSfx();
+        }, 0);
+    }
+
+    private clearQueuedSfx(): void {
+        if (this.queuedSfxFlushHandle) {
+            clearTimeout(this.queuedSfxFlushHandle);
+            this.queuedSfxFlushHandle = null;
+        }
+        this.queuedSfx = [];
+    }
+
+    private getSfxPriority(key: AudioSoundKey): number {
+        return SOUND_PRIORITY[key] ?? 40;
+    }
+
+    private getSfxCooldownMs(key: AudioSoundKey): number {
+        return SOUND_COOLDOWN_MS[key] ?? 0;
+    }
+
+    private pruneFinishedSfxVoices(): void {
+        this.activeSfxVoices = this.activeSfxVoices.filter((voice) => voice.source.buffer !== null);
+    }
+
+    private stopAllSfxVoices(): void {
+        for (const voice of this.activeSfxVoices) {
+            voice.source.stop();
+            voice.source.disconnect();
+            voice.source.buffer = null;
+        }
+        this.activeSfxVoices = [];
+    }
+
+    private flushQueuedSfx(): void {
+        if (!this.enabled || !this.context || !this.sfxGain) {
+            this.sfxStats.droppedDisabled += this.queuedSfx.length;
+            this.queuedSfx = [];
+            return;
+        }
+
+        if (this.context.state !== 'running') {
+            void this.resumeAudioContext();
+            this.sfxStats.droppedDisabled += this.queuedSfx.length;
+            this.queuedSfx = [];
+            return;
+        }
+
+        this.pruneFinishedSfxVoices();
+        const nowMs = Date.now();
+        const queue = this.queuedSfx;
+        this.queuedSfx = [];
+
+        if (queue.length === 0) {
+            return;
+        }
+
+        const deduped: Array<{ key: AudioSoundKey; priority: number; index: number }> = [];
+        const seen = new Set<AudioSoundKey>();
+        for (let index = 0; index < queue.length; index += 1) {
+            const key = queue[index];
+            if (!key) {
+                continue;
+            }
+            if (seen.has(key)) {
+                this.sfxStats.droppedDuplicate += 1;
+                continue;
+            }
+            seen.add(key);
+            deduped.push({ key, priority: this.getSfxPriority(key), index });
+        }
+
+        deduped.sort((left, right) => {
+            if (right.priority !== left.priority) {
+                return right.priority - left.priority;
+            }
+            return left.index - right.index;
+        });
+
+        for (const entry of deduped) {
+            const cooldownMs = this.getSfxCooldownMs(entry.key);
+            const lastPlayedAtMs = this.sfxLastPlayedAtMs[entry.key] ?? 0;
+            if (cooldownMs > 0 && nowMs - lastPlayedAtMs < cooldownMs) {
+                this.sfxStats.droppedCooldown += 1;
+                continue;
+            }
+
+            const buffer = this.audioBuffers[entry.key];
+            if (!buffer) {
+                this.sfxStats.droppedNoBuffer += 1;
+                continue;
+            }
+
+            if (this.activeSfxVoices.length >= MAX_SFX_VOICES) {
+                const preemptible = this.activeSfxVoices
+                    .filter((voice) => voice.priority < entry.priority)
+                    .sort((left, right) => left.priority - right.priority || left.startedAtMs - right.startedAtMs)[0];
+                if (!preemptible) {
+                    this.sfxStats.droppedVoiceBudget += 1;
+                    continue;
+                }
+                preemptible.source.stop();
+                preemptible.source.disconnect();
+                preemptible.source.buffer = null;
+                this.activeSfxVoices = this.activeSfxVoices.filter((voice) => voice !== preemptible);
+            }
+
+            const source = this.context.createBufferSource();
+            source.buffer = buffer;
+            source.connect(this.sfxGain);
+            source.start(0);
+            source.onended = () => {
+                source.disconnect();
+                source.buffer = null;
+                this.activeSfxVoices = this.activeSfxVoices.filter((voice) => voice.source !== source);
+            };
+            this.activeSfxVoices.push({
+                key: entry.key,
+                source,
+                priority: entry.priority,
+                startedAtMs: nowMs,
+            });
+            this.sfxLastPlayedAtMs[entry.key] = nowMs;
+            this.sfxStats.played += 1;
+        }
+
+        this.logSfxStatsIfNeeded(nowMs);
+    }
+
+    private logSfxStatsIfNeeded(nowMs: number): void {
+        const droppedTotal = this.sfxStats.droppedDisabled
+            + this.sfxStats.droppedNoBuffer
+            + this.sfxStats.droppedDuplicate
+            + this.sfxStats.droppedCooldown
+            + this.sfxStats.droppedVoiceBudget;
+        if (droppedTotal === 0) {
+            return;
+        }
+        if (nowMs - this.lastSfxStatsLogAtMs < SFX_STATS_LOG_THROTTLE_MS) {
+            return;
+        }
+
+        this.lastSfxStatsLogAtMs = nowMs;
+        log.debug(
+            'audio.sfx'
+                + ` requested=${this.sfxStats.requested}`
+                + ` played=${this.sfxStats.played}`
+                + ` dropped.disabled=${this.sfxStats.droppedDisabled}`
+                + ` dropped.noBuffer=${this.sfxStats.droppedNoBuffer}`
+                + ` dropped.duplicate=${this.sfxStats.droppedDuplicate}`
+                + ` dropped.cooldown=${this.sfxStats.droppedCooldown}`
+                + ` dropped.voiceBudget=${this.sfxStats.droppedVoiceBudget}`
+        );
     }
 }
 

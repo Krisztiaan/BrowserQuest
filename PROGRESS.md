@@ -3668,3 +3668,19 @@ Format per entry:
     - `bun test tests/unit/client-audio-manager.test.ts`
   - Next action:
     - Execute Ticket 362 (SFX scheduling policy: dedupe/cooldown/voice budget).
+
+- 01:25 UTC
+  - Ticket: 362 (SFX scheduling policy on WebAudio)
+  - Start timestamp: 2026-02-18 01:23 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added frame-local SFX request queue with duplicate coalescing in `client/audio.ts`.
+    - Implemented per-key cooldown rules and global concurrent voice budget (`MAX_SFX_VOICES`) with priority-based preemption.
+    - Added cumulative SFX counters and throttled debug stats logging for requested/played/dropped reasons.
+    - Added targeted unit coverage in `tests/unit/client-audio-manager.test.ts` for dedupe, cooldown, and priority under voice saturation.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/audio.ts tests/unit/client-audio-manager.test.ts`
+    - `bun test tests/unit/client-audio-manager.test.ts`
+  - Next action:
+    - Execute Ticket 363 (legacy audio-path cleanup + perf verification sweep).

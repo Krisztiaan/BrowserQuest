@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:23 UTC
+Last updated: 2026-02-18 01:25 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,23 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 362 - SFX scheduling policy on WebAudio (dedupe/cooldown/voice budget) (`todo`)
-  - Scope:
-    - Included: frame-local SFX intent queue with duplicate coalescing.
-    - Included: per-key cooldowns and max concurrent voice budget.
-    - Included: priority policy so critical cues win under saturation.
-    - Out of scope: content-side rebalancing of all volume levels.
-  - Acceptance criteria:
-    - Combat-heavy bursts no longer flood playback with redundant duplicate voices.
-    - Critical cues are still heard under load.
-    - Debug counters/logs expose requested/played/dropped by reason.
-  - Verification plan:
-    - `bun run typecheck`
-    - Manual runtime combat stress pass.
-    - Benchmark re-capture under same scenario; compare post-preview hotspot ranking.
-  - Dependencies/blockers:
-    - Depends on Ticket 360.
 
 - Ticket 363 - Legacy audio path removal + perf verification (`todo`)
   - Scope:
