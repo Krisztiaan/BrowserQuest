@@ -12,7 +12,9 @@ import {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_INPUT,
     INTENT_MOVE_STEP,
+    INTENT_MOVE_TO,
     INTENT_TILE_EDIT,
     OUTCOME_DOOR_TELEPORT,
 } from './intents';
@@ -42,6 +44,9 @@ const WIRE_INTENT_TYPE_IDS = [
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_UPDATE,
     INTENT_CLAIM_DELETE,
+    // Append-only: once shipped on the wire, never reorder.
+    INTENT_MOVE_TO,
+    INTENT_MOVE_INPUT,
 ] as const;
 
 const WIRE_OUTCOME_TYPE_IDS = [OUTCOME_DOOR_TELEPORT] as const;

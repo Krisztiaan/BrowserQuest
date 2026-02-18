@@ -15,6 +15,20 @@ Format per entry:
 
 ## 2026-02-18
 
+- 17:52 UTC
+  - Ticket: 401 (Movement intents v2: `move.to` + `move.input`)
+  - Status: `done`
+  - Key actions taken:
+    - Added `move.to` and `move.input` intent IDs and byte payload codecs in `shared/protocol/intents.ts`.
+    - Extended FixedBin v2 `intentTypeId` enum mapping (append-only) to include the new intent IDs.
+    - Updated `docs/protocol-fixedbin.md` for ActionBatch direction and updated IntentTypeId mapping list.
+    - Extended unit tests to cover new payload codecs and binary codec mapping support.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/intents.test.ts tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts --timeout 30000`
+  - Next action:
+    - Start Ticket 402 (server `move.to` handler + shared pathfinding extraction).
+
 - 17:34 UTC
   - Ticket: (ticketization refinement)
   - Status: `done`

@@ -65,6 +65,8 @@ The mapping is fixed and derived from `shared/protocol/intents.ts`:
 - `3`: `claim.create`
 - `4`: `claim.update`
 - `5`: `claim.delete`
+- `6`: `move.to`
+- `7`: `move.input`
 
 ### `OutcomeTypeId` (enum)
 
@@ -99,6 +101,7 @@ For binary blob fields:
 ## ActionBatch
 
 Payload bytes:
+- `u8 direction` (`0` = client->server, `1` = server->client)
 - `varu32 actionCount`
 - `actionCount` × `Action`
 

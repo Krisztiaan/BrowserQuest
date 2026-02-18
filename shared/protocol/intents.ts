@@ -1,6 +1,8 @@
 import { gridPos, type GridPos } from '../domain/positions';
 
 export const INTENT_MOVE_STEP = 'move.step' as const;
+export const INTENT_MOVE_TO = 'move.to' as const;
+export const INTENT_MOVE_INPUT = 'move.input' as const;
 export const INTENT_DOOR_TELEPORT = 'door.teleport' as const;
 export const INTENT_TILE_EDIT = 'tile.edit' as const;
 export const INTENT_CLAIM_CREATE = 'claim.create' as const;
@@ -11,6 +13,8 @@ export const OUTCOME_DOOR_TELEPORT = 'teleport.door' as const;
 
 export type CoreIntentTypeId =
     | typeof INTENT_MOVE_STEP
+    | typeof INTENT_MOVE_TO
+    | typeof INTENT_MOVE_INPUT
     | typeof INTENT_DOOR_TELEPORT
     | typeof INTENT_TILE_EDIT
     | typeof INTENT_CLAIM_CREATE
@@ -20,6 +24,8 @@ export type CoreIntentTypeId =
 export type IntentPayloadBytes = ReadonlyArray<number> | Uint8Array;
 
 export type MoveStepIntentPayload = GridPos;
+export type MoveToIntentPayload = Readonly<{ x: number; y: number; stopAdjacentToTarget: boolean }>;
+export type MoveInputIntentPayload = Readonly<{ keysMask: number }>;
 export type DoorTeleportIntentPayload = GridPos;
 export type TileEditIntentPayload = Readonly<{ x: number; y: number; value: number | null }>;
 export type ClaimCreateIntentPayload = Readonly<{
@@ -45,6 +51,15 @@ const TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
 const I32_MIN = -2_147_483_648;
 const I32_MAX = 2_147_483_647;
 const U16_MAX = 0xffff;
+
+const MOVE_TO_FLAG_STOP_ADJACENT = 1 << 0;
+const MOVE_TO_FLAGS_ALLOWED = MOVE_TO_FLAG_STOP_ADJACENT;
+
+export const MOVE_INPUT_KEY_W = 1 << 0;
+export const MOVE_INPUT_KEY_A = 1 << 1;
+export const MOVE_INPUT_KEY_S = 1 << 2;
+export const MOVE_INPUT_KEY_D = 1 << 3;
+const MOVE_INPUT_KEYS_ALLOWED = MOVE_INPUT_KEY_W | MOVE_INPUT_KEY_A | MOVE_INPUT_KEY_S | MOVE_INPUT_KEY_D;
 
 function isByte(value: unknown): value is number {
     return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 0xff;
@@ -208,6 +223,53 @@ export function encodeMoveStepIntentPayload(payload: MoveStepIntentPayload): num
 
 export function decodeMoveStepIntentPayload(payload: IntentPayloadBytes): MoveStepIntentPayload | null {
     return decodeGridPosPayload(payload);
+}
+
+export function encodeMoveToIntentPayload(payload: MoveToIntentPayload): number[] | null {
+    const base = encodeGridPosPayload(payload);
+    if (!base) {
+        return null;
+    }
+    pushU8(base, payload.stopAdjacentToTarget ? MOVE_TO_FLAG_STOP_ADJACENT : 0);
+    return base;
+}
+
+export function decodeMoveToIntentPayload(payload: IntentPayloadBytes): MoveToIntentPayload | null {
+    const bytes = toByteArray(payload);
+    if (!bytes || bytes.length !== 9) {
+        return null;
+    }
+    const reader = new ByteReader(bytes);
+    const x = reader.readI32();
+    const y = reader.readI32();
+    const flags = reader.readU8();
+    if (x === null || y === null || flags === null || !reader.isDone()) {
+        return null;
+    }
+    if ((flags & ~MOVE_TO_FLAGS_ALLOWED) !== 0) {
+        return null;
+    }
+    return { x, y, stopAdjacentToTarget: (flags & MOVE_TO_FLAG_STOP_ADJACENT) !== 0 };
+}
+
+export function encodeMoveInputIntentPayload(payload: MoveInputIntentPayload): number[] | null {
+    const keysMask = payload.keysMask;
+    if (!isByte(keysMask) || (keysMask & ~MOVE_INPUT_KEYS_ALLOWED) !== 0) {
+        return null;
+    }
+    return [keysMask & 0xff];
+}
+
+export function decodeMoveInputIntentPayload(payload: IntentPayloadBytes): MoveInputIntentPayload | null {
+    const bytes = toByteArray(payload);
+    if (!bytes || bytes.length !== 1) {
+        return null;
+    }
+    const keysMask = bytes[0] ?? 0;
+    if ((keysMask & ~MOVE_INPUT_KEYS_ALLOWED) !== 0) {
+        return null;
+    }
+    return { keysMask };
 }
 
 export function encodeDoorTeleportIntentPayload(payload: DoorTeleportIntentPayload): number[] | null {

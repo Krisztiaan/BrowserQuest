@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 17:34 UTC
+Last updated: 2026-02-18 17:52 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,34 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 401 - Movement intents v2: introduce `move.to` + `move.input` payload codecs + FixedBin intent-id mapping update
-  - Status: `todo`
-  - Scope:
-    - Included: Add new intent type ids in `shared/protocol/intents.ts`:
-      - `move.to` (click-to-move target request)
-      - `move.input` (WASD input-state request)
-    - Included: Define payload layouts and add encode/decode helpers (byte payloads; no JSON):
-      - `move.to` payload: `targetX:i32le` + `targetY:i32le` + `flags:u8`
-        - flags bit0: `stopAdjacentToTarget` (for follow/talk/open/attack approaches)
-        - other bits reserved (must be 0 for now)
-      - `move.input` payload: `keysMask:u8`
-        - bit0=W, bit1=A, bit2=S, bit3=D
-        - other bits reserved (must be 0 for now)
-    - Included: Update FixedBin v2 intent-type enum mapping (`WIRE_INTENT_TYPE_IDS` in `shared/protocol/binary-action-codec.ts`)
-      - Add `move.to` and `move.input` at the end (stable ordering; never reorder once shipped).
-      - Update `docs/protocol-fixedbin.md` to reflect the new intent enum entries.
-    - Included: Update any unit tests that assert intent type id mappings / roundtrips.
-    - Out of scope: Switching client/server behavior to use these intents (follow-up tickets).
-  - Acceptance criteria:
-    - Payload codecs round-trip in unit tests (`encode -> decode`).
-    - FixedBin v2 can encode/decode batches containing INTENTs with the new type IDs (mapping exists on both ends).
-    - Typecheck passes.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/unit/protocol/registry.test.ts tests/unit/protocol/binary-action-codec.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - None.
 
 - Ticket 402 - Server authoritative movement v2: accept `move.to` and compute path server-side (no step spam)
   - Status: `todo`
