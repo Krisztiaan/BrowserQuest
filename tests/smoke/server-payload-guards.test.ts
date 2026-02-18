@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
-import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol/contract';
+import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_ZONE } from '../support/protocol/contract';
 import WsCloseCodes from '../../shared/ws-close-codes';
 import { encodeProtocolActionBinary } from '../../shared/protocol/registry';
 import { killBunProcess } from '../support/process-cleanup';
@@ -72,13 +72,18 @@ test('rejects HELLO payload with oversized UTF-8 name', async () => {
     });
 });
 
-test('rejects MOVE payload containing non-integer coordinates', async () => {
+test('rejects binary payload with wrong direction marker', async () => {
     await withServer(async (server) => {
         const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
         await waitForGoHandshake(ws);
 
         ws.send(encodeProtocolActionBinary([MSG_HELLO, 'guarded', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-        ws.send(encodeProtocolActionBinary([MSG_MOVE, 10.5, 7]));
+        // FixedBin v1 does not encode floats on the wire; instead, verify the server closes on
+        // structurally invalid binary frames (e.g. wrong direction marker).
+        const invalidDirectionFrame = encodeProtocolActionBinary([MSG_ZONE]);
+        // FixedBin v1 frame header is 8 bytes, then payload starts with `direction:u8`.
+        invalidDirectionFrame[8] = 1;
+        ws.send(invalidDirectionFrame);
 
         const closed = await waitForWebSocketClose(ws, 15000);
         expect(ws.readyState).toBe(WebSocket.CLOSED);

@@ -5,176 +5,26 @@ import {
     BINARY_WIRE_MAGIC_B,
     BINARY_WIRE_MAGIC_Q,
 } from './binary-wire';
+import { ENTITY_KIND_DOMAIN } from '../entity-kind-domain';
+import Types from '../gametypes-browser';
+import { CLIENT_TO_SERVER_PROTOCOL_MANIFEST, SERVER_TO_CLIENT_PROTOCOL_MANIFEST } from './manifest';
 
 type WireAction = readonly [number, ...unknown[]];
 type WireBatchLike = ReadonlyArray<unknown>;
-type WireValue = null | boolean | number | string | WireValue[];
+
+type Direction = 0 | 1;
+const DIR_CLIENT_TO_SERVER: Direction = 0;
+const DIR_SERVER_TO_CLIENT: Direction = 1;
 
 const TEXT_ENCODER = new TextEncoder();
-const TEXT_DECODER = new TextDecoder();
+const TEXT_DECODER = new TextDecoder('utf-8', { fatal: false });
 
-const TAG_NULL = 0x00;
-const TAG_FALSE = 0x01;
-const TAG_TRUE = 0x02;
-const TAG_INT32 = 0x03;
-const TAG_FLOAT64 = 0x04;
-const TAG_STRING = 0x05;
-const TAG_ARRAY = 0x06;
-const TAG_INT32_ARRAY = 0x07;
-const TAG_STATIC_STRING = 0x08;
+const POS20_MAX = 1023;
 
-const STATIC_STRINGS = [
-    'move.step',
-    'Invalid move.step (non-adjacent).',
-    'move.step queue full.',
-    'claim.create',
-    'claim.expand',
-    'claim.editors',
-    'claim.delete',
-    'claim.owner',
-    'claim.error',
-    'claim.denied',
-    'claim.conflict',
-    'claim.ok',
-    'teleport.door',
-] as const;
-
-const STATIC_STRING_TO_ID = new Map<string, number>(STATIC_STRINGS.map((value, index) => [value, index]));
-
-class ByteWriter {
-    private buffer: Uint8Array;
-    private view: DataView;
-    private offset: number;
-
-    constructor(initialCapacity = 128) {
-        this.buffer = new Uint8Array(initialCapacity);
-        this.view = new DataView(this.buffer.buffer);
-        this.offset = 0;
-    }
-
-    private ensure(neededBytes: number): void {
-        if (this.offset + neededBytes <= this.buffer.length) {
-            return;
-        }
-        let nextLength = this.buffer.length;
-        while (this.offset + neededBytes > nextLength) {
-            nextLength *= 2;
-        }
-        const next = new Uint8Array(nextLength);
-        next.set(this.buffer);
-        this.buffer = next;
-        this.view = new DataView(this.buffer.buffer);
-    }
-
-    writeU8(value: number): void {
-        this.ensure(1);
-        this.buffer[this.offset] = value & 0xff;
-        this.offset += 1;
-    }
-
-    writeVarUint(value: number): void {
-        if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
-            throw new Error('invalid varuint');
-        }
-
-        let remaining = value >>> 0;
-        while (remaining >= 0x80) {
-            this.writeU8((remaining & 0x7f) | 0x80);
-            remaining >>>= 7;
-        }
-        this.writeU8(remaining);
-    }
-
-    writeF64(value: number): void {
-        this.ensure(8);
-        this.view.setFloat64(this.offset, value, true);
-        this.offset += 8;
-    }
-
-    writeBytes(bytes: Uint8Array): void {
-        this.ensure(bytes.length);
-        this.buffer.set(bytes, this.offset);
-        this.offset += bytes.length;
-    }
-
-    toUint8Array(): Uint8Array {
-        return this.buffer.slice(0, this.offset);
-    }
-}
-
-class ByteReader {
-    private offset = 0;
-    private readonly view: DataView;
-
-    constructor(private readonly bytes: Uint8Array) {
-        this.view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    }
-
-    private require(neededBytes: number): void {
-        if (this.offset + neededBytes > this.bytes.length) {
-            throw new Error('decode overflow');
-        }
-    }
-
-    readU8(): number {
-        this.require(1);
-        const value = this.bytes[this.offset] ?? 0;
-        this.offset += 1;
-        return value;
-    }
-
-    readVarUint(): number {
-        let shift = 0;
-        let value = 0;
-        while (shift < 35) {
-            const byte = this.readU8();
-            value |= (byte & 0x7f) << shift;
-            if ((byte & 0x80) === 0) {
-                return value >>> 0;
-            }
-            shift += 7;
-        }
-        throw new Error('varuint overflow');
-    }
-
-    readF64(): number {
-        this.require(8);
-        const value = this.view.getFloat64(this.offset, true);
-        this.offset += 8;
-        return value;
-    }
-
-    readBytes(length: number): Uint8Array {
-        this.require(length);
-        const value = this.bytes.subarray(this.offset, this.offset + length);
-        this.offset += length;
-        return value;
-    }
-
-    remaining(): number {
-        return this.bytes.length - this.offset;
-    }
-}
-
-function isSafeInteger(value: unknown): value is number {
-    return typeof value === 'number' && Number.isSafeInteger(value);
-}
-
-function isInt32(value: number): boolean {
-    return value >= -2_147_483_648 && value <= 2_147_483_647;
-}
-
-function isInt32Number(value: unknown): value is number {
-    return isSafeInteger(value) && isInt32(value);
-}
-
-function zigZagEncodeInt32(value: number): number {
-    return ((value << 1) ^ (value >> 31)) >>> 0;
-}
-
-function zigZagDecodeInt32(value: number): number {
-    return (value >>> 1) ^ -(value & 1);
-}
+const SPAWN_FLAG_HAS_NAME = 1 << 0;
+const SPAWN_FLAG_HAS_ORIENTATION = 1 << 1;
+const SPAWN_FLAG_HAS_EQUIPMENT = 1 << 2;
+const SPAWN_FLAG_HAS_TARGET = 1 << 3;
 
 function coerceInputToBytes(payload: ArrayBuffer | Uint8Array): Uint8Array {
     if (payload instanceof Uint8Array) {
@@ -202,194 +52,199 @@ function writeUint32Le(bytes: Uint8Array, offset: number, value: number): void {
     bytes[offset + 3] = (value >>> 24) & 0xff;
 }
 
-function encodeString(writer: ByteWriter, value: string): void {
-    const staticId = STATIC_STRING_TO_ID.get(value);
-    if (staticId !== undefined) {
-        writer.writeU8(TAG_STATIC_STRING);
-        writer.writeVarUint(staticId);
-        return;
+class ByteWriter {
+    private buffer: Uint8Array;
+    private offset: number;
+
+    constructor(initialCapacity = 256) {
+        this.buffer = new Uint8Array(initialCapacity);
+        this.offset = 0;
     }
 
-    const encoded = TEXT_ENCODER.encode(value);
-    writer.writeU8(TAG_STRING);
-    writer.writeVarUint(encoded.length);
-    writer.writeBytes(encoded);
+    private ensure(neededBytes: number): void {
+        if (this.offset + neededBytes <= this.buffer.length) {
+            return;
+        }
+        let nextLength = this.buffer.length;
+        while (this.offset + neededBytes > nextLength) {
+            nextLength *= 2;
+        }
+        const next = new Uint8Array(nextLength);
+        next.set(this.buffer);
+        this.buffer = next;
+    }
+
+    writeU8(value: number): void {
+        this.ensure(1);
+        this.buffer[this.offset] = value & 0xff;
+        this.offset += 1;
+    }
+
+    writeBytes(bytes: Uint8Array): void {
+        this.ensure(bytes.length);
+        this.buffer.set(bytes, this.offset);
+        this.offset += bytes.length;
+    }
+
+    writeVarU32(value: number): void {
+        if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
+            throw new Error('invalid varu32');
+        }
+        let remaining = value >>> 0;
+        while (remaining >= 0x80) {
+            this.writeU8((remaining & 0x7f) | 0x80);
+            remaining >>>= 7;
+        }
+        this.writeU8(remaining);
+    }
+
+    writeString(value: string): void {
+        if (typeof value !== 'string') {
+            throw new Error('invalid string');
+        }
+        const encoded = TEXT_ENCODER.encode(value);
+        this.writeVarU32(encoded.length);
+        this.writeBytes(encoded);
+    }
+
+    writePos20(x: number, y: number): void {
+        if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x > POS20_MAX || y > POS20_MAX) {
+            throw new Error(`invalid pos20: (${String(x)}, ${String(y)})`);
+        }
+        const packed = ((x & 0x3ff) | ((y & 0x3ff) << 10)) >>> 0;
+        this.writeU8(packed & 0xff);
+        this.writeU8((packed >>> 8) & 0xff);
+        this.writeU8((packed >>> 16) & 0xff);
+    }
+
+    toUint8Array(): Uint8Array {
+        return this.buffer.slice(0, this.offset);
+    }
 }
 
-function decodeString(reader: ByteReader, tag: number): string {
-    if (tag === TAG_STATIC_STRING) {
-        const staticId = reader.readVarUint();
-        const value = STATIC_STRINGS[staticId];
-        if (value === undefined) {
-            throw new Error('invalid static string id');
+class ByteReader {
+    private offset = 0;
+
+    constructor(private readonly bytes: Uint8Array) {}
+
+    private require(neededBytes: number): void {
+        if (this.offset + neededBytes > this.bytes.length) {
+            throw new Error('decode overflow');
         }
+    }
+
+    readU8(): number {
+        this.require(1);
+        const value = this.bytes[this.offset] ?? 0;
+        this.offset += 1;
         return value;
     }
 
-    const length = reader.readVarUint();
-    return TEXT_DECODER.decode(reader.readBytes(length));
+    readBytes(length: number): Uint8Array {
+        this.require(length);
+        const value = this.bytes.subarray(this.offset, this.offset + length);
+        this.offset += length;
+        return value;
+    }
+
+    readVarU32(): number {
+        let shift = 0;
+        let value = 0;
+        while (shift < 35) {
+            const byte = this.readU8();
+            value |= (byte & 0x7f) << shift;
+            if ((byte & 0x80) === 0) {
+                return value >>> 0;
+            }
+            shift += 7;
+        }
+        throw new Error('varu32 overflow');
+    }
+
+    readString(): string {
+        const len = this.readVarU32();
+        return TEXT_DECODER.decode(this.readBytes(len));
+    }
+
+    readPos20(): { x: number; y: number } {
+        const b0 = this.readU8();
+        const b1 = this.readU8();
+        const b2 = this.readU8();
+        const packed = (b0 | (b1 << 8) | (b2 << 16)) >>> 0;
+        const x = packed & 0x3ff;
+        const y = (packed >>> 10) & 0x3ff;
+        return { x, y };
+    }
+
+    remaining(): number {
+        return this.bytes.length - this.offset;
+    }
 }
 
-function encodeArray(writer: ByteWriter, value: WireValue[]): void {
-    let allInt32 = true;
-    for (let i = 0; i < value.length; i += 1) {
-        if (!isInt32Number(value[i])) {
-            allInt32 = false;
-            break;
-        }
-    }
+const KIND_NAME_TO_ID = new Map<string, number>(
+    Object.entries(ENTITY_KIND_DOMAIN).map(([name, [id]]) => [name, id])
+);
 
-    if (allInt32) {
-        writer.writeU8(TAG_INT32_ARRAY);
-        writer.writeVarUint(value.length);
-        for (let i = 0; i < value.length; i += 1) {
-            writer.writeVarUint(zigZagEncodeInt32(value[i] as number));
-        }
-        return;
-    }
+const KIND_ID_TO_CATEGORY = new Map<number, string>(
+    Object.values(ENTITY_KIND_DOMAIN).map(([id, category]) => [id, category])
+);
 
-    writer.writeU8(TAG_ARRAY);
-    writer.writeVarUint(value.length);
-    for (let i = 0; i < value.length; i += 1) {
-        const entry = value[i];
-        if (entry === undefined) {
-            throw new Error('invalid array entry');
+const C2S_OPCODES = new Set<number>(CLIENT_TO_SERVER_PROTOCOL_MANIFEST.map((entry) => entry.opcode));
+const S2C_OPCODES = new Set<number>(SERVER_TO_CLIENT_PROTOCOL_MANIFEST.map((entry) => entry.opcode));
+
+function normalizeKindId(kind: unknown): number {
+    if (typeof kind === 'number') {
+        if (!Number.isInteger(kind) || kind < 0) {
+            throw new Error('invalid kind id');
         }
-        encodeValue(writer, entry);
+        return kind >>> 0;
     }
+    if (typeof kind === 'string') {
+        const id = KIND_NAME_TO_ID.get(kind);
+        if (id === undefined) {
+            throw new Error('unknown kind');
+        }
+        return id >>> 0;
+    }
+    throw new Error('invalid kind');
 }
 
-function decodeArray(reader: ByteReader, tag: number): WireValue[] {
-    const length = reader.readVarUint();
-    const out: WireValue[] = [];
-    if (tag === TAG_INT32_ARRAY) {
-        for (let i = 0; i < length; i += 1) {
-            out.push(zigZagDecodeInt32(reader.readVarUint()));
-        }
-        return out;
-    }
+function isKindCategory(kindId: number, category: string): boolean {
+    return KIND_ID_TO_CATEGORY.get(kindId) === category;
+}
 
-    for (let i = 0; i < length; i += 1) {
-        out.push(decodeValue(reader));
+function toByteArray(payload: unknown): Uint8Array {
+    if (!Array.isArray(payload)) {
+        throw new Error('invalid byte array');
+    }
+    const out = new Uint8Array(payload.length);
+    for (let i = 0; i < payload.length; i += 1) {
+        const value = payload[i];
+        if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 0xff) {
+            throw new Error('invalid byte');
+        }
+        out[i] = value;
     }
     return out;
-}
-
-function encodeValue(writer: ByteWriter, value: WireValue): void {
-    if (value === null) {
-        writer.writeU8(TAG_NULL);
-        return;
-    }
-    if (value === false) {
-        writer.writeU8(TAG_FALSE);
-        return;
-    }
-    if (value === true) {
-        writer.writeU8(TAG_TRUE);
-        return;
-    }
-    if (typeof value === 'number') {
-        if (!Number.isFinite(value)) {
-            throw new Error('invalid non-finite number');
-        }
-
-        if (isInt32(value)) {
-            writer.writeU8(TAG_INT32);
-            writer.writeVarUint(zigZagEncodeInt32(value));
-            return;
-        }
-
-        writer.writeU8(TAG_FLOAT64);
-        writer.writeF64(value);
-        return;
-    }
-    if (typeof value === 'string') {
-        encodeString(writer, value);
-        return;
-    }
-    if (Array.isArray(value)) {
-        encodeArray(writer, value);
-        return;
-    }
-
-    throw new Error('invalid protocol value');
-}
-
-function decodeValue(reader: ByteReader): WireValue {
-    const tag = reader.readU8();
-
-    if (tag === TAG_NULL) {
-        return null;
-    }
-    if (tag === TAG_FALSE) {
-        return false;
-    }
-    if (tag === TAG_TRUE) {
-        return true;
-    }
-    if (tag === TAG_INT32) {
-        return zigZagDecodeInt32(reader.readVarUint());
-    }
-    if (tag === TAG_FLOAT64) {
-        return reader.readF64();
-    }
-    if (tag === TAG_STRING || tag === TAG_STATIC_STRING) {
-        return decodeString(reader, tag);
-    }
-    if (tag === TAG_ARRAY || tag === TAG_INT32_ARRAY) {
-        return decodeArray(reader, tag);
-    }
-
-    throw new Error(`invalid tag: ${tag}`);
 }
 
 function isWireAction(value: unknown): value is WireAction {
-    if (!Array.isArray(value) || value.length === 0) {
-        return false;
-    }
-    const opcode = value[0];
-    return isSafeInteger(opcode) && opcode >= 0;
+    return Array.isArray(value) && value.length > 0 && typeof value[0] === 'number';
 }
 
-function coerceBatchPayloadInput(root: WireBatchLike): ReadonlyArray<unknown> {
-    const first = root[0];
-    if (Array.isArray(first)) {
-        return root;
+function normalizeRoot(batch: WireBatchLike): WireAction[] {
+    if (isWireAction(batch)) {
+        return [batch];
     }
-    return [root as unknown];
-}
-
-function encodeActionBatchPayload(actions: ReadonlyArray<unknown>): Uint8Array {
-    const writer = new ByteWriter();
-    writer.writeVarUint(actions.length);
-    for (let i = 0; i < actions.length; i += 1) {
-        const action = actions[i];
-        if (!action) {
-            throw new Error('missing action');
+    const actions: WireAction[] = [];
+    for (let i = 0; i < batch.length; i += 1) {
+        const entry = batch[i];
+        if (!isWireAction(entry)) {
+            throw new Error('invalid action in batch');
         }
-        encodeValue(writer, action as unknown as WireValue);
+        actions.push(entry);
     }
-    return writer.toUint8Array();
-}
-
-function decodeActionBatchPayload(payloadBody: Uint8Array, validateActions: boolean): unknown[][] {
-    const reader = new ByteReader(payloadBody);
-    const count = reader.readVarUint();
-    const out: unknown[][] = [];
-
-    for (let i = 0; i < count; i += 1) {
-        const action = decodeValue(reader);
-        if (validateActions && !isWireAction(action)) {
-            throw new Error('invalid decoded action payload');
-        }
-        out.push(action as unknown[]);
-    }
-
-    if (reader.remaining() !== 0) {
-        throw new Error('trailing payload bytes');
-    }
-
-    return out;
+    return actions;
 }
 
 function wrapFrame(payloadBody: Uint8Array): Uint8Array {
@@ -433,30 +288,721 @@ function unwrapFrame(payload: ArrayBuffer | Uint8Array): Uint8Array {
     return frame.subarray(BINARY_FRAME_HEADER_BYTES);
 }
 
+function encodeClientToServerAction(writer: ByteWriter, action: WireAction): void {
+    const opcode = action[0] >>> 0;
+    writer.writeU8(opcode);
+
+    switch (opcode) {
+        case Types.Messages.HELLO: {
+            const name = action[1];
+            const armor = action[2];
+            const weapon = action[3];
+            const protocolRevision = action[4];
+            const capabilitiesJson = action[5];
+            const hasExtras = action.length === 6;
+
+            writer.writeU8(hasExtras ? 1 : 0);
+            writer.writeString(typeof name === 'string' ? name : '');
+            writer.writeVarU32(normalizeKindId(armor));
+            writer.writeVarU32(normalizeKindId(weapon));
+
+            if (hasExtras) {
+                if (typeof protocolRevision !== 'number' || !Number.isInteger(protocolRevision) || protocolRevision < 0) {
+                    throw new Error('invalid protocolRevision');
+                }
+                if (typeof capabilitiesJson !== 'string') {
+                    throw new Error('invalid capabilitiesJson');
+                }
+                writer.writeVarU32(protocolRevision >>> 0);
+                writer.writeString(capabilitiesJson);
+            }
+            return;
+        }
+        case Types.Messages.LOOTMOVE: {
+            const x = action[1];
+            const y = action[2];
+            const targetId = action[3];
+            writer.writePos20(Number(x), Number(y));
+            writer.writeVarU32(Number(targetId) >>> 0);
+            return;
+        }
+        case Types.Messages.AGGRO:
+        case Types.Messages.ATTACK:
+        case Types.Messages.LOOT:
+        case Types.Messages.OPEN:
+        case Types.Messages.CHECK:
+        case Types.Messages.ACHIEVEMENT: {
+            const id = action[1];
+            writer.writeVarU32(Number(id) >>> 0);
+            return;
+        }
+        case Types.Messages.CHAT: {
+            const message = action[1];
+            if (typeof message !== 'string') {
+                throw new Error('invalid chat message');
+            }
+            writer.writeString(message);
+            return;
+        }
+        case Types.Messages.WHO: {
+            const count = action.length - 1;
+            if (count < 1) {
+                throw new Error('invalid WHO count');
+            }
+            writer.writeVarU32(count);
+            for (let i = 1; i < action.length; i += 1) {
+                writer.writeVarU32(Number(action[i]) >>> 0);
+            }
+            return;
+        }
+        case Types.Messages.ZONE:
+        case Types.Messages.CHUNK_UNSUBSCRIBE:
+            return;
+        case Types.Messages.INTENT: {
+            const seq = action[1];
+            const intentTypeId = action[2];
+            const payloadBytes = action[3];
+            if (typeof seq !== 'number' || !Number.isInteger(seq) || seq < 0) {
+                throw new Error('invalid intent seq');
+            }
+            if (typeof intentTypeId !== 'string') {
+                throw new Error('invalid intent type');
+            }
+            const bytes = toByteArray(payloadBytes);
+            writer.writeVarU32(seq >>> 0);
+            writer.writeString(intentTypeId);
+            writer.writeVarU32(bytes.length);
+            writer.writeBytes(bytes);
+            return;
+        }
+        case Types.Messages.CHUNK_SUBSCRIBE: {
+            const chunkX = action[1];
+            const chunkY = action[2];
+            const radius = action[3];
+            writer.writeVarU32(Number(chunkX) >>> 0);
+            writer.writeVarU32(Number(chunkY) >>> 0);
+            writer.writeVarU32(Number(radius) >>> 0);
+            return;
+        }
+        default:
+            throw new Error(`unknown c2s opcode: ${opcode}`);
+    }
+}
+
+function encodeServerToClientAction(writer: ByteWriter, action: WireAction): void {
+    const opcode = action[0] >>> 0;
+    writer.writeU8(opcode);
+
+    switch (opcode) {
+        case Types.Messages.WELCOME: {
+            const id = action[1];
+            const name = action[2];
+            const x = action[3];
+            const y = action[4];
+            const hp = action[5];
+            const protocolRevision = action[6];
+            const capabilitiesJson = action[7];
+            const hasExtras = action.length === 8;
+
+            writer.writeU8(hasExtras ? 1 : 0);
+            writer.writeVarU32(Number(id) >>> 0);
+            writer.writeString(typeof name === 'string' ? name : '');
+            writer.writePos20(Number(x), Number(y));
+            writer.writeVarU32(Number(hp) >>> 0);
+
+            if (hasExtras) {
+                if (typeof protocolRevision !== 'number' || !Number.isInteger(protocolRevision) || protocolRevision < 0) {
+                    throw new Error('invalid protocolRevision');
+                }
+                if (typeof capabilitiesJson !== 'string') {
+                    throw new Error('invalid capabilitiesJson');
+                }
+                writer.writeVarU32(protocolRevision >>> 0);
+                writer.writeString(capabilitiesJson);
+            }
+            return;
+        }
+        case Types.Messages.SPAWN: {
+            const id = action[1];
+            const kind = action[2];
+            const x = action[3];
+            const y = action[4];
+            writer.writeVarU32(Number(id) >>> 0);
+            const kindId = normalizeKindId(kind);
+            writer.writeVarU32(kindId);
+            writer.writePos20(Number(x), Number(y));
+
+            // Tail uses the existing snapshot encoding in shared/replication/spawn-snapshot.ts.
+            // Player tail: [name, orientation, armor, weapon, target?]
+            // Mob tail: [orientation, target?]
+            // Simple: []
+            let flags = 0;
+            const tail = action.slice(5);
+
+            if (isKindCategory(kindId, 'player')) {
+                flags |= SPAWN_FLAG_HAS_NAME | SPAWN_FLAG_HAS_ORIENTATION | SPAWN_FLAG_HAS_EQUIPMENT;
+                if (typeof tail[4] === 'number') {
+                    flags |= SPAWN_FLAG_HAS_TARGET;
+                }
+                writer.writeU8(flags);
+                writer.writeString(typeof tail[0] === 'string' ? (tail[0] as string) : '');
+                writer.writeVarU32(Number(tail[1]) >>> 0);
+                writer.writeVarU32(normalizeKindId(tail[2]));
+                writer.writeVarU32(normalizeKindId(tail[3]));
+                if ((flags & SPAWN_FLAG_HAS_TARGET) !== 0) {
+                    writer.writeVarU32(Number(tail[4]) >>> 0);
+                }
+                return;
+            }
+
+            if (isKindCategory(kindId, 'mob')) {
+                flags |= SPAWN_FLAG_HAS_ORIENTATION;
+                if (typeof tail[1] === 'number') {
+                    flags |= SPAWN_FLAG_HAS_TARGET;
+                }
+                writer.writeU8(flags);
+                writer.writeVarU32(Number(tail[0]) >>> 0);
+                if ((flags & SPAWN_FLAG_HAS_TARGET) !== 0) {
+                    writer.writeVarU32(Number(tail[1]) >>> 0);
+                }
+                return;
+            }
+
+            writer.writeU8(0);
+            return;
+        }
+        case Types.Messages.DESPAWN:
+        case Types.Messages.DESTROY:
+        case Types.Messages.HP:
+        case Types.Messages.BLINK:
+        case Types.Messages.ACK: {
+            writer.writeVarU32(Number(action[1]) >>> 0);
+            return;
+        }
+        case Types.Messages.MOVE:
+        case Types.Messages.TELEPORT: {
+            const id = action[1];
+            const x = action[2];
+            const y = action[3];
+            writer.writeVarU32(Number(id) >>> 0);
+            writer.writePos20(Number(x), Number(y));
+            return;
+        }
+        case Types.Messages.LOOTMOVE:
+        case Types.Messages.ATTACK:
+        case Types.Messages.DAMAGE:
+        case Types.Messages.POPULATION: {
+            writer.writeVarU32(Number(action[1]) >>> 0);
+            writer.writeVarU32(Number(action[2]) >>> 0);
+            return;
+        }
+        case Types.Messages.HEALTH: {
+            const points = action[1];
+            const isRegen = action.length === 3 && action[2] === 1;
+            writer.writeVarU32(Number(points) >>> 0);
+            writer.writeU8(isRegen ? 1 : 0);
+            return;
+        }
+        case Types.Messages.CHAT: {
+            const id = action[1];
+            const message = action[2];
+            writer.writeVarU32(Number(id) >>> 0);
+            if (typeof message !== 'string') {
+                throw new Error('invalid chat message');
+            }
+            writer.writeString(message);
+            return;
+        }
+        case Types.Messages.EQUIP: {
+            const id = action[1];
+            const itemKind = action[2];
+            writer.writeVarU32(Number(id) >>> 0);
+            writer.writeVarU32(normalizeKindId(itemKind));
+            return;
+        }
+        case Types.Messages.DROP: {
+            const mobId = action[1];
+            const itemId = action[2];
+            const itemKind = action[3];
+            const haters = action[4];
+            writer.writeVarU32(Number(mobId) >>> 0);
+            writer.writeVarU32(Number(itemId) >>> 0);
+            writer.writeVarU32(normalizeKindId(itemKind));
+            if (!Array.isArray(haters)) {
+                throw new Error('invalid haters');
+            }
+            writer.writeVarU32(haters.length);
+            for (let i = 0; i < haters.length; i += 1) {
+                writer.writeVarU32(Number(haters[i]) >>> 0);
+            }
+            return;
+        }
+        case Types.Messages.KILL: {
+            const kind = action[1];
+            writer.writeVarU32(normalizeKindId(kind));
+            return;
+        }
+        case Types.Messages.LIST: {
+            const count = action.length - 1;
+            writer.writeVarU32(count);
+            for (let i = 1; i < action.length; i += 1) {
+                writer.writeVarU32(Number(action[i]) >>> 0);
+            }
+            return;
+        }
+        case Types.Messages.ACHIEVEMENTS: {
+            const unlocked = action[1];
+            if (!Array.isArray(unlocked)) {
+                throw new Error('invalid unlocked ids');
+            }
+            writer.writeVarU32(unlocked.length);
+            for (let i = 0; i < unlocked.length; i += 1) {
+                writer.writeVarU32(Number(unlocked[i]) >>> 0);
+            }
+            for (let i = 2; i <= 6; i += 1) {
+                writer.writeVarU32(Number(action[i]) >>> 0);
+            }
+            return;
+        }
+        case Types.Messages.OUTCOME:
+        case Types.Messages.REJECT: {
+            const seq = action[1];
+            const a = action[2];
+            const b = action[3];
+            writer.writeVarU32(Number(seq) >>> 0);
+            if (typeof a !== 'string' || typeof b !== 'string') {
+                throw new Error('invalid outcome/reject strings');
+            }
+            writer.writeString(a);
+            writer.writeString(b);
+            return;
+        }
+        case Types.Messages.CORRECTION: {
+            const seq = action[1];
+            const a = action[2];
+            const b = action[3];
+            writer.writeVarU32(Number(seq) >>> 0);
+            if (typeof a === 'number' && typeof b === 'number') {
+                writer.writeU8(0);
+                writer.writePos20(Number(a), Number(b));
+                return;
+            }
+            if (typeof a === 'string' && typeof b === 'string') {
+                writer.writeU8(1);
+                writer.writeString(a);
+                writer.writeString(b);
+                return;
+            }
+            throw new Error('invalid CORRECTION payload');
+        }
+        case Types.Messages.CHUNK_SNAPSHOT: {
+            const chunkX = action[1];
+            const chunkY = action[2];
+            const version = action[3];
+            const payloadJson = action[4];
+            writer.writeVarU32(Number(chunkX) >>> 0);
+            writer.writeVarU32(Number(chunkY) >>> 0);
+            writer.writeVarU32(Number(version) >>> 0);
+            if (typeof payloadJson !== 'string') {
+                throw new Error('invalid chunk snapshot payload');
+            }
+            writer.writeString(payloadJson);
+            return;
+        }
+        case Types.Messages.CHUNK_SNAPSHOT_PART: {
+            const chunkX = action[1];
+            const chunkY = action[2];
+            const version = action[3];
+            const partIndex = action[4];
+            const partCount = action[5];
+            const payloadJson = action[6];
+            writer.writeVarU32(Number(chunkX) >>> 0);
+            writer.writeVarU32(Number(chunkY) >>> 0);
+            writer.writeVarU32(Number(version) >>> 0);
+            writer.writeVarU32(Number(partIndex) >>> 0);
+            writer.writeVarU32(Number(partCount) >>> 0);
+            if (typeof payloadJson !== 'string') {
+                throw new Error('invalid chunk snapshot part payload');
+            }
+            writer.writeString(payloadJson);
+            return;
+        }
+        case Types.Messages.CHUNK_DELTA: {
+            const chunkX = action[1];
+            const chunkY = action[2];
+            const fromVersion = action[3];
+            const toVersion = action[4];
+            const payloadJson = action[5];
+            writer.writeVarU32(Number(chunkX) >>> 0);
+            writer.writeVarU32(Number(chunkY) >>> 0);
+            writer.writeVarU32(Number(fromVersion) >>> 0);
+            writer.writeVarU32(Number(toVersion) >>> 0);
+            if (typeof payloadJson !== 'string') {
+                throw new Error('invalid chunk delta payload');
+            }
+            writer.writeString(payloadJson);
+            return;
+        }
+        default:
+            throw new Error(`unknown s2c opcode: ${opcode}`);
+    }
+}
+
+function encodeBatch(actions: WireAction[], direction: Direction): Uint8Array {
+    const writer = new ByteWriter();
+    writer.writeU8(direction);
+    writer.writeVarU32(actions.length);
+
+    if (direction === DIR_CLIENT_TO_SERVER) {
+        for (let i = 0; i < actions.length; i += 1) {
+            encodeClientToServerAction(writer, actions[i] as WireAction);
+        }
+    } else {
+        for (let i = 0; i < actions.length; i += 1) {
+            encodeServerToClientAction(writer, actions[i] as WireAction);
+        }
+    }
+
+    return writer.toUint8Array();
+}
+
+function decodeClientToServerAction(reader: ByteReader): unknown[] {
+    const opcode = reader.readU8();
+    switch (opcode) {
+        case Types.Messages.HELLO: {
+            const variant = reader.readU8();
+            const name = reader.readString();
+            const armor = reader.readVarU32();
+            const weapon = reader.readVarU32();
+            if (variant === 0) {
+                return [opcode, name, armor, weapon];
+            }
+            if (variant === 1) {
+                const protocolRevision = reader.readVarU32();
+                const capabilitiesJson = reader.readString();
+                return [opcode, name, armor, weapon, protocolRevision, capabilitiesJson];
+            }
+            throw new Error('invalid HELLO variant');
+        }
+        case Types.Messages.LOOTMOVE: {
+            const pos = reader.readPos20();
+            const targetId = reader.readVarU32();
+            return [opcode, pos.x, pos.y, targetId];
+        }
+        case Types.Messages.AGGRO:
+        case Types.Messages.ATTACK:
+        case Types.Messages.LOOT:
+        case Types.Messages.OPEN:
+        case Types.Messages.CHECK:
+        case Types.Messages.ACHIEVEMENT:
+            return [opcode, reader.readVarU32()];
+        case Types.Messages.CHAT:
+            return [opcode, reader.readString()];
+        case Types.Messages.WHO: {
+            const count = reader.readVarU32();
+            if (count < 1) {
+                throw new Error('invalid WHO count');
+            }
+            const out: unknown[] = [opcode];
+            for (let i = 0; i < count; i += 1) {
+                out.push(reader.readVarU32());
+            }
+            return out;
+        }
+        case Types.Messages.ZONE:
+        case Types.Messages.CHUNK_UNSUBSCRIBE:
+            return [opcode];
+        case Types.Messages.INTENT: {
+            const seq = reader.readVarU32();
+            const intentTypeId = reader.readString();
+            const payloadLen = reader.readVarU32();
+            const payload = reader.readBytes(payloadLen);
+            return [opcode, seq, intentTypeId, Array.from(payload)];
+        }
+        case Types.Messages.CHUNK_SUBSCRIBE: {
+            const chunkX = reader.readVarU32();
+            const chunkY = reader.readVarU32();
+            const radius = reader.readVarU32();
+            return [opcode, chunkX, chunkY, radius];
+        }
+        default:
+            throw new Error(`unknown c2s opcode: ${opcode}`);
+    }
+}
+
+function decodeServerToClientAction(reader: ByteReader): unknown[] {
+    const opcode = reader.readU8();
+    switch (opcode) {
+        case Types.Messages.WELCOME: {
+            const variant = reader.readU8();
+            const id = reader.readVarU32();
+            const name = reader.readString();
+            const pos = reader.readPos20();
+            const hp = reader.readVarU32();
+            if (variant === 0) {
+                return [opcode, id, name, pos.x, pos.y, hp];
+            }
+            if (variant === 1) {
+                const protocolRevision = reader.readVarU32();
+                const capabilitiesJson = reader.readString();
+                return [opcode, id, name, pos.x, pos.y, hp, protocolRevision, capabilitiesJson];
+            }
+            throw new Error('invalid WELCOME variant');
+        }
+        case Types.Messages.SPAWN: {
+            const id = reader.readVarU32();
+            const kind = reader.readVarU32();
+            const pos = reader.readPos20();
+            const flags = reader.readU8();
+            const out: unknown[] = [opcode, id, kind, pos.x, pos.y];
+
+            if ((flags & SPAWN_FLAG_HAS_NAME) !== 0) {
+                out.push(reader.readString());
+            }
+            if ((flags & SPAWN_FLAG_HAS_ORIENTATION) !== 0) {
+                out.push(reader.readVarU32());
+            }
+            if ((flags & SPAWN_FLAG_HAS_EQUIPMENT) !== 0) {
+                out.push(reader.readVarU32());
+                out.push(reader.readVarU32());
+            }
+            if ((flags & SPAWN_FLAG_HAS_TARGET) !== 0) {
+                out.push(reader.readVarU32());
+            }
+
+            return out;
+        }
+        case Types.Messages.DESPAWN:
+        case Types.Messages.DESTROY:
+        case Types.Messages.HP:
+        case Types.Messages.BLINK:
+        case Types.Messages.ACK:
+            return [opcode, reader.readVarU32()];
+        case Types.Messages.MOVE:
+        case Types.Messages.TELEPORT: {
+            const id = reader.readVarU32();
+            const pos = reader.readPos20();
+            return [opcode, id, pos.x, pos.y];
+        }
+        case Types.Messages.LOOTMOVE:
+        case Types.Messages.ATTACK:
+        case Types.Messages.DAMAGE:
+        case Types.Messages.POPULATION:
+            return [opcode, reader.readVarU32(), reader.readVarU32()];
+        case Types.Messages.HEALTH: {
+            const points = reader.readVarU32();
+            const isRegenFlag = reader.readU8();
+            return isRegenFlag === 1 ? [opcode, points, 1] : [opcode, points];
+        }
+        case Types.Messages.CHAT: {
+            const id = reader.readVarU32();
+            const msg = reader.readString();
+            return [opcode, id, msg];
+        }
+        case Types.Messages.EQUIP: {
+            const id = reader.readVarU32();
+            const itemKind = reader.readVarU32();
+            return [opcode, id, itemKind];
+        }
+        case Types.Messages.DROP: {
+            const mobId = reader.readVarU32();
+            const itemId = reader.readVarU32();
+            const itemKind = reader.readVarU32();
+            const count = reader.readVarU32();
+            const haters: number[] = [];
+            for (let i = 0; i < count; i += 1) {
+                haters.push(reader.readVarU32());
+            }
+            return [opcode, mobId, itemId, itemKind, haters];
+        }
+        case Types.Messages.KILL:
+            return [opcode, reader.readVarU32()];
+        case Types.Messages.LIST: {
+            const count = reader.readVarU32();
+            const out: unknown[] = [opcode];
+            for (let i = 0; i < count; i += 1) {
+                out.push(reader.readVarU32());
+            }
+            return out;
+        }
+        case Types.Messages.ACHIEVEMENTS: {
+            const unlockedCount = reader.readVarU32();
+            const unlocked: number[] = [];
+            for (let i = 0; i < unlockedCount; i += 1) {
+                unlocked.push(reader.readVarU32());
+            }
+            const rat = reader.readVarU32();
+            const skeleton = reader.readVarU32();
+            const kills = reader.readVarU32();
+            const dmg = reader.readVarU32();
+            const revives = reader.readVarU32();
+            return [opcode, unlocked, rat, skeleton, kills, dmg, revives];
+        }
+        case Types.Messages.OUTCOME:
+        case Types.Messages.REJECT: {
+            const seq = reader.readVarU32();
+            const a = reader.readString();
+            const b = reader.readString();
+            return [opcode, seq, a, b];
+        }
+        case Types.Messages.CORRECTION: {
+            const seq = reader.readVarU32();
+            const variant = reader.readU8();
+            if (variant === 0) {
+                const pos = reader.readPos20();
+                return [opcode, seq, pos.x, pos.y];
+            }
+            if (variant === 1) {
+                return [opcode, seq, reader.readString(), reader.readString()];
+            }
+            throw new Error('invalid CORRECTION variant');
+        }
+        case Types.Messages.CHUNK_SNAPSHOT: {
+            const chunkX = reader.readVarU32();
+            const chunkY = reader.readVarU32();
+            const version = reader.readVarU32();
+            const payloadJson = reader.readString();
+            return [opcode, chunkX, chunkY, version, payloadJson];
+        }
+        case Types.Messages.CHUNK_SNAPSHOT_PART: {
+            const chunkX = reader.readVarU32();
+            const chunkY = reader.readVarU32();
+            const version = reader.readVarU32();
+            const partIndex = reader.readVarU32();
+            const partCount = reader.readVarU32();
+            const payloadJson = reader.readString();
+            return [opcode, chunkX, chunkY, version, partIndex, partCount, payloadJson];
+        }
+        case Types.Messages.CHUNK_DELTA: {
+            const chunkX = reader.readVarU32();
+            const chunkY = reader.readVarU32();
+            const fromVersion = reader.readVarU32();
+            const toVersion = reader.readVarU32();
+            const payloadJson = reader.readString();
+            return [opcode, chunkX, chunkY, fromVersion, toVersion, payloadJson];
+        }
+        default:
+            throw new Error(`unknown s2c opcode: ${opcode}`);
+    }
+}
+
+function decodeBatchWithDirection(payloadBody: Uint8Array): { direction: Direction; actions: unknown[][] } {
+    const reader = new ByteReader(payloadBody);
+    const directionByte = reader.readU8();
+    if (directionByte !== DIR_CLIENT_TO_SERVER && directionByte !== DIR_SERVER_TO_CLIENT) {
+        throw new Error('invalid direction');
+    }
+    const direction = directionByte as Direction;
+
+    const count = reader.readVarU32();
+    const out: unknown[][] = [];
+
+    if (direction === DIR_CLIENT_TO_SERVER) {
+        for (let i = 0; i < count; i += 1) {
+            out.push(decodeClientToServerAction(reader));
+        }
+    } else {
+        for (let i = 0; i < count; i += 1) {
+            out.push(decodeServerToClientAction(reader));
+        }
+    }
+
+    if (reader.remaining() !== 0) {
+        throw new Error('trailing payload bytes');
+    }
+
+    return { direction, actions: out };
+}
+
 export function encodeClientToServerBinaryActionBatchPayload(batch: WireBatchLike): Uint8Array {
-    return wrapFrame(encodeActionBatchPayload(coerceBatchPayloadInput(batch)));
+    const actions = normalizeRoot(batch);
+    return wrapFrame(encodeBatch(actions, DIR_CLIENT_TO_SERVER));
 }
 
 export function encodeServerToClientBinaryActionBatchPayload(batch: WireBatchLike): Uint8Array {
-    return wrapFrame(encodeActionBatchPayload(coerceBatchPayloadInput(batch)));
+    const actions = normalizeRoot(batch);
+    return wrapFrame(encodeBatch(actions, DIR_SERVER_TO_CLIENT));
 }
 
 export function encodeBinaryActionBatchPayload(batch: WireBatchLike): Uint8Array {
-    return wrapFrame(encodeActionBatchPayload(coerceBatchPayloadInput(batch)));
+    const actions = normalizeRoot(batch);
+
+    // Generic encode is used mainly by tests/tools; pick direction by opcode membership and overlap heuristics.
+    // Runtime code should call the direction-specific encoders.
+    let c2sOk = true;
+    let s2cOk = true;
+    for (let i = 0; i < actions.length; i += 1) {
+        const action = actions[i];
+        if (!action) {
+            continue;
+        }
+        const opcode = action[0];
+        if (!C2S_OPCODES.has(opcode)) {
+            c2sOk = false;
+        }
+        if (!S2C_OPCODES.has(opcode)) {
+            s2cOk = false;
+        }
+
+        // Disambiguate shared opcodes by tuple length.
+        if (opcode === Types.Messages.CHAT) {
+            if (action.length === 2) {
+                s2cOk = false;
+            } else if (action.length === 3) {
+                c2sOk = false;
+            }
+        }
+        if (opcode === Types.Messages.ATTACK) {
+            if (action.length === 2) {
+                s2cOk = false;
+            } else if (action.length === 3) {
+                c2sOk = false;
+            }
+        }
+        if (opcode === Types.Messages.LOOTMOVE) {
+            if (action.length === 4) {
+                s2cOk = false;
+            } else if (action.length === 3) {
+                c2sOk = false;
+            }
+        }
+    }
+
+    if (c2sOk && !s2cOk) {
+        return wrapFrame(encodeBatch(actions, DIR_CLIENT_TO_SERVER));
+    }
+    if (s2cOk && !c2sOk) {
+        return wrapFrame(encodeBatch(actions, DIR_SERVER_TO_CLIENT));
+    }
+
+    // Prefer c2s in ambiguous cases.
+    try {
+        return wrapFrame(encodeBatch(actions, DIR_CLIENT_TO_SERVER));
+    } catch (_) {
+        return wrapFrame(encodeBatch(actions, DIR_SERVER_TO_CLIENT));
+    }
 }
 
 export function decodeClientToServerBinaryActionBatchPayload(payload: ArrayBuffer | Uint8Array): unknown[] {
-    return decodeActionBatchPayload(unwrapFrame(payload), false);
+    const decoded = decodeBatchWithDirection(unwrapFrame(payload));
+    if (decoded.direction !== DIR_CLIENT_TO_SERVER) {
+        throw new Error('unexpected direction');
+    }
+    return decoded.actions;
 }
 
 export function decodeServerToClientBinaryActionBatchPayload(payload: ArrayBuffer | Uint8Array): unknown[] {
-    return decodeActionBatchPayload(unwrapFrame(payload), false);
+    const decoded = decodeBatchWithDirection(unwrapFrame(payload));
+    if (decoded.direction !== DIR_SERVER_TO_CLIENT) {
+        throw new Error('unexpected direction');
+    }
+    return decoded.actions;
 }
 
 export function decodeBinaryActionBatchPayload(payload: ArrayBuffer | Uint8Array): unknown {
-    const actions = decodeActionBatchPayload(unwrapFrame(payload), true);
-    if (actions.length === 1) {
-        return actions[0] ?? [];
+    const decoded = decodeBatchWithDirection(unwrapFrame(payload));
+    if (decoded.actions.length === 1) {
+        return decoded.actions[0] ?? [];
     }
-    return actions;
+    return decoded.actions;
 }
