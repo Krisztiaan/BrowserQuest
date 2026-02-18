@@ -294,6 +294,9 @@ function isKindCategory(kindId: number, category: string): boolean {
 }
 
 function toByteArray(payload: unknown): Uint8Array {
+    if (payload instanceof Uint8Array) {
+        return payload;
+    }
     if (!Array.isArray(payload)) {
         throw new Error('invalid byte array');
     }
@@ -800,7 +803,7 @@ function decodeClientToServerAction(reader: ByteReader): unknown[] {
             const intentTypeId = decodeWireIntentTypeId(reader.readVarU32());
             const payloadLen = reader.readVarU32();
             const payload = reader.readBytes(payloadLen);
-            return [opcode, seq, intentTypeId, Array.from(payload)];
+            return [opcode, seq, intentTypeId, payload];
         }
         case Types.Messages.CHUNK_SUBSCRIBE: {
             const chunkX = reader.readVarU32();
@@ -951,7 +954,7 @@ function decodeServerToClientAction(reader: ByteReader): unknown[] {
             const version = reader.readVarU32();
             const payloadLen = reader.readVarU32();
             const payload = reader.readBytes(payloadLen);
-            return [opcode, chunkX, chunkY, version, Array.from(payload)];
+            return [opcode, chunkX, chunkY, version, payload];
         }
         case Types.Messages.CHUNK_SNAPSHOT_PART: {
             const chunkX = reader.readVarU32();
@@ -961,7 +964,7 @@ function decodeServerToClientAction(reader: ByteReader): unknown[] {
             const partCount = reader.readVarU32();
             const payloadLen = reader.readVarU32();
             const payload = reader.readBytes(payloadLen);
-            return [opcode, chunkX, chunkY, version, partIndex, partCount, Array.from(payload)];
+            return [opcode, chunkX, chunkY, version, partIndex, partCount, payload];
         }
         case Types.Messages.CHUNK_DELTA: {
             const chunkX = reader.readVarU32();
@@ -970,7 +973,7 @@ function decodeServerToClientAction(reader: ByteReader): unknown[] {
             const toVersion = reader.readVarU32();
             const payloadLen = reader.readVarU32();
             const payload = reader.readBytes(payloadLen);
-            return [opcode, chunkX, chunkY, fromVersion, toVersion, Array.from(payload)];
+            return [opcode, chunkX, chunkY, fromVersion, toVersion, payload];
         }
         default:
             throw new Error(`unknown s2c opcode: ${opcode}`);

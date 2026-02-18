@@ -32,6 +32,9 @@ function isNumberArray(value: ProtocolSchemaInput): value is number[] {
 }
 
 function isByteArray(value: ProtocolSchemaInput): value is number[] {
+    if (value instanceof Uint8Array) {
+        return true;
+    }
     return (
         Array.isArray(value)
         && value.every((entry) => typeof entry === 'number' && Number.isInteger(entry) && entry >= 0 && entry <= 0xff)

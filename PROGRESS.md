@@ -15,6 +15,30 @@ Format per entry:
 
 ## 2026-02-18
 
+- 12:10 UTC
+  - Ticket: 399 (Reduce binary decode allocations)
+  - Status: `done`
+  - Key actions taken:
+    - Stopped converting binary `ba` payload blobs into `number[]` via `Array.from` during decode; `ba` values now flow as `Uint8Array` end-to-end (INTENT + chunk payloads).
+    - Widened protocol types + schema validation to accept `Uint8Array` for `ba` args.
+    - Updated client/server payload validators and unit tests to treat `Uint8Array` and `number[]` as equivalent.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/ws/runtime-parity.test.ts --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/smoke/server-payload-guards.test.ts --timeout 30000`
+  - Next action:
+    - Fix benchmark methodology so correctness checks don’t pollute encode/decode timing (Ticket 400).
+
+- 11:55 UTC
+  - Ticket: 399 (Reduce binary decode allocations)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Ticketized next performance iteration (Tickets 399-400) in `TODO.md`.
+  - Evidence:
+    - `git diff TODO.md PROGRESS.md`
+  - Next action:
+    - Switch `ba` payloads (INTENT + chunk payloads) to flow as `Uint8Array` end-to-end, update schema validation + tests, then rerun unit/smoke verification.
+
 - 11:12 UTC
   - Ticket: 396 (FixedBin v2: faster enc/dec primitives + intent/outcome enums)
   - Status: `in_progress`

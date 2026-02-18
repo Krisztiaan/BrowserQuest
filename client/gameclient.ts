@@ -579,7 +579,7 @@ class GameClient extends Evented<GameClientEvents> {
             typeof chunkX !== 'number'
             || typeof chunkY !== 'number'
             || typeof version !== 'number'
-            || !Array.isArray(payloadBytes)
+            || (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
         ) {
             return;
         }
@@ -604,7 +604,7 @@ class GameClient extends Evented<GameClientEvents> {
             || typeof version !== 'number'
             || typeof partIndex !== 'number'
             || typeof partCount !== 'number'
-            || !Array.isArray(payloadBytes)
+            || (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
         ) {
             return;
         }
@@ -630,7 +630,7 @@ class GameClient extends Evented<GameClientEvents> {
             || typeof chunkY !== 'number'
             || typeof fromVersion !== 'number'
             || typeof toVersion !== 'number'
-            || !Array.isArray(payloadBytes)
+            || (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
         ) {
             return;
         }

@@ -69,7 +69,7 @@ export function buildChunkSnapshotAction(
     chunkX: number,
     chunkY: number,
     version: number,
-    payloadBytes: number[]
+    payloadBytes: number[] | Uint8Array
 ): ServerToClientChunkSnapshotAction {
     return [Types.Messages.CHUNK_SNAPSHOT, chunkX, chunkY, version, payloadBytes];
 }
@@ -80,7 +80,7 @@ export function buildChunkSnapshotPartAction(
     version: number,
     partIndex: number,
     partCount: number,
-    payloadBytes: number[]
+    payloadBytes: number[] | Uint8Array
 ): ServerToClientChunkSnapshotPartAction {
     return [Types.Messages.CHUNK_SNAPSHOT_PART, chunkX, chunkY, version, partIndex, partCount, payloadBytes];
 }
@@ -90,7 +90,7 @@ export function buildChunkDeltaAction(
     chunkY: number,
     fromVersion: number,
     toVersion: number,
-    payloadBytes: number[]
+    payloadBytes: number[] | Uint8Array
 ): ServerToClientChunkDeltaAction {
     return [Types.Messages.CHUNK_DELTA, chunkX, chunkY, fromVersion, toVersion, payloadBytes];
 }

@@ -17,7 +17,7 @@ export type CoreIntentTypeId =
     | typeof INTENT_CLAIM_UPDATE
     | typeof INTENT_CLAIM_DELETE;
 
-export type IntentPayloadBytes = ReadonlyArray<number>;
+export type IntentPayloadBytes = ReadonlyArray<number> | Uint8Array;
 
 export type MoveStepIntentPayload = GridPos;
 export type DoorTeleportIntentPayload = GridPos;
@@ -51,6 +51,9 @@ function isByte(value: unknown): value is number {
 }
 
 function toByteArray(payload: IntentPayloadBytes | unknown): Uint8Array | null {
+    if (payload instanceof Uint8Array) {
+        return payload;
+    }
     if (!Array.isArray(payload)) {
         return null;
     }

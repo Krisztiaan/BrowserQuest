@@ -214,9 +214,10 @@ export function translateClientActionToCommand(
                 || !isValidIntentSeq(seq)
                 || typeof intentTypeId !== 'string'
                 || !Utils.hasMaxUtf8Bytes(intentTypeId, INTENT_TYPE_ID_MAX_UTF8_BYTES)
-                || !Array.isArray(payloadBytes)
+                || (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
                 || payloadBytes.length > INTENT_PAYLOAD_MAX_BYTES
-                || payloadBytes.some((value) => typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 255)
+                || (Array.isArray(payloadBytes)
+                    && payloadBytes.some((value) => typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 255))
             ) {
                 closeInvalidPayload('Invalid INTENT payload.');
                 return null;

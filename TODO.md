@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 11:47 UTC
+Last updated: 2026-02-18 12:10 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,4 +34,17 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- None.
+- Ticket 400 - Benchmark methodology: remove stringify cost from timed loops
+  - Status: `in_progress`
+  - Scope:
+    - Included: Move roundtrip correctness checks outside timed encode/decode loops in `tools/bench/protocol-wire.ts`.
+    - Included: Normalize `Uint8Array` vs `number[]` for correctness checks.
+    - Included: Refresh `docs/protocol-wire.md` with updated benchmark output.
+  - Acceptance criteria:
+    - Benchmark runs, prints tables, and does correctness checks without polluting timing.
+    - Docs match latest output.
+  - Verification plan:
+    - `bun tools/bench/protocol-wire.ts`
+    - `git diff docs/protocol-wire.md tools/bench/protocol-wire.ts`
+  - Dependencies/blockers:
+    - Depends on Ticket 399.

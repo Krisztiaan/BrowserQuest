@@ -1,29 +1,54 @@
 import { expect, test } from 'bun:test';
+import Types from '../../../shared/gametypes-browser';
 import { decodeBinaryActionBatchPayload, encodeBinaryActionBatchPayload } from '../../../shared/protocol/binary-action-codec';
 
-test('msgpack runtime action codec round-trips mixed payload batches', () => {
+function normalizeBinaryValues(value: unknown): unknown {
+    if (value instanceof Uint8Array) {
+        return Array.from(value);
+    }
+    if (Array.isArray(value)) {
+        return value.map((entry) => normalizeBinaryValues(entry));
+    }
+    return value;
+}
+
+test('custom-efficient runtime action codec round-trips mixed payload batches', () => {
     const batch: unknown[] = [
-        [29, 1, 'move.step', [155, 114]],
-        [12, 500000000, 'chat payload', null, true, false, 1.5, -33, 64],
-        [15, 42, [1, 2, 3], ['nested', [null, true, -1]]],
+        [Types.Messages.INTENT, 1, 'move.step', [155, 114]],
+        [Types.Messages.CHAT, 'chat payload'],
+        [Types.Messages.WHO, 42, 99, 123],
+        [Types.Messages.ZONE],
     ];
 
     const encoded = encodeBinaryActionBatchPayload(batch);
     const decoded = decodeBinaryActionBatchPayload(encoded);
 
-    expect(decoded).toEqual(batch);
+    expect(normalizeBinaryValues(decoded)).toEqual(normalizeBinaryValues(batch));
 });
 
-test('msgpack runtime action codec round-trips single action arrays', () => {
-    const action = [23, 100];
+test('custom-efficient runtime action codec round-trips server action batches', () => {
+    const batch: unknown[] = [
+        [Types.Messages.POPULATION, 12, 33],
+        [Types.Messages.HP, 120],
+        [Types.Messages.REJECT, 9, 'move.step', 'Invalid move.step (non-adjacent).'],
+    ];
+
+    const encoded = encodeBinaryActionBatchPayload(batch);
+    const decoded = decodeBinaryActionBatchPayload(encoded);
+
+    expect(normalizeBinaryValues(decoded)).toEqual(normalizeBinaryValues(batch));
+});
+
+test('custom-efficient runtime action codec round-trips single action arrays', () => {
+    const action = [Types.Messages.ZONE];
     const encoded = encodeBinaryActionBatchPayload(action);
     const decoded = decodeBinaryActionBatchPayload(encoded);
 
-    expect(decoded).toEqual(action);
+    expect(normalizeBinaryValues(decoded)).toEqual(normalizeBinaryValues(action));
 });
 
-test('msgpack runtime action codec rejects malformed payload tokens', () => {
-    const encoded = encodeBinaryActionBatchPayload([[21]]);
+test('custom-efficient runtime action codec rejects malformed payload tokens', () => {
+    const encoded = encodeBinaryActionBatchPayload([[Types.Messages.ZONE]]);
     const corrupted = encoded.slice();
     // Frame header is 8 bytes, first payload token follows.
     corrupted[8] = 0xff;

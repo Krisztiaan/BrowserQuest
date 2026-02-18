@@ -136,6 +136,9 @@ function isByte(value: unknown): value is number {
 }
 
 function toByteArray(payload: unknown): Uint8Array | null {
+    if (payload instanceof Uint8Array) {
+        return payload;
+    }
     if (!Array.isArray(payload)) {
         return null;
     }

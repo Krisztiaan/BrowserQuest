@@ -1,7 +1,7 @@
 import type { EntityKind } from '../entity-kind-domain';
 import type Types from '../gametypes-browser';
 
-export type ProtocolActionValue = number | string | boolean | null | number[];
+export type ProtocolActionValue = number | string | boolean | null | number[] | Uint8Array;
 export type ProtocolParsedAction = [number, ...ProtocolActionValue[]];
 
 export type ClientToServerHelloAction =
@@ -17,7 +17,7 @@ export type ClientToServerZoneAction = [typeof Types.Messages.ZONE];
 export type ClientToServerOpenAction = [typeof Types.Messages.OPEN, number];
 export type ClientToServerCheckAction = [typeof Types.Messages.CHECK, number];
 export type ClientToServerAchievementAction = [typeof Types.Messages.ACHIEVEMENT, number];
-export type ClientToServerIntentAction = [typeof Types.Messages.INTENT, number, string, number[]];
+export type ClientToServerIntentAction = [typeof Types.Messages.INTENT, number, string, number[] | Uint8Array];
 export type ClientToServerChunkSubscribeAction = [typeof Types.Messages.CHUNK_SUBSCRIBE, number, number, number];
 export type ClientToServerChunkUnsubscribeAction = [typeof Types.Messages.CHUNK_UNSUBSCRIBE];
 
@@ -84,7 +84,7 @@ export type ServerToClientChunkSnapshotAction = [
     number,
     number,
     number,
-    number[],
+    number[] | Uint8Array,
 ];
 export type ServerToClientChunkSnapshotPartAction = [
     typeof Types.Messages.CHUNK_SNAPSHOT_PART,
@@ -93,7 +93,7 @@ export type ServerToClientChunkSnapshotPartAction = [
     number,
     number,
     number,
-    number[],
+    number[] | Uint8Array,
 ];
 export type ServerToClientChunkDeltaAction = [
     typeof Types.Messages.CHUNK_DELTA,
@@ -101,7 +101,7 @@ export type ServerToClientChunkDeltaAction = [
     number,
     number,
     number,
-    number[],
+    number[] | Uint8Array,
 ];
 
 export type ServerToClientProtocolAction =

@@ -28,6 +28,16 @@ function sortedUnique(values: number[]): number[] {
     return [...new Set(values)].sort((a, b) => a - b);
 }
 
+function normalizeBinaryValues(value: unknown): unknown {
+    if (value instanceof Uint8Array) {
+        return Array.from(value);
+    }
+    if (Array.isArray(value)) {
+        return value.map((entry) => normalizeBinaryValues(entry));
+    }
+    return value;
+}
+
 const movePayload10_20 = encodeMoveStepIntentPayload(gridPos(10, 20)) ?? [];
 const movePayload4_5 = encodeMoveStepIntentPayload(gridPos(4, 5)) ?? [];
 const movePayload8_9 = encodeMoveStepIntentPayload(gridPos(8, 9)) ?? [];
@@ -156,8 +166,12 @@ test('registry binary helpers round-trip valid protocol batches', () => {
     const clientBatch = [[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', movePayload7_8]] as const;
     const serverBatch = [[Types.Messages.POPULATION, 3, 10], [Types.Messages.HP, 100]] as const;
 
-    expect(decodeClientToServerProtocolActionBatchBinary(encodeProtocolActionBatchBinary(clientBatch))).toEqual(clientBatch);
-    expect(decodeServerToClientProtocolActionBatchBinary(encodeProtocolActionBatchBinary(serverBatch))).toEqual(serverBatch);
+    expect(
+        normalizeBinaryValues(decodeClientToServerProtocolActionBatchBinary(encodeProtocolActionBatchBinary(clientBatch)))
+    ).toEqual(normalizeBinaryValues(clientBatch));
+    expect(
+        normalizeBinaryValues(decodeServerToClientProtocolActionBatchBinary(encodeProtocolActionBatchBinary(serverBatch)))
+    ).toEqual(normalizeBinaryValues(serverBatch));
     expect(decodeClientToServerProtocolActionBatchBinary(encodeProtocolActionBinary([Types.Messages.ZONE]))).toEqual([
         [Types.Messages.ZONE],
     ]);
