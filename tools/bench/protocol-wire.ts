@@ -466,7 +466,7 @@ function main(): void {
     const results = [
         benchmarkCodec('json', frames, jsonEncodeBatch, jsonDecodeBatch),
         benchmarkCodec('msgpack-subset', frames, msgpackEncodeBatch, msgpackDecodeBatch),
-        benchmarkCodec('custom-runtime', frames, customEncodeBatch, customDecodeBatch),
+        benchmarkCodec('msgpack-full-runtime', frames, customEncodeBatch, customDecodeBatch),
     ];
 
     printResults(results, frames.length);
