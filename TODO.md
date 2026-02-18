@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 22:20 UTC
+Last updated: 2026-02-18 22:24 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,19 +34,4 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 410 - Pathfinding perf/quality v1: `ngraph.path`-inspired A* improvements
-  - Status: `in_progress`
-  - Scope:
-    - Included: Evaluate and implement selected `../ngraph.path`-style improvements in shared pathfinding hot paths (open-set handling, visitation bookkeeping, and neighbor expansion efficiency).
-    - Included: Add a repeatable pathfinding micro-benchmark for large/obstacle-dense maps and record before/after results.
-    - Included: Keep current fast collision detection behavior as-is while improving planner internals.
-    - Out of scope: Replacing fastCD/collision systems, adding runtime fallback pathfinders, or switching to non-grid navigation.
-  - Acceptance criteria:
-    - No path correctness regressions on existing movement tests (reachable/unreachable/incomplete path behavior).
-    - Benchmark evidence shows measurable pathfinding throughput/latency improvement on representative workloads.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/unit/mmo/server-move-to-intent.test.ts tests/unit/client-pathing-ignore-list.test.ts tests/unit/client-pathfinder-ignore-restore.test.ts --timeout 30000`
-    - `bun tools/bench/pathfinding.ts`
-  - Dependencies/blockers:
-    - Depends on Ticket 409.
+None.

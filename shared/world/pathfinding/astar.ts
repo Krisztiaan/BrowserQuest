@@ -1,13 +1,6 @@
-type GridPoint = Readonly<{ x: number; y: number }>;
-type GridNode = GridPoint & {
-    f: number;
-    g: number;
-    v: number;
-    p?: GridNode;
-};
-
 type PathPoint = [number, number];
 type PathGrid = ReadonlyArray<ReadonlyArray<number>>;
+
 type DistanceMode = 'manhattan' | 'diagonal' | 'euclidean';
 type DiagonalMode = 'none' | 'constrained' | 'free';
 
@@ -47,107 +40,6 @@ function resolveDiagonalMode(variant: string | undefined): DiagonalMode {
     return 'none';
 }
 
-function distance(a: GridPoint, b: GridPoint, mode: DistanceMode): number {
-    const dx = Math.abs(a.x - b.x);
-    const dy = Math.abs(a.y - b.y);
-    if (mode === 'diagonal') {
-        return Math.max(dx, dy);
-    }
-    if (mode === 'euclidean') {
-        return Math.sqrt(dx * dx + dy * dy);
-    }
-    return dx + dy;
-}
-
-function collectSuccessors(
-    grid: PathGrid,
-    current: GridPoint,
-    rows: number,
-    cols: number,
-    diagonalMode: DiagonalMode
-): GridPoint[] {
-    const { x, y } = current;
-    const result: GridPoint[] = [];
-
-    const northY = y - 1;
-    const southY = y + 1;
-    const eastX = x + 1;
-    const westX = x - 1;
-
-    const north = northY >= 0 && isWalkable(grid, x, northY);
-    const south = southY < rows && isWalkable(grid, x, southY);
-    const east = eastX < cols && isWalkable(grid, eastX, y);
-    const west = westX >= 0 && isWalkable(grid, westX, y);
-
-    if (north) {
-        result.push({ x, y: northY });
-    }
-    if (east) {
-        result.push({ x: eastX, y });
-    }
-    if (south) {
-        result.push({ x, y: southY });
-    }
-    if (west) {
-        result.push({ x: westX, y });
-    }
-
-    if (diagonalMode === 'none') {
-        return result;
-    }
-
-    const canUse = (diagX: number, diagY: number): boolean => {
-        if (!inBounds(diagX, diagY, rows, cols)) {
-            return false;
-        }
-        return isWalkable(grid, diagX, diagY);
-    };
-
-    if (diagonalMode === 'constrained') {
-        if (north && east && canUse(eastX, northY)) {
-            result.push({ x: eastX, y: northY });
-        }
-        if (north && west && canUse(westX, northY)) {
-            result.push({ x: westX, y: northY });
-        }
-        if (south && east && canUse(eastX, southY)) {
-            result.push({ x: eastX, y: southY });
-        }
-        if (south && west && canUse(westX, southY)) {
-            result.push({ x: westX, y: southY });
-        }
-        return result;
-    }
-
-    if (canUse(eastX, northY)) {
-        result.push({ x: eastX, y: northY });
-    }
-    if (canUse(westX, northY)) {
-        result.push({ x: westX, y: northY });
-    }
-    if (canUse(eastX, southY)) {
-        result.push({ x: eastX, y: southY });
-    }
-    if (canUse(westX, southY)) {
-        result.push({ x: westX, y: southY });
-    }
-
-    return result;
-}
-
-function reconstructPath(node: GridNode): PathPoint[] {
-    const result: PathPoint[] = [];
-    let current: GridNode | undefined = node;
-
-    while (current) {
-        result.push([current.x, current.y]);
-        current = current.p;
-    }
-
-    result.reverse();
-    return result;
-}
-
 function decodeOptions(variantOrOptions?: AStarVariant | string | AStarOptions): AStarOptions {
     if (!variantOrOptions) {
         return {};
@@ -158,6 +50,134 @@ function decodeOptions(variantOrOptions?: AStarVariant | string | AStarOptions):
     return { variant: variantOrOptions };
 }
 
+function heuristicDistance(mode: DistanceMode, x: number, y: number, endX: number, endY: number): number {
+    const dx = Math.abs(x - endX);
+    const dy = Math.abs(y - endY);
+    if (mode === 'diagonal') {
+        return Math.max(dx, dy);
+    }
+    if (mode === 'euclidean') {
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+    return dx + dy;
+}
+
+type HeapEntry = { v: number; f: number; seq: number };
+
+class MinHeap {
+    #v: number[] = [];
+    #f: number[] = [];
+    #seq: number[] = [];
+
+    get size(): number {
+        return this.#v.length;
+    }
+
+    push(entry: HeapEntry): void {
+        const i = this.#v.length;
+        this.#v.push(entry.v);
+        this.#f.push(entry.f);
+        this.#seq.push(entry.seq);
+        this.#bubbleUp(i);
+    }
+
+    pop(): HeapEntry | null {
+        const n = this.#v.length;
+        if (n === 0) {
+            return null;
+        }
+        const v = this.#v[0] as number;
+        const f = this.#f[0] as number;
+        const seq = this.#seq[0] as number;
+
+        const last = n - 1;
+        if (last === 0) {
+            this.#v.pop();
+            this.#f.pop();
+            this.#seq.pop();
+            return { v, f, seq };
+        }
+
+        this.#v[0] = this.#v[last] as number;
+        this.#f[0] = this.#f[last] as number;
+        this.#seq[0] = this.#seq[last] as number;
+        this.#v.pop();
+        this.#f.pop();
+        this.#seq.pop();
+        this.#sinkDown(0);
+
+        return { v, f, seq };
+    }
+
+    #less(i: number, j: number): boolean {
+        const fi = this.#f[i] as number;
+        const fj = this.#f[j] as number;
+        if (fi < fj) return true;
+        if (fi > fj) return false;
+        return (this.#seq[i] as number) < (this.#seq[j] as number);
+    }
+
+    #swap(i: number, j: number): void {
+        let tmp = this.#v[i] as number;
+        this.#v[i] = this.#v[j] as number;
+        this.#v[j] = tmp;
+
+        tmp = this.#f[i] as number;
+        this.#f[i] = this.#f[j] as number;
+        this.#f[j] = tmp;
+
+        tmp = this.#seq[i] as number;
+        this.#seq[i] = this.#seq[j] as number;
+        this.#seq[j] = tmp;
+    }
+
+    #bubbleUp(index: number): void {
+        let i = index;
+        while (i > 0) {
+            const p = ((i - 1) / 2) | 0;
+            if (!this.#less(i, p)) {
+                break;
+            }
+            this.#swap(i, p);
+            i = p;
+        }
+    }
+
+    #sinkDown(index: number): void {
+        let i = index;
+        for (;;) {
+            const left = i * 2 + 1;
+            const right = left + 1;
+            let smallest = i;
+
+            if (left < this.#v.length && this.#less(left, smallest)) {
+                smallest = left;
+            }
+            if (right < this.#v.length && this.#less(right, smallest)) {
+                smallest = right;
+            }
+            if (smallest === i) {
+                break;
+            }
+            this.#swap(i, smallest);
+            i = smallest;
+        }
+    }
+}
+
+function reconstructPath(parent: Int32Array, cols: number, endV: number): PathPoint[] {
+    const result: PathPoint[] = [];
+    let v = endV;
+    while (v >= 0) {
+        const x = v % cols;
+        const y = (v / cols) | 0;
+        result.push([x, y]);
+        v = parent[v] as number;
+    }
+    result.reverse();
+    return result;
+}
+
 function AStar(
     grid: PathGrid,
     start: readonly [number, number],
@@ -166,82 +186,127 @@ function AStar(
 ): PathPoint[] {
     const rows = grid.length;
     const cols = grid[0]?.length ?? 0;
-
     if (rows === 0 || cols === 0) {
         return [];
     }
 
     const options = decodeOptions(variantOrOptions);
-
-    const startNode: GridPoint = { x: start[0], y: start[1] };
-    const endNode: GridPoint = { x: end[0], y: end[1] };
-
-    if (
-        !inBounds(startNode.x, startNode.y, rows, cols)
-        || !inBounds(endNode.x, endNode.y, rows, cols)
-        || !isWalkable(grid, startNode.x, startNode.y)
-        || !isWalkable(grid, endNode.x, endNode.y)
-    ) {
-        return [];
-    }
-
-    const limit = cols * rows;
     const distanceMode = resolveDistanceMode(options.variant);
     const diagonalMode = resolveDiagonalMode(options.variant);
     const maxVisited = options.maxVisited;
 
-    const open: GridNode[] = [
-        {
-            x: startNode.x,
-            y: startNode.y,
-            f: 0,
-            g: 0,
-            v: startNode.x + startNode.y * cols,
-        },
-    ];
-    const visited = new Set<number>();
-    const endV = endNode.x + endNode.y * cols;
+    const startX = start[0];
+    const startY = start[1];
+    const endX = end[0];
+    const endY = end[1];
 
-    while (open.length > 0) {
-        if (typeof maxVisited === 'number' && Number.isFinite(maxVisited) && visited.size > maxVisited) {
+    if (
+        !inBounds(startX, startY, rows, cols) ||
+        !inBounds(endX, endY, rows, cols) ||
+        !isWalkable(grid, startX, startY) ||
+        !isWalkable(grid, endX, endY)
+    ) {
+        return [];
+    }
+
+    const startV = startX + startY * cols;
+    const endV = endX + endY * cols;
+    if (startV === endV) {
+        return [[startX, startY]];
+    }
+
+    const limit = cols * rows;
+    const state = new Uint8Array(limit); // 0=unseen, 1=open, 2=closed
+    const gScore = new Float64Array(limit);
+    const parent = new Int32Array(limit);
+    parent[startV] = -1;
+    gScore[startV] = 0;
+    state[startV] = 1;
+
+    const open = new MinHeap();
+    let seq = 0;
+    open.push({ v: startV, f: heuristicDistance(distanceMode, startX, startY, endX, endY), seq: seq++ });
+
+    let visited = 0;
+    while (open.size > 0) {
+        const currentEntry = open.pop();
+        if (!currentEntry) {
+            break;
+        }
+
+        const currentV = currentEntry.v;
+        if (state[currentV] === 2) {
+            continue; // stale heap entry
+        }
+        state[currentV] = 2;
+        visited += 1;
+
+        if (typeof maxVisited === 'number' && Number.isFinite(maxVisited) && visited > maxVisited) {
             return [];
         }
 
-        let minIndex = 0;
-        let minScore = limit;
-        for (let i = 0; i < open.length; i += 1) {
-            const node = open[i];
-            if (node && node.f < minScore) {
-                minScore = node.f;
-                minIndex = i;
-            }
+        if (currentV === endV) {
+            return reconstructPath(parent, cols, endV);
         }
 
-        const current = open.splice(minIndex, 1)[0];
-        if (!current) {
+        const x = currentV % cols;
+        const y = (currentV / cols) | 0;
+        const g = gScore[currentV] as number;
+
+        const northY = y - 1;
+        const southY = y + 1;
+        const eastX = x + 1;
+        const westX = x - 1;
+
+        const north = northY >= 0 && isWalkable(grid, x, northY);
+        const south = southY < rows && isWalkable(grid, x, southY);
+        const east = eastX < cols && isWalkable(grid, eastX, y);
+        const west = westX >= 0 && isWalkable(grid, westX, y);
+
+        const relax = (nx: number, ny: number, isDiag: boolean): void => {
+            const nv = nx + ny * cols;
+            if (state[nv] === 2) {
+                return;
+            }
+            const step = distanceMode === 'euclidean' && isDiag ? Math.SQRT2 : 1;
+            const tentative = g + step;
+            if (state[nv] === 0 || tentative < (gScore[nv] as number)) {
+                gScore[nv] = tentative;
+                parent[nv] = currentV;
+                state[nv] = 1;
+                const f = tentative + heuristicDistance(distanceMode, nx, ny, endX, endY);
+                open.push({ v: nv, f, seq: seq++ });
+            }
+        };
+
+        if (north) relax(x, northY, false);
+        if (east) relax(eastX, y, false);
+        if (south) relax(x, southY, false);
+        if (west) relax(westX, y, false);
+
+        if (diagonalMode === 'none') {
             continue;
         }
 
-        if (current.v === endV) {
-            return reconstructPath(current);
+        const canUseDiag = (diagX: number, diagY: number): boolean => {
+            if (!inBounds(diagX, diagY, rows, cols)) {
+                return false;
+            }
+            return isWalkable(grid, diagX, diagY);
+        };
+
+        if (diagonalMode === 'constrained') {
+            if (north && east && canUseDiag(eastX, northY)) relax(eastX, northY, true);
+            if (north && west && canUseDiag(westX, northY)) relax(westX, northY, true);
+            if (south && east && canUseDiag(eastX, southY)) relax(eastX, southY, true);
+            if (south && west && canUseDiag(westX, southY)) relax(westX, southY, true);
+            continue;
         }
 
-        const next = collectSuccessors(grid, current, rows, cols, diagonalMode);
-        for (let i = 0; i < next.length; i += 1) {
-            const adj = next[i];
-            if (!adj) {
-                continue;
-            }
-            const v = adj.x + adj.y * cols;
-            if (visited.has(v)) {
-                continue;
-            }
-
-            const g = current.g + distance(adj, current, distanceMode);
-            const f = g + distance(adj, endNode, distanceMode);
-            open.push({ x: adj.x, y: adj.y, g, f, v, p: current });
-            visited.add(v);
-        }
+        if (canUseDiag(eastX, northY)) relax(eastX, northY, true);
+        if (canUseDiag(westX, northY)) relax(westX, northY, true);
+        if (canUseDiag(eastX, southY)) relax(eastX, southY, true);
+        if (canUseDiag(westX, southY)) relax(westX, southY, true);
     }
 
     return [];

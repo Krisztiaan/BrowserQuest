@@ -15,6 +15,25 @@ Format per entry:
 
 ## 2026-02-18
 
+- 22:24 UTC
+  - Ticket: 410 (Pathfinding perf/quality v1: `ngraph.path`-inspired A* improvements)
+  - Status: `done`
+  - Key actions taken:
+    - Added repeatable pathfinding micro-benchmark: `tools/bench/pathfinding.ts`.
+    - Replaced O(n) open-list scan + Set-heavy bookkeeping in `shared/world/pathfinding/astar.ts` with:
+      - binary heap open-set (min f, stable tie-break on insertion order)
+      - typed-array state/parent/gScore tracking (no per-node object allocation)
+      - inlined neighbor expansion (4-neighbor + constrained/free diagonal)
+    - Benchmark evidence (128x128 @ 22% obstacles, 800 pairs):
+      - Before: manhattan 680.42ms, Diagonal 1123.46ms
+      - After:  manhattan 265.20ms, Diagonal 461.81ms
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts tests/unit/client-pathing-ignore-list.test.ts tests/unit/client-pathfinder-ignore-restore.test.ts --timeout 30000`
+    - `bun tools/bench/pathfinding.ts`
+  - Next action:
+    - Close Ticket 410 in `TODO.md` (no remaining active tickets in this cycle).
+
 - 22:20 UTC
   - Ticket: 409 (Movement pathing v3: enable constrained diagonal routing)
   - Status: `done`
