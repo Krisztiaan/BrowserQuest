@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 19:30 UTC
+Last updated: 2026-02-18 22:13 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,20 +34,35 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 408 - Protocol measurement: latency/jitter harness + movement/replication corpora refresh
+- Ticket 409 - Movement pathing v3: enable constrained diagonal routing
   - Status: `in_progress`
   - Scope:
-    - Included: Add a repeatable harness for injecting client<->server delay/jitter and measuring:
-      - input-to-motion latency for local player
-      - correction frequency/magnitude
-      - outbound message rate (C2S) during click and WASD
-      - Prefer a deterministic injection point (e.g. WS runtime send/receive wrappers or bot harness) over DevTools/manual testing.
-    - Included: Update `tools/bench/protocol-wire.ts` corpora to include new movement messages and vector state messages.
-    - Included: Refresh `docs/protocol-wire.md` with new results + interpretation.
+    - Included: Enable diagonal path generation for shared A* (`Diagonal`/constrained mode) in click-to-move and server `move.to` planning.
+    - Included: Preserve corner safety rules (no corner cutting through blocked orthogonal neighbors).
+    - Included: Add/extend unit coverage for diagonal candidate generation and server/client path parity.
+    - Out of scope: `DiagonalFree` behavior, navmesh migration, or any fallback dual-path runtime.
   - Acceptance criteria:
-    - We can quantify “smooth under lag” improvements without manual eyeballing.
+    - Shared pathfinding can generate diagonal routes where valid, with constrained corner checks enforced.
+    - Client prediction and server authority continue to agree on chosen route shape for representative diagonal scenarios.
   - Verification plan:
     - `bun run typecheck`
-    - `bun tools/bench/protocol-wire.ts`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts tests/unit/mmo/server-client-collision-parity.test.ts tests/unit/client-pathing-dynamic-occupancy.test.ts --timeout 30000`
   - Dependencies/blockers:
-    - Depends on Tickets 403-406.
+    - Queue after Ticket 408.
+
+- Ticket 410 - Pathfinding perf/quality v1: `ngraph.path`-inspired A* improvements
+  - Status: `todo`
+  - Scope:
+    - Included: Evaluate and implement selected `../ngraph.path`-style improvements in shared pathfinding hot paths (open-set handling, visitation bookkeeping, and neighbor expansion efficiency).
+    - Included: Add a repeatable pathfinding micro-benchmark for large/obstacle-dense maps and record before/after results.
+    - Included: Keep current fast collision detection behavior as-is while improving planner internals.
+    - Out of scope: Replacing fastCD/collision systems, adding runtime fallback pathfinders, or switching to non-grid navigation.
+  - Acceptance criteria:
+    - No path correctness regressions on existing movement tests (reachable/unreachable/incomplete path behavior).
+    - Benchmark evidence shows measurable pathfinding throughput/latency improvement on representative workloads.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts tests/unit/client-pathing-ignore-list.test.ts tests/unit/client-pathfinder-ignore-restore.test.ts --timeout 30000`
+    - `bun tools/bench/pathfinding.ts`
+  - Dependencies/blockers:
+    - Depends on Ticket 409.

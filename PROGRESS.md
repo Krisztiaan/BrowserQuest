@@ -15,6 +15,32 @@ Format per entry:
 
 ## 2026-02-18
 
+- 22:13 UTC
+  - Ticket: 408 (Protocol measurement: latency/jitter harness + movement/replication corpora refresh)
+  - Status: `done`
+  - Key actions taken:
+    - Added deterministic latency/jitter harness (`tools/harness/movement-latency.ts`) to quantify input-to-motion and correction/reject rates without DevTools/manual eyeballing.
+    - Refreshed `docs/protocol-wire.md` with updated benchmark results including `fixedbin-v2-*-dispatch` rows and movement scenario tables.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun tools/bench/protocol-wire.ts`
+    - `bun tools/harness/movement-latency.ts --mode wasd --trials 10 --c2s 80 --c2s-jitter 20 --s2c 80 --s2c-jitter 20 --seed 123456`
+  - Next action:
+    - Close Ticket 408 in `TODO.md`, then start Ticket 409 (diagonal constrained pathing).
+
+- 22:08 UTC
+  - Ticket: (ticketization - diagonal pathing + `ngraph.path`-inspired pathfinding backlog)
+  - Status: `done`
+  - Key actions taken:
+    - Added Ticket 409 (`todo`) for enabling constrained diagonal pathing in shared/client/server movement planning.
+    - Added Ticket 410 (`todo`) for `../ngraph.path`-inspired pathfinding hot-path improvements and benchmark-backed validation.
+    - Explicitly scoped fastCD changes out of scope for this backlog request (current fast collision behavior retained).
+  - Evidence:
+    - `git diff TODO.md PROGRESS.md`
+    - `rg -n "Ticket 409|Ticket 410|diagonal|ngraph.path|fast collision" TODO.md`
+  - Next action:
+    - Continue active Ticket 408; start Ticket 409 after 408 is verified and closed.
+
 - 19:10 UTC
   - Ticket: 404 (WASD support v1: `move.input` intent (input-state), prediction, and coexistence with click-to-move)
   - Status: `in_progress`
