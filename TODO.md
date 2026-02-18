@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:24 UTC
+Last updated: 2026-02-18 01:20 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,23 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 360 - Command/event integration on WebAudio transport (`todo`)
-  - Scope:
-    - Included: migrate all current `playSound`/music trigger callsites to WebAudio manager API.
-    - Included: preserve semantic mapping for current keys (`hurt`, `death`, `achievement`, `teleport`, etc.).
-    - Included: keep current toggles/settings behavior compatible with new manager.
-    - Out of scope: new sound content.
-  - Acceptance criteria:
-    - No gameplay system uses legacy pool selection semantics from HTMLAudio.
-    - All existing command-side audio events still trigger correct sound keys.
-    - No regression in mute/toggle behavior.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun x eslint --max-warnings=0 client/audio.ts client/game.ts client/ecs/systems/client-door-portal-system.ts client/ecs/systems/client-command-apply-system.ts`
-    - Manual runtime: combat + loot + death/revive + zone portal cues.
-  - Dependencies/blockers:
-    - Depends on Ticket 359 foundation.
 
 - Ticket 361 - WebAudio music controller (looping + area transitions) (`todo`)
   - Scope:

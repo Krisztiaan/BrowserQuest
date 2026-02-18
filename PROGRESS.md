@@ -3615,7 +3615,7 @@ Format per entry:
   - Next action:
     - Execute Ticket 359 (WebAudio runtime foundation, no fallback path).
 
-- 01:24 UTC
+- 01:19 UTC
   - Ticket: 359 (WebAudio runtime foundation, no fallback path)
   - Start timestamp: 2026-02-18 01:16 UTC
   - Status: `done`
@@ -3633,3 +3633,18 @@ Format per entry:
     - `rg -n "createElement\\('audio'\\)|new Audio\\(|canplaythrough|HTMLAudioElement" client`
   - Next action:
     - Execute Ticket 360 (command/event integration on WebAudio transport).
+
+- 01:20 UTC
+  - Ticket: 360 (Command/event integration on WebAudio transport)
+  - Start timestamp: 2026-02-18 01:19 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Tightened gameplay audio callsite typing to `AudioSoundKey` across command-apply, door/portal, and loot-feedback integration paths.
+    - Kept existing semantic key mapping intact (`hurt`, `death`, `achievement`, `teleport`, `npc`, `chat`, loot/heal/firefox).
+    - Triggered immediate area-music evaluation after map music-area registration via `initMusicAreas()` to keep startup behavior aligned with the new manager.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 client/audio.ts client/game.ts client/ecs/systems/client-door-portal-system.ts client/ecs/systems/client-command-apply-system.ts client/runtime/player/loot-feedback.ts`
+    - `bun test tests/unit/client-loot-feedback.test.ts tests/unit/ecs/client-door-portal-system.test.ts tests/unit/client-player-death-flow.test.ts`
+  - Next action:
+    - Execute Ticket 361 (WebAudio music controller for deterministic transitions/crossfade).

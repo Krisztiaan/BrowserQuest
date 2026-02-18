@@ -1,8 +1,9 @@
 import type { EntityKind } from '../../../shared/entity-kind-domain';
+import type { AudioSoundKey } from '../../asset-key-domain';
 
 type LootFeedbackHost = {
     tryUnlockingAchievement(id: string): void;
-    playSound(sound: string): void;
+    playSound(sound: AudioSoundKey): void;
     isCake(kind: EntityKind): boolean;
     isFirePotion(kind: EntityKind): boolean;
     isHealingItem(kind: EntityKind): boolean;
@@ -29,4 +30,3 @@ export function applyLootFeedback(host: LootFeedbackHost, item: LootFeedbackItem
         host.playSound('heal');
     }
 }
-

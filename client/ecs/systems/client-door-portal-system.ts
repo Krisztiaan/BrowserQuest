@@ -1,5 +1,6 @@
 import type { EntityId } from '../../../shared/domain/ids';
 import { debugDoors } from '../../debug-flags';
+import type { AudioSoundKey } from '../../asset-key-domain';
 
 type DoorDestination = Readonly<{
     x: number;
@@ -83,7 +84,7 @@ export type ClientDoorPortalSystemHost = Readonly<{
     checkUndergroundAchievement(): void;
     tryUnlockingAchievement(key: string): void;
     audioManager: {
-        playSound(key: string): void;
+        playSound(key: AudioSoundKey): void;
         updateMusic(): void;
     } | null;
 }>;

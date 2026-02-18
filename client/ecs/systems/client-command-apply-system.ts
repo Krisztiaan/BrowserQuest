@@ -19,6 +19,7 @@ import type { ClientWorldKernel } from '../world-kernel';
 import { adaptKernelEntityForRendering } from '../kernel-entity-adapter';
 import Exceptions from '../../exceptions';
 import { debugMoves } from '../../debug-flags';
+import type { AudioSoundKey } from '../../asset-key-domain';
 
 type GridIndexedEntity = {
     id: EntityId;
@@ -143,7 +144,7 @@ export type ClientCommandApplySystemHost = {
     addEntity(entity: GridIndexedEntity): void;
     showNotification(message: string): void;
     tryUnlockingAchievement(key: string): void;
-    audioManager: { playSound(key: string): void; updateMusic?(): void } | null;
+    audioManager: { playSound(key: AudioSoundKey): void; updateMusic?(): void } | null;
     createBubble(entityId: EntityId, text: string): void;
     infoManager: { addDamageInfo(value: number | string, x: number, y: number, type: 'received' | 'inflicted' | 'healed'): void };
     sprites: Record<string, Sprite>;

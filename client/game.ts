@@ -671,6 +671,7 @@ class Game extends Evented<GameEvents> {
         map.musicAreas.forEach(function (area: { x: number; y: number; w: number; h: number; id: MusicKey }) {
             audioManager.addArea(area.x, area.y, area.w, area.h, area.id);
         });
+        audioManager.updateMusic();
     }
 
     run(onStarted: () => void, onFailed?: (reason: string) => void) {
