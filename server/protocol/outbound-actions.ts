@@ -29,6 +29,7 @@ import type {
     ServerToClientChunkSnapshotPartAction,
     ServerToClientChunkDeltaAction,
     ServerToClientMoveSyncAction,
+    ServerToClientEntityStateBatchAction,
 } from '../../shared/protocol/types';
 
 export function buildWelcomeAction({
@@ -74,6 +75,24 @@ export function buildMoveSyncAction(
     flags: number
 ): ServerToClientMoveSyncAction {
     return [Types.Messages.MOVE_SYNC, ackSeq, x, y, tick, flags];
+}
+
+export function buildEntityStateBatchAction({
+    tick,
+    entries,
+}: {
+    tick: number;
+    entries: ReadonlyArray<Readonly<{ id: EntityId; x: number; y: number; flags: number }>>;
+}): ServerToClientEntityStateBatchAction {
+    const out: number[] = [Types.Messages.ENTITY_STATE_BATCH, tick >>> 0, entries.length >>> 0];
+    for (let i = 0; i < entries.length; i += 1) {
+        const entry = entries[i];
+        if (!entry) {
+            continue;
+        }
+        out.push(entityIdToWire(entry.id), entry.x, entry.y, entry.flags >>> 0);
+    }
+    return out as unknown as ServerToClientEntityStateBatchAction;
 }
 
 export function buildChunkSnapshotAction(

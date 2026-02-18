@@ -701,6 +701,24 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             writer.writeU8(Number(flags) >>> 0);
             return;
         }
+        case Types.Messages.ENTITY_STATE_BATCH: {
+            const tick = action[1];
+            const count = action[2];
+            writer.writeVarU32(Number(tick) >>> 0);
+            writer.writeVarU32(Number(count) >>> 0);
+            const base = 3;
+            const expectedLen = base + Number(count) * 4;
+            if (action.length !== expectedLen) {
+                throw new Error('invalid ENTITY_STATE_BATCH payload');
+            }
+            for (let i = 0; i < Number(count); i += 1) {
+                const offset = base + i * 4;
+                writer.writeVarU32(Number(action[offset]) >>> 0); // id (wire)
+                writer.writePos20(Number(action[offset + 1]), Number(action[offset + 2])); // x,y
+                writer.writeU8(Number(action[offset + 3]) >>> 0); // flags
+            }
+            return;
+        }
         case Types.Messages.CHUNK_SNAPSHOT: {
             const chunkX = action[1];
             const chunkY = action[2];
@@ -971,6 +989,18 @@ function decodeServerToClientAction(reader: ByteReader): unknown[] {
             const tick = reader.readVarU32();
             const flags = reader.readU8();
             return [opcode, ackSeq, pos.x, pos.y, tick, flags];
+        }
+        case Types.Messages.ENTITY_STATE_BATCH: {
+            const tick = reader.readVarU32();
+            const count = reader.readVarU32();
+            const out: unknown[] = [opcode, tick, count];
+            for (let i = 0; i < count; i += 1) {
+                const id = reader.readVarU32();
+                const pos = reader.readPos20();
+                const flags = reader.readU8();
+                out.push(id, pos.x, pos.y, flags);
+            }
+            return out;
         }
         case Types.Messages.CHUNK_SNAPSHOT: {
             const chunkX = reader.readVarU32();

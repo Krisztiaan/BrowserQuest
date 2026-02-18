@@ -104,6 +104,13 @@ export type ServerToClientChunkDeltaAction = [
     number[] | Uint8Array,
 ];
 export type ServerToClientMoveSyncAction = [typeof Types.Messages.MOVE_SYNC, number, number, number, number, number];
+// Packed layout: `[ENTITY_STATE_BATCH, tick, count, ...count*(id,x,y,flags)]`
+export type ServerToClientEntityStateBatchAction = [
+    typeof Types.Messages.ENTITY_STATE_BATCH,
+    number,
+    number,
+    ...number[],
+];
 
 export type ServerToClientProtocolAction =
     | ServerToClientWelcomeAction
@@ -130,6 +137,7 @@ export type ServerToClientProtocolAction =
     | ServerToClientAckAction
     | ServerToClientCorrectionAction
     | ServerToClientMoveSyncAction
+    | ServerToClientEntityStateBatchAction
     | ServerToClientChunkSnapshotAction
     | ServerToClientChunkSnapshotPartAction
     | ServerToClientChunkDeltaAction;
@@ -173,6 +181,7 @@ export const PROTOCOL_CONTRACT_NUMERIC_KEYS = [
     'MSG_ACK',
     'MSG_CORRECTION',
     'MSG_MOVE_SYNC',
+    'MSG_ENTITY_STATE_BATCH',
     'MSG_CHUNK_SUBSCRIBE',
     'MSG_CHUNK_UNSUBSCRIBE',
     'MSG_CHUNK_SNAPSHOT',

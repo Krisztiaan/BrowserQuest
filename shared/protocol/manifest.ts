@@ -102,6 +102,12 @@ export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
         schema: { kind: 'fixed', args: ['n', 'n', 'n', 'n', 'n'] },
     },
     {
+        key: 'ENTITY_STATE_BATCH',
+        opcode: Types.Messages.ENTITY_STATE_BATCH,
+        direction: 'server_to_client',
+        schema: { kind: 'prefixRest', prefix: ['n', 'n'], rest: 'n' },
+    },
+    {
         key: 'CHUNK_SNAPSHOT',
         opcode: Types.Messages.CHUNK_SNAPSHOT,
         direction: 'server_to_client',

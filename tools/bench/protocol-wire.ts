@@ -51,6 +51,7 @@ const SERVER_SAMPLES: WireBatch[] = [
         [Types.Messages.MOVE, 500000000, 155, 115],
         [Types.Messages.HEALTH, 62, 1],
     ],
+    [Types.Messages.ENTITY_STATE_BATCH, 1234, 3, 174, 155, 114, 0, 184, 156, 114, 0, 268435755, 154, 113, 0],
 ];
 
 const CLIENT_SAMPLES: WireBatch[] = [
@@ -127,6 +128,38 @@ function buildFrameCorpus(source: WireBatch[]): WireBatch[] {
         corpus.push(Array.isArray(mutated) ? mutated : [mutated]);
     }
 
+    return corpus;
+}
+
+function buildLegacyMoveSpamFrame(tick: number, entityCount: number): WireBatch {
+    const batch: WireBatch = [];
+    for (let i = 0; i < entityCount; i += 1) {
+        const id = 1_000_000 + i;
+        const x = 150 + (i % 10);
+        const y = 110 + ((i / 10) | 0);
+        batch.push([Types.Messages.MOVE, id, x, y]);
+    }
+    batch.push([Types.Messages.POPULATION, 1, 2]);
+    return batch;
+}
+
+function buildVectorEntityStateBatchFrame(tick: number, entityCount: number): WireBatch {
+    const out: number[] = [Types.Messages.ENTITY_STATE_BATCH, tick >>> 0, entityCount >>> 0];
+    for (let i = 0; i < entityCount; i += 1) {
+        const id = 1_000_000 + i;
+        const x = 150 + (i % 10);
+        const y = 110 + ((i / 10) | 0);
+        out.push(id, x, y, 0);
+    }
+    return [out, [Types.Messages.POPULATION, 1, 2]];
+}
+
+function buildMovementScenarioCorpus(kind: 'legacy_move_spam' | 'vector_entity_state_batch', entityCount: number): WireBatch[] {
+    const corpus: WireBatch[] = [];
+    for (let i = 0; i < FRAMES; i += 1) {
+        const tick = 2000 + i;
+        corpus.push(kind === 'legacy_move_spam' ? buildLegacyMoveSpamFrame(tick, entityCount) : buildVectorEntityStateBatchFrame(tick, entityCount));
+    }
     return corpus;
 }
 
@@ -913,6 +946,8 @@ function main(): void {
     const mixedFrames = buildFrameCorpus([...SERVER_SAMPLES, ...CLIENT_SAMPLES]);
     const clientFrames = buildFrameCorpus(CLIENT_SAMPLES);
     const serverFrames = buildFrameCorpus(SERVER_SAMPLES);
+    const movementLegacyFrames = buildMovementScenarioCorpus('legacy_move_spam', 80);
+    const movementVectorFrames = buildMovementScenarioCorpus('vector_entity_state_batch', 80);
 
     console.log('Protocol Wire Benchmark');
     console.log('');
@@ -953,6 +988,26 @@ function main(): void {
             benchmarkCodec('fixedbin-v2-s2c', serverFrames, fixedBinS2CEncodeBatch, fixedBinS2CDecodeBatch),
         ],
         serverFrames.length
+    );
+    console.log('');
+
+    printResults(
+        'Movement scenario (S2C) legacy MOVE spam (80 entities/frame)',
+        [
+            benchmarkCodec('json', movementLegacyFrames, jsonEncodeBatch, jsonDecodeBatch),
+            benchmarkCodec('custom-efficient-v1', movementLegacyFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
+        ],
+        movementLegacyFrames.length
+    );
+    console.log('');
+
+    printResults(
+        'Movement scenario (S2C) vector ENTITY_STATE_BATCH (80 entities/frame)',
+        [
+            benchmarkCodec('json', movementVectorFrames, jsonEncodeBatch, jsonDecodeBatch),
+            benchmarkCodec('custom-efficient-v1', movementVectorFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
+        ],
+        movementVectorFrames.length
     );
 }
 

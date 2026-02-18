@@ -35,35 +35,8 @@ Cycle completion gate:
 ## Active Tickets
 
 - Ticket 406 - Server-to-client perf: vectorized “entity state” replication (SoA) for hot movement/tick updates
-  - Status: `in_progress`
-  - Scope:
-    - Included: Introduce a new S2C opcode for batched entity movement/state deltas:
-      - Proposed name: `ENTITY_STATE_BATCH`
-      - Layout optimized for decode speed (minimal branching + sequential reads):
-        - `tick:varu32`
-        - `count:varu32`
-        - for each entity:
-          - `id:varu32`
-          - `pos:pos20`
-          - `flags:u8` (bits for hasTarget/hasOrientation/isMoving etc)
-          - optional `orientation:u8` (only if flag set)
-          - optional `targetId:varu32` (only if flag set)
-      - Keep it “mostly fixed” so hot clients can decode in a tight loop and apply directly.
-    - Included: Client applies this message without constructing per-entity action arrays in hot loops.
-    - Included: Remove/stop emitting the legacy hot-path per-entity MOVE spam where replaced by the vector message.
-    - Out of scope: Any new transport (still WebSocket).
-  - Acceptance criteria:
-    - Protocol bench shows S2C decode and bytes improved relative to current per-entity MOVE path.
-    - Gameplay smoke parity passes.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun tools/bench/protocol-wire.ts`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on MOVE_SYNC reconciliation opcode (done; see `PROGRESS.md` 2026-02-18 20:02 UTC).
-
 - Ticket 407 - Binary codec perf vNext: reduce allocations and per-field overhead in FixedBin decode/apply
-  - Status: `todo`
+  - Status: `in_progress`
   - Scope:
     - Included: Implement a “decode+dispatch” fast path for hot S2C opcodes:
       - Decode directly from `ByteReader` into kernel/apply routines (no `unknown[]` allocation per action).

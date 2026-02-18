@@ -31,6 +31,7 @@ export const MSG_ACHIEVEMENT = Protocol.MSG_ACHIEVEMENT;
 export const MSG_ACHIEVEMENTS = Protocol.MSG_ACHIEVEMENTS;
 export const MSG_INTENT = Protocol.MSG_INTENT;
 export const MSG_MOVE_SYNC = Protocol.MSG_MOVE_SYNC;
+export const MSG_ENTITY_STATE_BATCH = Protocol.MSG_ENTITY_STATE_BATCH;
 
 export const ENTITY_CLOTH_ARMOR = Protocol.ENTITY_CLOTH_ARMOR;
 export const ENTITY_SWORD_1 = Protocol.ENTITY_SWORD_1;

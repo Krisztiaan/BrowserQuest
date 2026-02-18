@@ -30,6 +30,7 @@ type GameClientInboundReceiver = {
     receiveAck(data: ClientInboundActionByOpcode<typeof Types.Messages.ACK>): void;
     receiveCorrection(data: ClientInboundActionByOpcode<typeof Types.Messages.CORRECTION>): void;
     receiveMoveSync(data: ClientInboundActionByOpcode<typeof Types.Messages.MOVE_SYNC>): void;
+    receiveEntityStateBatch(data: ClientInboundActionByOpcode<typeof Types.Messages.ENTITY_STATE_BATCH>): void;
     receiveChunkSnapshot(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT>): void;
     receiveChunkSnapshotPart(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT_PART>): void;
     receiveChunkDelta(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_DELTA>): void;
@@ -63,6 +64,7 @@ export function createGameClientInboundHandlers(
         [Types.Messages.ACK]: (data) => receiver.receiveAck(data),
         [Types.Messages.CORRECTION]: (data) => receiver.receiveCorrection(data),
         [Types.Messages.MOVE_SYNC]: (data) => receiver.receiveMoveSync(data),
+        [Types.Messages.ENTITY_STATE_BATCH]: (data) => receiver.receiveEntityStateBatch(data),
         [Types.Messages.CHUNK_SNAPSHOT]: (data) => receiver.receiveChunkSnapshot(data),
         [Types.Messages.CHUNK_SNAPSHOT_PART]: (data) => receiver.receiveChunkSnapshotPart(data),
         [Types.Messages.CHUNK_DELTA]: (data) => receiver.receiveChunkDelta(data),

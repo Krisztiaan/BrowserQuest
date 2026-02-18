@@ -36,6 +36,7 @@ import {
     buildLootMoveAction,
     buildMoveAction,
     buildMoveSyncAction,
+    buildEntityStateBatchAction,
     buildCorrectionMoveAction,
     buildRejectAction,
     buildTeleportAction,
@@ -120,6 +121,9 @@ type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
 
 export const CHUNK_OVERLAY_STORE_RESOURCE = createResourceKey<ChunkOverlayStore>('chunk_overlay_store');
 export const MOVE_SYNC_STATE_RESOURCE = createResourceKey<Map<EntityId, number>>('move_sync_state');
+export const ENTITY_STATE_BATCH_RESOURCE = createResourceKey<Map<string, Map<EntityId, { x: number; y: number; flags: number }>>>(
+    'entity_state_batch'
+);
 
 const HEALING_ITEM_POINTS_BY_KIND: Partial<Record<EntityKind, number>> = {
     [Types.Entities.FLASK]: 40,
@@ -1930,6 +1934,7 @@ export class WorldEcsCommandPipeline {
         this.state.resources.set(RESPAWN_TASKS_RESOURCE, []);
         this.state.resources.set(INTENT_SEQ_STATE_RESOURCE, createIntentSeqState());
         this.state.resources.set(MOVE_SYNC_STATE_RESOURCE, new Map());
+        this.state.resources.set(ENTITY_STATE_BATCH_RESOURCE, new Map());
         this.state.resources.set(CHUNK_AOI_STATE_RESOURCE, createChunkAoiState());
         this.state.resources.set(CHUNK_OVERLAY_STORE_RESOURCE, this.chunkOverlays);
         this.state.resources.set(CLAIMS_STORE_RESOURCE, new ClaimsStore());
@@ -2079,6 +2084,7 @@ export class WorldEcsCommandPipeline {
             const seqState = state.resources.require(INTENT_SEQ_STATE_RESOURCE);
             const moveSyncState = state.resources.require(MOVE_SYNC_STATE_RESOURCE);
             const MOVE_SYNC_CADENCE_TICKS = 6;
+            const entityStateBatches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
 
             const ups = Math.max(1, this.#world.ups);
             const positionKey = (x: number, y: number) => `${x},${y}`;
@@ -2109,6 +2115,17 @@ export class WorldEcsCommandPipeline {
                     action: buildMoveSyncAction(ackSeq, pos.x, pos.y, ctx.tick, flags),
                 });
                 moveSyncState.set(playerId, ctx.tick);
+            };
+
+            const enqueueEntityState = (entityId: EntityId, pos: GridPos) => {
+                const groupId = this.#world.map.getGroupIdFromPosition(pos.x, pos.y);
+                const bucket = entityStateBatches.get(groupId);
+                const entry = { x: pos.x, y: pos.y, flags: 0 };
+                if (bucket) {
+                    bucket.set(entityId, entry);
+                } else {
+                    entityStateBatches.set(groupId, new Map([[entityId, entry]]));
+                }
             };
 
             const teleportCorrect = (playerId: EntityId, pos: GridPos) => {
@@ -2175,7 +2192,7 @@ export class WorldEcsCommandPipeline {
 
                 outbox.push({ kind: 'to_player', playerId, action: buildMoveAction(playerId, next.x, next.y) });
                 pushMoveSync(playerId, next, 0, true);
-                state.events.push({ type: 'ENTITY_MOVED', entityId: playerId, to: next });
+                enqueueEntityState(playerId, next);
 
                 const doorDestination = this.#world.map.getDoorDestination(next.x, next.y);
                 if (doorDestination && this.#world.isValidPosition(doorDestination.x, doorDestination.y)) {
@@ -2420,7 +2437,17 @@ export class WorldEcsCommandPipeline {
                                     ctx.tick + resolveMoveCooldownTicks(mobKind, ups)
                                 );
                                 occupiedBy.set(positionKey(next.x, next.y), mobId);
-                                state.events.push({ type: 'ENTITY_MOVED', entityId: mobId, to: next });
+                                {
+                                    const groupId = this.#world.map.getGroupIdFromPosition(next.x, next.y);
+                                    const batches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
+                                    const bucket = batches.get(groupId);
+                                    const entry = { x: next.x, y: next.y, flags: 0 };
+                                    if (bucket) {
+                                        bucket.set(mobId, entry);
+                                    } else {
+                                        batches.set(groupId, new Map([[mobId, entry]]));
+                                    }
+                                }
                             }
                         }
                     }
@@ -2524,7 +2551,17 @@ export class WorldEcsCommandPipeline {
                 state.world.addComponent(mobId, Position, next);
                 state.world.addComponent(mobId, MobNextMoveTick, ctx.tick + resolveMoveCooldownTicks(mobKind, ups));
                 occupiedBy.set(positionKey(next.x, next.y), mobId);
-                state.events.push({ type: 'ENTITY_MOVED', entityId: mobId, to: next });
+                {
+                    const groupId = this.#world.map.getGroupIdFromPosition(next.x, next.y);
+                    const batches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
+                    const bucket = batches.get(groupId);
+                    const entry = { x: next.x, y: next.y, flags: 0 };
+                    if (bucket) {
+                        bucket.set(mobId, entry);
+                    } else {
+                        batches.set(groupId, new Map([[mobId, entry]]));
+                    }
+                }
             }
         });
         this.#scheduler.register('sim', 'combat_authority', (state, ctx: SystemContext) => {
@@ -2572,6 +2609,36 @@ export class WorldEcsCommandPipeline {
                     state.events.push({ type: 'PLAYER_HEALTH_CHANGED', playerId: id, hitPoints: next, isRegen: true });
                 }
             });
+        });
+        this.#scheduler.register('post', 'flush_entity_state_batches', (state, ctx: SystemContext) => {
+            const batches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
+            if (batches.size === 0) {
+                return;
+            }
+            const outbox = state.resources.require(OUTBOX_RESOURCE);
+            for (const [groupId, entries] of batches.entries()) {
+                if (!groupId || entries.size === 0) {
+                    continue;
+                }
+                const first = entries.keys().next().value as EntityId | undefined;
+                if (!first) {
+                    continue;
+                }
+
+                const payload = Array.from(entries.entries()).map(([id, pos]) => ({
+                    id,
+                    x: pos.x,
+                    y: pos.y,
+                    flags: pos.flags,
+                }));
+                outbox.push({
+                    kind: 'broadcast_nearby',
+                    actorId: first,
+                    fallbackGroupId: groupId,
+                    action: buildEntityStateBatchAction({ tick: ctx.tick, entries: payload }),
+                });
+            }
+            batches.clear();
         });
         this.#scheduler.register('post', 'flush_events_to_outbox', flushDomainEventsToOutboxSystem);
     }
@@ -2737,6 +2804,7 @@ export class WorldEcsCommandPipeline {
     removeEntity(id: EntityId): void {
         this.state.resources.get(INTENT_SEQ_STATE_RESOURCE)?.lastAcceptedByPlayerId.delete(id);
         this.state.resources.get(MOVE_SYNC_STATE_RESOURCE)?.delete(id);
+        this.state.resources.get(ENTITY_STATE_BATCH_RESOURCE)?.forEach((entries) => entries.delete(id));
         this.state.resources.get(INTEREST_TRACKER_RESOURCE)?.clearObserver(id);
         if (this.state.world.entities.isAlive(id)) {
             this.state.world.destroyEntity(id);

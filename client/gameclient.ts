@@ -618,6 +618,42 @@ class GameClient extends Evented<GameClientEvents> {
         debugMoves('in:MOVE_SYNC', { ackSeq, x, y, tick, flags });
     }
 
+    receiveEntityStateBatch(data: ClientInboundActionByOpcode<typeof Types.Messages.ENTITY_STATE_BATCH>): void {
+        const opcode = data[0];
+        if (opcode !== Types.Messages.ENTITY_STATE_BATCH) {
+            return;
+        }
+
+        const tick = data[1];
+        const count = data[2];
+        if (typeof tick !== 'number' || typeof count !== 'number' || !Number.isFinite(count) || count < 0) {
+            return;
+        }
+
+        const localPlayerId = this.localPlayerId;
+        const expectedLen = 3 + count * 4;
+        if (data.length !== expectedLen) {
+            return;
+        }
+
+        for (let i = 0; i < count; i += 1) {
+            const base = 3 + i * 4;
+            const wireId = data[base];
+            const x = data[base + 1];
+            const y = data[base + 2];
+            if (typeof wireId !== 'number' || typeof x !== 'number' || typeof y !== 'number') {
+                continue;
+            }
+            const entityId = entityIdFromWire(wireId);
+            if (localPlayerId !== null && entityId === localPlayerId) {
+                continue;
+            }
+            this.kernel.setPosition(entityId, x, y);
+        }
+
+        debugMoves('in:ENTITY_STATE_BATCH', { tick, count });
+    }
+
     receiveChunkSnapshot(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT>): void {
         const [, chunkX, chunkY, version, payloadBytes] = data;
         if (

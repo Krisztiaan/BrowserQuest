@@ -81,6 +81,21 @@ Format per entry:
   - Next action:
     - Implement `ENTITY_STATE_BATCH` opcode + FixedBin layout, server-side per-tick coalescing keyed by interest groups, and client decode/apply without per-entity action allocation; then rerun `bun tools/bench/protocol-wire.ts`.
 
+- 20:18 UTC
+  - Ticket: 406 (Server-to-client perf: vectorized “entity state” replication (SoA) for hot movement/tick updates)
+  - Status: `done`
+  - Key actions taken:
+    - Added new S2C opcode `ENTITY_STATE_BATCH` (40) with a packed `count*(id,x,y,flags)` layout and documented it in `docs/protocol-fixedbin.md`.
+    - Server now coalesces moved entities per tick into `ENTITY_STATE_BATCH` messages keyed by interest-group id and broadcasts them (instead of per-entity `MOVE` spam from `ENTITY_MOVED` domain events).
+    - Client consumes `ENTITY_STATE_BATCH` and applies authoritative positions to the kernel for each entity, skipping the local player (so prediction/reconcile remains driven by `MOVE` + `MOVE_SYNC`).
+    - Updated protocol unit tests/registry coverage and extended the protocol wire benchmark with a movement scenario comparison (legacy MOVE spam vs vector batch).
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/registry.test.ts tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/contract-types.test.ts tests/unit/protocol/support-contract.test.ts tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+    - `bun tools/bench/protocol-wire.ts`
+  - Next action:
+    - Execute Ticket 407 (binary decode/apply allocation reduction: decode+dispatch fast path for hot S2C opcodes).
+
 - 19:08 UTC
   - Ticket: 403 (Client click-to-move v2: send `move.to` once per click + prediction/reconcile)
   - Status: `done`

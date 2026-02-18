@@ -41,13 +41,9 @@ export function createApplyMoveCommandsSystem({
 
 export function mapDomainEventToProtocolAction(event: DomainEvent): OutboxMessage[] {
     if (event.type === 'ENTITY_MOVED') {
-        const action: ServerToClientProtocolAction = [
-            Types.Messages.MOVE,
-            entityIdToWire(event.entityId),
-            event.to.x,
-            event.to.y,
-        ];
-        return [{ kind: 'broadcast_nearby', actorId: event.entityId, action, ignoredPlayerId: event.entityId }];
+        // Movement replication is handled by the vectorized `ENTITY_STATE_BATCH` outbox flush in
+        // `server/world/ecs-command-pipeline.ts`.
+        return [];
     }
 
     if (event.type === 'ENTITY_ATTACKED') {

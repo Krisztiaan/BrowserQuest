@@ -388,6 +388,18 @@ Body:
 - `u8 flags`
   - bit0: `suppressed` (client should stop predicting until next input)
 
+#### `ENTITY_STATE_BATCH` (40)
+
+Vectorized entity movement/state replication (sent to nearby observers).
+
+Body:
+- `varu32 tick`
+- `varu32 count`
+- repeated `count` times:
+  - `Id id` (wire id)
+  - `Pos20 pos`
+  - `u8 flags` (reserved; currently `0`)
+
 #### `CHUNK_SNAPSHOT` (36)
 
 Body:

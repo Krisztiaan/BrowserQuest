@@ -50,6 +50,7 @@ const MESSAGE_OPCODES = {
     CHUNK_DELTA: 37,
     CHUNK_SNAPSHOT_PART: 38,
     MOVE_SYNC: 39,
+    ENTITY_STATE_BATCH: 40,
 } as const;
 
 type EntityIdsByUpperName = {
