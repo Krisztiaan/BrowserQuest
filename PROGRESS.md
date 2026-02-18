@@ -3786,3 +3786,17 @@ Format per entry:
     - `rg -n "payloadJson|JSON\\.stringify\\(\\{ x:|JSON\\.parse\\(payload" shared/protocol/intents.ts client/gameclient-outbound-actions.ts server/player-session-command-translation.ts server/world/ecs-command-pipeline.ts`
   - Next action:
     - Execute Ticket 368 (binary-first test harness + smoke/browser protocol migration).
+
+- 01:46 UTC
+  - Ticket: 368 (Binary-first test harness + smoke migration)
+  - Start timestamp: 2026-02-18 01:45 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Migrated smoke payload guard checks to binary gameplay frames (`encodeProtocolActionBinary`) so guard behavior validates protocol payload rules rather than text-frame rejection rules.
+    - Re-verified binary-first smoke path (`modern-gameplay-parity`) after runtime + intent payload changes.
+    - Confirmed chunk/seq protocol schema suites remain green under binary gameplay transport.
+  - Evidence:
+    - `bun test tests/unit/mmo/protocol-chunks-schema.test.ts tests/unit/mmo/protocol-seq-ack-schema.test.ts tests/browser/protocol-invariant.playwright.ts tests/smoke/modern-gameplay-parity.test.ts tests/smoke/server-payload-guards.test.ts`
+    - `bun run typecheck`
+  - Next action:
+    - Execute Ticket 369 (perf/memory validation + JSON gameplay path cleanup).

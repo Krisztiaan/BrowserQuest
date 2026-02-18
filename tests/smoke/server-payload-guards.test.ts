@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import WebSocket from '../support/ws-client';
 import { ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1, MSG_HELLO, MSG_MOVE } from '../support/protocol/contract';
 import WsCloseCodes from '../../shared/ws-close-codes';
+import { encodeProtocolActionBinary } from '../../shared/protocol/registry';
 import { killBunProcess } from '../support/process-cleanup';
 import {
     deleteFileIfExists,
@@ -63,7 +64,7 @@ test('rejects HELLO payload with oversized UTF-8 name', async () => {
         await waitForGoHandshake(ws);
 
         const oversizedName = '🚀'.repeat(40); // 160 bytes in UTF-8
-        ws.send(JSON.stringify([MSG_HELLO, oversizedName, ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
+        ws.send(encodeProtocolActionBinary([MSG_HELLO, oversizedName, ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
 
         const closed = await waitForWebSocketClose(ws);
         expect(ws.readyState).toBe(WebSocket.CLOSED);
@@ -76,8 +77,8 @@ test('rejects MOVE payload containing non-integer coordinates', async () => {
         const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
         await waitForGoHandshake(ws);
 
-        ws.send(JSON.stringify([MSG_HELLO, 'guarded', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
-        ws.send(JSON.stringify([MSG_MOVE, 10.5, 7]));
+        ws.send(encodeProtocolActionBinary([MSG_HELLO, 'guarded', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
+        ws.send(encodeProtocolActionBinary([MSG_MOVE, 10.5, 7]));
 
         const closed = await waitForWebSocketClose(ws, 15000);
         expect(ws.readyState).toBe(WebSocket.CLOSED);

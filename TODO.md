@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:45 UTC
+Last updated: 2026-02-18 01:46 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,22 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 368 - Binary-first test harness + smoke migration (`todo`)
-  - Scope:
-    - Included: update WS test helpers/harnesses to send and assert binary gameplay frames by default.
-    - Included: migrate protocol/browser/smoke tests that currently hardcode JSON text WS frames.
-    - Included: preserve assertions for ACK/CORRECTION/REJECT/combat/chat semantics under binary transport.
-    - Out of scope: non-WS HTTP API test payload changes.
-  - Acceptance criteria:
-    - Existing relevant smoke/unit/browser protocol tests pass using binary gameplay transport.
-    - Test utilities provide ergonomic binary frame helpers (encode/decode wrappers) for future coverage.
-    - Legacy JSON frame assumptions are removed from active gameplay test paths.
-  - Verification plan:
-    - `bun test tests/unit/mmo/protocol-chunks-schema.test.ts tests/unit/mmo/protocol-seq-ack-schema.test.ts tests/browser/protocol-invariant.playwright.ts tests/smoke/modern-gameplay-parity.test.ts tests/smoke/server-payload-guards.test.ts`
-    - `bun run typecheck`
-  - Dependencies/blockers:
-    - Depends on Ticket 366 and Ticket 367.
 
 - Ticket 369 - Binary transport perf/memory validation + JSON path removal (`todo`)
   - Scope:
