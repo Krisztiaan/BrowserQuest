@@ -34,33 +34,8 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 405 - Reconciliation protocol v1: explicit movement state ack + authoritative base snapshot
-  - Status: `in_progress`
-  - Scope:
-    - Included: Add an explicit S2C movement reconciliation action (new opcode) for the local player only:
-      - Proposed name: `MOVE_SYNC`
-      - Payload: `ackSeq:varu32` + `pos:pos20` + `tick:varu32` + `flags:u8`
-        - flags bit0: `suppressed` (client should stop predicting until next input)
-        - other bits reserved
-      - Add FixedBin v2 layout + docs for this opcode (`docs/protocol-fixedbin.md`).
-    - Included: Client consumes this message to:
-      - drop pending inputs up to `ackSeq`
-      - rebase predicted movement and smooth-correct small drift
-    - Included: Server emits this reconciliation message:
-      - at a fixed cadence (e.g. every 4-8 ticks) while the player is moving
-      - immediately on any correction/teleport outcome
-    - Out of scope: Vectorizing all entity replication (Ticket 406).
-  - Acceptance criteria:
-    - Under simulated jitter/delay, local player movement remains smooth and drift is corrected without hard rejects.
-    - No reliance on parsing logs to infer ack; ack is explicit for the local player.
-  - Verification plan:
-    - `bun run typecheck`
-    - Update/extend smoke tests to assert `ackSeq` monotonicity and correction behavior.
-  - Dependencies/blockers:
-    - Depends on Tickets 402-404 (movement producers/consumers).
-
 - Ticket 406 - Server-to-client perf: vectorized “entity state” replication (SoA) for hot movement/tick updates
-  - Status: `todo`
+  - Status: `in_progress`
   - Scope:
     - Included: Introduce a new S2C opcode for batched entity movement/state deltas:
       - Proposed name: `ENTITY_STATE_BATCH`
@@ -85,7 +60,7 @@ Cycle completion gate:
     - `bun tools/bench/protocol-wire.ts`
     - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
   - Dependencies/blockers:
-    - Depends on Ticket 405 (reconcile message design should not conflict).
+    - Depends on MOVE_SYNC reconciliation opcode (done; see `PROGRESS.md` 2026-02-18 20:02 UTC).
 
 - Ticket 407 - Binary codec perf vNext: reduce allocations and per-field overhead in FixedBin decode/apply
   - Status: `todo`

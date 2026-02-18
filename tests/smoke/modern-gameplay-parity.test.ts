@@ -20,6 +20,7 @@ import {
     MSG_LIST,
     MSG_LOOTMOVE,
     MSG_MOVE,
+    MSG_MOVE_SYNC,
     MSG_SPAWN,
     MSG_WELCOME,
     MSG_WHO,
@@ -236,11 +237,12 @@ test(
         let moveInputSeq = 2;
         let sawMoveInputMove = false;
         for (const keysMask of directions) {
+            const seqSent = moveInputSeq;
             const payload = encodeMoveInputIntentPayload({ keysMask });
             if (payload === null) {
                 throw new Error('Failed to encode move.input payload');
             }
-            ws.send(encodeProtocolActionBinary([MSG_INTENT, moveInputSeq, 'move.input', payload]));
+            ws.send(encodeProtocolActionBinary([MSG_INTENT, seqSent, 'move.input', payload]));
             moveInputSeq += 1;
 
             try {
@@ -251,6 +253,18 @@ test(
                     'MOVE from move.input',
                     1500
                 );
+                const sync = await waitForNextAction(
+                    stream,
+                    (action) =>
+                        action[0] === MSG_MOVE_SYNC
+                        && isSafeInteger(action[1])
+                        && action[1] >= seqSent
+                        && typeof action[2] === 'number'
+                        && typeof action[3] === 'number',
+                    'MOVE_SYNC from move.input',
+                    1500
+                );
+                expect(sync[1]).toBeGreaterThanOrEqual(seqSent);
                 sawMoveInputMove = true;
                 break;
             } catch (_) {

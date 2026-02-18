@@ -49,6 +49,25 @@ Format per entry:
   - Next action:
     - Implement `MOVE_SYNC` opcode end-to-end (manifest, binary codec, server emit cadence, client apply), then add smoke coverage under injected delay/jitter.
 
+- 20:02 UTC
+  - Ticket: 405 (Reconciliation protocol v1: explicit movement state ack + authoritative base snapshot)
+  - Status: `done`
+  - Key actions taken:
+    - Added S2C opcode `MOVE_SYNC` (`ackSeq`, `Pos20`, `tick`, `flags`) and documented it in `docs/protocol-fixedbin.md`.
+    - Implemented FixedBin v2 encode/decode + manifest/types/handler coverage for `MOVE_SYNC`.
+    - Server now emits `MOVE_SYNC` to the owning player:
+      - on each authoritative MOVE step
+      - immediately on teleport/correction (flags.suppressed=1)
+      - throttled during transient collision stalls (flags.suppressed=1)
+    - Client consumes `MOVE_SYNC` to prune pending movement seq acks, rebase authoritative position, and stop prediction when suppressed.
+    - Extended smoke parity to assert `MOVE_SYNC` arrives for `move.input` movement and that `ackSeq` is monotonic (>= seq sent).
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/registry.test.ts tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/contract-types.test.ts tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+    - `bun tools/bench/protocol-wire.ts`
+  - Next action:
+    - Execute Ticket 406 (vectorized S2C entity state replication).
+
 - 19:08 UTC
   - Ticket: 403 (Client click-to-move v2: send `move.to` once per click + prediction/reconcile)
   - Status: `done`

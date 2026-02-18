@@ -689,6 +689,18 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             }
             throw new Error('invalid CORRECTION payload');
         }
+        case Types.Messages.MOVE_SYNC: {
+            const ackSeq = action[1];
+            const x = action[2];
+            const y = action[3];
+            const tick = action[4];
+            const flags = action[5];
+            writer.writeVarU32(Number(ackSeq) >>> 0);
+            writer.writePos20(Number(x), Number(y));
+            writer.writeVarU32(Number(tick) >>> 0);
+            writer.writeU8(Number(flags) >>> 0);
+            return;
+        }
         case Types.Messages.CHUNK_SNAPSHOT: {
             const chunkX = action[1];
             const chunkY = action[2];
@@ -952,6 +964,13 @@ function decodeServerToClientAction(reader: ByteReader): unknown[] {
                 return [opcode, seq, reader.readString(), reader.readString()];
             }
             throw new Error('invalid CORRECTION variant');
+        }
+        case Types.Messages.MOVE_SYNC: {
+            const ackSeq = reader.readVarU32();
+            const pos = reader.readPos20();
+            const tick = reader.readVarU32();
+            const flags = reader.readU8();
+            return [opcode, ackSeq, pos.x, pos.y, tick, flags];
         }
         case Types.Messages.CHUNK_SNAPSHOT: {
             const chunkX = reader.readVarU32();

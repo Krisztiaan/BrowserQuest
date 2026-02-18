@@ -589,6 +589,35 @@ class GameClient extends Evented<GameClientEvents> {
         this.emit('correction', seq, { a, b });
     }
 
+    receiveMoveSync(data: ClientInboundActionByOpcode<typeof Types.Messages.MOVE_SYNC>): void {
+        const [, ackSeq, x, y, tick, flags] = data;
+        if (
+            typeof ackSeq !== 'number'
+            || typeof x !== 'number'
+            || typeof y !== 'number'
+            || typeof tick !== 'number'
+            || typeof flags !== 'number'
+        ) {
+            return;
+        }
+
+        const playerId = this.localPlayerId;
+        if (playerId === null) {
+            return;
+        }
+
+        this.kernel.pruneClientPendingMoveSeqAcksUpTo(ackSeq);
+        this.kernel.setPosition(playerId, x, y);
+
+        const suppressed = (flags & 1) !== 0;
+        this.kernel.clientMovementSuppressed = suppressed;
+        if (suppressed) {
+            // Stop local prediction immediately; authoritative state will be applied via kernel replication sync.
+            this.kernel.enqueueClientCommand({ type: 'playerStop' });
+        }
+        debugMoves('in:MOVE_SYNC', { ackSeq, x, y, tick, flags });
+    }
+
     receiveChunkSnapshot(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT>): void {
         const [, chunkX, chunkY, version, payloadBytes] = data;
         if (

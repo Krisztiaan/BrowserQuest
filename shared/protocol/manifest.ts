@@ -96,6 +96,12 @@ export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
         schema: { kind: 'oneOf', options: [{ args: ['n', 'n', 'n'] }, { args: ['n', 's', 's'] }] },
     },
     {
+        key: 'MOVE_SYNC',
+        opcode: Types.Messages.MOVE_SYNC,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n', 'n', 'n', 'n'] },
+    },
+    {
         key: 'CHUNK_SNAPSHOT',
         opcode: Types.Messages.CHUNK_SNAPSHOT,
         direction: 'server_to_client',

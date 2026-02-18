@@ -80,6 +80,7 @@ const protocolContract: ProtocolContract = {
     MSG_REJECT: Types.Messages.REJECT,
     MSG_ACK: Types.Messages.ACK,
     MSG_CORRECTION: Types.Messages.CORRECTION,
+    MSG_MOVE_SYNC: Types.Messages.MOVE_SYNC,
     MSG_CHUNK_SUBSCRIBE: Types.Messages.CHUNK_SUBSCRIBE,
     MSG_CHUNK_UNSUBSCRIBE: Types.Messages.CHUNK_UNSUBSCRIBE,
     MSG_CHUNK_SNAPSHOT: Types.Messages.CHUNK_SNAPSHOT,
@@ -154,6 +155,7 @@ export const MSG_OUTCOME = protocolContract.MSG_OUTCOME;
 export const MSG_REJECT = protocolContract.MSG_REJECT;
 export const MSG_ACK = protocolContract.MSG_ACK;
 export const MSG_CORRECTION = protocolContract.MSG_CORRECTION;
+export const MSG_MOVE_SYNC = protocolContract.MSG_MOVE_SYNC;
 export const MSG_CHUNK_SUBSCRIBE = protocolContract.MSG_CHUNK_SUBSCRIBE;
 export const MSG_CHUNK_UNSUBSCRIBE = protocolContract.MSG_CHUNK_UNSUBSCRIBE;
 export const MSG_CHUNK_SNAPSHOT = protocolContract.MSG_CHUNK_SNAPSHOT;

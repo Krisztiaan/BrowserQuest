@@ -42,6 +42,7 @@ export const GAMECLIENT_INBOUND_HANDLER_OPCODES = [
     Types.Messages.REJECT,
     Types.Messages.ACK,
     Types.Messages.CORRECTION,
+    Types.Messages.MOVE_SYNC,
     Types.Messages.CHUNK_SNAPSHOT,
     Types.Messages.CHUNK_SNAPSHOT_PART,
     Types.Messages.CHUNK_DELTA,

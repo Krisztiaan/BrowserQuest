@@ -299,6 +299,25 @@ export class ClientWorldKernel {
         return true;
     }
 
+    pruneClientPendingMoveSeqAcksUpTo(seq: number): boolean {
+        const pending = this.clientPendingMoveSeqAcks;
+        if (pending.length === 0) {
+            return false;
+        }
+        let lastIndex = -1;
+        for (let i = 0; i < pending.length; i += 1) {
+            const entry = pending[i];
+            if (typeof entry === 'number' && entry <= seq) {
+                lastIndex = i;
+            }
+        }
+        if (lastIndex < 0) {
+            return false;
+        }
+        pending.splice(0, lastIndex + 1);
+        return true;
+    }
+
     clearClientPendingMoveSeqAcks(): void {
         this.clientPendingMoveSeqAcks.length = 0;
     }

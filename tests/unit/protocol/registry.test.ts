@@ -80,6 +80,7 @@ test('server-to-client protocol registry stays aligned with canonical opcode set
         Types.Messages.REJECT,
         Types.Messages.ACK,
         Types.Messages.CORRECTION,
+        Types.Messages.MOVE_SYNC,
         Types.Messages.CHUNK_SNAPSHOT,
         Types.Messages.CHUNK_SNAPSHOT_PART,
         Types.Messages.CHUNK_DELTA,

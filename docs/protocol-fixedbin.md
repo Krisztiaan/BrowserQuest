@@ -377,6 +377,17 @@ Body:
   - `0`: move correction: `Pos20 pos`
   - `1`: string correction: `S a`, `S b`
 
+#### `MOVE_SYNC` (39)
+
+Local-player authoritative movement reconciliation (sent only to the owning player connection).
+
+Body:
+- `varu32 ackSeq` (highest accepted client intent seq for this player)
+- `Pos20 pos` (authoritative player position)
+- `varu32 tick` (server tick at send time)
+- `u8 flags`
+  - bit0: `suppressed` (client should stop predicting until next input)
+
 #### `CHUNK_SNAPSHOT` (36)
 
 Body:

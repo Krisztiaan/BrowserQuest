@@ -103,6 +103,7 @@ export type ServerToClientChunkDeltaAction = [
     number,
     number[] | Uint8Array,
 ];
+export type ServerToClientMoveSyncAction = [typeof Types.Messages.MOVE_SYNC, number, number, number, number, number];
 
 export type ServerToClientProtocolAction =
     | ServerToClientWelcomeAction
@@ -128,6 +129,7 @@ export type ServerToClientProtocolAction =
     | ServerToClientRejectAction
     | ServerToClientAckAction
     | ServerToClientCorrectionAction
+    | ServerToClientMoveSyncAction
     | ServerToClientChunkSnapshotAction
     | ServerToClientChunkSnapshotPartAction
     | ServerToClientChunkDeltaAction;
@@ -170,6 +172,7 @@ export const PROTOCOL_CONTRACT_NUMERIC_KEYS = [
     'MSG_REJECT',
     'MSG_ACK',
     'MSG_CORRECTION',
+    'MSG_MOVE_SYNC',
     'MSG_CHUNK_SUBSCRIBE',
     'MSG_CHUNK_UNSUBSCRIBE',
     'MSG_CHUNK_SNAPSHOT',

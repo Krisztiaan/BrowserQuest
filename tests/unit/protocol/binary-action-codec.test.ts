@@ -34,6 +34,7 @@ test('custom-efficient runtime action codec round-trips server action batches', 
         [Types.Messages.POPULATION, 12, 33],
         [Types.Messages.HP, 120],
         [Types.Messages.REJECT, 9, 'move.step', 'Invalid move.step (non-adjacent).'],
+        [Types.Messages.MOVE_SYNC, 9, 155, 114, 1234, 1],
     ];
 
     const encoded = encodeBinaryActionBatchPayload(batch);

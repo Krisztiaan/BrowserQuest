@@ -35,6 +35,7 @@ import {
     buildHpAction,
     buildLootMoveAction,
     buildMoveAction,
+    buildMoveSyncAction,
     buildCorrectionMoveAction,
     buildRejectAction,
     buildTeleportAction,
@@ -118,6 +119,7 @@ type JsonScalar = string | number | boolean | null;
 type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
 
 export const CHUNK_OVERLAY_STORE_RESOURCE = createResourceKey<ChunkOverlayStore>('chunk_overlay_store');
+export const MOVE_SYNC_STATE_RESOURCE = createResourceKey<Map<EntityId, number>>('move_sync_state');
 
 const HEALING_ITEM_POINTS_BY_KIND: Partial<Record<EntityKind, number>> = {
     [Types.Entities.FLASK]: 40,
@@ -1479,7 +1481,14 @@ function applyTeleportOutcome({
 
     const teleport = buildTeleportAction(playerId, to.x, to.y);
     const outbox = state.resources.require(OUTBOX_RESOURCE);
+    const seqState = state.resources.require(INTENT_SEQ_STATE_RESOURCE);
+    const moveSyncState = state.resources.require(MOVE_SYNC_STATE_RESOURCE);
+    const ackSeq = seqState.lastAcceptedByPlayerId.get(playerId) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
+    // Teleports are authoritative corrections; stop predicting until the next input.
+    const moveSync = buildMoveSyncAction(ackSeq, to.x, to.y, ctx.tick, 1);
+    moveSyncState.set(playerId, ctx.tick);
     outbox.push({ kind: 'to_player', playerId, action: teleport });
+    outbox.push({ kind: 'to_player', playerId, action: moveSync });
     outbox.push({ kind: 'broadcast_nearby', actorId: playerId, ignoredPlayerId: playerId, action: teleport });
 
     state.world.removeComponent(playerId, movement.MoveQueue);
@@ -1617,6 +1626,7 @@ function createApplyInboundCommandsSystem(
                     applyChatCommand(state, player.id, cmd);
                     break;
                 case 'INTENT': {
+                    const lastAccepted = seqState.lastAcceptedByPlayerId.get(player.id) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
                     const reject = (reason: string) => {
                         world.pushToPlayerId(cmd.source.playerId, buildRejectAction(cmd.seq, cmd.intentTypeId, reason));
                     };
@@ -1624,9 +1634,11 @@ function createApplyInboundCommandsSystem(
                     const correction = () => {
                         const pos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
                         world.pushToPlayerId(cmd.source.playerId, buildCorrectionMoveAction(cmd.seq, pos.x, pos.y));
+                        // Corrections are authoritative; stop prediction until the next input.
+                        world.pushToPlayerId(cmd.source.playerId, buildMoveSyncAction(lastAccepted, pos.x, pos.y, ctx.tick, 1));
+                        state.resources.require(MOVE_SYNC_STATE_RESOURCE).set(player.id, ctx.tick);
                     };
 
-                    const lastAccepted = seqState.lastAcceptedByPlayerId.get(player.id) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
                     const seqDecision = classifyIntentSeq({
                         seq: cmd.seq,
                         lastAccepted,
@@ -1917,6 +1929,7 @@ export class WorldEcsCommandPipeline {
         this.state.resources.set(INTEREST_TRACKER_RESOURCE, new InterestTracker());
         this.state.resources.set(RESPAWN_TASKS_RESOURCE, []);
         this.state.resources.set(INTENT_SEQ_STATE_RESOURCE, createIntentSeqState());
+        this.state.resources.set(MOVE_SYNC_STATE_RESOURCE, new Map());
         this.state.resources.set(CHUNK_AOI_STATE_RESOURCE, createChunkAoiState());
         this.state.resources.set(CHUNK_OVERLAY_STORE_RESOURCE, this.chunkOverlays);
         this.state.resources.set(CLAIMS_STORE_RESOURCE, new ClaimsStore());
@@ -2063,6 +2076,9 @@ export class WorldEcsCommandPipeline {
             const { MoveQueue, NextMoveTick } = this.movement;
             const { HitPoints } = this.combat;
             const outbox = state.resources.require(OUTBOX_RESOURCE);
+            const seqState = state.resources.require(INTENT_SEQ_STATE_RESOURCE);
+            const moveSyncState = state.resources.require(MOVE_SYNC_STATE_RESOURCE);
+            const MOVE_SYNC_CADENCE_TICKS = 6;
 
             const ups = Math.max(1, this.#world.ups);
             const positionKey = (x: number, y: number) => `${x},${y}`;
@@ -2080,12 +2096,28 @@ export class WorldEcsCommandPipeline {
                 occupiedBy.set(positionKey(pos.x, pos.y), id);
             });
 
+            const pushMoveSync = (playerId: EntityId, pos: GridPos, flags: number, force: boolean) => {
+                const lastSent = moveSyncState.get(playerId) ?? Number.NEGATIVE_INFINITY;
+                if (!force && ctx.tick - lastSent < MOVE_SYNC_CADENCE_TICKS) {
+                    return;
+                }
+                const ackSeq =
+                    seqState.lastAcceptedByPlayerId.get(playerId) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
+                outbox.push({
+                    kind: 'to_player',
+                    playerId,
+                    action: buildMoveSyncAction(ackSeq, pos.x, pos.y, ctx.tick, flags),
+                });
+                moveSyncState.set(playerId, ctx.tick);
+            };
+
             const teleportCorrect = (playerId: EntityId, pos: GridPos) => {
                 outbox.push({
                     kind: 'to_player',
                     playerId,
                     action: buildTeleportAction(playerId, pos.x, pos.y),
                 });
+                pushMoveSync(playerId, pos, 1, true);
             };
 
             MoveQueue.store.forEach((playerId, queue) => {
@@ -2128,6 +2160,7 @@ export class WorldEcsCommandPipeline {
                 const occupant = occupiedBy.get(positionKey(next.x, next.y));
                 if (occupant !== undefined && occupant !== playerId) {
                     // Transient collision (another actor is occupying the next tile). Do not hard-correct; just wait.
+                    pushMoveSync(playerId, from, 1, false);
                     return;
                 }
 
@@ -2141,6 +2174,7 @@ export class WorldEcsCommandPipeline {
                 state.world.addComponent(playerId, Position, next);
 
                 outbox.push({ kind: 'to_player', playerId, action: buildMoveAction(playerId, next.x, next.y) });
+                pushMoveSync(playerId, next, 0, true);
                 state.events.push({ type: 'ENTITY_MOVED', entityId: playerId, to: next });
 
                 const doorDestination = this.#world.map.getDoorDestination(next.x, next.y);
@@ -2702,6 +2736,7 @@ export class WorldEcsCommandPipeline {
 
     removeEntity(id: EntityId): void {
         this.state.resources.get(INTENT_SEQ_STATE_RESOURCE)?.lastAcceptedByPlayerId.delete(id);
+        this.state.resources.get(MOVE_SYNC_STATE_RESOURCE)?.delete(id);
         this.state.resources.get(INTEREST_TRACKER_RESOURCE)?.clearObserver(id);
         if (this.state.world.entities.isAlive(id)) {
             this.state.world.destroyEntity(id);

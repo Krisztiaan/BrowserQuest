@@ -28,6 +28,7 @@ import type {
     ServerToClientChunkSnapshotAction,
     ServerToClientChunkSnapshotPartAction,
     ServerToClientChunkDeltaAction,
+    ServerToClientMoveSyncAction,
 } from '../../shared/protocol/types';
 
 export function buildWelcomeAction({
@@ -63,6 +64,16 @@ export function buildAckAction(seq: number): ServerToClientAckAction {
 
 export function buildCorrectionMoveAction(seq: number, x: number, y: number): ServerToClientCorrectionAction {
     return [Types.Messages.CORRECTION, seq, x, y];
+}
+
+export function buildMoveSyncAction(
+    ackSeq: number,
+    x: number,
+    y: number,
+    tick: number,
+    flags: number
+): ServerToClientMoveSyncAction {
+    return [Types.Messages.MOVE_SYNC, ackSeq, x, y, tick, flags];
 }
 
 export function buildChunkSnapshotAction(
