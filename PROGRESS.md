@@ -15,6 +15,17 @@ Format per entry:
 
 ## 2026-02-18
 
+- 12:35 UTC
+  - Ticket: (ticketization)
+  - Status: `done`
+  - Key actions taken:
+    - Ticketized movement prediction/reconciliation + WASD/click coexistence and the next protocol perf steps (Tickets 401-408) in `TODO.md`.
+    - Explicitly deferred WebTransport/WebRTC work until Safari supports WebTransport (not required for this cycle).
+  - Evidence:
+    - `git diff TODO.md`
+  - Next action:
+    - Start Ticket 401 implementation in dependency order.
+
 - 12:17 UTC
   - Ticket: 400 (Benchmark methodology: remove stringify cost from timed loops)
   - Status: `done`
