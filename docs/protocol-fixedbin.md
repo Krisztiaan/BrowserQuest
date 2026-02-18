@@ -1,6 +1,6 @@
-# FixedBin v1 (Fixed-Layout Gameplay Wire)
+# FixedBin v2 (Fixed-Layout Gameplay Wire)
 
-This document defines the FixedBin v1 gameplay transport format used over the gameplay WebSocket (binary frames only, no JSON fallback).
+This document defines the FixedBin v2 gameplay transport format used over the gameplay WebSocket (binary frames only, no JSON fallback).
 
 Goals:
 - Minimal over-the-wire size for this repo’s fixed opcode set.
@@ -52,6 +52,27 @@ Grid positions are packed into 20 bits:
 - Serialized as 3 bytes, little-endian: `b0 = packed & 0xFF`, `b1 = (packed >> 8) & 0xFF`, `b2 = (packed >> 16) & 0xFF`.
 
 This is smaller than `u16 x + u16 y` (3 bytes vs 4).
+
+### `IntentTypeId` (enum)
+
+FixedBin v2 encodes `intentTypeId` values as small numeric IDs:
+- `varu32 intentTypeId`
+
+The mapping is fixed and derived from `shared/protocol/intents.ts`:
+- `0`: `move.step`
+- `1`: `door.teleport`
+- `2`: `tile.edit`
+- `3`: `claim.create`
+- `4`: `claim.update`
+- `5`: `claim.delete`
+
+### `OutcomeTypeId` (enum)
+
+FixedBin v2 encodes `outcomeTypeId` values as small numeric IDs:
+- `varu32 outcomeTypeId`
+
+Current mapping:
+- `0`: `teleport.door`
 
 ### `Kind` (entity kind)
 
@@ -163,13 +184,13 @@ Body:
 
 Body:
 - `varu32 seq`
-- `S intentTypeId`
+- `IntentTypeId intentTypeId`
 - `varu32 payloadByteCount`
 - `payloadByteCount` × `u8` payload bytes (raw)
 
 Notes:
 - Payload bytes are the existing intent payload encoding in `shared/protocol/intents.ts` (already binary).
-- We keep `intentTypeId` as a string in v1 to avoid destabilizing module/intent extension flows. A later FixedBin revision can add a negotiated string-table to replace repeated intent/outcome/reject strings.
+- FixedBin v2 removes UTF-8 encoding for `intentTypeId` to cut encode/decode CPU and repeated wire bytes.
 
 #### `CHUNK_SUBSCRIBE` (34)
 
@@ -330,17 +351,14 @@ Body:
 
 Body:
 - `varu32 seq`
-- `S outcomeTypeId`
-- `S payload` (currently JSON string in v1)
-
-Note:
-- v1 preserves existing `OUTCOME` shape for compatibility.
+- `OutcomeTypeId outcomeTypeId`
+- `S payload` (currently JSON string)
 
 #### `REJECT` (31)
 
 Body:
 - `varu32 seq`
-- `S intentTypeId`
+- `IntentTypeId intentTypeId`
 - `S reason`
 
 #### `ACK` (32)

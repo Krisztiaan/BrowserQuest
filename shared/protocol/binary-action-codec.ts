@@ -7,6 +7,15 @@ import {
 } from './binary-wire';
 import { ENTITY_KIND_DOMAIN } from '../entity-kind-domain';
 import Types from '../gametypes-browser';
+import {
+    INTENT_CLAIM_CREATE,
+    INTENT_CLAIM_DELETE,
+    INTENT_CLAIM_UPDATE,
+    INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_STEP,
+    INTENT_TILE_EDIT,
+    OUTCOME_DOOR_TELEPORT,
+} from './intents';
 import { CLIENT_TO_SERVER_PROTOCOL_MANIFEST, SERVER_TO_CLIENT_PROTOCOL_MANIFEST } from './manifest';
 
 type WireAction = readonly [number, ...unknown[]];
@@ -25,6 +34,63 @@ const SPAWN_FLAG_HAS_NAME = 1 << 0;
 const SPAWN_FLAG_HAS_ORIENTATION = 1 << 1;
 const SPAWN_FLAG_HAS_EQUIPMENT = 1 << 2;
 const SPAWN_FLAG_HAS_TARGET = 1 << 3;
+
+const WIRE_INTENT_TYPE_IDS = [
+    INTENT_MOVE_STEP,
+    INTENT_DOOR_TELEPORT,
+    INTENT_TILE_EDIT,
+    INTENT_CLAIM_CREATE,
+    INTENT_CLAIM_UPDATE,
+    INTENT_CLAIM_DELETE,
+] as const;
+
+const WIRE_OUTCOME_TYPE_IDS = [OUTCOME_DOOR_TELEPORT] as const;
+
+const WIRE_INTENT_TYPE_ID_TO_ID = new Map<string, number>(
+    WIRE_INTENT_TYPE_IDS.map((value, index) => [value, index])
+);
+
+const WIRE_OUTCOME_TYPE_ID_TO_ID = new Map<string, number>(
+    WIRE_OUTCOME_TYPE_IDS.map((value, index) => [value, index])
+);
+
+function encodeWireIntentTypeId(intentTypeId: unknown): number {
+    if (typeof intentTypeId !== 'string') {
+        throw new Error('invalid intent type');
+    }
+    const id = WIRE_INTENT_TYPE_ID_TO_ID.get(intentTypeId);
+    if (id === undefined) {
+        throw new Error(`unknown intent type: ${intentTypeId}`);
+    }
+    return id >>> 0;
+}
+
+function decodeWireIntentTypeId(id: number): string {
+    const value = WIRE_INTENT_TYPE_IDS[id];
+    if (value === undefined) {
+        throw new Error('unknown intent type id');
+    }
+    return value;
+}
+
+function encodeWireOutcomeTypeId(outcomeTypeId: unknown): number {
+    if (typeof outcomeTypeId !== 'string') {
+        throw new Error('invalid outcome type');
+    }
+    const id = WIRE_OUTCOME_TYPE_ID_TO_ID.get(outcomeTypeId);
+    if (id === undefined) {
+        throw new Error(`unknown outcome type: ${outcomeTypeId}`);
+    }
+    return id >>> 0;
+}
+
+function decodeWireOutcomeTypeId(id: number): string {
+    const value = WIRE_OUTCOME_TYPE_IDS[id];
+    if (value === undefined) {
+        throw new Error('unknown outcome type id');
+    }
+    return value;
+}
 
 function coerceInputToBytes(payload: ArrayBuffer | Uint8Array): Uint8Array {
     if (payload instanceof Uint8Array) {
@@ -90,12 +156,15 @@ class ByteWriter {
         if (!Number.isInteger(value) || value < 0 || value > 0xffffffff) {
             throw new Error('invalid varu32');
         }
+        this.ensure(5);
         let remaining = value >>> 0;
         while (remaining >= 0x80) {
-            this.writeU8((remaining & 0x7f) | 0x80);
+            this.buffer[this.offset] = (remaining & 0x7f) | 0x80;
+            this.offset += 1;
             remaining >>>= 7;
         }
-        this.writeU8(remaining);
+        this.buffer[this.offset] = remaining & 0xff;
+        this.offset += 1;
     }
 
     writeString(value: string): void {
@@ -112,9 +181,11 @@ class ByteWriter {
             throw new Error(`invalid pos20: (${String(x)}, ${String(y)})`);
         }
         const packed = ((x & 0x3ff) | ((y & 0x3ff) << 10)) >>> 0;
-        this.writeU8(packed & 0xff);
-        this.writeU8((packed >>> 8) & 0xff);
-        this.writeU8((packed >>> 16) & 0xff);
+        this.ensure(3);
+        this.buffer[this.offset] = packed & 0xff;
+        this.buffer[this.offset + 1] = (packed >>> 8) & 0xff;
+        this.buffer[this.offset + 2] = (packed >>> 16) & 0xff;
+        this.offset += 3;
     }
 
     toUint8Array(): Uint8Array {
@@ -134,7 +205,9 @@ class ByteReader {
     }
 
     readU8(): number {
-        this.require(1);
+        if (this.offset >= this.bytes.length) {
+            throw new Error('decode overflow');
+        }
         const value = this.bytes[this.offset] ?? 0;
         this.offset += 1;
         return value;
@@ -148,12 +221,19 @@ class ByteReader {
     }
 
     readVarU32(): number {
+        const bytes = this.bytes;
+        let offset = this.offset;
         let shift = 0;
         let value = 0;
         while (shift < 35) {
-            const byte = this.readU8();
+            if (offset >= bytes.length) {
+                throw new Error('decode overflow');
+            }
+            const byte = bytes[offset] ?? 0;
+            offset += 1;
             value |= (byte & 0x7f) << shift;
             if ((byte & 0x80) === 0) {
+                this.offset = offset;
                 return value >>> 0;
             }
             shift += 7;
@@ -365,12 +445,10 @@ function encodeClientToServerAction(writer: ByteWriter, action: WireAction): voi
             if (typeof seq !== 'number' || !Number.isInteger(seq) || seq < 0) {
                 throw new Error('invalid intent seq');
             }
-            if (typeof intentTypeId !== 'string') {
-                throw new Error('invalid intent type');
-            }
+            const intentTypeWireId = encodeWireIntentTypeId(intentTypeId);
             const bytes = toByteArray(payloadBytes);
             writer.writeVarU32(seq >>> 0);
-            writer.writeString(intentTypeId);
+            writer.writeVarU32(intentTypeWireId);
             writer.writeVarU32(bytes.length);
             writer.writeBytes(bytes);
             return;
@@ -570,10 +648,18 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             const a = action[2];
             const b = action[3];
             writer.writeVarU32(Number(seq) >>> 0);
-            if (typeof a !== 'string' || typeof b !== 'string') {
-                throw new Error('invalid outcome/reject strings');
+            if (opcode === Types.Messages.OUTCOME) {
+                writer.writeVarU32(encodeWireOutcomeTypeId(a));
+                if (typeof b !== 'string') {
+                    throw new Error('invalid outcome payload');
+                }
+                writer.writeString(b);
+                return;
             }
-            writer.writeString(a);
+            writer.writeVarU32(encodeWireIntentTypeId(a));
+            if (typeof b !== 'string') {
+                throw new Error('invalid reject reason');
+            }
             writer.writeString(b);
             return;
         }
@@ -714,7 +800,7 @@ function decodeClientToServerAction(reader: ByteReader): unknown[] {
             return [opcode];
         case Types.Messages.INTENT: {
             const seq = reader.readVarU32();
-            const intentTypeId = reader.readString();
+            const intentTypeId = decodeWireIntentTypeId(reader.readVarU32());
             const payloadLen = reader.readVarU32();
             const payload = reader.readBytes(payloadLen);
             return [opcode, seq, intentTypeId, Array.from(payload)];
@@ -841,9 +927,14 @@ function decodeServerToClientAction(reader: ByteReader): unknown[] {
         case Types.Messages.OUTCOME:
         case Types.Messages.REJECT: {
             const seq = reader.readVarU32();
-            const a = reader.readString();
-            const b = reader.readString();
-            return [opcode, seq, a, b];
+            if (opcode === Types.Messages.OUTCOME) {
+                const outcomeTypeId = decodeWireOutcomeTypeId(reader.readVarU32());
+                const payload = reader.readString();
+                return [opcode, seq, outcomeTypeId, payload];
+            }
+            const intentTypeId = decodeWireIntentTypeId(reader.readVarU32());
+            const reason = reader.readString();
+            return [opcode, seq, intentTypeId, reason];
         }
         case Types.Messages.CORRECTION: {
             const seq = reader.readVarU32();

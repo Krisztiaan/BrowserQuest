@@ -1,5 +1,5 @@
 /**
- * Binary gameplay wire contract (FixedBin v1).
+ * Binary gameplay wire contract (FixedBin v2).
  *
  * Header layout:
  * - byte 0: magic 'B' (0x42)
@@ -13,7 +13,8 @@ export const BINARY_WIRE_MAGIC_B = 0x42;
 export const BINARY_WIRE_MAGIC_Q = 0x51;
 
 export const BINARY_PROTOCOL_FIXEDBIN_V1 = 5 as const;
-export const BINARY_PROTOCOL_VERSION = BINARY_PROTOCOL_FIXEDBIN_V1;
+export const BINARY_PROTOCOL_FIXEDBIN_V2 = 6 as const;
+export const BINARY_PROTOCOL_VERSION = BINARY_PROTOCOL_FIXEDBIN_V2;
 
 export const BINARY_FRAME_KIND_ACTION_BATCH = 1 as const;
 
@@ -34,4 +35,4 @@ export type BinaryWireHeader = Readonly<{
  * No JSON gameplay frame fallback is kept after binary cutover verification.
  */
 export const BINARY_WIRE_NO_FALLBACK_POLICY =
-    'no-fallback gameplay WS transport after FixedBin v1 cutover verification' as const;
+    'no-fallback gameplay WS transport after FixedBin v2 cutover verification' as const;

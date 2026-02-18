@@ -15,6 +15,31 @@ Format per entry:
 
 ## 2026-02-18
 
+- 11:12 UTC
+  - Ticket: 396 (FixedBin v2: faster enc/dec primitives + intent/outcome enums)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Ticketized the FixedBin v2 performance follow-ups (Tickets 396-398) in `TODO.md`.
+  - Evidence:
+    - `git diff TODO.md`
+  - Next action:
+    - Implement FixedBin v2 wire changes in `shared/protocol/binary-action-codec.ts` + bump wire version in `shared/protocol/binary-wire.ts`, then re-run unit + smoke verification.
+
+- 11:32 UTC
+  - Ticket: 396 (FixedBin v2: faster enc/dec primitives + intent/outcome enums)
+  - Status: `done`
+  - Key actions taken:
+    - Bumped gameplay binary wire version to FixedBin v2 (`BINARY_PROTOCOL_FIXEDBIN_V2 = 6`).
+    - Reduced INTENT/OUTCOME/REJECT wire overhead by encoding `intentTypeId`/`outcomeTypeId` as small `varu32` enums (no UTF-8 strings).
+    - Optimized FixedBin primitives (`varu32`, `Pos20`, `readU8`) to reduce inner-loop method calls.
+    - Updated `docs/protocol-fixedbin.md` to FixedBin v2 layouts for INTENT/OUTCOME/REJECT.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/ws/runtime-parity.test.ts --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Implement binary chunk snapshot/delta payloads (Ticket 397).
+
 - 10:46 UTC
   - Ticket: 392 (FixedBin v1 spec + invariants)
   - Status: `in_progress`
