@@ -3719,3 +3719,27 @@ Format per entry:
     - `rg -n "BINARY_PROTOCOL_V1|wire contract|no-fallback" shared/protocol docs TODO.md`
   - Next action:
     - Execute Ticket 365 (shared binary action codec implementation).
+
+- 01:33 UTC
+  - Ticket: 365 (Shared binary action codec implementation)
+  - Start timestamp: 2026-02-18 01:29 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added shared binary action codec implementation in `shared/protocol/binary-action-codec.ts`:
+      - versioned binary frame header validation (`BQ`, version, frame kind, payload length),
+      - MessagePack-subset encode/decode for protocol action batches.
+    - Extended `shared/protocol/registry.ts` with binary helpers for both directions:
+      - `decodeClientToServerProtocolActionBatchBinary`,
+      - `decodeServerToClientProtocolActionBatchBinary`,
+      - `encodeProtocolActionBinary`,
+      - `encodeProtocolActionBatchBinary`.
+    - Added regression coverage in `tests/unit/protocol/registry.test.ts` for:
+      - binary roundtrip of valid client/server protocol batches,
+      - malformed/truncated frame rejection.
+    - Removed Ticket 365 from `TODO.md` after verification.
+  - Evidence:
+    - `bun test tests/unit/protocol/registry.test.ts tests/unit/mmo/protocol-chunks-schema.test.ts tests/unit/mmo/protocol-seq-ack-schema.test.ts`
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 shared/protocol/registry.ts shared/protocol/*.ts`
+  - Next action:
+    - Execute Ticket 366 (WS runtime/client transport binary cutover).

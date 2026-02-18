@@ -4,6 +4,7 @@ import type {
     ServerToClientProtocolAction,
 } from './types';
 import { checkClientToServerProtocolAction, isServerToClientProtocolAction } from './schema';
+import { decodeBinaryActionBatchPayload, encodeBinaryActionBatchPayload } from './binary-action-codec';
 import {
     CLIENT_TO_SERVER_PROTOCOL_MANIFEST,
     PROTOCOL_MANIFEST,
@@ -65,6 +66,14 @@ export function decodeClientToServerProtocolActionBatch(payload: string): Client
     return normalizeClientToServerProtocolActionBatch(safeParseJson(payload));
 }
 
+export function decodeClientToServerProtocolActionBatchBinary(payload: ArrayBuffer | Uint8Array): ClientToServerProtocolAction[] {
+    try {
+        return normalizeClientToServerProtocolActionBatch(decodeBinaryActionBatchPayload(payload));
+    } catch {
+        return [];
+    }
+}
+
 export function decodeServerToClientProtocolAction(value: ProtocolDecodeInput): ServerToClientProtocolAction | null {
     const candidate = value as Parameters<typeof isServerToClientProtocolAction>[0];
     return isServerToClientProtocolAction(candidate) ? candidate : null;
@@ -96,10 +105,26 @@ export function decodeServerToClientProtocolActionBatch(payload: string): Server
     return normalizeServerToClientProtocolActionBatch(safeParseJson(payload));
 }
 
+export function decodeServerToClientProtocolActionBatchBinary(payload: ArrayBuffer | Uint8Array): ServerToClientProtocolAction[] {
+    try {
+        return normalizeServerToClientProtocolActionBatch(decodeBinaryActionBatchPayload(payload));
+    } catch {
+        return [];
+    }
+}
+
 export function encodeProtocolAction(action: ProtocolAction): string {
     return JSON.stringify(action);
 }
 
 export function encodeProtocolActionBatch(actions: ReadonlyArray<ProtocolAction>): string {
     return JSON.stringify(actions);
+}
+
+export function encodeProtocolActionBinary(action: ProtocolAction): Uint8Array {
+    return encodeBinaryActionBatchPayload([action]);
+}
+
+export function encodeProtocolActionBatchBinary(actions: ReadonlyArray<ProtocolAction>): Uint8Array {
+    return encodeBinaryActionBatchPayload(actions);
 }

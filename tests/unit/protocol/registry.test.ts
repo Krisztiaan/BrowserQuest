@@ -10,10 +10,14 @@ import {
     SERVER_TO_CLIENT_PROTOCOL_REGISTRY,
     decodeClientToServerProtocolAction,
     decodeClientToServerProtocolActionBatch,
+    decodeClientToServerProtocolActionBatchBinary,
     decodeServerToClientProtocolAction,
     decodeServerToClientProtocolActionBatch,
+    decodeServerToClientProtocolActionBatchBinary,
     encodeProtocolAction,
     encodeProtocolActionBatch,
+    encodeProtocolActionBatchBinary,
+    encodeProtocolActionBinary,
     normalizeClientToServerProtocolActionBatch,
     normalizeServerToClientProtocolActionBatch,
 } from '../../../shared/protocol/registry';
@@ -139,6 +143,29 @@ test('registry encode helpers preserve protocol action payload shapes', () => {
     expect(encodeProtocolActionBatch([[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', '{"x":7,"y":8}']])).toBe(
         JSON.stringify([[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', '{"x":7,"y":8}']])
     );
+});
+
+test('registry binary helpers round-trip valid protocol batches', () => {
+    const clientBatch = [[Types.Messages.ZONE], [Types.Messages.INTENT, 7, 'move.step', '{"x":7,"y":8}']] as const;
+    const serverBatch = [[Types.Messages.POPULATION, 3, 10], [Types.Messages.HP, 100]] as const;
+
+    expect(decodeClientToServerProtocolActionBatchBinary(encodeProtocolActionBatchBinary(clientBatch))).toEqual(clientBatch);
+    expect(decodeServerToClientProtocolActionBatchBinary(encodeProtocolActionBatchBinary(serverBatch))).toEqual(serverBatch);
+    expect(decodeClientToServerProtocolActionBatchBinary(encodeProtocolActionBinary([Types.Messages.ZONE]))).toEqual([
+        [Types.Messages.ZONE],
+    ]);
+});
+
+test('registry binary decoders reject malformed frame payloads', () => {
+    const encoded = encodeProtocolActionBatchBinary([[Types.Messages.ZONE]]);
+    const wrongMagic = encoded.slice();
+    wrongMagic[0] = 0x00;
+    const truncated = encoded.slice(0, encoded.length - 1);
+
+    expect(decodeClientToServerProtocolActionBatchBinary(wrongMagic)).toEqual([]);
+    expect(decodeServerToClientProtocolActionBatchBinary(wrongMagic)).toEqual([]);
+    expect(decodeClientToServerProtocolActionBatchBinary(truncated)).toEqual([]);
+    expect(decodeServerToClientProtocolActionBatchBinary(truncated)).toEqual([]);
 });
 
 test('player session dispatch opcode coverage stays aligned with client-to-server registry', () => {

@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:29 UTC
+Last updated: 2026-02-18 01:31 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,23 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 365 - Shared binary action codec implementation (`todo`)
-  - Scope:
-    - Included: add shared encoder/decoder for client<->server protocol action batches on binary frames (top-level protocol arrays).
-    - Included: preserve existing opcode semantics from `shared/protocol/registry.ts` while replacing JSON string transport for gameplay WS payloads.
-    - Included: strict decode guards for malformed/truncated payloads.
-    - Out of scope: nested intent payload schema changes.
-  - Acceptance criteria:
-    - Round-trip encode/decode coverage exists for representative inbound/outbound action batches.
-    - Decoder rejects malformed payloads without crashing runtime.
-    - Binary codec is available from shared protocol entrypoints for both client and server use.
-  - Verification plan:
-    - `bun test tests/unit/protocol/registry.test.ts tests/unit/mmo/protocol-chunks-schema.test.ts tests/unit/mmo/protocol-seq-ack-schema.test.ts`
-    - `bun run typecheck`
-    - `bun x eslint --max-warnings=0 shared/protocol/registry.ts shared/protocol/*.ts`
-  - Dependencies/blockers:
-    - Depends on Ticket 364.
 
 - Ticket 366 - WS runtime/client transport binary cutover (`todo`)
   - Scope:
