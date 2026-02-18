@@ -96,6 +96,36 @@ Format per entry:
   - Next action:
     - Execute Ticket 407 (binary decode/apply allocation reduction: decode+dispatch fast path for hot S2C opcodes).
 
+- 20:24 UTC
+  - Ticket: 407 (Binary codec perf vNext: reduce allocations and per-field overhead in FixedBin decode/apply)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited FixedBin decode hot spots: `ENTITY_STATE_BATCH` decoding allocated a large action tuple and then the client looped it again to apply positions.
+    - Designed a dispatch API that can stream `ENTITY_STATE_BATCH` entries directly into runtime apply code without building the giant tuple.
+  - Evidence:
+    - `rg -n "ENTITY_STATE_BATCH" shared/protocol/binary-action-codec.ts client/gameclient.ts`
+  - Next action:
+    - Implement `dispatchBinaryActionBatchPayload`, integrate it into `client/gameclient.ts` receive path, and update protocol bench to measure dispatch decode.
+
+- 20:35 UTC
+  - Ticket: 407 (Binary codec perf vNext: reduce allocations and per-field overhead in FixedBin decode/apply)
+  - Status: `done`
+  - Key actions taken:
+    - Refactored FixedBin action decode to support opcode-known decode helpers and added `skip*` decoders for allocation-free parsing.
+    - Added `dispatchBinaryActionBatchPayload`:
+      - Allocation-free parse path by default (skip-only).
+      - Optional streaming hook for `ENTITY_STATE_BATCH` entries to avoid allocating the large tuple.
+    - Switched client inbound binary receive path to use dispatch streaming for `ENTITY_STATE_BATCH` (no large tuple allocation; single pass apply into kernel).
+    - Updated `tools/bench/protocol-wire.ts` to add `fixedbin-v2-*-dispatch` rows measuring the dispatch decode path.
+    - Added unit coverage ensuring dispatch streams `ENTITY_STATE_BATCH` entries and still forwards other actions when requested.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+    - `bun tools/bench/protocol-wire.ts`
+  - Next action:
+    - Execute Ticket 408 (latency/jitter harness + movement/replication corpora refresh).
+
 - 19:08 UTC
   - Ticket: 403 (Client click-to-move v2: send `move.to` once per click + prediction/reconcile)
   - Status: `done`

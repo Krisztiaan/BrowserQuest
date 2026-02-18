@@ -1,6 +1,11 @@
 import { expect, test } from 'bun:test';
 import Types from '../../../shared/gametypes-browser';
-import { decodeBinaryActionBatchPayload, encodeBinaryActionBatchPayload } from '../../../shared/protocol/binary-action-codec';
+import {
+    decodeBinaryActionBatchPayload,
+    dispatchBinaryActionBatchPayload,
+    encodeBinaryActionBatchPayload,
+    encodeServerToClientBinaryActionBatchPayload,
+} from '../../../shared/protocol/binary-action-codec';
 import { encodeMoveInputIntentPayload, encodeMoveToIntentPayload } from '../../../shared/protocol/intents';
 
 function normalizeBinaryValues(value: unknown): unknown {
@@ -59,4 +64,22 @@ test('custom-efficient runtime action codec rejects malformed payload tokens', (
     corrupted[8] = 0xff;
 
     expect(() => decodeBinaryActionBatchPayload(corrupted)).toThrow();
+});
+
+test('fixedbin dispatch fast path streams ENTITY_STATE_BATCH entries without allocating an action tuple', () => {
+    const batch: unknown[] = [
+        [Types.Messages.ENTITY_STATE_BATCH, 1234, 2, 174, 155, 114, 0, 184, 156, 114, 0],
+        [Types.Messages.ACK, 7],
+    ];
+    const frame = encodeServerToClientBinaryActionBatchPayload(batch);
+
+    const entries: number[] = [];
+    const actions: unknown[][] = [];
+    dispatchBinaryActionBatchPayload(frame, {
+        onServerAction: (action) => actions.push(action),
+        onEntityStateBatchEntry: (id, x, y, flags) => entries.push(id, x, y, flags),
+    });
+
+    expect(entries).toEqual([174, 155, 114, 0, 184, 156, 114, 0]);
+    expect(actions).toEqual([[Types.Messages.ACK, 7]]);
 });

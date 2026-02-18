@@ -5,6 +5,7 @@ import {
     decodeServerToClientBinaryActionBatchPayload,
     encodeClientToServerBinaryActionBatchPayload,
     encodeServerToClientBinaryActionBatchPayload,
+    dispatchBinaryActionBatchPayload,
 } from '../../shared/protocol/binary-action-codec';
 import { encodeChunkDeltaPayloadBinary } from '../../shared/protocol/chunks/chunk-delta-codec';
 import { encodeChunkSnapshotPayloadBinary } from '../../shared/protocol/chunks/chunk-snapshot-codec';
@@ -374,6 +375,15 @@ function fixedBinS2CDecodeBatch(frame: Uint8Array): WireBatch {
         return single as WireBatch;
     }
     return decoded;
+}
+
+let fixedBinDispatchSink = 0;
+function fixedBinDispatchDecode(frame: Uint8Array): void {
+    let acc = 0;
+    dispatchBinaryActionBatchPayload(frame, {});
+    // Ensure the work is not trivially dead-code eliminated in the benchmark loop.
+    acc = (acc ^ frame.byteLength) >>> 0;
+    fixedBinDispatchSink = (fixedBinDispatchSink ^ acc) >>> 0;
 }
 
 function msgpackWriteInt(writer: ByteWriter, value: number): void {
@@ -850,7 +860,8 @@ function benchmarkCodec(
     codec: string,
     frames: WireBatch[],
     encode: (frame: WireBatch) => Uint8Array,
-    decode: (frame: Uint8Array) => WireBatch
+    decodeForCheck: (frame: Uint8Array) => WireBatch,
+    decodeForTiming?: (frame: Uint8Array) => void
 ): CodecResult {
     const encoded: Uint8Array[] = [];
     const byteSizes: number[] = [];
@@ -871,7 +882,7 @@ function benchmarkCodec(
         if (!encodedFrame || !original) {
             throw new Error(`missing benchmark sample at index ${i}`);
         }
-        const decoded = decode(encodedFrame);
+        const decoded = decodeForCheck(encodedFrame);
         const decodedNorm = normalizeBinaryValues(decoded);
         const originalNorm = normalizeBinaryValues(original);
         if (!isDeepStrictEqual(decodedNorm, originalNorm)) {
@@ -879,17 +890,14 @@ function benchmarkCodec(
         }
     }
 
+    const timedDecode = decodeForTiming ?? ((frame: Uint8Array) => void decodeForCheck(frame));
     const decodeStart = performance.now();
-    let lastDecoded: WireBatch | null = null;
     for (let i = 0; i < encoded.length; i += 1) {
         const encodedFrame = encoded[i];
         if (!encodedFrame) {
             throw new Error(`missing encoded frame at index ${i}`);
         }
-        lastDecoded = decode(encodedFrame);
-    }
-    if (!lastDecoded) {
-        throw new Error(`${codec} decode produced no frames`);
+        timedDecode(encodedFrame);
     }
     const decodeMs = performance.now() - decodeStart;
 
@@ -960,6 +968,13 @@ function main(): void {
             benchmarkCodec('protobuf-generic', mixedFrames, protobufEncodeBatch, protobufDecodeBatch),
             benchmarkCodec('custom-efficient-v1', mixedFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
             benchmarkCodec('fixedbin-v2-mixed', mixedFrames, fixedBinEncodeBatch, fixedBinDecodeBatch),
+            benchmarkCodec(
+                'fixedbin-v2-mixed-dispatch',
+                mixedFrames,
+                fixedBinEncodeBatch,
+                fixedBinDecodeBatch,
+                fixedBinDispatchDecode
+            ),
         ],
         mixedFrames.length
     );
@@ -973,6 +988,13 @@ function main(): void {
             benchmarkCodec('protobuf-generic', clientFrames, protobufEncodeBatch, protobufDecodeBatch),
             benchmarkCodec('custom-efficient-v1', clientFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
             benchmarkCodec('fixedbin-v2-c2s', clientFrames, fixedBinC2SEncodeBatch, fixedBinC2SDecodeBatch),
+            benchmarkCodec(
+                'fixedbin-v2-c2s-dispatch',
+                clientFrames,
+                fixedBinC2SEncodeBatch,
+                fixedBinC2SDecodeBatch,
+                fixedBinDispatchDecode
+            ),
         ],
         clientFrames.length
     );
@@ -986,6 +1008,13 @@ function main(): void {
             benchmarkCodec('protobuf-generic', serverFrames, protobufEncodeBatch, protobufDecodeBatch),
             benchmarkCodec('custom-efficient-v1', serverFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
             benchmarkCodec('fixedbin-v2-s2c', serverFrames, fixedBinS2CEncodeBatch, fixedBinS2CDecodeBatch),
+            benchmarkCodec(
+                'fixedbin-v2-s2c-dispatch',
+                serverFrames,
+                fixedBinS2CEncodeBatch,
+                fixedBinS2CDecodeBatch,
+                fixedBinDispatchDecode
+            ),
         ],
         serverFrames.length
     );

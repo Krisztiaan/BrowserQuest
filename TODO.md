@@ -34,30 +34,8 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 406 - Server-to-client perf: vectorized “entity state” replication (SoA) for hot movement/tick updates
-- Ticket 407 - Binary codec perf vNext: reduce allocations and per-field overhead in FixedBin decode/apply
-  - Status: `in_progress`
-  - Scope:
-    - Included: Implement a “decode+dispatch” fast path for hot S2C opcodes:
-      - Decode directly from `ByteReader` into kernel/apply routines (no `unknown[]` allocation per action).
-      - Keep the existing exported helpers as the compatibility boundary for tests/tools; runtime can use the fast path.
-    - Included: Eliminate avoidable copies in binary decode:
-      - Ensure `ByteReader.readBytes` returns `subarray` views for payload blobs (already true); avoid any caller converting to JS arrays.
-      - Prefer `Uint8Array` byte payloads at protocol boundaries (already in Ticket 399) and keep them unconverted.
-    - Included: Keep wire contract (FixedBin v2 / binary v6) unless a bump is justified by measured wins.
-    - Out of scope: WASM codecs (we are not paying WASM boundary cost here).
-  - Acceptance criteria:
-    - Bench shows FixedBin decode improves measurably on S2C and mixed corpora without breaking correctness.
-    - Unit protocol/registry tests pass.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts --timeout 30000`
-    - `bun tools/bench/protocol-wire.ts`
-  - Dependencies/blockers:
-    - Recommended after Ticket 406 (so new hot S2C shapes exist), but can be parallelized if scoped to existing opcodes.
-
 - Ticket 408 - Protocol measurement: latency/jitter harness + movement/replication corpora refresh
-  - Status: `todo`
+  - Status: `in_progress`
   - Scope:
     - Included: Add a repeatable harness for injecting client<->server delay/jitter and measuring:
       - input-to-motion latency for local player

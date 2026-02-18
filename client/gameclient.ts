@@ -26,9 +26,9 @@ import {
 import type { TypedEventSource } from '../shared/typed-event-emitter';
 import { Evented } from '../shared/evented';
 import {
-    decodeServerToClientProtocolActionBatchBinary,
     encodeClientToServerProtocolActionBinary,
 } from '../shared/protocol/registry';
+import { dispatchBinaryActionBatchPayload } from '../shared/protocol/binary-action-codec';
 import {
     DISPATCHER_CONNECT_STATUS,
     HANDSHAKE_CONTROL,
@@ -330,27 +330,42 @@ class GameClient extends Evented<GameClientEvents> {
             return;
         }
 
-        const actions = decodeServerToClientProtocolActionBatchBinary(message);
-        if (actions.length > 0) {
-            if (actions.length === 1) {
-                const action = actions[0];
-                if (action) {
-                    log.debug('data: ' + formatProtocolValueForLog(action));
-                }
-            } else {
-                log.debug('data: ' + formatProtocolValueForLog(actions));
-            }
-        }
-        if (actions.length === 1) {
-            const action = actions[0];
-            if (action) {
-                this.receiveAction(action);
-            }
+        const queued: ClientProtocolBatch = [];
+        let sawEntityState = false;
+        try {
+            dispatchBinaryActionBatchPayload(message, {
+                onServerAction: (action) => queued.push(action as ClientInboundProtocolAction),
+                onEntityStateBatchEntry: (wireId, x, y) => {
+                    sawEntityState = true;
+                    const local = this.localPlayerId;
+                    const entityId = entityIdFromWire(wireId);
+                    if (local !== null && entityId === local) {
+                        return;
+                    }
+                    this.kernel.setPosition(entityId, x, y);
+                },
+            });
+        } catch {
             return;
         }
 
-        if (actions.length > 1) {
-            this.receiveActionBatch(actions);
+        if (queued.length > 0) {
+            if (queued.length === 1) {
+                log.debug('data: ' + formatProtocolValueForLog(queued[0]));
+            } else {
+                log.debug('data: ' + formatProtocolValueForLog(queued));
+            }
+        } else if (sawEntityState) {
+            log.debug('data: [ENTITY_STATE_BATCH]');
+        }
+
+        if (queued.length === 1) {
+            const action = queued[0];
+            if (action) {
+                this.receiveAction(action);
+            }
+        } else if (queued.length > 1) {
+            this.receiveActionBatch(queued);
         }
     }
 

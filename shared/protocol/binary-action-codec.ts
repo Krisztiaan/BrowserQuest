@@ -789,6 +789,10 @@ function encodeBatch(actions: WireAction[], direction: Direction): Uint8Array {
 
 function decodeClientToServerAction(reader: ByteReader): unknown[] {
     const opcode = reader.readU8();
+    return decodeClientToServerActionFromOpcode(opcode, reader);
+}
+
+function decodeClientToServerActionFromOpcode(opcode: number, reader: ByteReader): unknown[] {
     switch (opcode) {
         case Types.Messages.HELLO: {
             const variant = reader.readU8();
@@ -853,6 +857,10 @@ function decodeClientToServerAction(reader: ByteReader): unknown[] {
 
 function decodeServerToClientAction(reader: ByteReader): unknown[] {
     const opcode = reader.readU8();
+    return decodeServerToClientActionFromOpcode(opcode, reader);
+}
+
+function decodeServerToClientActionFromOpcode(opcode: number, reader: ByteReader): unknown[] {
     switch (opcode) {
         case Types.Messages.WELCOME: {
             const variant = reader.readU8();
@@ -1034,6 +1042,230 @@ function decodeServerToClientAction(reader: ByteReader): unknown[] {
     }
 }
 
+function skipClientToServerActionFromOpcode(opcode: number, reader: ByteReader): void {
+    switch (opcode) {
+        case Types.Messages.HELLO: {
+            const variant = reader.readU8();
+            void reader.readString();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            if (variant === 1) {
+                void reader.readVarU32();
+                void reader.readString();
+            }
+            return;
+        }
+        case Types.Messages.LOOTMOVE: {
+            void reader.readPos20();
+            void reader.readVarU32();
+            return;
+        }
+        case Types.Messages.AGGRO:
+        case Types.Messages.ATTACK:
+        case Types.Messages.LOOT:
+        case Types.Messages.OPEN:
+        case Types.Messages.CHECK:
+        case Types.Messages.ACHIEVEMENT: {
+            void reader.readVarU32();
+            return;
+        }
+        case Types.Messages.CHAT: {
+            void reader.readString();
+            return;
+        }
+        case Types.Messages.WHO: {
+            const count = reader.readVarU32();
+            for (let i = 0; i < count; i += 1) {
+                void reader.readVarU32();
+            }
+            return;
+        }
+        case Types.Messages.ZONE:
+        case Types.Messages.CHUNK_UNSUBSCRIBE:
+            return;
+        case Types.Messages.INTENT: {
+            void reader.readVarU32(); // seq
+            void reader.readVarU32(); // intent type id
+            const payloadLen = reader.readVarU32();
+            void reader.readBytes(payloadLen);
+            return;
+        }
+        case Types.Messages.CHUNK_SUBSCRIBE: {
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            return;
+        }
+        default:
+            throw new Error(`unknown c2s opcode: ${opcode}`);
+    }
+}
+
+function skipServerToClientActionFromOpcode(opcode: number, reader: ByteReader): void {
+    switch (opcode) {
+        case Types.Messages.WELCOME: {
+            const variant = reader.readU8();
+            void reader.readVarU32();
+            void reader.readString();
+            void reader.readPos20();
+            void reader.readVarU32();
+            if (variant === 1) {
+                void reader.readVarU32();
+                void reader.readString();
+            }
+            return;
+        }
+        case Types.Messages.SPAWN: {
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readPos20();
+            const flags = reader.readU8();
+            if ((flags & SPAWN_FLAG_HAS_NAME) !== 0) {
+                void reader.readString();
+            }
+            if ((flags & SPAWN_FLAG_HAS_ORIENTATION) !== 0) {
+                void reader.readVarU32();
+            }
+            if ((flags & SPAWN_FLAG_HAS_EQUIPMENT) !== 0) {
+                void reader.readVarU32();
+                void reader.readVarU32();
+            }
+            if ((flags & SPAWN_FLAG_HAS_TARGET) !== 0) {
+                void reader.readVarU32();
+            }
+            return;
+        }
+        case Types.Messages.DESPAWN:
+        case Types.Messages.DESTROY:
+        case Types.Messages.HP:
+        case Types.Messages.BLINK:
+        case Types.Messages.ACK:
+            void reader.readVarU32();
+            return;
+        case Types.Messages.MOVE:
+        case Types.Messages.TELEPORT:
+            void reader.readVarU32();
+            void reader.readPos20();
+            return;
+        case Types.Messages.LOOTMOVE:
+        case Types.Messages.ATTACK:
+        case Types.Messages.DAMAGE:
+        case Types.Messages.POPULATION:
+            void reader.readVarU32();
+            void reader.readVarU32();
+            return;
+        case Types.Messages.HEALTH:
+            void reader.readVarU32();
+            void reader.readU8();
+            return;
+        case Types.Messages.CHAT:
+            void reader.readVarU32();
+            void reader.readString();
+            return;
+        case Types.Messages.EQUIP:
+            void reader.readVarU32();
+            void reader.readVarU32();
+            return;
+        case Types.Messages.DROP: {
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            const count = reader.readVarU32();
+            for (let i = 0; i < count; i += 1) {
+                void reader.readVarU32();
+            }
+            return;
+        }
+        case Types.Messages.KILL:
+            void reader.readVarU32();
+            return;
+        case Types.Messages.LIST: {
+            const count = reader.readVarU32();
+            for (let i = 0; i < count; i += 1) {
+                void reader.readVarU32();
+            }
+            return;
+        }
+        case Types.Messages.ACHIEVEMENTS: {
+            const unlockedCount = reader.readVarU32();
+            for (let i = 0; i < unlockedCount; i += 1) {
+                void reader.readVarU32();
+            }
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            return;
+        }
+        case Types.Messages.OUTCOME:
+        case Types.Messages.REJECT:
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readString();
+            return;
+        case Types.Messages.CORRECTION: {
+            void reader.readVarU32();
+            const variant = reader.readU8();
+            if (variant === 0) {
+                void reader.readPos20();
+                return;
+            }
+            if (variant === 1) {
+                void reader.readString();
+                void reader.readString();
+                return;
+            }
+            throw new Error('invalid CORRECTION variant');
+        }
+        case Types.Messages.MOVE_SYNC:
+            void reader.readVarU32();
+            void reader.readPos20();
+            void reader.readVarU32();
+            void reader.readU8();
+            return;
+        case Types.Messages.ENTITY_STATE_BATCH: {
+            void reader.readVarU32(); // tick
+            const count = reader.readVarU32();
+            for (let i = 0; i < count; i += 1) {
+                void reader.readVarU32();
+                void reader.readPos20();
+                void reader.readU8();
+            }
+            return;
+        }
+        case Types.Messages.CHUNK_SNAPSHOT: {
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            const payloadLen = reader.readVarU32();
+            void reader.readBytes(payloadLen);
+            return;
+        }
+        case Types.Messages.CHUNK_SNAPSHOT_PART: {
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            const payloadLen = reader.readVarU32();
+            void reader.readBytes(payloadLen);
+            return;
+        }
+        case Types.Messages.CHUNK_DELTA: {
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            void reader.readVarU32();
+            const payloadLen = reader.readVarU32();
+            void reader.readBytes(payloadLen);
+            return;
+        }
+        default:
+            throw new Error(`unknown s2c opcode: ${opcode}`);
+    }
+}
+
 function decodeBatchWithDirection(payloadBody: Uint8Array): { direction: Direction; actions: unknown[][] } {
     const reader = new ByteReader(payloadBody);
     const directionByte = reader.readU8();
@@ -1145,6 +1377,63 @@ export function decodeServerToClientBinaryActionBatchPayload(payload: ArrayBuffe
         throw new Error('unexpected direction');
     }
     return decoded.actions;
+}
+
+export type BinaryActionBatchDispatchHooks = Readonly<{
+    onClientAction?: (action: unknown[]) => void;
+    onServerAction?: (action: unknown[]) => void;
+    // Hot path: avoid allocating a giant action array for `ENTITY_STATE_BATCH`.
+    onEntityStateBatchHeader?: (tick: number, count: number) => void;
+    onEntityStateBatchEntry?: (wireId: number, x: number, y: number, flags: number) => void;
+    onEntityStateBatchFooter?: () => void;
+}>;
+
+export function dispatchBinaryActionBatchPayload(payload: ArrayBuffer | Uint8Array, hooks: BinaryActionBatchDispatchHooks): void {
+    const reader = new ByteReader(unwrapFrame(payload));
+    const directionByte = reader.readU8();
+    if (directionByte !== DIR_CLIENT_TO_SERVER && directionByte !== DIR_SERVER_TO_CLIENT) {
+        throw new Error('invalid direction');
+    }
+    const direction = directionByte as Direction;
+    const count = reader.readVarU32();
+
+    if (direction === DIR_CLIENT_TO_SERVER) {
+        for (let i = 0; i < count; i += 1) {
+            const opcode = reader.readU8();
+            if (hooks.onClientAction) {
+                hooks.onClientAction(decodeClientToServerActionFromOpcode(opcode, reader));
+            } else {
+                skipClientToServerActionFromOpcode(opcode, reader);
+            }
+        }
+    } else {
+        for (let i = 0; i < count; i += 1) {
+            const opcode = reader.readU8();
+            if (opcode === Types.Messages.ENTITY_STATE_BATCH && hooks.onEntityStateBatchEntry) {
+                const tick = reader.readVarU32();
+                const entryCount = reader.readVarU32();
+                hooks.onEntityStateBatchHeader?.(tick, entryCount);
+                for (let j = 0; j < entryCount; j += 1) {
+                    const id = reader.readVarU32();
+                    const pos = reader.readPos20();
+                    const flags = reader.readU8();
+                    hooks.onEntityStateBatchEntry(id, pos.x, pos.y, flags);
+                }
+                hooks.onEntityStateBatchFooter?.();
+                continue;
+            }
+
+            if (hooks.onServerAction) {
+                hooks.onServerAction(decodeServerToClientActionFromOpcode(opcode, reader));
+            } else {
+                skipServerToClientActionFromOpcode(opcode, reader);
+            }
+        }
+    }
+
+    if (reader.remaining() !== 0) {
+        throw new Error('trailing payload bytes');
+    }
 }
 
 export function decodeBinaryActionBatchPayload(payload: ArrayBuffer | Uint8Array): unknown {
