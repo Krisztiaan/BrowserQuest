@@ -3699,3 +3699,23 @@ Format per entry:
     - `bun x eslint --max-warnings=0 client/audio.ts client/main/character-preview.ts client/main.ts`
   - Next action:
     - Execute Ticket 364 (binary wire contract + codec decision lock).
+
+- 01:29 UTC
+  - Ticket: 364 (Binary wire contract + codec decision lock)
+  - Start timestamp: 2026-02-18 01:27 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added shared binary wire contract constants in `shared/protocol/binary-wire.ts`:
+      - frame magic (`BQ`),
+      - version lock (`BINARY_PROTOCOL_V1`),
+      - frame kind constants,
+      - explicit no-fallback cutover policy constant.
+    - Added benchmark harness `tools/bench/protocol-wire.ts` comparing JSON vs MessagePack-subset vs custom binary prototype for representative gameplay protocol batches.
+    - Added decision log in `docs/protocol-wire.md` with benchmark output and selected v1 payload direction (MessagePack-compatible subset under binary frame header).
+  - Evidence:
+    - `bun run typecheck`
+    - `bun x eslint --max-warnings=0 tools/bench/protocol-wire.ts shared/protocol/binary-wire.ts`
+    - `bun tools/bench/protocol-wire.ts`
+    - `rg -n "BINARY_PROTOCOL_V1|wire contract|no-fallback" shared/protocol docs TODO.md`
+  - Next action:
+    - Execute Ticket 365 (shared binary action codec implementation).

@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 01:26 UTC
+Last updated: 2026-02-18 01:29 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -33,23 +33,6 @@ Cycle completion gate:
 - Before/after perf evidence is recorded in `PROGRESS.md` for preview, audio, and gameplay transport hot paths.
 
 ## Active Tickets
-
-- Ticket 364 - Binary wire contract + codec decision lock (`todo`)
-  - Scope:
-    - Included: benchmark wire encoding candidates for game WS traffic (`JSON`, `MessagePack`, custom binary) using representative captured batches from `benchmarks/`.
-    - Included: lock a single production wire contract version (`v1`) with explicit frame header, action-batch envelope, and numeric type constraints.
-    - Included: document no-fallback cutover policy for game WS transport (no dual runtime path after cutover).
-    - Out of scope: implementing runtime transport changes.
-  - Acceptance criteria:
-    - A concrete binary protocol contract is defined in-repo (versioned and implementation-ready).
-    - Candidate benchmark output exists with CPU + payload-size comparison on the same sample set.
-    - Decision rationale for selected codec is recorded with explicit tradeoffs.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun tools/bench/protocol-wire.ts`
-    - `rg -n "BINARY_PROTOCOL_V1|wire contract|no-fallback" shared/protocol docs TODO.md`
-  - Dependencies/blockers:
-    - Requires stable benchmark corpus from `benchmarks/` captures.
 
 - Ticket 365 - Shared binary action codec implementation (`todo`)
   - Scope:
