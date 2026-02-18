@@ -4,7 +4,7 @@ import { decodeProtocolCapabilitiesJson, type ProtocolCapabilities } from '../..
 import { decodeChunkSnapshotPayloadJson } from '../../shared/protocol/chunks/chunk-snapshot-codec';
 import { decodeChunkDeltaPayloadJson } from '../../shared/protocol/chunks/chunk-delta-codec';
 import { gridPos } from '../../shared/domain/positions';
-import { encodeBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
+import { encodeClientToServerBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
 import {
     createHelloAction,
     createIntentAction,
@@ -230,7 +230,7 @@ export class BotClient {
         if (!Array.isArray(action)) {
             return;
         }
-        const payload = encodeBinaryActionBatchPayload([action]);
+        const payload = encodeClientToServerBinaryActionBatchPayload([action]);
         this.metrics.bytesOut += payload.byteLength;
         ws.send(payload);
     }

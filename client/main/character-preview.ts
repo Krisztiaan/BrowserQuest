@@ -153,9 +153,9 @@ const loadLoadCharacterPreviewRuntime = async function (): Promise<PreviewRuntim
     let weaponImage: HTMLImageElement;
     try {
         [shadowImage, armorImage, weaponImage] = await Promise.all([
-            loadImageAsset(`/img/1/${SHADOW_SPRITE}.png`),
-            loadImageAsset(`/img/1/${encodeURIComponent(armorSpriteName)}.png`),
-            loadImageAsset(`/img/1/${encodeURIComponent(weaponSpriteName)}.png`),
+            loadImageAsset(`/img/1/${SHADOW_SPRITE}.webp`),
+            loadImageAsset(`/img/1/${encodeURIComponent(armorSpriteName)}.webp`),
+            loadImageAsset(`/img/1/${encodeURIComponent(weaponSpriteName)}.webp`),
         ]);
     } catch {
         return null;

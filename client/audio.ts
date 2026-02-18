@@ -49,7 +49,7 @@ type SfxStats = {
 
 type AudioContextCtor = new () => AudioContext;
 
-const AUDIO_EXTENSION = 'mp3';
+const AUDIO_EXTENSION = 'ogg';
 const SOUND_BASE_PATH = 'audio/sounds/';
 const MUSIC_BASE_PATH = 'audio/music/';
 const MUSIC_FADE_DURATION_SECONDS = 0.4;

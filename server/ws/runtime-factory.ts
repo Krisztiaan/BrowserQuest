@@ -1,7 +1,7 @@
 import { WS_EVENT_NAMES } from '../server-event-names';
 import type { ProtocolParsedAction } from '../../shared/protocol/types';
 import { decodeClientToServerProtocolActionBatchBinary } from '../../shared/protocol/registry';
-import { encodeBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
+import { encodeServerToClientBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
 import type {
     HttpUpgradeRequestLike,
     JsonValue,
@@ -89,9 +89,9 @@ export function createWebSocketRuntimeClasses({
             return null;
         }
         if (message.length > 0 && Array.isArray(message[0])) {
-            return encodeBinaryActionBatchPayload(message as ReadonlyArray<unknown>);
+            return encodeServerToClientBinaryActionBatchPayload(message as ReadonlyArray<unknown>);
         }
-        return encodeBinaryActionBatchPayload([message as ReadonlyArray<unknown>]);
+        return encodeServerToClientBinaryActionBatchPayload([message as ReadonlyArray<unknown>]);
     }
 
     class Server extends Evented<WebSocketRuntimeServerEvents> {

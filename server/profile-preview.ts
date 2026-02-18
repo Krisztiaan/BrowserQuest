@@ -10,7 +10,7 @@ const DEFAULT_WEAPON_SPRITE = 'sword1';
 const SHADOW_SPRITE = 'shadow16';
 const SPRITE_SCALE = 1;
 const FRAME_SIZE = 32;
-const DATA_URI_PREFIX = 'data:image/png;base64,';
+const DATA_URI_PREFIX = 'data:image/webp;base64,';
 
 type SpriteAnimation = {
     length: number;
@@ -109,8 +109,8 @@ function loadSpriteDataUri(spriteName: string): string | null {
     }
 
     try {
-        const pngUrl = new URL(`../client/public/img/${SPRITE_SCALE}/${spriteName}.png`, import.meta.url);
-        const bytes = readFileSync(pngUrl);
+        const webpUrl = new URL(`../client/public/img/${SPRITE_SCALE}/${spriteName}.webp`, import.meta.url);
+        const bytes = readFileSync(webpUrl);
         const dataUri = `${DATA_URI_PREFIX}${bytes.toString('base64')}`;
         spriteDataUriCache.set(spriteName, dataUri);
         return dataUri;

@@ -73,7 +73,7 @@ test('profile preview falls back to default armor when username cookie is missin
     expect(response.headers.get('Content-Type')).toContain('image/svg+xml');
     const body = await response.text();
     expect(body).toContain('armor:clotharmor;weapon:sword1');
-    expect(body).toContain('data:image/png;base64,');
+    expect(body).toContain('data:image/webp;base64,');
 });
 
 test('profile preview uses persisted armor when username cookie resolves a profile', async () => {
