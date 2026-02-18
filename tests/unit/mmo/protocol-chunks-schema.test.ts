@@ -7,9 +7,9 @@ test('protocol schema accepts chunk subscribe/unsubscribe and chunk snapshot/del
     expect(checkClientToServerProtocolAction([Types.Messages.CHUNK_SUBSCRIBE, 1, 2, 3])).toBe(true);
     expect(checkClientToServerProtocolAction([Types.Messages.CHUNK_UNSUBSCRIBE])).toBe(true);
 
-    expect(isServerToClientProtocolAction([Types.Messages.CHUNK_SNAPSHOT, 1, 2, 7, '{"tiles":[]}' ])).toBe(true);
-    expect(isServerToClientProtocolAction([Types.Messages.CHUNK_SNAPSHOT_PART, 1, 2, 7, 0, 2, '{"tiles":[]}' ])).toBe(true);
-    expect(isServerToClientProtocolAction([Types.Messages.CHUNK_DELTA, 1, 2, 7, 8, '{"patch":[]}' ])).toBe(true);
+    expect(isServerToClientProtocolAction([Types.Messages.CHUNK_SNAPSHOT, 1, 2, 7, [1, 2, 3]])).toBe(true);
+    expect(isServerToClientProtocolAction([Types.Messages.CHUNK_SNAPSHOT_PART, 1, 2, 7, 0, 2, [1, 2, 3]])).toBe(true);
+    expect(isServerToClientProtocolAction([Types.Messages.CHUNK_DELTA, 1, 2, 7, 8, [1, 2, 3]])).toBe(true);
 });
 
 test('batch decode accepts chunk frames and drops invalid entries', () => {
@@ -20,15 +20,15 @@ test('batch decode accepts chunk frames and drops invalid entries', () => {
     expect(
         decodeServerToClientProtocolActionBatch(
             JSON.stringify([
-                [Types.Messages.CHUNK_SNAPSHOT, 1, 2, 7, '{}'],
-                [Types.Messages.CHUNK_SNAPSHOT_PART, 1, 2, 7, 0, 2, '{}'],
-                [Types.Messages.CHUNK_DELTA, 1, 2, 7, 8, '{}'],
+                [Types.Messages.CHUNK_SNAPSHOT, 1, 2, 7, [1]],
+                [Types.Messages.CHUNK_SNAPSHOT_PART, 1, 2, 7, 0, 2, [1]],
+                [Types.Messages.CHUNK_DELTA, 1, 2, 7, 8, [1]],
             ])
         )
     ).toEqual([
-        [Types.Messages.CHUNK_SNAPSHOT, 1, 2, 7, '{}'],
-        [Types.Messages.CHUNK_SNAPSHOT_PART, 1, 2, 7, 0, 2, '{}'],
-        [Types.Messages.CHUNK_DELTA, 1, 2, 7, 8, '{}'],
+        [Types.Messages.CHUNK_SNAPSHOT, 1, 2, 7, [1]],
+        [Types.Messages.CHUNK_SNAPSHOT_PART, 1, 2, 7, 0, 2, [1]],
+        [Types.Messages.CHUNK_DELTA, 1, 2, 7, 8, [1]],
     ]);
 
     expect(decodeClientToServerProtocolActionBatch(JSON.stringify([[Types.Messages.CHUNK_SUBSCRIBE, 1, 2]]))).toEqual([]);

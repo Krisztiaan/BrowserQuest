@@ -55,7 +55,7 @@ test('ws runtime connection close uses provided code and trims reason length', (
     expect(closed?.reason.length).toBeLessThanOrEqual(120);
 });
 
-test('ws runtime connection closes with invalid payload code on malformed json', () => {
+test('ws runtime connection closes with unsupported-data code on text frames (even if they look like json)', () => {
     const socket = createSocketMock();
     const server = { removeConnection() {} };
     const conn = new WS.wsWebSocketConnection('id-runtime-2', socket, server, '127.0.0.1');
@@ -68,10 +68,10 @@ test('ws runtime connection closes with invalid payload code on malformed json',
     socket.emit('message', '{', false);
 
     expect(listened).toBe(false);
-    expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.INVALID_PAYLOAD);
+    expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.UNSUPPORTED_DATA);
 });
 
-test('ws runtime connection closes with unsupported-data code on binary payload', () => {
+test('ws runtime connection closes with invalid payload code on malformed binary payload', () => {
     const socket = createSocketMock();
     const server = { removeConnection() {} };
     const conn = new WS.wsWebSocketConnection('id-runtime-3', socket, server, '127.0.0.1');
@@ -84,5 +84,5 @@ test('ws runtime connection closes with unsupported-data code on binary payload'
     socket.emit('message', Buffer.from([1, 2, 3]), true);
 
     expect(listened).toBe(false);
-    expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.UNSUPPORTED_DATA);
+    expect(socket.getClosed()?.code).toBe(WS.CLOSE_CODES.INVALID_PAYLOAD);
 });

@@ -183,7 +183,7 @@ test('local player non-adjacent characterGoTo snaps to authoritative position (t
     expect(player.gridY).toBe(1);
 });
 
-test('playerGoTo plans steps without moving the local player client-side', () => {
+test('playerGoTo plans steps and starts local prediction immediately', () => {
     const playerId = entityIdFromWire(7004);
     const { host, kernel, player } = createHostFixture(playerId);
 
@@ -196,14 +196,13 @@ test('playerGoTo plans steps without moving the local player client-side', () =>
     kernel.enqueueClientCommand({ type: 'playerGoTo', x: 12, y: 10 });
     runClientCommandApplySystem(host);
 
-    expect(player.isMoving()).toBe(false);
-    expect(player.gridX).toBe(10);
-    expect(player.gridY).toBe(10);
+    expect(player.isMoving()).toBe(true);
     expect(kernel.clientMovePlan?.steps).toEqual([gridPos(11, 10), gridPos(12, 10)]);
+    expect(kernel.clientMovePlan?.requestedTo).toEqual(gridPos(12, 10));
     expect(kernel.clientMovePlan?.target).toEqual(gridPos(12, 10));
 });
 
-test('playerGoTo plans from pending move tail and preserves pending acks', () => {
+test('playerGoTo plan cancels stale pending move acks and plans from rendered player position', () => {
     const playerId = entityIdFromWire(70011);
     const { host, kernel, player } = createHostFixture(playerId);
     const pathOrigins: Array<{ x: number; y: number }> = [];
@@ -224,16 +223,15 @@ test('playerGoTo plans from pending move tail and preserves pending acks', () =>
     kernel.enqueueClientCommand({ type: 'playerGoTo', x: 14, y: 10 });
     runClientCommandApplySystem(host);
 
-    expect(pathOrigins).toEqual([{ x: 12, y: 10 }]);
-    expect(player.gridX).toBe(10);
-    expect(player.gridY).toBe(10);
-    expect(kernel.clientPendingMoveAcks).toEqual([gridPos(11, 10), gridPos(12, 10)]);
-    expect(kernel.clientPendingMoveSeqAcks).toEqual([31]);
-    expect(kernel.clientMovePlan?.steps).toEqual([gridPos(13, 10), gridPos(14, 10)]);
+    expect(pathOrigins).toEqual([{ x: 10, y: 10 }]);
+    expect(kernel.clientPendingMoveAcks.length).toBe(0);
+    expect(kernel.clientPendingMoveSeqAcks.length).toBe(0);
+    expect(kernel.clientMovePlan?.steps).toEqual([gridPos(11, 10), gridPos(14, 10)]);
+    expect(kernel.clientMovePlan?.requestedTo).toEqual(gridPos(14, 10));
     expect(kernel.clientMovePlan?.target).toEqual(gridPos(14, 10));
 });
 
-test('playerGoTo plans from authoritative kernel position when rendered player lags behind', () => {
+test('playerGoTo ignores authoritative kernel lag when building a predicted click plan', () => {
     const playerId = entityIdFromWire(70012);
     const { host, kernel, player } = createHostFixture(playerId);
     const pathOrigins: Array<{ x: number; y: number }> = [];
@@ -252,10 +250,9 @@ test('playerGoTo plans from authoritative kernel position when rendered player l
     kernel.enqueueClientCommand({ type: 'playerGoTo', x: 13, y: 10 });
     runClientCommandApplySystem(host);
 
-    expect(pathOrigins).toEqual([{ x: 11, y: 10 }]);
-    expect(player.gridX).toBe(10);
-    expect(player.gridY).toBe(10);
-    expect(kernel.clientMovePlan?.steps).toEqual([gridPos(12, 10), gridPos(13, 10)]);
+    expect(pathOrigins).toEqual([{ x: 10, y: 10 }]);
+    expect(kernel.clientMovePlan?.steps).toEqual([gridPos(11, 10), gridPos(13, 10)]);
+    expect(kernel.clientMovePlan?.requestedTo).toEqual(gridPos(13, 10));
     expect(kernel.clientMovePlan?.target).toEqual(gridPos(13, 10));
 });
 
@@ -264,9 +261,9 @@ test('playerStop clears queued move plan and pending move acks', () => {
     const { host, kernel } = createHostFixture(playerId);
 
     kernel.setClientMovePlan({
+        requestedTo: gridPos(12, 10),
         target: gridPos(12, 10),
         steps: [gridPos(11, 10), gridPos(12, 10)],
-        nextStepIndex: 1,
         stopAdjacentToTarget: false,
     });
     kernel.enqueueClientPendingMoveAck(12, 10);

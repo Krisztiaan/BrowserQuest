@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-18 18:18 UTC
+Last updated: 2026-02-18 19:08 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,37 +34,8 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 403 - Client click-to-move v2: send `move.to` once per click, keep visuals smooth via prediction + reconcile
-  - Status: `in_progress`
-  - Scope:
-    - Included: Switch click movement to emit `INTENT(move.to)` instead of streaming `INTENT(move.step)`.
-    - Included: Client-side prediction for the local player:
-      - Start local movement immediately using the client pathfinder result (same overlays as today), without waiting for the first S2C MOVE.
-      - Maintain a minimal movement prediction state:
-        - last authoritative tile (from S2C MOVE/TELEPORT/CORRECTION)
-        - current predicted tile/path segment
-        - last sent `move.to` seq (for logging/correlation)
-    - Included: Server reconciliation:
-      - On S2C MOVE/TELEPORT/CORRECTION:
-        - if authoritative tile matches predicted next tile: keep animating smoothly
-        - if drift is small (1 tile): rebase current animation origin (no hard snap)
-        - if drift is large: snap to server tile and clear predicted local path
-      - On S2C REJECT for `move.to`: clear prediction state and stop local movement.
-    - Included: Coexistence policy:
-      - Click-to-move target is cancelled when WASD keys become active (Ticket 404), and may be reinstated only by a new click.
-    - Out of scope: Changing S2C movement replication format (vector tick; Ticket 406).
-  - Acceptance criteria:
-    - One click results in exactly one outbound move intent.
-    - Local player starts moving immediately after click (even with artificial network delay).
-    - No `move.step queue full` / `Invalid move.step (non-adjacent)` logs during click movement.
-  - Verification plan:
-    - `bun run typecheck`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on Ticket 401 and Ticket 402.
-
 - Ticket 404 - WASD support v1: `move.input` intent (input-state), prediction, and coexistence with click-to-move
-  - Status: `todo`
+  - Status: `in_progress`
   - Scope:
     - Included: Add a dedicated WASD input system (keydown/keyup) that maintains `keysMask` state for W/A/S/D.
       - Ignore movement keys while chat/name inputs are focused.

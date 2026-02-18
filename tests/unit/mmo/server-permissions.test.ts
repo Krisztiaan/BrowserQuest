@@ -5,10 +5,17 @@ import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { CLAIMS_STORE_RESOURCE } from '../../../server/world/claims/claims-resource';
 import type { RectClaim } from '../../../server/world/claims/claims-store';
+import {
+    INTENT_CLAIM_CREATE,
+    INTENT_CLAIM_DELETE,
+    INTENT_CLAIM_UPDATE,
+    INTENT_TILE_EDIT,
+    encodeClaimCreateIntentPayload,
+    encodeClaimDeleteIntentPayload,
+    encodeClaimUpdateIntentPayload,
+    encodeTileEditIntentPayload,
+} from '../../../shared/protocol/intents';
 import type { WorldMessage } from '../../../server/world/contracts';
-
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 function createTestPlayer(wireId: number, name: string): Player {
     const connection = {
@@ -151,14 +158,31 @@ function enqueueIntent({
     player: Player;
     seq: number;
     intentTypeId: string;
-    payload: JsonValue;
+    payload: unknown;
 }): void {
+    const payloadBytes = (() => {
+        switch (intentTypeId) {
+            case INTENT_TILE_EDIT:
+                return encodeTileEditIntentPayload(payload as never);
+            case INTENT_CLAIM_CREATE:
+                return encodeClaimCreateIntentPayload(payload as never);
+            case INTENT_CLAIM_UPDATE:
+                return encodeClaimUpdateIntentPayload(payload as never);
+            case INTENT_CLAIM_DELETE:
+                return encodeClaimDeleteIntentPayload(payload as never);
+            default:
+                return null;
+        }
+    })();
+    if (!payloadBytes) {
+        throw new Error(`enqueueIntent: unsupported/invalid payload for intentTypeId=${intentTypeId}`);
+    }
     pipeline.enqueue({
         type: 'INTENT',
         source: { connectionId: 'c', playerId: player.id },
         seq,
         intentTypeId,
-        payloadJson: JSON.stringify(payload),
+        payloadBytes,
     });
 }
 

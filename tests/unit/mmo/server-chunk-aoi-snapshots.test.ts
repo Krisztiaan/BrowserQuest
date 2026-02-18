@@ -5,6 +5,7 @@ import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { CHUNK_AOI_STATE_RESOURCE } from '../../../server/world/chunks/chunk-aoi';
 import { makeChunkKey } from '../../../server/world/chunks/chunk-overlay-store';
+import { decodeChunkSnapshotPayloadBinary } from '../../../shared/protocol/chunks/chunk-snapshot-codec';
 import type { WorldMessage } from '../../../server/world/contracts';
 
 function createTestPlayer(wireId: number): Player {
@@ -23,14 +24,16 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function isChunkSnapshotMessage(msg: WorldMessage): msg is [number, number, number, number, string] {
+function isChunkSnapshotMessage(
+    msg: WorldMessage
+): msg is [number, number, number, number, ReadonlyArray<number> | Uint8Array] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_SNAPSHOT
         && typeof msg[1] === 'number'
         && typeof msg[2] === 'number'
         && typeof msg[3] === 'number'
-        && typeof msg[4] === 'string'
+        && (Array.isArray(msg[4]) || (msg[4] as unknown) instanceof Uint8Array)
     );
 }
 
@@ -150,20 +153,11 @@ test('CHUNK_SUBSCRIBE streams bounded CHUNK_SNAPSHOTs and includes overlay overr
         return;
     }
     expect(center[3]).toBe(1);
-    const payloadJson: unknown = center[4];
-    if (typeof payloadJson !== 'string') {
-        throw new Error('Expected CHUNK_SNAPSHOT payload to be a string.');
-    }
-    const payload = JSON.parse(payloadJson) as {
-        schemaVersion: number;
-        encoding: string;
-        chunkSize: number;
-        overrides?: Array<[number, number, number]>;
-    };
-    expect(payload.schemaVersion).toBe(1);
-    expect(payload.encoding).toBe('json');
-    expect(payload.chunkSize).toBe(32);
-    expect(payload.overrides).toContainEqual([1, 1, 123]);
+    const decoded = decodeChunkSnapshotPayloadBinary(center[4]);
+    expect(decoded?.schemaVersion).toBe(1);
+    expect(decoded?.encoding).toBe('binary');
+    expect(decoded?.chunkSize).toBe(32);
+    expect(decoded?.overrides).toContainEqual([1, 1, 123]);
 
     const beforeTick3 = delivered.length;
     pipeline.tick();

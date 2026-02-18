@@ -6,6 +6,7 @@ import GameClient from '../../../client/gameclient';
 import Player from '../../../server/player';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { gridPos } from '../../../shared/domain/positions';
+import { encodeMoveStepIntentPayload } from '../../../shared/protocol/intents';
 import type { WorldMessage } from '../../../server/world/contracts';
 import { joinFormattedArgs } from '../../support/format';
 
@@ -30,7 +31,9 @@ test('protocol schema accepts HELLO capability extension and new INTENT envelope
     expect(checkClientToServerProtocolAction([Types.Messages.HELLO, 'name', 1, 2])).toBe(true);
     expect(checkClientToServerProtocolAction([Types.Messages.HELLO, 'name', 1, 2, 1, capsJson])).toBe(true);
 
-    expect(checkClientToServerProtocolAction([Types.Messages.INTENT, 5, 'move.step', '{"x":1,"y":2}'])).toBe(true);
+    const payloadBytes = encodeMoveStepIntentPayload(gridPos(1, 2));
+    expect(payloadBytes).not.toBeNull();
+    expect(checkClientToServerProtocolAction([Types.Messages.INTENT, 5, 'move.step', payloadBytes as number[]])).toBe(true);
 });
 
 test('protocol schema rejects legacy C2S HIT/HURT actions', () => {

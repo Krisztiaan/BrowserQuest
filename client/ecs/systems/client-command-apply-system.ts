@@ -8,7 +8,7 @@ import type Sprite from '../../sprite';
 import { entityIdFromWire, isEntityId, type EntityId } from '../../../shared/domain/ids';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
 import { gridPos, type GridPos } from '../../../shared/domain/positions';
-import { buildMovePlanSteps, resolveMoveBaseline } from '../../../shared/world/movement-intents';
+import { buildMovePlanSteps } from '../../../shared/world/movement-intents';
 import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 import { getMobPrefab } from '../../../shared/content/prefabs';
@@ -71,9 +71,10 @@ export type ClientCommandApplySystemHost = {
     client:
         | {
               sendHello(player: Player): void;
-              sendLoot(item: { id: EntityId }): void;
-              sendMove(x: number, y: number): void;
-              sendChunkSubscribe(chunkX: number, chunkY: number, radius: number): void;
+	      sendLoot(item: { id: EntityId }): void;
+	      sendMove(x: number, y: number): void;
+	      sendMoveTo(x: number, y: number, stopAdjacentToTarget: boolean): void;
+	      sendChunkSubscribe(chunkX: number, chunkY: number, radius: number): void;
               sendChunkUnsubscribe(): void;
               sendZone(): void;
               sendChat(text: string): void;
@@ -237,20 +238,13 @@ function hardStopCharacterMovement<TEvents extends CharacterEventEnvelope>(entit
 }
 
 function resolveAuthoritativeLocalPlayerPos(host: ClientCommandApplySystemHost): GridPos {
-    if (host.playerId !== null) {
-        const authoritative = host.kernel.position.get(host.playerId);
-        if (authoritative) {
-            return gridPos(authoritative.x, authoritative.y);
-        }
-    }
+    // For click-to-move prediction, treat the rendered player's current tile as the baseline.
+    // Server authority is reconciled via kernel replication sync + teleport correction.
     return gridPos(host.player.gridX, host.player.gridY);
 }
 
 function resolvePlanOrigin(host: ClientCommandApplySystemHost): { x: number; y: number } {
-    return resolveMoveBaseline(
-        resolveAuthoritativeLocalPlayerPos(host),
-        host.kernel.clientPendingMoveAcks
-    );
+    return resolveAuthoritativeLocalPlayerPos(host);
 }
 
 function requestPathFromPlanOrigin({
@@ -300,6 +294,9 @@ function planServerAuthoritativeMoveTo({
 
     // New plan supersedes old.
     host.kernel.clearClientMovePlan();
+    host.kernel.clearClientPendingMoveAcks();
+    host.kernel.clearClientPendingMoveSeqAcks();
+    host.kernel.clientMovementSuppressed = false;
     const origin = resolvePlanOrigin(host);
     const path = requestPathFromPlanOrigin({
         host,
@@ -325,15 +322,23 @@ function planServerAuthoritativeMoveTo({
         toY,
         stopAdjacentToTarget,
         origin,
-        pending: host.kernel.clientPendingMoveAcks.length,
+        pendingSeqAcks: host.kernel.clientPendingMoveSeqAcks.length,
         steps: steps.length,
         target,
     });
     host.kernel.setClientMovePlan({
+        requestedTo: gridPos(toX, toY),
         target,
         steps,
         stopAdjacentToTarget,
     });
+
+    // Start local prediction immediately using the already-computed path (avoid a second pathfinding pass).
+    const predictedPath: Array<[number, number]> = [
+        [origin.x, origin.y],
+        ...steps.map((step) => [step.x, step.y] as [number, number]),
+    ];
+    host.player.followPath(predictedPath);
 }
 
 function resolveKillNotificationMobName(kind: EntityKind): string | null {
@@ -564,6 +569,14 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     break;
                 }
                 host.client.sendMove(command.x, command.y);
+                host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                break;
+            }
+            case 'clientSendMoveTo': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendMoveTo(command.x, command.y, command.stopAdjacentToTarget);
                 host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
                 break;
             }

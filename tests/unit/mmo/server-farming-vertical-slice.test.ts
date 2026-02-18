@@ -10,6 +10,12 @@ import { CLAIMS_STORE_RESOURCE } from '../../../server/world/claims/claims-resou
 import type { RectClaim } from '../../../server/world/claims/claims-store';
 import { SqliteClaimsPersistence } from '../../../server/world/claims/claims-persistence';
 import { SqliteChunkOverlayPersistence } from '../../../server/world/chunks/chunk-overlay-persistence';
+import {
+    INTENT_CLAIM_CREATE,
+    INTENT_TILE_EDIT,
+    encodeClaimCreateIntentPayload,
+    encodeTileEditIntentPayload,
+} from '../../../shared/protocol/intents';
 import type { WorldMessage } from '../../../server/world/contracts';
 
 type Harness = {
@@ -19,8 +25,6 @@ type Harness = {
     close: () => void;
     flushDirtyChunks: () => void;
 };
-type JsonPrimitive = string | number | boolean | null;
-type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
 
 function withTempDataPaths<T>(fn: (paths: { claimsDbPath: string; chunkDbPath: string }) => T): T {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-farming-'));
@@ -177,14 +181,27 @@ function enqueueIntent({
     player: Player;
     seq: number;
     intentTypeId: string;
-    payload: JsonValue;
+    payload: unknown;
 }): void {
+    const payloadBytes = (() => {
+        switch (intentTypeId) {
+            case INTENT_CLAIM_CREATE:
+                return encodeClaimCreateIntentPayload(payload as never);
+            case INTENT_TILE_EDIT:
+                return encodeTileEditIntentPayload(payload as never);
+            default:
+                return null;
+        }
+    })();
+    if (!payloadBytes) {
+        throw new Error(`enqueueIntent: unsupported/invalid payload for intentTypeId=${intentTypeId}`);
+    }
     pipeline.enqueue({
         type: 'INTENT',
         source: { connectionId: `conn-${player.id}`, playerId: player.id },
         seq,
         intentTypeId,
-        payloadJson: JSON.stringify(payload),
+        payloadBytes,
     });
 }
 

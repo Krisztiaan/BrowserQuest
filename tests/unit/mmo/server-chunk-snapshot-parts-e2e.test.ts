@@ -5,9 +5,9 @@ import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { ClientChunkOverlayCache } from '../../../client/world/chunks/client-chunk-overlay-cache';
 import {
-    decodeChunkSnapshotPayloadJson,
-    encodeChunkSnapshotPayloadJson,
-    encodeChunkSnapshotPayloadJsonParts,
+    decodeChunkSnapshotPayloadBinary,
+    encodeChunkSnapshotPayloadBinary,
+    encodeChunkSnapshotPayloadBinaryParts,
 } from '../../../shared/protocol/chunks/chunk-snapshot-codec';
 import type { WorldMessage } from '../../../server/world/contracts';
 
@@ -27,7 +27,9 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function isChunkSnapshotPartMessage(msg: WorldMessage): msg is [number, number, number, number, number, number, string] {
+function isChunkSnapshotPartMessage(
+    msg: WorldMessage
+): msg is [number, number, number, number, number, number, number[] | Uint8Array] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_SNAPSHOT_PART
@@ -36,29 +38,29 @@ function isChunkSnapshotPartMessage(msg: WorldMessage): msg is [number, number, 
         && typeof msg[3] === 'number'
         && typeof msg[4] === 'number'
         && typeof msg[5] === 'number'
-        && typeof msg[6] === 'string'
+        && (msg[6] instanceof Uint8Array || Array.isArray(msg[6]))
     );
 }
 
-function isChunkSnapshotMessage(msg: WorldMessage): msg is [number, number, number, number, string] {
+function isChunkSnapshotMessage(msg: WorldMessage): msg is [number, number, number, number, number[] | Uint8Array] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_SNAPSHOT
         && typeof msg[1] === 'number'
         && typeof msg[2] === 'number'
         && typeof msg[3] === 'number'
-        && typeof msg[4] === 'string'
+        && (msg[4] instanceof Uint8Array || Array.isArray(msg[4]))
     );
 }
 
 test('server splits oversized chunk snapshots into CHUNK_SNAPSHOT_PART frames and client reassembles', () => {
-    const prev = process.env.BQ_TEST_CHUNK_SNAPSHOT_MAX_UTF8_BYTES;
+        const prev = process.env.BQ_TEST_CHUNK_SNAPSHOT_MAX_UTF8_BYTES;
     try {
         const maxValue = 0xffff_ffff;
-        const single = encodeChunkSnapshotPayloadJson({
+        const single = encodeChunkSnapshotPayloadBinary({
             chunkSize: 32,
             overrides: [[0, 0, maxValue]],
-            maxUtf8Bytes: 10_000,
+            maxBytes: 10_000,
         });
         // Pick a cap where:
         // - a 1-override snapshot fits
@@ -74,7 +76,7 @@ test('server splits oversized chunk snapshots into CHUNK_SNAPSHOT_PART frames an
         for (let candidate = start; candidate <= 5000; candidate += 25) {
             const fullFits = (() => {
                 try {
-                    encodeChunkSnapshotPayloadJson({ chunkSize: 32, overrides: fullOverrides, maxUtf8Bytes: candidate });
+                    encodeChunkSnapshotPayloadBinary({ chunkSize: 32, overrides: fullOverrides, maxBytes: candidate });
                     return true;
                 } catch (_) {
                     return false;
@@ -84,7 +86,7 @@ test('server splits oversized chunk snapshots into CHUNK_SNAPSHOT_PART frames an
                 continue;
             }
             try {
-                const parts = encodeChunkSnapshotPayloadJsonParts({ chunkSize: 32, overrides: fullOverrides, maxUtf8Bytes: candidate });
+                const parts = encodeChunkSnapshotPayloadBinaryParts({ chunkSize: 32, overrides: fullOverrides, maxBytes: candidate });
                 if (parts.length > 1 && parts.length <= 128) {
                     cap = candidate;
                     break;
@@ -174,10 +176,10 @@ test('server splits oversized chunk snapshots into CHUNK_SNAPSHOT_PART frames an
 
         // Sanity: full chunk snapshots should not fit under the forced cap.
         expect(() =>
-            encodeChunkSnapshotPayloadJson({
+            encodeChunkSnapshotPayloadBinary({
                 chunkSize: 32,
                 overrides: fullOverrides,
-                maxUtf8Bytes: cap,
+                maxBytes: cap,
             })
         ).toThrow();
 
@@ -215,18 +217,18 @@ test('server splits oversized chunk snapshots into CHUNK_SNAPSHOT_PART frames an
                 const version: unknown = part[3];
                 const partIndex: unknown = part[4];
                 const partCount: unknown = part[5];
-                const payloadJson: unknown = part[6];
+                const payloadBytes: unknown = part[6];
                 if (
                     typeof chunkX !== 'number'
                     || typeof chunkY !== 'number'
                     || typeof version !== 'number'
                     || typeof partIndex !== 'number'
                     || typeof partCount !== 'number'
-                    || typeof payloadJson !== 'string'
+                    || (!(payloadBytes instanceof Uint8Array) && !Array.isArray(payloadBytes))
                 ) {
                     continue;
                 }
-                const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
+                const decoded = decodeChunkSnapshotPayloadBinary(payloadBytes);
                 expect(decoded).toBeTruthy();
                 if (!decoded) continue;
                 const res = cache.applySnapshotPart({

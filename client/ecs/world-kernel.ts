@@ -41,10 +41,11 @@ export type ClientLootAttempt = Readonly<{
 }>;
 
 export type ClientMovePlan = Readonly<{
+    requestedTo: GridPos;
     target: GridPos;
     steps: GridPos[];
-    nextStepIndex: number;
     stopAdjacentToTarget: boolean;
+    sent: boolean;
 }>;
 
 export type ClientPendingDoorTraversal = Readonly<{
@@ -463,12 +464,13 @@ export class ClientWorldKernel {
         this.clientLootAttempt = null;
     }
 
-    setClientMovePlan(plan: Omit<ClientMovePlan, 'nextStepIndex'>): void {
+    setClientMovePlan(plan: Omit<ClientMovePlan, 'sent'>): void {
         this.clientMovePlan = {
+            requestedTo: plan.requestedTo,
             target: plan.target,
             steps: plan.steps,
-            nextStepIndex: 0,
             stopAdjacentToTarget: plan.stopAdjacentToTarget,
+            sent: false,
         };
     }
 

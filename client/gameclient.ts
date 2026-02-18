@@ -56,12 +56,14 @@ import {
     encodeClaimDeleteIntentPayload,
     encodeClaimUpdateIntentPayload,
     encodeDoorTeleportIntentPayload,
+    encodeMoveToIntentPayload,
     encodeMoveStepIntentPayload,
     encodeTileEditIntentPayload,
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
+    INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
 } from '../shared/protocol/intents';
@@ -539,6 +541,12 @@ class GameClient extends Evented<GameClientEvents> {
         this.emit('intentRejected', seq, intentTypeId, reason);
         log.info(`Intent rejected (seq=${seq}, type=${intentTypeId}): ${reason}`);
         debugMoves('in:REJECT', { seq, intentTypeId, reason });
+        if (intentTypeId === INTENT_MOVE_TO) {
+            // `move.to` rejection should stop prediction and allow immediate re-try.
+            this.kernel.enqueueClientCommand({ type: 'playerStop' });
+            this.kernel.clearClientPendingMoveSeqAcks();
+            this.kernel.clientMovementSuppressed = false;
+        }
         if (intentTypeId === INTENT_MOVE_STEP) {
             this.kernel.clientMovementSuppressed = true;
             this.kernel.clearClientPendingMoveSeqAcks();
@@ -700,6 +708,24 @@ class GameClient extends Evented<GameClientEvents> {
             return;
         }
         debugMoves('out:INTENT(move.step)', { seq, x, y });
+    }
+
+    sendMoveTo(x: number, y: number, stopAdjacentToTarget: boolean): void {
+        if (!this.supportsIntent(INTENT_MOVE_TO)) {
+            debugMoves('out:INTENT(move.to):unavailable', { x, y, stopAdjacentToTarget });
+            return;
+        }
+
+        const payloadBytes = encodeMoveToIntentPayload({ x, y, stopAdjacentToTarget });
+        if (payloadBytes === null) {
+            return;
+        }
+
+        const seq = this.sendIntent(INTENT_MOVE_TO, payloadBytes, { trackMoveAck: true });
+        if (seq === null) {
+            return;
+        }
+        debugMoves('out:INTENT(move.to)', { seq, x, y, stopAdjacentToTarget });
     }
 
     sendTileEdit(x: number, y: number, value: number | null): number | null {

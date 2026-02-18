@@ -8,6 +8,7 @@ export type ClientCommand =
     | Readonly<{ type: 'characterClearTarget'; entityId: EntityId }>
     | Readonly<{ type: 'clientSendHello' }>
     | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
+    | Readonly<{ type: 'clientSendMoveTo'; x: number; y: number; stopAdjacentToTarget: boolean }>
     | Readonly<{ type: 'clientSendChunkSubscribe'; chunkX: number; chunkY: number; radius: number }>
     | Readonly<{ type: 'clientSendChunkUnsubscribe' }>
     | Readonly<{ type: 'clientSendZone' }>

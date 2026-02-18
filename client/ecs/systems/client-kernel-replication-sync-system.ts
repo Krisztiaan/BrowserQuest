@@ -63,6 +63,24 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         const kind = kernel.kind.get(id);
         // Only characters path; items/chests are static.
         if (kind !== undefined && !Types.isItem(kind) && !Types.isChest(kind)) {
+            const isLocalPlayer = host.playerId !== null && id === host.playerId;
+            const hasPredictionPlan = isLocalPlayer && kernel.clientMovePlan !== null;
+            if (hasPredictionPlan) {
+                const record = kernel.clientSpatialRecords.get(id);
+                if (record) {
+                    const drift = Math.abs(record.gridX - pos.x) + Math.abs(record.gridY - pos.y);
+                    // While predicting, tolerate small drift so we don't fight the local `Character.go` path.
+                    if (drift <= 1) {
+                        kernel.clientReplicationLastPos.set(id, pos);
+                        continue;
+                    }
+                    // Large drift: snap to server and let `teleportEntity` cancel stale local prediction.
+                    kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: id, x: pos.x, y: pos.y });
+                    kernel.clientReplicationLastPos.set(id, pos);
+                    continue;
+                }
+            }
+
             kernel.enqueueClientCommand({ type: 'characterGoTo', entityId: id, x: pos.x, y: pos.y });
         }
         kernel.clientReplicationLastPos.set(id, pos);

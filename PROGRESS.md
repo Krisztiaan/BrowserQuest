@@ -15,6 +15,29 @@ Format per entry:
 
 ## 2026-02-18
 
+- 19:08 UTC
+  - Ticket: 403 (Client click-to-move v2: send `move.to` once per click + prediction/reconcile)
+  - Status: `done`
+  - Key actions taken:
+    - Switched click movement to plan/predict locally and send a single `INTENT(move.to)` per click plan (no `move.step` streaming).
+    - Added local-player prediction + reconciliation: suppress small authoritative drift and hard-teleport on larger drift to avoid "fight the client path" stutter.
+    - Updated unit coverage for binary-only gameplay payload shapes (WS frames, chunk snapshot/delta payloads, and INTENT payload bytes).
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test --timeout 30000 --bail`
+  - Next action:
+    - Execute Ticket 404: WASD (`move.input`) input-state intent + prediction, coexisting with click-to-move.
+
+- 18:28 UTC
+  - Ticket: 403 (Client click-to-move v2: send `move.to` once per click + prediction/reconcile)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Started client movement pipeline audit: click/follow planning (`client-command-apply-system.ts`), outbox step streaming (`client-player-move-outbox-system.ts`), and authoritative movement replication (`client-kernel-replication-sync-system.ts`).
+  - Evidence:
+    - `rg -n "planServerAuthoritativeMoveTo|clientMovePlan|clientSendMove" client/ecs/systems/client-command-apply-system.ts client/ecs/systems/client-player-move-outbox-system.ts client/ecs/systems/client-kernel-replication-sync-system.ts`
+  - Next action:
+    - Switch click/follow movement to emit `INTENT(move.to)` once per plan and re-enable local player prediction via `Character.go`, with server drift correction based on kernel authoritative vs client spatial record.
+
 - 18:18 UTC
   - Ticket: 402 (Server authoritative movement v2: `move.to` + shared pathfinding)
   - Status: `done`

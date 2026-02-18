@@ -4,7 +4,11 @@ import Player from '../../../server/player';
 import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { ClientChunkOverlayCache } from '../../../client/world/chunks/client-chunk-overlay-cache';
-import { decodeChunkSnapshotPayloadJson, encodeChunkSnapshotPayloadJson, encodeChunkSnapshotPayloadJsonParts } from '../../../shared/protocol/chunks/chunk-snapshot-codec';
+import {
+    decodeChunkSnapshotPayloadBinary,
+    encodeChunkSnapshotPayloadBinary,
+    encodeChunkSnapshotPayloadBinaryParts,
+} from '../../../shared/protocol/chunks/chunk-snapshot-codec';
 import type { WorldMessage } from '../../../server/world/contracts';
 
 function createTestPlayer(wireId: number): Player {
@@ -23,7 +27,9 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function isChunkSnapshotPartMessage(msg: WorldMessage): msg is [number, number, number, number, number, number, string] {
+function isChunkSnapshotPartMessage(
+    msg: WorldMessage
+): msg is [number, number, number, number, number, number, number[] | Uint8Array] {
     return (
         Array.isArray(msg)
         && msg[0] === Types.Messages.CHUNK_SNAPSHOT_PART
@@ -32,7 +38,7 @@ function isChunkSnapshotPartMessage(msg: WorldMessage): msg is [number, number, 
         && typeof msg[3] === 'number'
         && typeof msg[4] === 'number'
         && typeof msg[5] === 'number'
-        && typeof msg[6] === 'string'
+        && (msg[6] instanceof Uint8Array || Array.isArray(msg[6]))
     );
 }
 
@@ -47,17 +53,17 @@ test('WorldEcsCommandPipeline.setServerConfig applies chunk snapshot caps (no en
             fullOverrides.push([i % 32, Math.floor(i / 32), (maxValue - i) >>> 0]);
         }
 
-        const single = encodeChunkSnapshotPayloadJson({
+        const single = encodeChunkSnapshotPayloadBinary({
             chunkSize: 32,
             overrides: [[0, 0, maxValue]],
-            maxUtf8Bytes: 10_000,
+            maxBytes: 10_000,
         });
 
         let cap: number | null = null;
         for (let candidate = Math.max(1, single.length); candidate <= 5000; candidate += 25) {
             const fullFits = (() => {
                 try {
-                    encodeChunkSnapshotPayloadJson({ chunkSize: 32, overrides: fullOverrides, maxUtf8Bytes: candidate });
+                    encodeChunkSnapshotPayloadBinary({ chunkSize: 32, overrides: fullOverrides, maxBytes: candidate });
                     return true;
                 } catch (_) {
                     return false;
@@ -65,7 +71,7 @@ test('WorldEcsCommandPipeline.setServerConfig applies chunk snapshot caps (no en
             })();
             if (fullFits) continue;
             try {
-                const parts = encodeChunkSnapshotPayloadJsonParts({ chunkSize: 32, overrides: fullOverrides, maxUtf8Bytes: candidate });
+                const parts = encodeChunkSnapshotPayloadBinaryParts({ chunkSize: 32, overrides: fullOverrides, maxBytes: candidate });
                 if (parts.length > 1 && parts.length <= 128) {
                     cap = candidate;
                     break;
@@ -188,18 +194,18 @@ test('WorldEcsCommandPipeline.setServerConfig applies chunk snapshot caps (no en
                 const version: unknown = part[3];
                 const partIndex: unknown = part[4];
                 const partCount: unknown = part[5];
-                const payloadJson: unknown = part[6];
+                const payloadBytes: unknown = part[6];
                 if (
                     typeof chunkX !== 'number'
                     || typeof chunkY !== 'number'
                     || typeof version !== 'number'
                     || typeof partIndex !== 'number'
                     || typeof partCount !== 'number'
-                    || typeof payloadJson !== 'string'
+                    || (!(payloadBytes instanceof Uint8Array) && !Array.isArray(payloadBytes))
                 ) {
                     continue;
                 }
-                const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
+                const decoded = decodeChunkSnapshotPayloadBinary(payloadBytes);
                 expect(decoded).toBeTruthy();
                 if (!decoded) continue;
                 const res = cache.applySnapshotPart({
@@ -243,7 +249,7 @@ test('snapshot overflow fallback streams high-part snapshots instead of indefini
         let cap: number | null = null;
         for (let candidate = 64; candidate <= 5000; candidate += 25) {
             try {
-                const parts = encodeChunkSnapshotPayloadJsonParts({ chunkSize: 32, overrides: fullOverrides, maxUtf8Bytes: candidate });
+                const parts = encodeChunkSnapshotPayloadBinaryParts({ chunkSize: 32, overrides: fullOverrides, maxBytes: candidate });
                 if (parts.length > 2) {
                     cap = candidate;
                     break;
@@ -366,18 +372,18 @@ test('snapshot overflow fallback streams high-part snapshots instead of indefini
                 const version: unknown = part[3];
                 const partIndex: unknown = part[4];
                 const partCount: unknown = part[5];
-                const payloadJson: unknown = part[6];
+                const payloadBytes: unknown = part[6];
                 if (
                     typeof chunkX !== 'number'
                     || typeof chunkY !== 'number'
                     || typeof version !== 'number'
                     || typeof partIndex !== 'number'
                     || typeof partCount !== 'number'
-                    || typeof payloadJson !== 'string'
+                    || (!(payloadBytes instanceof Uint8Array) && !Array.isArray(payloadBytes))
                 ) {
                     continue;
                 }
-                const decoded = decodeChunkSnapshotPayloadJson(payloadJson);
+                const decoded = decodeChunkSnapshotPayloadBinary(payloadBytes);
                 expect(decoded).toBeTruthy();
                 if (!decoded) continue;
                 const res = cache.applySnapshotPart({

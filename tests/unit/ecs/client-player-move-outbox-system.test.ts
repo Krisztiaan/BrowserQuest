@@ -4,14 +4,15 @@ import { gridPos } from '../../../shared/domain/positions';
 import { ClientWorldKernel } from '../../../client/ecs/world-kernel';
 import { runClientPlayerMoveOutboxSystem } from '../../../client/ecs/systems/client-player-move-outbox-system';
 
-test('outbox sends at most two queued steps per frame', () => {
+test('outbox emits exactly one clientSendMoveTo for a new move plan and marks it sent', () => {
     const kernel = new ClientWorldKernel();
     const playerId = entityIdFromWire(8101);
     const player = { gridX: 10, gridY: 10 };
 
     kernel.setClientMovePlan({
-        target: gridPos(13, 10),
-        steps: [gridPos(11, 10), gridPos(12, 10), gridPos(13, 10)],
+        requestedTo: gridPos(20, 30),
+        target: gridPos(12, 10),
+        steps: [gridPos(11, 10), gridPos(12, 10)],
         stopAdjacentToTarget: false,
     });
 
@@ -24,21 +25,24 @@ test('outbox sends at most two queued steps per frame', () => {
         isZoningTile: () => false,
     });
 
-    expect(kernel.clientPendingMoveAcks).toEqual([gridPos(11, 10), gridPos(12, 10)]);
-    expect(kernel.clientMovePlan?.nextStepIndex).toBe(2);
-    expect(kernel.drainClientCommands()).toEqual([{ type: 'clientSendMove', x: 11, y: 10 }, { type: 'clientSendMove', x: 12, y: 10 }]);
+    expect(kernel.clientMovePlan?.sent).toBe(true);
+    expect(kernel.drainClientCommands()).toEqual([
+        { type: 'clientSendMoveTo', x: 20, y: 30, stopAdjacentToTarget: false },
+    ]);
 });
 
-test('outbox pauses invalid non-adjacent plan step without clearing plan', () => {
+test('outbox does not resend move.to when the plan is already marked sent', () => {
     const kernel = new ClientWorldKernel();
     const playerId = entityIdFromWire(8102);
     const player = { gridX: 10, gridY: 10 };
 
     kernel.setClientMovePlan({
-        target: gridPos(12, 10),
-        steps: [gridPos(12, 10)],
+        requestedTo: gridPos(15, 10),
+        target: gridPos(15, 10),
+        steps: [gridPos(11, 10), gridPos(15, 10)],
         stopAdjacentToTarget: false,
     });
+    kernel.clientMovePlan = { ...(kernel.clientMovePlan as any), sent: true };
 
     runClientPlayerMoveOutboxSystem({
         started: true,
@@ -49,21 +53,31 @@ test('outbox pauses invalid non-adjacent plan step without clearing plan', () =>
         isZoningTile: () => false,
     });
 
-    expect(kernel.clientMovePlan).not.toBeNull();
-    expect(kernel.clientMovePlan?.nextStepIndex).toBe(0);
-    expect(kernel.clientPendingMoveAcks.length).toBe(0);
     expect(kernel.drainClientCommands()).toEqual([]);
 });
 
-test('outbox skips duplicate baseline step and advances to next valid step', () => {
+test('outbox clears the plan when the player reached the target and there are no pending move seq acks', () => {
     const kernel = new ClientWorldKernel();
     const playerId = entityIdFromWire(8103);
-    const player = { gridX: 11, gridY: 10 };
+    const player = { gridX: 12, gridY: 10 };
 
     kernel.setClientMovePlan({
+        requestedTo: gridPos(12, 10),
         target: gridPos(12, 10),
         steps: [gridPos(11, 10), gridPos(12, 10)],
         stopAdjacentToTarget: false,
+    });
+    kernel.clientMovePlan = { ...(kernel.clientMovePlan as any), sent: true };
+
+    // Outbox uses spatial record to decide whether we are still moving.
+    kernel.clientSpatialRecords.set(playerId, {
+        gridX: 12,
+        gridY: 10,
+        nextGridX: -1,
+        nextGridY: -1,
+        isMoving: false,
+        kind: 0 as any,
+        isPlayer: true,
     });
 
     runClientPlayerMoveOutboxSystem({
@@ -75,33 +89,6 @@ test('outbox skips duplicate baseline step and advances to next valid step', () 
         isZoningTile: () => false,
     });
 
-    expect(kernel.clientPendingMoveAcks).toEqual([gridPos(12, 10)]);
-    expect(kernel.clientMovePlan?.nextStepIndex).toBe(2);
-    expect(kernel.drainClientCommands()).toEqual([{ type: 'clientSendMove', x: 12, y: 10 }]);
+    expect(kernel.clientMovePlan).toBeNull();
 });
 
-test('outbox uses authoritative kernel position baseline when rendered player position lags', () => {
-    const kernel = new ClientWorldKernel();
-    const playerId = entityIdFromWire(8104);
-    const player = { gridX: 10, gridY: 10 };
-
-    kernel.position.set(playerId, gridPos(11, 10));
-    kernel.setClientMovePlan({
-        target: gridPos(12, 10),
-        steps: [gridPos(11, 10), gridPos(12, 10)],
-        stopAdjacentToTarget: false,
-    });
-
-    runClientPlayerMoveOutboxSystem({
-        started: true,
-        kernel,
-        playerId,
-        player,
-        isZoning: () => false,
-        isZoningTile: () => false,
-    });
-
-    expect(kernel.clientPendingMoveAcks).toEqual([gridPos(12, 10)]);
-    expect(kernel.clientMovePlan?.nextStepIndex).toBe(2);
-    expect(kernel.drainClientCommands()).toEqual([{ type: 'clientSendMove', x: 12, y: 10 }]);
-});
