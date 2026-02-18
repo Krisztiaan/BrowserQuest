@@ -45,7 +45,9 @@ This file defines execution standards for agents working in this repository.
 
 ## 5) No Fallback Implementations
 
-- Do not implement fallback code paths unless the user explicitly requests a fallback.
-- When a direction is chosen (for example, WebAudio-only), remove or avoid alternate legacy paths (for example, `HTMLAudioElement` pools).
-- Do not keep "temporary compatibility" branches by default.
-- If a no-fallback decision increases risk, document the risk in ticket scope/acceptance criteria and proceed without adding fallback paths.
+- Do not implement fallback code paths. This repo is running a no-fallback modernization cycle.
+- Concrete examples (non-exhaustive):
+  - Gameplay transport: no JSON gameplay WebSocket fallback once a binary version is cut over.
+  - Audio: WebAudio-only, no `HTMLAudioElement` pool fallback.
+- If someone requests a fallback, stop and explicitly confirm they want to override this policy before adding any fallback path.
+- If a no-fallback decision increases risk, document the risk in ticket scope/acceptance criteria and proceed without adding a fallback.

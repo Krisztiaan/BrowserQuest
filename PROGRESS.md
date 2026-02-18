@@ -15,6 +15,78 @@ Format per entry:
 
 ## 2026-02-18
 
+- 10:46 UTC
+  - Ticket: 392 (FixedBin v1 spec + invariants)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Enumerated current protocol opcode set and message shapes from `shared/protocol/manifest.ts` and callsites (spawn/chunks/intents).
+    - Ticketized FixedBin v1 work (Tickets 392-395) in `TODO.md`.
+  - Evidence:
+    - `sed -n '1,220p' shared/protocol/manifest.ts`
+    - `sed -n '1,140p' server/protocol/outbound-actions.ts`
+    - `sed -n '260,380p' client/gameclient.ts`
+    - `sed -n '1,220p' shared/replication/spawn-snapshot.ts`
+    - `sed -n '1,220p' shared/protocol/intents.ts`
+  - Next action:
+    - Write `docs/protocol-fixedbin.md` covering every opcode and exact binary layout rules.
+
+- 10:52 UTC
+  - Ticket: 392 (FixedBin v1 spec + invariants)
+  - Status: `done`
+  - Key actions taken:
+    - Added full FixedBin v1 wire spec (frame + encodings + per-opcode layouts for all manifest opcodes).
+  - Evidence:
+    - `docs/protocol-fixedbin.md`
+  - Next action:
+    - Implement FixedBin v1 codec in `shared/protocol/binary-action-codec.ts` and validate with unit + smoke tests.
+
+- 11:07 UTC
+  - Ticket: 393 (Implement FixedBin v1 codec)
+  - Status: `done`
+  - Key actions taken:
+    - Implemented FixedBin v1 per-opcode encoder/decoder in `shared/protocol/binary-action-codec.ts` and bumped wire version in `shared/protocol/binary-wire.ts`.
+    - Updated smoke payload guard test to send a representable invalid FixedBin frame (wrong direction marker) instead of a float coordinate.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts tests/unit/protocol/registry.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/ws/runtime-parity.test.ts --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts tests/smoke/server-payload-guards.test.ts --timeout 30000`
+  - Next action:
+    - Add a FixedBin v1 benchmark row and refresh docs.
+
+- 11:07 UTC
+  - Ticket: 394 (Benchmark FixedBin v1 vs JSON)
+  - Status: `done`
+  - Key actions taken:
+    - Updated `tools/bench/protocol-wire.ts` to benchmark FixedBin v1 (`fixedbin-v1`) using the shared binary codec.
+  - Evidence:
+    - `bun tools/bench/protocol-wire.ts`
+      - `fixedbin-v1`: encode `33.09` ms, decode `44.87` ms, total bytes `550735`
+  - Next action:
+    - Update wire contract docs + repo no-fallback policy, then clear done tickets from `TODO.md`.
+
+- 11:07 UTC
+  - Ticket: 395 (Docs/progress hygiene for FixedBin v1 cutover)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Updated `docs/protocol-wire.md` to reflect FixedBin v1 / binary v5 and latest benchmark output.
+    - Tightened `AGENTS.md` to explicitly prohibit fallback implementations (policy override requires explicit confirmation).
+    - Updated `TODO.md` statuses for tickets 393-395.
+  - Evidence:
+    - `git diff AGENTS.md docs/protocol-wire.md TODO.md PROGRESS.md`
+  - Next action:
+    - Stage/commit tickets 392-395 and remove completed tickets from `TODO.md`.
+
+- 11:09 UTC
+  - Ticket: 395 (Docs/progress hygiene for FixedBin v1 cutover)
+  - Status: `done`
+  - Key actions taken:
+    - Cleared completed FixedBin v1 tickets (392-395) from `TODO.md` (active work only).
+    - Prepared docs/policy/progress updates for commit as the ticket closeout step.
+  - Evidence:
+    - `git diff AGENTS.md docs/protocol-wire.md TODO.md PROGRESS.md`
+  - Next action:
+    - Commit ticket 395 closeout changes.
+
 - 09:30 UTC
   - Ticket: 389 (runtime codec cutover to fastest binary path)
   - Status: `in_progress`
