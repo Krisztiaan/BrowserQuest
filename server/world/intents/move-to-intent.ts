@@ -139,8 +139,15 @@ export function applyMoveToIntentCommand({
     }
     const width = mapWidth;
     const height = mapHeight;
-    const isOutOfBounds =
-        world.map.isOutOfBounds ?? ((x: number, y: number) => x < 0 || y < 0 || x >= width || y >= height);
+    const isOutOfBounds = (x: number, y: number): boolean => {
+        const fn = world.map.isOutOfBounds;
+        // `world.map.isOutOfBounds` may be a class method that relies on `this.*` (e.g. Map.width/height).
+        // Do not capture it unbound; call it through the owning object.
+        if (typeof fn === 'function') {
+            return fn.call(world.map as any, x, y);
+        }
+        return x < 0 || y < 0 || x >= width || y >= height;
+    };
     if (isOutOfBounds(to.x, to.y)) {
         return { ok: false, reason: 'Invalid move.to (out of bounds).' };
     }

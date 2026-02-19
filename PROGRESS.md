@@ -13,6 +13,31 @@ Format per entry:
 
 ---
 
+## 2026-02-19
+
+- 11:09 UTC
+  - Ticket: 411 (Hotfix: prevent `move.to` crash from unbound `map.isOutOfBounds`)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Triaged crash: `move.to` bound `world.map.isOutOfBounds` into a local variable, losing `this` context for class methods (e.g. `server/map.ts` uses `this.width`).
+  - Evidence:
+    - Server crash stack: `server/map.ts:375` -> `server/world/intents/move-to-intent.ts:144`
+    - `nl -ba server/world/intents/move-to-intent.ts | sed -n '120,150p'`
+  - Next action:
+    - Wrap `isOutOfBounds` calls to preserve `this`, add a regression test, verify, commit, and remove ticket from `TODO.md`.
+
+- 11:10 UTC
+  - Ticket: 411 (Hotfix: prevent `move.to` crash from unbound `map.isOutOfBounds`)
+  - Status: `done`
+  - Key actions taken:
+    - Fixed `move.to` bounds checking to call `world.map.isOutOfBounds` with the correct `this` binding (avoid Bun/JSC `this.width` crash).
+    - Added regression test reproducing a `this`-dependent `isOutOfBounds` implementation.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts --timeout 30000`
+  - Next action:
+    - Remove Ticket 411 from `TODO.md`.
+
 ## 2026-02-18
 
 - 22:24 UTC

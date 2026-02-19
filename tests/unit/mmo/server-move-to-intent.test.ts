@@ -228,3 +228,50 @@ test('move.to diagonal routing does not cut corners (blocked orth neighbor forbi
     const queue = state.world.getComponent(playerId, movement.MoveQueue);
     expect(queue?.entries).toEqual([gridPos(0, 1), gridPos(1, 1)]);
 });
+
+test('move.to does not crash when map.isOutOfBounds relies on `this`', () => {
+    const state = new WorldState<Command, DomainEvent>();
+    const replication = registerSpawnReplicationComponents(state.world);
+    const movement = registerMovementComponents(state.world);
+
+    const Position = replication.Position;
+    const Kind = replication.Kind;
+
+    const grid = makeEmptyGrid(4, 4);
+
+    const map = {
+        getDoorDestination: () => null,
+        grid,
+        width: 4,
+        height: 4,
+        isOutOfBounds(x: number, y: number) {
+            // This reproduces the server Map method behavior (`this.width` usage).
+            return x < 0 || y < 0 || x >= (this as any).width || y >= (this as any).height;
+        },
+    };
+
+    const world: IntentWorldHost = {
+        map: map as any,
+        isValidPosition: (x, y) => x >= 0 && y >= 0 && x < 4 && y < 4 && grid[y]?.[x] === 0,
+    };
+
+    const playerId = state.world.createEntity();
+    state.world.addComponent(playerId, Position, gridPos(1, 1));
+    state.world.addComponent(playerId, Kind, Types.Entities.WARRIOR);
+
+    const res = applyMoveToIntentCommand({
+        state,
+        Position,
+        Kind,
+        player: { id: playerId, x: 1, y: 1, name: 'p' } as any,
+        movement,
+        world,
+        cmd: {
+            type: 'MOVE_TO',
+            source: { connectionId: 'c1', playerId },
+            to: gridPos(3, 1),
+            stopAdjacentToTarget: false,
+        },
+    });
+    expect(res).toBeUndefined();
+});
