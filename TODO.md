@@ -34,24 +34,8 @@ Cycle completion gate:
 
 ## Active Tickets
 
-2. Ticket 417 (WASD diagonal movement: `move.input` supports 2-axis combos + server executes diagonal)
-  - Status: `in_progress`
-  - Scope:
-    - Update server held-key movement (`move.input`) to derive `dx/dy` from key-mask combos (W+A, W+D, S+A, S+D).
-    - Apply the same diagonal corner/occupancy constraints as Ticket 416.
-  - Out of scope:
-    - Client-side animation refinements for diagonal (handled separately).
-  - Acceptance criteria:
-    - Holding two movement keys results in diagonal movement when allowed, otherwise falls back to a valid cardinal move (without jitter/spam).
-  - Verification plan:
-    - `bun run lint`
-    - `bun run typecheck`
-    - Add/update unit tests for `move.input` diagonal combos under `tests/unit/mmo/`, run `bun test tests/unit/mmo`
-  - Dependencies/blockers:
-    - Depends on Ticket 416.
-
 3. Ticket 418 (True diagonal click-to-move: diagonal A* planning end-to-end, no diagonal expansion)
-  - Status: `todo`
+  - Status: `in_progress`
   - Scope:
     - Switch client + server `move.to` planning to use constrained diagonal A* variant and keep diagonal steps (do not expand to cardinal micro-steps).
     - Remove diagonal-expansion logic from shared pathfinder; manhattan planning is achieved by choosing a non-diagonal variant, not by post-expansion.

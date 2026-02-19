@@ -159,7 +159,7 @@ export function applyMoveToIntentCommand({
                     x,
                     y,
                     false,
-                    { maxVisited: MOVE_TO_MAX_VISITED }
+                    { maxVisited: MOVE_TO_MAX_VISITED, variant: 'Diagonal' }
                 ),
         });
 

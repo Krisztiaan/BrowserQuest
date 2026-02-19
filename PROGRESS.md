@@ -68,6 +68,33 @@ Format per entry:
   - Next action:
     - Commit Ticket 417 and advance to Ticket 418 (true diagonal click-to-move: diagonal A* planning + remove diagonal expansion).
 
+- 22:51 UTC
+  - Ticket: 418 (True diagonal click-to-move: diagonal A* planning end-to-end, no diagonal expansion)
+  - Start timestamp: 2026-02-19 22:51 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Promoted Ticket 418 to active after completing held-key diagonal movement.
+  - Evidence:
+    - `sed -n '1,200p' TODO.md`
+  - Next action:
+    - Remove diagonal expansion from `shared/world/pathfinding/pathfinder.ts`, switch client/server move.to planning to `variant: 'Diagonal'`, update move.to unit tests, verify, commit.
+
+- 23:03 UTC
+  - Ticket: 418 (True diagonal click-to-move: diagonal A* planning end-to-end, no diagonal expansion)
+  - Start timestamp: 2026-02-19 22:51 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed diagonal expansion from `shared/world/pathfinding/pathfinder.ts` so diagonal A* returns true diagonal steps (no cardinal micro-step expansion).
+    - Switched client and server `move.to` planning to use constrained diagonal A* (`variant: 'Diagonal'`).
+    - Updated `tests/unit/mmo/server-move-to-intent.test.ts` expectations to match diagonal planning and keep corner-cut prevention.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Commit Ticket 418 and advance to Ticket 419 (client visuals for diagonal steps).
+
 - 21:55 UTC
   - Ticket: 415 (Fix zigzag melee + diagonal weirdness: restore classic cardinal move.to planning + align client prediction with server stop-adjacent candidate selection)
   - Start timestamp: 2026-02-19 21:55 UTC
