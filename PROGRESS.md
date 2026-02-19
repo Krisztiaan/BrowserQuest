@@ -15,6 +15,39 @@ Format per entry:
 
 ## 2026-02-19
 
+- 21:55 UTC
+  - Ticket: 415 (Fix zigzag melee + diagonal weirdness: restore classic cardinal move.to planning + align client prediction with server stop-adjacent candidate selection)
+  - Start timestamp: 2026-02-19 21:55 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Triaged zigzag + diagonal-stuck melee: modern move.to planning uses `variant: 'Diagonal'` and client prediction paths to the occupied target tile then slices the last step, while server move.to selects from adjacent-tile candidates.
+    - Confirmed classic (`af32d24`) pathfinding used default A* (manhattan, no diagonals) and attack reach required cardinal adjacency.
+  - Evidence:
+    - `sed -n '980,1120p' client/game.ts` (client A* variant `Diagonal`)
+    - `sed -n '1,260p' server/world/intents/move-to-intent.ts` (server A* variant `Diagonal` + adjacent candidate selection)
+    - `sed -n '1,220p' /root/dev/BrowserQuest.wt-origin-master/client/js/lib/astar.js` (classic default manhattan)
+  - Next action:
+    - Cut over client + server move.to planning to manhattan and align client stop-adjacent prediction to the same candidate set as the server, then verify and commit.
+
+- 22:18 UTC
+  - Ticket: 415 (Fix zigzag melee + diagonal weirdness: restore classic cardinal move.to planning + align client prediction with server stop-adjacent candidate selection)
+  - Start timestamp: 2026-02-19 21:55 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Restored classic BrowserQuest pathfinding semantics for `move.to`: client and server now plan with default (manhattan) A* (no diagonal planning).
+    - Aligned client prediction with server `stopAdjacentToTarget` behavior:
+      - client prediction now plans directly to adjacent-tile candidates (same candidate set as server),
+      - removes the previous “path-to-occupied-target then drop last step” mismatch that caused oscillation near moving targets.
+    - Extracted shared helpers to keep client/server candidate + best-path selection logic identical.
+    - Updated/renamed `move.to` unit tests to reflect manhattan planning (removed diagonal-routing assumptions).
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Remove Ticket 415 from `TODO.md` and continue with the next reported gameplay issue (if any remain).
+
 - 21:13 UTC
   - Ticket: 412 (Avoid unbound methods: call `obj.method(...)` directly (no local unbound captures))
   - Status: `in_progress`

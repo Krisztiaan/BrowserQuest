@@ -3,6 +3,7 @@ import { gridPos, type GridPos } from '../../../shared/domain/positions';
 import Types from '../../../shared/gametypes-browser';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
 import Pathfinder from '../../../shared/world/pathfinding/pathfinder';
+import { findBestPathToCandidates, resolveMoveToTargetCandidates } from '../../../shared/world/move-to-planning';
 import type { ComponentType } from '../../ecs/component-registry';
 import type { Command } from '../../ecs/commands';
 import type { DomainEvent } from '../../ecs/events';
@@ -73,28 +74,6 @@ function applyOccupancyOverlayToGrid({
         }
         original.clear();
     };
-}
-
-function resolveMoveToTargetCandidates({
-    isOutOfBounds,
-    to,
-    stopAdjacentToTarget,
-}: {
-    isOutOfBounds: (x: number, y: number) => boolean;
-    to: GridPos;
-    stopAdjacentToTarget: boolean;
-}): GridPos[] {
-    if (!stopAdjacentToTarget) {
-        return [to];
-    }
-
-    const candidates = [
-        gridPos(to.x + 1, to.y),
-        gridPos(to.x - 1, to.y),
-        gridPos(to.x, to.y + 1),
-        gridPos(to.x, to.y - 1),
-    ];
-    return candidates.filter((pos) => !isOutOfBounds(pos.x, pos.y));
 }
 
 export function applyMoveToIntentCommand({
@@ -171,26 +150,18 @@ export function applyMoveToIntentCommand({
             stopAdjacentToTarget: cmd.stopAdjacentToTarget,
         });
 
-        let bestPath: Array<[number, number]> | null = null;
-        for (const candidate of candidates) {
-            if (!world.isValidPosition(candidate.x, candidate.y)) {
-                continue;
-            }
-            const path = pathfinder.findPath(
-                grid,
-                { gridX: currentPos.x, gridY: currentPos.y },
-                candidate.x,
-                candidate.y,
-                false,
-                { maxVisited: MOVE_TO_MAX_VISITED, variant: 'Diagonal' }
-            );
-            if (path.length <= 1) {
-                continue;
-            }
-            if (!bestPath || path.length < bestPath.length) {
-                bestPath = path;
-            }
-        }
+        const bestPath = findBestPathToCandidates({
+            candidates: candidates.filter((candidate) => world.isValidPosition(candidate.x, candidate.y)),
+            findPathTo: (x, y) =>
+                pathfinder.findPath(
+                    grid,
+                    { gridX: currentPos.x, gridY: currentPos.y },
+                    x,
+                    y,
+                    false,
+                    { maxVisited: MOVE_TO_MAX_VISITED }
+                ),
+        });
 
         if (!bestPath) {
             return { ok: false, reason: 'Invalid move.to (no path).' };

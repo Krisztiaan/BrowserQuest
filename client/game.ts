@@ -1063,7 +1063,7 @@ class Game extends Evented<GameEvents> {
                     });
                 }
 
-                path = pathfinder.findPath(this.kernel.clientPathingGrid, character, x, y, false, { variant: 'Diagonal' });
+                path = pathfinder.findPath(this.kernel.clientPathingGrid, character, x, y, false);
             } finally {
                 if (ignoreList) {
                     pathfinder.clearIgnoreList();

@@ -186,7 +186,7 @@ test('move.to respects stopAdjacentToTarget when the target tile is occupied by 
     expect(grid[1]?.[4]).toBe(0); // occupancy overlay must be restored
 });
 
-test('move.to pathing uses constrained diagonal routing (expanded to cardinal steps)', () => {
+test('move.to pathing uses manhattan routing (no diagonal planning)', () => {
     const state = new WorldState<Command, DomainEvent>();
     const replication = registerSpawnReplicationComponents(state.world);
     const movement = registerMovementComponents(state.world);
@@ -227,15 +227,16 @@ test('move.to pathing uses constrained diagonal routing (expanded to cardinal st
     expect(res).toBeUndefined();
 
     const queue = state.world.getComponent(playerId, movement.MoveQueue);
-    expect(queue?.entries.length).toBeGreaterThanOrEqual(4);
-
-    // First diagonal step expands to horizontal then vertical (parity rule).
-    expect(queue?.entries[0]).toEqual(gridPos(2, 1));
-    expect(queue?.entries[1]).toEqual(gridPos(2, 2));
+    expect(queue?.entries.length).toBe(6);
+    for (let i = 0; i < queue.entries.length; i += 1) {
+        const prev = i === 0 ? gridPos(1, 1) : queue.entries[i - 1];
+        const cur = queue.entries[i];
+        expect(Math.abs(prev.x - cur.x) + Math.abs(prev.y - cur.y)).toBe(1);
+    }
     expect(queue?.entries[queue.entries.length - 1]).toEqual(gridPos(4, 4));
 });
 
-test('move.to diagonal routing does not cut corners (blocked orth neighbor forbids diagonal)', () => {
+test('move.to does not use diagonal steps (blocked orth neighbor still yields cardinal route)', () => {
     const state = new WorldState<Command, DomainEvent>();
     const replication = registerSpawnReplicationComponents(state.world);
     const movement = registerMovementComponents(state.world);

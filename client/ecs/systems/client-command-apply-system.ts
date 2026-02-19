@@ -9,6 +9,7 @@ import { entityIdFromWire, isEntityId, type EntityId } from '../../../shared/dom
 import type { EntityKind } from '../../../shared/entity-kind-domain';
 import { gridPos, type GridPos } from '../../../shared/domain/positions';
 import { buildMovePlanSteps } from '../../../shared/world/movement-intents';
+import { findBestPathToCandidates, resolveMoveToTargetCandidates } from '../../../shared/world/move-to-planning';
 import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 import { getMobPrefab } from '../../../shared/content/prefabs';
@@ -293,23 +294,43 @@ function planServerAuthoritativeMoveTo({
         return;
     }
 
+    const map = host.map;
+    const isColliding =
+        typeof map.isColliding === 'function'
+            ? (x: number, y: number) => map.isColliding?.(x, y) === true
+            : (x: number, y: number) => (map.grid[y]?.[x] ?? 0) !== 0;
+
     // New plan supersedes old.
     host.kernel.clearClientMovePlan();
     host.kernel.clearClientPendingMoveAcks();
     host.kernel.clearClientPendingMoveSeqAcks();
     host.kernel.clientMovementSuppressed = false;
     const origin = resolvePlanOrigin(host);
-    const path = requestPathFromPlanOrigin({
-        host,
-        origin,
-        toX,
-        toY,
+
+    const requestedTo = gridPos(toX, toY);
+    const candidates = resolveMoveToTargetCandidates({
+        isOutOfBounds: (x, y) => map.isOutOfBounds(x, y),
+        to: requestedTo,
+        stopAdjacentToTarget,
+    }).filter((pos) => !isColliding(pos.x, pos.y));
+
+    const bestPath = findBestPathToCandidates({
+        candidates,
+        findPathTo: (x, y) =>
+            requestPathFromPlanOrigin({
+                host,
+                origin,
+                toX: x,
+                toY: y,
+            }),
     });
-    if (path.length <= 1) {
+    if (!bestPath) {
         debugMoves('plan:none', { toX, toY, stopAdjacentToTarget, origin, reason: 'no_path' });
         return;
     }
-    const steps = buildMovePlanSteps({ path, stopAdjacentToTarget });
+
+    // When stopping adjacent, path to the adjacent candidate directly for prediction parity with the server.
+    const steps = buildMovePlanSteps({ path: bestPath, stopAdjacentToTarget: false });
     if (steps.length === 0) {
         debugMoves('plan:none', { toX, toY, stopAdjacentToTarget, origin, reason: 'no_steps' });
         return;
@@ -328,7 +349,7 @@ function planServerAuthoritativeMoveTo({
         target,
     });
     host.kernel.setClientMovePlan({
-        requestedTo: gridPos(toX, toY),
+        requestedTo,
         target,
         steps,
         stopAdjacentToTarget,
