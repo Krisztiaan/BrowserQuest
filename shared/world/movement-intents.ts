@@ -11,6 +11,16 @@ export function isCardinalStep(from: GridPos, to: GridPos): boolean {
     return Math.abs(from.x - to.x) + Math.abs(from.y - to.y) === 1;
 }
 
+export function isAdjacentStep(from: GridPos, to: GridPos): boolean {
+    const dx = Math.abs(from.x - to.x);
+    const dy = Math.abs(from.y - to.y);
+    return dx <= 1 && dy <= 1 && (dx + dy) > 0;
+}
+
+export function isDiagonalStep(from: GridPos, to: GridPos): boolean {
+    return Math.abs(from.x - to.x) === 1 && Math.abs(from.y - to.y) === 1;
+}
+
 export function resolveMoveBaseline(current: GridPos, queued: ReadonlyArray<GridPos>): GridPos {
     const tail = queued.length > 0 ? queued[queued.length - 1] : null;
     return tail ? gridPos(tail.x, tail.y) : current;
@@ -29,11 +39,17 @@ export function validateMoveStepIntent({
     isValidPosition: (x: number, y: number) => boolean;
     maxQueue?: number;
 }): { ok: true } | { ok: false; reason: string } {
-    if (!isCardinalStep(baseline, to)) {
+    if (!isAdjacentStep(baseline, to)) {
         return { ok: false, reason: MOVE_STEP_REJECT_NON_ADJACENT };
     }
     if (!isValidPosition(to.x, to.y)) {
         return { ok: false, reason: MOVE_STEP_REJECT_BLOCKED };
+    }
+    if (isDiagonalStep(baseline, to)) {
+        // "No corner clipping": require both orthogonal neighbor tiles to be walkable.
+        if (!isValidPosition(to.x, baseline.y) || !isValidPosition(baseline.x, to.y)) {
+            return { ok: false, reason: MOVE_STEP_REJECT_BLOCKED };
+        }
     }
     if (existingQueueLength >= maxQueue) {
         return { ok: false, reason: MOVE_STEP_REJECT_QUEUE_FULL };

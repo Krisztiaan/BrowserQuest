@@ -15,6 +15,33 @@ Format per entry:
 
 ## 2026-02-19
 
+- 22:26 UTC
+  - Ticket: 416 (Diagonal step validation + no-corner-clipping rule (shared + server enforcement))
+  - Start timestamp: 2026-02-19 22:26 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Ticketized diagonal movement implementation with explicit "no corner clipping" constraint.
+  - Evidence:
+    - `sed -n '1,200p' TODO.md`
+  - Next action:
+    - Implement diagonal step validation in `shared/world/movement-intents.ts`, enforce in server `player_move`, add unit tests, verify, commit.
+
+- 22:37 UTC
+  - Ticket: 416 (Diagonal step validation + no-corner-clipping rule (shared + server enforcement))
+  - Start timestamp: 2026-02-19 22:26 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Extended `move.step` validation to allow diagonal adjacency and enforce no-corner-clipping by requiring both orthogonal neighbor tiles to be walkable.
+    - Updated server `player_move` execution to support diagonal steps and to block diagonal moves that would pass through occupied corner tiles (waits like other transient collisions).
+    - Added unit tests covering diagonal acceptance, corner-cut rejection, and execution-time corner occupancy blocking.
+    - Fixed map unit tests to instantiate `ServerMap` safely now that `isOutOfBounds` is an instance field (arrow property): made `server/map.ts` constructor filepath optional and updated `tests/unit/mmo/server-map-doors.test.ts`.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo --timeout 30000`
+  - Next action:
+    - Commit Ticket 416 and advance to Ticket 417 (WASD diagonal via `move.input` combos).
+
 - 21:55 UTC
   - Ticket: 415 (Fix zigzag melee + diagonal weirdness: restore classic cardinal move.to planning + align client prediction with server stop-adjacent candidate selection)
   - Start timestamp: 2026-02-19 21:55 UTC

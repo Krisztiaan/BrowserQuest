@@ -3,6 +3,8 @@ import { gridPos, type GridPos } from '../../shared/domain/positions';
 import { isEntityWithinAttackRange } from '../../shared/combat/engagement';
 import {
     MOVE_STEP_REJECT_NON_ADJACENT,
+    isAdjacentStep,
+    isDiagonalStep,
     resolveMoveBaseline,
     validateMoveStepIntent,
 } from '../../shared/world/movement-intents';
@@ -2167,11 +2169,40 @@ export class WorldEcsCommandPipeline {
                     return;
                 }
 
-                const dist = Math.abs(from.x - next.x) + Math.abs(from.y - next.y);
-                if (dist !== 1 || !this.#world.isValidPosition(next.x, next.y)) {
+                if (!isAdjacentStep(from, next) || !this.#world.isValidPosition(next.x, next.y)) {
                     teleportCorrect(playerId, from);
                     state.world.removeComponent(playerId, MoveQueue);
                     return;
+                }
+
+                if (isDiagonalStep(from, next)) {
+                    // No corner clipping: both orthogonal neighbors must be walkable (static) and unoccupied (dynamic).
+                    const dx = next.x - from.x;
+                    const dy = next.y - from.y;
+                    const cornerAX = from.x + dx;
+                    const cornerAY = from.y;
+                    const cornerBX = from.x;
+                    const cornerBY = from.y + dy;
+
+                    if (
+                        !this.#world.isValidPosition(cornerAX, cornerAY) ||
+                        !this.#world.isValidPosition(cornerBX, cornerBY)
+                    ) {
+                        teleportCorrect(playerId, from);
+                        state.world.removeComponent(playerId, MoveQueue);
+                        return;
+                    }
+
+                    const cornerAOcc = occupiedBy.get(positionKey(cornerAX, cornerAY));
+                    if (cornerAOcc !== undefined && cornerAOcc !== playerId) {
+                        pushMoveSync(playerId, from, 1, false);
+                        return;
+                    }
+                    const cornerBOcc = occupiedBy.get(positionKey(cornerBX, cornerBY));
+                    if (cornerBOcc !== undefined && cornerBOcc !== playerId) {
+                        pushMoveSync(playerId, from, 1, false);
+                        return;
+                    }
                 }
 
                 const occupant = occupiedBy.get(positionKey(next.x, next.y));

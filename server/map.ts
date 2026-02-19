@@ -229,7 +229,7 @@ class Map {
     startingAreas: CheckpointContract[];
     readyCallbacks: Array<() => void>;
 
-    constructor(filepath: string) {
+    constructor(filepath?: string | null) {
         this.isLoaded = false;
         this.width = 0;
         this.height = 0;
@@ -250,7 +250,9 @@ class Map {
         this.startingAreas = [];
         this.readyCallbacks = [];
 
-        void this.loadMap(filepath);
+        if (filepath) {
+            void this.loadMap(filepath);
+        }
     }
 
     async loadMap(filepath: string): Promise<void> {

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import ServerMap from '../../../server/map';
 
 test('server map resolves door destinations deterministically', () => {
-    const map = Object.create(ServerMap.prototype) as ServerMap;
+    const map = new ServerMap();
 
     map.initMap({
         width: 100,
@@ -27,7 +27,7 @@ test('server map resolves door destinations deterministically', () => {
 });
 
 test('server map bounds and zone-group ids follow zero-based edge contract', () => {
-    const map = Object.create(ServerMap.prototype) as ServerMap;
+    const map = new ServerMap();
 
     map.initMap({
         width: 100,
