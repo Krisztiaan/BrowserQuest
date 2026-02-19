@@ -371,9 +371,10 @@ class Map {
         }
     }
 
-    isOutOfBounds(x: number, y: number): boolean {
+    // Arrow property: safe even if referenced/captured unbound.
+    isOutOfBounds = (x: number, y: number): boolean => {
         return isOutOfBoundsGridPosition(x, y, this.width, this.height);
-    }
+    };
 
     isColliding(x: number, y: number): boolean {
         if (this.isOutOfBounds(x, y)) {

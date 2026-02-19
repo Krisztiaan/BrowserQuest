@@ -36,6 +36,27 @@ Format per entry:
   - Next action:
     - Execute Ticket 414 (Map auto-bound `isOutOfBounds` arrow property), then enable `@typescript-eslint/unbound-method`.
 
+- 21:15 UTC
+  - Ticket: 414 (Make `Map.isOutOfBounds` auto-bound (arrow property) to reduce footguns)
+  - Status: `in_progress`
+  - Key actions taken:
+    - Converting `server/map.ts` `isOutOfBounds` to an arrow property to be safe under unbound captures.
+  - Evidence:
+    - `nl -ba server/map.ts | sed -n '360,390p'`
+  - Next action:
+    - Run Ticket 414 verification plan, then commit and advance to Ticket 413 (eslint rule enforcement).
+
+- 21:15 UTC
+  - Ticket: 414 (Make `Map.isOutOfBounds` auto-bound (arrow property) to reduce footguns)
+  - Status: `done`
+  - Key actions taken:
+    - Converted `server/map.ts` `isOutOfBounds` to an auto-bound arrow property to eliminate receiver binding hazards.
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts --timeout 30000`
+  - Next action:
+    - Execute Ticket 413 (enable and enforce `@typescript-eslint/unbound-method`).
+
 - 11:09 UTC
   - Ticket: 411 (Hotfix: prevent `move.to` crash from unbound `map.isOutOfBounds`)
   - Status: `in_progress`
