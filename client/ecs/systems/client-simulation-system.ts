@@ -110,75 +110,43 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
         return;
     }
 
-    // Estimate of the movement distance for one update
-    const tick = Math.round(16 / Math.round(character.moveSpeed / (1000 / renderer.FPS)));
-
     if (character.isMoving() && character.movement.inProgress === false) {
-        if (character.orientation === Types.Orientations.LEFT) {
-            character.movement.start(
-                host.currentTime,
-                function (x) {
-                    character.x = x;
-                    character.hasMoved();
-                },
-                function () {
-                    character.x = character.movement.endValue;
-                    character.hasMoved();
-                    character.nextStep();
-                },
-                character.x - tick,
-                character.x - 16,
-                character.moveSpeed
-            );
-        } else if (character.orientation === Types.Orientations.RIGHT) {
-            character.movement.start(
-                host.currentTime,
-                function (x) {
-                    character.x = x;
-                    character.hasMoved();
-                },
-                function () {
-                    character.x = character.movement.endValue;
-                    character.hasMoved();
-                    character.nextStep();
-                },
-                character.x + tick,
-                character.x + 16,
-                character.moveSpeed
-            );
-        } else if (character.orientation === Types.Orientations.UP) {
-            character.movement.start(
-                host.currentTime,
-                function (y) {
-                    character.y = y;
-                    character.hasMoved();
-                },
-                function () {
-                    character.y = character.movement.endValue;
-                    character.hasMoved();
-                    character.nextStep();
-                },
-                character.y - tick,
-                character.y - 16,
-                character.moveSpeed
-            );
-        } else if (character.orientation === Types.Orientations.DOWN) {
-            character.movement.start(
-                host.currentTime,
-                function (y) {
-                    character.y = y;
-                    character.hasMoved();
-                },
-                function () {
-                    character.y = character.movement.endValue;
-                    character.hasMoved();
-                    character.nextStep();
-                },
-                character.y + tick,
-                character.y + 16,
-                character.moveSpeed
-            );
+        const TILE = 16;
+        const dx = character.nextGridX - character.gridX;
+        const dy = character.nextGridY - character.gridY;
+        if (dx === 0 && dy === 0) {
+            character.nextStep();
+            return;
         }
+        if (Math.abs(dx) > 1 || Math.abs(dy) > 1 || dx < -1 || dy < -1) {
+            // Defensive: if path state is corrupted, do not attempt interpolation.
+            character.nextStep();
+            return;
+        }
+
+        const startX = character.x;
+        const startY = character.y;
+        const endX = startX + dx * TILE;
+        const endY = startY + dy * TILE;
+
+        // Transition drives a scalar progress value; we map it into x+y deltas.
+        character.movement.start(
+            host.currentTime,
+            function (d) {
+                character.x = startX + dx * d;
+                character.y = startY + dy * d;
+                character.hasMoved();
+            },
+            function () {
+                character.x = endX;
+                character.y = endY;
+                character.hasMoved();
+                character.nextStep();
+            },
+            0,
+            TILE,
+            character.moveSpeed
+        );
     }
 }
 

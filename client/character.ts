@@ -262,17 +262,42 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
             return;
         }
 
-        if (current[0] < previous[0]) {
+        const dx = current[0] - previous[0];
+        const dy = current[1] - previous[1];
+
+        // Cardinal movement (legacy 4-dir sprites).
+        if (dx === -1 && dy === 0) {
             this.walk(Types.Orientations.LEFT);
+            return;
         }
-        if (current[0] > previous[0]) {
+        if (dx === 1 && dy === 0) {
             this.walk(Types.Orientations.RIGHT);
+            return;
         }
-        if (current[1] < previous[1]) {
+        if (dx === 0 && dy === -1) {
             this.walk(Types.Orientations.UP);
+            return;
         }
-        if (current[1] > previous[1]) {
+        if (dx === 0 && dy === 1) {
             this.walk(Types.Orientations.DOWN);
+            return;
+        }
+
+        // Diagonal movement: keep facing stable using existing 4-direction sprites.
+        // Prefer preserving the current facing axis to avoid jitter (eg alternating horizontal/vertical each step).
+        if (dx !== 0 && (this.orientation === Types.Orientations.LEFT || this.orientation === Types.Orientations.RIGHT)) {
+            this.walk(dx < 0 ? Types.Orientations.LEFT : Types.Orientations.RIGHT);
+            return;
+        }
+        if (dy !== 0 && (this.orientation === Types.Orientations.UP || this.orientation === Types.Orientations.DOWN)) {
+            this.walk(dy < 0 ? Types.Orientations.UP : Types.Orientations.DOWN);
+            return;
+        }
+
+        // Default diagonal facing when idle orientation axis doesn't apply: choose horizontal.
+        if (dx !== 0) {
+            this.walk(dx < 0 ? Types.Orientations.LEFT : Types.Orientations.RIGHT);
+            return;
         }
     }
 

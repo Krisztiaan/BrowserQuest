@@ -34,37 +34,4 @@ Cycle completion gate:
 
 ## Active Tickets
 
-3. Ticket 418 (True diagonal click-to-move: diagonal A* planning end-to-end, no diagonal expansion)
-  - Status: `in_progress`
-  - Scope:
-    - Switch client + server `move.to` planning to use constrained diagonal A* variant and keep diagonal steps (do not expand to cardinal micro-steps).
-    - Remove diagonal-expansion logic from shared pathfinder; manhattan planning is achieved by choosing a non-diagonal variant, not by post-expansion.
-    - Keep `stopAdjacentToTarget` candidate selection parity (from Ticket 415) while allowing diagonal steps in the path to the chosen candidate.
-  - Out of scope:
-    - Melee range changes (diagonal hits).
-  - Acceptance criteria:
-    - Click-to-move uses diagonals where appropriate and still respects no-corner-clipping.
-    - Click-to-attack/follow remains stable (no oscillation regressions).
-  - Verification plan:
-    - `bun run lint`
-    - `bun run typecheck`
-    - `bun test tests/unit/mmo/server-move-to-intent.test.ts`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on Ticket 416 (server must be able to execute diagonal steps).
-
-4. Ticket 419 (Client movement visuals: diagonal interpolation + deterministic facing (4-dir sprites))
-  - Status: `todo`
-  - Scope:
-    - Ensure client interpolation works smoothly when both `gridX` and `gridY` change in one step.
-    - Choose a deterministic facing for diagonal steps using existing 4-direction sprites (no new assets).
-  - Out of scope:
-    - 8-direction art/animations.
-  - Acceptance criteria:
-    - Diagonal movement renders without choppiness and without incorrect frame resets.
-  - Verification plan:
-    - `bun run lint`
-    - `bun run typecheck`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on Ticket 418 (diagonal steps reaching the client).
+None.

@@ -95,6 +95,31 @@ Format per entry:
   - Next action:
     - Commit Ticket 418 and advance to Ticket 419 (client visuals for diagonal steps).
 
+- 23:07 UTC
+  - Ticket: 419 (Client movement visuals: diagonal interpolation + deterministic facing (4-dir sprites))
+  - Start timestamp: 2026-02-19 23:07 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Promoted Ticket 419 to active after enabling true diagonal steps in movement planning/execution.
+  - Evidence:
+    - `sed -n '1,120p' TODO.md`
+  - Next action:
+    - Update client simulation movement interpolation to animate diagonal steps (x+y) and adjust character facing selection for diagonal moves; verify and commit.
+
+- 23:15 UTC
+  - Ticket: 419 (Client movement visuals: diagonal interpolation + deterministic facing (4-dir sprites))
+  - Start timestamp: 2026-02-19 23:07 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated client simulation interpolation to animate movement using a scalar progress mapped into both x and y deltas, so diagonal steps render smoothly.
+    - Adjusted character facing selection for diagonal steps to avoid per-step orientation jitter while staying within 4-direction sprite assets.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Commit Ticket 419 and clear `TODO.md` (no remaining active tickets).
+
 - 21:55 UTC
   - Ticket: 415 (Fix zigzag melee + diagonal weirdness: restore classic cardinal move.to planning + align client prediction with server stop-adjacent candidate selection)
   - Start timestamp: 2026-02-19 21:55 UTC
