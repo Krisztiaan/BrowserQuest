@@ -93,7 +93,30 @@ function formatProtocolValueForLog(value: unknown): string {
     if (value === null) {
         return 'null';
     }
-    return String(value);
+    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint' || typeof value === 'undefined') {
+        return String(value);
+    }
+    if (value instanceof Uint8Array) {
+        return `Uint8Array(${value.byteLength})`;
+    }
+    if (value instanceof ArrayBuffer) {
+        return `ArrayBuffer(${value.byteLength})`;
+    }
+    if (typeof value === 'object') {
+        try {
+            return JSON.stringify(value);
+        } catch {
+            return '[object]';
+        }
+    }
+    if (typeof value === 'symbol') {
+        return value.toString();
+    }
+    if (typeof value === 'function') {
+        const name = value.name || 'anonymous';
+        return `[Function ${name}]`;
+    }
+    return '[unknown]';
 }
 
 type ClientPlayerLike = {
@@ -331,12 +354,14 @@ class GameClient extends Evented<GameClientEvents> {
         }
 
         const queued: ClientProtocolBatch = [];
-        let sawEntityState = false;
         try {
             dispatchBinaryActionBatchPayload(message, {
                 onServerAction: (action) => queued.push(action as ClientInboundProtocolAction),
+                onEntityStateBatchHeader: () => {
+                    // Avoid allocating a giant action tuple for `ENTITY_STATE_BATCH`; log it explicitly here.
+                    log.debug('data: [ENTITY_STATE_BATCH]');
+                },
                 onEntityStateBatchEntry: (wireId, x, y) => {
-                    sawEntityState = true;
                     const local = this.localPlayerId;
                     const entityId = entityIdFromWire(wireId);
                     if (local !== null && entityId === local) {
@@ -355,8 +380,6 @@ class GameClient extends Evented<GameClientEvents> {
             } else {
                 log.debug('data: ' + formatProtocolValueForLog(queued));
             }
-        } else if (sawEntityState) {
-            log.debug('data: [ENTITY_STATE_BATCH]');
         }
 
         if (queued.length === 1) {
@@ -634,11 +657,6 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveEntityStateBatch(data: ClientInboundActionByOpcode<typeof Types.Messages.ENTITY_STATE_BATCH>): void {
-        const opcode = data[0];
-        if (opcode !== Types.Messages.ENTITY_STATE_BATCH) {
-            return;
-        }
-
         const tick = data[1];
         const count = data[2];
         if (typeof tick !== 'number' || typeof count !== 'number' || !Number.isFinite(count) || count < 0) {

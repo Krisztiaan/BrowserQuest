@@ -3,6 +3,7 @@ import { entityIdFromWire } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
 import { ClientWorldKernel } from '../../../client/ecs/world-kernel';
 import { runClientPlayerMoveOutboxSystem } from '../../../client/ecs/systems/client-player-move-outbox-system';
+import Types from '../../../shared/gametypes-browser';
 
 test('outbox emits exactly one clientSendMoveTo for a new move plan and marks it sent', () => {
     const kernel = new ClientWorldKernel();
@@ -42,7 +43,11 @@ test('outbox does not resend move.to when the plan is already marked sent', () =
         steps: [gridPos(11, 10), gridPos(15, 10)],
         stopAdjacentToTarget: false,
     });
-    kernel.clientMovePlan = { ...(kernel.clientMovePlan as any), sent: true };
+    const plan = kernel.clientMovePlan;
+    expect(plan).toBeTruthy();
+    if (plan) {
+        kernel.clientMovePlan = { ...plan, sent: true };
+    }
 
     runClientPlayerMoveOutboxSystem({
         started: true,
@@ -67,7 +72,11 @@ test('outbox clears the plan when the player reached the target and there are no
         steps: [gridPos(11, 10), gridPos(12, 10)],
         stopAdjacentToTarget: false,
     });
-    kernel.clientMovePlan = { ...(kernel.clientMovePlan as any), sent: true };
+    const plan = kernel.clientMovePlan;
+    expect(plan).toBeTruthy();
+    if (plan) {
+        kernel.clientMovePlan = { ...plan, sent: true };
+    }
 
     // Outbox uses spatial record to decide whether we are still moving.
     kernel.clientSpatialRecords.set(playerId, {
@@ -76,7 +85,7 @@ test('outbox clears the plan when the player reached the target and there are no
         nextGridX: -1,
         nextGridY: -1,
         isMoving: false,
-        kind: 0 as any,
+        kind: Types.Entities.WARRIOR,
         isPlayer: true,
     });
 
@@ -91,4 +100,3 @@ test('outbox clears the plan when the player reached the target and there are no
 
     expect(kernel.clientMovePlan).toBeNull();
 });
-

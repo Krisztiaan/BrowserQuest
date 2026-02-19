@@ -305,9 +305,10 @@ function toByteArray(payload: unknown): Uint8Array {
     if (!Array.isArray(payload)) {
         throw new Error('invalid byte array');
     }
-    const out = new Uint8Array(payload.length);
-    for (let i = 0; i < payload.length; i += 1) {
-        const value = payload[i];
+    const list: unknown[] = payload;
+    const out = new Uint8Array(list.length);
+    for (let i = 0; i < list.length; i += 1) {
+        const value = list[i];
         if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 0xff) {
             throw new Error('invalid byte');
         }
@@ -531,7 +532,7 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
                     flags |= SPAWN_FLAG_HAS_TARGET;
                 }
                 writer.writeU8(flags);
-                writer.writeString(typeof tail[0] === 'string' ? (tail[0] as string) : '');
+                writer.writeString(typeof tail[0] === 'string' ? tail[0] : '');
                 writer.writeVarU32(Number(tail[1]) >>> 0);
                 writer.writeVarU32(normalizeKindId(tail[2]));
                 writer.writeVarU32(normalizeKindId(tail[3]));
@@ -1272,7 +1273,7 @@ function decodeBatchWithDirection(payloadBody: Uint8Array): { direction: Directi
     if (directionByte !== DIR_CLIENT_TO_SERVER && directionByte !== DIR_SERVER_TO_CLIENT) {
         throw new Error('invalid direction');
     }
-    const direction = directionByte as Direction;
+    const direction: Direction = directionByte;
 
     const count = reader.readVarU32();
     const out: unknown[][] = [];
@@ -1394,7 +1395,7 @@ export function dispatchBinaryActionBatchPayload(payload: ArrayBuffer | Uint8Arr
     if (directionByte !== DIR_CLIENT_TO_SERVER && directionByte !== DIR_SERVER_TO_CLIENT) {
         throw new Error('invalid direction');
     }
-    const direction = directionByte as Direction;
+    const direction: Direction = directionByte;
     const count = reader.readVarU32();
 
     if (direction === DIR_CLIENT_TO_SERVER) {

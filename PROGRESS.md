@@ -57,6 +57,28 @@ Format per entry:
   - Next action:
     - Execute Ticket 413 (enable and enforce `@typescript-eslint/unbound-method`).
 
+- 21:16 UTC
+  - Ticket: 413 (Enforce `@typescript-eslint/unbound-method` (lint error, no suppressions-by-default))
+  - Status: `in_progress`
+  - Key actions taken:
+    - Enabled `@typescript-eslint/unbound-method` in `eslint.config.mjs` and ran `bun run lint` to surface violations.
+  - Evidence:
+    - `bun run lint`
+  - Next action:
+    - Fix all lint errors/warnings (including unbound-method violations and new warning regressions), rerun lint, then commit Ticket 413 and clear `TODO.md`.
+
+- 21:37 UTC
+  - Ticket: 413 (Enforce `@typescript-eslint/unbound-method` (lint error, no suppressions-by-default))
+  - Status: `done`
+  - Key actions taken:
+    - Enabled `@typescript-eslint/unbound-method` as an error and eliminated all violations (plus any new warnings) so `--max-warnings=0` remains green.
+    - Refactored multiple callback-params and exported contract helpers to avoid unbound captures via `this`-dependent methods.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+  - Next action:
+    - Remove Ticket 413 from `TODO.md` (no remaining active tickets).
+
 - 11:09 UTC
   - Ticket: 411 (Hotfix: prevent `move.to` crash from unbound `map.isOutOfBounds`)
   - Status: `in_progress`

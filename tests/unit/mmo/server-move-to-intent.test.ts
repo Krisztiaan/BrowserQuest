@@ -8,6 +8,8 @@ import { registerMovementComponents } from '../../../server/ecs/movement-compone
 import { WorldState } from '../../../server/ecs/world-state';
 import { registerSpawnReplicationComponents } from '../../../server/replication/spawn-replication';
 import { applyMoveToIntentCommand } from '../../../server/world/intents/move-to-intent';
+import type { PlayerLike } from '../../../server/world/player-like';
+import type { EntityId } from '../../../shared/domain/ids';
 
 function makeEmptyGrid(width: number, height: number): number[][] {
     const grid: number[][] = [];
@@ -19,6 +21,56 @@ function makeEmptyGrid(width: number, height: number): number[][] {
         grid.push(row);
     }
     return grid;
+}
+
+function makePlayerLike(id: EntityId, x: number, y: number): PlayerLike {
+    function on(eventName: 'move', callback: (x: number, y: number) => void): void;
+    function on(eventName: 'lootMove', callback: (x: number, y: number) => void): void;
+    function on(eventName: 'exit', callback: () => void): void;
+    function on(_eventName: 'move' | 'lootMove' | 'exit', _callback: ((x: number, y: number) => void) | (() => void)): void {
+        // no-op for unit tests
+    }
+
+    function emit(eventName: 'exit'): void;
+    function emit(eventName: 'zone'): void;
+    function emit(eventName: 'move', x: number, y: number): void;
+    function emit(eventName: 'lootMove', x: number, y: number): void;
+    function emit(
+        _eventName: 'exit' | 'zone' | 'move' | 'lootMove',
+        _x?: number,
+        _y?: number
+    ): void {
+        // no-op for unit tests
+    }
+
+    const player: PlayerLike = {
+        id,
+        x,
+        y,
+        kind: Types.Entities.WARRIOR,
+        name: 'p',
+        orientation: Types.Orientations.DOWN,
+        armor: Types.Entities.CLOTHARMOR,
+        weapon: Types.Entities.SWORD1,
+        armorLevel: 1,
+        weaponLevel: 1,
+        maxHitPoints: 100,
+        hitPoints: 100,
+        hasEnteredGame: true,
+        isDead: false,
+        lastCheckpoint: null,
+        setPositionResolver: () => {},
+        on,
+        updatePosition: () => {},
+        setPosition: (nx, ny) => {
+            player.x = nx;
+            player.y = ny;
+        },
+        setTarget: () => {},
+        clearTarget: () => {},
+        emit,
+    };
+    return player;
 }
 
 test('move.to populates MoveQueue with a multi-step path (no occupancy)', () => {
@@ -49,7 +101,7 @@ test('move.to populates MoveQueue with a multi-step path (no occupancy)', () => 
         state,
         Position,
         Kind,
-        player: { id: playerId, x: 1, y: 1, name: 'p' } as any,
+        player: makePlayerLike(playerId, 1, 1),
         movement,
         world,
         cmd: {
@@ -99,7 +151,7 @@ test('move.to respects stopAdjacentToTarget when the target tile is occupied by 
         state,
         Position,
         Kind,
-        player: { id: playerId, x: 1, y: 1, name: 'p' } as any,
+        player: makePlayerLike(playerId, 1, 1),
         movement,
         world,
         cmd: {
@@ -117,7 +169,7 @@ test('move.to respects stopAdjacentToTarget when the target tile is occupied by 
         state,
         Position,
         Kind,
-        player: { id: playerId, x: 1, y: 1, name: 'p' } as any,
+        player: makePlayerLike(playerId, 1, 1),
         movement,
         world,
         cmd: {
@@ -162,7 +214,7 @@ test('move.to pathing uses constrained diagonal routing (expanded to cardinal st
         state,
         Position,
         Kind,
-        player: { id: playerId, x: 1, y: 1, name: 'p' } as any,
+        player: makePlayerLike(playerId, 1, 1),
         movement,
         world,
         cmd: {
@@ -213,7 +265,7 @@ test('move.to diagonal routing does not cut corners (blocked orth neighbor forbi
         state,
         Position,
         Kind,
-        player: { id: playerId, x: 0, y: 0, name: 'p' } as any,
+        player: makePlayerLike(playerId, 0, 0),
         movement,
         world,
         cmd: {
@@ -239,19 +291,20 @@ test('move.to does not crash when map.isOutOfBounds relies on `this`', () => {
 
     const grid = makeEmptyGrid(4, 4);
 
-    const map = {
+    type ThisBoundMap = IntentWorldHost['map'] & { width: number; height: number };
+    const map: ThisBoundMap = {
         getDoorDestination: () => null,
         grid,
         width: 4,
         height: 4,
-        isOutOfBounds(x: number, y: number) {
+        isOutOfBounds(this: ThisBoundMap, x: number, y: number) {
             // This reproduces the server Map method behavior (`this.width` usage).
-            return x < 0 || y < 0 || x >= (this as any).width || y >= (this as any).height;
+            return x < 0 || y < 0 || x >= this.width || y >= this.height;
         },
     };
 
     const world: IntentWorldHost = {
-        map: map as any,
+        map,
         isValidPosition: (x, y) => x >= 0 && y >= 0 && x < 4 && y < 4 && grid[y]?.[x] === 0,
     };
 
@@ -263,7 +316,7 @@ test('move.to does not crash when map.isOutOfBounds relies on `this`', () => {
         state,
         Position,
         Kind,
-        player: { id: playerId, x: 1, y: 1, name: 'p' } as any,
+        player: makePlayerLike(playerId, 1, 1),
         movement,
         world,
         cmd: {

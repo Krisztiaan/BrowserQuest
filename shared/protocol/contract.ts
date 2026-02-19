@@ -165,5 +165,6 @@ export const MSG_CHUNK_SNAPSHOT_PART = protocolContract.MSG_CHUNK_SNAPSHOT_PART;
 export const MSG_CHUNK_DELTA = protocolContract.MSG_CHUNK_DELTA;
 export const ENTITY_CLOTH_ARMOR = protocolContract.ENTITY_CLOTH_ARMOR;
 export const ENTITY_SWORD_1 = protocolContract.ENTITY_SWORD_1;
-export const parseProtocolActionBatch = protocolContract.parseProtocolActionBatch;
+export const parseProtocolActionBatch = (...args: Parameters<typeof protocolContract.parseProtocolActionBatch>) =>
+    protocolContract.parseProtocolActionBatch(...args);
 export default protocolContract;

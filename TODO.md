@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-19 21:15 UTC
+Last updated: 2026-02-19 21:37 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,15 +34,4 @@ Cycle completion gate:
 
 ## Active Tickets
 
-- Ticket 413 - Enforce `@typescript-eslint/unbound-method` (lint error, no suppressions-by-default)
-  - Status: `in_progress`
-  - Scope:
-    - Included: Enable `@typescript-eslint/unbound-method` in `eslint.config.mjs` as an error.
-    - Included: Fix all newly flagged violations in-repo (no blanket disables).
-    - Out of scope: Broad ESLint ruleset overhaul.
-  - Acceptance criteria:
-    - `bun run lint` passes with the rule enabled.
-  - Verification plan:
-    - `bun run lint`
-  - Dependencies/blockers:
-    - After Ticket 412/414 to reduce churn.
+None.

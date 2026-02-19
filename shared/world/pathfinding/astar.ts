@@ -7,7 +7,7 @@ type DiagonalMode = 'none' | 'constrained' | 'free';
 type AStarVariant = 'Diagonal' | 'DiagonalFree' | 'Euclidean' | 'EuclideanFree';
 
 export type AStarOptions = Readonly<{
-    variant?: AStarVariant | string;
+    variant?: AStarVariant;
     maxVisited?: number;
 }>;
 
@@ -20,7 +20,7 @@ function inBounds(x: number, y: number, rows: number, cols: number): boolean {
     return x >= 0 && y >= 0 && x < cols && y < rows;
 }
 
-function resolveDistanceMode(variant: string | undefined): DistanceMode {
+function resolveDistanceMode(variant: AStarVariant | undefined): DistanceMode {
     if (variant === 'Diagonal' || variant === 'DiagonalFree') {
         return 'diagonal';
     }
@@ -30,7 +30,7 @@ function resolveDistanceMode(variant: string | undefined): DistanceMode {
     return 'manhattan';
 }
 
-function resolveDiagonalMode(variant: string | undefined): DiagonalMode {
+function resolveDiagonalMode(variant: AStarVariant | undefined): DiagonalMode {
     if (variant === 'Diagonal' || variant === 'Euclidean') {
         return 'constrained';
     }
@@ -40,7 +40,7 @@ function resolveDiagonalMode(variant: string | undefined): DiagonalMode {
     return 'none';
 }
 
-function decodeOptions(variantOrOptions?: AStarVariant | string | AStarOptions): AStarOptions {
+function decodeOptions(variantOrOptions?: AStarVariant | AStarOptions): AStarOptions {
     if (!variantOrOptions) {
         return {};
     }
@@ -182,7 +182,7 @@ function AStar(
     grid: PathGrid,
     start: readonly [number, number],
     end: readonly [number, number],
-    variantOrOptions?: AStarVariant | string | AStarOptions
+    variantOrOptions?: AStarVariant | AStarOptions
 ): PathPoint[] {
     const rows = grid.length;
     const cols = grid[0]?.length ?? 0;
@@ -313,4 +313,3 @@ function AStar(
 }
 
 export default AStar;
-

@@ -65,16 +65,17 @@ function isByte(value: unknown): value is number {
     return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 0xff;
 }
 
-function toByteArray(payload: IntentPayloadBytes | unknown): Uint8Array | null {
+function toByteArray(payload: unknown): Uint8Array | null {
     if (payload instanceof Uint8Array) {
         return payload;
     }
     if (!Array.isArray(payload)) {
         return null;
     }
-    const bytes = new Uint8Array(payload.length);
-    for (let i = 0; i < payload.length; i += 1) {
-        const value = payload[i];
+    const list: unknown[] = payload;
+    const bytes = new Uint8Array(list.length);
+    for (let i = 0; i < list.length; i += 1) {
+        const value = list[i];
         if (!isByte(value)) {
             return null;
         }
@@ -102,7 +103,7 @@ function pushI32(bytes: number[], value: number): void {
 }
 
 function encodeEditors(bytes: number[], editors: ReadonlyArray<string>): boolean {
-    if (!Array.isArray(editors) || editors.length > U16_MAX) {
+    if (editors.length > U16_MAX) {
         return false;
     }
     pushU16(bytes, editors.length);
@@ -195,7 +196,7 @@ class ByteReader {
 
 function decodeGridPosPayload(payload: IntentPayloadBytes): GridPos | null {
     const bytes = toByteArray(payload);
-    if (!bytes || bytes.length !== 8) {
+    if (bytes?.length !== 8) {
         return null;
     }
     const reader = new ByteReader(bytes);
@@ -236,7 +237,7 @@ export function encodeMoveToIntentPayload(payload: MoveToIntentPayload): number[
 
 export function decodeMoveToIntentPayload(payload: IntentPayloadBytes): MoveToIntentPayload | null {
     const bytes = toByteArray(payload);
-    if (!bytes || bytes.length !== 9) {
+    if (bytes?.length !== 9) {
         return null;
     }
     const reader = new ByteReader(bytes);
@@ -262,7 +263,7 @@ export function encodeMoveInputIntentPayload(payload: MoveInputIntentPayload): n
 
 export function decodeMoveInputIntentPayload(payload: IntentPayloadBytes): MoveInputIntentPayload | null {
     const bytes = toByteArray(payload);
-    if (!bytes || bytes.length !== 1) {
+    if (bytes?.length !== 1) {
         return null;
     }
     const keysMask = bytes[0] ?? 0;
@@ -417,7 +418,7 @@ export function encodeClaimDeleteIntentPayload(payload: ClaimDeleteIntentPayload
 
 export function decodeClaimDeleteIntentPayload(payload: IntentPayloadBytes): ClaimDeleteIntentPayload | null {
     const bytes = toByteArray(payload);
-    if (!bytes || bytes.length !== 4) {
+    if (bytes?.length !== 4) {
         return null;
     }
     const id = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getInt32(0, true);

@@ -1,4 +1,4 @@
-import AStar from '../../shared/world/pathfinding/astar';
+import AStar, { type AStarOptions } from '../../shared/world/pathfinding/astar';
 
 type Grid = number[][];
 type Point = readonly [number, number];
@@ -62,7 +62,7 @@ function benchOnce(opts: {
     height: number;
     pairs: number;
     seed: number;
-    variant?: string;
+    variant?: AStarOptions['variant'];
 }): { elapsedMs: number; totalPathPoints: number } {
     const rand = xorshift32(opts.seed);
     const pairs: Array<{ start: Point; end: Point }> = [];
@@ -101,8 +101,14 @@ const seed = parsePositiveInt(process.argv[6], 12345);
 
 const obstacleRate = Number.isFinite(obstaclePct) ? Math.min(0.9, Math.max(0, obstaclePct)) : 0.22;
 const grid = makeGrid(width, height, obstacleRate, seed);
-grid[0]![0] = 0;
-grid[height - 1]![width - 1] = 0;
+const firstRow = grid[0];
+if (firstRow?.[0] !== undefined) {
+    firstRow[0] = 0;
+}
+const lastRow = grid[height - 1];
+if (lastRow?.[width - 1] !== undefined) {
+    lastRow[width - 1] = 0;
+}
 
 const manhattan = benchOnce({ label: 'manhattan', grid, width, height, pairs, seed: seed ^ 0xabc, variant: undefined });
 const diagonal = benchOnce({ label: 'Diagonal', grid, width, height, pairs, seed: seed ^ 0xdef, variant: 'Diagonal' });
@@ -131,4 +137,3 @@ console.log(
         2
     )
 );
-

@@ -104,6 +104,7 @@ const tsStrictRules = {
     '@typescript-eslint/only-throw-error': 'error',
     '@typescript-eslint/return-await': ['error', 'in-try-catch'],
     '@typescript-eslint/no-confusing-void-expression': ['warn', { ignoreArrowShorthand: true }],
+    '@typescript-eslint/unbound-method': ['error', { ignoreStatic: true }],
     'no-restricted-syntax': [
         'error',
         {

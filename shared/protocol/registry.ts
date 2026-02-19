@@ -5,7 +5,6 @@ import type {
 } from './types';
 import { checkClientToServerProtocolAction, isServerToClientProtocolAction } from './schema';
 import {
-    decodeBinaryActionBatchPayload,
     decodeClientToServerBinaryActionBatchPayload,
     decodeServerToClientBinaryActionBatchPayload,
     encodeBinaryActionBatchPayload,

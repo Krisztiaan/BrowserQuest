@@ -86,19 +86,19 @@ type SpawnChestAreaLike<TMob> = {
 
 type SpawnStaticEntitiesForWorldParams<TMob extends SpawnMobLike, TItem> = {
     staticEntities: StaticEntityMap;
-    nextMobId: () => EntityId;
-    resolveKindFromString(kindName: string): EntityKind;
-    tileIndexToGridPosition(tileIndex: number): GridPosition;
-    isNpcKind(kind: EntityKind): boolean;
-    isMobKind(kind: EntityKind): boolean;
-    isItemKind(kind: EntityKind): boolean;
-    addNpc(kind: EntityKind, x: number, y: number): void;
-    createMob(id: EntityId, kind: EntityKind, x: number, y: number): TMob;
-    addMob(mob: TMob): void;
-    isChestArea(area: object): area is SpawnChestAreaLike<TMob>;
-    addMobToContainingChestArea(mob: TMob): void;
-    createItem(kind: EntityKind, x: number, y: number): TItem;
-    addStaticItem(item: TItem): void;
+    nextMobId: (this: void) => EntityId;
+    resolveKindFromString: (this: void, kindName: string) => EntityKind;
+    tileIndexToGridPosition: (this: void, tileIndex: number) => GridPosition;
+    isNpcKind: (this: void, kind: EntityKind) => boolean;
+    isMobKind: (this: void, kind: EntityKind) => boolean;
+    isItemKind: (this: void, kind: EntityKind) => boolean;
+    addNpc: (this: void, kind: EntityKind, x: number, y: number) => void;
+    createMob: (this: void, id: EntityId, kind: EntityKind, x: number, y: number) => TMob;
+    addMob: (this: void, mob: TMob) => void;
+    isChestArea: (this: void, area: object) => area is SpawnChestAreaLike<TMob>;
+    addMobToContainingChestArea: (this: void, mob: TMob) => void;
+    createItem: (this: void, kind: EntityKind, x: number, y: number) => TItem;
+    addStaticItem: (this: void, item: TItem) => void;
 };
 
 export function createWorldItem<TItem>({

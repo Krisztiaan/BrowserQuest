@@ -39,11 +39,10 @@ test('module registry rejects duplicate handler registrations', () => {
     const registry = new GameModuleRegistry();
     const modA: ModuleManifest = {
         id: 'core.a',
-        register(r) {
+        register(r: GameModuleRegistry) {
             r.registerIntentHandler('move.step', () => {});
             r.registerIntentHandler('move.step', () => {});
         },
     };
     expect(() => registry.registerModules([modA])).toThrow(/Duplicate intent handler/);
 });
-

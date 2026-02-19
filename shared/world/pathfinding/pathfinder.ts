@@ -87,10 +87,10 @@ class Pathfinder {
 
         this.grid = grid;
         this.applyIgnoreList_(true);
+        const maxVisited = options?.maxVisited;
+        const variant = options?.variant;
         const astarOpts: AStarOptions | undefined =
-            options?.maxVisited !== undefined || options?.variant !== undefined
-                ? { maxVisited: options?.maxVisited, variant: options?.variant }
-                : undefined;
+            maxVisited !== undefined || variant !== undefined ? { maxVisited, variant } : undefined;
         let path = toGridPath(AStar(this.grid, start, end, astarOpts));
         if (options?.variant === 'Diagonal' || options?.variant === 'DiagonalFree') {
             path = expandDiagonalSteps(path);

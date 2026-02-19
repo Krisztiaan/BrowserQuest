@@ -37,8 +37,8 @@ type MapBootstrapInput = {
     mobAreaConfigs: MapMobAreaConfig[];
     chestAreaConfigs: MapChestAreaConfig[];
     staticChestConfigs: MapChestConfig[];
-    createMobArea(config: MapMobAreaConfig): RuntimeMobArea;
-    createChestArea(config: MapChestAreaConfig): RuntimeChestArea;
+    createMobArea: (this: void, config: MapMobAreaConfig) => RuntimeMobArea;
+    createChestArea: (this: void, config: MapChestAreaConfig) => RuntimeChestArea;
 };
 
 export function bootstrapWorldMapRuntime({

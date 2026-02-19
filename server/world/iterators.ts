@@ -16,10 +16,9 @@ export function forEachWorldCharacter<TCharacter>({
     forEachMob,
 }: {
     callback: EntityCallback<TCharacter>;
-    forEachPlayer(callback: EntityCallback<TCharacter>): void;
-    forEachMob(callback: EntityCallback<TCharacter>): void;
+    forEachPlayer: (this: void, callback: EntityCallback<TCharacter>) => void;
+    forEachMob: (this: void, callback: EntityCallback<TCharacter>) => void;
 }): void {
     forEachPlayer(callback);
     forEachMob(callback);
 }
-

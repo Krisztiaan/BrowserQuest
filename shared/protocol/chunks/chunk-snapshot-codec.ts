@@ -351,9 +351,10 @@ function toByteArray(payload: unknown): Uint8Array | null {
     if (!Array.isArray(payload)) {
         return null;
     }
-    const out = new Uint8Array(payload.length);
-    for (let i = 0; i < payload.length; i += 1) {
-        const value = payload[i];
+    const list: unknown[] = payload;
+    const out = new Uint8Array(list.length);
+    for (let i = 0; i < list.length; i += 1) {
+        const value = list[i];
         if (!isByte(value)) {
             return null;
         }

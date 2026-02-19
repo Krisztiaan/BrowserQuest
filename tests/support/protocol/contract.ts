@@ -44,4 +44,5 @@ export type {
     ServerToClientProtocolAction,
     ProtocolAction,
 };
-export const parseProtocolActionBatch = Protocol.parseProtocolActionBatch;
+export const parseProtocolActionBatch = (...args: Parameters<typeof Protocol.parseProtocolActionBatch>) =>
+    Protocol.parseProtocolActionBatch(...args);

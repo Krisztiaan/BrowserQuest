@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
 import WS from '../../../server/ws/runtime';
-import type { ProtocolParsedAction } from '../../../shared/protocol/types';
+import type { ClientToServerProtocolAction, ProtocolParsedAction } from '../../../shared/protocol/types';
 import Types from '../../../shared/gametypes-browser';
 import {
     decodeServerToClientProtocolActionBatchBinary,
@@ -118,8 +118,8 @@ test('ws connection forwards a single valid binary protocol action to listener',
         received = payload;
     });
 
-    const hello = [MSG_HELLO, 'player', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1] as const;
-    const payload = encodeClientToServerProtocolActionBinary(hello as any);
+    const hello = [MSG_HELLO, 'player', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1] satisfies ClientToServerProtocolAction;
+    const payload = encodeClientToServerProtocolActionBinary(hello);
     socket.emit('message', payload, true);
 
     expect(received).toEqual(hello);
@@ -136,8 +136,8 @@ test('ws connection rejects binary payloads that decode to more than one action'
         listened = true;
     });
 
-    const hello = [MSG_HELLO, 'player', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1] as const;
-    const batch = encodeClientToServerProtocolActionBatchBinary([hello as any, hello as any]);
+    const hello = [MSG_HELLO, 'player', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1] satisfies ClientToServerProtocolAction;
+    const batch = encodeClientToServerProtocolActionBatchBinary([hello, hello]);
     socket.emit('message', batch, true);
 
     expect(listened).toBe(false);

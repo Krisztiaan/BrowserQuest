@@ -1964,7 +1964,7 @@ export class WorldEcsCommandPipeline {
                 });
             },
             applyMoveInputIntentCommand({ state, player, movement, cmd }) {
-                return applyMoveInputIntentCommand({
+                applyMoveInputIntentCommand({
                     state,
                     player,
                     movement,

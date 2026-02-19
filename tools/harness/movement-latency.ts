@@ -172,8 +172,8 @@ class JitterWebSocket {
         this.#cfg = cfg;
         this.#rand = xorshift32(cfg.seed);
 
-        this.socket.addEventListener('message', (event) => {
-            const data = (event as MessageEvent).data;
+        this.socket.addEventListener('message', (event: MessageEvent) => {
+            const data: unknown = event.data;
             const delay = resolveDelayMs(cfg.s2cBaseMs, cfg.s2cJitterMs, this.#rand);
             this.stats.s2cFrames += 1;
             if (typeof data === 'string') {
@@ -186,7 +186,7 @@ class JitterWebSocket {
             setTimeout(() => this.onMessage?.(data), delay);
         });
         this.socket.addEventListener('error', (event) => this.onError?.(event));
-        this.socket.addEventListener('close', (event) => this.onClose?.(event as CloseEvent));
+        this.socket.addEventListener('close', (event: CloseEvent) => this.onClose?.(event));
     }
 
     send(data: string | ArrayBuffer | Uint8Array): void {
@@ -200,7 +200,7 @@ class JitterWebSocket {
             this.stats.c2sBytes += data.byteLength;
         }
 
-        setTimeout(() => this.socket.send(data as any), delay);
+        setTimeout(() => this.socket.send(data), delay);
     }
 
     close(): void {
@@ -270,15 +270,15 @@ async function loginAndAttachPump(ws: JitterWebSocket): Promise<LoginResult> {
             continue;
         }
 
-        let welcome: unknown[] | null = null;
+        const actions: unknown[][] = [];
         dispatchBinaryActionBatchPayload(next, {
             onEntityStateBatchEntry: () => {},
             onServerAction: (action) => {
-                if (action[0] === Types.Messages.WELCOME) {
-                    welcome = action;
-                }
+                actions.push(action);
             },
         });
+
+        const welcome = actions.find((action) => action[0] === Types.Messages.WELCOME);
         if (!welcome) {
             continue;
         }
