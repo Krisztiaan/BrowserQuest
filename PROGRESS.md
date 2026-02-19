@@ -15,6 +15,27 @@ Format per entry:
 
 ## 2026-02-19
 
+- 21:13 UTC
+  - Ticket: 412 (Avoid unbound methods: call `obj.method(...)` directly (no local unbound captures))
+  - Status: `in_progress`
+  - Key actions taken:
+    - Ticketized follow-up guardrails to prevent future `this`-binding crashes (direct-call refactor, Map auto-binding, and lint enforcement).
+  - Evidence:
+    - `sed -n '1,120p' TODO.md`
+  - Next action:
+    - Audit/fix remaining unbound captures in hot movement/pathing code, then verify and commit Ticket 412.
+
+- 21:14 UTC
+  - Ticket: 412 (Avoid unbound methods: call `obj.method(...)` directly (no local unbound captures))
+  - Status: `done`
+  - Key actions taken:
+    - Refactored server `move.to` bounds checks to call `world.map.isOutOfBounds(x, y)` via the receiver (no unbound captures).
+  - Evidence:
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts --timeout 30000`
+  - Next action:
+    - Execute Ticket 414 (Map auto-bound `isOutOfBounds` arrow property), then enable `@typescript-eslint/unbound-method`.
+
 - 11:09 UTC
   - Ticket: 411 (Hotfix: prevent `move.to` crash from unbound `map.isOutOfBounds`)
   - Status: `in_progress`

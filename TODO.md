@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-19 11:10 UTC
+Last updated: 2026-02-19 21:14 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,4 +34,29 @@ Cycle completion gate:
 
 ## Active Tickets
 
-None.
+- Ticket 413 - Enforce `@typescript-eslint/unbound-method` (lint error, no suppressions-by-default)
+  - Status: `todo`
+  - Scope:
+    - Included: Enable `@typescript-eslint/unbound-method` in `eslint.config.mjs` as an error.
+    - Included: Fix all newly flagged violations in-repo (no blanket disables).
+    - Out of scope: Broad ESLint ruleset overhaul.
+  - Acceptance criteria:
+    - `bun run lint` passes with the rule enabled.
+  - Verification plan:
+    - `bun run lint`
+  - Dependencies/blockers:
+    - After Ticket 412/414 to reduce churn.
+
+- Ticket 414 - Make `Map.isOutOfBounds` auto-bound (arrow property) to reduce footguns
+  - Status: `in_progress`
+  - Scope:
+    - Included: Convert `server/map.ts` `isOutOfBounds` from prototype method to arrow property.
+    - Included: Keep public API behavior unchanged.
+    - Out of scope: Refactoring the entire Map API surface.
+  - Acceptance criteria:
+    - `Map.isOutOfBounds` works even if referenced/captured unbound.
+  - Verification plan:
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo/server-move-to-intent.test.ts --timeout 30000`
+  - Dependencies/blockers:
+    - None.
