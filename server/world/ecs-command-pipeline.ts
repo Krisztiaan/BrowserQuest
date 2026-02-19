@@ -2007,32 +2007,60 @@ export class WorldEcsCommandPipeline {
                 modules
             )
         );
-        this.#scheduler.register('sim', 'player_move_input', (state, _ctx: SystemContext) => {
-            const Kind = this.replication.Kind;
-            const Position = this.Position;
-            const { MoveInput, MoveQueue } = this.movement;
-            const { HitPoints } = this.combat;
+	        this.#scheduler.register('sim', 'player_move_input', (state, _ctx: SystemContext) => {
+	            const Kind = this.replication.Kind;
+	            const Position = this.Position;
+	            const { MoveInput, MoveQueue } = this.movement;
+	            const { HitPoints } = this.combat;
 
-            const resolveActiveKey = (input: { keysMask: number; recentKeys: number[] }): number | null => {
-                const mask = input.keysMask >>> 0;
-                const recent = input.recentKeys;
-                for (let i = recent.length - 1; i >= 0; i -= 1) {
-                    const bit = recent[i] ?? 0;
-                    if ((mask & bit) !== 0) {
-                        return bit;
-                    }
-                }
-                // Fallback for missing recent ordering.
-                if (mask & MOVE_INPUT_KEY_W) return MOVE_INPUT_KEY_W;
-                if (mask & MOVE_INPUT_KEY_A) return MOVE_INPUT_KEY_A;
-                if (mask & MOVE_INPUT_KEY_S) return MOVE_INPUT_KEY_S;
-                if (mask & MOVE_INPUT_KEY_D) return MOVE_INPUT_KEY_D;
-                return null;
-            };
+	            const resolveActiveKey = (input: { keysMask: number; recentKeys: number[] }): number | null => {
+	                const mask = input.keysMask >>> 0;
+	                const recent = input.recentKeys;
+	                for (let i = recent.length - 1; i >= 0; i -= 1) {
+	                    const bit = recent[i] ?? 0;
+	                    if ((mask & bit) !== 0) {
+	                        return bit;
+	                    }
+	                }
+	                // Fallback for missing recent ordering.
+	                if (mask & MOVE_INPUT_KEY_W) return MOVE_INPUT_KEY_W;
+	                if (mask & MOVE_INPUT_KEY_A) return MOVE_INPUT_KEY_A;
+	                if (mask & MOVE_INPUT_KEY_S) return MOVE_INPUT_KEY_S;
+	                if (mask & MOVE_INPUT_KEY_D) return MOVE_INPUT_KEY_D;
+	                return null;
+	            };
 
-            MoveInput.store.forEach((playerId, input) => {
-                const kind = Kind.store.get(playerId);
-                if (kind === undefined || !Types.isPlayer(kind)) {
+	            const resolveAxisDelta = ({
+	                mask,
+	                recentKeys,
+	                negBit,
+	                posBit,
+	            }: {
+	                mask: number;
+	                recentKeys: number[];
+	                negBit: number;
+	                posBit: number;
+	            }): -1 | 0 | 1 => {
+	                const neg = (mask & negBit) !== 0;
+	                const pos = (mask & posBit) !== 0;
+	                if (neg && !pos) return -1;
+	                if (pos && !neg) return 1;
+	                if (!neg && !pos) return 0;
+	                // Both pressed: choose the more recent bit.
+	                const negIdx = recentKeys.lastIndexOf(negBit);
+	                const posIdx = recentKeys.lastIndexOf(posBit);
+	                if (negIdx === -1 && posIdx === -1) {
+	                    return 0;
+	                }
+	                if (negIdx > posIdx) return -1;
+	                if (posIdx > negIdx) return 1;
+	                // Stable fallback when ordering is ambiguous.
+	                return 0;
+	            };
+
+	            MoveInput.store.forEach((playerId, input) => {
+	                const kind = Kind.store.get(playerId);
+	                if (kind === undefined || !Types.isPlayer(kind)) {
                     state.world.removeComponent(playerId, MoveInput);
                     state.world.removeComponent(playerId, MoveQueue);
                     return;
@@ -2045,37 +2073,73 @@ export class WorldEcsCommandPipeline {
                     return;
                 }
 
-                const from = Position.store.get(playerId);
-                if (!from) {
-                    state.world.removeComponent(playerId, MoveQueue);
-                    return;
-                }
+	                const from = Position.store.get(playerId);
+	                if (!from) {
+	                    state.world.removeComponent(playerId, MoveQueue);
+	                    return;
+	                }
 
-                const activeKey = resolveActiveKey(input);
-                if (activeKey === null) {
-                    state.world.removeComponent(playerId, MoveQueue);
-                    return;
-                }
+	                const mask = input.keysMask >>> 0;
+	                const recentKeys = input.recentKeys;
 
-                let dx = 0;
-                let dy = 0;
-                if (activeKey === MOVE_INPUT_KEY_W) dy = -1;
-                else if (activeKey === MOVE_INPUT_KEY_A) dx = -1;
-                else if (activeKey === MOVE_INPUT_KEY_S) dy = 1;
-                else if (activeKey === MOVE_INPUT_KEY_D) dx = 1;
+	                // Resolve each axis independently so combos (W+D, etc) can produce diagonals.
+	                const dx = resolveAxisDelta({ mask, recentKeys, negBit: MOVE_INPUT_KEY_A, posBit: MOVE_INPUT_KEY_D });
+	                const dy = resolveAxisDelta({ mask, recentKeys, negBit: MOVE_INPUT_KEY_W, posBit: MOVE_INPUT_KEY_S });
 
-                const nextX = from.x + dx;
-                const nextY = from.y + dy;
-                if (!this.#world.isValidPosition(nextX, nextY)) {
-                    // Pressing into a wall should just not move; don't enqueue invalid steps.
-                    state.world.removeComponent(playerId, MoveQueue);
-                    return;
-                }
+	                if (dx === 0 && dy === 0) {
+	                    // This can happen when both opposite keys are held and ordering is ambiguous.
+	                    // Don't enqueue movement; keep input alive until a clearer state arrives.
+	                    state.world.removeComponent(playerId, MoveQueue);
+	                    return;
+	                }
 
-                // Held-key movement is always a single-step "desired next tile" (keeps input responsive).
-                state.world.addComponent(playerId, MoveQueue, { entries: [gridPos(nextX, nextY)] });
-            });
-        });
+	                const tryEnqueue = (tx: number, ty: number): boolean => {
+	                    if (!this.#world.isValidPosition(tx, ty)) {
+	                        return false;
+	                    }
+	                    state.world.addComponent(playerId, MoveQueue, { entries: [gridPos(tx, ty)] });
+	                    return true;
+	                };
+
+	                const nextX = from.x + dx;
+	                const nextY = from.y + dy;
+
+	                if (dx !== 0 && dy !== 0) {
+	                    // No corner clipping for held-key diagonals: require both orth tiles to be walkable.
+	                    const cornerAX = from.x + dx;
+	                    const cornerAY = from.y;
+	                    const cornerBX = from.x;
+	                    const cornerBY = from.y + dy;
+	                    const diagonalOk =
+	                        this.#world.isValidPosition(nextX, nextY) &&
+	                        this.#world.isValidPosition(cornerAX, cornerAY) &&
+	                        this.#world.isValidPosition(cornerBX, cornerBY);
+	                    if (!diagonalOk) {
+	                        // Prefer falling back to a cardinal move (keeps input responsive along walls).
+	                        // Choose fallback ordering based on the most recently pressed of the two axes.
+	                        const primary = resolveActiveKey(input);
+	                        const preferVertical = primary === MOVE_INPUT_KEY_W || primary === MOVE_INPUT_KEY_S;
+	                        const cand1X = preferVertical ? from.x : from.x + dx;
+	                        const cand1Y = preferVertical ? from.y + dy : from.y;
+	                        const cand2X = preferVertical ? from.x + dx : from.x;
+	                        const cand2Y = preferVertical ? from.y : from.y + dy;
+	                        if (tryEnqueue(cand1X, cand1Y)) return;
+	                        if (tryEnqueue(cand2X, cand2Y)) return;
+	                        state.world.removeComponent(playerId, MoveQueue);
+	                        return;
+	                    }
+	                }
+
+	                if (!tryEnqueue(nextX, nextY)) {
+	                    // Pressing into a wall should just not move; don't enqueue invalid steps.
+	                    state.world.removeComponent(playerId, MoveQueue);
+	                    return;
+	                }
+
+	                // Held-key movement is always a single-step "desired next tile" (keeps input responsive).
+	                // (done by tryEnqueue)
+	            });
+	        });
         this.#scheduler.register('sim', 'player_move', (state, ctx: SystemContext) => {
             const Kind = this.replication.Kind;
             const Position = this.Position;

@@ -42,6 +42,32 @@ Format per entry:
   - Next action:
     - Commit Ticket 416 and advance to Ticket 417 (WASD diagonal via `move.input` combos).
 
+- 22:39 UTC
+  - Ticket: 417 (WASD diagonal movement: `move.input` supports 2-axis combos + server executes diagonal)
+  - Start timestamp: 2026-02-19 22:39 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Completed Ticket 416 and prepared next movement ticket for held-key diagonal combos.
+  - Evidence:
+    - `git show --stat e3d437f`
+  - Next action:
+    - Update server `player_move_input` to derive diagonal `dx/dy` from key-mask combos and apply corner/occupancy constraints; add tests; verify; commit.
+
+- 22:46 UTC
+  - Ticket: 417 (WASD diagonal movement: `move.input` supports 2-axis combos + server executes diagonal)
+  - Start timestamp: 2026-02-19 22:39 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated server held-key movement to resolve `dx/dy` from key-mask combos (WASD), enabling diagonal movement when two axes are held.
+    - Enforced no-corner-clipping for held-key diagonals (static corner checks); if diagonal is blocked, falls back to a valid cardinal move based on key recency.
+    - Added a unit test covering W+D diagonal output in `tests/unit/mmo/server-move-input-intent.test.ts`.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo --timeout 30000`
+  - Next action:
+    - Commit Ticket 417 and advance to Ticket 418 (true diagonal click-to-move: diagonal A* planning + remove diagonal expansion).
+
 - 21:55 UTC
   - Ticket: 415 (Fix zigzag melee + diagonal weirdness: restore classic cardinal move.to planning + align client prediction with server stop-adjacent candidate selection)
   - Start timestamp: 2026-02-19 21:55 UTC
