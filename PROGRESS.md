@@ -15,6 +15,34 @@ Format per entry:
 
 ## 2026-02-19
 
+- 23:22 UTC
+  - Ticket: 420 (Allow diagonal corner cutting: diagonal is valid if destination is walkable)
+  - Start timestamp: 2026-02-19 23:22 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting contract change requested: allow diagonal corner cutting when destination is walkable (ignore orth corner tiles).
+  - Evidence:
+    - `sed -n '1,200p' TODO.md`
+  - Next action:
+    - Remove corner constraints from shared validation + server execution, switch move.to to `DiagonalFree`, update tests, verify, commit.
+
+- 23:33 UTC
+  - Ticket: 420 (Allow diagonal corner cutting: diagonal is valid if destination is walkable)
+  - Start timestamp: 2026-02-19 23:22 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated `move.step` validation to allow diagonal steps based on destination-only walkability (removed orth corner checks).
+    - Updated server movement execution and `move.input` to ignore orth corner tile walkability/occupancy for diagonal steps.
+    - Switched `move.to` planning to `variant: 'DiagonalFree'` (client + server) so diagonal paths can cut corners.
+    - Updated unit tests to match the new corner-cut contract.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Commit Ticket 420 and clear `TODO.md`.
+
 - 22:26 UTC
   - Ticket: 416 (Diagonal step validation + no-corner-clipping rule (shared + server enforcement))
   - Start timestamp: 2026-02-19 22:26 UTC

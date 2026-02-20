@@ -234,7 +234,7 @@ test('move.to pathing uses constrained diagonal routing (keeps diagonal steps)',
     expect(queue?.entries[queue.entries.length - 1]).toEqual(gridPos(4, 4));
 });
 
-test('move.to diagonal routing does not cut corners (blocked orth neighbor forbids diagonal)', () => {
+test('move.to diagonal routing allows corner cutting (blocked orth neighbor does not forbid diagonal)', () => {
     const state = new WorldState<Command, DomainEvent>();
     const replication = registerSpawnReplicationComponents(state.world);
     const movement = registerMovementComponents(state.world);
@@ -243,7 +243,7 @@ test('move.to diagonal routing does not cut corners (blocked orth neighbor forbi
     const Kind = replication.Kind;
 
     const grid = makeEmptyGrid(3, 3);
-    grid[0][1] = 1; // block east of start; diagonal (0,0)->(1,1) must be rejected.
+    grid[0][1] = 1; // block east of start; diagonal (0,0)->(1,1) is allowed under corner-cut rules.
 
     const world: IntentWorldHost = {
         map: {
@@ -277,7 +277,7 @@ test('move.to diagonal routing does not cut corners (blocked orth neighbor forbi
     expect(res).toBeUndefined();
 
     const queue = state.world.getComponent(playerId, movement.MoveQueue);
-    expect(queue?.entries).toEqual([gridPos(0, 1), gridPos(1, 1)]);
+    expect(queue?.entries).toEqual([gridPos(1, 1)]);
 });
 
 test('move.to does not crash when map.isOutOfBounds relies on `this`', () => {

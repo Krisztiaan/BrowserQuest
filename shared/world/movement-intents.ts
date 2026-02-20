@@ -45,12 +45,6 @@ export function validateMoveStepIntent({
     if (!isValidPosition(to.x, to.y)) {
         return { ok: false, reason: MOVE_STEP_REJECT_BLOCKED };
     }
-    if (isDiagonalStep(baseline, to)) {
-        // "No corner clipping": require both orthogonal neighbor tiles to be walkable.
-        if (!isValidPosition(to.x, baseline.y) || !isValidPosition(baseline.x, to.y)) {
-            return { ok: false, reason: MOVE_STEP_REJECT_BLOCKED };
-        }
-    }
     if (existingQueueLength >= maxQueue) {
         return { ok: false, reason: MOVE_STEP_REJECT_QUEUE_FULL };
     }

@@ -4,7 +4,6 @@ import { isEntityWithinAttackRange } from '../../shared/combat/engagement';
 import {
     MOVE_STEP_REJECT_NON_ADJACENT,
     isAdjacentStep,
-    isDiagonalStep,
     resolveMoveBaseline,
     validateMoveStepIntent,
 } from '../../shared/world/movement-intents';
@@ -2013,23 +2012,6 @@ export class WorldEcsCommandPipeline {
 	            const { MoveInput, MoveQueue } = this.movement;
 	            const { HitPoints } = this.combat;
 
-	            const resolveActiveKey = (input: { keysMask: number; recentKeys: number[] }): number | null => {
-	                const mask = input.keysMask >>> 0;
-	                const recent = input.recentKeys;
-	                for (let i = recent.length - 1; i >= 0; i -= 1) {
-	                    const bit = recent[i] ?? 0;
-	                    if ((mask & bit) !== 0) {
-	                        return bit;
-	                    }
-	                }
-	                // Fallback for missing recent ordering.
-	                if (mask & MOVE_INPUT_KEY_W) return MOVE_INPUT_KEY_W;
-	                if (mask & MOVE_INPUT_KEY_A) return MOVE_INPUT_KEY_A;
-	                if (mask & MOVE_INPUT_KEY_S) return MOVE_INPUT_KEY_S;
-	                if (mask & MOVE_INPUT_KEY_D) return MOVE_INPUT_KEY_D;
-	                return null;
-	            };
-
 	            const resolveAxisDelta = ({
 	                mask,
 	                recentKeys,
@@ -2103,32 +2085,6 @@ export class WorldEcsCommandPipeline {
 
 	                const nextX = from.x + dx;
 	                const nextY = from.y + dy;
-
-	                if (dx !== 0 && dy !== 0) {
-	                    // No corner clipping for held-key diagonals: require both orth tiles to be walkable.
-	                    const cornerAX = from.x + dx;
-	                    const cornerAY = from.y;
-	                    const cornerBX = from.x;
-	                    const cornerBY = from.y + dy;
-	                    const diagonalOk =
-	                        this.#world.isValidPosition(nextX, nextY) &&
-	                        this.#world.isValidPosition(cornerAX, cornerAY) &&
-	                        this.#world.isValidPosition(cornerBX, cornerBY);
-	                    if (!diagonalOk) {
-	                        // Prefer falling back to a cardinal move (keeps input responsive along walls).
-	                        // Choose fallback ordering based on the most recently pressed of the two axes.
-	                        const primary = resolveActiveKey(input);
-	                        const preferVertical = primary === MOVE_INPUT_KEY_W || primary === MOVE_INPUT_KEY_S;
-	                        const cand1X = preferVertical ? from.x : from.x + dx;
-	                        const cand1Y = preferVertical ? from.y + dy : from.y;
-	                        const cand2X = preferVertical ? from.x + dx : from.x;
-	                        const cand2Y = preferVertical ? from.y : from.y + dy;
-	                        if (tryEnqueue(cand1X, cand1Y)) return;
-	                        if (tryEnqueue(cand2X, cand2Y)) return;
-	                        state.world.removeComponent(playerId, MoveQueue);
-	                        return;
-	                    }
-	                }
 
 	                if (!tryEnqueue(nextX, nextY)) {
 	                    // Pressing into a wall should just not move; don't enqueue invalid steps.
@@ -2237,36 +2193,6 @@ export class WorldEcsCommandPipeline {
                     teleportCorrect(playerId, from);
                     state.world.removeComponent(playerId, MoveQueue);
                     return;
-                }
-
-                if (isDiagonalStep(from, next)) {
-                    // No corner clipping: both orthogonal neighbors must be walkable (static) and unoccupied (dynamic).
-                    const dx = next.x - from.x;
-                    const dy = next.y - from.y;
-                    const cornerAX = from.x + dx;
-                    const cornerAY = from.y;
-                    const cornerBX = from.x;
-                    const cornerBY = from.y + dy;
-
-                    if (
-                        !this.#world.isValidPosition(cornerAX, cornerAY) ||
-                        !this.#world.isValidPosition(cornerBX, cornerBY)
-                    ) {
-                        teleportCorrect(playerId, from);
-                        state.world.removeComponent(playerId, MoveQueue);
-                        return;
-                    }
-
-                    const cornerAOcc = occupiedBy.get(positionKey(cornerAX, cornerAY));
-                    if (cornerAOcc !== undefined && cornerAOcc !== playerId) {
-                        pushMoveSync(playerId, from, 1, false);
-                        return;
-                    }
-                    const cornerBOcc = occupiedBy.get(positionKey(cornerBX, cornerBY));
-                    if (cornerBOcc !== undefined && cornerBOcc !== playerId) {
-                        pushMoveSync(playerId, from, 1, false);
-                        return;
-                    }
                 }
 
                 const occupant = occupiedBy.get(positionKey(next.x, next.y));

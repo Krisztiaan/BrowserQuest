@@ -4,7 +4,6 @@ import Player from '../../../server/player';
 import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { encodeMoveStepIntentPayload } from '../../../shared/protocol/intents';
-import { MOVE_STEP_REJECT_BLOCKED } from '../../../shared/world/movement-intents';
 import type { WorldMessage } from '../../../server/world/contracts';
 
 function createTestPlayer(wireId: number): Player {
@@ -126,8 +125,8 @@ test('move.step accepts diagonal steps when corner tiles are walkable', () => {
     expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);
 });
 
-test('move.step rejects diagonal corner-cut attempts (blocked orth neighbor)', () => {
-    const blocked = new Set(['2,1']);
+test('move.step allows diagonal corner cutting when destination is walkable (blocked orth neighbor)', () => {
+    const blocked = new Set(['2,1']); // corner tile; destination remains walkable
     const { host, delivered, player } = makeHost({
         isValidPosition: (x, y) => !blocked.has(`${x},${y}`),
     });
@@ -153,20 +152,10 @@ test('move.step rejects diagonal corner-cut attempts (blocked orth neighbor)', (
     });
     pipeline.tick();
 
-    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(false);
-    expect(
-        delivered.some(
-            (msg) =>
-                Array.isArray(msg) &&
-                msg[0] === Types.Messages.REJECT &&
-                msg[1] === 1 &&
-                msg[2] === 'move.step' &&
-                msg[3] === MOVE_STEP_REJECT_BLOCKED
-        )
-    ).toBe(true);
+    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);
 });
 
-test('diagonal steps cannot pass through occupied corner tiles (execution-time wait)', () => {
+test('diagonal steps can cut past occupied corner tiles (execution-time)', () => {
     const { host, delivered, player } = makeHost({ isValidPosition: () => true });
     const pipeline = new WorldEcsCommandPipeline(host as never);
     pipeline.state.world.ensureEntity(player.id);
@@ -195,19 +184,6 @@ test('diagonal steps cannot pass through occupied corner tiles (execution-time w
     });
     pipeline.tick();
 
-    // No MOVE should be emitted; the server should "wait" for occupancy to clear.
-    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(false);
-
-    // MOVE_SYNC with suppressed flag should be emitted (observability and client-side suppression).
-    expect(
-        delivered.some(
-            (msg) =>
-                Array.isArray(msg) &&
-                msg[0] === Types.Messages.MOVE_SYNC &&
-                msg[2] === 1 &&
-                msg[3] === 1 &&
-                msg[5] === 1
-        )
-    ).toBe(true);
+    // MOVE should be emitted; corner occupancy does not block destination-only diagonal steps.
+    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);
 });
-
