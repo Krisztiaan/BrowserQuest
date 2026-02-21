@@ -13,7 +13,37 @@ Format per entry:
 
 ---
 
+## 2026-02-21
+
+- 09:05 UTC
+  - Ticket: 421 (WorldPos fixed-point + tile conversion helpers)
+  - Start timestamp: 2026-02-19 23:57 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Implemented shared fixed-point sub-tile position primitives in `shared/world/worldpos.ts`.
+    - Added unit coverage in `tests/unit/worldpos.test.ts` for conversions, constants, and deterministic math helpers.
+    - Restored green unit-suite verification by:
+      - aligning MOVE domain-event outbox test with current `ENTITY_STATE_BATCH` movement replication contract,
+      - fixing door-click test harness to include `clientMoveInputKeysMask: 0`.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit --timeout 30000`
+  - Next action:
+    - Start Ticket 422 (server ECS `PositionSub` + derived tile `Position`).
+
 ## 2026-02-19
+
+- 23:57 UTC
+  - Ticket: 421 (WorldPos fixed-point + tile conversion helpers)
+  - Start timestamp: 2026-02-19 23:57 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting shared fixed-point sub-tile coordinate primitives and unit tests (no runtime behavior changes).
+  - Evidence:
+    - `sed -n '1,140p' TODO.md`
+  - Next action:
+    - Implement `shared/world/worldpos.ts` + tests, then run lint/typecheck/unit tests and commit.
 
 - 23:48 UTC
   - Ticket: (ticketization - sub-tile positions migration plan)

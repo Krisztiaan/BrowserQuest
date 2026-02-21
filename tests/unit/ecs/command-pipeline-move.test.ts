@@ -1,7 +1,5 @@
 import { expect, test } from 'bun:test';
-import { entityIdToWire } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
-import Types from '../../../shared/gametypes-browser';
 import { SoaGridPosStore } from '../../../server/ecs/component-store';
 import type { Command } from '../../../server/ecs/commands';
 import { createApplyMoveCommandsSystem } from '../../../server/ecs/command-systems';
@@ -12,7 +10,7 @@ import { Queue } from '../../../server/ecs/queues';
 import { Scheduler } from '../../../server/ecs/scheduler';
 import { WorldState } from '../../../server/ecs/world-state';
 
-test('MOVE command flows commands -> ECS -> domain event -> protocol outbox', () => {
+test('MOVE command flows commands -> ECS -> domain event (movement replication handled elsewhere)', () => {
     const state = new WorldState<Command, DomainEvent>();
     state.resources.set(OUTBOX_RESOURCE, new Queue());
 
@@ -33,12 +31,7 @@ test('MOVE command flows commands -> ECS -> domain event -> protocol outbox', ()
 
     expect(state.world.getComponent(player, Position)).toEqual(gridPos(5, 6));
     const out = state.resources.require(OUTBOX_RESOURCE).drain();
-    expect(out).toEqual([
-        {
-            kind: 'broadcast_nearby',
-            actorId: player,
-            ignoredPlayerId: player,
-            action: [Types.Messages.MOVE, entityIdToWire(player), 5, 6],
-        },
-    ]);
+    // Movement is replicated via `ENTITY_STATE_BATCH` from the world ECS command pipeline; the generic
+    // domain-event outbox flush intentionally does not emit MOVE for `ENTITY_MOVED`.
+    expect(out).toEqual([]);
 });

@@ -34,25 +34,7 @@ Cycle completion gate:
 
 ## Active Tickets
 
-1. Ticket 421 (WorldPos fixed-point + tile conversion helpers)
-  - Status: `todo`
-  - Scope:
-    - Introduce shared sub-tile position type `WorldPos` using fixed-point integers (no floats) in `shared/`.
-    - Add helpers: `tileToWorldPosCenter(tileX,tileY)`, `worldPosToTile(pos)`, `worldPosAdd`, `worldPosClamp`, `worldPosDelta`, `worldPosDistanceSq`, etc.
-    - Define canonical constants: `TILE_PX=16`, `SUBPIXELS=256`, `TILE_SUBPX = TILE_PX*SUBPIXELS`.
-  - Out of scope:
-    - Any runtime behavior changes.
-  - Acceptance criteria:
-    - All helpers are unit-tested and deterministic.
-    - No new runtime branches/fallbacks added.
-  - Verification plan:
-    - `bun run lint`
-    - `bun run typecheck`
-    - Add unit tests under `tests/unit/` for conversions, then run `bun test tests/unit --timeout 30000`
-  - Dependencies/blockers:
-    - None.
-
-2. Ticket 422 (Server ECS: introduce authoritative sub-tile position + derived grid tile)
+1. Ticket 422 (Server ECS: introduce authoritative sub-tile position + derived grid tile)
   - Status: `todo`
   - Scope:
     - Add a new server ECS component for authoritative position, e.g. `PositionSub` storing `WorldPos` (fixed-point).
@@ -72,7 +54,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 421.
 
-3. Ticket 423 (Tile collision kernel: axis-resolved sub-tile movement against map colliders)
+2. Ticket 423 (Tile collision kernel: axis-resolved sub-tile movement against map colliders)
   - Status: `todo`
   - Scope:
     - Implement a server-side collision solver for an entity collider (AABB) in sub-tile coordinates:
@@ -92,7 +74,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Tickets 421-422.
 
-4. Ticket 424 (Server movement rework: from grid steps to continuous motion with sub-tile collision)
+3. Ticket 424 (Server movement rework: from grid steps to continuous motion with sub-tile collision)
   - Status: `todo`
   - Scope:
     - Replace server `player_move` application of `MoveQueue` grid steps with continuous movement:
@@ -112,7 +94,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 423.
 
-5. Ticket 425 (Protocol + replication: transmit sub-tile positions for player + entities)
+4. Ticket 425 (Protocol + replication: transmit sub-tile positions for player + entities)
   - Status: `todo`
   - Scope:
     - Extend S2C replication for `MOVE_SYNC` and `ENTITY_STATE_BATCH` to carry sub-tile positions:
@@ -132,7 +114,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 424 (server must produce sub-tile positions).
 
-6. Ticket 426 (Client kernel/entity model: store sub-tile pos, derive grid tile for logic)
+5. Ticket 426 (Client kernel/entity model: store sub-tile pos, derive grid tile for logic)
   - Status: `todo`
   - Scope:
     - Add sub-tile position to client kernel spatial records and entity instances (`x/y` in pixels or subpixels).
@@ -148,7 +130,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 425.
 
-7. Ticket 427 (Client rendering + interpolation for sub-tile motion)
+6. Ticket 427 (Client rendering + interpolation for sub-tile motion)
   - Status: `todo`
   - Scope:
     - Render entities at sub-tile pixel positions (smooth, no tile snapping).
@@ -165,7 +147,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 426.
 
-8. Ticket 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
+7. Ticket 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
   - Status: `todo`
   - Scope:
     - Define and implement server correction strategy with sub-tile positions:
@@ -185,7 +167,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Tickets 424-427.
 
-9. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
+8. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
   - Status: `todo`
   - Scope:
     - Update mob AI movement to use the same continuous collision kernel and `PositionSub`.
@@ -201,7 +183,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 423 (collision) and Ticket 425 (replication).
 
-10. Ticket 430 (Remove grid-step movement remnants + docs)
+9. Ticket 430 (Remove grid-step movement remnants + docs)
   - Status: `todo`
   - Scope:
     - Remove dead code paths and assumptions that movement occurs as discrete grid steps.

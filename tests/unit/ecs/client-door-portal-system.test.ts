@@ -139,6 +139,7 @@ test('clicking a door tile while already standing on it triggers traversal', () 
         kernel: {
             clientDoorTraversalArmed: false,
             clientPendingDoorTraversal: null,
+            clientMoveInputKeysMask: 0,
             clientClickIntent: { x: 3, y: 4 },
             clearClientClickIntent(this: { clientClickIntent: { x: number; y: number } | null }) {
                 this.clientClickIntent = null;
