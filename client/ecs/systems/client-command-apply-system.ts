@@ -1028,7 +1028,9 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     throw new Error(`Entity ${String(command.entityId)} missing setWorldPositionSub`);
                 }
                 if (entity instanceof Character) {
-                    hardStopCharacterMovement(entity);
+                    if (entity.isMoving()) {
+                        hardStopCharacterMovement(entity);
+                    }
                 }
                 entity.setWorldPositionSub(command.worldX, command.worldY);
                 entity.setDirty();

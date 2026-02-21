@@ -61,6 +61,8 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
 
     x: number;
     y: number;
+    targetX: number;
+    targetY: number;
     gridX: number;
     gridY: number;
     // Authoritative world-space center position (fixed-point subpixels).
@@ -98,6 +100,8 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
         // Position
         this.x = 0;
         this.y = 0;
+        this.targetX = 0;
+        this.targetY = 0;
         this.gridX = 0;
         this.gridY = 0;
         this.worldX = HALF_TILE_SUBPX;
@@ -136,7 +140,11 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
 
         this.worldX = x * TILE_SUBPX + HALF_TILE_SUBPX;
         this.worldY = y * TILE_SUBPX + HALF_TILE_SUBPX;
-        this.setPosition(x * TILE_PX, y * TILE_PX);
+        const px = x * TILE_PX;
+        const py = y * TILE_PX;
+        this.setPosition(px, py);
+        this.targetX = px;
+        this.targetY = py;
     }
 
     setWorldPositionSub(worldX: number, worldY: number): void {
@@ -145,8 +153,8 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
         this.gridX = Math.floor(worldX / TILE_SUBPX);
         this.gridY = Math.floor(worldY / TILE_SUBPX);
         // Keep legacy renderer anchor: `x/y` is the tile top-left, while world pos is the entity center.
-        this.x = Math.floor(worldX / SUBPIXELS) - TILE_PX / 2;
-        this.y = Math.floor(worldY / SUBPIXELS) - TILE_PX / 2;
+        this.targetX = Math.floor(worldX / SUBPIXELS) - TILE_PX / 2;
+        this.targetY = Math.floor(worldY / SUBPIXELS) - TILE_PX / 2;
     }
 
     setSprite(sprite: SpriteLike | null): void {

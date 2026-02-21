@@ -56,6 +56,7 @@ export type ClientSimulationSystemHost = Readonly<{
     kernel: {
         enqueueClientCommand(command: { type: 'clientSendAggro'; mobId: EntityId }): void;
     };
+    map: { grid: number[][] } | null;
     renderer: {
         FPS: number;
         mobile: boolean;
@@ -85,6 +86,31 @@ export type ClientSimulationSystemHost = Readonly<{
     checkOtherDirtyRects(rect: DirtyRect, source: AnimatedTileLike, x: number, y: number): void;
 }>;
 
+type InterpolatedEntity = {
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+    setDirty(): void;
+};
+
+function isInterpolatedEntity(entity: SimulationEntity): entity is SimulationEntity & InterpolatedEntity {
+    const candidate = entity as unknown as Partial<InterpolatedEntity>;
+    return (
+        typeof candidate.x === 'number' &&
+        typeof candidate.y === 'number' &&
+        typeof candidate.targetX === 'number' &&
+        typeof candidate.targetY === 'number' &&
+        typeof candidate.setDirty === 'function'
+    );
+}
+
+function lerpAlpha(dtMs: number, tauMs: number): number {
+    // Stable smoothing regardless of FPS; clamp dt to reduce huge jumps on background tab wakeups.
+    const dt = Math.max(0, Math.min(250, dtMs));
+    return 1 - Math.exp(-dt / tauMs);
+}
+
 function updateEntityFading(host: ClientSimulationSystemHost, entity: SimulationEntity): void {
     if ('isFading' in entity && entity.isFading) {
         const duration = 1000;
@@ -111,6 +137,11 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
     }
 
     if (character.isMoving() && character.movement.inProgress === false) {
+        // While path-stepping, keep render target aligned with the step interpolation so we don't
+        // "snap back" to an old authoritative target when the path completes.
+        character.targetX = character.x;
+        character.targetY = character.y;
+
         const TILE = 16;
         const dx = character.nextGridX - character.gridX;
         const dy = character.nextGridY - character.gridY;
@@ -135,11 +166,15 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
             function (d) {
                 character.x = startX + dx * d;
                 character.y = startY + dy * d;
+                character.targetX = character.x;
+                character.targetY = character.y;
                 character.hasMoved();
             },
             function () {
                 character.x = endX;
                 character.y = endY;
+                character.targetX = character.x;
+                character.targetY = character.y;
                 character.hasMoved();
                 character.nextStep();
             },
@@ -147,6 +182,56 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
             TILE,
             character.moveSpeed
         );
+    }
+}
+
+function updateEntityInterpolation(host: ClientSimulationSystemHost, entity: SimulationEntity, dtMs: number): void {
+    if (!isInterpolatedEntity(entity)) {
+        return;
+    }
+    if (entity instanceof Character && entity.isMoving()) {
+        return;
+    }
+
+    const dx = entity.targetX - entity.x;
+    const dy = entity.targetY - entity.y;
+    const manhattan = Math.abs(dx) + Math.abs(dy);
+    if (manhattan < 0.01) {
+        return;
+    }
+
+    const prevX = entity.x;
+    const prevY = entity.y;
+
+    // Large drift: snap immediately (eg teleport/correction).
+    if (manhattan > 96) {
+        entity.x = entity.targetX;
+        entity.y = entity.targetY;
+    } else {
+        const a = lerpAlpha(dtMs, 80);
+        entity.x = entity.x + dx * a;
+        entity.y = entity.y + dy * a;
+    }
+
+    if (entity instanceof Character) {
+        const movedX = entity.x - prevX;
+        const movedY = entity.y - prevY;
+        const moved = Math.abs(movedX) + Math.abs(movedY);
+        if (!entity.isAttacking()) {
+            if (moved > 0.05) {
+                // 4-dir sprite facing: choose dominant axis.
+                if (Math.abs(movedX) >= Math.abs(movedY)) {
+                    entity.walk(movedX < 0 ? Types.Orientations.LEFT : Types.Orientations.RIGHT);
+                } else {
+                    entity.walk(movedY < 0 ? Types.Orientations.UP : Types.Orientations.DOWN);
+                }
+            } else {
+                entity.idle();
+            }
+        }
+        entity.hasMoved();
+    } else {
+        entity.setDirty();
     }
 }
 
@@ -214,7 +299,7 @@ function updateZoning(host: ClientSimulationSystemHost): void {
     z.start(host.currentTime, updateFunc, endFunc, startValue, endValue, speed);
 }
 
-function updateCharacters(host: ClientSimulationSystemHost): void {
+function updateCharacters(host: ClientSimulationSystemHost, dtMs: number): void {
     host.forEachEntity(function (entity) {
         if (!entity.isLoaded) {
             return;
@@ -222,6 +307,7 @@ function updateCharacters(host: ClientSimulationSystemHost): void {
         if (entity instanceof Character) {
             updateCharacter(host, entity);
         }
+        updateEntityInterpolation(host, entity, dtMs);
         updateEntityFading(host, entity);
     });
 }
@@ -328,14 +414,55 @@ function ensureMobileCameraTracksPlayer(host: ClientSimulationSystemHost): void 
     host.resetCamera();
 }
 
+function updateDesktopCameraFollow(host: ClientSimulationSystemHost, dtMs: number): void {
+    const renderer = host.renderer;
+    const player = host.player;
+    if (!renderer || !player) {
+        return;
+    }
+    if (renderer.mobile || renderer.tablet) {
+        return;
+    }
+    if (!host.map) {
+        return;
+    }
+    if (host.currentZoning) {
+        return;
+    }
+
+    const grid: number[][] = host.map.grid;
+    const mapH = grid.length;
+    const mapW = grid[0]?.length ?? 0;
+    if (mapW <= 0 || mapH <= 0) {
+        return;
+    }
+
+    const TILE = 16;
+    const desiredX = Math.round(player.x - (Math.floor(host.camera.gridW / 2) * TILE));
+    const desiredY = Math.round(player.y - (Math.floor(host.camera.gridH / 2) * TILE));
+    const maxX = Math.max(0, (mapW - host.camera.gridW) * TILE);
+    const maxY = Math.max(0, (mapH - host.camera.gridH) * TILE);
+    const clampedX = Math.max(0, Math.min(desiredX, maxX));
+    const clampedY = Math.max(0, Math.min(desiredY, maxY));
+
+    const a = lerpAlpha(dtMs, 120);
+    host.camera.setPosition(host.camera.x + (clampedX - host.camera.x) * a, host.camera.y + (clampedY - host.camera.y) * a);
+}
+
+let lastSimulationTimeMs = 0;
+
 export function runClientSimulationSystem(host: ClientSimulationSystemHost): void {
     if (!host.started) {
         return;
     }
 
+    const dtMs = lastSimulationTimeMs > 0 ? host.currentTime - lastSimulationTimeMs : 16;
+    lastSimulationTimeMs = host.currentTime;
+
     ensureMobileCameraTracksPlayer(host);
+    updateDesktopCameraFollow(host, dtMs);
     updateZoning(host);
-    updateCharacters(host);
+    updateCharacters(host, dtMs);
     updatePlayerAggro(host);
     updateTransitions(host);
     updateAnimations(host);

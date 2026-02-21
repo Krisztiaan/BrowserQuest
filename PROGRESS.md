@@ -170,6 +170,34 @@ Format per entry:
   - Next action:
     - Start Ticket 427 (render + interpolate entities using sub-tile positions; smooth camera and walk cycles).
 
+- 10:20 UTC
+  - Ticket: 427 (Client rendering + interpolation for sub-tile motion)
+  - Start timestamp: 2026-02-21 10:20 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting client render-time interpolation and animation updates so sub-tile authoritative positions produce smooth motion and appropriate walk cycles.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+  - Next action:
+    - Introduce `targetX/targetY` render smoothing for entities, derive orientation from velocity, smooth camera follow, verify, commit.
+
+- 10:27 UTC
+  - Ticket: 427 (Client rendering + interpolation for sub-tile motion)
+  - Start timestamp: 2026-02-21 10:20 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added `targetX/targetY` to entities so authoritative sub-tile positions update a render target, not the render position directly.
+    - Implemented dt-stable interpolation in `client-simulation-system` for entities not using legacy path-step movement.
+    - Derived 4-direction walk animation and facing from per-frame movement deltas for non-path-driven characters.
+    - Added smooth desktop camera follow based on player pixel position (mobile/tablet retains existing snap-on-out-of-view behavior).
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Start Ticket 428 (server reconciliation rules and client prediction/correction thresholds for sub-tile).
+
 ## 2026-02-19
 
 - 23:57 UTC

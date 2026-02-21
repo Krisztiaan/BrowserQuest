@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-21 10:17 UTC
+Last updated: 2026-02-21 10:27 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,24 +34,7 @@ Cycle completion gate:
 
 ## Active Tickets
 
-1. Ticket 427 (Client rendering + interpolation for sub-tile motion)
-  - Status: `todo`
-  - Scope:
-    - Render entities at sub-tile pixel positions (smooth, no tile snapping).
-    - Update movement animation cadence to match continuous speed (walk cycles), keep 4-dir sprites.
-    - Ensure camera follows smoothly using sub-tile position.
-  - Out of scope:
-    - New sprite assets.
-  - Acceptance criteria:
-    - Movement appears smooth at varying FPS; no jitter on reconciliation.
-  - Verification plan:
-    - `bun run lint`
-    - `bun run typecheck`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on Ticket 426.
-
-2. Ticket 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
+1. Ticket 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
   - Status: `todo`
   - Scope:
     - Define and implement server correction strategy with sub-tile positions:
@@ -71,7 +54,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Tickets 424-427.
 
-3. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
+2. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
   - Status: `todo`
   - Scope:
     - Update mob AI movement to use the same continuous collision kernel and `PositionSub`.
@@ -87,7 +70,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 423 (collision) and Ticket 425 (replication).
 
-4. Ticket 430 (Remove grid-step movement remnants + docs)
+3. Ticket 430 (Remove grid-step movement remnants + docs)
   - Status: `todo`
   - Scope:
     - Remove dead code paths and assumptions that movement occurs as discrete grid steps.
