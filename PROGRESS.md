@@ -114,6 +114,34 @@ Format per entry:
   - Next action:
     - Start Ticket 425 (replicate sub-tile positions over the wire).
 
+- 09:44 UTC
+  - Ticket: 425 (Protocol + replication: transmit sub-tile positions for player + entities)
+  - Start timestamp: 2026-02-21 09:44 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting wire contract update to replicate sub-tile `worldX/worldY` over `MOVE_SYNC` and `ENTITY_STATE_BATCH`.
+  - Evidence:
+    - `sed -n '30,120p' TODO.md`
+  - Next action:
+    - Update protocol types + server outbound builders + client inbound handlers + tests, verify with unit + smoke, commit.
+
+- 10:02 UTC
+  - Ticket: 425 (Protocol + replication: transmit sub-tile positions for player + entities)
+  - Start timestamp: 2026-02-21 09:44 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Switched `MOVE_SYNC` and `ENTITY_STATE_BATCH` payload semantics from tile coords to fixed-point sub-tile world coords (`worldX/worldY` in subpixels).
+    - Updated server outbound builders and movement pipeline to emit authoritative sub-tile positions.
+    - Updated client inbound handlers and smoke parity to consume `MOVE_SYNC` for move.input parity.
+    - Updated binary wire codec for these opcodes to use varu32 x/y (pos20 max 1023 is incompatible with subpixel coords).
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Start Ticket 426 (client kernel/entity model to store sub-tile positions without flooring).
+
 ## 2026-02-19
 
 - 23:57 UTC

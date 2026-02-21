@@ -103,8 +103,9 @@ export type ServerToClientChunkDeltaAction = [
     number,
     number[] | Uint8Array,
 ];
+// Layout: `[MOVE_SYNC, ackSeq, worldX, worldY, tick, flags]` where world coords are fixed-point subpixels.
 export type ServerToClientMoveSyncAction = [typeof Types.Messages.MOVE_SYNC, number, number, number, number, number];
-// Packed layout: `[ENTITY_STATE_BATCH, tick, count, ...count*(id,x,y,flags)]`
+// Packed layout: `[ENTITY_STATE_BATCH, tick, count, ...count*(id,worldX,worldY,flags)]`
 export type ServerToClientEntityStateBatchAction = [
     typeof Types.Messages.ENTITY_STATE_BATCH,
     number,

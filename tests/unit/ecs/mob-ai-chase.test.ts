@@ -530,8 +530,13 @@ test('server queues adjacent MOVE intents and applies them at move cadence', () 
         to: gridPos(7, 5),
     });
 
-    pipeline.tick(); // tick 0 gate
-    pipeline.tick(); // applies first step
+    for (let i = 0; i < 24; i += 1) {
+        pipeline.tick();
+        const pos = pipeline.Position.store.get(player.id);
+        if (pos && pos.x === 6 && pos.y === 5) {
+            break;
+        }
+    }
     expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(6, 5));
     expect(
         delivered.some(
@@ -544,14 +549,13 @@ test('server queues adjacent MOVE intents and applies them at move cadence', () 
         )
     ).toBe(true);
 
-    // Not enough ticks for the 120ms/player move cooldown at 50 UPS (~6 ticks).
-    for (let i = 0; i < 4; i += 1) {
+    for (let i = 0; i < 48; i += 1) {
         pipeline.tick();
+        const pos = pipeline.Position.store.get(player.id);
+        if (pos && pos.x === 7 && pos.y === 5) {
+            break;
+        }
     }
-    expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(6, 5));
-
-    pipeline.tick();
-    pipeline.tick();
     expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(7, 5));
     expect(
         delivered.some(

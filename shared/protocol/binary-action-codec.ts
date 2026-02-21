@@ -193,6 +193,12 @@ class ByteWriter {
         this.offset += 3;
     }
 
+    writePosVarU32(x: number, y: number): void {
+        // World-space fixed-point coords can exceed `pos20` (0..1023). Use varu32 for those.
+        this.writeVarU32(x);
+        this.writeVarU32(y);
+    }
+
     toUint8Array(): Uint8Array {
         return this.buffer.slice(0, this.offset);
     }
@@ -258,6 +264,12 @@ class ByteReader {
         const packed = (b0 | (b1 << 8) | (b2 << 16)) >>> 0;
         const x = packed & 0x3ff;
         const y = (packed >>> 10) & 0x3ff;
+        return { x, y };
+    }
+
+    readPosVarU32(): { x: number; y: number } {
+        const x = this.readVarU32();
+        const y = this.readVarU32();
         return { x, y };
     }
 
@@ -697,7 +709,7 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             const tick = action[4];
             const flags = action[5];
             writer.writeVarU32(Number(ackSeq) >>> 0);
-            writer.writePos20(Number(x), Number(y));
+            writer.writePosVarU32(Number(x), Number(y));
             writer.writeVarU32(Number(tick) >>> 0);
             writer.writeU8(Number(flags) >>> 0);
             return;
@@ -715,7 +727,7 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             for (let i = 0; i < Number(count); i += 1) {
                 const offset = base + i * 4;
                 writer.writeVarU32(Number(action[offset]) >>> 0); // id (wire)
-                writer.writePos20(Number(action[offset + 1]), Number(action[offset + 2])); // x,y
+                writer.writePosVarU32(Number(action[offset + 1]), Number(action[offset + 2])); // x,y
                 writer.writeU8(Number(action[offset + 3]) >>> 0); // flags
             }
             return;
@@ -994,7 +1006,7 @@ function decodeServerToClientActionFromOpcode(opcode: number, reader: ByteReader
         }
         case Types.Messages.MOVE_SYNC: {
             const ackSeq = reader.readVarU32();
-            const pos = reader.readPos20();
+            const pos = reader.readPosVarU32();
             const tick = reader.readVarU32();
             const flags = reader.readU8();
             return [opcode, ackSeq, pos.x, pos.y, tick, flags];
@@ -1005,7 +1017,7 @@ function decodeServerToClientActionFromOpcode(opcode: number, reader: ByteReader
             const out: unknown[] = [opcode, tick, count];
             for (let i = 0; i < count; i += 1) {
                 const id = reader.readVarU32();
-                const pos = reader.readPos20();
+                const pos = reader.readPosVarU32();
                 const flags = reader.readU8();
                 out.push(id, pos.x, pos.y, flags);
             }
@@ -1221,7 +1233,7 @@ function skipServerToClientActionFromOpcode(opcode: number, reader: ByteReader):
         }
         case Types.Messages.MOVE_SYNC:
             void reader.readVarU32();
-            void reader.readPos20();
+            void reader.readPosVarU32();
             void reader.readVarU32();
             void reader.readU8();
             return;
@@ -1230,7 +1242,7 @@ function skipServerToClientActionFromOpcode(opcode: number, reader: ByteReader):
             const count = reader.readVarU32();
             for (let i = 0; i < count; i += 1) {
                 void reader.readVarU32();
-                void reader.readPos20();
+                void reader.readPosVarU32();
                 void reader.readU8();
             }
             return;
@@ -1416,7 +1428,7 @@ export function dispatchBinaryActionBatchPayload(payload: ArrayBuffer | Uint8Arr
                 hooks.onEntityStateBatchHeader?.(tick, entryCount);
                 for (let j = 0; j < entryCount; j += 1) {
                     const id = reader.readVarU32();
-                    const pos = reader.readPos20();
+                    const pos = reader.readPosVarU32();
                     const flags = reader.readU8();
                     hooks.onEntityStateBatchEntry(id, pos.x, pos.y, flags);
                 }

@@ -47,6 +47,7 @@ import { gridPos } from '../shared/domain/positions';
 import { decodeSpawnAction } from '../shared/replication/spawn-snapshot';
 import { adaptKernelEntityForRendering } from './ecs/kernel-entity-adapter';
 import { ClientWorldKernel } from './ecs/world-kernel';
+import { TILE_SUBPX } from '../shared/world/worldpos';
 import { decodeProtocolCapabilitiesJson, type ProtocolCapabilities } from '../shared/protocol/capabilities';
 import { decodeChunkSnapshotPayloadBinary } from '../shared/protocol/chunks/chunk-snapshot-codec';
 import { decodeChunkDeltaPayloadBinary } from '../shared/protocol/chunks/chunk-delta-codec';
@@ -628,11 +629,11 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveMoveSync(data: ClientInboundActionByOpcode<typeof Types.Messages.MOVE_SYNC>): void {
-        const [, ackSeq, x, y, tick, flags] = data;
+        const [, ackSeq, worldX, worldY, tick, flags] = data;
         if (
             typeof ackSeq !== 'number'
-            || typeof x !== 'number'
-            || typeof y !== 'number'
+            || typeof worldX !== 'number'
+            || typeof worldY !== 'number'
             || typeof tick !== 'number'
             || typeof flags !== 'number'
         ) {
@@ -645,7 +646,7 @@ class GameClient extends Evented<GameClientEvents> {
         }
 
         this.kernel.pruneClientPendingMoveSeqAcksUpTo(ackSeq);
-        this.kernel.setPosition(playerId, x, y);
+        this.kernel.setPosition(playerId, Math.floor(worldX / TILE_SUBPX), Math.floor(worldY / TILE_SUBPX));
 
         const suppressed = (flags & 1) !== 0;
         this.kernel.clientMovementSuppressed = suppressed;
@@ -653,7 +654,7 @@ class GameClient extends Evented<GameClientEvents> {
             // Stop local prediction immediately; authoritative state will be applied via kernel replication sync.
             this.kernel.enqueueClientCommand({ type: 'playerStop' });
         }
-        debugMoves('in:MOVE_SYNC', { ackSeq, x, y, tick, flags });
+        debugMoves('in:MOVE_SYNC', { ackSeq, worldX, worldY, tick, flags });
     }
 
     receiveEntityStateBatch(data: ClientInboundActionByOpcode<typeof Types.Messages.ENTITY_STATE_BATCH>): void {
@@ -672,16 +673,16 @@ class GameClient extends Evented<GameClientEvents> {
         for (let i = 0; i < count; i += 1) {
             const base = 3 + i * 4;
             const wireId = data[base];
-            const x = data[base + 1];
-            const y = data[base + 2];
-            if (typeof wireId !== 'number' || typeof x !== 'number' || typeof y !== 'number') {
+            const worldX = data[base + 1];
+            const worldY = data[base + 2];
+            if (typeof wireId !== 'number' || typeof worldX !== 'number' || typeof worldY !== 'number') {
                 continue;
             }
             const entityId = entityIdFromWire(wireId);
             if (localPlayerId !== null && entityId === localPlayerId) {
                 continue;
             }
-            this.kernel.setPosition(entityId, x, y);
+            this.kernel.setPosition(entityId, Math.floor(worldX / TILE_SUBPX), Math.floor(worldY / TILE_SUBPX));
         }
 
         debugMoves('in:ENTITY_STATE_BATCH', { tick, count });

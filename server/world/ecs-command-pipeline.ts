@@ -1490,7 +1490,8 @@ function applyTeleportOutcome({
     to: GridPos;
 }): void {
     state.world.addComponent(playerId, Position, to);
-    state.world.addComponent(playerId, PositionSub, tileToWorldPosCenter(to.x, to.y));
+    const toSub = tileToWorldPosCenter(to.x, to.y);
+    state.world.addComponent(playerId, PositionSub, toSub);
     state.world.removeComponent(playerId, Target);
 
     const teleport = buildTeleportAction(playerId, to.x, to.y);
@@ -1499,7 +1500,7 @@ function applyTeleportOutcome({
     const moveSyncState = state.resources.require(MOVE_SYNC_STATE_RESOURCE);
     const ackSeq = seqState.lastAcceptedByPlayerId.get(playerId) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
     // Teleports are authoritative corrections; stop predicting until the next input.
-    const moveSync = buildMoveSyncAction(ackSeq, to.x, to.y, ctx.tick, 1);
+    const moveSync = buildMoveSyncAction(ackSeq, toSub.x, toSub.y, ctx.tick, 1);
     moveSyncState.set(playerId, ctx.tick);
     outbox.push({ kind: 'to_player', playerId, action: teleport });
     outbox.push({ kind: 'to_player', playerId, action: moveSync });
@@ -1650,7 +1651,11 @@ function createApplyInboundCommandsSystem(
                         const pos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
                         world.pushToPlayerId(cmd.source.playerId, buildCorrectionMoveAction(cmd.seq, pos.x, pos.y));
                         // Corrections are authoritative; stop prediction until the next input.
-                        world.pushToPlayerId(cmd.source.playerId, buildMoveSyncAction(lastAccepted, pos.x, pos.y, ctx.tick, 1));
+                        const sub = replication.PositionSub.store.get(player.id) ?? tileToWorldPosCenter(pos.x, pos.y);
+                        world.pushToPlayerId(
+                            cmd.source.playerId,
+                            buildMoveSyncAction(lastAccepted, sub.x, sub.y, ctx.tick, 1)
+                        );
                         state.resources.require(MOVE_SYNC_STATE_RESOURCE).set(player.id, ctx.tick);
                     };
 
@@ -1773,6 +1778,16 @@ function createApplyInboundCommandsSystem(
                     }
                     seqState.lastAcceptedByPlayerId.set(player.id, cmd.seq);
                     world.pushToPlayerId(cmd.source.playerId, buildAckAction(cmd.seq));
+
+                    if (cmd.intentTypeId === INTENT_MOVE_INPUT) {
+                        // Immediately provide an authoritative sync point for held-key movement.
+                        // This keeps clients/sniff tests from relying on a tile-boundary MOVE to observe progress.
+                        const pos = replication.PositionSub.store.get(player.id);
+                        if (pos) {
+                            world.pushToPlayerId(cmd.source.playerId, buildMoveSyncAction(cmd.seq, pos.x, pos.y, ctx.tick, 0));
+                            state.resources.require(MOVE_SYNC_STATE_RESOURCE).set(player.id, ctx.tick);
+                        }
+                    }
                     break;
                 }
                 case 'MOVE':
@@ -2053,7 +2068,7 @@ export class WorldEcsCommandPipeline {
                 occupiedBy.set(positionKey(pos.x, pos.y), id);
             });
 
-            const pushMoveSync = (playerId: EntityId, pos: GridPos, flags: number, force: boolean) => {
+            const pushMoveSync = (playerId: EntityId, pos: { x: number; y: number }, flags: number, force: boolean) => {
                 const lastSent = moveSyncState.get(playerId) ?? Number.NEGATIVE_INFINITY;
                 if (!force && ctx.tick - lastSent < MOVE_SYNC_CADENCE_TICKS) {
                     return;
@@ -2277,7 +2292,7 @@ export class WorldEcsCommandPipeline {
                 if (wantsTileChange) {
                     const occupant = occupiedBy.get(positionKey(nextGrid.x, nextGrid.y));
                     if (occupant !== undefined && occupant !== playerId) {
-                        pushMoveSync(playerId, currentGrid, 1, false);
+                        pushMoveSync(playerId, posSub, 1, false);
                         continue;
                     }
                 }
@@ -2287,6 +2302,9 @@ export class WorldEcsCommandPipeline {
                 state.world.addComponent(playerId, PositionSub, nextSub);
                 state.world.addComponent(playerId, Position, nextGrid);
 
+                // Periodic authoritative position sync (sub-tile) for client reconciliation.
+                pushMoveSync(playerId, nextSub, 0, false);
+
                 if (wantsTileChange) {
                     const oldKey = positionKey(currentGrid.x, currentGrid.y);
                     if (occupiedBy.get(oldKey) === playerId) {
@@ -2295,7 +2313,7 @@ export class WorldEcsCommandPipeline {
                     occupiedBy.set(positionKey(nextGrid.x, nextGrid.y), playerId);
 
                     outbox.push({ kind: 'to_player', playerId, action: buildMoveAction(playerId, nextGrid.x, nextGrid.y) });
-                    pushMoveSync(playerId, nextGrid, 0, true);
+                    pushMoveSync(playerId, nextSub, 0, true);
                     enqueueEntityState(playerId, nextGrid);
 
                     const doorDestination = this.#world.map.getDoorDestination(nextGrid.x, nextGrid.y);
@@ -2713,6 +2731,7 @@ export class WorldEcsCommandPipeline {
             if (batches.size === 0) {
                 return;
             }
+            const PositionSub = this.PositionSub;
             const outbox = state.resources.require(OUTBOX_RESOURCE);
             for (const [groupId, entries] of batches.entries()) {
                 if (!groupId || entries.size === 0) {
@@ -2723,12 +2742,15 @@ export class WorldEcsCommandPipeline {
                     continue;
                 }
 
-                const payload = Array.from(entries.entries()).map(([id, pos]) => ({
-                    id,
-                    x: pos.x,
-                    y: pos.y,
-                    flags: pos.flags,
-                }));
+                const payload: Array<{ id: EntityId; worldX: number; worldY: number; flags: number }> = [];
+                for (const [id, pos] of entries.entries()) {
+                    const sub = PositionSub.store.get(id);
+                    if (!sub) {
+                        // PositionSub should always be present for replicated entities; skip if missing.
+                        continue;
+                    }
+                    payload.push({ id, worldX: sub.x, worldY: sub.y, flags: pos.flags });
+                }
                 outbox.push({
                     kind: 'broadcast_nearby',
                     actorId: first,

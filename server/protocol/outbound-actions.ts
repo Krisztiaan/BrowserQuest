@@ -69,12 +69,12 @@ export function buildCorrectionMoveAction(seq: number, x: number, y: number): Se
 
 export function buildMoveSyncAction(
     ackSeq: number,
-    x: number,
-    y: number,
+    worldX: number,
+    worldY: number,
     tick: number,
     flags: number
 ): ServerToClientMoveSyncAction {
-    return [Types.Messages.MOVE_SYNC, ackSeq, x, y, tick, flags];
+    return [Types.Messages.MOVE_SYNC, ackSeq, worldX, worldY, tick, flags];
 }
 
 export function buildEntityStateBatchAction({
@@ -82,7 +82,7 @@ export function buildEntityStateBatchAction({
     entries,
 }: {
     tick: number;
-    entries: ReadonlyArray<Readonly<{ id: EntityId; x: number; y: number; flags: number }>>;
+    entries: ReadonlyArray<Readonly<{ id: EntityId; worldX: number; worldY: number; flags: number }>>;
 }): ServerToClientEntityStateBatchAction {
     const out: number[] = [Types.Messages.ENTITY_STATE_BATCH, tick >>> 0, entries.length >>> 0];
     for (let i = 0; i < entries.length; i += 1) {
@@ -90,7 +90,7 @@ export function buildEntityStateBatchAction({
         if (!entry) {
             continue;
         }
-        out.push(entityIdToWire(entry.id), entry.x, entry.y, entry.flags >>> 0);
+        out.push(entityIdToWire(entry.id), entry.worldX, entry.worldY, entry.flags >>> 0);
     }
     return out as unknown as ServerToClientEntityStateBatchAction;
 }

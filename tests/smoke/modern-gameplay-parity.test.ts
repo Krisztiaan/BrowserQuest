@@ -19,7 +19,6 @@ import {
     MSG_INTENT,
     MSG_LIST,
     MSG_LOOTMOVE,
-    MSG_MOVE,
     MSG_MOVE_SYNC,
     MSG_SPAWN,
     MSG_WELCOME,
@@ -246,13 +245,6 @@ test(
             moveInputSeq += 1;
 
             try {
-                await waitForNextAction(
-                    stream,
-                    (action) =>
-                        action[0] === MSG_MOVE && action[1] === localPlayerId && typeof action[2] === 'number' && typeof action[3] === 'number',
-                    'MOVE from move.input',
-                    1500
-                );
                 const sync = await waitForNextAction(
                     stream,
                     (action) =>
