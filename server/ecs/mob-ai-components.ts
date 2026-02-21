@@ -18,6 +18,8 @@ export type MobAiComponents = Readonly<{
     MobHate: ComponentType<MobHateState>;
     MobReturnAtTick: ComponentType<number>;
     MobNextMoveTick: ComponentType<number>;
+    MobMoveGoal: ComponentType<GridPos>;
+    MobMoveRemainder: ComponentType<number>;
 }>;
 
 export function registerMobAiComponents(world: EcsWorld): MobAiComponents {
@@ -25,5 +27,7 @@ export function registerMobAiComponents(world: EcsWorld): MobAiComponents {
     const MobHate = world.components.register('MobHate', new SparseSetStore<MobHateState>());
     const MobReturnAtTick = world.components.register('MobReturnAtTick', new SparseSetStore<number>());
     const MobNextMoveTick = world.components.register('MobNextMoveTick', new SparseSetStore<number>());
-    return { MobSpawnPos, MobHate, MobReturnAtTick, MobNextMoveTick };
+    const MobMoveGoal = world.components.register('MobMoveGoal', new SoaGridPosStore());
+    const MobMoveRemainder = world.components.register('MobMoveRemainder', new SparseSetStore<number>());
+    return { MobSpawnPos, MobHate, MobReturnAtTick, MobNextMoveTick, MobMoveGoal, MobMoveRemainder };
 }

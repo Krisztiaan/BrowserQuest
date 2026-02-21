@@ -226,6 +226,33 @@ Format per entry:
   - Next action:
     - Start Ticket 429 (mobs/NPCs: port to continuous sub-tile motion and replication).
 
+- 10:40 UTC
+  - Ticket: 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
+  - Start timestamp: 2026-02-21 10:40 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting server mob AI movement rework to move continuously using `PositionSub` + the shared tile collision solver, while keeping path planning grid-based.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+  - Next action:
+    - Add mob movement goal + remainder components, integrate continuous stepping and replication batches, update tests, verify, commit.
+
+- 10:47 UTC
+  - Ticket: 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
+  - Start timestamp: 2026-02-21 10:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added mob AI movement goal + speed remainder components to support continuous sub-tile motion.
+    - Reworked server `mob_ai` to select grid goals (adjacent tiles) but advance `PositionSub` every tick via the shared tile collision solver.
+    - Wired mob movement to update `ENTITY_STATE_BATCH` buckets each tick so clients receive smooth mob motion.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Start Ticket 430 (remove grid-step remnants, clean up dead paths, update docs).
+
 ## 2026-02-19
 
 - 23:57 UTC

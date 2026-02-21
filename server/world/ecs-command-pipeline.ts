@@ -2463,7 +2463,7 @@ export class WorldEcsCommandPipeline {
             const Position = this.Position;
             const PositionSub = this.PositionSub;
             const Target = this.replication.Target;
-            const { MobSpawnPos, MobHate, MobReturnAtTick, MobNextMoveTick } = this.mobAi;
+            const { MobSpawnPos, MobHate, MobReturnAtTick, MobMoveGoal, MobMoveRemainder } = this.mobAi;
 
             const ups = Math.max(1, this.#world.ups);
             if (ctx.tick === 0) {
@@ -2494,6 +2494,25 @@ export class WorldEcsCommandPipeline {
                 return occupant === undefined || occupant === mobId;
             };
 
+            const getMoveSpeedSubpxPerTick = (mobId: EntityId, kind: EntityKind): number => {
+                const cooldownTicks = resolveMoveCooldownTicks(kind, ups);
+                const base = Math.floor(TILE_SUBPX / cooldownTicks);
+                const rem = TILE_SUBPX - base * cooldownTicks;
+                const prev = MobMoveRemainder.store.get(mobId) ?? 0;
+                const next = prev + rem;
+                if (next >= cooldownTicks) {
+                    state.world.addComponent(mobId, MobMoveRemainder, next - cooldownTicks);
+                    return base + 1;
+                }
+                state.world.addComponent(mobId, MobMoveRemainder, next);
+                return base;
+            };
+
+            const MOB_HALF_EXTENTS = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
+            const DIAG_NUM = 181;
+            const DIAG_DEN = 256;
+            const isBlockedTile = (x: number, y: number) => !this.#world.isValidPosition(x, y);
+
             const mobIds: EntityId[] = [];
             Kind.store.forEach((id, kind) => {
                 if (Types.isMob(kind)) {
@@ -2516,11 +2535,78 @@ export class WorldEcsCommandPipeline {
                     continue;
                 }
 
+                let subNow = PositionSub.store.get(mobId) ?? tileToWorldPosCenter(currentPos.x, currentPos.y);
+                if (!PositionSub.store.get(mobId)) {
+                    state.world.addComponent(mobId, PositionSub, subNow);
+                }
+
+                let goal = MobMoveGoal.store.get(mobId);
+
                 let spawn = MobSpawnPos.store.get(mobId);
                 if (!spawn) {
                     spawn = currentPos;
                     state.world.addComponent(mobId, MobSpawnPos, spawn);
                 }
+
+                const stepTowardsGoal = (): void => {
+                    if (!goal) {
+                        state.world.removeComponent(mobId, MobMoveRemainder);
+                        return;
+                    }
+
+                    const dxTile = Math.max(-1, Math.min(1, goal.x - currentPos.x));
+                    const dyTile = Math.max(-1, Math.min(1, goal.y - currentPos.y));
+                    if (dxTile === 0 && dyTile === 0) {
+                        state.world.removeComponent(mobId, MobMoveGoal);
+                        goal = undefined;
+                        state.world.removeComponent(mobId, MobMoveRemainder);
+                        return;
+                    }
+
+                    const baseSpeed = getMoveSpeedSubpxPerTick(mobId, mobKind);
+                    const stepSpeed = dxTile !== 0 && dyTile !== 0 ? Math.floor((baseSpeed * DIAG_NUM) / DIAG_DEN) : baseSpeed;
+                    if (stepSpeed <= 0) {
+                        return;
+                    }
+
+                    const targetCenter = tileToWorldPosCenter(goal.x, goal.y);
+                    const resolved = resolveSubTileMotionAgainstTiles({
+                        pos: subNow,
+                        delta: { dx: dxTile * stepSpeed, dy: dyTile * stepSpeed },
+                        halfExtents: MOB_HALF_EXTENTS,
+                        isBlockedTile,
+                    });
+                    subNow = resolved.pos;
+
+                    // Snap to tile center when sufficiently close (prevents endless residual drift due to rounding).
+                    if (Math.abs(targetCenter.x - subNow.x) <= stepSpeed && Math.abs(targetCenter.y - subNow.y) <= stepSpeed) {
+                        subNow = targetCenter;
+                        state.world.removeComponent(mobId, MobMoveGoal);
+                        goal = undefined;
+                        state.world.removeComponent(mobId, MobMoveRemainder);
+                    }
+
+                    state.world.addComponent(mobId, PositionSub, subNow);
+                    const nextGrid = worldPosToTile(subNow);
+                    if (nextGrid.x !== currentPos.x || nextGrid.y !== currentPos.y) {
+                        const oldKey = positionKey(currentPos.x, currentPos.y);
+                        if (occupiedBy.get(oldKey) === mobId) {
+                            occupiedBy.delete(oldKey);
+                        }
+                        state.world.addComponent(mobId, Position, nextGrid);
+                        occupiedBy.set(positionKey(nextGrid.x, nextGrid.y), mobId);
+                    }
+
+                    const groupId = this.#world.map.getGroupIdFromPosition(nextGrid.x, nextGrid.y);
+                    const batches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
+                    const bucket = batches.get(groupId);
+                    const entry = { x: nextGrid.x, y: nextGrid.y, flags: 0 };
+                    if (bucket) {
+                        bucket.set(mobId, entry);
+                    } else {
+                        batches.set(groupId, new Map([[mobId, entry]]));
+                    }
+                };
 
                 const hate = MobHate.store.get(mobId)?.entries ?? [];
                 if (hate.length === 0) {
@@ -2528,44 +2614,26 @@ export class WorldEcsCommandPipeline {
                     if (typeof returnAtTick === 'number' && ctx.tick >= returnAtTick) {
                         if (currentPos.x === spawn.x && currentPos.y === spawn.y) {
                             state.world.removeComponent(mobId, MobReturnAtTick);
+                            state.world.removeComponent(mobId, MobMoveGoal);
+                            goal = undefined;
+                            state.world.removeComponent(mobId, MobMoveRemainder);
                         } else {
-                            const next = chooseStepTowards({
-                                from: currentPos,
-                                to: spawn,
-                                avoidExactTargetTile: false,
-                                isValidPosition: (x, y) => canMobMoveTo(mobId, x, y),
-                            });
-                            if (next) {
-                                const nextMoveTick = MobNextMoveTick.store.get(mobId) ?? 0;
-                                if (ctx.tick < nextMoveTick) {
-                                    continue;
-                                }
-                                const oldKey = positionKey(currentPos.x, currentPos.y);
-                                if (occupiedBy.get(oldKey) === mobId) {
-                                    occupiedBy.delete(oldKey);
-                                }
-                                state.world.addComponent(mobId, Position, next);
-                                state.world.addComponent(mobId, PositionSub, tileToWorldPosCenter(next.x, next.y));
-                                state.world.addComponent(
-                                    mobId,
-                                    MobNextMoveTick,
-                                    ctx.tick + resolveMoveCooldownTicks(mobKind, ups)
-                                );
-                                occupiedBy.set(positionKey(next.x, next.y), mobId);
-                                {
-                                    const groupId = this.#world.map.getGroupIdFromPosition(next.x, next.y);
-                                    const batches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
-                                    const bucket = batches.get(groupId);
-                                    const entry = { x: next.x, y: next.y, flags: 0 };
-                                    if (bucket) {
-                                        bucket.set(mobId, entry);
-                                    } else {
-                                        batches.set(groupId, new Map([[mobId, entry]]));
-                                    }
+                            if (!goal) {
+                                const next = chooseStepTowards({
+                                    from: currentPos,
+                                    to: spawn,
+                                    avoidExactTargetTile: false,
+                                    isValidPosition: (x, y) => canMobMoveTo(mobId, x, y),
+                                });
+                                if (next) {
+                                    state.world.addComponent(mobId, MobMoveGoal, next);
+                                    goal = next;
                                 }
                             }
                         }
                     }
+                    // If returning (or already has a goal), advance motion toward the current goal.
+                    stepTowardsGoal();
                     continue;
                 }
 
@@ -2594,6 +2662,8 @@ export class WorldEcsCommandPipeline {
                         state.world.removeComponent(mobId, MobHate);
                         state.world.addComponent(mobId, MobReturnAtTick, ctx.tick + returnDelayTicks);
                         state.world.removeComponent(mobId, Target);
+                        state.world.removeComponent(mobId, MobMoveGoal);
+                        state.world.removeComponent(mobId, MobMoveRemainder);
                         continue;
                     }
                     state.world.addComponent(mobId, MobHate, { entries: filtered });
@@ -2629,6 +2699,11 @@ export class WorldEcsCommandPipeline {
                     continue;
                 }
 
+                if (goal) {
+                    stepTowardsGoal();
+                    continue;
+                }
+
                 let next = chooseStepTowards({
                     from: currentPos,
                     to: targetPos,
@@ -2654,30 +2729,9 @@ export class WorldEcsCommandPipeline {
                     continue;
                 }
 
-                const nextMoveTick = MobNextMoveTick.store.get(mobId) ?? 0;
-                if (ctx.tick < nextMoveTick) {
-                    continue;
-                }
-
-                const oldKey = positionKey(currentPos.x, currentPos.y);
-                if (occupiedBy.get(oldKey) === mobId) {
-                    occupiedBy.delete(oldKey);
-                }
-                state.world.addComponent(mobId, Position, next);
-                state.world.addComponent(mobId, PositionSub, tileToWorldPosCenter(next.x, next.y));
-                state.world.addComponent(mobId, MobNextMoveTick, ctx.tick + resolveMoveCooldownTicks(mobKind, ups));
-                occupiedBy.set(positionKey(next.x, next.y), mobId);
-                {
-                    const groupId = this.#world.map.getGroupIdFromPosition(next.x, next.y);
-                    const batches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
-                    const bucket = batches.get(groupId);
-                    const entry = { x: next.x, y: next.y, flags: 0 };
-                    if (bucket) {
-                        bucket.set(mobId, entry);
-                    } else {
-                        batches.set(groupId, new Map([[mobId, entry]]));
-                    }
-                }
+                state.world.addComponent(mobId, MobMoveGoal, next);
+                goal = next;
+                stepTowardsGoal();
             }
         });
         this.#scheduler.register('sim', 'combat_authority', (state, ctx: SystemContext) => {

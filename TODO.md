@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-21 10:38 UTC
+Last updated: 2026-02-21 10:47 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,23 +34,7 @@ Cycle completion gate:
 
 ## Active Tickets
 
-1. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
-  - Status: `todo`
-  - Scope:
-    - Update mob AI movement to use the same continuous collision kernel and `PositionSub`.
-    - Keep AI planning grid-based (tile waypoints), motion continuous.
-  - Out of scope:
-    - AI behavior changes (targeting, pathing strategy).
-  - Acceptance criteria:
-    - Mobs move smoothly and collide correctly with map; no more “tile snapping” artifacts.
-  - Verification plan:
-    - `bun run lint`
-    - `bun run typecheck`
-    - Update/add a smoke test path that includes chasing/engagement with mobs, run `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on Ticket 423 (collision) and Ticket 425 (replication).
-
-2. Ticket 430 (Remove grid-step movement remnants + docs)
+1. Ticket 430 (Remove grid-step movement remnants + docs)
   - Status: `todo`
   - Scope:
     - Remove dead code paths and assumptions that movement occurs as discrete grid steps.
