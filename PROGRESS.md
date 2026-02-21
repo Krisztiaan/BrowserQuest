@@ -198,6 +198,34 @@ Format per entry:
   - Next action:
     - Start Ticket 428 (server reconciliation rules and client prediction/correction thresholds for sub-tile).
 
+- 10:33 UTC
+  - Ticket: 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
+  - Start timestamp: 2026-02-21 10:33 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting sub-tile move.input prediction + reconciliation: track move.input seqs, predict continuous sub-tile motion client-side, reconcile against authoritative MOVE_SYNC/worldPosition.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+  - Next action:
+    - Implement continuous client-side move.input prediction using shared collision kernel, add reconciliation thresholds and tests, verify, commit.
+
+- 10:38 UTC
+  - Ticket: 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
+  - Start timestamp: 2026-02-21 10:33 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Tracked `move.input` intent seqs in the same pending movement ack queue so `MOVE_SYNC` can prune them deterministically.
+    - Implemented continuous client-side `move.input` prediction in sub-tile world coords using the shared tile collision solver.
+    - Added soft reconciliation against authoritative kernel `worldPosition` updates to prevent long-term drift while keeping input responsive.
+    - Added a unit test covering move.input seq tracking + MOVE_SYNC pruning.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Start Ticket 429 (mobs/NPCs: port to continuous sub-tile motion and replication).
+
 ## 2026-02-19
 
 - 23:57 UTC

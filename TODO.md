@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-21 10:27 UTC
+Last updated: 2026-02-21 10:38 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,27 +34,7 @@ Cycle completion gate:
 
 ## Active Tickets
 
-1. Ticket 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
-  - Status: `todo`
-  - Scope:
-    - Define and implement server correction strategy with sub-tile positions:
-      - what gets ACKed (inputs vs waypoints),
-      - correction thresholds,
-      - how often `MOVE_SYNC` sends,
-      - how client clears prediction on correction.
-    - Ensure deterministic server simulation loop remains authoritative.
-  - Out of scope:
-    - Lag compensation for combat.
-  - Acceptance criteria:
-    - Client remains responsive; corrections are rare and not visually jarring in normal play.
-  - Verification plan:
-    - `bun run lint`
-    - `bun run typecheck`
-    - Expand `tests/unit/mmo/client-seq-reconciliation.test.ts` for sub-tile, run `bun test tests/unit/mmo --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on Tickets 424-427.
-
-2. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
+1. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
   - Status: `todo`
   - Scope:
     - Update mob AI movement to use the same continuous collision kernel and `PositionSub`.
@@ -70,7 +50,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 423 (collision) and Ticket 425 (replication).
 
-3. Ticket 430 (Remove grid-step movement remnants + docs)
+2. Ticket 430 (Remove grid-step movement remnants + docs)
   - Status: `todo`
   - Scope:
     - Remove dead code paths and assumptions that movement occurs as discrete grid steps.

@@ -165,6 +165,7 @@ export class ClientWorldKernel {
     clientMoveInputKeysMask = 0;
     readonly clientMoveInputRecentKeys: number[] = [];
     clientMoveInputDirty = false;
+    clientPredictedWorldPos: WorldPos | null = null;
     clientDoorTraversalArmed = false;
     clientPendingDoorTraversal: ClientPendingDoorTraversal | null = null;
     clientLocalPlayerDead = false;
@@ -285,6 +286,30 @@ export class ClientWorldKernel {
         if (mask & MOVE_INPUT_KEY_S) return MOVE_INPUT_KEY_S;
         if (mask & MOVE_INPUT_KEY_D) return MOVE_INPUT_KEY_D;
         return null;
+    }
+
+    resolveClientMoveInputAxis(): { dx: -1 | 0 | 1; dy: -1 | 0 | 1 } {
+        const mask = this.clientMoveInputKeysMask >>> 0;
+        const recent = this.clientMoveInputRecentKeys;
+
+        const axis = (negBit: number, posBit: number): -1 | 0 | 1 => {
+            const neg = (mask & (negBit >>> 0)) !== 0;
+            const pos = (mask & (posBit >>> 0)) !== 0;
+            if (neg && !pos) return -1;
+            if (pos && !neg) return 1;
+            if (!neg && !pos) return 0;
+            // Both pressed: choose the more recent bit.
+            const negIdx = recent.lastIndexOf(negBit);
+            const posIdx = recent.lastIndexOf(posBit);
+            if (negIdx === -1 && posIdx === -1) return 0;
+            if (negIdx > posIdx) return -1;
+            if (posIdx > negIdx) return 1;
+            return 0;
+        };
+
+        const dx = axis(MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_D);
+        const dy = axis(MOVE_INPUT_KEY_W, MOVE_INPUT_KEY_S);
+        return { dx, dy };
     }
 
     enqueueClientPendingMoveSeqAck(seq: number): void {

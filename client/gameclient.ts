@@ -845,7 +845,7 @@ class GameClient extends Evented<GameClientEvents> {
             return;
         }
 
-        const seq = this.sendIntent(INTENT_MOVE_INPUT, payloadBytes);
+        const seq = this.sendIntent(INTENT_MOVE_INPUT, payloadBytes, { trackMoveAck: true });
         if (seq === null) {
             return;
         }

@@ -52,6 +52,27 @@ test('client sends sequenced INTENT for movement and consumes ACK by seq', () =>
     expect(kernel.clientPendingMoveSeqAcks).toEqual([2]);
 });
 
+test('client tracks move.input seq and MOVE_SYNC prunes pending movement seqs', () => {
+    const kernel = new ClientWorldKernel();
+    const client = new GameClient('ws://example.invalid', kernel);
+
+    const sent: ClientToServerProtocolAction[] = [];
+    client.sendMessage = (action) => {
+        sent.push(action);
+    };
+
+    const capsJson = encodeProtocolCapabilitiesJson({ intentTypeIds: ['move.input'] });
+    client.receiveWelcome([Types.Messages.WELCOME, 1, 'name', 0, 0, 100, 1, capsJson]);
+
+    client.sendMoveInput(1); // MOVE_INPUT_KEY_D
+    expect(sent.length).toBe(1);
+    expect(kernel.clientPendingMoveSeqAcks).toEqual([1]);
+
+    // Authoritative sync point ACKs the move.input seq and should prune pending seqs up to that value.
+    client.receiveMoveSync([Types.Messages.MOVE_SYNC, 1, 0, 0, 0, 0]);
+    expect(kernel.clientPendingMoveSeqAcks).toEqual([]);
+});
+
 test('movement CORRECTION suppresses outbox and enqueues teleportEntity for local player', () => {
     const kernel = new ClientWorldKernel();
     const client = new GameClient('ws://example.invalid', kernel);
