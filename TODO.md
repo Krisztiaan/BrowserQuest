@@ -34,4 +34,186 @@ Cycle completion gate:
 
 ## Active Tickets
 
-None.
+1. Ticket 421 (WorldPos fixed-point + tile conversion helpers)
+  - Status: `todo`
+  - Scope:
+    - Introduce shared sub-tile position type `WorldPos` using fixed-point integers (no floats) in `shared/`.
+    - Add helpers: `tileToWorldPosCenter(tileX,tileY)`, `worldPosToTile(pos)`, `worldPosAdd`, `worldPosClamp`, `worldPosDelta`, `worldPosDistanceSq`, etc.
+    - Define canonical constants: `TILE_PX=16`, `SUBPIXELS=256`, `TILE_SUBPX = TILE_PX*SUBPIXELS`.
+  - Out of scope:
+    - Any runtime behavior changes.
+  - Acceptance criteria:
+    - All helpers are unit-tested and deterministic.
+    - No new runtime branches/fallbacks added.
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - Add unit tests under `tests/unit/` for conversions, then run `bun test tests/unit --timeout 30000`
+  - Dependencies/blockers:
+    - None.
+
+2. Ticket 422 (Server ECS: introduce authoritative sub-tile position + derived grid tile)
+  - Status: `todo`
+  - Scope:
+    - Add a new server ECS component for authoritative position, e.g. `PositionSub` storing `WorldPos` (fixed-point).
+    - Keep `Position` (GridPos) as a derived/compat component computed from `PositionSub` each tick for:
+      - doors/zones,
+      - interest management/group id,
+      - combat/interaction (still tile-structured).
+    - Ensure entity spawn sets both consistently (center of tile).
+  - Out of scope:
+    - Continuous collision or movement changes.
+  - Acceptance criteria:
+    - Server runs with `PositionSub` present for all actors; `Position` remains correct per tick (tile = floor(pos)).
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - Add a unit test covering derivation (tile transitions at boundaries), run `bun test tests/unit/mmo --timeout 30000`
+  - Dependencies/blockers:
+    - Depends on Ticket 421.
+
+3. Ticket 423 (Tile collision kernel: axis-resolved sub-tile movement against map colliders)
+  - Status: `todo`
+  - Scope:
+    - Implement a server-side collision solver for an entity collider (AABB) in sub-tile coordinates:
+      - inputs: start `WorldPos`, desired delta `(dx,dy)` per tick, collider half-extents, map collision query.
+      - outputs: resolved `WorldPos`, flags (blockedX/blockedY), optionally remainder.
+    - Use deterministic axis resolution (X then Y) with clamping at tile boundaries; no random jitter.
+    - Collide against blocking tiles by enumerating tiles overlapped by AABB at candidate position.
+  - Out of scope:
+    - Entity-vs-entity physical collision/pushing (start with tiles only).
+  - Acceptance criteria:
+    - Cannot enter blocking tiles; slides along walls; no tunneling at intended max speed (use sweep/step or bounded dt).
+    - Deterministic results for same inputs.
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - Add unit tests for corner cases (wall slide, corner approach, thin gaps), run `bun test tests/unit --timeout 30000`
+  - Dependencies/blockers:
+    - Depends on Tickets 421-422.
+
+4. Ticket 424 (Server movement rework: from grid steps to continuous motion with sub-tile collision)
+  - Status: `todo`
+  - Scope:
+    - Replace server `player_move` application of `MoveQueue` grid steps with continuous movement:
+      - `move.input` becomes authoritative velocity intent (normalized, diagonal speed fixed).
+      - `move.to` becomes a waypoint list (tiles) that yields a desired velocity toward next waypoint center.
+    - Movement updates `PositionSub`; `Position` is derived (Ticket 422).
+    - Keep “world stays grid” semantics: waypoints are tiles; doors/zones trigger on derived tile.
+  - Out of scope:
+    - Client prediction changes.
+    - Mob AI motion changes (can remain grid-step until later ticket, if not too coupled).
+  - Acceptance criteria:
+    - Player movement feels continuous, respects collisions, and does not desync doors/zoning triggers.
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - Extend/add tests for move.input + move.to producing continuous pos updates, run `bun test tests/unit/mmo --timeout 30000`
+  - Dependencies/blockers:
+    - Depends on Ticket 423.
+
+5. Ticket 425 (Protocol + replication: transmit sub-tile positions for player + entities)
+  - Status: `todo`
+  - Scope:
+    - Extend S2C replication for `MOVE_SYNC` and `ENTITY_STATE_BATCH` to carry sub-tile positions:
+      - choose fixed-point wire encoding (e.g. int32 subpixels) and update binary codec + schema.
+    - Update server outbound builders and client inbound handlers to apply sub-tile positions into kernel/entities.
+    - Keep over-the-wire size low: fixed-width ints, no JSON.
+  - Out of scope:
+    - Transport changes (WS remains).
+  - Acceptance criteria:
+    - Client receives authoritative sub-tile positions and uses them for rendering/prediction state.
+    - Existing smoke parity test updated/extended and remains green.
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - Update/add protocol unit tests under `tests/unit/protocol` and MMO unit tests, run `bun test tests/unit --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Dependencies/blockers:
+    - Depends on Ticket 424 (server must produce sub-tile positions).
+
+6. Ticket 426 (Client kernel/entity model: store sub-tile pos, derive grid tile for logic)
+  - Status: `todo`
+  - Scope:
+    - Add sub-tile position to client kernel spatial records and entity instances (`x/y` in pixels or subpixels).
+    - Keep `gridX/gridY` derived from `pos` for logic (interaction, targeting, zoning visuals).
+  - Out of scope:
+    - Visual interpolation changes (next ticket).
+  - Acceptance criteria:
+    - Client state can represent non-integer tile positions without rounding jitter.
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Dependencies/blockers:
+    - Depends on Ticket 425.
+
+7. Ticket 427 (Client rendering + interpolation for sub-tile motion)
+  - Status: `todo`
+  - Scope:
+    - Render entities at sub-tile pixel positions (smooth, no tile snapping).
+    - Update movement animation cadence to match continuous speed (walk cycles), keep 4-dir sprites.
+    - Ensure camera follows smoothly using sub-tile position.
+  - Out of scope:
+    - New sprite assets.
+  - Acceptance criteria:
+    - Movement appears smooth at varying FPS; no jitter on reconciliation.
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Dependencies/blockers:
+    - Depends on Ticket 426.
+
+8. Ticket 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
+  - Status: `todo`
+  - Scope:
+    - Define and implement server correction strategy with sub-tile positions:
+      - what gets ACKed (inputs vs waypoints),
+      - correction thresholds,
+      - how often `MOVE_SYNC` sends,
+      - how client clears prediction on correction.
+    - Ensure deterministic server simulation loop remains authoritative.
+  - Out of scope:
+    - Lag compensation for combat.
+  - Acceptance criteria:
+    - Client remains responsive; corrections are rare and not visually jarring in normal play.
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - Expand `tests/unit/mmo/client-seq-reconciliation.test.ts` for sub-tile, run `bun test tests/unit/mmo --timeout 30000`
+  - Dependencies/blockers:
+    - Depends on Tickets 424-427.
+
+9. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
+  - Status: `todo`
+  - Scope:
+    - Update mob AI movement to use the same continuous collision kernel and `PositionSub`.
+    - Keep AI planning grid-based (tile waypoints), motion continuous.
+  - Out of scope:
+    - AI behavior changes (targeting, pathing strategy).
+  - Acceptance criteria:
+    - Mobs move smoothly and collide correctly with map; no more “tile snapping” artifacts.
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - Update/add a smoke test path that includes chasing/engagement with mobs, run `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Dependencies/blockers:
+    - Depends on Ticket 423 (collision) and Ticket 425 (replication).
+
+10. Ticket 430 (Remove grid-step movement remnants + docs)
+  - Status: `todo`
+  - Scope:
+    - Remove dead code paths and assumptions that movement occurs as discrete grid steps.
+    - Update protocol docs and any design notes to reflect sub-tile authoritative positions.
+  - Out of scope:
+    - Further perf work.
+  - Acceptance criteria:
+    - No unused movement intent code remains; docs reflect the new model.
+  - Verification plan:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Dependencies/blockers:
+    - Depends on completing Tickets 421-429.

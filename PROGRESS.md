@@ -15,6 +15,17 @@ Format per entry:
 
 ## 2026-02-19
 
+- 23:48 UTC
+  - Ticket: (ticketization - sub-tile positions migration plan)
+  - Status: `done`
+  - Key actions taken:
+    - Ticketized the full migration from grid-step positions to authoritative sub-tile fixed-point positions (Stardew-style: grid world, continuous motion/collision).
+    - Scoped the work into incremental, verifiable tickets (WorldPos type, server ECS, collision kernel, movement, protocol replication, client rendering/prediction, mobs, cleanup).
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+  - Next action:
+    - Start Ticket 421 and proceed in dependency order, committing each ticket.
+
 - 23:22 UTC
   - Ticket: 420 (Allow diagonal corner cutting: diagonal is valid if destination is walkable)
   - Start timestamp: 2026-02-19 23:22 UTC
