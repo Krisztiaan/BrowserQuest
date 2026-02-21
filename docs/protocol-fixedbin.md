@@ -53,6 +53,16 @@ Grid positions are packed into 20 bits:
 
 This is smaller than `u16 x + u16 y` (3 bytes vs 4).
 
+### `PosVarU32` (varint x/y)
+
+World positions are encoded as:
+- `varu32 worldX`
+- `varu32 worldY`
+
+Notes:
+- These are fixed-point subpixel world coords (see `shared/world/worldpos.ts`).
+- FixedBin uses `PosVarU32` when `Pos20` ranges are insufficient (e.g. subpixel coords can exceed 1023 even on modest maps).
+
 ### `IntentTypeId` (enum)
 
 FixedBin v2 encodes `intentTypeId` values as small numeric IDs:
@@ -383,7 +393,8 @@ Local-player authoritative movement reconciliation (sent only to the owning play
 
 Body:
 - `varu32 ackSeq` (highest accepted client intent seq for this player)
-- `Pos20 pos` (authoritative player position)
+- `varu32 worldX` (authoritative player world position, fixed-point subpixels)
+- `varu32 worldY` (authoritative player world position, fixed-point subpixels)
 - `varu32 tick` (server tick at send time)
 - `u8 flags`
   - bit0: `suppressed` (client should stop predicting until next input)
@@ -397,7 +408,8 @@ Body:
 - `varu32 count`
 - repeated `count` times:
   - `Id id` (wire id)
-  - `Pos20 pos`
+  - `varu32 worldX` (fixed-point subpixels)
+  - `varu32 worldY` (fixed-point subpixels)
   - `u8 flags` (reserved; currently `0`)
 
 #### `CHUNK_SNAPSHOT` (36)

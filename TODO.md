@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-21 10:47 UTC
+Last updated: 2026-02-21 11:02 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,19 +34,4 @@ Cycle completion gate:
 
 ## Active Tickets
 
-1. Ticket 430 (Remove grid-step movement remnants + docs)
-  - Status: `todo`
-  - Scope:
-    - Remove dead code paths and assumptions that movement occurs as discrete grid steps.
-    - Update protocol docs and any design notes to reflect sub-tile authoritative positions.
-  - Out of scope:
-    - Further perf work.
-  - Acceptance criteria:
-    - No unused movement intent code remains; docs reflect the new model.
-  - Verification plan:
-    - `bun run lint`
-    - `bun run typecheck`
-    - `bun test tests/unit --timeout 30000`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on completing Tickets 421-429.
+No active tickets.

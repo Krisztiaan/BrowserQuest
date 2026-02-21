@@ -253,6 +253,35 @@ Format per entry:
   - Next action:
     - Start Ticket 430 (remove grid-step remnants, clean up dead paths, update docs).
 
+- 10:51 UTC
+  - Ticket: 430 (Remove grid-step movement remnants + docs)
+  - Start timestamp: 2026-02-21 10:51 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Started cleanup pass to remove unused grid-step movement remnants and align docs with the new sub-tile authoritative movement model.
+  - Evidence:
+    - `sed -n '1,200p' TODO.md`
+    - `rg -n "MOVE_SYNC|ENTITY_STATE_BATCH|Pos20" docs/protocol-fixedbin.md`
+  - Next action:
+    - Update FixedBin v2 docs for `MOVE_SYNC` / `ENTITY_STATE_BATCH`, remove dead movement components, run verification, commit.
+
+- 11:02 UTC
+  - Ticket: 430 (Remove grid-step movement remnants + docs)
+  - Start timestamp: 2026-02-21 10:51 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated FixedBin v2 docs to reflect authoritative sub-tile world coordinates on the wire (`MOVE_SYNC`, `ENTITY_STATE_BATCH`) and added `PosVarU32` encoding notes.
+    - Refreshed messaging benchmark numbers in `docs/protocol-wire.md` (`bun tools/bench/protocol-wire.ts`).
+    - Removed dead mob movement gating component (`MobNextMoveTick`) and updated unit tests for continuous sub-tile mob motion.
+  - Evidence:
+    - `bun tools/bench/protocol-wire.ts`
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Clear `TODO.md` (no active tickets).
+
 ## 2026-02-19
 
 - 23:57 UTC

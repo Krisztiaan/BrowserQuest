@@ -193,19 +193,25 @@ test('mob_ai respects per-kind movement cooldown at high UPS (no teleport-chase)
         entries: [{ id: player.id, hate: 5 }],
     });
 
-    // First tick has ctx.tick===0 gating, so movement begins on tick 1.
+    // At high UPS the mob advances continuously in sub-tile increments; it should not "teleport" a full tile
+    // in just a couple of ticks.
     pipeline.tick();
     pipeline.tick();
+    const afterTwoTicks = pipeline.Position.store.get(mob.id);
+    expect(afterTwoTicks).toEqual(gridPos(0, 0));
+
+    // Skeleton moveSpeed is ~350ms per tile; at UPS=50 it should not "skip" multiple tiles in just a few ticks.
+    for (let i = 0; i < 20; i += 1) {
+        pipeline.tick();
+    }
     const afterFirstStep = pipeline.Position.store.get(mob.id);
     expect(afterFirstStep).toEqual(gridPos(1, 0));
 
-    // Skeleton moveSpeed is ~350ms per tile; at UPS=50 that's ~18 ticks per step.
-    // Ensure it does not advance again within a short window.
-    for (let i = 0; i < 10; i += 1) {
+    for (let i = 0; i < 20; i += 1) {
         pipeline.tick();
     }
-    const afterBurstTicks = pipeline.Position.store.get(mob.id);
-    expect(afterBurstTicks).toEqual(gridPos(1, 0));
+    const afterSecondStep = pipeline.Position.store.get(mob.id);
+    expect(afterSecondStep).toEqual(gridPos(2, 0));
 });
 
 test('mob_ai avoids occupied direct lane and picks alternate adjacent approach', () => {
@@ -727,12 +733,12 @@ test('extended melee reach stays directional (no diagonal hits)', () => {
     const { pipeline } = createPipelineFixture({
         player,
         entities,
-        isValidPosition: () => true,
+        // Freeze the mob in place so the only way it can take damage is via an illegal diagonal hit.
+        isValidPosition: () => false,
     });
 
     seedEntity(pipeline, player);
     seedEntity(pipeline, mob);
-    pipeline.state.world.addComponent(mob.id, pipeline.mobAi.MobNextMoveTick, Number.MAX_SAFE_INTEGER);
     pipeline.state.world.addComponent(player.id, pipeline.replication.Weapon, Types.Entities.AXE);
     pipeline.enqueue({
         type: 'ATTACK',

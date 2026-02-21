@@ -14,6 +14,7 @@ The gameplay WebSocket transport contract for this cycle is:
   - FixedBin v2 notable changes vs v1:
     - INTENT/OUTCOME/REJECT encode type IDs as small `varu32` enums (no UTF-8 strings for these hot fields)
     - chunk snapshot/delta payloads are binary bytes (no JSON strings on the gameplay wire)
+    - movement replication uses authoritative fixed-point subpixel world coords (`worldX/worldY`) in `MOVE_SYNC` and `ENTITY_STATE_BATCH`
 - cutover policy: no JSON gameplay frame fallback after FixedBin v2 verification
 
 Source contract constants: `shared/protocol/binary-wire.ts`.
@@ -34,54 +35,54 @@ Benchmark command:
 bun tools/bench/protocol-wire.ts
 ```
 
-Latest output (2026-02-18, correctness checks outside timed loops):
+Latest output (2026-02-21, correctness checks outside timed loops):
 
 Mixed corpus (C2S + S2C):
 
 | codec | encode ms | decode ms | total bytes | avg bytes/frame | p95 bytes/frame |
 |---|---:|---:|---:|---:|---:|
-| json | 14.10 | 15.78 | 561277 | 28.06 | 71.00 |
-| msgpack-subset | 27.31 | 16.55 | 332991 | 16.65 | 56.00 |
-| protobuf-generic | 90.95 | 44.96 | 724845 | 36.24 | 84.00 |
-| custom-efficient-v1 | 25.16 | 9.11 | 301236 | 15.06 | 44.00 |
-| fixedbin-v2-mixed | 40.13 | 35.43 | 445928 | 22.30 | 53.00 |
-| fixedbin-v2-mixed-dispatch | 28.67 | 28.57 | 445928 | 22.30 | 53.00 |
+| json | 14.64 | 15.25 | 561277 | 28.06 | 71.00 |
+| msgpack-subset | 31.72 | 19.67 | 332991 | 16.65 | 56.00 |
+| protobuf-generic | 97.90 | 41.94 | 724845 | 36.24 | 84.00 |
+| custom-efficient-v1 | 22.95 | 7.34 | 301236 | 15.06 | 44.00 |
+| fixedbin-v2-mixed | 45.16 | 32.98 | 445928 | 22.30 | 53.00 |
+| fixedbin-v2-mixed-dispatch | 26.87 | 34.15 | 445928 | 22.30 | 53.00 |
 
 Client-only corpus (C2S):
 
 | codec | encode ms | decode ms | total bytes | avg bytes/frame | p95 bytes/frame |
 |---|---:|---:|---:|---:|---:|
-| json | 7.48 | 10.30 | 337789 | 16.89 | 35.00 |
-| msgpack-subset | 12.54 | 5.87 | 222235 | 11.11 | 25.00 |
-| protobuf-generic | 49.86 | 20.01 | 415565 | 20.78 | 44.00 |
-| custom-efficient-v1 | 10.85 | 3.11 | 168886 | 8.44 | 13.00 |
-| fixedbin-v2-c2s | 29.74 | 19.21 | 344464 | 17.22 | 34.00 |
-| fixedbin-v2-c2s-dispatch | 10.72 | 13.21 | 344464 | 17.22 | 34.00 |
+| json | 7.76 | 11.42 | 337789 | 16.89 | 35.00 |
+| msgpack-subset | 12.52 | 5.76 | 222235 | 11.11 | 25.00 |
+| protobuf-generic | 51.81 | 19.61 | 415565 | 20.78 | 44.00 |
+| custom-efficient-v1 | 10.69 | 2.71 | 168886 | 8.44 | 13.00 |
+| fixedbin-v2-c2s | 21.36 | 45.56 | 344464 | 17.22 | 34.00 |
+| fixedbin-v2-c2s-dispatch | 12.32 | 16.34 | 344464 | 17.22 | 34.00 |
 
 Server-only corpus (S2C):
 
 | codec | encode ms | decode ms | total bytes | avg bytes/frame | p95 bytes/frame |
 |---|---:|---:|---:|---:|---:|
-| json | 12.64 | 21.22 | 812500 | 40.63 | 71.00 |
-| msgpack-subset | 13.27 | 8.23 | 457500 | 22.88 | 56.00 |
-| protobuf-generic | 64.68 | 36.55 | 1072500 | 53.63 | 84.00 |
-| custom-efficient-v1 | 11.45 | 4.72 | 450000 | 22.50 | 44.00 |
-| fixedbin-v2-s2c | 19.91 | 37.93 | 560000 | 28.00 | 53.00 |
-| fixedbin-v2-s2c-dispatch | 13.46 | 15.30 | 560000 | 28.00 | 53.00 |
+| json | 17.02 | 23.42 | 812500 | 40.63 | 71.00 |
+| msgpack-subset | 19.08 | 9.89 | 457500 | 22.88 | 56.00 |
+| protobuf-generic | 71.40 | 41.19 | 1072500 | 53.63 | 84.00 |
+| custom-efficient-v1 | 12.43 | 5.27 | 450000 | 22.50 | 44.00 |
+| fixedbin-v2-s2c | 27.08 | 27.07 | 560000 | 28.00 | 53.00 |
+| fixedbin-v2-s2c-dispatch | 31.11 | 16.50 | 560000 | 28.00 | 53.00 |
 
 Movement scenario (S2C) legacy MOVE spam (80 entities/frame):
 
 | codec | encode ms | decode ms | total bytes | avg bytes/frame | p95 bytes/frame |
 |---|---:|---:|---:|---:|---:|
-| json | 234.11 | 428.47 | 32200000 | 1610.00 | 1610.00 |
-| custom-efficient-v1 | 416.20 | 172.42 | 16120000 | 806.00 | 806.00 |
+| json | 269.88 | 508.80 | 32200000 | 1610.00 | 1610.00 |
+| custom-efficient-v1 | 460.16 | 182.31 | 16120000 | 806.00 | 806.00 |
 
 Movement scenario (S2C) vector ENTITY_STATE_BATCH (80 entities/frame):
 
 | codec | encode ms | decode ms | total bytes | avg bytes/frame | p95 bytes/frame |
 |---|---:|---:|---:|---:|---:|
-| json | 230.97 | 287.95 | 29272000 | 1463.60 | 1464.00 |
-| custom-efficient-v1 | 166.22 | 99.10 | 13093808 | 654.69 | 655.00 |
+| json | 226.06 | 324.99 | 29272000 | 1463.60 | 1464.00 |
+| custom-efficient-v1 | 179.65 | 96.63 | 13093808 | 654.69 | 655.00 |
 
 Takeaway from this run:
 
