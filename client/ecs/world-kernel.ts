@@ -5,6 +5,7 @@ import { gridPos, type GridPos } from '../../shared/domain/positions';
 import type { SpawnSnapshot } from '../../shared/replication/spawn-snapshot';
 import Types from '../../shared/gametypes-browser';
 import { MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_S, MOVE_INPUT_KEY_W } from '../../shared/protocol/intents';
+import { tileToWorldPosCenter, worldPos, worldPosToTile, type WorldPos } from '../../shared/world/worldpos';
 import type { ClientCommand } from './client-commands';
 import type { ClientRuntimeEvent } from './runtime-events';
 import { ClientChunkOverlayCache } from '../world/chunks/client-chunk-overlay-cache';
@@ -16,6 +17,7 @@ export type KernelEntityView = Readonly<{
     kind: EntityKind;
     type: KernelEntityType;
     position: GridPos;
+    worldPosition: WorldPos;
     name?: string;
     orientation?: number;
     armor?: EntityKind;
@@ -109,6 +111,7 @@ export class ClientWorldKernel {
     readonly alive = new Set<EntityId>();
     readonly kind = new Map<EntityId, EntityKind>();
     readonly position = new Map<EntityId, GridPos>();
+    readonly worldPosition = new Map<EntityId, WorldPos>();
 
     readonly name = new Map<EntityId, string>();
     readonly orientation = new Map<EntityId, number>();
@@ -128,6 +131,7 @@ export class ClientWorldKernel {
     // Client-only replication bookkeeping for kernel-driven sync systems.
     readonly clientReplicationKnownAlive = new Set<EntityId>();
     readonly clientReplicationLastPos = new Map<EntityId, GridPos>();
+    readonly clientReplicationLastWorldPos = new Map<EntityId, WorldPos>();
     readonly clientReplicationLastTarget = new Map<EntityId, EntityId>();
 
     // Client-only spatial bookkeeping for legacy grid sync without per-entity step hooks.
@@ -378,6 +382,7 @@ export class ClientWorldKernel {
         this.kind.set(id, snapshot.kind);
         const pos = gridPos(snapshot.x, snapshot.y);
         this.position.set(id, pos);
+        this.worldPosition.set(id, tileToWorldPosCenter(snapshot.x, snapshot.y));
 
         // Clear optional components first; extras will re-add what applies.
         this.name.delete(id);
@@ -408,6 +413,7 @@ export class ClientWorldKernel {
         this.alive.add(id);
         this.kind.set(id, kind);
         this.position.set(id, gridPos(x, y));
+        this.worldPosition.set(id, tileToWorldPosCenter(x, y));
 
         // Clear optional components: this is a "simple" entity unless later promoted by spawn snapshots.
         this.name.delete(id);
@@ -424,6 +430,16 @@ export class ClientWorldKernel {
             return;
         }
         this.position.set(id, gridPos(x, y));
+        this.worldPosition.set(id, tileToWorldPosCenter(x, y));
+    }
+
+    setWorldPosition(id: EntityId, worldX: number, worldY: number): void {
+        if (!this.alive.has(id)) {
+            return;
+        }
+        const pos = worldPos(worldX, worldY);
+        this.worldPosition.set(id, pos);
+        this.position.set(id, worldPosToTile(pos));
     }
 
     setTarget(id: EntityId, targetId: EntityId | null): void {
@@ -441,6 +457,7 @@ export class ClientWorldKernel {
         this.alive.delete(id);
         this.kind.delete(id);
         this.position.delete(id);
+        this.worldPosition.delete(id);
         this.name.delete(id);
         this.orientation.delete(id);
         this.armor.delete(id);
@@ -464,6 +481,7 @@ export class ClientWorldKernel {
         this.alive.clear();
         this.kind.clear();
         this.position.clear();
+        this.worldPosition.clear();
         this.name.clear();
         this.orientation.clear();
         this.armor.clear();
@@ -481,6 +499,7 @@ export class ClientWorldKernel {
 
         this.clientReplicationKnownAlive.clear();
         this.clientReplicationLastPos.clear();
+        this.clientReplicationLastWorldPos.clear();
         this.clientReplicationLastTarget.clear();
 
         this.resetClientSpatialState();
@@ -566,7 +585,8 @@ export class ClientWorldKernel {
     getEntityView(id: EntityId): KernelEntityView {
         const kind = this.kind.get(id);
         const position = this.position.get(id);
-        if (kind === undefined || !position) {
+        const worldPosition = this.worldPosition.get(id);
+        if (kind === undefined || !position || !worldPosition) {
             throw new Error(`Kernel missing entity ${String(id)}`);
         }
 
@@ -588,6 +608,7 @@ export class ClientWorldKernel {
             kind,
             type,
             position,
+            worldPosition,
             name,
             orientation,
             armor,

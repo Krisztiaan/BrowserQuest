@@ -1,6 +1,5 @@
 import type { EntityId } from '../../../shared/domain/ids';
-import type { GridPos } from '../../../shared/domain/positions';
-import Types from '../../../shared/gametypes-browser';
+import type { WorldPos } from '../../../shared/world/worldpos';
 import type { ClientWorldKernel, KernelEntityView } from '../world-kernel';
 import type { ClientCommand } from '../client-commands';
 
@@ -9,8 +8,11 @@ export type ClientKernelReplicationSyncSystemHost = {
     playerId: EntityId | null;
 };
 
-function isSamePos(a: GridPos | undefined, b: GridPos): boolean {
-    return a?.x === b.x && a.y === b.y;
+function isSameWorldPos(a: WorldPos | undefined, b: WorldPos): boolean {
+    if (!a) {
+        return false;
+    }
+    return a.x === b.x && a.y === b.y;
 }
 
 function addSpawnedEntity(host: ClientKernelReplicationSyncSystemHost, view: KernelEntityView): void {
@@ -18,6 +20,7 @@ function addSpawnedEntity(host: ClientKernelReplicationSyncSystemHost, view: Ker
     host.kernel.enqueueClientCommand(cmd);
     host.kernel.clientReplicationKnownAlive.add(view.id);
     host.kernel.clientReplicationLastPos.set(view.id, view.position);
+    host.kernel.clientReplicationLastWorldPos.set(view.id, view.worldPosition);
     if (view.targetId !== undefined) {
         host.kernel.clientReplicationLastTarget.set(view.id, view.targetId);
     }
@@ -35,6 +38,7 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         kernel.enqueueClientCommand({ type: 'removeEntityById', entityId: id });
         kernel.clientReplicationKnownAlive.delete(id);
         kernel.clientReplicationLastPos.delete(id);
+        kernel.clientReplicationLastWorldPos.delete(id);
         kernel.clientReplicationLastTarget.delete(id);
     }
 
@@ -51,38 +55,49 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         addSpawnedEntity(host, view);
     }
 
-    // Movement: drive characters toward their authoritative kernel positions (once per destination).
-    for (const [id, pos] of kernel.position.entries()) {
+    // Movement: drive entities toward their authoritative kernel world positions.
+    for (const [id, worldPos] of kernel.worldPosition.entries()) {
         if (!kernel.clientReplicationKnownAlive.has(id)) {
             continue;
         }
-        if (isSamePos(kernel.clientReplicationLastPos.get(id), pos)) {
+        if (isSameWorldPos(kernel.clientReplicationLastWorldPos.get(id), worldPos)) {
             continue;
         }
 
         const kind = kernel.kind.get(id);
-        // Only characters path; items/chests are static.
-        if (kind !== undefined && !Types.isItem(kind) && !Types.isChest(kind)) {
-            const isLocalPlayer = host.playerId !== null && id === host.playerId;
-            const hasPredictionPlan = isLocalPlayer && (kernel.clientMovePlan !== null || kernel.clientMoveInputKeysMask !== 0);
-            if (hasPredictionPlan) {
-                const record = kernel.clientSpatialRecords.get(id);
-                if (record) {
-                    const drift = Math.abs(record.gridX - pos.x) + Math.abs(record.gridY - pos.y);
-                    // While predicting, tolerate small drift so we don't fight the local `Character.go` path.
-                    if (drift <= 1) {
-                        kernel.clientReplicationLastPos.set(id, pos);
-                        continue;
-                    }
-                    // Large drift: snap to server and let `teleportEntity` cancel stale local prediction.
-                    kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: id, x: pos.x, y: pos.y });
+        const pos = kernel.position.get(id);
+        if (!pos) {
+            continue;
+        }
+
+        // Prediction: if the local player is currently predicting, tolerate small drift so we don't fight the
+        // local step interpolation; large drift triggers a teleport snap.
+        const isLocalPlayer = host.playerId !== null && id === host.playerId;
+        const hasPredictionPlan = isLocalPlayer && (kernel.clientMovePlan !== null || kernel.clientMoveInputKeysMask !== 0);
+        if (hasPredictionPlan) {
+            const record = kernel.clientSpatialRecords.get(id);
+            if (record) {
+                const drift = Math.abs(record.gridX - pos.x) + Math.abs(record.gridY - pos.y);
+                if (drift <= 1) {
+                    kernel.clientReplicationLastWorldPos.set(id, worldPos);
                     kernel.clientReplicationLastPos.set(id, pos);
                     continue;
                 }
+                kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: id, x: pos.x, y: pos.y });
+                kernel.clientReplicationLastWorldPos.set(id, worldPos);
+                kernel.clientReplicationLastPos.set(id, pos);
+                continue;
             }
-
-            kernel.enqueueClientCommand({ type: 'characterGoTo', entityId: id, x: pos.x, y: pos.y });
         }
+
+        // Apply authoritative world position directly for smooth sub-tile motion (render still uses tile-based
+        // sprites; interpolation is handled in a later ticket).
+        if (kind !== undefined) {
+            // Items/chests are static, but keeping the same command path simplifies the client state model.
+            kernel.enqueueClientCommand({ type: 'setEntityWorldPosition', entityId: id, worldX: worldPos.x, worldY: worldPos.y });
+        }
+
+        kernel.clientReplicationLastWorldPos.set(id, worldPos);
         kernel.clientReplicationLastPos.set(id, pos);
     }
 

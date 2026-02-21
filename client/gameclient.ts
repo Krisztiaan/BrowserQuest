@@ -47,7 +47,6 @@ import { gridPos } from '../shared/domain/positions';
 import { decodeSpawnAction } from '../shared/replication/spawn-snapshot';
 import { adaptKernelEntityForRendering } from './ecs/kernel-entity-adapter';
 import { ClientWorldKernel } from './ecs/world-kernel';
-import { TILE_SUBPX } from '../shared/world/worldpos';
 import { decodeProtocolCapabilitiesJson, type ProtocolCapabilities } from '../shared/protocol/capabilities';
 import { decodeChunkSnapshotPayloadBinary } from '../shared/protocol/chunks/chunk-snapshot-codec';
 import { decodeChunkDeltaPayloadBinary } from '../shared/protocol/chunks/chunk-delta-codec';
@@ -368,7 +367,7 @@ class GameClient extends Evented<GameClientEvents> {
                     if (local !== null && entityId === local) {
                         return;
                     }
-                    this.kernel.setPosition(entityId, x, y);
+                    this.kernel.setWorldPosition(entityId, x, y);
                 },
             });
         } catch {
@@ -646,7 +645,7 @@ class GameClient extends Evented<GameClientEvents> {
         }
 
         this.kernel.pruneClientPendingMoveSeqAcksUpTo(ackSeq);
-        this.kernel.setPosition(playerId, Math.floor(worldX / TILE_SUBPX), Math.floor(worldY / TILE_SUBPX));
+        this.kernel.setWorldPosition(playerId, worldX, worldY);
 
         const suppressed = (flags & 1) !== 0;
         this.kernel.clientMovementSuppressed = suppressed;
@@ -682,7 +681,7 @@ class GameClient extends Evented<GameClientEvents> {
             if (localPlayerId !== null && entityId === localPlayerId) {
                 continue;
             }
-            this.kernel.setPosition(entityId, Math.floor(worldX / TILE_SUBPX), Math.floor(worldY / TILE_SUBPX));
+            this.kernel.setWorldPosition(entityId, worldX, worldY);
         }
 
         debugMoves('in:ENTITY_STATE_BATCH', { tick, count });

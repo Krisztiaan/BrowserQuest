@@ -6,6 +6,7 @@ import type { RuntimeEntity } from '../client-boundary-types';
 export type ClientCommand =
     | Readonly<{ type: 'stopPlayerCombat' }>
     | Readonly<{ type: 'characterClearTarget'; entityId: EntityId }>
+    | Readonly<{ type: 'setEntityWorldPosition'; entityId: EntityId; worldX: number; worldY: number }>
     | Readonly<{ type: 'clientSendHello' }>
     | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
     | Readonly<{ type: 'clientSendMoveTo'; x: number; y: number; stopAdjacentToTarget: boolean }>

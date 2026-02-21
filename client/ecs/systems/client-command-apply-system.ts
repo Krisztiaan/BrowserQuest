@@ -29,6 +29,8 @@ type GridIndexedEntity = {
     y: number;
     gridX: number;
     gridY: number;
+    worldX?: number;
+    worldY?: number;
     nextGridX?: number;
     nextGridY?: number;
     setSprite(sprite: Sprite | null): void;
@@ -37,6 +39,8 @@ type GridIndexedEntity = {
     getSpriteName(): string;
     getWeaponName?(): string | null;
     setGridPosition(x: number, y: number): void;
+    setWorldPositionSub?(worldX: number, worldY: number): void;
+    setDirty(): void;
     setMaxHitPoints?(hp: number): void;
     setOrientation?(orientation: number): void;
     idle?(): void;
@@ -1013,6 +1017,21 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (newIds.length > 0) {
                     host.client.sendWho(newIds);
                 }
+                break;
+            }
+            case 'setEntityWorldPosition': {
+                const entity = getKnownEntity(command.entityId);
+                if (!entity) {
+                    break;
+                }
+                if (!entity.setWorldPositionSub) {
+                    throw new Error(`Entity ${String(command.entityId)} missing setWorldPositionSub`);
+                }
+                if (entity instanceof Character) {
+                    hardStopCharacterMovement(entity);
+                }
+                entity.setWorldPositionSub(command.worldX, command.worldY);
+                entity.setDirty();
                 break;
             }
             case 'teleportEntity': {

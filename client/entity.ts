@@ -3,6 +3,7 @@ import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import { Evented } from '../shared/evented';
 import type { MergeEvents, TypedEventMap } from '../shared/typed-event-emitter';
+import { HALF_TILE_SUBPX, SUBPIXELS, TILE_PX, TILE_SUBPX } from '../shared/world/worldpos';
 
 type AnimationLike = {
     name: string;
@@ -62,6 +63,9 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
     y: number;
     gridX: number;
     gridY: number;
+    // Authoritative world-space center position (fixed-point subpixels).
+    worldX: number;
+    worldY: number;
 
     isLoaded: boolean;
     isHighlighted: boolean;
@@ -96,6 +100,8 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
         this.y = 0;
         this.gridX = 0;
         this.gridY = 0;
+        this.worldX = HALF_TILE_SUBPX;
+        this.worldY = HALF_TILE_SUBPX;
         this.setGridPosition(0, 0);
 
         // Modes
@@ -128,7 +134,19 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
         this.gridX = x;
         this.gridY = y;
 
-        this.setPosition(x * 16, y * 16);
+        this.worldX = x * TILE_SUBPX + HALF_TILE_SUBPX;
+        this.worldY = y * TILE_SUBPX + HALF_TILE_SUBPX;
+        this.setPosition(x * TILE_PX, y * TILE_PX);
+    }
+
+    setWorldPositionSub(worldX: number, worldY: number): void {
+        this.worldX = worldX;
+        this.worldY = worldY;
+        this.gridX = Math.floor(worldX / TILE_SUBPX);
+        this.gridY = Math.floor(worldY / TILE_SUBPX);
+        // Keep legacy renderer anchor: `x/y` is the tile top-left, while world pos is the entity center.
+        this.x = Math.floor(worldX / SUBPIXELS) - TILE_PX / 2;
+        this.y = Math.floor(worldY / SUBPIXELS) - TILE_PX / 2;
     }
 
     setSprite(sprite: SpriteLike | null): void {

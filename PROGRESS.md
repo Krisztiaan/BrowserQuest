@@ -142,6 +142,34 @@ Format per entry:
   - Next action:
     - Start Ticket 426 (client kernel/entity model to store sub-tile positions without flooring).
 
+- 10:04 UTC
+  - Ticket: 426 (Client kernel/entity model: store sub-tile pos, derive grid tile for logic)
+  - Start timestamp: 2026-02-21 10:04 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting client kernel/entity data model changes to represent authoritative sub-tile world positions without flooring, while keeping grid-derived positions for logic.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+  - Next action:
+    - Identify all client position storage/updates, add `worldX/worldY` (subpixels) as primary, derive `gridX/gridY`, update inbound handlers + tests, verify, commit.
+
+- 10:17 UTC
+  - Ticket: 426 (Client kernel/entity model: store sub-tile pos, derive grid tile for logic)
+  - Start timestamp: 2026-02-21 10:04 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added authoritative `worldPosition` (subpixel fixed-point) to `ClientWorldKernel`, keeping `position` (tile) derived for logic.
+    - Updated client inbound handlers (`MOVE_SYNC`, `ENTITY_STATE_BATCH`) to store world coords without flooring.
+    - Added `setEntityWorldPosition` command path so client entities can carry authoritative sub-tile state without relying on tile-step `Character.go` updates.
+    - Extended base `Entity` with `worldX/worldY` + `setWorldPositionSub` to support sub-tile state storage.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit --timeout 30000`
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
+  - Next action:
+    - Start Ticket 427 (render + interpolate entities using sub-tile positions; smooth camera and walk cycles).
+
 ## 2026-02-19
 
 - 23:57 UTC

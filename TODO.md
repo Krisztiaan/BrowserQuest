@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-21 10:02 UTC
+Last updated: 2026-02-21 10:17 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -34,23 +34,7 @@ Cycle completion gate:
 
 ## Active Tickets
 
-1. Ticket 426 (Client kernel/entity model: store sub-tile pos, derive grid tile for logic)
-  - Status: `todo`
-  - Scope:
-    - Add sub-tile position to client kernel spatial records and entity instances (`x/y` in pixels or subpixels).
-    - Keep `gridX/gridY` derived from `pos` for logic (interaction, targeting, zoning visuals).
-  - Out of scope:
-    - Visual interpolation changes (next ticket).
-  - Acceptance criteria:
-    - Client state can represent non-integer tile positions without rounding jitter.
-  - Verification plan:
-    - `bun run lint`
-    - `bun run typecheck`
-    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000`
-  - Dependencies/blockers:
-    - Depends on Ticket 425.
-
-2. Ticket 427 (Client rendering + interpolation for sub-tile motion)
+1. Ticket 427 (Client rendering + interpolation for sub-tile motion)
   - Status: `todo`
   - Scope:
     - Render entities at sub-tile pixel positions (smooth, no tile snapping).
@@ -67,7 +51,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 426.
 
-3. Ticket 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
+2. Ticket 428 (Server reconciliation model for sub-tile: client prediction + correction rules)
   - Status: `todo`
   - Scope:
     - Define and implement server correction strategy with sub-tile positions:
@@ -87,7 +71,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Tickets 424-427.
 
-4. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
+3. Ticket 429 (Mob movement parity: port mobs/NPCs to sub-tile + collision)
   - Status: `todo`
   - Scope:
     - Update mob AI movement to use the same continuous collision kernel and `PositionSub`.
@@ -103,7 +87,7 @@ Cycle completion gate:
   - Dependencies/blockers:
     - Depends on Ticket 423 (collision) and Ticket 425 (replication).
 
-5. Ticket 430 (Remove grid-step movement remnants + docs)
+4. Ticket 430 (Remove grid-step movement remnants + docs)
   - Status: `todo`
   - Scope:
     - Remove dead code paths and assumptions that movement occurs as discrete grid steps.
