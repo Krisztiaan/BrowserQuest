@@ -1,5 +1,6 @@
 import { entityIdIndex, type EntityId } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
+import { worldPos, type WorldPos } from '../../shared/world/worldpos';
 
 export interface ComponentStore<T> {
     has(id: EntityId): boolean;
@@ -212,6 +213,113 @@ export class SoaGridPosStore implements ComponentStore<GridPos> {
             const y = this.#denseY[i];
             if (id !== undefined && x !== undefined && y !== undefined) {
                 callback(id, gridPos(x, y));
+            }
+        }
+    }
+}
+
+export class SoaWorldPosStore implements ComponentStore<WorldPos> {
+    #denseIds: EntityId[] = [];
+    #denseX: number[] = [];
+    #denseY: number[] = [];
+    #sparse: number[] = [];
+
+    get size(): number {
+        return this.#denseIds.length;
+    }
+
+    has(id: EntityId): boolean {
+        const index = entityIdIndex(id);
+        const densePosPlusOne = this.#sparse[index] ?? 0;
+        if (densePosPlusOne === 0) {
+            return false;
+        }
+        const densePos = densePosPlusOne - 1;
+        return this.#denseIds[densePos] === id;
+    }
+
+    get(id: EntityId): WorldPos | undefined {
+        const index = entityIdIndex(id);
+        const densePosPlusOne = this.#sparse[index] ?? 0;
+        if (densePosPlusOne === 0) {
+            return undefined;
+        }
+        const densePos = densePosPlusOne - 1;
+        if (this.#denseIds[densePos] !== id) {
+            return undefined;
+        }
+        const x = this.#denseX[densePos];
+        const y = this.#denseY[densePos];
+        if (x === undefined || y === undefined) {
+            return undefined;
+        }
+        return worldPos(x, y);
+    }
+
+    set(id: EntityId, value: WorldPos): void {
+        const index = entityIdIndex(id);
+        const densePosPlusOne = this.#sparse[index] ?? 0;
+        if (densePosPlusOne !== 0) {
+            const densePos = densePosPlusOne - 1;
+            const existingId = this.#denseIds[densePos];
+            if (existingId !== id) {
+                throw new Error('SoaWorldPosStore.set: stale component for reused entity index');
+            }
+            this.#denseX[densePos] = value.x;
+            this.#denseY[densePos] = value.y;
+            return;
+        }
+
+        const nextPos = this.#denseIds.length;
+        this.#denseIds.push(id);
+        this.#denseX.push(value.x);
+        this.#denseY.push(value.y);
+        this.#sparse[index] = nextPos + 1;
+    }
+
+    remove(id: EntityId): void {
+        const index = entityIdIndex(id);
+        const densePosPlusOne = this.#sparse[index] ?? 0;
+        if (densePosPlusOne === 0) {
+            return;
+        }
+        const densePos = densePosPlusOne - 1;
+        if (this.#denseIds[densePos] !== id) {
+            return;
+        }
+
+        const lastPos = this.#denseIds.length - 1;
+        if (densePos !== lastPos) {
+            const lastId = this.#denseIds[lastPos];
+            if (lastId === undefined) {
+                throw new Error('SoaWorldPosStore.remove: dense array invariant violated');
+            }
+            this.#denseIds[densePos] = lastId;
+            this.#denseX[densePos] = this.#denseX[lastPos] as number;
+            this.#denseY[densePos] = this.#denseY[lastPos] as number;
+            this.#sparse[entityIdIndex(lastId)] = densePos + 1;
+        }
+
+        this.#denseIds.pop();
+        this.#denseX.pop();
+        this.#denseY.pop();
+        this.#sparse[index] = 0;
+    }
+
+    clear(): void {
+        this.#denseIds = [];
+        this.#denseX = [];
+        this.#denseY = [];
+        this.#sparse = [];
+    }
+
+    forEach(callback: (id: EntityId, value: WorldPos) => void): void {
+        for (let i = 0; i < this.#denseIds.length; i += 1) {
+            const id = this.#denseIds[i];
+            const x = this.#denseX[i];
+            const y = this.#denseY[i];
+            if (id !== undefined && x !== undefined && y !== undefined) {
+                callback(id, worldPos(x, y));
             }
         }
     }

@@ -32,6 +32,33 @@ Format per entry:
   - Next action:
     - Start Ticket 422 (server ECS `PositionSub` + derived tile `Position`).
 
+- 09:06 UTC
+  - Ticket: 422 (Server ECS: introduce authoritative sub-tile position + derived grid tile)
+  - Start timestamp: 2026-02-21 09:06 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting server ECS `PositionSub` component introduction and a derivation system to keep grid `Position` aligned.
+  - Evidence:
+    - `sed -n '30,260p' TODO.md`
+  - Next action:
+    - Add `SoaWorldPosStore`, register `PositionSub`, implement derive system, add unit tests, verify, commit.
+
+- 09:18 UTC
+  - Ticket: 422 (Server ECS: introduce authoritative sub-tile position + derived grid tile)
+  - Start timestamp: 2026-02-21 09:06 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added `PositionSub` (`WorldPos`) to server ECS replication components and ensured spawns initialize it at tile center.
+    - Implemented `createDeriveGridPositionFromWorldPosSystem` and wired it into the server tick (pre-sim) to keep grid `Position` aligned.
+    - Updated all server tile-position mutation sites to keep `Position` and `PositionSub` consistent.
+    - Added MMO unit tests for boundary flooring and spawn initialization.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo --timeout 30000`
+  - Next action:
+    - Start Ticket 423 (tile collision kernel in sub-tile coordinates).
+
 ## 2026-02-19
 
 - 23:57 UTC

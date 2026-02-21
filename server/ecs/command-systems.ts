@@ -3,6 +3,7 @@ import { entityIdToWire } from '../../shared/domain/ids';
 import type { EntityId } from '../../shared/domain/ids';
 import type { GridPos } from '../../shared/domain/positions';
 import type { ServerToClientProtocolAction } from '../../shared/protocol/types';
+import { tileToWorldPosCenter, type WorldPos } from '../../shared/world/worldpos';
 import type { ComponentType } from './component-registry';
 import type { Command } from './commands';
 import type { DomainEvent } from './events';
@@ -11,9 +12,11 @@ import type { System } from './scheduler';
 
 export function createApplyMoveCommandsSystem({
     Position,
+    PositionSub,
     onMoveApplied,
 }: {
     Position: ComponentType<GridPos>;
+    PositionSub?: ComponentType<WorldPos>;
     onMoveApplied?: (playerId: EntityId, to: GridPos) => void;
 }): System<Command, DomainEvent> {
     return (state) => {
@@ -29,6 +32,9 @@ export function createApplyMoveCommandsSystem({
 
             // For now, MOVE is purely authoritative position set; validation/physics come later.
             state.world.addComponent(cmd.source.playerId, Position, cmd.to);
+            if (PositionSub) {
+                state.world.addComponent(cmd.source.playerId, PositionSub, tileToWorldPosCenter(cmd.to.x, cmd.to.y));
+            }
             onMoveApplied?.(cmd.source.playerId, cmd.to);
             state.events.push({
                 type: 'ENTITY_MOVED',

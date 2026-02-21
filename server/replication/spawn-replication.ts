@@ -2,15 +2,17 @@ import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { EntityId } from '../../shared/domain/ids';
 import { ENTITY_ID_NONE, entityIdToWire } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
+import { tileToWorldPosCenter, type WorldPos } from '../../shared/world/worldpos';
 import Types from '../../shared/gametypes-browser';
 import { encodeSpawnSnapshot, type SpawnExtras, type SpawnSnapshot } from '../../shared/replication/spawn-snapshot';
 import type { ServerToClientSpawnAction } from '../../shared/protocol/types';
 import type { ComponentType } from '../ecs/component-registry';
-import { SparseSetStore, SoaGridPosStore } from '../ecs/component-store';
+import { SparseSetStore, SoaGridPosStore, SoaWorldPosStore } from '../ecs/component-store';
 import type { EcsWorld } from '../ecs/world';
 
 export type SpawnReplicationComponents = Readonly<{
     Position: ComponentType<GridPos>;
+    PositionSub: ComponentType<WorldPos>;
     Kind: ComponentType<EntityKind>;
     Name: ComponentType<string>;
     Orientation: ComponentType<number>;
@@ -33,6 +35,7 @@ export type LegacySpawnReplicationEntity = Readonly<{
 
 export function registerSpawnReplicationComponents(world: EcsWorld): SpawnReplicationComponents {
     const Position = world.components.register('Position', new SoaGridPosStore());
+    const PositionSub = world.components.register('PositionSub', new SoaWorldPosStore());
     const Kind = world.components.register('ReplicatedKind', new SparseSetStore<EntityKind>());
     const Name = world.components.register('ReplicatedName', new SparseSetStore<string>());
     const Orientation = world.components.register('ReplicatedOrientation', new SparseSetStore<number>());
@@ -40,7 +43,7 @@ export function registerSpawnReplicationComponents(world: EcsWorld): SpawnReplic
     const Weapon = world.components.register('ReplicatedWeapon', new SparseSetStore<EntityKind>());
     // Store ENTITY_ID_NONE to represent "no target" to keep the store dense and avoid nullable reads.
     const Target = world.components.register('ReplicatedTarget', new SparseSetStore<EntityId>());
-    return { Position, Kind, Name, Orientation, Armor, Weapon, Target };
+    return { Position, PositionSub, Kind, Name, Orientation, Armor, Weapon, Target };
 }
 
 export function syncSpawnReplicationFromLegacyEntity(
@@ -51,6 +54,7 @@ export function syncSpawnReplicationFromLegacyEntity(
     world.ensureEntity(entity.id);
     world.addComponent(entity.id, components.Kind, entity.kind);
     world.addComponent(entity.id, components.Position, gridPos(entity.x, entity.y));
+    world.addComponent(entity.id, components.PositionSub, tileToWorldPosCenter(entity.x, entity.y));
 
     if (typeof entity.name === 'string') {
         world.addComponent(entity.id, components.Name, entity.name);
@@ -146,4 +150,3 @@ function buildSpawnExtras(
 
     return { type: 'simple' };
 }
-

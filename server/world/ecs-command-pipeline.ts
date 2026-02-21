@@ -1,6 +1,7 @@
 import type { EntityId } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
 import { isEntityWithinAttackRange } from '../../shared/combat/engagement';
+import { tileToWorldPosCenter } from '../../shared/world/worldpos';
 import {
     MOVE_STEP_REJECT_NON_ADJACENT,
     isAdjacentStep,
@@ -15,6 +16,7 @@ import { Scheduler, type SchedulerStage, type System, type SystemContext } from 
 import { OUTBOX_RESOURCE } from '../ecs/outbox';
 import { Queue } from '../ecs/queues';
 import { flushDomainEventsToOutboxSystem } from '../ecs/outbox-systems';
+import { createDeriveGridPositionFromWorldPosSystem } from '../ecs/position-systems';
 import type { ComponentType } from '../ecs/component-registry';
 import { InterestTracker } from '../ecs/interest-tracker';
 import { INTEREST_TRACKER_RESOURCE } from '../ecs/spatial-resources';
@@ -480,6 +482,7 @@ function clearPlayerFromMobAggro({
 function applyHello({
     state,
     Position,
+    PositionSub,
     Kind,
     Name,
     Orientation,
@@ -494,6 +497,7 @@ function applyHello({
 }: {
     state: WorldState<Command, DomainEvent>;
     Position: ComponentType<GridPos>;
+    PositionSub: ReturnType<typeof registerSpawnReplicationComponents>['PositionSub'];
     Kind: ComponentType<EntityKind>;
     Name: ComponentType<string>;
     Orientation: ComponentType<number>;
@@ -548,6 +552,7 @@ function applyHello({
     state.world.ensureEntity(player.id);
     state.world.addComponent(player.id, Kind, player.kind);
     state.world.addComponent(player.id, Position, gridPos(player.x, player.y));
+    state.world.addComponent(player.id, PositionSub, tileToWorldPosCenter(player.x, player.y));
     state.world.addComponent(player.id, Name, player.name);
     state.world.addComponent(player.id, Orientation, player.orientation);
     state.world.addComponent(player.id, Armor, player.armor);
@@ -1448,6 +1453,7 @@ function _applyTeleportCommand({
         state,
         ctx,
         Position,
+        PositionSub: replication.PositionSub,
         Target,
         mobAi,
         movement,
@@ -1462,6 +1468,7 @@ function applyTeleportOutcome({
     state,
     ctx,
     Position,
+    PositionSub,
     Target,
     mobAi,
     movement,
@@ -1473,6 +1480,7 @@ function applyTeleportOutcome({
     state: WorldState<Command, DomainEvent>;
     ctx: SystemContext;
     Position: ComponentType<GridPos>;
+    PositionSub: ReturnType<typeof registerSpawnReplicationComponents>['PositionSub'];
     Target: ComponentType<EntityId>;
     mobAi: ReturnType<typeof registerMobAiComponents>;
     movement: ReturnType<typeof registerMovementComponents>;
@@ -1482,6 +1490,7 @@ function applyTeleportOutcome({
     to: GridPos;
 }): void {
     state.world.addComponent(playerId, Position, to);
+    state.world.addComponent(playerId, PositionSub, tileToWorldPosCenter(to.x, to.y));
     state.world.removeComponent(playerId, Target);
 
     const teleport = buildTeleportAction(playerId, to.x, to.y);
@@ -1585,6 +1594,7 @@ function createApplyInboundCommandsSystem(
                 applyHello({
                     state,
                     Position,
+                    PositionSub: replication.PositionSub,
                     Kind: replication.Kind,
                     Name: replication.Name,
                     Orientation: replication.Orientation,
@@ -1909,6 +1919,7 @@ export class WorldEcsCommandPipeline {
     readonly #world: WorldCommandHost;
     readonly replication = registerSpawnReplicationComponents(this.state.world);
     readonly Position = this.replication.Position;
+    readonly PositionSub = this.replication.PositionSub;
     readonly combat = registerCombatComponents(this.state.world);
     readonly effects = registerEffectsComponents(this.state.world);
     readonly items = registerItemLifecycleComponents(this.state.world);
@@ -1940,6 +1951,7 @@ export class WorldEcsCommandPipeline {
         this.state.resources.set(CHUNK_OVERLAY_STORE_RESOURCE, this.chunkOverlays);
         this.state.resources.set(CLAIMS_STORE_RESOURCE, new ClaimsStore());
 
+        const PositionSub = this.PositionSub;
         const modules = createCoreServerModuleRegistry({
             chunkOverlayStoreResource: CHUNK_OVERLAY_STORE_RESOURCE,
             resolvePlayerIdentityKey,
@@ -1972,11 +1984,12 @@ export class WorldEcsCommandPipeline {
                     cmd,
                 });
             },
-            applyTeleportOutcome({ state, ctx, Position, Target, mobAi, movement, replication, world: _intentWorld, playerId, to }) {
+            applyTeleportOutcome: ({ state, ctx, Position, Target, mobAi, movement, replication, world: _intentWorld, playerId, to }) => {
                 applyTeleportOutcome({
                     state,
                     ctx,
                     Position,
+                    PositionSub,
                     Target,
                     mobAi,
                     movement,
@@ -2005,6 +2018,11 @@ export class WorldEcsCommandPipeline {
                 this.chests,
                 modules
             )
+        );
+        this.#scheduler.register(
+            'pre',
+            'derive_grid_position_from_subpos',
+            createDeriveGridPositionFromWorldPosSystem({ PositionSub: this.PositionSub, Position: this.Position })
         );
 	        this.#scheduler.register('sim', 'player_move_input', (state, _ctx: SystemContext) => {
 	            const Kind = this.replication.Kind;
@@ -2099,6 +2117,7 @@ export class WorldEcsCommandPipeline {
         this.#scheduler.register('sim', 'player_move', (state, ctx: SystemContext) => {
             const Kind = this.replication.Kind;
             const Position = this.Position;
+            const PositionSub = this.PositionSub;
             const Target = this.replication.Target;
             const { MoveQueue, NextMoveTick } = this.movement;
             const { HitPoints } = this.combat;
@@ -2210,6 +2229,7 @@ export class WorldEcsCommandPipeline {
 
                 state.world.removeComponent(playerId, Target);
                 state.world.addComponent(playerId, Position, next);
+                state.world.addComponent(playerId, PositionSub, tileToWorldPosCenter(next.x, next.y));
 
                 outbox.push({ kind: 'to_player', playerId, action: buildMoveAction(playerId, next.x, next.y) });
                 pushMoveSync(playerId, next, 0, true);
@@ -2369,6 +2389,7 @@ export class WorldEcsCommandPipeline {
         this.#scheduler.register('sim', 'mob_ai', (state, ctx: SystemContext) => {
             const Kind = this.replication.Kind;
             const Position = this.Position;
+            const PositionSub = this.PositionSub;
             const Target = this.replication.Target;
             const { MobSpawnPos, MobHate, MobReturnAtTick, MobNextMoveTick } = this.mobAi;
 
@@ -2452,6 +2473,7 @@ export class WorldEcsCommandPipeline {
                                     occupiedBy.delete(oldKey);
                                 }
                                 state.world.addComponent(mobId, Position, next);
+                                state.world.addComponent(mobId, PositionSub, tileToWorldPosCenter(next.x, next.y));
                                 state.world.addComponent(
                                     mobId,
                                     MobNextMoveTick,
@@ -2570,6 +2592,7 @@ export class WorldEcsCommandPipeline {
                     occupiedBy.delete(oldKey);
                 }
                 state.world.addComponent(mobId, Position, next);
+                state.world.addComponent(mobId, PositionSub, tileToWorldPosCenter(next.x, next.y));
                 state.world.addComponent(mobId, MobNextMoveTick, ctx.tick + resolveMoveCooldownTicks(mobKind, ups));
                 occupiedBy.set(positionKey(next.x, next.y), mobId);
                 {
@@ -2718,6 +2741,7 @@ export class WorldEcsCommandPipeline {
         this.state.world.ensureEntity(id);
         this.state.world.addComponent(id, this.replication.Kind, kind);
         this.state.world.addComponent(id, this.Position, gridPos(x, y));
+        this.state.world.addComponent(id, this.PositionSub, tileToWorldPosCenter(x, y));
     }
 
     seedMobFromPrefabSpawn({
