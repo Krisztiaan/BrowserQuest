@@ -59,6 +59,34 @@ Format per entry:
   - Next action:
     - Start Ticket 423 (tile collision kernel in sub-tile coordinates).
 
+- 09:20 UTC
+  - Ticket: 423 (Tile collision kernel: axis-resolved sub-tile movement against map colliders)
+  - Start timestamp: 2026-02-21 09:20 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting shared/server tile collision solver for sub-tile motion (axis-resolved X then Y).
+  - Evidence:
+    - `sed -n '30,120p' TODO.md`
+  - Next action:
+    - Implement collision kernel + unit tests, verify, commit.
+
+- 09:24 UTC
+  - Ticket: 423 (Tile collision kernel: axis-resolved sub-tile movement against map colliders)
+  - Start timestamp: 2026-02-21 09:20 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Implemented deterministic sub-tile tile-collision solver in `shared/world/collision/tile-collision.ts`:
+      - axis-resolved X then Y,
+      - AABB vs blocking-tiles overlap checks,
+      - sub-stepping for large deltas to prevent tunneling.
+    - Added unit tests for wall sliding, corner clamping, and tunneling prevention.
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit --timeout 30000`
+  - Next action:
+    - Start Ticket 424 (server continuous movement using `PositionSub` + collision kernel).
+
 ## 2026-02-19
 
 - 23:57 UTC
