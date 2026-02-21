@@ -4,6 +4,7 @@ import Player from '../../../server/player';
 import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import type { WorldMessage } from '../../../server/world/contracts';
+import { tileToWorldPosCenter } from '../../../shared/world/worldpos';
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -91,6 +92,7 @@ test('stepping onto a door tile produces a server-issued TELEPORT to its destina
     pipeline.state.world.ensureEntity(player.id);
     pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, Types.Entities.WARRIOR);
     pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(4, 5));
+    pipeline.state.world.addComponent(player.id, pipeline.PositionSub, tileToWorldPosCenter(4, 5));
     pipeline.state.world.addComponent(player.id, pipeline.combat.HitPoints, 100);
     pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, 100);
     player.setPosition(4, 5);
@@ -102,6 +104,9 @@ test('stepping onto a door tile produces a server-issued TELEPORT to its destina
     });
 
     pipeline.tick();
+    for (let i = 0; i < 12; i += 1) {
+        pipeline.tick();
+    }
 
     expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(10, 10));
     expect(

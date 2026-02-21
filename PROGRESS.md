@@ -87,6 +87,33 @@ Format per entry:
   - Next action:
     - Start Ticket 424 (server continuous movement using `PositionSub` + collision kernel).
 
+- 09:26 UTC
+  - Ticket: 424 (Server movement rework: from grid steps to continuous motion with sub-tile collision)
+  - Start timestamp: 2026-02-21 09:26 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Starting server player movement simulation using continuous `PositionSub` updates + tile-collision kernel.
+  - Evidence:
+    - `sed -n '30,120p' TODO.md`
+  - Next action:
+    - Rework server movement tick to update `PositionSub`, keep `Position` derived, update/extend MMO unit tests, verify, commit.
+
+- 09:42 UTC
+  - Ticket: 424 (Server movement rework: from grid steps to continuous motion with sub-tile collision)
+  - Start timestamp: 2026-02-21 09:26 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Reworked server `player_move` simulation to advance `PositionSub` continuously each tick (speed derived from existing per-kind move cooldown).
+    - Integrated tile collision solver (`resolveSubTileMotionAgainstTiles`) and retained grid-style diagonal corner cutting semantics (destination-only walkability).
+    - Preserved tile-structured transient entity collision by blocking entry into occupied destination tiles.
+    - Updated MMO movement/door/seq tests to tick through continuous motion (no single-tick tile snap).
+  - Evidence:
+    - `bun run lint`
+    - `bun run typecheck`
+    - `bun test tests/unit/mmo --timeout 30000`
+  - Next action:
+    - Start Ticket 425 (replicate sub-tile positions over the wire).
+
 ## 2026-02-19
 
 - 23:57 UTC

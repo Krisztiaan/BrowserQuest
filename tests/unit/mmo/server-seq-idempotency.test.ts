@@ -7,6 +7,7 @@ import { INTENT_SEQ_STATE_RESOURCE } from '../../../server/ecs/intent-seq';
 import type { WorldMessage } from '../../../server/world/contracts';
 import type { ServerToClientProtocolAction } from '../../../shared/protocol/types';
 import { encodeMoveStepIntentPayload } from '../../../shared/protocol/intents';
+import { tileToWorldPosCenter } from '../../../shared/world/worldpos';
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -109,6 +110,7 @@ function seedPlayerEntity(pipeline: WorldEcsCommandPipeline, player: Player): vo
     pipeline.state.world.ensureEntity(player.id);
     pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, Types.Entities.WARRIOR);
     pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(0, 0));
+    pipeline.state.world.addComponent(player.id, pipeline.PositionSub, tileToWorldPosCenter(0, 0));
     pipeline.state.world.addComponent(player.id, pipeline.combat.HitPoints, 100);
     pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, 100);
 }
@@ -127,6 +129,9 @@ test('server ignores duplicate seq INTENT movement (idempotent) and acks', () =>
         payloadBytes: encodeMoveStepIntentPayload(gridPos(1, 0)) ?? [],
     });
     pipeline.tick();
+    for (let i = 0; i < 12; i += 1) {
+        pipeline.tick();
+    }
     expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(1, 0));
 
     delivered.length = 0;
@@ -138,6 +143,9 @@ test('server ignores duplicate seq INTENT movement (idempotent) and acks', () =>
         payloadBytes: encodeMoveStepIntentPayload(gridPos(2, 0)) ?? [],
     });
     pipeline.tick();
+    for (let i = 0; i < 12; i += 1) {
+        pipeline.tick();
+    }
 
     expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(1, 0));
     expect(hasAction(delivered, (action) => action[0] === Types.Messages.ACK && action[1] === 1)).toBe(true);
@@ -157,6 +165,9 @@ test('server rejects stale seq and emits a correction', () => {
         payloadBytes: encodeMoveStepIntentPayload(gridPos(1, 0)) ?? [],
     });
     pipeline.tick();
+    for (let i = 0; i < 12; i += 1) {
+        pipeline.tick();
+    }
     expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(1, 0));
 
     delivered.length = 0;

@@ -5,6 +5,7 @@ import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { encodeMoveStepIntentPayload } from '../../../shared/protocol/intents';
 import type { WorldMessage } from '../../../server/world/contracts';
+import { tileToWorldPosCenter } from '../../../shared/world/worldpos';
 
 function createTestPlayer(wireId: number): Player {
     const connection = {
@@ -103,6 +104,7 @@ test('move.step accepts diagonal steps when corner tiles are walkable', () => {
     pipeline.state.world.ensureEntity(player.id);
     pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, Types.Entities.WARRIOR);
     pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(1, 1));
+    pipeline.state.world.addComponent(player.id, pipeline.PositionSub, tileToWorldPosCenter(1, 1));
     pipeline.state.world.addComponent(player.id, pipeline.combat.HitPoints, 100);
     pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, 100);
 
@@ -120,6 +122,9 @@ test('move.step accepts diagonal steps when corner tiles are walkable', () => {
         payloadBytes,
     });
     pipeline.tick();
+    for (let i = 0; i < 8; i += 1) {
+        pipeline.tick();
+    }
 
     expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 1)).toBe(true);
     expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);
@@ -134,6 +139,7 @@ test('move.step allows diagonal corner cutting when destination is walkable (blo
     pipeline.state.world.ensureEntity(player.id);
     pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, Types.Entities.WARRIOR);
     pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(1, 1));
+    pipeline.state.world.addComponent(player.id, pipeline.PositionSub, tileToWorldPosCenter(1, 1));
     pipeline.state.world.addComponent(player.id, pipeline.combat.HitPoints, 100);
     pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, 100);
 
@@ -151,6 +157,9 @@ test('move.step allows diagonal corner cutting when destination is walkable (blo
         payloadBytes,
     });
     pipeline.tick();
+    for (let i = 0; i < 8; i += 1) {
+        pipeline.tick();
+    }
 
     expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);
 });
@@ -161,6 +170,7 @@ test('diagonal steps can cut past occupied corner tiles (execution-time)', () =>
     pipeline.state.world.ensureEntity(player.id);
     pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, Types.Entities.WARRIOR);
     pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(1, 1));
+    pipeline.state.world.addComponent(player.id, pipeline.PositionSub, tileToWorldPosCenter(1, 1));
     pipeline.state.world.addComponent(player.id, pipeline.combat.HitPoints, 100);
     pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, 100);
 
@@ -168,6 +178,7 @@ test('diagonal steps can cut past occupied corner tiles (execution-time)', () =>
     const mobId = pipeline.state.world.createEntity();
     pipeline.state.world.addComponent(mobId, pipeline.replication.Kind, Types.Entities.RAT);
     pipeline.state.world.addComponent(mobId, pipeline.Position, gridPos(2, 1));
+    pipeline.state.world.addComponent(mobId, pipeline.PositionSub, tileToWorldPosCenter(2, 1));
 
     const payloadBytes = encodeMoveStepIntentPayload(gridPos(2, 2));
     expect(payloadBytes).toBeTruthy();
@@ -183,6 +194,9 @@ test('diagonal steps can cut past occupied corner tiles (execution-time)', () =>
         payloadBytes,
     });
     pipeline.tick();
+    for (let i = 0; i < 8; i += 1) {
+        pipeline.tick();
+    }
 
     // MOVE should be emitted; corner occupancy does not block destination-only diagonal steps.
     expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);

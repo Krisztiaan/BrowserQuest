@@ -17,11 +17,13 @@ export type MovementComponents = Readonly<{
     MoveQueue: ComponentType<MoveQueueState>;
     NextMoveTick: ComponentType<number>;
     MoveInput: ComponentType<MoveInputState>;
+    MoveSpeedRemainder: ComponentType<number>;
 }>;
 
 export function registerMovementComponents(world: EcsWorld): MovementComponents {
     const MoveQueue = world.components.register('MoveQueue', new SparseSetStore<MoveQueueState>());
     const NextMoveTick = world.components.register('NextMoveTick', new SparseSetStore<number>());
     const MoveInput = world.components.register('MoveInput', new SparseSetStore<MoveInputState>());
-    return { MoveQueue, NextMoveTick, MoveInput };
+    const MoveSpeedRemainder = world.components.register('MoveSpeedRemainder', new SparseSetStore<number>());
+    return { MoveQueue, NextMoveTick, MoveInput, MoveSpeedRemainder };
 }

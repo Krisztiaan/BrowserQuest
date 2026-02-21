@@ -1,10 +1,10 @@
 import type { EntityId } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
 import { isEntityWithinAttackRange } from '../../shared/combat/engagement';
-import { tileToWorldPosCenter } from '../../shared/world/worldpos';
+import { SUBPIXELS, TILE_SUBPX, tileToWorldPosCenter, worldPosToTile } from '../../shared/world/worldpos';
+import { resolveSubTileMotionAgainstTiles } from '../../shared/world/collision/tile-collision';
 import {
     MOVE_STEP_REJECT_NON_ADJACENT,
-    isAdjacentStep,
     resolveMoveBaseline,
     validateMoveStepIntent,
 } from '../../shared/world/movement-intents';
@@ -2024,102 +2024,12 @@ export class WorldEcsCommandPipeline {
             'derive_grid_position_from_subpos',
             createDeriveGridPositionFromWorldPosSystem({ PositionSub: this.PositionSub, Position: this.Position })
         );
-	        this.#scheduler.register('sim', 'player_move_input', (state, _ctx: SystemContext) => {
-	            const Kind = this.replication.Kind;
-	            const Position = this.Position;
-	            const { MoveInput, MoveQueue } = this.movement;
-	            const { HitPoints } = this.combat;
-
-	            const resolveAxisDelta = ({
-	                mask,
-	                recentKeys,
-	                negBit,
-	                posBit,
-	            }: {
-	                mask: number;
-	                recentKeys: number[];
-	                negBit: number;
-	                posBit: number;
-	            }): -1 | 0 | 1 => {
-	                const neg = (mask & negBit) !== 0;
-	                const pos = (mask & posBit) !== 0;
-	                if (neg && !pos) return -1;
-	                if (pos && !neg) return 1;
-	                if (!neg && !pos) return 0;
-	                // Both pressed: choose the more recent bit.
-	                const negIdx = recentKeys.lastIndexOf(negBit);
-	                const posIdx = recentKeys.lastIndexOf(posBit);
-	                if (negIdx === -1 && posIdx === -1) {
-	                    return 0;
-	                }
-	                if (negIdx > posIdx) return -1;
-	                if (posIdx > negIdx) return 1;
-	                // Stable fallback when ordering is ambiguous.
-	                return 0;
-	            };
-
-	            MoveInput.store.forEach((playerId, input) => {
-	                const kind = Kind.store.get(playerId);
-	                if (kind === undefined || !Types.isPlayer(kind)) {
-                    state.world.removeComponent(playerId, MoveInput);
-                    state.world.removeComponent(playerId, MoveQueue);
-                    return;
-                }
-
-                const hp = HitPoints.store.get(playerId) ?? 0;
-                if (hp <= 0) {
-                    state.world.removeComponent(playerId, MoveInput);
-                    state.world.removeComponent(playerId, MoveQueue);
-                    return;
-                }
-
-	                const from = Position.store.get(playerId);
-	                if (!from) {
-	                    state.world.removeComponent(playerId, MoveQueue);
-	                    return;
-	                }
-
-	                const mask = input.keysMask >>> 0;
-	                const recentKeys = input.recentKeys;
-
-	                // Resolve each axis independently so combos (W+D, etc) can produce diagonals.
-	                const dx = resolveAxisDelta({ mask, recentKeys, negBit: MOVE_INPUT_KEY_A, posBit: MOVE_INPUT_KEY_D });
-	                const dy = resolveAxisDelta({ mask, recentKeys, negBit: MOVE_INPUT_KEY_W, posBit: MOVE_INPUT_KEY_S });
-
-	                if (dx === 0 && dy === 0) {
-	                    // This can happen when both opposite keys are held and ordering is ambiguous.
-	                    // Don't enqueue movement; keep input alive until a clearer state arrives.
-	                    state.world.removeComponent(playerId, MoveQueue);
-	                    return;
-	                }
-
-	                const tryEnqueue = (tx: number, ty: number): boolean => {
-	                    if (!this.#world.isValidPosition(tx, ty)) {
-	                        return false;
-	                    }
-	                    state.world.addComponent(playerId, MoveQueue, { entries: [gridPos(tx, ty)] });
-	                    return true;
-	                };
-
-	                const nextX = from.x + dx;
-	                const nextY = from.y + dy;
-
-	                if (!tryEnqueue(nextX, nextY)) {
-	                    // Pressing into a wall should just not move; don't enqueue invalid steps.
-	                    state.world.removeComponent(playerId, MoveQueue);
-	                    return;
-	                }
-
-	                // Held-key movement is always a single-step "desired next tile" (keeps input responsive).
-	                // (done by tryEnqueue)
-	            });
-	        });
         this.#scheduler.register('sim', 'player_move', (state, ctx: SystemContext) => {
             const Kind = this.replication.Kind;
             const Position = this.Position;
             const PositionSub = this.PositionSub;
             const Target = this.replication.Target;
-            const { MoveQueue, NextMoveTick } = this.movement;
+            const { MoveQueue, MoveInput, MoveSpeedRemainder } = this.movement;
             const { HitPoints } = this.combat;
             const outbox = state.resources.require(OUTBOX_RESOURCE);
             const seqState = state.resources.require(INTENT_SEQ_STATE_RESOURCE);
@@ -2169,119 +2079,263 @@ export class WorldEcsCommandPipeline {
                 }
             };
 
-            const teleportCorrect = (playerId: EntityId, pos: GridPos) => {
-                outbox.push({
-                    kind: 'to_player',
-                    playerId,
-                    action: buildTeleportAction(playerId, pos.x, pos.y),
-                });
-                pushMoveSync(playerId, pos, 1, true);
+            const resolveAxisDelta = ({
+                mask,
+                recentKeys,
+                negBit,
+                posBit,
+            }: {
+                mask: number;
+                recentKeys: number[];
+                negBit: number;
+                posBit: number;
+            }): -1 | 0 | 1 => {
+                const neg = (mask & negBit) !== 0;
+                const pos = (mask & posBit) !== 0;
+                if (neg && !pos) return -1;
+                if (pos && !neg) return 1;
+                if (!neg && !pos) return 0;
+                // Both pressed: choose the more recent bit.
+                const negIdx = recentKeys.lastIndexOf(negBit);
+                const posIdx = recentKeys.lastIndexOf(posBit);
+                if (negIdx === -1 && posIdx === -1) {
+                    return 0;
+                }
+                if (negIdx > posIdx) return -1;
+                if (posIdx > negIdx) return 1;
+                return 0;
             };
 
-            MoveQueue.store.forEach((playerId, queue) => {
+            const getMoveSpeedSubpxPerTick = (playerId: EntityId, kind: EntityKind): number => {
+                const cooldownTicks = resolveMoveCooldownTicks(kind, ups);
+                const base = Math.floor(TILE_SUBPX / cooldownTicks);
+                const rem = TILE_SUBPX - base * cooldownTicks;
+                const prev = MoveSpeedRemainder.store.get(playerId) ?? 0;
+                const next = prev + rem;
+                if (next >= cooldownTicks) {
+                    state.world.addComponent(playerId, MoveSpeedRemainder, next - cooldownTicks);
+                    return base + 1;
+                }
+                state.world.addComponent(playerId, MoveSpeedRemainder, next);
+                return base;
+            };
+
+            const PLAYER_HALF_EXTENTS = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
+            const DIAG_NUM = 181;
+            const DIAG_DEN = 256;
+            const isBlockedTile = (x: number, y: number) => !this.#world.isValidPosition(x, y);
+
+            const movingIds = new Set<EntityId>();
+            MoveInput.store.forEach((id) => movingIds.add(id));
+            MoveQueue.store.forEach((id) => movingIds.add(id));
+
+            for (const playerId of movingIds) {
                 const kind = Kind.store.get(playerId);
                 if (kind === undefined || !Types.isPlayer(kind)) {
+                    state.world.removeComponent(playerId, MoveInput);
                     state.world.removeComponent(playerId, MoveQueue);
-                    return;
+                    state.world.removeComponent(playerId, MoveSpeedRemainder);
+                    continue;
                 }
 
                 const hp = HitPoints.store.get(playerId) ?? 0;
                 if (hp <= 0) {
+                    state.world.removeComponent(playerId, MoveInput);
                     state.world.removeComponent(playerId, MoveQueue);
-                    return;
+                    state.world.removeComponent(playerId, MoveSpeedRemainder);
+                    continue;
                 }
 
-                const nextAllowedTick = NextMoveTick.store.get(playerId) ?? 0;
-                if (ctx.tick < nextAllowedTick) {
-                    return;
-                }
-
-                const from = Position.store.get(playerId);
-                if (!from) {
+                const currentGrid = Position.store.get(playerId);
+                if (!currentGrid) {
+                    state.world.removeComponent(playerId, MoveInput);
                     state.world.removeComponent(playerId, MoveQueue);
-                    return;
+                    state.world.removeComponent(playerId, MoveSpeedRemainder);
+                    continue;
                 }
 
-                const next = queue.entries[0];
-                if (!next) {
+                const input = MoveInput.store.get(playerId);
+                if (input) {
+                    // Held-key movement is authoritative; cancel click-to-move paths.
                     state.world.removeComponent(playerId, MoveQueue);
-                    return;
                 }
 
-                if (!isAdjacentStep(from, next) || !this.#world.isValidPosition(next.x, next.y)) {
-                    teleportCorrect(playerId, from);
-                    state.world.removeComponent(playerId, MoveQueue);
-                    return;
+                const speed = getMoveSpeedSubpxPerTick(playerId, kind);
+                let posSub = PositionSub.store.get(playerId);
+                if (!posSub) {
+                    posSub = tileToWorldPosCenter(currentGrid.x, currentGrid.y);
+                    state.world.addComponent(playerId, PositionSub, posSub);
                 }
 
-                const occupant = occupiedBy.get(positionKey(next.x, next.y));
-                if (occupant !== undefined && occupant !== playerId) {
-                    // Transient collision (another actor is occupying the next tile). Do not hard-correct; just wait.
-                    pushMoveSync(playerId, from, 1, false);
-                    return;
-                }
+                let dx: -1 | 0 | 1 = 0;
+                let dy: -1 | 0 | 1 = 0;
+                let movingToTile: GridPos | null = null;
 
-                const oldKey = positionKey(from.x, from.y);
-                if (occupiedBy.get(oldKey) === playerId) {
-                    occupiedBy.delete(oldKey);
-                }
-                occupiedBy.set(positionKey(next.x, next.y), playerId);
+                if (input) {
+                    const mask = input.keysMask >>> 0;
+                    const recentKeys = input.recentKeys;
+                    dx = resolveAxisDelta({ mask, recentKeys, negBit: MOVE_INPUT_KEY_A, posBit: MOVE_INPUT_KEY_D });
+                    dy = resolveAxisDelta({ mask, recentKeys, negBit: MOVE_INPUT_KEY_W, posBit: MOVE_INPUT_KEY_S });
+                } else {
+                    const queue = MoveQueue.store.get(playerId);
+                    if (!queue || queue.entries.length === 0) {
+                        state.world.removeComponent(playerId, MoveQueue);
+                        state.world.removeComponent(playerId, MoveSpeedRemainder);
+                        continue;
+                    }
 
-                state.world.removeComponent(playerId, Target);
-                state.world.addComponent(playerId, Position, next);
-                state.world.addComponent(playerId, PositionSub, tileToWorldPosCenter(next.x, next.y));
-
-                outbox.push({ kind: 'to_player', playerId, action: buildMoveAction(playerId, next.x, next.y) });
-                pushMoveSync(playerId, next, 0, true);
-                enqueueEntityState(playerId, next);
-
-                const doorDestination = this.#world.map.getDoorDestination(next.x, next.y);
-                if (doorDestination && this.#world.isValidPosition(doorDestination.x, doorDestination.y)) {
-                    const destinationKey = positionKey(doorDestination.x, doorDestination.y);
-                    const destinationOccupant = occupiedBy.get(destinationKey);
-                    if (destinationOccupant === undefined || destinationOccupant === playerId) {
-                        occupiedBy.delete(positionKey(next.x, next.y));
-                        occupiedBy.set(destinationKey, playerId);
-
-                        const teleport = modules.getOutcomeHandler(OUTCOME_DOOR_TELEPORT);
-                        if (!teleport) {
-                            throw new Error(`Missing outcome handler: ${OUTCOME_DOOR_TELEPORT}`);
+                    // Consume any waypoints already reached (or snapped) at tile center.
+                    let entries = queue.entries;
+                    for (;;) {
+                        const nextTile = entries[0];
+                        if (!nextTile) {
+                            break;
                         }
+                        const targetCenter = tileToWorldPosCenter(nextTile.x, nextTile.y);
+                        const dxToTarget = targetCenter.x - posSub.x;
+                        const dyToTarget = targetCenter.y - posSub.y;
+                        if (Math.abs(dxToTarget) <= 1 && Math.abs(dyToTarget) <= 1) {
+                            posSub = targetCenter;
+                            entries = entries.slice(1);
+                            continue;
+                        }
+                        movingToTile = nextTile;
+                        dx = Math.sign(dxToTarget) as -1 | 0 | 1;
+                        dy = Math.sign(dyToTarget) as -1 | 0 | 1;
+                        break;
+                    }
 
-                        const player = this.#world.getConnectionPlayerById(playerId);
-                        if (!player) {
+                    if (entries !== queue.entries) {
+                        if (entries.length === 0) {
                             state.world.removeComponent(playerId, MoveQueue);
-                            return;
+                            state.world.removeComponent(playerId, MoveSpeedRemainder);
+                            state.world.addComponent(playerId, PositionSub, posSub);
+                            state.world.addComponent(playerId, Position, worldPosToTile(posSub));
+                            continue;
                         }
-
-                        teleport(
-                            {
-                                modules,
-                                state,
-                                ctx,
-                                world: this.#world,
-                                player,
-                                Position,
-                                Target,
-                                movement: this.movement,
-                                mobAi: this.mobAi,
-                                replication: this.replication,
-                            },
-                            { playerId, to: gridPos(doorDestination.x, doorDestination.y) } satisfies DoorTeleportOutcome
-                        );
-                        return;
+                        state.world.addComponent(playerId, MoveQueue, { entries });
                     }
                 }
 
-                state.world.addComponent(playerId, NextMoveTick, ctx.tick + resolveMoveCooldownTicks(kind, ups));
-
-                const remaining = queue.entries.slice(1);
-                if (remaining.length === 0) {
-                    state.world.removeComponent(playerId, MoveQueue);
-                } else {
-                    state.world.addComponent(playerId, MoveQueue, { entries: remaining });
+                if (dx === 0 && dy === 0) {
+                    // No motion requested (possible when opposite keys are held with ambiguous ordering).
+                    continue;
                 }
-            });
+
+                let stepDx = dx * speed;
+                let stepDy = dy * speed;
+                if (dx !== 0 && dy !== 0) {
+                    stepDx = Math.trunc((stepDx * DIAG_NUM) / DIAG_DEN);
+                    stepDy = Math.trunc((stepDy * DIAG_NUM) / DIAG_DEN);
+                }
+
+                const isBlockedTileForStep =
+                    dx !== 0 && dy !== 0
+                        ? (x: number, y: number) => {
+                              // Grid-style diagonal corner cutting: destination-only walkability.
+                              // Ignore the two orthogonal neighbor tiles for the current diagonal step.
+                              if (x === currentGrid.x + dx && y === currentGrid.y) return false;
+                              if (x === currentGrid.x && y === currentGrid.y + dy) return false;
+                              return isBlockedTile(x, y);
+                          }
+                        : isBlockedTile;
+
+                const resolved = resolveSubTileMotionAgainstTiles({
+                    pos: posSub,
+                    delta: { dx: stepDx, dy: stepDy },
+                    halfExtents: PLAYER_HALF_EXTENTS,
+                    isBlockedTile: isBlockedTileForStep,
+                });
+
+                let nextSub = resolved.pos;
+                let nextGrid = worldPosToTile(nextSub);
+
+                // If click-to-move is close enough to the target center, snap to it and consume the waypoint.
+                if (!input && movingToTile) {
+                    const targetCenter = tileToWorldPosCenter(movingToTile.x, movingToTile.y);
+                    const dxToTarget = targetCenter.x - nextSub.x;
+                    const dyToTarget = targetCenter.y - nextSub.y;
+                    if (Math.abs(dxToTarget) <= speed && Math.abs(dyToTarget) <= speed) {
+                        nextSub = targetCenter;
+                        nextGrid = worldPosToTile(nextSub);
+
+                        const queue = MoveQueue.store.get(playerId);
+                        if (queue?.entries[0]) {
+                            const remaining = queue.entries.slice(1);
+                            if (remaining.length === 0) {
+                                state.world.removeComponent(playerId, MoveQueue);
+                                state.world.removeComponent(playerId, MoveSpeedRemainder);
+                            } else {
+                                state.world.addComponent(playerId, MoveQueue, { entries: remaining });
+                            }
+                        }
+                    }
+                }
+
+                // Tile-structured entity collision: block entry into an occupied destination tile.
+                const wantsTileChange = nextGrid.x !== currentGrid.x || nextGrid.y !== currentGrid.y;
+                if (wantsTileChange) {
+                    const occupant = occupiedBy.get(positionKey(nextGrid.x, nextGrid.y));
+                    if (occupant !== undefined && occupant !== playerId) {
+                        pushMoveSync(playerId, currentGrid, 1, false);
+                        continue;
+                    }
+                }
+
+                // Commit movement.
+                state.world.removeComponent(playerId, Target);
+                state.world.addComponent(playerId, PositionSub, nextSub);
+                state.world.addComponent(playerId, Position, nextGrid);
+
+                if (wantsTileChange) {
+                    const oldKey = positionKey(currentGrid.x, currentGrid.y);
+                    if (occupiedBy.get(oldKey) === playerId) {
+                        occupiedBy.delete(oldKey);
+                    }
+                    occupiedBy.set(positionKey(nextGrid.x, nextGrid.y), playerId);
+
+                    outbox.push({ kind: 'to_player', playerId, action: buildMoveAction(playerId, nextGrid.x, nextGrid.y) });
+                    pushMoveSync(playerId, nextGrid, 0, true);
+                    enqueueEntityState(playerId, nextGrid);
+
+                    const doorDestination = this.#world.map.getDoorDestination(nextGrid.x, nextGrid.y);
+                    if (doorDestination && this.#world.isValidPosition(doorDestination.x, doorDestination.y)) {
+                        const destinationKey = positionKey(doorDestination.x, doorDestination.y);
+                        const destinationOccupant = occupiedBy.get(destinationKey);
+                        if (destinationOccupant === undefined || destinationOccupant === playerId) {
+                            occupiedBy.delete(positionKey(nextGrid.x, nextGrid.y));
+                            occupiedBy.set(destinationKey, playerId);
+
+                            const teleport = modules.getOutcomeHandler(OUTCOME_DOOR_TELEPORT);
+                            if (!teleport) {
+                                throw new Error(`Missing outcome handler: ${OUTCOME_DOOR_TELEPORT}`);
+                            }
+
+                            const player = this.#world.getConnectionPlayerById(playerId);
+                            if (!player) {
+                                state.world.removeComponent(playerId, MoveQueue);
+                                continue;
+                            }
+
+                            teleport(
+                                {
+                                    modules,
+                                    state,
+                                    ctx,
+                                    world: this.#world,
+                                    player,
+                                    Position,
+                                    Target,
+                                    movement: this.movement,
+                                    mobAi: this.mobAi,
+                                    replication: this.replication,
+                                },
+                                { playerId, to: gridPos(doorDestination.x, doorDestination.y) } satisfies DoorTeleportOutcome
+                            );
+                        }
+                    }
+                }
+            }
         });
         this.#scheduler.register('sim', 'item_despawn_timers', (state, ctx: SystemContext) => {
             const ItemDespawnTimer = this.items.ItemDespawnTimer;
