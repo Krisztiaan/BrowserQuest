@@ -75,3 +75,44 @@ test('ClientWorldKernel stores population counts as kernel state', () => {
     expect(kernel.worldPlayers).toBe(3);
     expect(kernel.totalPlayers).toBe(99);
 });
+
+test('ClientWorldKernel keeps bounded remote snapshot history and interpolates delayed world position', () => {
+    const kernel = new ClientWorldKernel();
+    const view = kernel.upsertFromSpawnSnapshot({
+        id: 77,
+        kind: Types.Entities.RAT,
+        x: 1,
+        y: 1,
+        extras: { type: 'mob', orientation: 0 },
+    });
+
+    kernel.pushClientRemoteStateSnapshot(view.id, 100, 100, 1, 1_000);
+    kernel.pushClientRemoteStateSnapshot(view.id, 200, 100, 2, 1_100);
+    kernel.pushClientRemoteStateSnapshot(view.id, 300, 100, 3, 1_200);
+    kernel.pushClientRemoteStateSnapshot(view.id, 400, 100, 4, 1_300);
+    kernel.pushClientRemoteStateSnapshot(view.id, 500, 100, 5, 1_400);
+
+    // Bounded history keeps only the newest 4 entries.
+    expect(kernel.clientRemoteStateSnapshots.get(view.id)?.length).toBe(4);
+
+    // Render time = now - 100ms => 1250 is midway between 1200 and 1300.
+    const interpolated = kernel.getClientRemoteInterpolatedWorldPosition(view.id, 1_350, 100);
+    expect(interpolated).toEqual({ x: 350, y: 100 });
+});
+
+test('ClientWorldKernel clears remote snapshot history on authoritative tile position set', () => {
+    const kernel = new ClientWorldKernel();
+    const view = kernel.upsertFromSpawnSnapshot({
+        id: 78,
+        kind: Types.Entities.RAT,
+        x: 1,
+        y: 1,
+        extras: { type: 'mob', orientation: 0 },
+    });
+
+    kernel.pushClientRemoteStateSnapshot(view.id, 100, 100, 1, 1_000);
+    expect(kernel.getClientRemoteInterpolatedWorldPosition(view.id, 1_100, 100)).not.toBeNull();
+
+    kernel.setPosition(view.id, 5, 6);
+    expect(kernel.getClientRemoteInterpolatedWorldPosition(view.id, 1_100, 100)).toBeNull();
+});

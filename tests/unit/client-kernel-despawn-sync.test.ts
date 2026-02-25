@@ -114,3 +114,72 @@ test('replication sync removes entities outside the active map scope', () => {
     expect(cmds).not.toContainEqual({ type: 'removeEntityById', entityId: playerId });
     expect(kernel.clientReplicationKnownAlive.has(mobId)).toBe(false);
 });
+
+test('replication sync renders remote entities from delayed interpolation snapshots', () => {
+    const kernel = new ClientWorldKernel();
+    const mobId = entityIdFromWire(55);
+
+    kernel.upsertFromSpawnSnapshot({
+        id: 55,
+        kind: Types.Entities.RAT,
+        x: 1,
+        y: 1,
+        extras: { type: 'mob', orientation: 0 },
+    });
+
+    kernel.clientReplicationKnownAlive.add(mobId);
+    kernel.clientReplicationLastPos.set(mobId, gridPos(1, 1));
+    kernel.clientReplicationLastWorldPos.set(mobId, { x: 100, y: 100 });
+
+    kernel.setWorldPosition(mobId, 200, 100);
+    kernel.pushClientRemoteStateSnapshot(mobId, 100, 100, 10, 1_000);
+    kernel.pushClientRemoteStateSnapshot(mobId, 200, 100, 11, 1_100);
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId: null, currentTime: 1_150 });
+    const cmds = kernel.drainClientCommands();
+
+    expect(cmds).toContainEqual({
+        type: 'setEntityWorldPosition',
+        entityId: mobId,
+        worldX: 150,
+        worldY: 100,
+        snapRender: true,
+    });
+    expect(kernel.clientReplicationLastWorldPos.get(mobId)).toEqual({ x: 150, y: 100 });
+});
+
+test('lockstep mode applies authoritative local-player world updates even when move input is active', () => {
+    const kernel = new ClientWorldKernel();
+    const playerId = entityIdFromWire(1);
+
+    kernel.upsertFromSpawnSnapshot({
+        id: 1,
+        kind: Types.Entities.WARRIOR,
+        x: 10,
+        y: 10,
+        extras: {
+            type: 'player',
+            name: 'K',
+            orientation: Types.Orientations.DOWN,
+            armor: Types.Entities.CLOTHARMOR,
+            weapon: Types.Entities.SWORD1,
+        },
+    });
+
+    kernel.clientReplicationKnownAlive.add(playerId);
+    kernel.clientReplicationLastPos.set(playerId, gridPos(10, 10));
+    kernel.clientReplicationLastWorldPos.set(playerId, { x: 100, y: 100 });
+    kernel.clientMoveInputKeysMask = 1;
+    kernel.setClientMovementNetcodeMode('lockstep');
+    kernel.setWorldPosition(playerId, 132, 100);
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId, currentTime: 1_000 });
+    const cmds = kernel.drainClientCommands();
+
+    expect(cmds).toContainEqual({
+        type: 'setEntityWorldPosition',
+        entityId: playerId,
+        worldX: 132,
+        worldY: 100,
+    });
+});

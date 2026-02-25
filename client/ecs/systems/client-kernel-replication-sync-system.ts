@@ -6,7 +6,10 @@ import type { ClientCommand } from '../client-commands';
 export type ClientKernelReplicationSyncSystemHost = {
     kernel: ClientWorldKernel;
     playerId: EntityId | null;
+    currentTime?: number;
 };
+
+const REMOTE_INTERPOLATION_DELAY_MS = 100;
 
 function isSameWorldPos(a: WorldPos | undefined, b: WorldPos): boolean {
     if (!a) {
@@ -44,6 +47,7 @@ function isEntityInActiveMap(kernel: ClientWorldKernel, id: EntityId, localPlaye
 export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicationSyncSystemHost): void {
     const kernel = host.kernel;
     const localPlayerIsDead = host.playerId !== null && kernel.clientLocalPlayerDead;
+    const nowMs = typeof host.currentTime === 'number' ? host.currentTime : Date.now();
 
     // Removed entities: kernel no longer considers them alive.
     for (const id of Array.from(kernel.clientReplicationKnownAlive)) {
@@ -81,7 +85,20 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         if (!isEntityInActiveMap(kernel, id, host.playerId)) {
             continue;
         }
-        if (isSameWorldPos(kernel.clientReplicationLastWorldPos.get(id), worldPos)) {
+
+        const isLocalPlayer = host.playerId !== null && id === host.playerId;
+        let targetWorldPos = worldPos;
+        let snapRender = false;
+
+        if (!isLocalPlayer) {
+            const interpolated = kernel.getClientRemoteInterpolatedWorldPosition(id, nowMs, REMOTE_INTERPOLATION_DELAY_MS);
+            if (interpolated) {
+                targetWorldPos = interpolated;
+                snapRender = true;
+            }
+        }
+
+        if (isSameWorldPos(kernel.clientReplicationLastWorldPos.get(id), targetWorldPos)) {
             continue;
         }
 
@@ -93,8 +110,10 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
 
         // Prediction: if the local player is currently predicting, tolerate small drift so we don't fight the
         // local step interpolation; large drift triggers a teleport snap.
-        const isLocalPlayer = host.playerId !== null && id === host.playerId;
-        const hasPredictionPlan = isLocalPlayer && (kernel.clientMovePlan !== null || kernel.clientMoveInputKeysMask !== 0);
+        const hasPredictionPlan =
+            kernel.clientMovementNetcodeMode === 'predictive'
+            && isLocalPlayer
+            && (kernel.clientMovePlan !== null || kernel.clientMoveInputKeysMask !== 0);
         if (hasPredictionPlan) {
             const record = kernel.clientSpatialRecords.get(id);
             if (record) {
@@ -111,14 +130,20 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
             }
         }
 
-        // Apply authoritative world position directly for smooth sub-tile motion (render still uses tile-based
-        // sprites; interpolation is handled in a later ticket).
+        // Apply world position to render entities; remote entities are fed from the interpolation timeline while
+        // local player remains prediction-aware.
         if (kind !== undefined) {
             // Items/chests are static, but keeping the same command path simplifies the client state model.
-            kernel.enqueueClientCommand({ type: 'setEntityWorldPosition', entityId: id, worldX: worldPos.x, worldY: worldPos.y });
+            kernel.enqueueClientCommand({
+                type: 'setEntityWorldPosition',
+                entityId: id,
+                worldX: targetWorldPos.x,
+                worldY: targetWorldPos.y,
+                ...(snapRender ? { snapRender: true } : {}),
+            });
         }
 
-        kernel.clientReplicationLastWorldPos.set(id, worldPos);
+        kernel.clientReplicationLastWorldPos.set(id, targetWorldPos);
         kernel.clientReplicationLastPos.set(id, pos);
     }
 

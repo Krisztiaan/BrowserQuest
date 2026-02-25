@@ -44,7 +44,8 @@ export function isWithinAttackRange(from: GridPos, to: GridPos, rangeTiles: numb
     const absDx = Math.abs(dx);
     const absDy = Math.abs(dy);
     if (rangeTiles <= 1) {
-        return absDx + absDy === 1;
+        // Range-1 melee uses Chebyshev adjacency (diagonal included).
+        return absDx <= 1 && absDy <= 1;
     }
 
     if (dx !== 0 && dy !== 0) {

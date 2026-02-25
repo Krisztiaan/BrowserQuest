@@ -26,6 +26,7 @@ export type KernelEntityView = Readonly<{
 }>;
 
 export type ClientInteractionKind = 'attack' | 'talk' | 'open' | 'loot';
+export type ClientMovementNetcodeMode = 'predictive' | 'lockstep';
 
 export type ClientInteractionIntent = Readonly<{
     kind: ClientInteractionKind;
@@ -84,6 +85,15 @@ export type ClientSpatialRecord = Readonly<{
     kind: EntityKind;
     isPlayer: boolean;
 }>;
+
+export type ClientRemoteStateSnapshot = Readonly<{
+    worldX: number;
+    worldY: number;
+    tick: number;
+    receivedAtMs: number;
+}>;
+
+const REMOTE_STATE_SNAPSHOT_HISTORY_LIMIT = 4;
 
 function cellKey(x: number, y: number): string {
     return `${x},${y}`;
@@ -168,6 +178,7 @@ export class ClientWorldKernel {
     readonly clientSpatialEntityIndex = new Map<string, EntityId[]>();
     readonly clientSpatialItemIndex = new Map<string, EntityId[]>();
     readonly clientSpatialRenderIndex = new Map<string, EntityId[]>();
+    readonly clientRemoteStateSnapshots = new Map<EntityId, ClientRemoteStateSnapshot[]>();
 
     clientPathingGrid: number[][] | null = null;
 
@@ -179,6 +190,7 @@ export class ClientWorldKernel {
     clientMoveInputKeysMask = 0;
     readonly clientMoveInputRecentKeys: number[] = [];
     clientMoveInputDirty = false;
+    clientMovementNetcodeMode: ClientMovementNetcodeMode = 'predictive';
     clientPredictedWorldPos: WorldPos | null = null;
     clientDoorTraversalArmed = false;
     clientPendingDoorTraversal: ClientPendingDoorTraversal | null = null;
@@ -277,6 +289,10 @@ export class ClientWorldKernel {
         this.clientMoveInputKeysMask = 0;
         this.clientMoveInputRecentKeys.length = 0;
         this.clientMoveInputDirty = true;
+    }
+
+    setClientMovementNetcodeMode(mode: ClientMovementNetcodeMode): void {
+        this.clientMovementNetcodeMode = mode;
     }
 
     consumeClientMoveInputDirty(): number | null {
@@ -494,6 +510,7 @@ export class ClientWorldKernel {
         const pos = gridPos(snapshot.x, snapshot.y);
         this.position.set(id, pos);
         this.worldPosition.set(id, tileToWorldPosCenter(snapshot.x, snapshot.y));
+        this.clientRemoteStateSnapshots.delete(id);
         if (typeof snapshot.mapId === 'string' && snapshot.mapId.trim().length > 0) {
             this.mapId.set(id, snapshot.mapId);
         } else {
@@ -530,6 +547,7 @@ export class ClientWorldKernel {
         this.kind.set(id, kind);
         this.position.set(id, gridPos(x, y));
         this.worldPosition.set(id, tileToWorldPosCenter(x, y));
+        this.clientRemoteStateSnapshots.delete(id);
         this.mapId.delete(id);
 
         // Clear optional components: this is a "simple" entity unless later promoted by spawn snapshots.
@@ -548,6 +566,7 @@ export class ClientWorldKernel {
         }
         this.position.set(id, gridPos(x, y));
         this.worldPosition.set(id, tileToWorldPosCenter(x, y));
+        this.clientRemoteStateSnapshots.delete(id);
     }
 
     setEntityMapId(id: EntityId, mapId: string): void {
@@ -582,6 +601,87 @@ export class ClientWorldKernel {
         this.position.set(id, worldPosToTile(pos));
     }
 
+    pushClientRemoteStateSnapshot(id: EntityId, worldX: number, worldY: number, tick: number, receivedAtMs: number): void {
+        if (!this.alive.has(id)) {
+            return;
+        }
+
+        const snapshot: ClientRemoteStateSnapshot = {
+            worldX,
+            worldY,
+            tick: Number.isFinite(tick) ? Math.trunc(tick) : 0,
+            receivedAtMs: Number.isFinite(receivedAtMs) ? Math.trunc(receivedAtMs) : Date.now(),
+        };
+
+        const history = this.clientRemoteStateSnapshots.get(id);
+        if (!history) {
+            this.clientRemoteStateSnapshots.set(id, [snapshot]);
+            return;
+        }
+
+        const last = history[history.length - 1];
+        if (last?.worldX === snapshot.worldX && last.worldY === snapshot.worldY) {
+            history[history.length - 1] = snapshot;
+        } else {
+            history.push(snapshot);
+        }
+
+        if (history.length > REMOTE_STATE_SNAPSHOT_HISTORY_LIMIT) {
+            history.splice(0, history.length - REMOTE_STATE_SNAPSHOT_HISTORY_LIMIT);
+        }
+    }
+
+    getClientRemoteInterpolatedWorldPosition(id: EntityId, nowMs: number, interpolationDelayMs: number): WorldPos | null {
+        const history = this.clientRemoteStateSnapshots.get(id);
+        if (!history || history.length === 0) {
+            return null;
+        }
+
+        const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+        const delay = Number.isFinite(interpolationDelayMs) ? Math.max(0, interpolationDelayMs) : 0;
+        const renderTime = now - delay;
+
+        const first = history[0];
+        if (!first) {
+            return null;
+        }
+
+        if (history.length === 1 || renderTime <= first.receivedAtMs) {
+            return worldPos(first.worldX, first.worldY);
+        }
+
+        const last = history[history.length - 1];
+        if (!last) {
+            return null;
+        }
+        if (renderTime >= last.receivedAtMs) {
+            return worldPos(last.worldX, last.worldY);
+        }
+
+        for (let i = 1; i < history.length; i += 1) {
+            const previous = history[i - 1];
+            const next = history[i];
+            if (!previous || !next) {
+                continue;
+            }
+            if (renderTime > next.receivedAtMs) {
+                continue;
+            }
+
+            const span = next.receivedAtMs - previous.receivedAtMs;
+            if (span <= 0) {
+                return worldPos(next.worldX, next.worldY);
+            }
+
+            const t = (renderTime - previous.receivedAtMs) / span;
+            const lerpX = Math.round(previous.worldX + (next.worldX - previous.worldX) * t);
+            const lerpY = Math.round(previous.worldY + (next.worldY - previous.worldY) * t);
+            return worldPos(lerpX, lerpY);
+        }
+
+        return worldPos(last.worldX, last.worldY);
+    }
+
     setTarget(id: EntityId, targetId: EntityId | null): void {
         if (!this.alive.has(id)) {
             return;
@@ -598,6 +698,7 @@ export class ClientWorldKernel {
         this.kind.delete(id);
         this.position.delete(id);
         this.worldPosition.delete(id);
+        this.clientRemoteStateSnapshots.delete(id);
         this.mapId.delete(id);
         this.name.delete(id);
         this.orientation.delete(id);
@@ -623,6 +724,7 @@ export class ClientWorldKernel {
         this.kind.clear();
         this.position.clear();
         this.worldPosition.clear();
+        this.clientRemoteStateSnapshots.clear();
         this.mapId.clear();
         this.activeMapId = null;
         this.name.clear();

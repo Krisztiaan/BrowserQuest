@@ -75,6 +75,7 @@ import { runClientCombatSystem } from './ecs/systems/client-combat-system';
 import { runClientSimulationSystem } from './ecs/systems/client-simulation-system';
 import Timer from './timer';
 import { resolveStartupWaitOutcome } from './game-startup-wait';
+import { resolveClientMovementNetcodeMode } from './netcode-mode';
 
 type GridPosition = { x: number; y: number };
 type GridIndexedEntity = {
@@ -326,6 +327,7 @@ class Game extends Evented<GameEvents> {
         this.isStopped = false;
         this.client = null;
         this.kernel = new ClientWorldKernel();
+        this.kernel.setClientMovementNetcodeMode(resolveClientMovementNetcodeMode());
         this.frameScheduler = new ClientFrameScheduler<Game>();
         this.frameScheduler.add('pre_update', (game) => runClientTimeSystem(game));
         this.frameScheduler.add('pre_update', (game) => runClientRuntimeEventSystem(game));

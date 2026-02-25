@@ -47,6 +47,12 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
         return;
     }
 
+    if (host.kernel.clientMovementNetcodeMode === 'lockstep') {
+        host.kernel.clientPredictedWorldPos = null;
+        lastPredictionTimeMs = 0;
+        return;
+    }
+
     const map = host.map;
     const fallbackGrid = host.kernel.clientPathingGrid;
     const mapWidthTiles = Number.isInteger(map.width) && (map.width ?? 0) > 0

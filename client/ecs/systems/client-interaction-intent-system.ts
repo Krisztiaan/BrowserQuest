@@ -28,8 +28,10 @@ export type ClientInteractionIntentSystemHost = Readonly<{
     kernel: ClientWorldKernel;
 }>;
 
-function isAdjacentNonDiagonal(ax: number, ay: number, bx: number, by: number): boolean {
-    return Math.abs(ax - bx) + Math.abs(ay - by) === 1;
+function isAdjacentIncludingDiagonal(ax: number, ay: number, bx: number, by: number): boolean {
+    const dx = Math.abs(ax - bx);
+    const dy = Math.abs(ay - by);
+    return dx <= 1 && dy <= 1 && dx + dy > 0;
 }
 
 export function runClientInteractionIntentSystem(host: ClientInteractionIntentSystemHost): void {
@@ -147,7 +149,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             clearClientInteractionIntentWithSideEffects(host);
             return;
         }
-        const adjacent = isAdjacentNonDiagonal(
+        const adjacent = isAdjacentIncludingDiagonal(
             host.player.gridX,
             host.player.gridY,
             targetRecord.gridX,
@@ -173,7 +175,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         clearClientInteractionIntentWithSideEffects(host);
         return;
     }
-    const adjacent = isAdjacentNonDiagonal(
+    const adjacent = isAdjacentIncludingDiagonal(
         host.player.gridX,
         host.player.gridY,
         targetRecord.gridX,

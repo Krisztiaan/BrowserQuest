@@ -15,6 +15,20 @@ Format per entry:
 
 ## 2026-02-25
 
+- 17:45 UTC
+  - Ticket: 441 (Diagonal adjacency: end-of-path actions)
+  - Start timestamp: 2026-02-25 17:45 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated client talk/open interaction completion to treat diagonal adjacency as adjacent (`client/ecs/systems/client-interaction-intent-system.ts`).
+    - Updated melee (range 1) attack-range check to include diagonal adjacency (`shared/combat/attack-range.ts`).
+    - Extended unit test coverage to assert diagonal melee adjacency is in range (`tests/unit/combat/engagement.test.ts`).
+  - Evidence:
+    - `bun test tests/unit/combat/engagement.test.ts --timeout 30000`
+    - `bun run typecheck`
+  - Next action:
+    - None (Ticket 441 removed from `TODO.md`).
+
 - 03:36 UTC
   - Ticket: 440 (Chunk AOI queue + player cleanup hardening)
   - Start timestamp: 2026-02-25 03:33 UTC
@@ -7145,3 +7159,83 @@ Format per entry:
     - `bun x eslint --max-warnings=0 server/world/ecs-command-pipeline/core-module-registry.ts tests/unit/mmo/server-permissions.test.ts tests/unit/mmo/server-farming-vertical-slice.test.ts` (passed)
   - Next action:
     - Await next instruction.
+
+- 03:52 UTC
+  - Ticket: 440 (Remote entity jitter buffer interpolation)
+  - Start timestamp: 2026-02-25 03:52 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited current movement sync paths (`MOVE_SYNC`, `ENTITY_STATE_BATCH`, kernel replication sync, simulation interpolation) against external review recommendations.
+    - Confirmed current remote entity flow still applies authoritative updates immediately into kernel/render targets with no explicit jitter buffer timeline.
+    - Ticketized this netcode pass in `TODO.md` with Ticket 440 (in progress) and Ticket 441 (queued).
+  - Evidence:
+    - `rg -n "MOVE_SYNC|ENTITY_STATE_BATCH|client-move-input-prediction-system|client-kernel-replication-sync-system" -S .`
+    - `sed -n '580,780p' client/gameclient.ts`
+    - `sed -n '1,300p' client/ecs/systems/client-kernel-replication-sync-system.ts`
+    - `sed -n '1,260p' TODO.md`
+  - Next action:
+    - Implement remote snapshot buffering + delayed interpolation in kernel replication/render sync path, then run targeted tests/typecheck/lint.
+
+- 04:00 UTC
+  - Ticket: 440 (Remote entity jitter buffer interpolation)
+  - Start timestamp: 2026-02-25 03:52 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added client kernel remote snapshot history (`max 4`) for authoritative remote world updates.
+    - Wired binary `ENTITY_STATE_BATCH` streaming path and tuple fallback path to record per-entity snapshots with batch tick + receive timestamp.
+    - Updated kernel replication sync to render remote entities from delayed interpolation (`100ms`) and emit `setEntityWorldPosition` with `snapRender` for the interpolated path.
+    - Extended command apply path to honor `snapRender` and added unit regressions for kernel interpolation and replication sync interpolation behavior.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/client-command-apply-movement-correction.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 client/gameclient.ts client/ecs/world-kernel.ts client/ecs/systems/client-kernel-replication-sync-system.ts client/ecs/systems/client-command-apply-system.ts client/ecs/client-commands.ts tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts` (passed)
+  - Next action:
+    - Execute Ticket 441 (predictive vs lockstep mode toggle).
+
+- 04:00 UTC
+  - Ticket: 441 (Predictive vs lockstep movement mode toggle)
+  - Start timestamp: 2026-02-25 03:57 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added runtime movement netcode mode resolver (`predictive` default, `lockstep` via `?netcode=...` / `?bqNetcode=...` or `localStorage[bq_netcode_mode]`).
+    - Wired mode into game boot (`ClientWorldKernel.clientMovementNetcodeMode`).
+    - Gated local prediction systems by mode:
+      - move-input prediction system exits in lockstep,
+      - click/follow planning no longer starts local predicted path in lockstep,
+      - replication sync no longer suppresses authoritative local updates when lockstep is active.
+    - Added regressions for mode resolution, lockstep move-input suppression, lockstep click planning behavior, and lockstep local replication application.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-netcode-mode.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 client/game.ts client/netcode-mode.ts client/gameclient.ts client/ecs/world-kernel.ts client/ecs/systems/client-kernel-replication-sync-system.ts client/ecs/systems/client-move-input-prediction-system.ts client/ecs/systems/client-command-apply-system.ts client/ecs/client-commands.ts tests/unit/client-netcode-mode.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/client-command-apply-movement-correction.test.ts` (passed)
+  - Next action:
+    - Netcode review follow-up cycle complete; await user runtime validation and next prioritization.
+
+- 17:36 UTC
+  - Ticket: 442 (Hotfix missing `attack.entity` wire intent id mapping)
+  - Start timestamp: 2026-02-25 17:36 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Reproduced root-cause by static inspection of the C2S FixedBin intent-type wire table.
+    - Confirmed `INTENT_ATTACK = "attack.entity"` exists in `shared/protocol/intents.ts` and runtime send path, but `WIRE_INTENT_TYPE_IDS` in binary codec omits it, causing `unknown intent type: attack.entity`.
+    - Opened hotfix ticket and verification plan in `TODO.md`.
+  - Evidence:
+    - `rg -n "encodeWireIntentTypeId|unknown intent type|attack.entity|INTENT_ATTACK" shared client server tests -S`
+    - `sed -n '1,340p' shared/protocol/binary-action-codec.ts`
+    - `sed -n '1,280p' shared/protocol/intents.ts`
+  - Next action:
+    - Add missing wire mapping + regression test and run targeted verification.
+
+- 17:37 UTC
+  - Ticket: 442 (Hotfix missing `attack.entity` wire intent id mapping)
+  - Start timestamp: 2026-02-25 17:36 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added `INTENT_ATTACK` to FixedBin wire intent-type id registry (`WIRE_INTENT_TYPE_IDS`) in append-only position to preserve existing wire ids.
+    - Added protocol regression coverage so mixed C2S INTENT codec round-trip includes `attack.entity`.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/protocol/binary-action-codec.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 shared/protocol/binary-action-codec.ts tests/unit/protocol/binary-action-codec.test.ts` (passed)
+  - Next action:
+    - Await user runtime validation that attack intents now send without client-side encode failure.

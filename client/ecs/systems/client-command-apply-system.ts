@@ -39,7 +39,7 @@ type GridIndexedEntity = {
     getSpriteName(): string;
     getWeaponName?(): string | null;
     setGridPosition(x: number, y: number): void;
-    setWorldPositionSub?(worldX: number, worldY: number): void;
+    setWorldPositionSub?(worldX: number, worldY: number, options?: { snapRender?: boolean }): void;
     setDirty(): void;
     setMaxHitPoints?(hp: number): void;
     setOrientation?(orientation: number): void;
@@ -360,12 +360,17 @@ function planServerAuthoritativeMoveTo({
         stopAdjacentToTarget,
     });
 
-    // Start local prediction immediately using the already-computed path (avoid a second pathfinding pass).
-    const predictedPath: Array<[number, number]> = [
-        [origin.x, origin.y],
-        ...steps.map((step) => [step.x, step.y] as [number, number]),
-    ];
-    host.player.followPath(predictedPath);
+    if (host.kernel.clientMovementNetcodeMode === 'predictive') {
+        // Start local prediction immediately using the already-computed path (avoid a second pathfinding pass).
+        const predictedPath: Array<[number, number]> = [
+            [origin.x, origin.y],
+            ...steps.map((step) => [step.x, step.y] as [number, number]),
+        ];
+        host.player.followPath(predictedPath);
+    } else {
+        // Lockstep mode intentionally waits for server movement updates before moving the local avatar.
+        hardStopCharacterMovement(host.player);
+    }
 }
 
 function resolveKillNotificationMobName(kind: EntityKind): string | null {
@@ -1149,7 +1154,11 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                         hardStopCharacterMovement(entity);
                     }
                 }
-                entity.setWorldPositionSub(command.worldX, command.worldY);
+                entity.setWorldPositionSub(
+                    command.worldX,
+                    command.worldY,
+                    command.snapRender ? { snapRender: true } : undefined
+                );
                 entity.setDirty();
                 break;
             }

@@ -8,6 +8,7 @@ import {
 import { ENTITY_KIND_DOMAIN } from '../entity-kind-domain';
 import Types from '../gametypes-browser';
 import {
+    INTENT_ATTACK,
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
@@ -50,6 +51,7 @@ const WIRE_INTENT_TYPE_IDS = [
     // Append-only: once shipped on the wire, never reorder.
     INTENT_MOVE_TO,
     INTENT_MOVE_INPUT,
+    INTENT_ATTACK,
 ] as const;
 
 const WIRE_OUTCOME_TYPE_IDS = [

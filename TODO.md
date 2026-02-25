@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-25 03:36 UTC
+Last updated: 2026-02-25 17:37 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -14,6 +14,6 @@ Definition of done (per ticket):
 
 ## Active Tickets
 
-Cycle objective: address valid ECS audit findings around entity-id ABA risk, archetype query behavior, AOI queue hot paths, and player-scoped resource cleanup.
+Cycle objective: improve movement netcode feel based on the external review without regressing current server-authoritative ECS behavior.
 
 - No active tickets in this cycle.

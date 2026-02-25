@@ -16,6 +16,15 @@ test('isEntityWithinAttackRange mirrors attack-range behavior for melee', () => 
     expect(
         isEntityWithinAttackRange({
             attackerPos: gridPos(10, 10),
+            targetPos: gridPos(11, 11),
+            attackerKind: Types.Entities.WARRIOR,
+            attackerWeaponKind: Types.Entities.SWORD1,
+        })
+    ).toBe(true);
+
+    expect(
+        isEntityWithinAttackRange({
+            attackerPos: gridPos(10, 10),
             targetPos: gridPos(12, 10),
             attackerKind: Types.Entities.WARRIOR,
             attackerWeaponKind: Types.Entities.SWORD1,

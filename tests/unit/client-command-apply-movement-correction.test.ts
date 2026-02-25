@@ -224,6 +224,25 @@ test('playerGoTo plans steps and starts local prediction immediately', () => {
     expect(kernel.clientMovePlan?.target).toEqual(gridPos(12, 10));
 });
 
+test('playerGoTo in lockstep mode plans movement but does not start local prediction pathing', () => {
+    const playerId = entityIdFromWire(70041);
+    const { host, kernel, player } = createHostFixture(playerId);
+    kernel.setClientMovementNetcodeMode('lockstep');
+
+    player.setPathRequestResolver(() => [
+        [10, 10],
+        [11, 10],
+        [12, 10],
+    ]);
+
+    kernel.enqueueClientCommand({ type: 'playerGoTo', x: 12, y: 10 });
+    runClientCommandApplySystem(host);
+
+    expect(kernel.clientMovePlan?.steps).toEqual([gridPos(11, 10), gridPos(12, 10)]);
+    expect(player.isMoving()).toBe(false);
+    expect(player.path).toBeNull();
+});
+
 test('playerGoTo plan cancels stale pending move acks and plans from rendered player position', () => {
     const playerId = entityIdFromWire(70011);
     const { host, kernel, player } = createHostFixture(playerId);

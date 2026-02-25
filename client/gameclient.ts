@@ -361,9 +361,13 @@ class GameClient extends Evented<GameClientEvents> {
 
         const queued: ClientProtocolBatch = [];
         try {
+            let entityStateBatchTick = 0;
+            let entityStateBatchReceivedAtMs = 0;
             dispatchBinaryActionBatchPayload(message, {
                 onServerAction: (action) => queued.push(action as ClientInboundProtocolAction),
-                onEntityStateBatchHeader: () => {
+                onEntityStateBatchHeader: (tick) => {
+                    entityStateBatchTick = tick;
+                    entityStateBatchReceivedAtMs = Date.now();
                     // Avoid allocating a giant action tuple for `ENTITY_STATE_BATCH`; log it explicitly here.
                     log.debug('data: [ENTITY_STATE_BATCH]');
                 },
@@ -374,6 +378,13 @@ class GameClient extends Evented<GameClientEvents> {
                         return;
                     }
                     this.kernel.setWorldPosition(entityId, x, y);
+                    this.kernel.pushClientRemoteStateSnapshot(
+                        entityId,
+                        x,
+                        y,
+                        entityStateBatchTick,
+                        entityStateBatchReceivedAtMs > 0 ? entityStateBatchReceivedAtMs : Date.now()
+                    );
                 },
             });
         } catch {
@@ -712,6 +723,7 @@ class GameClient extends Evented<GameClientEvents> {
         if (data.length !== expectedLen) {
             return;
         }
+        const receivedAtMs = Date.now();
 
         for (let i = 0; i < count; i += 1) {
             const base = 3 + i * 4;
@@ -726,6 +738,7 @@ class GameClient extends Evented<GameClientEvents> {
                 continue;
             }
             this.kernel.setWorldPosition(entityId, worldX, worldY);
+            this.kernel.pushClientRemoteStateSnapshot(entityId, worldX, worldY, tick, receivedAtMs);
         }
 
         debugMoves('in:ENTITY_STATE_BATCH', { tick, count });
