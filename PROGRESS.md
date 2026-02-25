@@ -15,6 +15,94 @@ Format per entry:
 
 ## 2026-02-25
 
+- 03:36 UTC
+  - Ticket: 440 (Chunk AOI queue + player cleanup hardening)
+  - Start timestamp: 2026-02-25 03:33 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Refactored chunk AOI pending queues in `chunk-aoi-streaming.ts` to avoid `shift/unshift`:
+      - introduced head-index dequeue for normal pending arrays,
+      - added priority stack for front-queued chunks (preserving previous front-insert ordering semantics),
+      - added queue compaction helpers and updated prune/bounds enforcement to operate on unread entries.
+    - Expanded `ChunkSubscription` state shape in `chunk-aoi.ts` and initialization in `ecs-command-pipeline.ts` to include queue head/priority metadata.
+    - Added CHUNK_AOI teardown cleanup in `WorldEcsCommandPipeline.removeEntity` via `CHUNK_AOI_STATE_RESOURCE.byPlayerId.delete(id)`.
+  - Evidence:
+    - `rg -n "\\.shift\\(|\\.unshift\\(" server/world/ecs-command-pipeline/chunk-aoi-streaming.ts`
+    - `bun test tests/unit/mmo/server-chunk-aoi-snapshots.test.ts tests/unit/mmo/server-chunk-deltas.test.ts tests/unit/mmo/server-seq-idempotency.test.ts --timeout 30000`
+    - `bun run typecheck`
+    - `bun run lint` (fails on pre-existing generated-file lint issue in `server/generated/mob-properties.generated.ts`)
+    - `bun test tests/unit/domain-ids.test.ts tests/unit/ecs/entity-allocator.test.ts tests/unit/ecs/world.test.ts tests/unit/mmo/server-chunk-aoi-snapshots.test.ts tests/unit/mmo/server-chunk-deltas.test.ts tests/unit/mmo/server-seq-idempotency.test.ts --timeout 30000`
+  - Next action:
+    - Remediation cycle complete; provide implementation summary + validation outcomes.
+
+- 03:33 UTC
+  - Ticket: 439 (ECS query/destruction hot-path hardening)
+  - Start timestamp: 2026-02-25 03:31 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added revision-based query caching in `server/ecs/archetype-index.ts` with cache invalidation on archetype mutations.
+    - Added `ComponentRegistry.getById` and rewired `EcsWorld.destroyEntity` to remove only components present in the entity mask by iterating set bits.
+    - Added test coverage ensuring query snapshot isolation and post-mutation cache refresh behavior.
+  - Evidence:
+    - `bun test tests/unit/ecs/world.test.ts --timeout 30000`
+  - Next action:
+    - Start Ticket 440 (AOI deque operations and CHUNK_AOI cleanup on removeEntity).
+
+- 03:33 UTC
+  - Ticket: 440 (Chunk AOI queue + player cleanup hardening)
+  - Start timestamp: 2026-02-25 03:33 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Started AOI queue refactor planning to eliminate `shift/unshift` in snapshot/delta replication loops.
+    - Confirmed `removeEntity` currently clears intent/move-sync maps but not `CHUNK_AOI_STATE_RESOURCE.byPlayerId`.
+  - Evidence:
+    - `nl -ba server/world/ecs-command-pipeline/chunk-aoi-streaming.ts | sed -n '1,760p'`
+    - `nl -ba server/world/ecs-command-pipeline.ts | sed -n '3240,3345p'`
+  - Next action:
+    - Implement queue helpers + update AOI code paths + add teardown cleanup and run targeted MMO tests.
+
+- 03:31 UTC
+  - Ticket: 438 (EntityId generation hardening)
+  - Start timestamp: 2026-02-25 03:29 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Changed packed `EntityId` bit split in `shared/domain/ids.ts` from 28/4 to 20/12 (index/generation) to reduce ABA risk.
+    - Updated ids inline documentation to reflect generation-first safety tradeoff.
+    - Added explicit packing-budget assertions in `tests/unit/domain-ids.test.ts`.
+  - Evidence:
+    - `bun test tests/unit/domain-ids.test.ts tests/unit/ecs/entity-allocator.test.ts --timeout 30000`
+  - Next action:
+    - Start Ticket 439 (cache archetype queries + remove-only-present components on destroy).
+
+- 03:31 UTC
+  - Ticket: 439 (ECS query/destruction hot-path hardening)
+  - Start timestamp: 2026-02-25 03:31 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Started implementation planning for `ArchetypeIndex.query` cache invalidation and mask-bit iteration in `EcsWorld.destroyEntity`.
+  - Evidence:
+    - `nl -ba server/ecs/archetype-index.ts | sed -n '1,260p'`
+    - `nl -ba server/ecs/world.ts | sed -n '1,320p'`
+  - Next action:
+    - Implement cache/invalidation and bit-iterative destroy path, then run `tests/unit/ecs/world.test.ts`.
+
+- 03:29 UTC
+  - Ticket: 438 (EntityId generation hardening)
+  - Start timestamp: 2026-02-25 03:29 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Reviewed ECS audit findings against current implementation to separate valid vs. non-actionable items.
+    - Confirmed valid remediation targets: low generation width in packed `EntityId`, uncached archetype query path, O(N) AOI queue operations (`shift/unshift`), and missing CHUNK_AOI cleanup in `removeEntity`.
+    - Created new tickets 438-440 in `TODO.md` with scope, acceptance criteria, verification plans, and dependencies.
+  - Evidence:
+    - `nl -ba shared/domain/ids.ts | sed -n '1,260p'`
+    - `nl -ba server/ecs/archetype-index.ts | sed -n '1,260p'`
+    - `nl -ba server/world/ecs-command-pipeline/chunk-aoi-streaming.ts | sed -n '1,760p'`
+    - `nl -ba server/world/ecs-command-pipeline.ts | sed -n '3240,3345p'`
+    - `nl -ba TODO.md | sed -n '1,260p'`
+  - Next action:
+    - Implement Ticket 438 (`EntityId` bit split hardening) and run targeted unit tests.
+
 - 00:55 UTC
   - Ticket: 431 (Map-scoped claims + chunk overlays + tile edits)
   - Start timestamp: 2026-02-25 00:55 UTC
@@ -7017,5 +7105,43 @@ Format per entry:
     - `bun test tests/unit/mmo/server-move-input-intent.test.ts --timeout 30000` (passed)
     - `bun run lint` (passed)
     - `bun run typecheck` (passed)
+  - Next action:
+    - Await next instruction.
+
+- 03:19 UTC
+  - Ticket: 439 (Validate external audit + patch confirmed issues)
+  - Start timestamp: 2026-02-25 03:08 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Validated external review findings against current code paths.
+    - Confirmed `INTENT_TILE_EDIT` lacked map-bounds enforcement and could allocate unbounded chunk overlays.
+    - Added fail-closed bounds guard in `server/world/ecs-command-pipeline/core-module-registry.ts` before claim checks/overlay mutation.
+    - Added regression coverage for out-of-bounds tile edits and updated tile-edit test harness maps to expose explicit bounds.
+  - Evidence:
+    - Code inspection:
+      - `server/world/ecs-command-pipeline/core-module-registry.ts`
+      - `server/world/chunks/chunk-overlay-store.ts`
+      - `server/world-server.ts`
+      - `client/map-source.ts`
+      - `server/map.ts`
+      - `server/world/ecs-command-pipeline.ts`
+    - `bun test --timeout 30000 tests/unit/mmo/server-permissions.test.ts tests/unit/mmo/server-farming-vertical-slice.test.ts` (blocked by missing module `../generated/prefabs.generated`)
+    - `bun run typecheck` (blocked by missing baseline deps/modules: `@simplewebauthn/server`, `fflate`, `../generated/prefabs.generated`)
+    - `bun x eslint --max-warnings=0 server/world/ecs-command-pipeline/core-module-registry.ts tests/unit/mmo/server-permissions.test.ts tests/unit/mmo/server-farming-vertical-slice.test.ts` (blocked by missing `eslint-plugin-import`)
+  - Next action:
+    - Restore baseline generated/dependency artifacts and rerun targeted tests/typecheck/lint to fully close verification.
+
+- 03:20 UTC
+  - Ticket: 439 (Validate external audit + patch confirmed issues)
+  - Start timestamp: 2026-02-25 03:08 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Generated missing prefab artifact: `shared/generated/prefabs.generated.ts`.
+    - Re-ran verification suite for the TILE_EDIT bounds patch and updated tests.
+  - Evidence:
+    - `bun run content:prefabs:generate` (passed)
+    - `bun test --timeout 30000 tests/unit/mmo/server-permissions.test.ts tests/unit/mmo/server-farming-vertical-slice.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 server/world/ecs-command-pipeline/core-module-registry.ts tests/unit/mmo/server-permissions.test.ts tests/unit/mmo/server-farming-vertical-slice.test.ts` (passed)
   - Next action:
     - Await next instruction.

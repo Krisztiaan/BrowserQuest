@@ -47,4 +47,8 @@ export class ComponentRegistry {
     all(): ReadonlyArray<ComponentRegistryEntry> {
         return this.#types;
     }
+
+    getById(id: number): ComponentRegistryEntry | undefined {
+        return this.#types[id];
+    }
 }

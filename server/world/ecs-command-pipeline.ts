@@ -2013,6 +2013,8 @@ function createApplyInboundCommandsSystem(
                     knownChunkVersions.clear();
                     const pendingChunkKeys = existing?.pendingChunkKeys ?? new Set<string>();
                     pendingChunkKeys.clear();
+                    const pendingPriorityChunks = existing?.pendingPriorityChunks ?? [];
+                    pendingPriorityChunks.length = 0;
                     const inFlightSnapshotKeys = existing?.inFlightSnapshotKeys ?? new Set<string>();
                     inFlightSnapshotKeys.clear();
 
@@ -2021,11 +2023,14 @@ function createApplyInboundCommandsSystem(
                         lastMapId: null,
                         lastCenterChunkX: center.chunkX,
                         lastCenterChunkY: center.chunkY,
+                        pendingChunksHead: 0,
+                        pendingPriorityChunks,
                         knownChunks,
                         knownChunkVersions,
                         pendingChunks: [],
                         pendingChunkKeys,
                         inFlightSnapshotKeys,
+                        pendingSnapshotPartsHead: 0,
                         pendingSnapshotParts: [],
                     };
                     chunkAoi.byPlayerId.set(player.id, next);
@@ -3290,6 +3295,7 @@ export class WorldEcsCommandPipeline {
     removeEntity(id: EntityId): void {
         this.state.resources.get(INTENT_SEQ_STATE_RESOURCE)?.lastAcceptedByPlayerId.delete(id);
         this.state.resources.get(MOVE_SYNC_STATE_RESOURCE)?.delete(id);
+        this.state.resources.get(CHUNK_AOI_STATE_RESOURCE)?.byPlayerId.delete(id);
         this.state.resources.get(ENTITY_STATE_BATCH_RESOURCE)?.forEach((entries) => entries.delete(id));
         this.state.resources.get(INTEREST_TRACKER_RESOURCE)?.clearObserver(id);
         if (this.state.world.entities.isAlive(id)) {

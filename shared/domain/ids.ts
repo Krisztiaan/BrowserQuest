@@ -2,9 +2,10 @@ type Brand<T, TBrand extends string> = T & { readonly __brand: TBrand };
 
 // Internally we use packed uint32 ids for performance. Index 0 is reserved as "none".
 //
-// Legacy BrowserQuest wire ids can be in the low millions (e.g. NPC ids based on coordinate concatenation).
-// Allocate enough index bits so those wire ids naturally map to generation=0 when treated as EntityId.
-const ENTITY_ID_INDEX_BITS = 28;
+// We intentionally reserve more bits for generation than for index to reduce ABA reuse risk.
+// Wire/entity ids still remain full uint32 values, but decomposition into (generation,index)
+// now prefers long-lived generation space over oversized concurrent index capacity.
+const ENTITY_ID_INDEX_BITS = 20;
 const ENTITY_ID_INDEX_MASK = (1 << ENTITY_ID_INDEX_BITS) - 1;
 const ENTITY_ID_GENERATION_BITS = 32 - ENTITY_ID_INDEX_BITS;
 export const ENTITY_ID_MAX_INDEX = ENTITY_ID_INDEX_MASK;

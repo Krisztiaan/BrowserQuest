@@ -6,11 +6,14 @@ export type ChunkSubscription = {
     lastMapId: string | null;
     lastCenterChunkX: number | null;
     lastCenterChunkY: number | null;
+    pendingChunksHead: number;
+    pendingPriorityChunks: Array<{ mapId: string; chunkX: number; chunkY: number }>;
     knownChunks: Set<string>;
     knownChunkVersions: Map<string, number>;
     pendingChunks: Array<{ mapId: string; chunkX: number; chunkY: number }>;
     pendingChunkKeys: Set<string>;
     inFlightSnapshotKeys: Set<string>;
+    pendingSnapshotPartsHead: number;
     pendingSnapshotParts: Array<{
         key: string;
         mapId: string;

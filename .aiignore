@@ -1,1 +1,13 @@
+PROGRESS.md
+docs/css-modernization-progress.md
+docs/audit-*.md
+TODO.md
+AGENTS.md
+assets/maps/tiled/*.tjs
+*.tmj
+*.json
+*.test.ts
 bun.lock
+client/css
+client/sprites.ts
+*.html

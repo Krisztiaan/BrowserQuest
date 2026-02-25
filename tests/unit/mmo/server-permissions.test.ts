@@ -60,10 +60,17 @@ function createPipelineHarness({
     const delivered: WorldMessage[] = [];
     const persistedClaimUpserts: RectClaim[] = [];
     const persistedClaimDeletes: number[] = [];
+    const mapWidth = 64;
+    const mapHeight = 64;
 
     const host = {
         ups: 50,
         map: {
+            width: mapWidth,
+            height: mapHeight,
+            isOutOfBounds(x: number, y: number) {
+                return x < 0 || y < 0 || x >= mapWidth || y >= mapHeight;
+            },
             getCheckpoint() {
                 return null;
             },
@@ -247,6 +254,34 @@ test('unclaimed tile edit intent is accepted and mutates chunk overlays', () => 
 
     expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 0)).toBe(true);
     expect(harness.pipeline.chunkOverlays.getGlobal(10, 10)).toBe(7);
+});
+
+test('out-of-bounds tile edit intent is rejected without allocating chunk overlays', () => {
+    const harness = createPipelineHarness({ wireId: 24130, playerName: 'bob' });
+    const x = 1_000_000;
+    const y = 1_000_000;
+
+    enqueueIntent({
+        pipeline: harness.pipeline,
+        player: harness.player,
+        seq: 0,
+        intentTypeId: 'tile.edit',
+        payload: { x, y, value: 7 },
+    });
+
+    harness.pipeline.tick();
+
+    expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK)).toBe(false);
+    const reject = findRejectMessage(harness.delivered);
+    expect(reject).toBeTruthy();
+    expect(reject?.[1]).toBe(0);
+    expect(reject?.[2]).toBe('tile.edit');
+    expect(reject?.[3]).toContain('TILE_EDIT:out_of_bounds');
+
+    const chunkSize = harness.pipeline.chunkOverlays.chunkSize;
+    const chunkX = Math.floor(x / chunkSize);
+    const chunkY = Math.floor(y / chunkSize);
+    expect(harness.pipeline.chunkOverlays.getChunk(chunkX, chunkY)).toBeNull();
 });
 
 test('tile edit intent can preserve existing chunk state by lazy-loading chunk data first', () => {

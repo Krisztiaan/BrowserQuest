@@ -42,3 +42,8 @@ test('makeEntityId rejects invalid inputs', () => {
     expect(() => makeEntityId(ENTITY_ID_MAX_INDEX + 1, 0)).toThrow();
     expect(() => makeEntityId(0, ENTITY_ID_MAX_GENERATION + 1)).toThrow();
 });
+
+test('EntityId packing budgets index and generation for ECS reuse safety', () => {
+    expect(ENTITY_ID_MAX_INDEX).toBe(1_048_575);
+    expect(ENTITY_ID_MAX_GENERATION).toBe(4_095);
+});

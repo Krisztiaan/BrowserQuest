@@ -58,6 +58,8 @@ function createPlayer(wireId: string, name: string, x: number, y: number): Playe
 function createHarness({ claimsDbPath, chunkDbPath }: { claimsDbPath: string; chunkDbPath: string }): Harness {
     const alice = createPlayer('26101', 'alice', 10, 10);
     const bob = createPlayer('26102', 'bob', 11, 10);
+    const mapWidth = 64;
+    const mapHeight = 64;
     const players = new Map<number, Player>([
         [alice.id, alice],
         [bob.id, bob],
@@ -74,6 +76,11 @@ function createHarness({ claimsDbPath, chunkDbPath }: { claimsDbPath: string; ch
     const host = {
         ups: 50,
         map: {
+            width: mapWidth,
+            height: mapHeight,
+            isOutOfBounds(x: number, y: number) {
+                return x < 0 || y < 0 || x >= mapWidth || y >= mapHeight;
+            },
             getCheckpoint() {
                 return null;
             },

@@ -173,6 +173,39 @@ function decodeCommandByType<TType extends Command['type']>(
     return value as Extract<Command, { type: TType }>;
 }
 
+function isTileEditOutOfBounds({
+    world,
+    mapId,
+    x,
+    y,
+}: {
+    world: IntentWorldHost;
+    mapId: string;
+    x: number;
+    y: number;
+}): boolean {
+    if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y)) {
+        return true;
+    }
+
+    const map = world.getMapById?.(mapId) ?? world.map;
+    if (typeof map.isOutOfBounds === 'function') {
+        return map.isOutOfBounds(x, y);
+    }
+
+    if (
+        Number.isInteger(map.width)
+        && Number.isInteger(map.height)
+        && (map.width ?? 0) > 0
+        && (map.height ?? 0) > 0
+    ) {
+        return x < 0 || y < 0 || x >= (map.width ?? 0) || y >= (map.height ?? 0);
+    }
+
+    // Fail closed: without map bounds, tile edits can allocate unbounded overlay chunks.
+    return true;
+}
+
 export function createCoreServerModuleRegistry(options: CoreModuleRegistryOptions): GameModuleRegistry {
     const modules = new GameModuleRegistry();
     modules.registerModules([
@@ -342,6 +375,9 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                         return;
                     }
                     const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world';
+                    if (isTileEditOutOfBounds({ world: ctx.world, mapId: actorMapId, x: cmd.x, y: cmd.y })) {
+                        return { ok: false, reason: 'TILE_EDIT:out_of_bounds' };
+                    }
                     const claims = ctx.state.resources.require(CLAIMS_STORE_RESOURCE);
                     const claim = claims.getClaimAt(cmd.x, cmd.y, actorMapId);
                     const decision = canEditTile({

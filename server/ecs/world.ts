@@ -3,6 +3,16 @@ import { ArchetypeIndex } from './archetype-index';
 import { ComponentRegistry, componentBit, type ComponentBitType, type ComponentType } from './component-registry';
 import { EntityAllocator } from './entity-allocator';
 
+function lowestSetBitIndex(mask: bigint): number {
+    let index = 0;
+    let value = mask;
+    while ((value & 1n) === 0n) {
+        value >>= 1n;
+        index += 1;
+    }
+    return index;
+}
+
 export class EcsWorld {
     readonly entities = new EntityAllocator();
     readonly components = new ComponentRegistry();
@@ -55,12 +65,12 @@ export class EcsWorld {
         const mask = this.#maskByIndex[index] ?? 0n;
         this.#archetypes.remove(id, mask);
 
-        // Remove all components for this entity to keep store invariants and avoid leaks.
-        for (const type of this.components.all()) {
-            const bit = componentBit(type);
-            if ((mask & bit) !== 0n) {
-                type.remove(id);
-            }
+        // Remove only components present in this entity's mask.
+        let remaining = mask;
+        while (remaining !== 0n) {
+            const type = this.components.getById(lowestSetBitIndex(remaining));
+            type?.remove(id);
+            remaining &= remaining - 1n;
         }
 
         this.#maskByIndex[index] = 0n;
