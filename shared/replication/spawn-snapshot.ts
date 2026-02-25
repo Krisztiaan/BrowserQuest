@@ -109,9 +109,7 @@ function encodeSpawnTail(extras: SpawnExtras, mapId?: string): ProtocolActionVal
         case 'simple':
             return normalizedMapId ? [normalizedMapId] : [];
         default: {
-             
-            const _exhaustive: never = extras;
-            return [];
+            throw new Error(`Unsupported spawn extras payload: ${(extras as { type: string }).type}`);
         }
     }
 }

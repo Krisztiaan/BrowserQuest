@@ -23,7 +23,7 @@ type SessionConnection = {
 
 type SessionWorld = {
     isPlayerActive(playerId: EntityId): boolean;
-    enqueueCommand(command: Command): void;
+    enqueueCommand(command: Command): boolean | void;
     getConnectionPlayerById(playerId: EntityId): {
         isDead?: boolean;
         firepotionTimeout?: ReturnType<typeof setTimeout> | null;
@@ -36,6 +36,9 @@ type SessionWorld = {
     }): Readonly<{ accepted: boolean; reason?: string; profile?: PersistedPlayerProfile }>;
     releaseSessionClaim?(connectionId: string): void;
 };
+
+const SESSION_COMMANDS_PER_SECOND_LIMIT = 60;
+const SESSION_COMMAND_BURST_CAPACITY = 120;
 
 export function attachWorldConnectionSession({
     connection,
@@ -55,6 +58,25 @@ export function attachWorldConnectionSession({
     };
 
     let disconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let rateTokens = SESSION_COMMAND_BURST_CAPACITY;
+    let rateLastRefillAt = Date.now();
+
+    const consumeRateToken = (): boolean => {
+        const now = Date.now();
+        const elapsedMs = Math.max(0, now - rateLastRefillAt);
+        rateLastRefillAt = now;
+        if (elapsedMs > 0) {
+            rateTokens = Math.min(
+                SESSION_COMMAND_BURST_CAPACITY,
+                rateTokens + (elapsedMs * SESSION_COMMANDS_PER_SECOND_LIMIT) / 1000
+            );
+        }
+        if (rateTokens < 1) {
+            return false;
+        }
+        rateTokens -= 1;
+        return true;
+    };
 
     const resetTimeout = (): void => {
         if (disconnectTimeout) {
@@ -85,6 +107,11 @@ export function attachWorldConnectionSession({
 
         if (hasEnteredGame && action === Types.Messages.HELLO && !playerIsDead) {
             closeInvalidPayload('Cannot initiate handshake twice: ' + message);
+            return;
+        }
+
+        if (!consumeRateToken()) {
+            closeInvalidPayload('Inbound message rate limit exceeded.');
             return;
         }
 
@@ -121,7 +148,10 @@ export function attachWorldConnectionSession({
             }
         }
         if (command) {
-            world.enqueueCommand(command);
+            const accepted = world.enqueueCommand(command);
+            if (accepted === false) {
+                closeInvalidPayload('Inbound command buffer saturated.');
+            }
         }
     });
 

@@ -97,7 +97,6 @@ class AudioManager {
     private sfxGain: GainNode | null;
     private uiGain: GainNode | null;
     private audioBuffers: Partial<Record<MusicKey | AudioSoundKey, AudioBuffer>>;
-    private preloadPromise: Promise<void> | null;
     private currentMusic: ActiveMusic | null;
     private fadingOutMusic: ActiveMusic[];
     private queuedSfx: AudioSoundKey[];
@@ -119,7 +118,6 @@ class AudioManager {
         this.sfxGain = null;
         this.uiGain = null;
         this.audioBuffers = {};
-        this.preloadPromise = null;
         this.currentMusic = null;
         this.fadingOutMusic = [];
         this.queuedSfx = [];
@@ -162,7 +160,7 @@ class AudioManager {
         this.masterGain.connect(this.context.destination);
 
         this.installUnlockListeners();
-        this.preloadPromise = this.preloadAssets();
+        void this.preloadAssets();
     }
 
     toggle(): void {

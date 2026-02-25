@@ -189,6 +189,7 @@ function normalizeClientRuntimeMap(value: unknown, mapId: string): ClientRuntime
     };
 }
 
+let cachedClientRuntimeMapPayloadById: Map<string, unknown> | null = null;
 let cachedClientRuntimeMapsById: Map<string, ClientRuntimeMap> | null = null;
 let cachedDefaultMapId: string | null = null;
 let pendingMapPackLoad: Promise<void> | null = null;
@@ -213,7 +214,7 @@ async function ensureClientRuntimeMapsLoaded(): Promise<void> {
             throw new Error('Invalid runtime map pack payload: expected schemaVersion=1 with maps array.');
         }
 
-        const byId = new Map<string, ClientRuntimeMap>();
+        const payloadById = new Map<string, unknown>();
         for (let i = 0; i < root.maps.length; i += 1) {
             const entry = asRecord(root.maps[i]);
             if (!entry) {
@@ -223,10 +224,10 @@ async function ensureClientRuntimeMapsLoaded(): Promise<void> {
             if (!mapId) {
                 throw new Error(`Invalid runtime map pack payload: maps[${i}].id must be a non-empty string.`);
             }
-            if (byId.has(mapId)) {
+            if (payloadById.has(mapId)) {
                 throw new Error(`Invalid runtime map pack payload: duplicate map id "${mapId}".`);
             }
-            byId.set(mapId, normalizeClientRuntimeMap(entry.client, mapId));
+            payloadById.set(mapId, entry.client);
         }
 
         let defaultMapId: string | null = null;
@@ -239,11 +240,12 @@ async function ensureClientRuntimeMapsLoaded(): Promise<void> {
             }
         }
         defaultMapId ??= root.maps.length > 0 ? asNonEmptyString(asRecord(root.maps[0])?.id) : null;
-        if (!defaultMapId || !byId.has(defaultMapId)) {
+        if (!defaultMapId || !payloadById.has(defaultMapId)) {
             throw new Error('Invalid runtime map pack payload: unable to resolve default map id.');
         }
 
-        cachedClientRuntimeMapsById = byId;
+        cachedClientRuntimeMapPayloadById = payloadById;
+        cachedClientRuntimeMapsById = new Map<string, ClientRuntimeMap>();
         cachedDefaultMapId = defaultMapId;
     })();
 
@@ -269,17 +271,24 @@ export async function fetchClientDefaultRuntimeMapId(): Promise<string> {
 
 export async function fetchClientRuntimeMap(mapId?: string): Promise<ClientRuntimeMap> {
     await ensureClientRuntimeMapsLoaded();
+    const mapPayloadsById = cachedClientRuntimeMapPayloadById as Map<string, unknown>;
     const mapsById = cachedClientRuntimeMapsById as Map<string, ClientRuntimeMap>;
     const requested = normalizeRequestedMapId(mapId);
     const resolvedMapId = requested ?? (cachedDefaultMapId as string);
-    const runtimeMap = mapsById.get(resolvedMapId);
+    let runtimeMap = mapsById.get(resolvedMapId);
     if (!runtimeMap) {
-        throw new Error(`Unknown runtime map id "${resolvedMapId}".`);
+        const rawPayload = mapPayloadsById.get(resolvedMapId);
+        if (rawPayload === undefined) {
+            throw new Error(`Unknown runtime map id "${resolvedMapId}".`);
+        }
+        runtimeMap = normalizeClientRuntimeMap(rawPayload, resolvedMapId);
+        mapsById.set(resolvedMapId, runtimeMap);
     }
     return cloneClientRuntimeMap(runtimeMap);
 }
 
 export function __resetClientRuntimeMapSourceCacheForTests(): void {
+    cachedClientRuntimeMapPayloadById = null;
     cachedClientRuntimeMapsById = null;
     cachedDefaultMapId = null;
     pendingMapPackLoad = null;

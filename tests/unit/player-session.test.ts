@@ -14,6 +14,7 @@ function createSessionFixture({
     isDead,
     resolveHelloProfile,
     connectionAccountNameKey,
+    enqueueCommandAccepted,
 }: {
     isActive: boolean;
     isDead: boolean;
@@ -27,6 +28,7 @@ function createSessionFixture({
         profile?: PersistedPlayerProfile;
     };
     connectionAccountNameKey?: string;
+    enqueueCommandAccepted?: boolean | ((command: Command) => boolean);
 }) {
     const sentUtf8: string[] = [];
     const closeReasons: string[] = [];
@@ -60,8 +62,13 @@ function createSessionFixture({
         isPlayerActive(): boolean {
             return isActive;
         },
-        enqueueCommand(command: Command): void {
+        enqueueCommand(command: Command): boolean {
+            const accepted = typeof enqueueCommandAccepted === 'function' ? enqueueCommandAccepted(command) : enqueueCommandAccepted;
+            if (accepted === false) {
+                return false;
+            }
             commands.push(command);
+            return true;
         },
         getConnectionPlayerById() {
             return {
@@ -160,6 +167,38 @@ test('player session rejects legacy ATTACK opcode and does not enqueue command',
 
     expect(fixture.commands).toEqual([]);
     expect(fixture.invalidReasons).toContain('Legacy ATTACK opcode is unsupported. Use INTENT attack.entity.');
+});
+
+test('player session closes invalid payload when world backpressure rejects enqueue', () => {
+    const fixture = createSessionFixture({ isActive: true, isDead: false, enqueueCommandAccepted: false });
+
+    fixture.send([Types.Messages.ACHIEVEMENT, 13]);
+
+    expect(fixture.commands).toEqual([]);
+    expect(fixture.invalidReasons).toContain('Inbound command buffer saturated.');
+});
+
+test('player session enforces per-connection inbound message rate limit', () => {
+    const originalDateNow = Date.now;
+    let now = 1_000;
+    Date.now = () => now;
+
+    try {
+        const fixture = createSessionFixture({ isActive: true, isDead: false });
+        for (let i = 0; i < 120; i += 1) {
+            fixture.send([Types.Messages.ACHIEVEMENT, 13]);
+        }
+        fixture.send([Types.Messages.ACHIEVEMENT, 13]);
+
+        expect(fixture.commands.length).toBe(120);
+        expect(fixture.invalidReasons).toContain('Inbound message rate limit exceeded.');
+
+        now += 1000;
+        fixture.send([Types.Messages.ACHIEVEMENT, 13]);
+        expect(fixture.commands.length).toBe(121);
+    } finally {
+        Date.now = originalDateNow;
+    }
 });
 
 test('player session enriches HELLO command with persisted profile payload when provided', () => {

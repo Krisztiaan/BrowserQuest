@@ -206,7 +206,7 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
     }
 }
 
-function updateEntityInterpolation(host: ClientSimulationSystemHost, entity: SimulationEntity, dtMs: number): void {
+function updateEntityInterpolation(entity: SimulationEntity, dtMs: number): void {
     if (!isInterpolatedEntity(entity)) {
         return;
     }
@@ -328,7 +328,7 @@ function updateCharacters(host: ClientSimulationSystemHost, dtMs: number): void 
         if (entity instanceof Character) {
             updateCharacter(host, entity);
         }
-        updateEntityInterpolation(host, entity, dtMs);
+        updateEntityInterpolation(entity, dtMs);
         updateEntityFading(host, entity);
     });
 }

@@ -56,22 +56,12 @@ export class SqliteChunkOverlayPersistence {
                 updated_at INTEGER NOT NULL,
                 PRIMARY KEY (map_id, chunk_x, chunk_y)
             );
-            CREATE INDEX IF NOT EXISTS chunk_overlays_updated_at ON chunk_overlays(updated_at);
-            CREATE INDEX IF NOT EXISTS chunk_overlays_map_id ON chunk_overlays(map_id);
-            CREATE UNIQUE INDEX IF NOT EXISTS chunk_overlays_map_coords ON chunk_overlays(map_id, chunk_x, chunk_y);
         `);
 
-        const overlayColumns = this.#db.query("PRAGMA table_info('chunk_overlays')").all() as Array<{ name?: string }>;
-        const hasMapId = overlayColumns.some((column) => column.name === 'map_id');
-        if (!hasMapId) {
-            this.#db.exec(`ALTER TABLE chunk_overlays ADD COLUMN map_id TEXT NOT NULL DEFAULT 'world'`);
-            this.#db.exec(`DROP INDEX IF EXISTS chunk_overlays_updated_at`);
-            this.#db.exec(`DROP INDEX IF EXISTS chunk_overlays_map_id`);
-            this.#db.exec(`DROP INDEX IF EXISTS chunk_overlays_map_coords`);
-            this.#db.exec(`CREATE INDEX IF NOT EXISTS chunk_overlays_updated_at ON chunk_overlays(updated_at)`);
-            this.#db.exec(`CREATE INDEX IF NOT EXISTS chunk_overlays_map_id ON chunk_overlays(map_id)`);
-            this.#db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS chunk_overlays_map_coords ON chunk_overlays(map_id, chunk_x, chunk_y)`);
-        }
+        this.#migrateLegacySchemaIfNeeded();
+        this.#db.exec(`CREATE INDEX IF NOT EXISTS chunk_overlays_updated_at ON chunk_overlays(updated_at)`);
+        this.#db.exec(`CREATE INDEX IF NOT EXISTS chunk_overlays_map_id ON chunk_overlays(map_id)`);
+        this.#db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS chunk_overlays_map_coords ON chunk_overlays(map_id, chunk_x, chunk_y)`);
 
         this.#upsertOverlay = this.#db.prepare(`
             INSERT INTO chunk_overlays
@@ -103,6 +93,48 @@ export class SqliteChunkOverlayPersistence {
 
     close(): void {
         this.#db.close();
+    }
+
+    #migrateLegacySchemaIfNeeded(): void {
+        const overlayColumns = this.#db.query("PRAGMA table_info('chunk_overlays')").all() as Array<{ name?: string; pk?: number }>;
+        const hasMapId = overlayColumns.some((column) => column.name === 'map_id');
+        const pkColumns = overlayColumns
+            .filter((column) => Number.isInteger(column.pk) && (column.pk ?? 0) > 0)
+            .sort((a, b) => (a.pk ?? 0) - (b.pk ?? 0))
+            .map((column) => column.name ?? '');
+        const hasDesiredPrimaryKey = pkColumns.length === 3 && pkColumns[0] === 'map_id' && pkColumns[1] === 'chunk_x' && pkColumns[2] === 'chunk_y';
+        if (hasMapId && hasDesiredPrimaryKey) {
+            return;
+        }
+
+        const mapIdExpr = hasMapId ? `COALESCE(NULLIF(TRIM(map_id), ''), 'world')` : `'world'`;
+        this.#db.exec('BEGIN');
+        try {
+            this.#db.exec(`ALTER TABLE chunk_overlays RENAME TO chunk_overlays_legacy`);
+            this.#db.exec(`
+                CREATE TABLE chunk_overlays (
+                    map_id TEXT NOT NULL DEFAULT 'world',
+                    chunk_x INTEGER NOT NULL,
+                    chunk_y INTEGER NOT NULL,
+                    chunk_size INTEGER NOT NULL,
+                    version INTEGER NOT NULL,
+                    values_blob BLOB NOT NULL,
+                    present_blob BLOB NOT NULL,
+                    updated_at INTEGER NOT NULL,
+                    PRIMARY KEY (map_id, chunk_x, chunk_y)
+                )
+            `);
+            this.#db.exec(`
+                INSERT INTO chunk_overlays (map_id, chunk_x, chunk_y, chunk_size, version, values_blob, present_blob, updated_at)
+                SELECT ${mapIdExpr}, chunk_x, chunk_y, chunk_size, version, values_blob, present_blob, updated_at
+                FROM chunk_overlays_legacy
+            `);
+            this.#db.exec(`DROP TABLE chunk_overlays_legacy`);
+            this.#db.exec('COMMIT');
+        } catch (err) {
+            this.#db.exec('ROLLBACK');
+            throw err;
+        }
     }
 
     flushDirtyChunks(store: ChunkOverlayStore, nowMs = Date.now()): { flushed: number } {

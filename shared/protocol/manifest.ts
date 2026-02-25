@@ -159,7 +159,10 @@ type _AssertS2CIsSubsetOfManifest = Exclude<ServerToClientOpcodes, ManifestServe
     ? true
     : never;
 
- 
-const _manifestCoverageC2S: _AssertManifestC2SIsSubset   = true;
- 
-const _manifestCoverageS2C: _AssertManifestS2CIsSubset   = true;
+const _manifestCoverage: [
+    _AssertManifestC2SIsSubset,
+    _AssertManifestS2CIsSubset,
+    _AssertC2SIsSubsetOfManifest,
+    _AssertS2CIsSubsetOfManifest,
+] = [true, true, true, true];
+void _manifestCoverage;

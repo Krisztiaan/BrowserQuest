@@ -126,15 +126,25 @@ import {
     type IntentWorldHost,
 } from './ecs-command-pipeline/core-module-registry';
 import { applyMoveToIntentCommand as applyMoveToIntentCommandImpl } from './intents/move-to-intent';
+import type { MapTransitionEvent } from './map-transition-observability';
 import {
-    recordMapTransitionEvent,
-    type MapTransitionEvent,
-} from './map-transition-observability';
+    emitMapTransitionEvent,
+    isValidPositionInMap,
+    resolveDefaultMapId,
+    resolveDoorTeleportDestination,
+    resolveEntityMapId,
+    resolveMapForId,
+} from './ecs-command-pipeline/map-runtime';
+import {
+    DEFAULT_MAX_CHUNK_SNAPSHOT_PARTS,
+    resolveMaxChunkSnapshotPayloadUtf8BytesFromEnv,
+    resolveMaxInboundCommandQueueFromEnv,
+    resolvePositiveIntegerOrNull,
+} from './ecs-command-pipeline/pipeline-config';
 
 type DoorTeleportOutcome = Readonly<{ playerId: EntityId; fromMapId: string; toMapId: string; to: GridPos }>;
 type DroppedItem = Readonly<{ id: EntityId; kind: EntityKind }>;
 type DroppedMob = Readonly<{ kind: EntityKind; x: number; y: number }>;
-type LooseValue = string | number | boolean | bigint | symbol | null | undefined | object;
 type JsonScalar = string | number | boolean | null;
 type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
 
@@ -246,95 +256,10 @@ type WorldCommandHost = Readonly<{
 
 const DEFAULT_CHUNK_SIZE = 32;
 const MAX_CHUNK_SNAPSHOTS_PER_TICK_PER_PLAYER = 8;
-const DEFAULT_MAX_CHUNK_SNAPSHOT_PAYLOAD_UTF8_BYTES = 64 * 1024;
-const DEFAULT_MAX_CHUNK_SNAPSHOT_PARTS = 128;
 const MAX_CHUNK_DELTA_CHANGES_PER_MESSAGE = 256;
-
-function resolveMaxChunkSnapshotPayloadUtf8BytesFromEnv(): number {
-    const raw = process.env.BQ_TEST_CHUNK_SNAPSHOT_MAX_UTF8_BYTES;
-    if (typeof raw !== 'string' || raw.trim().length === 0) {
-        return DEFAULT_MAX_CHUNK_SNAPSHOT_PAYLOAD_UTF8_BYTES;
-    }
-    const parsed = Number.parseInt(raw, 10);
-    if (!Number.isInteger(parsed) || parsed <= 0) {
-        return DEFAULT_MAX_CHUNK_SNAPSHOT_PAYLOAD_UTF8_BYTES;
-    }
-    return parsed;
-}
-
-function resolvePositiveIntegerOrNull(value: LooseValue): number | null {
-    if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
-        return null;
-    }
-    return value;
-}
 
 function resolvePlayerIdentityKey(player: { accountNameKey?: string; name?: string } | null | undefined): string | null {
     return resolveIdentityKey(player);
-}
-
-function resolveDefaultMapId(world: Pick<WorldCommandHost, 'getDefaultMapId'>): string {
-    return world.getDefaultMapId?.() ?? 'world';
-}
-
-function resolveEntityMapId({
-    MapId,
-    entityId,
-    world,
-}: {
-    MapId: ComponentType<string>;
-    entityId: EntityId;
-    world: Pick<WorldCommandHost, 'getDefaultMapId'>;
-}): string {
-    return MapId.store.get(entityId) ?? resolveDefaultMapId(world);
-}
-
-function resolveMapForId({
-    world,
-    mapId,
-}: {
-    world: Pick<WorldCommandHost, 'map' | 'getMapById'>;
-    mapId: string;
-}): WorldCommandHost['map'] | null {
-    return world.getMapById?.(mapId) ?? world.map;
-}
-
-function isValidPositionInMap({
-    world,
-    mapId,
-    x,
-    y,
-}: {
-    world: Pick<WorldCommandHost, 'isValidPosition' | 'isValidPositionForMap'>;
-    mapId: string;
-    x: number;
-    y: number;
-}): boolean {
-    return world.isValidPositionForMap ? world.isValidPositionForMap(mapId, x, y) : world.isValidPosition(x, y);
-}
-
-function emitMapTransitionEvent({
-    world,
-    event,
-}: {
-    world: Pick<WorldCommandHost, 'recordMapTransitionEvent'>;
-    event: MapTransitionEvent;
-}): void {
-    recordMapTransitionEvent(world, event);
-}
-
-function resolveDoorTeleportDestination({
-    world,
-    mapId,
-    x,
-    y,
-}: {
-    world: Pick<WorldCommandHost, 'resolveDoorTeleport'>;
-    mapId: string;
-    x: number;
-    y: number;
-}): Readonly<{ toMapId: string; to: GridPos }> | null {
-    return world.resolveDoorTeleport?.(mapId, x, y) ?? null;
 }
 
 function isAdjacentNonDiagonal(a: GridPos, b: GridPos): boolean {
@@ -1557,86 +1482,6 @@ function applyLootCommand({
     removeDroppedItem();
 }
 
-function _applyTeleportCommand({
-    state,
-    ctx,
-    Position,
-    MapId,
-    Target,
-    mobAi,
-    movement,
-    replication,
-    world,
-    player,
-    cmd,
-}: {
-    state: WorldState<Command, DomainEvent>;
-    ctx: SystemContext;
-    Position: ComponentType<GridPos>;
-    MapId: ComponentType<string>;
-    Target: ComponentType<EntityId>;
-    mobAi: ReturnType<typeof registerMobAiComponents>;
-    movement: ReturnType<typeof registerMovementComponents>;
-    replication: ReturnType<typeof registerSpawnReplicationComponents>;
-    world: WorldCommandHost;
-    player: PlayerLike;
-    cmd: Extract<Command, { type: 'TELEPORT' }>;
-}): void {
-    const currentPos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
-    const currentMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
-    const doorDestination = resolveDoorTeleportDestination({ world, mapId: currentMapId, x: currentPos.x, y: currentPos.y });
-    if (!doorDestination) {
-        return;
-    }
-    if (doorDestination.to.x !== cmd.to.x || doorDestination.to.y !== cmd.to.y) {
-        emitMapTransitionEvent({
-            world,
-            event: {
-                kind: 'reject',
-                reason: 'invalid_destination',
-                playerId: player.id,
-                fromMapId: currentMapId,
-                toMapId: doorDestination.toMapId,
-                toX: cmd.to.x,
-                toY: cmd.to.y,
-            },
-        });
-        return;
-    }
-    if (!isValidPositionInMap({ world, mapId: doorDestination.toMapId, x: cmd.to.x, y: cmd.to.y })) {
-        emitMapTransitionEvent({
-            world,
-            event: {
-                kind: 'reject',
-                reason: 'invalid_destination',
-                playerId: player.id,
-                fromMapId: currentMapId,
-                toMapId: doorDestination.toMapId,
-                toX: cmd.to.x,
-                toY: cmd.to.y,
-            },
-        });
-        return;
-    }
-
-    applyTeleportOutcome({
-        state,
-        ctx,
-        Position,
-        MapId,
-        PositionSub: replication.PositionSub,
-        Target,
-        mobAi,
-        movement,
-        replication,
-        world,
-        playerId: player.id,
-        fromMapId: currentMapId,
-        toMapId: doorDestination.toMapId,
-        to: cmd.to,
-    });
-}
-
 function applyTeleportOutcome({
     state,
     ctx,
@@ -2193,10 +2038,7 @@ function createApplyInboundCommandsSystem(
                     chunkAoi.byPlayerId.delete(player.id);
                     break;
                 default:
-                    // Ensure exhaustive handling when new command types are introduced.
-                     
-                    const _exhaustive: never = cmd;
-                    break;
+                    throw new Error('Unhandled inbound command type.');
             }
         }
     };
@@ -2219,12 +2061,14 @@ export class WorldEcsCommandPipeline {
     readonly chunkOverlays: ChunkOverlayStore;
     #maxChunkSnapshotPayloadUtf8Bytes: number;
     #maxChunkSnapshotParts: number;
+    #maxInboundCommandQueue: number;
     #tick = 0;
 
     constructor(world: WorldCommandHost, { chunkSize }: { chunkSize?: number } = {}) {
         this.#world = world;
         this.#maxChunkSnapshotPayloadUtf8Bytes = resolveMaxChunkSnapshotPayloadUtf8BytesFromEnv();
         this.#maxChunkSnapshotParts = DEFAULT_MAX_CHUNK_SNAPSHOT_PARTS;
+        this.#maxInboundCommandQueue = resolveMaxInboundCommandQueueFromEnv();
         const chunkSizeRaw = chunkSize;
         const resolvedChunkSize =
             typeof chunkSizeRaw === 'number' && Number.isInteger(chunkSizeRaw) && chunkSizeRaw > 0 && chunkSizeRaw <= 256
@@ -3453,8 +3297,12 @@ export class WorldEcsCommandPipeline {
         }
     }
 
-    enqueue(command: Command): void {
+    enqueue(command: Command): boolean {
+        if (this.state.commands.size >= this.#maxInboundCommandQueue) {
+            return false;
+        }
         this.state.commands.push(command);
+        return true;
     }
 
     buildSpawnActionForLegacyEntity(entity: LegacySpawnReplicationEntity): ServerToClientSpawnAction {
@@ -3473,6 +3321,7 @@ export class WorldEcsCommandPipeline {
         if (!config) {
             this.#maxChunkSnapshotPayloadUtf8Bytes = resolveMaxChunkSnapshotPayloadUtf8BytesFromEnv();
             this.#maxChunkSnapshotParts = DEFAULT_MAX_CHUNK_SNAPSHOT_PARTS;
+            this.#maxInboundCommandQueue = resolveMaxInboundCommandQueueFromEnv();
             return;
         }
 
@@ -3488,6 +3337,16 @@ export class WorldEcsCommandPipeline {
         const parts = resolvePositiveIntegerOrNull(config.chunk_snapshot_max_parts);
         if (parts !== null) {
             this.#maxChunkSnapshotParts = parts;
+        }
+
+        this.#maxInboundCommandQueue = resolveMaxInboundCommandQueueFromEnv();
+        if (process.env.BQ_MAX_INBOUND_COMMAND_QUEUE === undefined) {
+            const configInboundQueue = resolvePositiveIntegerOrNull(
+                (config as { inbound_command_queue_max?: unknown }).inbound_command_queue_max
+            );
+            if (configInboundQueue !== null) {
+                this.#maxInboundCommandQueue = configInboundQueue;
+            }
         }
     }
 

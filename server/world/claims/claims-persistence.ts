@@ -64,15 +64,14 @@ export class SqliteClaimsPersistence {
                 updated_at INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS claims_owner_name ON claims(owner_name);
-            CREATE INDEX IF NOT EXISTS claims_map_id ON claims(map_id);
         `);
 
         const claimColumns = this.#db.query("PRAGMA table_info('claims')").all() as Array<{ name?: string }>;
         const hasMapId = claimColumns.some((column) => column.name === 'map_id');
         if (!hasMapId) {
             this.#db.exec(`ALTER TABLE claims ADD COLUMN map_id TEXT NOT NULL DEFAULT 'world'`);
-            this.#db.exec(`CREATE INDEX IF NOT EXISTS claims_map_id ON claims(map_id)`);
         }
+        this.#db.exec(`CREATE INDEX IF NOT EXISTS claims_map_id ON claims(map_id)`);
 
         this.#upsertClaim = this.#db.prepare(`
             INSERT INTO claims

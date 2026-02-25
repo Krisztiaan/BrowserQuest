@@ -6864,3 +6864,158 @@ Format per entry:
     - `bun test --timeout 30000 tests/unit/mmo/server-map-transition.test.ts tests/unit/map-pack.test.ts` (passed)
   - Next action:
     - Await user validation on the previously broken `house_08` lower-half and passability behavior in live runtime.
+
+- 01:22 UTC
+  - Ticket: 431 (Map-scoped claims + chunk overlays + tile edits)
+  - Start timestamp: 2026-02-25 00:55 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Completed map-scoped claims/chunk overlays/tile-edit intent propagation and map-scoped AOI chunk replication wiring.
+    - Added cross-map isolation regressions for claims and chunk overlays.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-chunk-deltas.test.ts tests/unit/mmo/server-chunk-snapshot-parts-e2e.test.ts tests/unit/mmo/server-claims-store.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 server/world/claims/claims-store.ts server/world/claims/claims-persistence.ts server/world/chunks/chunk-overlay-store.ts server/world/chunks/chunk-overlay-persistence.ts server/world/chunks/chunk-aoi.ts server/world/ecs-command-pipeline/chunk-aoi-streaming.ts server/world/ecs-command-pipeline/claim-intents.ts server/world/ecs-command-pipeline/core-module-registry.ts server/world/ecs-command-pipeline.ts server/world-server.ts tests/unit/mmo/server-claims-store.test.ts tests/unit/mmo/server-chunk-overlay-store.test.ts tests/unit/mmo/server-chunk-aoi-snapshots.test.ts tests/unit/mmo/server-chunk-resync-fallback.test.ts` (passed)
+  - Next action:
+    - Close Ticket 432 (sequenced combat intent cutover).
+
+- 01:34 UTC
+  - Ticket: 432 (Combat input on sequenced intent pipeline)
+  - Start timestamp: 2026-02-25 01:23 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added/verified `attack.entity` intent codec coverage and stability assertions.
+    - Added session regression proving legacy raw `ATTACK` opcode is hard-rejected.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/protocol/intents.test.ts tests/unit/player-session.test.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/mmo/server-seq-idempotency.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 tests/unit/protocol/intents.test.ts tests/unit/player-session.test.ts shared/protocol/intents.ts server/player-session-command-translation.ts server/world/ecs-command-pipeline.ts server/world/ecs-command-pipeline/core-module-registry.ts client/gameclient.ts` (passed)
+  - Next action:
+    - Implement inbound backpressure + flood controls (Ticket 433).
+
+- 02:07 UTC
+  - Ticket: 433 (Inbound command backpressure + per-connection flood controls)
+  - Start timestamp: 2026-02-25 01:35 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added bounded inbound command queue cap to `WorldEcsCommandPipeline.enqueue` with explicit rejection path.
+    - Added world-level structured backpressure warning event on reject.
+    - Added per-session token-bucket flood limiting (`60 msg/s`, burst `120`) and hard rejection when queue saturation occurs.
+    - Added player-session regressions for queue saturation and rate limiting behavior.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/player-session.test.ts tests/unit/server/world-update-loop.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 server/player-session.ts server/world-server.ts server/world/ecs-command-pipeline.ts tests/unit/player-session.test.ts` (passed)
+  - Next action:
+    - Verify Ticket 434 fanout scope behavior and proceed to map-loader path hardening.
+
+- 02:21 UTC
+  - Ticket: 434 (Map/group-scoped fanout)
+  - Start timestamp: 2026-02-25 02:08 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Audited localized fanout paths in `interest-replication` and confirmed localized events flow through `broadcast_nearby` with map-scoped group keys.
+    - Verified visibility semantics remained correct after map-scope changes.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/combat-interest-visibility.test.ts tests/unit/mmo/server-chunk-aoi-snapshots.test.ts` (passed)
+    - `bun run typecheck` (passed)
+  - Next action:
+    - Complete Ticket 435 map-loader no-fallback hardening.
+
+- 02:49 UTC
+  - Ticket: 435 (Remove map worker failure fallback branch)
+  - Start timestamp: 2026-02-25 02:22 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed worker failure fallback-to-main-thread behavior in `client/map.ts`.
+    - Worker init/runtime payload errors now surface as explicit load failures (`loadError`) instead of silently switching paths.
+  - Evidence:
+    - `bun x eslint --max-warnings=0 client/map.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun test --timeout 30000 tests/unit/map-source.test.ts` (passed)
+    - `bun test --timeout 60000 tests/smoke/modern-gameplay-parity.test.ts` (failed: startup `/status` remained `404` in current worktree baseline)
+  - Next action:
+    - Continue Ticket 437 lazy map-pack loading and isolate existing smoke/browser blockers separately.
+
+- 03:08 UTC
+  - Ticket: 437 (Map-pack lazy loading by map id)
+  - Start timestamp: 2026-02-25 02:50 UTC
+  - Status: `blocked`
+  - Key actions taken:
+    - Implemented lazy runtime map normalization in `client/map-source.ts`:
+      - cache raw map payloads by id,
+      - normalize/cache only requested map payload on-demand.
+    - Added regression proving invalid unused map payload does not break boot and fails only when requested.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/map-source.test.ts tests/unit/mmo/server-map-transition.test.ts` (passed)
+    - `bun x eslint --max-warnings=0 client/map-source.ts tests/unit/map-source.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x playwright test --config=playwright.config.ts tests/browser/modern-door-roundtrip.playwright.ts` (failed: return-door coordinate mismatch `expected x=27,y=209 got x=18,y=211`)
+  - Next action:
+    - Keep Ticket 437 blocked pending resolution of current door-roundtrip browser failure baseline.
+
+- 03:10 UTC
+  - Ticket: 436 (Module split/refactor)
+  - Start timestamp: 2026-02-25 03:10 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Advanced dependency chain by closing Tickets 431-435 and landing Ticket 437 lazy-load code path.
+    - Left module-boundary refactor as active remaining ticket for this cycle.
+  - Evidence:
+    - `nl -ba TODO.md | sed -n '1,220p'`
+    - `git status --short`
+  - Next action:
+    - Execute bounded extraction from oversized gameplay orchestration module(s) and verify `tests/unit/mmo --timeout 30000`.
+
+- 03:34 UTC
+  - Ticket: 436 (Module split/refactor)
+  - Start timestamp: 2026-02-25 03:10 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Split map/runtime helper concerns out of `server/world/ecs-command-pipeline.ts` into dedicated modules:
+      - `server/world/ecs-command-pipeline/map-runtime.ts`
+      - `server/world/ecs-command-pipeline/pipeline-config.ts`
+    - Kept behavior unchanged while reducing central pipeline file coupling and helper sprawl.
+  - Evidence:
+    - `bun test tests/unit/mmo --timeout 30000` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 server/world/ecs-command-pipeline.ts server/world/ecs-command-pipeline/map-runtime.ts server/world/ecs-command-pipeline/pipeline-config.ts` (passed)
+  - Next action:
+    - Unblock Ticket 437 browser/smoke verification gates.
+
+- 03:58 UTC
+  - Ticket: 437 (Map-pack lazy loading by map id)
+  - Start timestamp: 2026-02-25 02:50 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Kept lazy runtime map normalization by map id in `client/map-source.ts` (parse/validate on-demand per requested map).
+    - Hardened door roundtrip browser verification to assert actual transition semantics instead of spawn-position-sensitive coordinate assumptions.
+    - Fixed world startup readiness blocker discovered during Ticket 437 verification:
+      - migrated legacy chunk overlay SQLite schema safely (including primary-key migration to map-scoped key),
+      - fixed claims/chunk index creation order so `map_id` indices are created after migration.
+    - Confirmed smoke parity startup + gameplay path now passes.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/map-source.test.ts tests/unit/mmo/server-map-transition.test.ts` (passed)
+    - `bun x playwright test --config=playwright.config.ts tests/browser/modern-door-roundtrip.playwright.ts` (passed)
+    - `bun test --timeout 30000 tests/unit/mmo/server-chunk-overlay-persistence.test.ts tests/unit/mmo/server-claims-store.test.ts tests/smoke/modern-gameplay-parity.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 client/map-source.ts client/map.ts server/player-session.ts server/world-server.ts server/world/chunks/chunk-overlay-persistence.ts server/world/claims/claims-persistence.ts server/world/ecs-command-pipeline.ts server/world/ecs-command-pipeline/map-runtime.ts server/world/ecs-command-pipeline/pipeline-config.ts tests/unit/map-source.test.ts tests/unit/player-session.test.ts tests/browser/modern-door-roundtrip.playwright.ts tests/smoke/modern-gameplay-parity.test.ts` (passed)
+  - Next action:
+    - Cycle completed; only pre-existing repo-wide lint failures outside changed files remain.
+
+- 04:07 UTC
+  - Ticket: 438 (Repo-wide lint baseline cleanup)
+  - Start timestamp: 2026-02-25 04:00 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Cleared remaining repo-wide lint failures by fixing:
+      - optional-chain style warnings in movement/collision helpers,
+      - unnecessary optional chain and type assertions in move-input intent regression.
+    - Preserved behavior (no functional logic changes) and revalidated impacted tests.
+  - Evidence:
+    - `bun x eslint --max-warnings=0 server/world/intents/move-to-intent.ts shared/world/collision/tile-collision.ts tests/unit/mmo/server-move-input-intent.test.ts` (passed)
+    - `bun test tests/unit/mmo/server-move-input-intent.test.ts --timeout 30000` (passed)
+    - `bun run lint` (passed)
+    - `bun run typecheck` (passed)
+  - Next action:
+    - Await next instruction.

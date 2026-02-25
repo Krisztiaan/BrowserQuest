@@ -88,3 +88,35 @@ test('map source loads map-pack runtime payload once and resolves maps by id', a
     }
     expect(thrown).toContain('Unknown runtime map id "missing".');
 });
+
+test('map source defers map payload normalization until a map is requested', async () => {
+    __resetClientRuntimeMapSourceCacheForTests();
+    Object.defineProperty(globalThis, 'fetch', {
+        configurable: true,
+        writable: true,
+        value: () =>
+            Promise.resolve(
+                new Response(
+                    JSON.stringify({
+                        schemaVersion: 1,
+                        maps: [
+                            { id: 'world', client: createClientMap(4, 4), server: {} },
+                            { id: 'broken_house', client: { width: 2, height: 2, tilesize: 16, data: 'bad' }, server: {} },
+                        ],
+                        graph: { maps: [], edges: [] },
+                    }),
+                    { status: 200, headers: { 'content-type': 'application/json' } }
+                )
+            ),
+    });
+
+    const world = await fetchClientRuntimeMap('world');
+    expect(world.width).toBe(4);
+    let thrown = '';
+    try {
+        await fetchClientRuntimeMap('broken_house');
+    } catch (error) {
+        thrown = error instanceof Error ? error.message : String(error);
+    }
+    expect(thrown).toContain('Invalid runtime map pack payload: map "broken_house" client.data must be an array.');
+});

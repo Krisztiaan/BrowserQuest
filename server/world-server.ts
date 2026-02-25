@@ -276,8 +276,17 @@ class World extends Evented<WorldEvents> {
         });
     }
 
-    enqueueCommand(command: Command): void {
-        this.ecsPipeline.enqueue(command);
+    enqueueCommand(command: Command): boolean {
+        const accepted = this.ecsPipeline.enqueue(command);
+        if (!accepted) {
+            log.event('warn', 'world.inbound.backpressure_reject', {
+                worldId: this.id,
+                connectionId: command.source.connectionId,
+                playerId: command.source.playerId,
+                commandType: command.type,
+            });
+        }
+        return accepted;
     }
 
     setPlayerPersistence(playerPersistence: PlayerPersistence | null): void {

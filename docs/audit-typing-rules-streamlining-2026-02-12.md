@@ -72,7 +72,7 @@
   - Ran `bun test --timeout 20000` (pass).
 - **Evidence:**
   - `bun run typecheck`: exit 0 (no output)
-  - `bun run lint`: 0 errors, 23 warnings (mostly `@typescript-eslint/no-unnecessary-condition`, `prefer-optional-chain`, `no-base-to-string`)
+  - `bun run lint`: exit 0
   - `bun test --timeout 20000`: 194 pass, 1 skip, 0 fail
 - **Next action:** Start review for typing/rules/bugs (T2–T4).
 
@@ -115,8 +115,8 @@
 ### Executive summary
 
 - **Baseline:** `bun run typecheck`, `bun run lint`, and `bun test --timeout 20000` pass on the current working tree.
-- **Highest-leverage gap:** lint/type-aware analysis previously ran with a TS project (`tsconfig.eslint.json`) that did *not* enable `noUncheckedIndexedAccess`, which produced false positives and discouraged correct defensive checks.
-- **Largest typing hotspot:** production `as any` usage is concentrated in `client/runtime/connection.ts` (entity plumbing between protocol events and legacy runtime objects).
+- **Highest-leverage remaining gap:** a small number of `as unknown as` seam casts remain in server protocol/map-registry boundaries.
+- **Largest remaining structural caveat:** map data cloning still uses `JSON.parse(JSON.stringify(...))` in client/server map loaders.
 
 ### Fixes applied during this audit (low-risk, verification-backed)
 
@@ -130,17 +130,14 @@
 
 #### P0 — Tighten typing where it matters most
 
-- **Client runtime event plumbing:** `client/runtime/connection.ts` uses `as any` repeatedly for entities/items/mobs. Recommendation:
-  - Introduce narrow runtime-facing interfaces (e.g. `RemovableEntity`, `BlinkableItem`, `AttackLinkable`) and/or typed wrappers around `game.getEntityById`.
-  - Replace `as any` casts with `as unknown as Parameters<Game['...']>[0]` as an intermediate step when the true runtime types are not yet modeled.
-  - Add this file (and adjacent runtime files) to `bun run lint` coverage so regressions are caught.
+- **Boundary seam casts:** `server/protocol/outbound-actions.ts` and `server/world/map-registry.ts` still use `as unknown as` casts. Recommendation:
+  - Replace casts with typed adapters/guards at the seam so downstream callsites remain fully typed.
+  - Prefer local helper types + narrowing (`in` checks / schema shape guards) over chained assertions.
 
 #### P1 — Align tool coverage with the code you run
 
-- **Lint coverage is curated:** the `lint` script targets a hand-picked file list, which misses large portions of `client/` and `server/` runtime code. Recommendation:
-  - Add a second script (e.g. `lint:all`) that runs `eslint "{client,server,shared,tools,tests}/**/*.ts"` (plus existing ignores) so you can opt-in to full coverage in CI or before release.
-- **Typecheck excludes key runtime modules:** `tsconfig.node.json` excludes `server/runtime.ts`, `server/world-server.ts`, `server/entry.ts`, and `server/startup/*.ts`. Recommendation:
-  - Create incremental strict projects (like the existing `tsconfig.strict.server-config.json`) to bring these areas under `strict: true` over time rather than keeping them permanently excluded.
+- **JSON helper duplication:** `safeParseJson`/`safeParseJsonValue` logic exists in multiple protocol/shared spots. Recommendation:
+  - Consolidate on shared helpers from `shared/json/safe-json.ts` to reduce drift.
 
 #### P2 — Reduce “escape hatch” casts for branded numbers
 
@@ -149,17 +146,15 @@
 
 ### Risk register (impact × likelihood)
 
-- **High:** client runtime `as any` plumbing (silent runtime mis-wiring or method-missing crashes when protocol/entity shapes drift).
-- **Medium:** missing lint/typecheck coverage for excluded server runtime files (regressions can sneak in behind passing `typecheck`).
+- **Medium:** remaining seam casts (`as unknown as`) can hide shape drift at server protocol/map-registry boundaries.
 - **Medium:** inconsistent error stringification (`String(object)` → `[object Object]`) reduces observability and can mask actionable errors.
 - **Low:** `||` defaults on CLI args (mostly correctness/style; fixed where surfaced).
 
 ### Suggested sequencing
 
-1. Add `lint:all` (or expand existing `lint`) to include the high-churn runtime files you care about now.
-2. Add strict typecheck projects for `server/startup/**` and the websocket runtime boundary (smallest, highest-signal).
-3. Replace `as any` in `client/runtime/connection.ts` via typed adapters/interfaces, then enforce with lint.
-4. Sweep branded-number casts into shared helpers and adopt them across ECS/world modules.
+1. Consolidate duplicate JSON parsing helpers onto shared safe-json utilities.
+2. Replace remaining `as unknown as` seam casts with local guards/adapters in protocol/map-registry boundaries.
+3. Sweep any remaining branded-number casts into shared helpers and adopt across ECS/world modules.
 
 ## Follow-up execution (implemented)
 

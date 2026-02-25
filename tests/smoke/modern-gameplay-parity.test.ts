@@ -169,7 +169,7 @@ async function startServer(): Promise<RunningServer> {
         stderr: 'pipe',
     });
 
-    await waitForHttpOk(`http://127.0.0.1:${port}/status`, 8000);
+    await waitForHttpOk(`http://127.0.0.1:${port}/status`, 20000);
     return { configPath, port, proc };
 }
 

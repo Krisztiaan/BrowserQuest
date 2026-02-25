@@ -139,13 +139,13 @@ class Map {
                 worker = new Worker(resolveMapWorkerModuleUrl(), { type: 'module' });
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
-                log.error(`Map worker failed to initialize (${message}); falling back to main-thread map load.`);
-                self._loadMap(false, mapId);
+                self.loadError = `worker_init:${message}`;
+                log.error(`Map worker failed to initialize (${message}).`);
                 return;
             }
             let settled = false;
 
-            const fallbackToMainThread = (reason: string): void => {
+            const failWorkerLoad = (reason: string): void => {
                 if (settled) {
                     return;
                 }
@@ -155,8 +155,8 @@ class Map {
                 } catch (_e) {
                     // ignore
                 }
-                log.error(`Map worker failed (${reason}); falling back to main-thread map load.`);
-                self._loadMap(false, mapId);
+                self.loadError = `worker_failure:${reason}`;
+                log.error(`Map worker failed (${reason}).`);
             };
 
             worker.onmessage = function (event: MessageEvent<RuntimeMapPayload>) {
@@ -180,7 +180,7 @@ class Map {
                     settled = true;
                 } catch (error) {
                     const message = error instanceof Error ? error.message : String(error);
-                    fallbackToMainThread(`payload_error:${message}`);
+                    failWorkerLoad(`payload_error:${message}`);
                     return;
                 }
 
@@ -193,10 +193,10 @@ class Map {
 
             worker.onerror = function (event: Event) {
                 const message = event instanceof ErrorEvent ? event.message : 'unknown_error';
-                fallbackToMainThread(message);
+                failWorkerLoad(message);
             };
             worker.onmessageerror = function () {
-                fallbackToMainThread('message_error');
+                failWorkerLoad('message_error');
             };
 
             worker.postMessage({ mapId });

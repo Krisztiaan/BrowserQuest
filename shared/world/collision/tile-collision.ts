@@ -74,7 +74,7 @@ function aabbOverlapsAnyBlockedTile({
     for (let ty = yRange.min; ty <= yRange.max; ty += 1) {
         for (let tx = xRange.min; tx <= xRange.max; tx += 1) {
             if (isBlockedTile(tx, ty)) {
-                if (ignoreTiles && ignoreTiles.some((tile) => tile.x === tx && tile.y === ty)) {
+                if (ignoreTiles?.some((tile) => tile.x === tx && tile.y === ty)) {
                     continue;
                 }
                 return true;

@@ -422,7 +422,7 @@ test('move.input diagonal near dense world collisions never commits blocked tile
     const pack = JSON.parse(fs.readFileSync('assets/maps/runtime/map-pack.json', 'utf8')) as {
         maps?: Array<{ id?: string; server?: unknown }>;
     };
-    const worldRecord = pack.maps?.find((entry) => entry?.id === 'world')?.server;
+    const worldRecord = pack.maps?.find((entry) => entry.id === 'world')?.server;
     expect(worldRecord).toBeTruthy();
     if (!worldRecord) {
         throw new Error('Missing world server payload in map pack');
@@ -521,7 +521,15 @@ test('move.input diagonal near dense world collisions never commits blocked tile
 
     const moveTiles = delivered
         .filter((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE)
-        .map((msg) => ({ x: msg[2] as number, y: msg[3] as number }));
+        .map((msg) => {
+            const x = msg[2];
+            const y = msg[3];
+            if (typeof x !== 'number' || typeof y !== 'number') {
+                return null;
+            }
+            return { x, y };
+        })
+        .filter((tile): tile is { x: number; y: number } => tile !== null);
     expect(moveTiles.length).toBeGreaterThan(0);
     for (const tile of moveTiles) {
         expect(worldMap.isColliding(tile.x, tile.y)).toBe(false);

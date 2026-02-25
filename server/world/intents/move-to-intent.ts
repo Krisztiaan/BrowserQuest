@@ -91,14 +91,14 @@ function forceTileWalkable(grid: number[][], x: number, y: number): () => void {
         return () => {};
     }
     const row = grid[y];
-    if (!row || row[x] === undefined) {
+    if (row?.[x] === undefined) {
         return () => {};
     }
     const previous = row[x] ?? 0;
     row[x] = 0;
     return () => {
         const restoreRow = grid[y];
-        if (!restoreRow || restoreRow[x] === undefined) {
+        if (restoreRow?.[x] === undefined) {
             return;
         }
         restoreRow[x] = previous;
