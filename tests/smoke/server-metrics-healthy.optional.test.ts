@@ -61,7 +61,7 @@ maybeTest('optional: healthy metrics path starts with memcache backend and no fa
             debug_level: 'info',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './assets/maps/tiled/world.json',
+            map_filepath: './assets/maps/runtime/map-pack.json',
             metrics_enabled: true,
             memcached_host: memcachedHost,
             memcached_port: memcachedPort,

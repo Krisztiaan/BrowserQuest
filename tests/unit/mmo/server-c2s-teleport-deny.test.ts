@@ -25,8 +25,9 @@ function createPipelineFixture(params: {
     player: Player;
     isDoor: (x: number, y: number) => boolean;
     getDoorDestination: (x: number, y: number) => { x: number; y: number } | null;
+    resolveDoorTeleport?: (mapId: string, x: number, y: number) => { toMapId: string; to: { x: number; y: number } } | null;
 }): { pipeline: WorldEcsCommandPipeline; delivered: WorldMessage[] } {
-    const { player, isDoor, getDoorDestination } = params;
+    const { player, isDoor, getDoorDestination, resolveDoorTeleport } = params;
     const delivered: WorldMessage[] = [];
 
     const host = {
@@ -44,6 +45,7 @@ function createPipelineFixture(params: {
                 cb('g');
             },
         },
+        resolveDoorTeleport,
         getConnectionPlayerById(id: number) {
             return id === player.id ? player : null;
         },
@@ -123,6 +125,8 @@ test('server allowlists C2S TELEPORT only for door destinations (transitional)',
         player,
         isDoor: (x, y) => x === 5 && y === 5,
         getDoorDestination: (x, y) => (x === 5 && y === 5 ? { x: 10, y: 10 } : null),
+        resolveDoorTeleport: (mapId, x, y) =>
+            mapId === 'world' && x === 5 && y === 5 ? { toMapId: 'world', to: { x: 10, y: 10 } } : null,
     });
 
     pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(5, 5));

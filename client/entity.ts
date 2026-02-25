@@ -147,14 +147,21 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
         this.targetY = py;
     }
 
-    setWorldPositionSub(worldX: number, worldY: number): void {
+    setWorldPositionSub(worldX: number, worldY: number, options?: { snapRender?: boolean }): void {
         this.worldX = worldX;
         this.worldY = worldY;
         this.gridX = Math.floor(worldX / TILE_SUBPX);
         this.gridY = Math.floor(worldY / TILE_SUBPX);
         // Keep legacy renderer anchor: `x/y` is the tile top-left, while world pos is the entity center.
-        this.targetX = Math.floor(worldX / SUBPIXELS) - TILE_PX / 2;
-        this.targetY = Math.floor(worldY / SUBPIXELS) - TILE_PX / 2;
+        const targetX = Math.floor(worldX / SUBPIXELS) - TILE_PX / 2;
+        const targetY = Math.floor(worldY / SUBPIXELS) - TILE_PX / 2;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        if (options?.snapRender) {
+            // Local prediction path can set authoritative-rendered position directly to avoid double smoothing.
+            this.x = targetX;
+            this.y = targetY;
+        }
     }
 
     setSprite(sprite: SpriteLike | null): void {

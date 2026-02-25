@@ -31,7 +31,7 @@ function translateHello(
         closeInvalidPayload('Name is too long.');
         return null;
     }
-    let name = Utils.sanitize(rawName);
+    let name = Utils.stripControlChars(rawName);
     name = Utils.limitUtf8Bytes(name, NAME_MAX_UTF8_BYTES);
     name = Utils.limitCodePoints(name, NAME_MAX_CODEPOINTS);
 
@@ -102,7 +102,7 @@ export function translateClientActionToCommand(
                 closeInvalidPayload('Chat message is too long.');
                 return null;
             }
-            let chatMessage = Utils.sanitize(rawChat);
+            let chatMessage = Utils.stripControlChars(rawChat);
             chatMessage = Utils.limitUtf8Bytes(chatMessage, CHAT_MAX_UTF8_BYTES);
             chatMessage = Utils.limitCodePoints(chatMessage, CHAT_MAX_CODEPOINTS);
             if (!chatMessage) {
@@ -145,17 +145,8 @@ export function translateClientActionToCommand(
             }
         }
         case Types.Messages.ATTACK: {
-            const targetId = message[1];
-            if (typeof targetId !== 'number') {
-                closeInvalidPayload('Invalid ATTACK payload.');
-                return null;
-            }
-            try {
-                return { type: 'ATTACK', source, targetId: entityIdFromWire(targetId) };
-            } catch (err) {
-                closeInvalidPayload(`Invalid ATTACK target id: ${String(err)}`);
-                return null;
-            }
+            closeInvalidPayload('Legacy ATTACK opcode is unsupported. Use INTENT attack.entity.');
+            return null;
         }
         case Types.Messages.LOOT: {
             const droppedItemId = message[1];

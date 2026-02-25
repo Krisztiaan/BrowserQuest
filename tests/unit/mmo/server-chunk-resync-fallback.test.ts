@@ -4,7 +4,7 @@ import Player from '../../../server/player';
 import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { CHUNK_AOI_STATE_RESOURCE } from '../../../server/world/chunks/chunk-aoi';
-import { makeChunkKey } from '../../../server/world/chunks/chunk-overlay-store';
+import { makeScopedChunkKey } from '../../../server/world/chunks/chunk-overlay-store';
 import type { WorldMessage } from '../../../server/world/contracts';
 import type { ServerToClientProtocolAction } from '../../../shared/protocol/types';
 
@@ -142,7 +142,7 @@ test('delta version gaps are healed by snapshot resync fallback', () => {
     if (!sub) {
         return;
     }
-    const key = makeChunkKey(0, 0);
+    const key = makeScopedChunkKey('world', 0, 0);
 
     pipeline.chunkOverlays.setGlobal(1, 1, 123);
     const beforeTick2 = delivered.length;

@@ -72,7 +72,7 @@ async function clickTile(page: Page, x: number, y: number): Promise<{ ok: boolea
     );
 }
 
-test('door traversal teleports to a different tile and stays stable on repeated click', async ({ page }) => {
+test('door traversal supports stable world↔interior roundtrip on repeated click', async ({ page }) => {
     await startModernSession(page, 'modern-door-roundtrip');
 
     const originDoor = { x: 27, y: 209 };
@@ -103,5 +103,5 @@ test('door traversal teleports to a different tile and stays stable on repeated 
 
     await expect
         .poll(() => getPlayerPos(page), { timeout: 30_000 })
-        .toMatchObject({ ok: true, x: arrivalDoor.x, y: arrivalDoor.y });
+        .toMatchObject({ ok: true, x: originDoor.x, y: originDoor.y });
 });

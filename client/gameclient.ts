@@ -9,7 +9,6 @@ import {
 import {
     createAchievementAction,
     createAggroAction,
-    createAttackAction,
     createChatAction,
     createCheckAction,
     createChunkSubscribeAction,
@@ -55,6 +54,7 @@ import {
     encodeClaimCreateIntentPayload,
     encodeClaimDeleteIntentPayload,
     encodeClaimUpdateIntentPayload,
+    encodeAttackIntentPayload,
     encodeDoorTeleportIntentPayload,
     encodeMoveInputIntentPayload,
     encodeMoveToIntentPayload,
@@ -63,11 +63,15 @@ import {
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
+    INTENT_ATTACK,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
+    decodeMapTransitionOutcomePayload,
+    OUTCOME_MAP_TRANSITION_BEGIN,
+    OUTCOME_MAP_TRANSITION_COMMIT,
 } from '../shared/protocol/intents';
 import { nextIntentSeq } from '../shared/protocol/intent-seq';
 import { debugMoves } from './debug-flags';
@@ -147,7 +151,7 @@ export type GameClientEvents = {
     playerChangeHealth: [points: number, isRegen: boolean];
     playerEquipItem: [entityId: EntityId, itemKind: EntityKind];
     playerMoveToItem: [playerId: EntityId, itemId: EntityId];
-    playerTeleport: [entityId: EntityId, x: number, y: number];
+    playerTeleport: [entityId: EntityId, x: number, y: number, mapId?: string];
     chatMessage: [entityId: EntityId, text: string];
     dropItem: [item: RuntimeEntity, mobId: EntityId];
     playerDamageMob: [mobId: EntityId, points: number];
@@ -169,6 +173,8 @@ export type GameClientEvents = {
     intentRejected: [seq: number, intentTypeId: string, reason: string];
     intentAcked: [seq: number];
     correction: [seq: number, payload: CorrectionPayload];
+    mapTransitionBegin: [seq: number, fromMapId: string, toMapId: string, x: number, y: number];
+    mapTransitionCommit: [seq: number, fromMapId: string, toMapId: string, x: number, y: number];
 };
 
 export type GameClientEventSource = TypedEventSource<GameClientEvents>;
@@ -449,6 +455,12 @@ class GameClient extends Evented<GameClientEvents> {
 
     receiveSpawn(data: ClientInboundActionByOpcode<typeof Types.Messages.SPAWN>): void {
         const snapshot = decodeSpawnAction(data);
+        if (typeof snapshot.mapId === 'string') {
+            this.kernel.setEntityMapId(entityIdFromWire(snapshot.id), snapshot.mapId);
+            if (this.localPlayerId !== null && entityIdFromWire(snapshot.id) === this.localPlayerId) {
+                this.kernel.setActiveMapId(snapshot.mapId);
+            }
+        }
         const view = this.kernel.upsertFromSpawnSnapshot(snapshot);
         const adapted = adaptKernelEntityForRendering(this.kernel, view.id);
 
@@ -510,15 +522,21 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveTeleport(data: ClientInboundActionByOpcode<typeof Types.Messages.TELEPORT>): void {
-        const [, id, x, y] = data;
+        const [, id, x, y, mapId] = data;
         const entityId = entityIdFromWire(id);
         this.kernel.setPosition(entityId, x, y);
+        if (typeof mapId === 'string') {
+            this.kernel.setEntityMapId(entityId, mapId);
+        }
         if (this.localPlayerId !== null && entityId === this.localPlayerId) {
             this.kernel.clientMovementSuppressed = true;
             this.kernel.clearClientPendingMoveSeqAcks();
+            if (typeof mapId === 'string') {
+                this.kernel.setActiveMapId(mapId);
+            }
             debugMoves('in:TELEPORT', { entityId, x, y });
         }
-        this.emit('playerTeleport', entityId, x, y);
+        this.emit('playerTeleport', entityId, x, y, typeof mapId === 'string' ? mapId : undefined);
     }
 
     receiveDamage(data: ClientInboundActionByOpcode<typeof Types.Messages.DAMAGE>): void {
@@ -565,8 +583,26 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveOutcome(data: ClientInboundActionByOpcode<typeof Types.Messages.OUTCOME>): void {
-        const [, _seq, outcomeTypeId] = data;
+        const [, seq, outcomeTypeId, payload] = data;
         if (typeof outcomeTypeId !== 'string') {
+            return;
+        }
+        if (
+            outcomeTypeId === OUTCOME_MAP_TRANSITION_BEGIN
+            || outcomeTypeId === OUTCOME_MAP_TRANSITION_COMMIT
+        ) {
+            if (typeof seq !== 'number' || typeof payload !== 'string') {
+                return;
+            }
+            const transition = decodeMapTransitionOutcomePayload(payload);
+            if (!transition) {
+                return;
+            }
+            if (outcomeTypeId === OUTCOME_MAP_TRANSITION_BEGIN) {
+                this.emit('mapTransitionBegin', seq, transition.fromMapId, transition.toMapId, transition.x, transition.y);
+            } else {
+                this.emit('mapTransitionCommit', seq, transition.fromMapId, transition.toMapId, transition.x, transition.y);
+            }
             return;
         }
 
@@ -610,6 +646,7 @@ class GameClient extends Evented<GameClientEvents> {
         const seq = data[1];
         const a = data[2];
         const b = data[3];
+        const mapId = data[4];
         if (typeof seq !== 'number') {
             return;
         }
@@ -619,6 +656,10 @@ class GameClient extends Evented<GameClientEvents> {
             if (playerId !== null) {
                 this.kernel.clientMovementSuppressed = true;
                 this.kernel.clearClientPendingMoveSeqAcks();
+                if (typeof mapId === 'string') {
+                    this.kernel.setEntityMapId(playerId, mapId);
+                    this.kernel.setActiveMapId(mapId);
+                }
                 debugMoves('in:CORRECTION', { seq, x: a, y: b });
                 this.kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: playerId, x: a, y: b });
             }
@@ -628,13 +669,14 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     receiveMoveSync(data: ClientInboundActionByOpcode<typeof Types.Messages.MOVE_SYNC>): void {
-        const [, ackSeq, worldX, worldY, tick, flags] = data;
+        const [, ackSeq, worldX, worldY, tick, flags, mapId] = data;
         if (
             typeof ackSeq !== 'number'
             || typeof worldX !== 'number'
             || typeof worldY !== 'number'
             || typeof tick !== 'number'
             || typeof flags !== 'number'
+            || typeof mapId !== 'string'
         ) {
             return;
         }
@@ -646,6 +688,8 @@ class GameClient extends Evented<GameClientEvents> {
 
         this.kernel.pruneClientPendingMoveSeqAcksUpTo(ackSeq);
         this.kernel.setWorldPosition(playerId, worldX, worldY);
+        this.kernel.setEntityMapId(playerId, mapId);
+        this.kernel.setActiveMapId(mapId);
 
         const suppressed = (flags & 1) !== 0;
         this.kernel.clientMovementSuppressed = suppressed;
@@ -926,7 +970,14 @@ class GameClient extends Evented<GameClientEvents> {
     }
 
     sendAttack(mob: IdCarrier): void {
-        this.sendMessage(createAttackAction(toProtocolEntityId(mob.id)));
+        if (!this.supportsIntent(INTENT_ATTACK)) {
+            return;
+        }
+        const payloadBytes = encodeAttackIntentPayload({ targetId: toProtocolEntityId(mob.id) });
+        if (payloadBytes === null) {
+            return;
+        }
+        this.sendIntent(INTENT_ATTACK, payloadBytes);
     }
 
     sendChat(text: string): void {

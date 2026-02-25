@@ -5,6 +5,8 @@ type CameraRenderer = {
     tablet: boolean;
     tilesize: number;
     scale: number;
+    getWidth(): number;
+    getHeight(): number;
 };
 
 type CameraEntity = {
@@ -38,26 +40,15 @@ class Camera {
 
     rescale(): void {
         const renderer = this.renderer;
-        const isPhone = renderer.mobile && !renderer.tablet;
+        const tilePx = renderer.tilesize * renderer.scale;
+        const viewportW = Math.max(tilePx, renderer.getWidth());
+        const viewportH = Math.max(tilePx, renderer.getHeight());
 
-        if (isPhone) {
-            const tilePx = renderer.tilesize * renderer.scale;
-            const viewportW = window.innerWidth;
-            const viewportH = window.innerHeight;
-
-            const gridW = Math.floor(viewportW / tilePx);
-            const gridH = Math.floor(viewportH / tilePx);
-
-            this.gridW = Math.max(9, Math.min(29, gridW));
-            this.gridH = Math.max(7, Math.min(29, gridH));
-        } else {
-            const factor = 2;
-            this.gridW = 15 * factor;
-            this.gridH = 7 * factor;
-        }
+        this.gridW = Math.max(1, Math.ceil(viewportW / tilePx));
+        this.gridH = Math.max(1, Math.ceil(viewportH / tilePx));
 
         log.debug('---------');
-        log.debug('Phone:' + isPhone);
+        log.debug('Phone:' + (renderer.mobile && !renderer.tablet));
         log.debug('W:' + this.gridW + ' H:' + this.gridH);
     }
 

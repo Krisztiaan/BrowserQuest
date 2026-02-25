@@ -3,6 +3,7 @@ import { gridPos } from '../../../shared/domain/positions';
 import { INTENT_MOVE_TO } from '../../../shared/protocol/intents';
 import { createResourceKey } from '../../../server/ecs/resources';
 import { WorldState } from '../../../server/ecs/world-state';
+import { SparseSetStore } from '../../../server/ecs/component-store';
 import { registerMobAiComponents } from '../../../server/ecs/mob-ai-components';
 import { registerMovementComponents } from '../../../server/ecs/movement-components';
 import type { Command } from '../../../server/ecs/commands';
@@ -86,6 +87,7 @@ test('core module registry decodes MOVE_TO payload records for INTENT(move.to)',
     const replication = registerSpawnReplicationComponents(state.world);
     const movement = registerMovementComponents(state.world);
     const mobAi = registerMobAiComponents(state.world);
+    const MapId = state.world.components.register('MapId', new SparseSetStore<string>());
 
     const playerId = state.world.createEntity();
     const player = makePlayerLike(playerId, 0, 0);
@@ -99,6 +101,7 @@ test('core module registry decodes MOVE_TO payload records for INTENT(move.to)',
         world: { map: { getDoorDestination: () => null }, isValidPosition: () => true },
         player,
         Position: replication.Position,
+        MapId,
         Target: replication.Target,
         movement,
         mobAi,

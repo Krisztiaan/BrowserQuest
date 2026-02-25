@@ -72,3 +72,45 @@ test('dead local player clears stale mob attack links from replication sync', ()
     expect(kernel.clientReplicationLastTarget.has(mobId)).toBe(false);
     expect(kernel.target.has(mobId)).toBe(false);
 });
+
+test('replication sync removes entities outside the active map scope', () => {
+    const kernel = new ClientWorldKernel();
+    const playerId = entityIdFromWire(10);
+    const mobId = entityIdFromWire(11);
+
+    kernel.upsertFromSpawnSnapshot({
+        id: 10,
+        kind: Types.Entities.WARRIOR,
+        x: 1,
+        y: 1,
+        mapId: 'world',
+        extras: {
+            type: 'player',
+            name: 'K',
+            orientation: Types.Orientations.DOWN,
+            armor: Types.Entities.CLOTHARMOR,
+            weapon: Types.Entities.SWORD1,
+        },
+    });
+    kernel.upsertFromSpawnSnapshot({
+        id: 11,
+        kind: Types.Entities.RAT,
+        x: 2,
+        y: 2,
+        mapId: 'house',
+        extras: { type: 'mob', orientation: Types.Orientations.DOWN },
+    });
+
+    kernel.clientReplicationKnownAlive.add(playerId);
+    kernel.clientReplicationKnownAlive.add(mobId);
+    kernel.clientReplicationLastPos.set(playerId, gridPos(1, 1));
+    kernel.clientReplicationLastPos.set(mobId, gridPos(2, 2));
+    kernel.setActiveMapId('world');
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId });
+    const cmds = kernel.drainClientCommands();
+
+    expect(cmds).toContainEqual({ type: 'removeEntityById', entityId: mobId });
+    expect(cmds).not.toContainEqual({ type: 'removeEntityById', entityId: playerId });
+    expect(kernel.clientReplicationKnownAlive.has(mobId)).toBe(false);
+});

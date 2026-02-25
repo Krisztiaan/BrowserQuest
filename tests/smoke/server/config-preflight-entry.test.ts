@@ -30,7 +30,7 @@ test('server entry fails fast with preflight error for invalid config', async ()
             debug_level: 'info',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './assets/maps/tiled/world.json',
+            map_filepath: './assets/maps/runtime/map-pack.json',
             metrics_enabled: false,
         })
     );
@@ -108,5 +108,5 @@ test('server entry fails fast when configured map payload shape is invalid', asy
     expect(code).toBe(1);
 
     const [stdoutText, stderrText] = await Promise.all([readStreamText(proc.stdout), readStreamText(proc.stderr)]);
-    expect(`${stdoutText}\n${stderrText}`).toContain('Startup preflight: map file contains invalid map payload:');
+    expect(`${stdoutText}\n${stderrText}`).toContain('Startup preflight: map pack file has invalid schema:');
 });

@@ -11,6 +11,18 @@ import { MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_S, MOVE_INPUT_KEY_W 
 
 let app: App | null = null;
 let game: Game | null = null;
+let queuedResizeFrame: number | null = null;
+
+const scheduleUiResize = function (): void {
+    if (queuedResizeFrame !== null) {
+        return;
+    }
+
+    queuedResizeFrame = window.requestAnimationFrame(() => {
+        queuedResizeFrame = null;
+        app?.resizeUi();
+    });
+};
 
 const initApp = function (): void {
     const onReady = function (): void {
@@ -246,7 +258,7 @@ const initApp = function (): void {
         if (data.hasAlreadyPlayed) {
             if (data.player.name && data.player.name !== '') {
                 if (playerName) {
-                    playerName.innerHTML = data.player.name;
+                    playerName.textContent = data.player.name;
                 }
             }
         }
@@ -254,7 +266,7 @@ const initApp = function (): void {
         document.querySelectorAll('.play div').forEach(function (element: Element) {
             element.addEventListener('click', function () {
                 const nameFromInput = nameInput?.getAttribute('value') ?? '';
-                const nameFromStorage = playerName?.innerHTML ?? '';
+                const nameFromStorage = playerName?.textContent ?? '';
                 const name = nameFromInput !== '' ? nameFromInput : nameFromStorage;
 
                 app.tryStartingGame(name, undefined);
@@ -266,6 +278,10 @@ const initApp = function (): void {
         if (resizeCheck) {
             resizeCheck.addEventListener(TRANSITIONEND, () => app.resizeUi());
         }
+
+        window.addEventListener('resize', scheduleUiResize);
+        window.addEventListener('orientationchange', scheduleUiResize);
+        window.visualViewport?.addEventListener('resize', scheduleUiResize);
 
             log.info('App initialized.');
 
@@ -317,7 +333,11 @@ function initGame(): void {
                     const deathParagraph = document.querySelector('#death p'),
                         respawn = document.getElementById('respawn');
                     if (deathParagraph) {
-                        deathParagraph.innerHTML = message + '<em>Please reload the page.</em>';
+                        deathParagraph.textContent = '';
+                        deathParagraph.appendChild(document.createTextNode(message));
+                        const em = document.createElement('em');
+                        em.textContent = 'Please reload the page.';
+                        deathParagraph.appendChild(em);
                     }
                     if (respawn) {
                         respawn.style.display = 'none';

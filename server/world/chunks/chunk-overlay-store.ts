@@ -1,6 +1,7 @@
 export type ChunkCoord = Readonly<{ x: number; y: number }>;
 
 export type ChunkOverlaySnapshot = Readonly<{
+    mapId: string;
     chunkX: number;
     chunkY: number;
     version: number;
@@ -17,7 +18,12 @@ export function makeChunkKey(chunkX: number, chunkY: number): bigint {
     return (BigInt(toUint32(chunkX)) << 32n) | BigInt(toUint32(chunkY));
 }
 
+export function makeScopedChunkKey(mapId: string, chunkX: number, chunkY: number): string {
+    return `${mapId}:${chunkX}:${chunkY}`;
+}
+
 export class ChunkOverlay {
+    readonly mapId: string;
     readonly chunkX: number;
     readonly chunkY: number;
     readonly size: number;
@@ -31,7 +37,8 @@ export class ChunkOverlay {
     readonly #pendingDeltaMask: Uint8Array;
     readonly #pendingDeltaIndices: number[] = [];
 
-    constructor({ chunkX, chunkY, size }: { chunkX: number; chunkY: number; size: number }) {
+    constructor({ mapId, chunkX, chunkY, size }: { mapId: string; chunkX: number; chunkY: number; size: number }) {
+        this.mapId = mapId;
         this.chunkX = chunkX;
         this.chunkY = chunkY;
         this.size = size;
@@ -141,6 +148,7 @@ export class ChunkOverlay {
 
     snapshot(): ChunkOverlaySnapshot {
         return Object.freeze({
+            mapId: this.mapId,
             chunkX: this.chunkX,
             chunkY: this.chunkY,
             version: this.version,
@@ -153,9 +161,9 @@ export class ChunkOverlay {
 export class ChunkOverlayStore {
     readonly chunkSize: number;
 
-    readonly #overlays = new Map<bigint, ChunkOverlay>();
-    readonly #dirtyKeys = new Set<bigint>();
-    readonly #pendingDeltaKeys = new Set<bigint>();
+    readonly #overlays = new Map<string, ChunkOverlay>();
+    readonly #dirtyKeys = new Set<string>();
+    readonly #pendingDeltaKeys = new Set<string>();
 
     constructor({ chunkSize }: { chunkSize: number }) {
         if (!Number.isInteger(chunkSize) || chunkSize <= 0 || chunkSize > 256) {
@@ -164,34 +172,45 @@ export class ChunkOverlayStore {
         this.chunkSize = chunkSize;
     }
 
-    getChunk(chunkX: number, chunkY: number): ChunkOverlay | null {
-        return this.#overlays.get(makeChunkKey(chunkX, chunkY)) ?? null;
+    #normalizeMapId(mapId: string): string {
+        const trimmed = mapId.trim();
+        if (trimmed.length === 0) {
+            throw new Error('ChunkOverlayStore: mapId is required');
+        }
+        return trimmed;
     }
 
-    getOrCreateChunk(chunkX: number, chunkY: number): ChunkOverlay {
-        const key = makeChunkKey(chunkX, chunkY);
+    getChunk(chunkX: number, chunkY: number, mapId = 'world'): ChunkOverlay | null {
+        const scopedKey = makeScopedChunkKey(this.#normalizeMapId(mapId), chunkX, chunkY);
+        return this.#overlays.get(scopedKey) ?? null;
+    }
+
+    getOrCreateChunk(chunkX: number, chunkY: number, mapId = 'world'): ChunkOverlay {
+        const normalizedMapId = this.#normalizeMapId(mapId);
+        const key = makeScopedChunkKey(normalizedMapId, chunkX, chunkY);
         const existing = this.#overlays.get(key);
         if (existing) {
             return existing;
         }
-        const created = new ChunkOverlay({ chunkX, chunkY, size: this.chunkSize });
+        const created = new ChunkOverlay({ mapId: normalizedMapId, chunkX, chunkY, size: this.chunkSize });
         this.#overlays.set(key, created);
         return created;
     }
 
-    getGlobal(x: number, y: number): number | null {
+    getGlobal(x: number, y: number, mapId = 'world'): number | null {
         const { chunkX, chunkY, localX, localY } = this.#toChunkLocal(x, y);
-        const chunk = this.getChunk(chunkX, chunkY);
+        const chunk = this.getChunk(chunkX, chunkY, mapId);
         if (!chunk) {
             return null;
         }
         return chunk.getLocal(localX, localY);
     }
 
-    setGlobal(x: number, y: number, value: number): boolean {
+    setGlobal(x: number, y: number, value: number, mapId = 'world'): boolean {
         const { chunkX, chunkY, localX, localY } = this.#toChunkLocal(x, y);
-        const key = makeChunkKey(chunkX, chunkY);
-        const chunk = this.getOrCreateChunk(chunkX, chunkY);
+        const normalizedMapId = this.#normalizeMapId(mapId);
+        const key = makeScopedChunkKey(normalizedMapId, chunkX, chunkY);
+        const chunk = this.getOrCreateChunk(chunkX, chunkY, normalizedMapId);
         const changed = chunk.setLocal(localX, localY, value);
         if (changed) {
             this.#dirtyKeys.add(key);
@@ -200,10 +219,11 @@ export class ChunkOverlayStore {
         return changed;
     }
 
-    clearGlobal(x: number, y: number): boolean {
+    clearGlobal(x: number, y: number, mapId = 'world'): boolean {
         const { chunkX, chunkY, localX, localY } = this.#toChunkLocal(x, y);
-        const key = makeChunkKey(chunkX, chunkY);
-        const chunk = this.getChunk(chunkX, chunkY);
+        const normalizedMapId = this.#normalizeMapId(mapId);
+        const key = makeScopedChunkKey(normalizedMapId, chunkX, chunkY);
+        const chunk = this.getChunk(chunkX, chunkY, normalizedMapId);
         if (!chunk) {
             return false;
         }
@@ -243,8 +263,8 @@ export class ChunkOverlayStore {
         return out;
     }
 
-    drainPendingDeltaForChunk(chunkX: number, chunkY: number): ReturnType<ChunkOverlay['drainPendingDelta']> {
-        const key = makeChunkKey(chunkX, chunkY);
+    drainPendingDeltaForChunk(chunkX: number, chunkY: number, mapId = 'world'): ReturnType<ChunkOverlay['drainPendingDelta']> {
+        const key = makeScopedChunkKey(this.#normalizeMapId(mapId), chunkX, chunkY);
         const chunk = this.#overlays.get(key);
         if (!chunk) {
             this.#pendingDeltaKeys.delete(key);
@@ -257,8 +277,8 @@ export class ChunkOverlayStore {
         return delta;
     }
 
-    markChunkClean(chunkX: number, chunkY: number): void {
-        const key = makeChunkKey(chunkX, chunkY);
+    markChunkClean(chunkX: number, chunkY: number, mapId = 'world'): void {
+        const key = makeScopedChunkKey(this.#normalizeMapId(mapId), chunkX, chunkY);
         const chunk = this.#overlays.get(key);
         if (chunk) {
             chunk.markClean();

@@ -7,6 +7,11 @@ test('utils sanitize escapes html and strips control chars', () => {
     expect(sanitized).toBe('&lt;script&gt;&#39;x&#39;&lt;/script&gt;');
 });
 
+test('utils stripControlChars removes control chars without escaping', () => {
+    const stripped = Utils.stripControlChars("<script>\u0000'x'</script>");
+    expect(stripped).toBe("<script>'x'</script>");
+});
+
 test('utils utf8 helpers enforce byte limits', () => {
     expect(Utils.utf8ByteLength('abc')).toBe(3);
     expect(Utils.hasMaxUtf8Bytes('abc', 3)).toBe(true);

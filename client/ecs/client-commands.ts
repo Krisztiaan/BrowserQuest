@@ -80,9 +80,13 @@ export type ClientCommand =
     | Readonly<{ type: 'emitNotification'; message: string }>
     | Readonly<{ type: 'applyWelcome'; id: EntityId; name: string; x: number; y: number; maxHp: number }>
     | Readonly<{ type: 'invokeConnectionStartedCallback' }>
+    | Readonly<{ type: 'beginMapTransition'; seq: number; fromMapId: string; toMapId: string; x: number; y: number }>
+    | Readonly<{ type: 'commitMapTransition'; seq: number; fromMapId: string; toMapId: string; x: number; y: number }>
+    | Readonly<{ type: 'mapTransitionMapActivated'; seq: number; toMapId: string }>
+    | Readonly<{ type: 'mapTransitionMapFailed'; seq: number; toMapId: string; reason: string }>
     | Readonly<{ type: 'emitNbPlayersChange'; worldPlayers: number; totalPlayers: number }>
     | Readonly<{ type: 'applyEntityList'; list: EntityId[] }>
-    | Readonly<{ type: 'teleportEntity'; entityId: EntityId; x: number; y: number }>
+    | Readonly<{ type: 'teleportEntity'; entityId: EntityId; x: number; y: number; mapId?: string }>
     | Readonly<{ type: 'playerMoveToItem'; playerId: EntityId; itemId: EntityId }>
     | Readonly<{ type: 'setPlayerHealth'; points: number; isRegen: boolean }>
     | Readonly<{ type: 'setPlayerMaxHitPoints'; maxHp: number }>

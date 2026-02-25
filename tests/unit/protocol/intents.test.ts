@@ -2,23 +2,28 @@ import { expect, test } from 'bun:test';
 import {
     decodeClaimCreateIntentPayload,
     decodeClaimDeleteIntentPayload,
+    decodeAttackIntentPayload,
     decodeClaimUpdateIntentPayload,
     decodeDoorTeleportIntentPayload,
     decodeMoveInputIntentPayload,
+    decodeMapTransitionOutcomePayload,
     decodeMoveStepIntentPayload,
     decodeMoveToIntentPayload,
     decodeTileEditIntentPayload,
     encodeClaimCreateIntentPayload,
     encodeClaimDeleteIntentPayload,
+    encodeAttackIntentPayload,
     encodeClaimUpdateIntentPayload,
     encodeDoorTeleportIntentPayload,
     encodeMoveInputIntentPayload,
+    encodeMapTransitionOutcomePayload,
     encodeMoveStepIntentPayload,
     encodeMoveToIntentPayload,
     encodeTileEditIntentPayload,
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
+    INTENT_ATTACK,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
     INTENT_MOVE_STEP,
@@ -29,18 +34,23 @@ import {
     MOVE_INPUT_KEY_S,
     MOVE_INPUT_KEY_W,
     OUTCOME_DOOR_TELEPORT,
+    OUTCOME_MAP_TRANSITION_BEGIN,
+    OUTCOME_MAP_TRANSITION_COMMIT,
 } from '../../../shared/protocol/intents';
 
 test('intent id constants remain stable', () => {
     expect(INTENT_MOVE_STEP).toBe('move.step');
     expect(INTENT_MOVE_TO).toBe('move.to');
     expect(INTENT_MOVE_INPUT).toBe('move.input');
+    expect(INTENT_ATTACK).toBe('attack.entity');
     expect(INTENT_DOOR_TELEPORT).toBe('door.teleport');
     expect(INTENT_TILE_EDIT).toBe('tile.edit');
     expect(INTENT_CLAIM_CREATE).toBe('claim.create');
     expect(INTENT_CLAIM_UPDATE).toBe('claim.update');
     expect(INTENT_CLAIM_DELETE).toBe('claim.delete');
     expect(OUTCOME_DOOR_TELEPORT).toBe('teleport.door');
+    expect(OUTCOME_MAP_TRANSITION_BEGIN).toBe('map.transition.begin');
+    expect(OUTCOME_MAP_TRANSITION_COMMIT).toBe('map.transition.commit');
 });
 
 test('move/door intent codecs round-trip valid payloads', () => {
@@ -69,6 +79,16 @@ test('move.input codec accepts only WASD bits and round-trips', () => {
 
     expect(encodeMoveInputIntentPayload({ keysMask: 0xff })).toBeNull();
     expect(decodeMoveInputIntentPayload([0xff])).toBeNull();
+});
+
+test('attack intent codec validates target id bounds and round-trips', () => {
+    const bytes = encodeAttackIntentPayload({ targetId: 42 });
+    expect(bytes).toEqual([42, 0, 0, 0]);
+    expect(decodeAttackIntentPayload(bytes ?? [])).toEqual({ targetId: 42 });
+
+    expect(encodeAttackIntentPayload({ targetId: -1 })).toBeNull();
+    expect(decodeAttackIntentPayload([255, 255, 255, 255])).toBeNull();
+    expect(decodeAttackIntentPayload([1, 0, 0])).toBeNull();
 });
 
 test('tile edit codec validates bounds and nullable values', () => {
@@ -130,4 +150,21 @@ test('claim intent decoders reject invalid payloads', () => {
 
 test('move.to decoder rejects invalid flag bits', () => {
     expect(decodeMoveToIntentPayload([12, 0, 0, 0, 7, 0, 0, 0, 2])).toBeNull();
+});
+
+test('map transition outcome payload codec round-trips valid payloads', () => {
+    const payload = encodeMapTransitionOutcomePayload({
+        fromMapId: 'overworld',
+        toMapId: 'house_01',
+        x: 10,
+        y: 11,
+    });
+    expect(payload).toBe('{"fromMapId":"overworld","toMapId":"house_01","x":10,"y":11}');
+    expect(decodeMapTransitionOutcomePayload(payload ?? '')).toEqual({
+        fromMapId: 'overworld',
+        toMapId: 'house_01',
+        x: 10,
+        y: 11,
+    });
+    expect(decodeMapTransitionOutcomePayload('{"fromMapId":"","toMapId":"house_01","x":10,"y":11}')).toBeNull();
 });

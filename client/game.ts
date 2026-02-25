@@ -29,7 +29,7 @@ import type GameClient from './gameclient';
 import type { RuntimeEntity } from './client-boundary-types';
 import AudioManager from './audio';
 import Transition from './transition';
-import type Pathfinder from './pathfinder';
+import Pathfinder from './pathfinder';
 import type Camera from './camera';
 import { createAchievementDefinitions } from './game-achievements';
 import type { AchievementDefinition } from './game-achievements';
@@ -409,9 +409,9 @@ class Game extends Evented<GameEvents> {
         this.bubbleManager = bubbleManager;
     }
 
-    loadMap(): void {
+    loadMap(mapId = this.kernel.activeMapId ?? 'world'): void {
         const renderer = this.renderer;
-        const map = new GameMap(!renderer.upscaledRendering, this);
+        const map = new GameMap(!renderer.upscaledRendering, this, mapId);
         this.map = map;
         map.setCollisionOverrideResolver((x, y) => this.kernel.clientChunkOverlayCache.getGlobal(x, y));
 
@@ -420,6 +420,34 @@ class Game extends Evented<GameEvents> {
             const tilesetIndex = renderer.upscaledRendering ? 0 : renderer.scale - 1;
             renderer.setTileset(map.tilesets[tilesetIndex]);
         });
+    }
+
+    async loadMapById(mapId: string): Promise<void> {
+        const nextMapId = mapId.trim();
+        if (nextMapId.length === 0) {
+            throw new Error('Map id must be a non-empty string.');
+        }
+        const map = this.map;
+        if (!map) {
+            throw new Error('Cannot switch maps before initial map runtime is loaded.');
+        }
+        if (map.mapId === nextMapId) {
+            return;
+        }
+
+        await map.loadRuntimeMapById(nextMapId);
+        map.setCollisionOverrideResolver((x, y) => this.kernel.clientChunkOverlayCache.getGlobal(x, y));
+
+        const tilesetIndex = this.renderer.upscaledRendering ? 0 : this.renderer.scale - 1;
+        this.renderer.setTileset(map.tilesets[tilesetIndex]);
+
+        this.kernel.resetClientSpatialState(map.grid);
+        this.kernel.clientChunkOverlayCache.clear();
+        this.setPathfinder(new Pathfinder(map.width, map.height));
+
+        this.initMusicAreas();
+        this.initAnimatedTiles();
+        this.resetZone();
     }
 
     initPlayer(): void {
@@ -672,6 +700,7 @@ class Game extends Evented<GameEvents> {
         if (!map || !audioManager) {
             return;
         }
+        audioManager.areas = [];
         map.musicAreas.forEach(function (area: { x: number; y: number; w: number; h: number; id: MusicKey }) {
             audioManager.addArea(area.x, area.y, area.w, area.h, area.id);
         });
@@ -795,11 +824,14 @@ class Game extends Evented<GameEvents> {
             my = this.mouse.y,
             c = this.renderer.camera,
             s = this.renderer.scale,
-            ts = this.renderer.tilesize,
-            offsetX = mx % (ts * s),
-            offsetY = my % (ts * s),
-            x = (mx - offsetX) / (ts * s) + c.gridX,
-            y = (my - offsetY) / (ts * s) + c.gridY;
+            ts = this.renderer.tilesize;
+
+        // Use precise camera world coordinates (not floored gridX/gridY) so mouse picking stays aligned
+        // while camera follows sub-tile reconciliation/smoothing.
+        const worldX = mx / s + c.x;
+        const worldY = my / s + c.y;
+        const x = Math.floor(worldX / ts);
+        const y = Math.floor(worldY / ts);
 
         return { x: x, y: y };
     }
@@ -1200,16 +1232,18 @@ class Game extends Evented<GameEvents> {
 
     resetCamera(): void {
         if (this.map) {
-            const w = this.camera.gridW - 2;
-            const h = this.camera.gridH - 2;
-            const maxGridX = Math.max(0, this.map.width - this.camera.gridW);
-            const maxGridY = Math.max(0, this.map.height - this.camera.gridH);
-            const desiredX = Math.floor((this.player.gridX - 1) / w) * w;
-            const desiredY = Math.floor((this.player.gridY - 1) / h) * h;
-            this.camera.setGridPosition(
-                Math.max(0, Math.min(desiredX, maxGridX)),
-                Math.max(0, Math.min(desiredY, maxGridY))
-            );
+            const bounds = this.resolveCameraWorldBounds();
+            if (bounds) {
+                const viewportWorldWidth = this.renderer.getWidth() / this.renderer.scale;
+                const viewportWorldHeight = this.renderer.getHeight() / this.renderer.scale;
+                const desiredX = Math.round(this.player.x - (viewportWorldWidth / 2));
+                const desiredY = Math.round(this.player.y - (viewportWorldHeight / 2));
+
+                this.camera.setPosition(
+                    Math.max(bounds.minX, Math.min(desiredX, bounds.maxX)),
+                    Math.max(bounds.minY, Math.min(desiredY, bounds.maxY))
+                );
+            }
         } else {
             this.camera.focusEntity(this.player);
         }
@@ -1320,9 +1354,43 @@ class Game extends Evented<GameEvents> {
 
         this.renderer.rescale(newScale);
         this.camera = this.renderer.camera;
-        this.camera.setPosition(x, y);
+        const bounds = this.resolveCameraWorldBounds();
+        if (bounds) {
+            this.camera.setPosition(
+                Math.max(bounds.minX, Math.min(x, bounds.maxX)),
+                Math.max(bounds.minY, Math.min(y, bounds.maxY))
+            );
+        } else {
+            this.camera.setPosition(x, y);
+        }
 
-        this.renderer.renderStaticCanvases();
+        this.resetZone();
+    }
+
+    resolveCameraWorldBounds():
+        | {
+              minX: number;
+              maxX: number;
+              minY: number;
+              maxY: number;
+          }
+        | null {
+        const map = this.map;
+        if (!map) {
+            return null;
+        }
+
+        const mapWorldWidth = map.width * this.renderer.tilesize;
+        const mapWorldHeight = map.height * this.renderer.tilesize;
+        const viewportWorldWidth = this.renderer.getWidth() / this.renderer.scale;
+        const viewportWorldHeight = this.renderer.getHeight() / this.renderer.scale;
+
+        const minX = mapWorldWidth <= viewportWorldWidth ? -(viewportWorldWidth - mapWorldWidth) / 2 : 0;
+        const minY = mapWorldHeight <= viewportWorldHeight ? -(viewportWorldHeight - mapWorldHeight) / 2 : 0;
+        const maxX = mapWorldWidth <= viewportWorldWidth ? minX : mapWorldWidth - viewportWorldWidth;
+        const maxY = mapWorldHeight <= viewportWorldHeight ? minY : mapWorldHeight - viewportWorldHeight;
+
+        return { minX, maxX, minY, maxY };
     }
 
     updateBars(): void {

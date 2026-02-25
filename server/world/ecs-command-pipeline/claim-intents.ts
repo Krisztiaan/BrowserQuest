@@ -12,6 +12,7 @@ const MAX_CLAIM_AREA_TILES = 64 * 64;
 
 export type ClaimIntentWorldHost = Readonly<{
     isValidPosition(x: number, y: number): boolean;
+    isValidPositionForMap?(mapId: string, x: number, y: number): boolean;
     persistClaimUpsert?(claim: RectClaim): void;
     persistClaimDelete?(claimId: number): void;
 }>;
@@ -33,12 +34,14 @@ function resolveClaimBounds(x1: number, y1: number, x2: number, y2: number): { x
 
 function validateClaimBounds({
     world,
+    mapId,
     x1,
     y1,
     x2,
     y2,
 }: {
     world: ClaimIntentWorldHost;
+    mapId: string;
     x1: number;
     y1: number;
     x2: number;
@@ -54,7 +57,10 @@ function validateClaimBounds({
         return { ok: false, reason: 'CLAIM:coords_out_of_range' };
     }
 
-    if (!world.isValidPosition(bounds.x1, bounds.y1) || !world.isValidPosition(bounds.x2, bounds.y2)) {
+    const isValidPosition = world.isValidPositionForMap
+        ? (x: number, y: number) => world.isValidPositionForMap?.(mapId, x, y) === true
+        : (x: number, y: number) => world.isValidPosition(x, y);
+    if (!isValidPosition(bounds.x1, bounds.y1) || !isValidPosition(bounds.x2, bounds.y2)) {
         return { ok: false, reason: 'CLAIM:out_of_bounds' };
     }
 
@@ -86,12 +92,14 @@ export function applyClaimCreateIntent({
     player,
     cmd,
     limits,
+    mapId = 'world',
 }: {
     state: WorldState<Command, DomainEvent>;
     world: ClaimIntentWorldHost;
     player: PlayerLike;
     cmd: Extract<Command, { type: 'CLAIM_CREATE' }>;
     limits: ClaimIntentLimits;
+    mapId?: string;
 }): ClaimIntentResult {
     const actorNameKey = resolveActorNameKey(player);
     if (!actorNameKey) {
@@ -99,12 +107,13 @@ export function applyClaimCreateIntent({
     }
 
     const claims = state.resources.require(CLAIMS_STORE_RESOURCE);
-    if (claims.countClaimsByOwner(actorNameKey) >= limits.maxClaimsPerOwner) {
+    if (claims.countClaimsByOwner(actorNameKey, mapId) >= limits.maxClaimsPerOwner) {
         return { ok: false, reason: 'CLAIM:owner_quota_exceeded' };
     }
 
     const boundsValidation = validateClaimBounds({
         world,
+        mapId,
         x1: cmd.x1,
         y1: cmd.y1,
         x2: cmd.x2,
@@ -115,7 +124,7 @@ export function applyClaimCreateIntent({
     }
     const { bounds } = boundsValidation;
 
-    const overlap = claims.findFirstOverlappingClaim(bounds);
+    const overlap = claims.findFirstOverlappingClaim({ mapId, ...bounds });
     if (overlap) {
         return { ok: false, reason: 'CLAIM:overlap' };
     }
@@ -124,6 +133,7 @@ export function applyClaimCreateIntent({
     let claim: RectClaim;
     try {
         claim = claims.createClaim({
+            mapId,
             ownerName: actorNameKey,
             editorNameKeys,
             x1: bounds.x1,
@@ -144,12 +154,14 @@ export function applyClaimUpdateIntent({
     player,
     cmd,
     limits,
+    mapId = 'world',
 }: {
     state: WorldState<Command, DomainEvent>;
     world: ClaimIntentWorldHost;
     player: PlayerLike;
     cmd: Extract<Command, { type: 'CLAIM_UPDATE' }>;
     limits: ClaimIntentLimits;
+    mapId?: string;
 }): ClaimIntentResult {
     const actorNameKey = resolveActorNameKey(player);
     if (!actorNameKey) {
@@ -161,6 +173,9 @@ export function applyClaimUpdateIntent({
     if (!claim) {
         return { ok: false, reason: 'CLAIM:not_found' };
     }
+    if (claim.mapId !== mapId) {
+        return { ok: false, reason: 'CLAIM:not_found' };
+    }
 
     const editDecision = canEditClaim({ actorName: actorNameKey, claim });
     if (!editDecision.ok) {
@@ -169,6 +184,7 @@ export function applyClaimUpdateIntent({
 
     const boundsValidation = validateClaimBounds({
         world,
+        mapId,
         x1: cmd.x1,
         y1: cmd.y1,
         x2: cmd.x2,
@@ -179,7 +195,7 @@ export function applyClaimUpdateIntent({
     }
     const { bounds } = boundsValidation;
 
-    const overlap = claims.findFirstOverlappingClaim({ ...bounds, excludeClaimId: claim.id });
+    const overlap = claims.findFirstOverlappingClaim({ mapId, ...bounds, excludeClaimId: claim.id });
     if (overlap) {
         return { ok: false, reason: 'CLAIM:overlap' };
     }
@@ -225,11 +241,13 @@ export function applyClaimDeleteIntent({
     world,
     player,
     cmd,
+    mapId = 'world',
 }: {
     state: WorldState<Command, DomainEvent>;
     world: ClaimIntentWorldHost;
     player: PlayerLike;
     cmd: Extract<Command, { type: 'CLAIM_DELETE' }>;
+    mapId?: string;
 }): ClaimIntentResult {
     const actorNameKey = resolveActorNameKey(player);
     if (!actorNameKey) {
@@ -239,6 +257,9 @@ export function applyClaimDeleteIntent({
     const claims = state.resources.require(CLAIMS_STORE_RESOURCE);
     const claim = claims.getClaimById(cmd.claimId);
     if (!claim) {
+        return { ok: false, reason: 'CLAIM:not_found' };
+    }
+    if (claim.mapId !== mapId) {
         return { ok: false, reason: 'CLAIM:not_found' };
     }
 

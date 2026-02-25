@@ -1,6 +1,10 @@
 import { expect, test } from 'bun:test';
 import { SUBPIXELS, TILE_SUBPX, tileToWorldPosCenter, worldDelta } from '../../shared/world/worldpos';
-import { resolveSubTileMotionAgainstTiles } from '../../shared/world/collision/tile-collision';
+import {
+    clampWorldPosInsideMap,
+    resolveSubTileMotionAgainstTiles,
+    worldPosOverlapsBlockedTiles,
+} from '../../shared/world/collision/tile-collision';
 
 function makeBlocked(tiles: Array<{ x: number; y: number }>): (x: number, y: number) => boolean {
     const key = (x: number, y: number) => `${x},${y}`;
@@ -65,3 +69,44 @@ test('tile collision does not tunnel through thin walls for large deltas (sub-st
     expect(res.pos.y).toBe(start.y);
 });
 
+test('clampWorldPosInsideMap keeps world position inside map extents', () => {
+    const halfExtents = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
+    const clamped = clampWorldPosInsideMap({
+        pos: { x: -999, y: 999999 },
+        halfExtents,
+        mapWidthTiles: 4,
+        mapHeightTiles: 3,
+    });
+
+    expect(clamped.x).toBe(halfExtents.hx);
+    expect(clamped.y).toBe(3 * TILE_SUBPX - halfExtents.hy);
+});
+
+test('clampWorldPosInsideMap is a no-op when map dimensions are invalid', () => {
+    const halfExtents = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
+    const unchanged = clampWorldPosInsideMap({
+        pos: { x: -123, y: 456 },
+        halfExtents,
+        mapWidthTiles: 0,
+        mapHeightTiles: 0,
+    });
+
+    expect(unchanged).toEqual({ x: -123, y: 456 });
+});
+
+test('worldPosOverlapsBlockedTiles detects overlaps for a sub-tile AABB', () => {
+    const isBlocked = makeBlocked([{ x: 1, y: 1 }]);
+    const halfExtents = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
+
+    expect(worldPosOverlapsBlockedTiles({
+        pos: tileToWorldPosCenter(1, 1),
+        halfExtents,
+        isBlockedTile: isBlocked,
+    })).toBe(true);
+
+    expect(worldPosOverlapsBlockedTiles({
+        pos: tileToWorldPosCenter(0, 0),
+        halfExtents,
+        isBlockedTile: isBlocked,
+    })).toBe(false);
+});

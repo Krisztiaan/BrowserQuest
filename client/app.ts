@@ -15,7 +15,12 @@ type RuntimeConfig = {
     server: { wsUrl: string; dispatcher: boolean };
 };
 type ScrollContent = 'credits' | 'legal' | 'about';
-type PointerPosition = { pageX: number; pageY: number };
+type PointerPosition = {
+    pageX?: number;
+    pageY?: number;
+    clientX?: number;
+    clientY?: number;
+};
 
 type AppGame = {
     renderer: {
@@ -153,17 +158,24 @@ class App {
     }
 
     syncPhoneViewport(): void {
+        const renderer = this.game?.renderer;
+        if (!renderer) {
+            return;
+        }
         if (!this.bodyEl.classList.contains('phone')) {
+            this.bodyEl.style.removeProperty('--game-width');
+            this.bodyEl.style.removeProperty('--game-height');
             return;
         }
 
-        const foreground = document.getElementById('foreground') as HTMLCanvasElement | null;
-        if (!foreground || foreground.width <= 0 || foreground.height <= 0) {
+        const width = renderer.getWidth();
+        const height = renderer.getHeight();
+        if (width <= 0 || height <= 0) {
             return;
         }
 
-        this.bodyEl.style.setProperty('--game-width', `${foreground.width}px`);
-        this.bodyEl.style.setProperty('--game-height', `${foreground.height}px`);
+        this.bodyEl.style.setProperty('--game-width', `${width}px`);
+        this.bodyEl.style.setProperty('--game-height', `${height}px`);
     }
 
     center(): void {
@@ -302,24 +314,26 @@ class App {
         if (!container) {
             return;
         }
-        const isPhone = game.renderer.mobile && !game.renderer.tablet;
-
-        const scale = game.renderer.getScaleFactor();
         const width = game.renderer.getWidth();
         const height = game.renderer.getHeight();
         const mouse = game.mouse;
+        const viewport = document.getElementById('foreground');
+        const gamePos = (viewport ?? container).getBoundingClientRect();
+        const clientX =
+            typeof event.clientX === 'number'
+                ? event.clientX
+                : typeof event.pageX === 'number'
+                    ? event.pageX - window.scrollX
+                    : 0;
+        const clientY =
+            typeof event.clientY === 'number'
+                ? event.clientY
+                : typeof event.pageY === 'number'
+                    ? event.pageY - window.scrollY
+                    : 0;
 
-        if (isPhone) {
-            const viewport = document.getElementById('foreground');
-            const gamePos = (viewport ?? container).getBoundingClientRect();
-
-            mouse.x = event.pageX - (gamePos.left + window.scrollX);
-            mouse.y = event.pageY - (gamePos.top + window.scrollY);
-        } else {
-            const gamePos = container.getBoundingClientRect();
-            mouse.x = event.pageX - (gamePos.left + window.scrollX) - (this.isMobile ? 0 : 5 * scale);
-            mouse.y = event.pageY - (gamePos.top + window.scrollY) - (this.isMobile ? 0 : 7 * scale);
-        }
+        mouse.x = clientX - gamePos.left;
+        mouse.y = clientY - gamePos.top;
 
         if (mouse.x <= 0) {
             mouse.x = 0;
@@ -597,10 +611,10 @@ class App {
             const nameEl = achievementEl.querySelector('.achievement-name'),
                 descEl = achievementEl.querySelector('.achievement-description');
             if (nameEl) {
-                nameEl.innerHTML = achievement.name;
+                nameEl.textContent = achievement.name;
             }
             if (descEl) {
-                descEl.innerHTML = achievement.desc;
+                descEl.textContent = achievement.desc;
             }
         }
         if (achievementEl) {
@@ -705,10 +719,10 @@ class App {
         const nameEl = el.querySelector('.achievement-name'),
             descriptionEl = el.querySelector('.achievement-description');
         if (nameEl) {
-            nameEl.innerHTML = name;
+            nameEl.textContent = name;
         }
         if (descriptionEl) {
-            descriptionEl.innerHTML = desc;
+            descriptionEl.textContent = desc;
         }
     }
 

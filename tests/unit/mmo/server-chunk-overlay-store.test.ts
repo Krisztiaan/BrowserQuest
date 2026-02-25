@@ -63,3 +63,12 @@ test('markChunkClean clears dirty tracking without dropping the chunk', () => {
     expect(store.getChunk(0, 0)?.dirty).toBe(false);
 });
 
+test('chunk overlays are isolated by map id for identical tile coordinates', () => {
+    const store = new ChunkOverlayStore({ chunkSize: 4 });
+    expect(store.setGlobal(0, 0, 11, 'world')).toBe(true);
+    expect(store.setGlobal(0, 0, 22, 'dungeon_1')).toBe(true);
+
+    expect(store.getGlobal(0, 0, 'world')).toBe(11);
+    expect(store.getGlobal(0, 0, 'dungeon_1')).toBe(22);
+    expect(store.getGlobal(0, 0, 'unknown')).toBeNull();
+});

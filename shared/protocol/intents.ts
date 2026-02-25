@@ -1,8 +1,10 @@
 import { gridPos, type GridPos } from '../domain/positions';
+import { safeParseJsonValue, type JsonValue } from '../json/safe-json';
 
 export const INTENT_MOVE_STEP = 'move.step' as const;
 export const INTENT_MOVE_TO = 'move.to' as const;
 export const INTENT_MOVE_INPUT = 'move.input' as const;
+export const INTENT_ATTACK = 'attack.entity' as const;
 export const INTENT_DOOR_TELEPORT = 'door.teleport' as const;
 export const INTENT_TILE_EDIT = 'tile.edit' as const;
 export const INTENT_CLAIM_CREATE = 'claim.create' as const;
@@ -10,11 +12,26 @@ export const INTENT_CLAIM_UPDATE = 'claim.update' as const;
 export const INTENT_CLAIM_DELETE = 'claim.delete' as const;
 
 export const OUTCOME_DOOR_TELEPORT = 'teleport.door' as const;
+export const OUTCOME_MAP_TRANSITION_BEGIN = 'map.transition.begin' as const;
+export const OUTCOME_MAP_TRANSITION_COMMIT = 'map.transition.commit' as const;
+
+export type CoreOutcomeTypeId =
+    | typeof OUTCOME_DOOR_TELEPORT
+    | typeof OUTCOME_MAP_TRANSITION_BEGIN
+    | typeof OUTCOME_MAP_TRANSITION_COMMIT;
+
+export type MapTransitionOutcomePayload = Readonly<{
+    fromMapId: string;
+    toMapId: string;
+    x: number;
+    y: number;
+}>;
 
 export type CoreIntentTypeId =
     | typeof INTENT_MOVE_STEP
     | typeof INTENT_MOVE_TO
     | typeof INTENT_MOVE_INPUT
+    | typeof INTENT_ATTACK
     | typeof INTENT_DOOR_TELEPORT
     | typeof INTENT_TILE_EDIT
     | typeof INTENT_CLAIM_CREATE
@@ -26,6 +43,7 @@ export type IntentPayloadBytes = ReadonlyArray<number> | Uint8Array;
 export type MoveStepIntentPayload = GridPos;
 export type MoveToIntentPayload = Readonly<{ x: number; y: number; stopAdjacentToTarget: boolean }>;
 export type MoveInputIntentPayload = Readonly<{ keysMask: number }>;
+export type AttackIntentPayload = Readonly<{ targetId: number }>;
 export type DoorTeleportIntentPayload = GridPos;
 export type TileEditIntentPayload = Readonly<{ x: number; y: number; value: number | null }>;
 export type ClaimCreateIntentPayload = Readonly<{
@@ -86,6 +104,14 @@ function toByteArray(payload: unknown): Uint8Array | null {
 
 function isI32(value: number): boolean {
     return Number.isSafeInteger(value) && value >= I32_MIN && value <= I32_MAX;
+}
+
+function asNonEmptyString(value: JsonValue | object | null | undefined): string | null {
+    if (typeof value !== 'string') {
+        return null;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
 }
 
 function pushU8(bytes: number[], value: number): void {
@@ -273,6 +299,28 @@ export function decodeMoveInputIntentPayload(payload: IntentPayloadBytes): MoveI
     return { keysMask };
 }
 
+export function encodeAttackIntentPayload(payload: AttackIntentPayload): number[] | null {
+    if (!Number.isSafeInteger(payload.targetId) || payload.targetId < 0 || payload.targetId > I32_MAX) {
+        return null;
+    }
+    const bytes: number[] = [];
+    pushI32(bytes, payload.targetId);
+    return bytes;
+}
+
+export function decodeAttackIntentPayload(payload: IntentPayloadBytes): AttackIntentPayload | null {
+    const bytes = toByteArray(payload);
+    if (bytes?.length !== 4) {
+        return null;
+    }
+    const reader = new ByteReader(bytes);
+    const targetId = reader.readI32();
+    if (targetId === null || targetId < 0 || !reader.isDone()) {
+        return null;
+    }
+    return { targetId };
+}
+
 export function encodeDoorTeleportIntentPayload(payload: DoorTeleportIntentPayload): number[] | null {
     return encodeGridPosPayload(payload);
 }
@@ -426,4 +474,40 @@ export function decodeClaimDeleteIntentPayload(payload: IntentPayloadBytes): Cla
         return null;
     }
     return { id };
+}
+
+export function encodeMapTransitionOutcomePayload(payload: MapTransitionOutcomePayload): string | null {
+    if (
+        !isI32(payload.x)
+        || !isI32(payload.y)
+        || !asNonEmptyString(payload.fromMapId)
+        || !asNonEmptyString(payload.toMapId)
+    ) {
+        return null;
+    }
+    return JSON.stringify({
+        fromMapId: payload.fromMapId,
+        toMapId: payload.toMapId,
+        x: payload.x,
+        y: payload.y,
+    });
+}
+
+export function decodeMapTransitionOutcomePayload(payload: string): MapTransitionOutcomePayload | null {
+    if (typeof payload !== 'string') {
+        return null;
+    }
+    const parsed = safeParseJsonValue(payload);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return null;
+    }
+    const record = parsed as Record<string, JsonValue>;
+    const fromMapId = asNonEmptyString(record.fromMapId);
+    const toMapId = asNonEmptyString(record.toMapId);
+    const x = record.x;
+    const y = record.y;
+    if (!fromMapId || !toMapId || typeof x !== 'number' || typeof y !== 'number' || !isI32(x) || !isI32(y)) {
+        return null;
+    }
+    return { fromMapId, toMapId, x, y };
 }

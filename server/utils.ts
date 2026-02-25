@@ -13,6 +13,10 @@ function sanitize(value: string): string {
     return escapeHTML(value).replace(/[\u0000-\u001F\u007F]/g, '');
 }
 
+function stripControlChars(value: string): string {
+    return value.replace(/[\u0000-\u001F\u007F]/g, '');
+}
+
 function utf8ByteLength(value: string): number {
     return Buffer.byteLength(value, 'utf8');
 }
@@ -114,6 +118,7 @@ function distanceTo(x: number, y: number, x2: number, y2: number): number {
 
 const Utils = {
     sanitize,
+    stripControlChars,
     utf8ByteLength,
     hasMaxUtf8Bytes,
     limitUtf8Bytes,

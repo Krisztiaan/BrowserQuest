@@ -1,6 +1,8 @@
 import { expect, test } from 'bun:test';
 import Types from '../../../shared/gametypes-browser';
 import {
+    decodeClientToServerBinaryActionBatchPayload,
+    encodeClientToServerBinaryActionBatchPayload,
     decodeBinaryActionBatchPayload,
     dispatchBinaryActionBatchPayload,
     encodeBinaryActionBatchPayload,
@@ -39,7 +41,7 @@ test('custom-efficient runtime action codec round-trips server action batches', 
         [Types.Messages.POPULATION, 12, 33],
         [Types.Messages.HP, 120],
         [Types.Messages.REJECT, 9, 'move.step', 'Invalid move.step (non-adjacent).'],
-        [Types.Messages.MOVE_SYNC, 9, 155, 114, 1234, 1],
+        [Types.Messages.MOVE_SYNC, 9, 155, 114, 1234, 1, 'overworld'],
         [Types.Messages.ENTITY_STATE_BATCH, 1234, 2, 174, 155, 114, 0, 184, 156, 114, 0],
     ];
 
@@ -82,4 +84,20 @@ test('fixedbin dispatch fast path streams ENTITY_STATE_BATCH entries without all
 
     expect(entries).toEqual([174, 155, 114, 0, 184, 156, 114, 0]);
     expect(actions).toEqual([[Types.Messages.ACK, 7]]);
+});
+
+test('chunk streaming actions preserve signed chunk coordinates across binary codec', () => {
+    const c2sBatch: unknown[] = [[Types.Messages.CHUNK_SUBSCRIBE, -3, -2, 3]];
+    const c2sEncoded = encodeClientToServerBinaryActionBatchPayload(c2sBatch);
+    const c2sDecoded = decodeClientToServerBinaryActionBatchPayload(c2sEncoded);
+    expect(normalizeBinaryValues(c2sDecoded)).toEqual(normalizeBinaryValues(c2sBatch));
+
+    const s2cBatch: unknown[] = [
+        [Types.Messages.CHUNK_SNAPSHOT, -3, -2, 7, new Uint8Array([1, 2, 3])],
+        [Types.Messages.CHUNK_SNAPSHOT_PART, -1, 0, 8, 0, 1, new Uint8Array([9])],
+        [Types.Messages.CHUNK_DELTA, 0, -4, 8, 9, new Uint8Array([5, 6])],
+    ];
+    const s2cEncoded = encodeServerToClientBinaryActionBatchPayload(s2cBatch);
+    const s2cDecoded = decodeBinaryActionBatchPayload(s2cEncoded);
+    expect(normalizeBinaryValues(s2cDecoded)).toEqual(normalizeBinaryValues(s2cBatch));
 });

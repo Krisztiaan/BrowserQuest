@@ -22,7 +22,7 @@ test("server entry sends initial 'go' handshake", async () => {
             debug_level: 'error',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './assets/maps/tiled/world.json',
+            map_filepath: './assets/maps/runtime/map-pack.json',
             metrics_enabled: false,
         })
     );

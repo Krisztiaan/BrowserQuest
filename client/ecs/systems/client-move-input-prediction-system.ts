@@ -1,7 +1,7 @@
 import type { EntityId } from '../../../shared/domain/ids';
 import type { ClientWorldKernel } from '../world-kernel';
 import { SUBPIXELS, TILE_SUBPX, worldDelta, worldPos, type WorldPos } from '../../../shared/world/worldpos';
-import { resolveSubTileMotionAgainstTiles } from '../../../shared/world/collision/tile-collision';
+import { clampWorldPosInsideMap, resolveSubTileMotionAgainstTiles } from '../../../shared/world/collision/tile-collision';
 
 export type ClientMoveInputPredictionSystemHost = Readonly<{
     started: boolean;
@@ -17,7 +17,7 @@ export type ClientMoveInputPredictionSystemHost = Readonly<{
               isDead: boolean;
               isOnPlateau: boolean;
               isMoving(): boolean;
-              setWorldPositionSub(worldX: number, worldY: number): void;
+              setWorldPositionSub(worldX: number, worldY: number, options?: { snapRender?: boolean }): void;
           }
         | null;
     map:
@@ -25,6 +25,8 @@ export type ClientMoveInputPredictionSystemHost = Readonly<{
               isOutOfBounds(x: number, y: number): boolean;
               isColliding(x: number, y: number): boolean;
               isPlateau(x: number, y: number): boolean;
+              width?: number;
+              height?: number;
           }
         | null;
     isZoning(): boolean;
@@ -35,6 +37,8 @@ const MOVE_COOLDOWN_MS = 200;
 const DIAG_NUM = 181;
 const DIAG_DEN = 256;
 const PLAYER_HALF_EXTENTS = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS } as const;
+const SOFT_RECONCILE_ERR_SUBPX = 8 * SUBPIXELS;
+const HARD_RECONCILE_ERR_SUBPX = 2 * TILE_SUBPX;
 
 let lastPredictionTimeMs = 0;
 
@@ -44,6 +48,13 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
     }
 
     const map = host.map;
+    const fallbackGrid = host.kernel.clientPathingGrid;
+    const mapWidthTiles = Number.isInteger(map.width) && (map.width ?? 0) > 0
+        ? (map.width as number)
+        : (fallbackGrid?.[0]?.length ?? 0);
+    const mapHeightTiles = Number.isInteger(map.height) && (map.height ?? 0) > 0
+        ? (map.height as number)
+        : (fallbackGrid?.length ?? 0);
     const keysMask = host.kernel.clientMoveInputKeysMask >>> 0;
     if (keysMask === 0) {
         host.kernel.clientPredictedWorldPos = null;
@@ -64,8 +75,14 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
     if (host.kernel.clientMovementSuppressed) {
         const auth = host.kernel.worldPosition.get(host.playerId);
         if (auth) {
-            host.kernel.clientPredictedWorldPos = auth;
-            player.setWorldPositionSub(auth.x, auth.y);
+            const clampedAuth = clampWorldPosInsideMap({
+                pos: auth,
+                halfExtents: PLAYER_HALF_EXTENTS,
+                mapWidthTiles,
+                mapHeightTiles,
+            });
+            host.kernel.clientPredictedWorldPos = clampedAuth;
+            player.setWorldPositionSub(clampedAuth.x, clampedAuth.y, { snapRender: true });
         }
         return;
     }
@@ -97,12 +114,18 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
         return plateauBlocked;
     };
 
-    const next = resolveSubTileMotionAgainstTiles({
+    let next = resolveSubTileMotionAgainstTiles({
         pos: predicted,
         delta: worldDelta(axis.dx * moveSubpx, axis.dy * moveSubpx),
         halfExtents: PLAYER_HALF_EXTENTS,
         isBlockedTile,
     }).pos;
+    next = clampWorldPosInsideMap({
+        pos: next,
+        halfExtents: PLAYER_HALF_EXTENTS,
+        mapWidthTiles,
+        mapHeightTiles,
+    });
 
     // Reconcile softly against authoritative world position (from MOVE_SYNC).
     const auth = host.kernel.worldPosition.get(host.playerId);
@@ -111,13 +134,19 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
         const errX = auth.x - next.x;
         const errY = auth.y - next.y;
         const err = Math.abs(errX) + Math.abs(errY);
-        if (err > TILE_SUBPX) {
+        if (err > HARD_RECONCILE_ERR_SUBPX) {
             reconciled = auth;
-        } else if (err > 4 * SUBPIXELS) {
-            reconciled = worldPos(next.x + Math.trunc(errX / 4), next.y + Math.trunc(errY / 4));
+        } else if (err > SOFT_RECONCILE_ERR_SUBPX) {
+            reconciled = worldPos(next.x + Math.trunc(errX / 6), next.y + Math.trunc(errY / 6));
         }
     }
+    reconciled = clampWorldPosInsideMap({
+        pos: reconciled,
+        halfExtents: PLAYER_HALF_EXTENTS,
+        mapWidthTiles,
+        mapHeightTiles,
+    });
 
     host.kernel.clientPredictedWorldPos = reconciled;
-    player.setWorldPositionSub(reconciled.x, reconciled.y);
+    player.setWorldPositionSub(reconciled.x, reconciled.y, { snapRender: true });
 }

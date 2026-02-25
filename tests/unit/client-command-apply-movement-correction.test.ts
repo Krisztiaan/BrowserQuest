@@ -7,6 +7,7 @@ import { runClientCombatSystem } from '../../client/ecs/systems/client-combat-sy
 import Warrior from '../../client/warrior';
 import Types from '../../shared/gametypes-browser';
 import { getZoneGroupIdFromGrid, isOutOfBoundsGridPosition } from '../../shared/world/coordinate-contract';
+import { tileToWorldPosCenter } from '../../shared/world/worldpos';
 
 function createHostFixture(playerId: number) {
     const kernel = new ClientWorldKernel();
@@ -20,7 +21,10 @@ function createHostFixture(playerId: number) {
     };
     const teleports: Array<{ x: number; y: number }> = [];
     const chunkSubscriptions: Array<{ chunkX: number; chunkY: number; radius: number }> = [];
+    const loadMapByIdCalls: string[] = [];
+    const notifications: string[] = [];
     let chunkUnsubscribeCount = 0;
+    let resetCameraCalls = 0;
 
     const host = {
         kernel,
@@ -80,11 +84,19 @@ function createHostFixture(playerId: number) {
         makePlayerOpenChest() {},
         makeNpcTalk() {},
         updateBars() {},
-        resetCamera() {},
+        resetCamera() {
+            resetCameraCalls += 1;
+        },
         addEntity(entity: Warrior) {
             entities[String(entity.id)] = entity;
         },
-        showNotification() {},
+        showNotification(message: string) {
+            notifications.push(message);
+        },
+        loadMapById(mapId: string) {
+            loadMapByIdCalls.push(mapId);
+            return Promise.resolve();
+        },
         tryUnlockingAchievement() {},
         createBubble() {},
         removeObsoleteEntities() {},
@@ -106,7 +118,17 @@ function createHostFixture(playerId: number) {
         addItemFromUnknown() {},
     } as Parameters<typeof runClientCommandApplySystem>[0];
 
-    return { host, kernel, player, teleports, chunkSubscriptions, getChunkUnsubscribeCount: () => chunkUnsubscribeCount };
+    return {
+        host,
+        kernel,
+        player,
+        teleports,
+        chunkSubscriptions,
+        loadMapByIdCalls,
+        notifications,
+        getChunkUnsubscribeCount: () => chunkUnsubscribeCount,
+        getResetCameraCalls: () => resetCameraCalls,
+    };
 }
 
 test('applyWelcome seeds local player in kernel authoritative position state', () => {
@@ -315,6 +337,30 @@ test('teleportEntity cancels local pathing so client does not continue obsolete 
     expect(player.gridY).toBe(4);
 });
 
+test('setEntityWorldPosition keeps local predicted path movement active', () => {
+    const playerId = entityIdFromWire(7011);
+    const { host, kernel, player } = createHostFixture(playerId);
+
+    player.setPathRequestResolver(() => [
+        [10, 10],
+        [11, 10],
+        [12, 10],
+    ]);
+    player.go(12, 10);
+    expect(player.isMoving()).toBe(true);
+
+    const world = tileToWorldPosCenter(11, 10);
+    kernel.enqueueClientCommand({
+        type: 'setEntityWorldPosition',
+        entityId: playerId,
+        worldX: world.x,
+        worldY: world.y,
+    });
+    runClientCommandApplySystem(host);
+
+    expect(player.isMoving()).toBe(true);
+});
+
 test('non-local adjacent characterGoTo starts authoritative step without pathfinder', () => {
     const playerId = entityIdFromWire(7006);
     const { host, kernel, teleports } = createHostFixture(playerId);
@@ -445,6 +491,53 @@ test('characterClearTarget hard-stops active movement immediately', () => {
     expect(mob.isMoving()).toBe(false);
     expect(mob.nextGridX).toBe(-1);
     expect(mob.nextGridY).toBe(-1);
+});
+
+test('map transition defers local teleport until target map activation + commit', async () => {
+    const playerId = entityIdFromWire(7012);
+    const { host, kernel, teleports, loadMapByIdCalls, getResetCameraCalls } = createHostFixture(playerId);
+
+    kernel.enqueueClientCommand({
+        type: 'beginMapTransition',
+        seq: 100,
+        fromMapId: 'world',
+        toMapId: 'house',
+        x: 3,
+        y: 4,
+    });
+    runClientCommandApplySystem(host);
+
+    expect(loadMapByIdCalls).toEqual(['house']);
+    expect(kernel.clientMovementSuppressed).toBe(true);
+
+    kernel.enqueueClientCommand({
+        type: 'teleportEntity',
+        entityId: playerId,
+        x: 5,
+        y: 6,
+        mapId: 'house',
+    });
+    runClientCommandApplySystem(host);
+    expect(teleports).toEqual([]);
+
+    kernel.enqueueClientCommand({
+        type: 'commitMapTransition',
+        seq: 100,
+        fromMapId: 'world',
+        toMapId: 'house',
+        x: 3,
+        y: 4,
+    });
+    runClientCommandApplySystem(host);
+    expect(teleports).toEqual([]);
+    expect(kernel.clientMovementSuppressed).toBe(true);
+
+    await Promise.resolve();
+    runClientCommandApplySystem(host);
+
+    expect(teleports).toEqual([{ x: 5, y: 6 }]);
+    expect(kernel.clientMovementSuppressed).toBe(false);
+    expect(getResetCameraCalls()).toBe(1);
 });
 
 test('combat system never repositions non-local mobs client-side', () => {

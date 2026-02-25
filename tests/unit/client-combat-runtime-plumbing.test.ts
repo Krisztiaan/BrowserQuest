@@ -38,3 +38,43 @@ test('Kernel entity adapter initializes mob HP from prefabs', () => {
     expect((entity.maxHitPoints ?? 0) > 0).toBe(true);
     expect(entity.hitPoints).toBe(entity.maxHitPoints);
 });
+
+test('Client runtime transition events enqueue transition commands', () => {
+    const kernel = new ClientWorldKernel();
+
+    kernel.enqueueClientRuntimeEvent({
+        type: 'mapTransitionBegin',
+        seq: 1,
+        fromMapId: 'world',
+        toMapId: 'house',
+        x: 3,
+        y: 4,
+    });
+    kernel.enqueueClientRuntimeEvent({
+        type: 'mapTransitionCommit',
+        seq: 1,
+        fromMapId: 'world',
+        toMapId: 'house',
+        x: 3,
+        y: 4,
+    });
+    runClientRuntimeEventSystem({ kernel });
+
+    const cmds = kernel.drainClientCommands();
+    expect(cmds).toContainEqual({
+        type: 'beginMapTransition',
+        seq: 1,
+        fromMapId: 'world',
+        toMapId: 'house',
+        x: 3,
+        y: 4,
+    });
+    expect(cmds).toContainEqual({
+        type: 'commitMapTransition',
+        seq: 1,
+        fromMapId: 'world',
+        toMapId: 'house',
+        x: 3,
+        y: 4,
+    });
+});

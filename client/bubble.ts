@@ -53,7 +53,7 @@ class BubbleManager {
             const bubbleText = bubble.element.querySelector('p');
             bubble.reset(time);
             if (bubbleText) {
-                bubbleText.innerHTML = message;
+                bubbleText.textContent = message;
             }
         } else {
             const el = document.createElement('div');
@@ -61,7 +61,7 @@ class BubbleManager {
             el.className = 'bubble';
 
             const text = document.createElement('p');
-            text.innerHTML = message;
+            text.textContent = message;
             el.appendChild(text);
 
             const thingy = document.createElement('div');

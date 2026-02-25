@@ -1,9 +1,9 @@
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { OutgoingQueues, WorldConnection as RuntimeWorldConnection, WorldMessage } from './world/contracts';
+import fs from 'node:fs/promises';
 import Entity from './entity';
 import Log from './log';
 import MobEntity from './world/mob-entity';
-import Map from './map';
 import Npc from './npc';
 import MobArea from './mobarea';
 import ChestArea from './chestarea';
@@ -78,6 +78,16 @@ import type {
     SqlitePlayerPersistence,
 } from './player-persistence';
 import { resolveIdentityKey } from './identity';
+import { isMapPack } from '../shared/maps/map-pack';
+import {
+    createWorldMapRegistryFromMapPack,
+    type WorldMapRegistry,
+} from './world/map-registry';
+import { WORLD_EVENT_NAMES } from './server-event-names';
+import type {
+    MapTransitionEvent,
+    MapTransitionRejectReason,
+} from './world/map-transition-observability';
 const log = Log.getLogger();
 const logWorldQueueError = (errorMessage: string): void => {
     log.error(errorMessage);
@@ -122,6 +132,13 @@ type EmptyChestArea = {
     chestX: number;
     chestY: number;
     items: JsonLike[];
+};
+
+type MapTransitionCounters = {
+    attempts: number;
+    commits: number;
+    rejects: number;
+    rejectByReason: Partial<Record<MapTransitionRejectReason, number>>;
 };
 
 type SpawnableEntity = {
@@ -188,6 +205,7 @@ class World extends Evented<WorldEvents> {
     ups: number;
 
     map!: WorldMapLike;
+    mapRegistry: WorldMapRegistry | null;
 
     players: Record<string, WorldPlayer>;
     mobAreas: InstanceType<typeof MobArea>[];
@@ -208,6 +226,7 @@ class World extends Evented<WorldEvents> {
     chunkFlushTickErrorLatched: boolean;
     claimsPersistence: SqliteClaimsPersistence | null;
     updateLoopHandle: ReturnType<typeof startWorldUpdateLoop> | null;
+    mapTransitionCounters: MapTransitionCounters;
 
     constructor(id: string, maxPlayers: number, websocketServer: WorldServerLike, plugins?: readonly ServerPlugin[]) {
         super();
@@ -228,6 +247,7 @@ class World extends Evented<WorldEvents> {
         this.pendingPlayers = {};
         installWorldPlayerLifecycle(this);
         this.ecsPipeline = new WorldEcsCommandPipeline(this);
+        this.mapRegistry = null;
         this.plugins = plugins ? [...plugins] : [];
         this.pluginsInstalled = false;
         this.playerPersistence = null;
@@ -237,6 +257,12 @@ class World extends Evented<WorldEvents> {
         this.chunkFlushTickErrorLatched = false;
         this.claimsPersistence = null;
         this.updateLoopHandle = null;
+        this.mapTransitionCounters = {
+            attempts: 0,
+            commits: 0,
+            rejects: 0,
+            rejectByReason: {},
+        };
 
         this.on('playerConnect', (player) => {
             const key = String(player.id);
@@ -311,7 +337,7 @@ class World extends Evented<WorldEvents> {
         this.claimsPersistence = null;
     }
 
-    ensureChunkOverlayLoaded(chunkX: number, chunkY: number): boolean {
+    ensureChunkOverlayLoaded(mapId: string, chunkX: number, chunkY: number): boolean {
         if (!Number.isSafeInteger(chunkX) || !Number.isSafeInteger(chunkY)) {
             return false;
         }
@@ -319,19 +345,19 @@ class World extends Evented<WorldEvents> {
             return false;
         }
         try {
-            return this.chunkOverlayPersistence.loadChunkIntoStore(this.ecsPipeline.chunkOverlays, chunkX, chunkY).loaded;
+            return this.chunkOverlayPersistence.loadChunkIntoStore(this.ecsPipeline.chunkOverlays, chunkX, chunkY, mapId).loaded;
         } catch (err) {
-            log.error(`ensureChunkOverlayLoaded failed for (${chunkX}, ${chunkY}): ${String(err)}`);
+            log.error(`ensureChunkOverlayLoaded failed for ${mapId} (${chunkX}, ${chunkY}): ${String(err)}`);
             return false;
         }
     }
 
-    ensureChunkOverlayLoadedForTile(x: number, y: number): boolean {
+    ensureChunkOverlayLoadedForTile(x: number, y: number, mapId = this.getDefaultMapId()): boolean {
         if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y)) {
             return false;
         }
         const chunkSize = this.ecsPipeline.chunkOverlays.chunkSize;
-        return this.ensureChunkOverlayLoaded(Math.floor(x / chunkSize), Math.floor(y / chunkSize));
+        return this.ensureChunkOverlayLoaded(mapId, Math.floor(x / chunkSize), Math.floor(y / chunkSize));
     }
 
     scheduleMobRespawn({
@@ -610,63 +636,91 @@ class World extends Evented<WorldEvents> {
         }
     }
 
-    run(mapFilePath: string): void {
+    private applyMapRegistry(mapRegistry: WorldMapRegistry): void {
+        this.mapRegistry = mapRegistry;
+        this.map = mapRegistry.getDefaultMap();
+    }
+
+    private initializeWorldRuntimeFromActiveMap(): void {
         const self = this;
+        self.closePersistence();
+        const claimsStore = self.ecsPipeline.state.resources.require(CLAIMS_STORE_RESOURCE);
+        const persistence = openWorldPersistence({
+            worldId: self.id,
+            serverConfig: self.serverConfig,
+            chunkOverlays: self.ecsPipeline.chunkOverlays,
+            claimsStore,
+        });
+        self.chunkOverlayPersistence = persistence.chunkOverlayPersistence;
+        self.chunkFlushScheduler = persistence.chunkFlushScheduler;
+        self.claimsPersistence = persistence.claimsPersistence;
 
-        this.map = new Map(mapFilePath);
+        bootstrapWorldMapRuntime({
+            world: self,
+            mobAreaConfigs: (self.map.mobAreas ?? []).filter(isMapMobAreaConfig),
+            chestAreaConfigs: (self.map.chestAreas ?? []).filter(isMapChestAreaConfig),
+            staticChestConfigs: (self.map.staticChests ?? []).filter(isMapChestConfig),
+            createMobArea(config: MapMobAreaConfig) {
+                return new MobArea(
+                    config.id,
+                    config.nb,
+                    config.type,
+                    config.x,
+                    config.y,
+                    config.width,
+                    config.height,
+                    self,
+                    () => self.allocateEntityId_()
+                );
+            },
+            createChestArea(config: MapChestAreaConfig) {
+                return new ChestArea(
+                    config.id,
+                    config.x,
+                    config.y,
+                    config.w,
+                    config.h,
+                    config.tx,
+                    config.ty,
+                    config.i,
+                    self
+                );
+            },
+        });
+
+        self.updateLoopHandle?.stop();
+        self.updateLoopHandle = startWorldUpdateLoop(self, self.ups);
+
+        log.info('' + self.id + ' created (capacity: ' + self.maxPlayers + ' players).');
+        self.emit('ready');
+    }
+
+    private async loadMapRuntime(mapFilePath: string): Promise<void> {
+        let parsedPayload: unknown = null;
+        try {
+            const raw = await fs.readFile(mapFilePath, 'utf8');
+            parsedPayload = JSON.parse(raw) as unknown;
+        } catch (_) {
+            parsedPayload = null;
+        }
+
+        if (!isMapPack(parsedPayload)) {
+            throw new Error(`Invalid map pack payload: ${mapFilePath}`);
+        }
+
+        const registry = createWorldMapRegistryFromMapPack(parsedPayload);
+        this.applyMapRegistry(registry);
+        this.initializeWorldRuntimeFromActiveMap();
+    }
+
+    run(mapFilePath: string): void {
         this.installPlugins();
-
-        this.map.ready(function () {
-            self.closePersistence();
-            const claimsStore = self.ecsPipeline.state.resources.require(CLAIMS_STORE_RESOURCE);
-            const persistence = openWorldPersistence({
-                worldId: self.id,
-                serverConfig: self.serverConfig,
-                chunkOverlays: self.ecsPipeline.chunkOverlays,
-                claimsStore,
-            });
-            self.chunkOverlayPersistence = persistence.chunkOverlayPersistence;
-            self.chunkFlushScheduler = persistence.chunkFlushScheduler;
-            self.claimsPersistence = persistence.claimsPersistence;
-
-            bootstrapWorldMapRuntime({
-                world: self,
-                mobAreaConfigs: (self.map.mobAreas ?? []).filter(isMapMobAreaConfig),
-                chestAreaConfigs: (self.map.chestAreas ?? []).filter(isMapChestAreaConfig),
-                staticChestConfigs: (self.map.staticChests ?? []).filter(isMapChestConfig),
-                createMobArea(config: MapMobAreaConfig) {
-                    return new MobArea(
-                        config.id,
-                        config.nb,
-                        config.type,
-                        config.x,
-                        config.y,
-                        config.width,
-                        config.height,
-                        self,
-                        () => self.allocateEntityId_()
-                    );
-                },
-                createChestArea(config: MapChestAreaConfig) {
-                    return new ChestArea(
-                        config.id,
-                        config.x,
-                        config.y,
-                        config.w,
-                        config.h,
-                        config.tx,
-                        config.ty,
-                        config.i,
-                        self
-                    );
-                },
-            });
-
-            self.updateLoopHandle?.stop();
-            self.updateLoopHandle = startWorldUpdateLoop(self, self.ups);
-
-            log.info('' + self.id + ' created (capacity: ' + self.maxPlayers + ' players).');
-            self.emit('ready');
+        void this.loadMapRuntime(mapFilePath).catch((error) => {
+            const message = `World ${this.id} failed to load map runtime: ${String(error)}`;
+            log.error(message);
+            setTimeout(() => {
+                throw error;
+            }, 0);
         });
     }
 
@@ -924,6 +978,83 @@ class World extends Evented<WorldEvents> {
 
     isValidPosition(x: number, y: number): boolean {
         return isWorldPositionValid(this.map, x, y);
+    }
+
+    getDefaultMapId(): string {
+        return this.mapRegistry?.defaultMapId ?? 'world';
+    }
+
+    getMapById(mapId: string): WorldMapLike | null {
+        return this.mapRegistry?.getMapById(mapId) ?? null;
+    }
+
+    isValidPositionForMap(mapId: string, x: number, y: number): boolean {
+        if (this.mapRegistry) {
+            return this.mapRegistry.isValidPosition(mapId, x, y);
+        }
+        return this.isValidPosition(x, y);
+    }
+
+    resolveDoorTeleport(mapId: string, x: number, y: number): Readonly<{ toMapId: string; to: GridPos }> | null {
+        const resolved = this.mapRegistry?.resolveDoorTeleport(mapId, x, y);
+        if (!resolved) {
+            return null;
+        }
+        return {
+            toMapId: resolved.toMapId,
+            to: gridPos(resolved.to.x, resolved.to.y),
+        };
+    }
+
+    recordMapTransitionEvent(event: MapTransitionEvent): void {
+        const counters = this.mapTransitionCounters;
+        if (event.kind === 'begin') {
+            counters.attempts += 1;
+            log.event('info', WORLD_EVENT_NAMES.MAP_TRANSITION_BEGIN, {
+                worldId: this.id,
+                playerId: event.playerId,
+                fromMapId: event.fromMapId,
+                toMapId: event.toMapId,
+                toX: event.toX,
+                toY: event.toY,
+                attempts: counters.attempts,
+                commits: counters.commits,
+                rejects: counters.rejects,
+            });
+            return;
+        }
+        if (event.kind === 'commit') {
+            counters.commits += 1;
+            log.event('info', WORLD_EVENT_NAMES.MAP_TRANSITION_COMMIT, {
+                worldId: this.id,
+                playerId: event.playerId,
+                fromMapId: event.fromMapId,
+                toMapId: event.toMapId,
+                toX: event.toX,
+                toY: event.toY,
+                attempts: counters.attempts,
+                commits: counters.commits,
+                rejects: counters.rejects,
+            });
+            return;
+        }
+
+        counters.rejects += 1;
+        counters.rejectByReason[event.reason] = (counters.rejectByReason[event.reason] ?? 0) + 1;
+        log.event('info', WORLD_EVENT_NAMES.MAP_TRANSITION_REJECT, {
+            worldId: this.id,
+            playerId: event.playerId,
+            fromMapId: event.fromMapId,
+            toMapId: event.toMapId,
+            toX: event.toX,
+            toY: event.toY,
+            reason: event.reason,
+            destinationOccupantId: event.destinationOccupantId ?? null,
+            attempts: counters.attempts,
+            commits: counters.commits,
+            rejects: counters.rejects,
+            rejectReasonCount: counters.rejectByReason[event.reason] ?? 0,
+        });
     }
 
     setPlayerCount(count: number): void {

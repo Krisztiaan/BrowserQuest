@@ -3,15 +3,17 @@ import { createResourceKey } from '../../ecs/resources';
 
 export type ChunkSubscription = {
     radius: number;
+    lastMapId: string | null;
     lastCenterChunkX: number | null;
     lastCenterChunkY: number | null;
-    knownChunks: Set<bigint>;
-    knownChunkVersions: Map<bigint, number>;
-    pendingChunks: Array<{ chunkX: number; chunkY: number }>;
-    pendingChunkKeys: Set<bigint>;
-    inFlightSnapshotKeys: Set<bigint>;
+    knownChunks: Set<string>;
+    knownChunkVersions: Map<string, number>;
+    pendingChunks: Array<{ mapId: string; chunkX: number; chunkY: number }>;
+    pendingChunkKeys: Set<string>;
+    inFlightSnapshotKeys: Set<string>;
     pendingSnapshotParts: Array<{
-        key: bigint;
+        key: string;
+        mapId: string;
         chunkX: number;
         chunkY: number;
         version: number;

@@ -119,9 +119,29 @@ type RendererGameLike = {
 type TerrainMapLike = Readonly<{
     isHighTile(id: number): boolean;
 }>;
+type ViewportLike = Readonly<{
+    innerWidth: number;
+    innerHeight: number;
+    visualViewport?: Readonly<{
+        width: number;
+        height: number;
+    }> | null;
+}>;
 
 export function shouldDrawTerrainTile(map: TerrainMapLike, id: number): boolean {
     return !map.isHighTile(id);
+}
+
+export function resolveViewportSize(viewport: ViewportLike): Readonly<{ width: number; height: number }> {
+    const visualWidth = viewport.visualViewport?.width;
+    const visualHeight = viewport.visualViewport?.height;
+    const width = Number.isFinite(visualWidth) ? Number(visualWidth) : viewport.innerWidth;
+    const height = Number.isFinite(visualHeight) ? Number(visualHeight) : viewport.innerHeight;
+
+    return Object.freeze({
+        width: Math.max(1, Math.floor(width)),
+        height: Math.max(1, Math.floor(height)),
+    });
 }
 
 class Renderer {
@@ -151,6 +171,10 @@ class Renderer {
     tileset: HTMLImageElement | null;
     lastTargetPos: { x: number; y: number } | null;
     targetRect: BoundingRect | null;
+    lastTerrainCameraX: number;
+    lastTerrainCameraY: number;
+    viewportWidth: number;
+    viewportHeight: number;
 
     constructor(
         game: RendererGameLike,
@@ -165,6 +189,8 @@ class Renderer {
         this.canvas = canvas;
         this.backcanvas = background;
         this.forecanvas = foreground;
+        this.viewportWidth = 1;
+        this.viewportHeight = 1;
 
         this.initFPS();
         this.tilesize = 16;
@@ -187,14 +213,16 @@ class Renderer {
         this.tileset = null;
         this.lastTargetPos = null;
         this.targetRect = null;
+        this.lastTerrainCameraX = Number.NaN;
+        this.lastTerrainCameraY = Number.NaN;
     }
 
     getWidth(): number {
-        return this.canvas.width;
+        return this.viewportWidth;
     }
 
     getHeight(): number {
-        return this.canvas.height;
+        return this.viewportHeight;
     }
 
     setTileset(tileset: HTMLImageElement | null | undefined): void {
@@ -240,20 +268,32 @@ class Renderer {
     }
 
     createCamera(): void {
-        this.camera = new Camera(this);
-        this.camera.rescale();
+        const viewport = resolveViewportSize(window);
+        this.viewportWidth = viewport.width;
+        this.viewportHeight = viewport.height;
 
-        this.canvas.width = this.camera.gridW * this.tilesize * this.scale;
-        this.canvas.height = this.camera.gridH * this.tilesize * this.scale;
+        this.canvas.width = this.viewportWidth;
+        this.canvas.height = this.viewportHeight;
+        this.canvas.style.width = `${this.viewportWidth}px`;
+        this.canvas.style.height = `${this.viewportHeight}px`;
         log.debug('#entities set to ' + this.canvas.width + ' x ' + this.canvas.height);
 
-        this.backcanvas.width = this.canvas.width;
-        this.backcanvas.height = this.canvas.height;
+        this.backcanvas.width = this.viewportWidth;
+        this.backcanvas.height = this.viewportHeight;
+        this.backcanvas.style.width = `${this.viewportWidth}px`;
+        this.backcanvas.style.height = `${this.viewportHeight}px`;
         log.debug('#background set to ' + this.backcanvas.width + ' x ' + this.backcanvas.height);
 
-        this.forecanvas.width = this.canvas.width;
-        this.forecanvas.height = this.canvas.height;
+        this.forecanvas.width = this.viewportWidth;
+        this.forecanvas.height = this.viewportHeight;
+        this.forecanvas.style.width = `${this.viewportWidth}px`;
+        this.forecanvas.style.height = `${this.viewportHeight}px`;
         log.debug('#foreground set to ' + this.forecanvas.width + ' x ' + this.forecanvas.height);
+
+        this.camera = new Camera(this);
+
+        this.lastTerrainCameraX = Number.NaN;
+        this.lastTerrainCameraY = Number.NaN;
     }
 
     initFPS(): void {
@@ -852,7 +892,7 @@ class Renderer {
 
     drawBackground(ctx: RendererContext2D, color: string): void {
         ctx.fillStyle = color;
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.fillRect(0, 0, this.getWidth(), this.getHeight());
     }
 
     drawFPS(): void {
@@ -910,7 +950,7 @@ class Renderer {
     }
 
     clearScreen(ctx: RendererContext2D): void {
-        ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        ctx.clearRect(0, 0, this.getWidth(), this.getHeight());
     }
 
     getPlayerImage(callback?: (imageDataUrl: string) => void): void {
@@ -970,10 +1010,7 @@ class Renderer {
     }
 
     renderStaticCanvases(): void {
-        this.background.save();
-        this.setCameraView(this.background);
-        this.drawTerrain();
-        this.background.restore();
+        this.redrawTerrainLayer(true);
 
         if (this.mobile || this.tablet) {
             this.clearScreen(this.foreground);
@@ -993,6 +1030,7 @@ class Renderer {
     }
 
     renderFrameDesktop(): void {
+        this.redrawTerrainLayer(false);
         this.clearScreen(this.context);
 
         this.context.save();
@@ -1017,6 +1055,7 @@ class Renderer {
     }
 
     renderFrameMobile(): void {
+        this.redrawTerrainLayer(false);
         this.clearDirtyRects();
         this.preventFlickeringBug();
 
@@ -1035,6 +1074,21 @@ class Renderer {
             this.context.fillRect(0, 0, 0, 0);
             this.foreground.fillRect(0, 0, 0, 0);
         }
+    }
+
+    redrawTerrainLayer(force: boolean): void {
+        if (!force && this.lastTerrainCameraX === this.camera.x && this.lastTerrainCameraY === this.camera.y) {
+            return;
+        }
+
+        this.drawBackground(this.background, '#000');
+        this.background.save();
+        this.setCameraView(this.background);
+        this.drawTerrain();
+        this.background.restore();
+
+        this.lastTerrainCameraX = this.camera.x;
+        this.lastTerrainCameraY = this.camera.y;
     }
 }
 

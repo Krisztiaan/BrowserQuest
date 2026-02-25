@@ -23,6 +23,7 @@ export type SpawnSnapshot = Readonly<{
     kind: EntityKind;
     x: number;
     y: number;
+    mapId?: string;
     extras: SpawnExtras;
 }>;
 
@@ -45,7 +46,13 @@ function normalizeOrientation(value: LooseValue): number {
 }
 
 export function decodeSpawnAction(action: ServerToClientSpawnAction): SpawnSnapshot {
-    const [, id, kind, x, y, ...tail] = action;
+    const [, id, kind, x, y, ...wireTail] = action;
+    const tail = [...wireTail];
+    const mapIdRaw = tail.length > 0 ? tail[tail.length - 1] : undefined;
+    const mapId = typeof mapIdRaw === 'string' && mapIdRaw.trim().length > 0 ? mapIdRaw : undefined;
+    if (mapId !== undefined) {
+        tail.pop();
+    }
 
     if (Types.isPlayer(kind)) {
         const name = typeof tail[0] === 'string' ? tail[0] : '';
@@ -53,16 +60,16 @@ export function decodeSpawnAction(action: ServerToClientSpawnAction): SpawnSnaps
         const armor = isEntityKind(tail[2]) ? tail[2] : DEFAULT_ENTITY_KIND;
         const weapon = isEntityKind(tail[3]) ? tail[3] : DEFAULT_ENTITY_KIND;
         const targetId = typeof tail[4] === 'number' ? tail[4] : undefined;
-        return { id, kind, x, y, extras: { type: 'player', name, orientation, armor, weapon, targetId } };
+        return { id, kind, x, y, ...(mapId ? { mapId } : {}), extras: { type: 'player', name, orientation, armor, weapon, targetId } };
     }
 
     if (Types.isMob(kind)) {
         const orientation = normalizeOrientation(tail[0]);
         const targetId = typeof tail[1] === 'number' ? tail[1] : undefined;
-        return { id, kind, x, y, extras: { type: 'mob', orientation, targetId } };
+        return { id, kind, x, y, ...(mapId ? { mapId } : {}), extras: { type: 'mob', orientation, targetId } };
     }
 
-    return { id, kind, x, y, extras: { type: 'simple' } };
+    return { id, kind, x, y, ...(mapId ? { mapId } : {}), extras: { type: 'simple' } };
 }
 
 export function encodeSpawnSnapshot(snapshot: SpawnSnapshot): ServerToClientSpawnAction {
@@ -72,16 +79,20 @@ export function encodeSpawnSnapshot(snapshot: SpawnSnapshot): ServerToClientSpaw
         snapshot.kind,
         snapshot.x,
         snapshot.y,
-        ...encodeSpawnTail(snapshot.extras),
+        ...encodeSpawnTail(snapshot.extras, snapshot.mapId),
     ];
 }
 
-function encodeSpawnTail(extras: SpawnExtras): ProtocolActionValue[] {
+function encodeSpawnTail(extras: SpawnExtras, mapId?: string): ProtocolActionValue[] {
+    const normalizedMapId = typeof mapId === 'string' && mapId.trim().length > 0 ? mapId : undefined;
     switch (extras.type) {
         case 'player': {
             const tail: ProtocolActionValue[] = [extras.name, extras.orientation, extras.armor, extras.weapon];
             if (typeof extras.targetId === 'number') {
                 tail.push(extras.targetId);
+            }
+            if (normalizedMapId) {
+                tail.push(normalizedMapId);
             }
             return tail;
         }
@@ -90,10 +101,13 @@ function encodeSpawnTail(extras: SpawnExtras): ProtocolActionValue[] {
             if (typeof extras.targetId === 'number') {
                 tail.push(extras.targetId);
             }
+            if (normalizedMapId) {
+                tail.push(normalizedMapId);
+            }
             return tail;
         }
         case 'simple':
-            return [];
+            return normalizedMapId ? [normalizedMapId] : [];
         default: {
              
             const _exhaustive: never = extras;

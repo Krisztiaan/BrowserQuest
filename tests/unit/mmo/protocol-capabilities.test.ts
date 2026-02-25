@@ -6,7 +6,12 @@ import GameClient from '../../../client/gameclient';
 import Player from '../../../server/player';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { gridPos } from '../../../shared/domain/positions';
-import { encodeMoveStepIntentPayload } from '../../../shared/protocol/intents';
+import {
+    encodeMapTransitionOutcomePayload,
+    encodeMoveStepIntentPayload,
+    OUTCOME_MAP_TRANSITION_BEGIN,
+    OUTCOME_MAP_TRANSITION_COMMIT,
+} from '../../../shared/protocol/intents';
 import type { WorldMessage } from '../../../server/world/contracts';
 import { joinFormattedArgs } from '../../support/format';
 
@@ -44,7 +49,7 @@ test('protocol schema rejects legacy C2S HIT/HURT actions', () => {
 test('protocol schema accepts WELCOME capability extension and new OUTCOME/REJECT envelopes', () => {
     const capsJson = encodeProtocolCapabilitiesJson({ moduleIds: ['core.doors'] });
     expect(isServerToClientProtocolAction([Types.Messages.WELCOME, 1, 'name', 2, 3, 100])).toBe(true);
-    expect(isServerToClientProtocolAction([Types.Messages.WELCOME, 1, 'name', 2, 3, 100, 1, capsJson])).toBe(true);
+    expect(isServerToClientProtocolAction([Types.Messages.WELCOME, 1, 'name', 2, 3, 100, 2, capsJson])).toBe(true);
 
     expect(isServerToClientProtocolAction([Types.Messages.OUTCOME, 7, 'teleport.door', '{"x":10,"y":10}'])).toBe(true);
     expect(isServerToClientProtocolAction([Types.Messages.REJECT, 7, 'future.intent', 'Unknown intentTypeId'])).toBe(true);
@@ -54,8 +59,8 @@ test('client stores server capabilities from extended WELCOME and ignores unreco
     const client = new GameClient('ws://example.invalid');
     const capsJson = encodeProtocolCapabilitiesJson({ moduleIds: ['core.doors'] });
 
-    client.receiveWelcome([Types.Messages.WELCOME, 1, 'name', 2, 3, 100, 1, capsJson]);
-    expect(client.serverProtocolRevision).toBe(1);
+    client.receiveWelcome([Types.Messages.WELCOME, 1, 'name', 2, 3, 100, 2, capsJson]);
+    expect(client.serverProtocolRevision).toBe(2);
     expect(client.serverCapabilities?.moduleIds).toEqual(['core.doors']);
 
     const logged: string[] = [];
@@ -72,6 +77,32 @@ test('client stores server capabilities from extended WELCOME and ignores unreco
 
     expect(logged.length).toBe(1);
     expect(logged[0] ?? '').toMatch(/Ignoring .*outcomeTypeId:\s*future\.outcome/);
+});
+
+test('client emits map transition outcomes for recognized begin/commit outcome ids', () => {
+    const client = new GameClient('ws://example.invalid');
+    const payload = encodeMapTransitionOutcomePayload({
+        fromMapId: 'overworld',
+        toMapId: 'house_01',
+        x: 10,
+        y: 11,
+    });
+    expect(payload).not.toBeNull();
+
+    const beginEvents: Array<{ seq: number; fromMapId: string; toMapId: string; x: number; y: number }> = [];
+    const commitEvents: Array<{ seq: number; fromMapId: string; toMapId: string; x: number; y: number }> = [];
+    client.on('mapTransitionBegin', (seq, fromMapId, toMapId, x, y) => {
+        beginEvents.push({ seq, fromMapId, toMapId, x, y });
+    });
+    client.on('mapTransitionCommit', (seq, fromMapId, toMapId, x, y) => {
+        commitEvents.push({ seq, fromMapId, toMapId, x, y });
+    });
+
+    client.receiveOutcome([Types.Messages.OUTCOME, 5, OUTCOME_MAP_TRANSITION_BEGIN, payload as string]);
+    client.receiveOutcome([Types.Messages.OUTCOME, 5, OUTCOME_MAP_TRANSITION_COMMIT, payload as string]);
+
+    expect(beginEvents).toEqual([{ seq: 5, fromMapId: 'overworld', toMapId: 'house_01', x: 10, y: 11 }]);
+    expect(commitEvents).toEqual([{ seq: 5, fromMapId: 'overworld', toMapId: 'house_01', x: 10, y: 11 }]);
 });
 
 test('server rejects unrecognized INTENT intentTypeId without disconnecting', () => {

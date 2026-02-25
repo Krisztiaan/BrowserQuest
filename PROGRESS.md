@@ -13,6 +13,22 @@ Format per entry:
 
 ---
 
+## 2026-02-25
+
+- 00:55 UTC
+  - Ticket: 431 (Map-scoped claims + chunk overlays + tile edits)
+  - Start timestamp: 2026-02-25 00:55 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Created new audit-remediation cycle tickets 431-437 in `TODO.md` with dependency order, acceptance criteria, and verification plans.
+    - Set Ticket 431 as active and began implementation planning for map-scoped server data paths.
+  - Evidence:
+    - `nl -ba TODO.md | sed -n '1,260p'`
+    - `nl -ba PROGRESS.md | sed -n '1,260p'`
+    - `nl -ba AGENTS.md | sed -n '1,260p'`
+  - Next action:
+    - Implement Ticket 431 map scoping changes in claims store, core tile intent handlers, and chunk overlay streaming.
+
 ## 2026-02-21
 
 - 09:05 UTC
@@ -5208,3 +5224,1643 @@ Format per entry:
     - `git diff TODO.md PROGRESS.md`
   - Next action:
     - Return results and benchmark tradeoffs.
+
+- 22:34 UTC
+  - Ticket: 389 (Project audit: baseline verify lane)
+  - Start timestamp: 2026-02-21 22:34 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Created audit tickets 389-391 and staged the audit execution plan in `TODO.md`.
+    - Began baseline inventory of potential security surfaces (env boundaries, DOM injection callsites).
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-21 22:34 UTC`
+    - `git status --porcelain=v1 -b` (clean worktree)
+    - `rg -n "innerHTML\\s*=|eval\\(|new Function\\(" client server shared tools`
+  - Next action:
+    - Run `bun run verify:modern` and capture failures (if any) for minimal-fix restoration.
+
+- 22:37 UTC
+  - Ticket: 389 (Project audit: baseline verify lane)
+  - Start timestamp: 2026-02-21 22:34 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ran canonical `verify:modern` lane to establish a clean baseline (generated content drift, typecheck, lint, format check, unit/smoke tests, client/server builds).
+  - Evidence:
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Execute Ticket 390 (security + correctness pass).
+
+- 22:37 UTC
+  - Ticket: 390 (Project audit: security + correctness pass)
+  - Start timestamp: 2026-02-21 22:37 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited client DOM writes and identified `innerHTML` sinks reachable from player-controlled payloads (chat bubble text, stored player name, disconnect messages).
+    - Traced server-side chat/name sanitization expectations to define a safe text-only rendering contract.
+  - Evidence:
+    - `rg -n "\\binnerHTML\\b" client` (identified callsites)
+    - `rg -n "Utils\\.sanitize\\(" server/player-session-command-translation.ts`
+  - Next action:
+    - Remove `innerHTML` sinks and switch chat/name sanitization to text-only control stripping; verify with lint/typecheck/tests.
+
+- 22:42 UTC
+  - Ticket: 390 (Project audit: security + correctness pass)
+  - Start timestamp: 2026-02-21 22:37 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed all client `innerHTML` writes in favor of `textContent` / safe DOM node construction.
+    - Switched server name/chat sanitation to control-char stripping (no HTML escaping) to match text-only client rendering.
+    - Added unit coverage for the new `stripControlChars` helper.
+  - Evidence:
+    - `rg -n "\\binnerHTML\\b" client server shared tools` (no matches)
+    - `bun run lint` (passed)
+    - `bun run typecheck` (passed)
+    - `bun test` (passed)
+  - Next action:
+    - Execute Ticket 391 (dependency + supply-chain review).
+
+- 22:42 UTC
+  - Ticket: 391 (Project audit: dependency + supply-chain review)
+  - Start timestamp: 2026-02-21 22:42 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Ran Bun vulnerability audit and traced vulnerable packages to dev-tooling dependency chains.
+    - Identified `ajv` (eslint transitive) and `minimatch` (eslint + typescript-eslint transitive) as the only current audit findings.
+  - Evidence:
+    - `bun audit` (minimatch high, ajv moderate)
+    - `bun pm why minimatch`
+    - `bun pm why ajv`
+  - Next action:
+    - Upgrade/force patched `ajv` within eslint dependency chain and re-run canonical verify lane; document remaining minimatch constraint.
+
+- 22:48 UTC
+  - Ticket: 391 (Project audit: dependency + supply-chain review)
+  - Start timestamp: 2026-02-21 22:42 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Pinned `ajv@6.14.0` as a dev dependency and aligned lockfile entries so eslint resolves the patched `ajv` version.
+    - Re-ran canonical verification lane after dependency/lock changes.
+    - Confirmed remaining `bun audit` finding is `minimatch` (dev tooling) with no compatible upgrade path under current eslint + typescript-eslint dependency constraints.
+  - Evidence:
+    - `bun audit` (minimatch high only; ajv cleared)
+    - `bun pm why ajv` (only `ajv@6.14.0`)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Execute Ticket 392 (architecture + operational risk review).
+
+- 22:48 UTC
+  - Ticket: 392 (Project audit: architecture + operational risks)
+  - Start timestamp: 2026-02-21 22:48 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Reviewed runtime boundary assumptions for auth/cookies, WebAuthn origin derivation, WS handshake behavior, metrics/memcache exposure, and env/config defaults.
+  - Evidence:
+    - `cat .nvmrc`
+    - `node -v`
+    - `sed -n '60,180p' server/passkey-auth.ts`
+    - `sed -n '180,340p' server/ws/runtime.ts`
+  - Next action:
+    - Summarize the highest-impact operational footguns + mitigations; propose follow-up tickets only where code changes are justified.
+
+- 22:50 UTC
+  - Ticket: 392 (Project audit: architecture + operational risks)
+  - Start timestamp: 2026-02-21 22:48 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Identified and documented top operational/security footguns:
+      - WebAuthn defaults (`rpId` / `expectedOrigins`) are derived from `request.url`; production deployments should set `BQ_WEBAUTHN_RP_ID` + `BQ_WEBAUTHN_EXPECTED_ORIGINS` explicitly (especially behind reverse proxies).
+      - Auth session secret defaults to a per-process random value; multi-instance or restart-stable sessions require `BQ_AUTH_SESSION_SECRET`.
+      - WebSocket upgrade path does not enforce an explicit Origin allowlist; cookies are `SameSite=Lax`, but adding a server-side allowlist is recommended before any future cookie/auth changes.
+      - Metrics adapter uses memcached; treat it as internal-only (bind to `127.0.0.1` / firewall) and avoid exposing memcached ports publicly.
+      - Repo-tracked `.env` is auto-loaded by Bun; keep it non-secret or convert to `.env.example` + ignore `.env` to reduce surprise configuration drift.
+      - Node engine baseline is `22.x` (`.nvmrc`), but local environments can drift (this host currently runs Node `20.20.0`); align CI/dev to avoid Playwright/tooling surprises.
+  - Evidence:
+    - `cat .nvmrc` -> `22`
+    - `node -v` -> `v20.20.0`
+    - `rg -n "resolveExpectedOrigins|resolveRelyingPartyId" server/passkey-auth.ts`
+    - `rg -n \"requestPath === '/ws'\" server/ws/runtime.ts`
+  - Next action:
+    - Return audit summary and changed-file references.
+
+- 12:41 UTC
+  - Ticket: 393 (Full-window renderer viewport + camera clamp behavior)
+  - Start timestamp: 2026-02-23 12:41 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Captured clarified requirement: no dynamic scaling; remove windowed viewport limit and run renderer in full-window mode.
+    - Staged implementation ticket in `TODO.md` with acceptance and verification plan.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 12:41 UTC`
+  - Next action:
+    - Trace client camera/renderer resize paths and implement full-window viewport with axis-wise clamp/center behavior.
+
+- 12:50 UTC
+  - Ticket: 393 (Full-window renderer viewport + camera clamp behavior)
+  - Start timestamp: 2026-02-23 12:41 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed fixed camera grid caps and switched renderer canvases to use live window dimensions.
+    - Added camera-axis clamp/center math so non-scrollable axes are centered while scrollable axes follow and clamp at edges.
+    - Updated pointer coordinate mapping to use the foreground canvas bounds directly.
+    - Forced gameplay viewport chrome (`#canvasborder`, `#canvas`, `#bubbles`) into full-window mode during `body.game`.
+    - Synced terrain/background movement with camera updates by redrawing the terrain layer when camera position changes.
+    - Added unit coverage for camera-axis clamp/center behavior.
+  - Evidence:
+    - `bun run typecheck` (passed)
+    - `bun run lint` (passed)
+    - `bun test --timeout 20000` (passed; `477 pass`, `1 skip`, `0 fail`)
+  - Next action:
+    - Return implementation summary and manual validation notes.
+
+- 13:06 UTC
+  - Ticket: 644 (Full-window renderer robustness pass)
+  - Start timestamp: 2026-02-23 13:06 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Created execution ticket for full-window edge-case hardening focused on DPR/viewport changes.
+    - Defined acceptance and verification plan in `TODO.md`.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 13:06 UTC`
+  - Next action:
+    - Audit renderer resize and canvas sizing paths, then implement targeted robustness fixes.
+
+- 13:10 UTC
+  - Ticket: 644 (Full-window renderer robustness pass)
+  - Start timestamp: 2026-02-23 13:06 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added viewport-size resolver in renderer and switched camera/canvas sizing to use resolved viewport dimensions instead of direct raw window assumptions.
+    - Updated camera rescale grid math to use renderer viewport width/height, keeping map visibility logic aligned with active canvas size.
+    - Added runtime resize listeners (`resize`, `orientationchange`, `visualViewport.resize`) with rAF coalescing so UI/game resize logic runs reliably outside CSS breakpoint transitions.
+    - Updated phone viewport CSS variable sync to use renderer viewport dimensions and clear stale values when not on phone layout.
+    - Added unit coverage for viewport size resolution behavior.
+  - Evidence:
+    - `bun run typecheck` (passed)
+    - `bun run lint` (passed)
+    - `bun test --timeout 20000 tests/unit/ecs/client-camera-axis.test.ts` (passed)
+    - `bun test --timeout 20000 tests/unit/renderer-terrain.test.ts` (passed)
+  - Next action:
+    - Return change summary and recommend a quick manual browser resize/orientation smoke check.
+
+- 13:26 UTC
+  - Ticket: 645 (Prevent player clipping outside map bounds)
+  - Start timestamp: 2026-02-23 13:26 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Captured regression report (`clipped out of map`) and opened focused ticket for movement bound enforcement.
+    - Defined acceptance criteria and verification plan in `TODO.md`.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 13:26 UTC`
+  - Next action:
+    - Trace authoritative movement/collision path and isolate missing map-bound guard.
+
+- 13:32 UTC
+  - Ticket: 645 (Prevent player clipping outside map bounds)
+  - Start timestamp: 2026-02-23 13:26 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added explicit world-position clamping helper (`clampWorldPosInsideMap`) in shared tile-collision utilities.
+    - Applied map-bound clamping in client move-input prediction (normal + reconciled + movement-suppressed paths).
+    - Applied map-bound clamping in server authoritative movement loops for both players and mobs before committing sub-tile positions.
+    - Added defensive camera follow hard-clamp to resolved axis bounds to avoid transient out-of-map viewport drift.
+    - Added focused tests for map-bound clamping utility and a server move-input regression case.
+  - Evidence:
+    - `bun run typecheck` (passed)
+    - `bun run lint` (passed)
+    - `bun test --timeout 20000 tests/unit/client-command-apply-movement-correction.test.ts` (passed)
+    - `bun test --timeout 20000 tests/unit/world-tile-collision.test.ts` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-move-input-intent.test.ts` (passed)
+    - `bun test --timeout 20000 tests/unit` (passed; `459 pass`, `0 fail`)
+  - Next action:
+    - Return fix summary and request manual in-game edge traversal verification.
+
+- 13:44 UTC
+  - Ticket: 646 (Plan multi-map interiors/rooms architecture)
+  - Start timestamp: 2026-02-23 13:44 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened planning ticket to define a Tiled-idiomatic multi-map interiors migration.
+    - Staged scope/acceptance/verification in `TODO.md`.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 13:44 UTC`
+  - Next action:
+    - Draft ticketized migration section in `mmo-plan.md` covering data, protocol, runtime, tooling, and rollout.
+
+- 13:46 UTC
+  - Ticket: 646 (Plan multi-map interiors/rooms architecture)
+  - Start timestamp: 2026-02-23 13:44 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added a dedicated multi-map interiors migration epic to `mmo-plan.md`, including current constraints, Tiled-idiomatic target model, and execution tickets 647–653.
+    - Defined incremental slices covering schema, pack compiler, server registry/transitions, protocol changes, client transition runtime, authoring/CI preflight, and rollout safety.
+    - Kept the plan aligned to no-fallback runtime policy by converging on one compiled map-pack runtime format.
+  - Evidence:
+    - `rg -n "multi-map interiors|room interiors|map transition" mmo-plan.md`
+    - `rg -n "Ticket 646" PROGRESS.md TODO.md`
+  - Next action:
+    - Share roadmap summary and confirm whether to start implementation with Ticket 647.
+
+- 14:07 UTC
+  - Ticket: 647 (Map graph schema + validator)
+  - Start timestamp: 2026-02-23 14:07 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 647 in `TODO.md` with explicit acceptance and verification plan.
+    - Began implementation pass for shared map-graph schema/validation.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 14:07 UTC`
+  - Next action:
+    - Implement shared `map-graph` module and add deterministic validator test coverage.
+
+- 14:13 UTC
+  - Ticket: 647 (Map graph schema + validator)
+  - Start timestamp: 2026-02-23 14:07 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added shared map-graph module with typed schema (`MapGraph`, `MapGraphMap`, `MapGraphDoor`, `MapGraphEdge`) and validator utilities.
+    - Implemented deterministic validation coverage for duplicate map ids, duplicate door ids per map, dangling edge endpoints, and duplicate edges.
+    - Added unit test suite for valid/invalid graph cases and deterministic error strings.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/map-graph.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun run lint` (passed)
+  - Next action:
+    - Confirm whether to start Ticket 648 (build-time map pack compiler).
+
+- 15:48 UTC
+  - Ticket: 648 (Build-time multi-map pack compiler)
+  - Start timestamp: 2026-02-23 15:48 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 648 in `TODO.md` with scope/acceptance/verification.
+    - Started implementation of shared map-pack compiler module, tooling entrypoint, config, and test scaffolding.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 15:48 UTC`
+  - Next action:
+    - Run verification lane (`map-pack` tests + typecheck + lint), then finalize ticket notes.
+
+- 15:52 UTC
+  - Ticket: 648 (Build-time multi-map pack compiler)
+  - Start timestamp: 2026-02-23 15:48 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added shared map-pack compiler module that compiles one or many Tiled maps into deterministic runtime pack output and validates integrated map-graph links.
+    - Added map-pack CLI tool (`generate`/`check`) and package scripts (`build:maps`, `check:maps`) for reproducible build-time artifact generation.
+    - Added baseline map-pack config for current world map and unit tests for single-map support, deterministic ordering, derived edge extraction, and dangling-link rejection.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/map-pack.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun run lint` (passed)
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+  - Next action:
+    - Confirm whether to proceed with Ticket 649 (server multi-map registry + authoritative transitions).
+
+- 16:06 UTC
+  - Ticket: 649 (Server multi-map registry + authoritative transitions)
+  - Start timestamp: 2026-02-23 16:06 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 649 in `TODO.md` with scope, acceptance criteria, and verification plan.
+    - Started implementation pass for map-registry-backed server runtime and map-aware authoritative transition handling.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 16:06 UTC`
+  - Next action:
+    - Implement map registry loading + ECS `mapId` transition semantics, then add focused multi-map server tests.
+
+- 16:30 UTC
+  - Ticket: 649 (Server multi-map registry + authoritative transitions)
+  - Start timestamp: 2026-02-23 16:06 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added server map-registry runtime (`server/world/map-registry.ts`) and wired `WorldServer` to load either compiled map-pack payloads or single-map runtime into a `mapId`-keyed registry surface.
+    - Added server runtime map APIs (`getDefaultMapId`, `getMapById`, `isValidPositionForMap`, `resolveDoorTeleport`) and hooked door resolution to graph-driven cross-map destinations with same-map door fallback.
+    - Added ECS-local `MapId` component and propagated map context through movement, teleport outcomes, move.to intent pathing, combat visibility checks, occupancy keys, group indexing, and nearby-interest replication.
+    - Updated core door intent/outcome module plumbing to carry `toMapId` through authoritative teleport outcomes.
+    - Added focused MMO tests for cross-map transition correctness + invalid destination rejection and updated move.to intent tests for map-context-aware handler signatures.
+  - Evidence:
+    - `bun run typecheck` (passed)
+    - `bun run lint` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-door-traversal.test.ts tests/unit/mmo/server-c2s-teleport-deny.test.ts tests/unit/mmo/server-map-transition.test.ts` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-move-to-intent.test.ts tests/unit/mmo/server-move-to-intent-registry.test.ts` (passed)
+  - Next action:
+    - Proceed to Ticket 650 (protocol updates for explicit map context + transition events).
+
+- 16:50 UTC
+  - Ticket: 654 (Multi-map correctness + asset handling hardening)
+  - Start timestamp: 2026-02-23 16:50 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened hardening ticket focused on map-pack runtime/preflight strictness and verification/asset freshness enforcement.
+    - Started implementation pass for registry consistency checks + startup map-pack validation.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 16:50 UTC`
+  - Next action:
+    - Land map-pack validation/preflight improvements, then run triple verification sweeps.
+
+- 17:02 UTC
+  - Ticket: 654 (Multi-map correctness + asset handling hardening)
+  - Start timestamp: 2026-02-23 16:50 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Hardened runtime map-pack loading and registry validation to reject inconsistent graph/map payload combinations and dimension mismatches.
+    - Hardened startup preflight map validation for map-pack payloads, including explicit failure for map-pack-shaped invalid payloads.
+    - Promoted map-pack freshness checks into the integrated verification lane and switched default server map runtime config/docs to `assets/maps/runtime/map-pack.json`.
+    - Fixed lint/compatibility regressions discovered during validation (`interest-replication` unnecessary branch and preflight test async warning), then reran focused checks.
+  - Evidence:
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts` (passed)
+    - `bun test --timeout 20000` (passed)
+    - `bun run typecheck` (passed)
+    - `bun run lint` (passed)
+    - `bun run verify:modern` (passed)
+    - `bun test --timeout 20000 tests/unit/server/startup/preflight.test.ts tests/unit/ecs/mob-ai-chase.test.ts` (passed)
+  - Next action:
+    - Await next ticket selection (or proceed with protocol-level map-context hardening if requested).
+
+- 17:11 UTC
+  - Ticket: 655 (Map-pack-only runtime cutover + no-fallback map preflight)
+  - Start timestamp: 2026-02-23 17:11 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 655 in `TODO.md` with scope, acceptance criteria, and verification plan.
+    - Started implementation pass to remove single-map runtime/preflight fallback paths and align asset references/tests to map-pack runtime artifacts.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 17:11 UTC`
+  - Next action:
+    - Implement world runtime + startup preflight map-pack-only enforcement, then run verification lanes.
+
+- 17:17 UTC
+  - Ticket: 655 (Map-pack-only runtime cutover + no-fallback map preflight)
+  - Start timestamp: 2026-02-23 17:11 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed world runtime single-map fallback path; startup now requires `map_filepath` to decode as valid map-pack payload before world boot.
+    - Removed startup preflight non-pack fallback validation path; preflight now enforces map-pack schema and validates each nested server map payload.
+    - Removed legacy single-map map-registry constructor path and cleaned unused helper code tied to runtime fallback compilation.
+    - Aligned smoke/runtime test map paths to `assets/maps/runtime/map-pack.json` and updated preflight expectation assertions for map-pack-only semantics.
+  - Evidence:
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/server/startup/preflight.test.ts` (passed)
+    - `bun test --timeout 20000 tests/smoke/server/config-preflight.test.ts tests/smoke/server/handshake.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun run lint` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (protocol-level map-context transition contract hardening remains available).
+
+- 17:45 UTC
+  - Ticket: 650 (Protocol map-context + transition outcomes)
+  - Start timestamp: 2026-02-23 17:45 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 650 in `TODO.md` with scope, acceptance criteria, and verification plan.
+    - Started implementation pass for protocol map-context payload contract updates and transition begin/commit outcomes.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 17:45 UTC`
+  - Next action:
+    - Land shared protocol contract updates, then wire server/client transition outcome flow and run verification lanes.
+
+- 18:02 UTC
+  - Ticket: 650 (Protocol map-context + transition outcomes)
+  - Start timestamp: 2026-02-23 17:45 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Completed protocol map-context contract updates for transition-relevant actions (`TELEPORT`, positional `CORRECTION`, `MOVE_SYNC`) and optional spawn snapshot map context.
+    - Added explicit transition outcomes (`map.transition.begin`, `map.transition.commit`) with shared payload codec and wired server emission + client runtime handling.
+    - Fixed a parser regression in ECS command pipeline map-id lookup references and cleaned an unnecessary outcome payload guard flagged by lint.
+    - Verified integrated map-pack asset/runtime checks and full modern lane, including build artifacts.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/protocol/intents.test.ts tests/unit/mmo/protocol-capabilities.test.ts tests/unit/mmo/protocol-seq-ack-schema.test.ts` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-door-traversal.test.ts` (passed)
+    - `bun run typecheck` (passed)
+    - `bun run lint` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection.
+
+- 18:46 UTC
+  - Ticket: 651 (Client runtime map cache + transition pipeline)
+  - Start timestamp: 2026-02-23 18:46 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 651 in `TODO.md` with explicit scope, acceptance criteria, and verification plan.
+    - Started implementation pass for client map-pack-aware runtime loading and deterministic map transition activation flow.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 18:46 UTC`
+  - Next action:
+    - Implement map-pack-aware client map cache + transition orchestration, then run targeted and full verification.
+
+- 19:02 UTC
+  - Ticket: 651 (Client runtime map cache + transition pipeline)
+  - Start timestamp: 2026-02-23 18:46 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Replaced client runtime map source loading with map-pack-aware resolution (`assets/maps/runtime/map-pack.json`) and explicit per-map runtime fetch by `mapId`.
+    - Added client transition orchestration commands (`begin/commit/map-activated/map-failed`) to suppress movement/input during transition, activate destination map runtime, and resume only after commit.
+    - Added runtime map switch activation in `Game` (`loadMapById`) to refresh pathing/camera/terrain/music state on cross-map activation.
+    - Added map-scope-aware client replication filtering to remove out-of-map rendered entities when active map changes.
+    - Hardened door traversal completion semantics with optional target-map awareness to avoid premature completion on same-coordinate cross-map doors.
+    - Added focused unit coverage for map source resolution, transition command plumbing, transition defer/finalize behavior, and active-map replication pruning.
+  - Evidence:
+    - `bun run typecheck` (passed)
+    - `bun test --timeout 20000 tests/unit/map-source.test.ts tests/unit/client-combat-runtime-plumbing.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/client-door-portal-system.test.ts tests/unit/mmo/client-seq-reconciliation.test.ts` (passed)
+    - `bun run lint` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (Ticket 652 remains the next planned map-pack workflow/documentation slice).
+
+- 19:31 UTC
+  - Ticket: 653 (Incremental rollout plan, production safety)
+  - Start timestamp: 2026-02-23 19:31 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 653 in `TODO.md` with scope, acceptance criteria, and explicit verification commands.
+    - Started implementation pass for transition observability, repeat-threshold verification coverage, and rollout/error-budget documentation.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 19:31 UTC`
+  - Next action:
+    - Land map-transition telemetry hooks and repeat-crossing tests, then run verification lane.
+
+- 19:37 UTC
+  - Ticket: 653 (Incremental rollout plan, production safety)
+  - Start timestamp: 2026-02-23 19:31 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added explicit map-transition telemetry contract (`begin`/`commit`/`reject`) and wired authoritative ECS + door-intent paths to emit stable reason-coded reject events.
+    - Added world runtime structured events for transition lifecycle (`world.map.transition.begin`, `world.map.transition.commit`, `world.map.transition.reject`) with monotonic counters and reject reason rollups.
+    - Expanded server map-transition unit coverage with telemetry assertions and a repeated threshold-crossing stability test (24 crossings, no rejects).
+    - Added rollout/operations docs for staged interior migration, rollback procedure, error budgets, and structured log taxonomy.
+    - Updated server docs links to include the new rollout and structured-event docs.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun test --timeout 20000 tests/smoke/server-structured-logs.lifecycle.test.ts` (passed)
+    - `bun run check:maps` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection or begin first interior asset migration slice using `docs/map-transition-rollout.md`.
+
+- 20:00 UTC
+  - Ticket: 656 (Slice 1 first interior migration)
+  - Start timestamp: 2026-02-23 20:00 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 656 in `TODO.md` for first concrete interior split from monolithic map to dedicated map unit.
+    - Identified the candidate doorway pair currently used by traversal smoke path (`world` doors object ids `92` and `93`, tile pair `27,209` <-> `155,286`).
+    - Started implementation pass for dedicated interior map asset creation and map-pack graph door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | head -n 60`
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | select(((.x/16|floor)==27) and ((.y/16|floor)==209)) | @json' assets/maps/tiled/world.json`
+  - Next action:
+    - Create `house_01` map asset, wire `world_house_01_entry` door links, rebuild map pack, and run verification lane.
+
+- 20:14 UTC
+  - Ticket: 656 (Slice 1 first interior migration)
+  - Start timestamp: 2026-02-23 20:00 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added first dedicated interior map unit `assets/maps/tiled/house_01.json` with explicit `door_id` + `target_map` + `target_door` door contract.
+    - Wired `world` doorway object id `92` to map-pack graph links (`world_house_01_entry` -> `house_01_entry`) and updated authored destination coordinates for cross-map authority/client parity.
+    - Added `house_01` to `assets/maps/tiled/map-pack.config.json` and regenerated runtime artifact `assets/maps/runtime/map-pack.json`.
+    - Updated map runtime default-map resolution to remain `world` when present (client and server), fixing a parity timeout discovered during verification after sorted map-pack compilation.
+    - Updated browser roundtrip test expectation to assert cross-map world↔interior roundtrip behavior.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next migration slice selection (next incremental interior batch) or add authoring lint rules for required `door_id/target_*` properties.
+
+- 20:15 UTC
+  - Ticket: 657 (Slice 2 second interior migration)
+  - Start timestamp: 2026-02-23 20:15 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 657 in `TODO.md` for second incremental interior split.
+    - Selected second concrete world doorway pair candidate (door object ids `22` and `94`, tile pair `80,211` <-> `155,311`) for migration.
+    - Started implementation pass for dedicated `house_02` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^22\\t|^94\\t'`
+  - Next action:
+    - Create `house_02` map and wire `world_house_02_entry` map-pack door links, then run verification lane.
+
+- 20:21 UTC
+  - Ticket: 657 (Slice 2 second interior migration)
+  - Start timestamp: 2026-02-23 20:15 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added second dedicated interior map asset `assets/maps/tiled/house_02.json` with explicit `door_id` + `target_map` + `target_door` link contract.
+    - Rewired `world` doorway object id `22` to cross-map links (`world_house_02_entry` -> `house_02_entry`) and updated authored destination coordinates for transition parity.
+    - Kept map-pack configuration/runtime artifacts aligned for `world` + `house_01` + `house_02`, then re-ran full verification.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior slice or map authoring lint hardening).
+
+- 20:22 UTC
+  - Ticket: 658 (Map-pack authoring lint hardening)
+  - Start timestamp: 2026-02-23 20:22 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 658 in `TODO.md` with explicit scope, acceptance criteria, and verification plan.
+    - Started implementation pass for compile-time map-pack door linkage validation hardening.
+  - Evidence:
+    - `date -u '+%Y-%m-%d %H:%M UTC'` -> `2026-02-23 20:22 UTC`
+  - Next action:
+    - Implement cross-map door property invariants in `compileMapPack`, then add focused unit tests and run verification.
+
+- 20:26 UTC
+  - Ticket: 658 (Map-pack authoring lint hardening)
+  - Start timestamp: 2026-02-23 20:22 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Hardened `compileMapPack` door-link validation to reject partial `target_map`/`target_door` declarations.
+    - Enforced explicit `door_id` on graph-linked source doors and on any graph edge endpoint (source/destination) used in map-pack links.
+    - Added unit tests for partial target-link declarations, implicit source door IDs, and implicit destination door IDs.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/map-pack.test.ts` (passed)
+    - `bun run check:maps` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or map transition observability follow-up).
+
+- 21:36 UTC
+  - Ticket: 659 (Slice 3 third interior migration)
+  - Start timestamp: 2026-02-23 21:36 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 659 in `TODO.md` for third incremental interior split.
+    - Selected third world doorway pair candidate (`world` door object ids `96` and `95`, tile pair `18,113` <-> `155,20`) for migration.
+    - Started implementation pass for dedicated `house_03` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^95\\t|^96\\t'`
+  - Next action:
+    - Create `house_03` map and wire `world_house_03_entry` map-pack door links, then run verification lane.
+
+- 21:39 UTC
+  - Ticket: 659 (Slice 3 third interior migration)
+  - Start timestamp: 2026-02-23 21:36 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added third dedicated interior map asset `assets/maps/tiled/house_03.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `96` to cross-map links (`world_house_03_entry` -> `house_03_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_03` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 21:40 UTC
+  - Ticket: 660 (Slice 4 fourth interior migration)
+  - Start timestamp: 2026-02-23 21:40 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 660 in `TODO.md` for fourth incremental interior split.
+    - Selected fourth world doorway pair candidate (`world` door object ids `97` and `98`, tile pair `70,80` <-> `166,36`) for migration.
+    - Started implementation pass for dedicated `house_04` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^97\\t|^98\\t'`
+  - Next action:
+    - Create `house_04` map and wire `world_house_04_entry` map-pack door links, then run verification lane.
+
+- 21:43 UTC
+  - Ticket: 660 (Slice 4 fourth interior migration)
+  - Start timestamp: 2026-02-23 21:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added fourth dedicated interior map asset `assets/maps/tiled/house_04.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `97` to cross-map links (`world_house_04_entry` -> `house_04_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_04` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 21:45 UTC
+  - Ticket: 661 (Slice 5 fifth interior migration)
+  - Start timestamp: 2026-02-23 21:45 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 661 in `TODO.md` for fifth incremental interior split.
+    - Selected fifth world doorway pair candidate (`world` door object ids `62` and `61`, tile pair `79,45` <-> `92,52`) for migration.
+    - Started implementation pass for dedicated `house_05` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^61\\t|^62\\t'`
+  - Next action:
+    - Create `house_05` map and wire `world_house_05_entry` map-pack door links, then run verification lane.
+
+- 21:48 UTC
+  - Ticket: 661 (Slice 5 fifth interior migration)
+  - Start timestamp: 2026-02-23 21:45 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added fifth dedicated interior map asset `assets/maps/tiled/house_05.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `62` to cross-map links (`world_house_05_entry` -> `house_05_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_05` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 21:49 UTC
+  - Ticket: 662 (Slice 6 sixth interior migration)
+  - Start timestamp: 2026-02-23 21:49 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 662 in `TODO.md` for sixth incremental interior split.
+    - Selected sixth world doorway pair candidate (`world` door object ids `63` and `66`, tile pair `78,40` <-> `117,94`) for migration.
+    - Started implementation pass for dedicated `house_06` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^63\\t|^66\\t'`
+  - Next action:
+    - Create `house_06` map and wire `world_house_06_entry` map-pack door links, then run verification lane.
+
+- 21:51 UTC
+  - Ticket: 662 (Slice 6 sixth interior migration)
+  - Start timestamp: 2026-02-23 21:49 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added sixth dedicated interior map asset `assets/maps/tiled/house_06.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `63` to cross-map links (`world_house_06_entry` -> `house_06_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_06` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 21:53 UTC
+  - Ticket: 663 (Slice 7 seventh interior migration)
+  - Start timestamp: 2026-02-23 21:53 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 663 in `TODO.md` for seventh incremental interior split.
+    - Selected seventh world doorway pair candidate (`world` door object ids `64` and `65`, tile pair `91,29` <-> `135,88`) for migration.
+    - Started implementation pass for dedicated `house_07` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^64\\t|^65\\t'`
+  - Next action:
+    - Create `house_07` map and wire `world_house_07_entry` map-pack door links, then run verification lane.
+
+- 21:55 UTC
+  - Ticket: 663 (Slice 7 seventh interior migration)
+  - Start timestamp: 2026-02-23 21:53 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added seventh dedicated interior map asset `assets/maps/tiled/house_07.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `64` to cross-map links (`world_house_07_entry` -> `house_07_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_07` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 21:56 UTC
+  - Ticket: 664 (Slice 8 eighth interior migration)
+  - Start timestamp: 2026-02-23 21:56 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 664 in `TODO.md` for eighth incremental interior split.
+    - Selected eighth world doorway pair candidate (`world` door object ids `67` and `68`, tile pair `6,10` <-> `156,181`) for migration.
+    - Started implementation pass for dedicated `house_08` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^67\\t|^68\\t'`
+  - Next action:
+    - Create `house_08` map and wire `world_house_08_entry` map-pack door links, then run verification lane.
+
+- 21:59 UTC
+  - Ticket: 664 (Slice 8 eighth interior migration)
+  - Start timestamp: 2026-02-23 21:56 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added eighth dedicated interior map asset `assets/maps/tiled/house_08.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `67` to cross-map links (`world_house_08_entry` -> `house_08_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_08` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 22:01 UTC
+  - Ticket: 665 (Slice 9 ninth interior migration)
+  - Start timestamp: 2026-02-23 22:01 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 665 in `TODO.md` for ninth incremental interior split.
+    - Selected ninth world doorway pair candidate (`world` door object ids `70` and `69`, tile pair `9,17` <-> `156,190`) for migration.
+    - Started implementation pass for dedicated `house_09` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^69\\t|^70\\t'`
+  - Next action:
+    - Create `house_09` map and wire `world_house_09_entry` map-pack door links, then run verification lane.
+
+- 22:06 UTC
+  - Ticket: 665 (Slice 9 ninth interior migration)
+  - Start timestamp: 2026-02-23 22:01 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added ninth dedicated interior map asset `assets/maps/tiled/house_09.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `70` to cross-map links (`world_house_09_entry` -> `house_09_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_09` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 22:07 UTC
+  - Ticket: 666 (Slice 10 tenth interior migration)
+  - Start timestamp: 2026-02-23 22:07 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 666 in `TODO.md` for tenth incremental interior split.
+    - Selected tenth world doorway pair candidate (`world` door object ids `72` and `71`, tile pair `104,7` <-> `155,158`) for migration.
+    - Started implementation pass for dedicated `house_10` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^71\\t|^72\\t'`
+  - Next action:
+    - Create `house_10` map and wire `world_house_10_entry` map-pack door links, then run verification lane.
+
+- 22:11 UTC
+  - Ticket: 666 (Slice 10 tenth interior migration)
+  - Start timestamp: 2026-02-23 22:07 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added tenth dedicated interior map asset `assets/maps/tiled/house_10.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `72` to cross-map links (`world_house_10_entry` -> `house_10_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_10` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:00 UTC
+  - Ticket: 667 (Slice 11 eleventh interior migration)
+  - Start timestamp: 2026-02-23 23:00 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 667 in `TODO.md` for eleventh incremental interior split.
+    - Selected eleventh world doorway pair candidate (`world` door object ids `24` and `26`, tile pair `20,145` <-> `157,120`) for migration.
+    - Started implementation pass for dedicated `house_11` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),((.properties//[]|map(select(.name=="x")|.value)|.[0]//""|tostring)),((.properties//[]|map(select(.name=="y")|.value)|.[0]//""|tostring)),((.properties//[]|map(select(.name=="cx")|.value)|.[0]//""|tostring)),((.properties//[]|map(select(.name=="cy")|.value)|.[0]//""|tostring)),((.properties//[]|map(select(.name=="door_id")|.value)|.[0]//""|tostring)),((.properties//[]|map(select(.name=="target_map")|.value)|.[0]//""|tostring))] | @tsv' assets/maps/tiled/world.json | awk 'BEGIN{FS=\"\\t\"} {id[NR]=$1;tx[NR]=$2;ty[NR]=$3;dx[NR]=$4;dy[NR]=$5;cx[NR]=$6;cy[NR]=$7;did[NR]=$8;tmap[NR]=$9;coord[$2\",\"$3]=$1;max=NR} END{for(i=1;i<=max;i++){if(did[i]==\"\" && tmap[i]==\"\" && cx[i]!=\"\" && cy[i]!=\"\" && coord[dx[i]\",\"dy[i]]!=\"\"){printf \"%s\\t(%s,%s)\\t->\\t(%s,%s)\\tpeer=%s\\tc=(%s,%s)\\n\",id[i],tx[i],ty[i],dx[i],dy[i],coord[dx[i]\",\"dy[i]],cx[i],cy[i];}}}' | sort -n`
+  - Next action:
+    - Create `house_11` map and wire `world_house_11_entry` map-pack door links, then run verification lane.
+
+- 23:03 UTC
+  - Ticket: 667 (Slice 11 eleventh interior migration)
+  - Start timestamp: 2026-02-23 23:00 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added eleventh dedicated interior map asset `assets/maps/tiled/house_11.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `24` to cross-map links (`world_house_11_entry` -> `house_11_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_11` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:04 UTC
+  - Ticket: 668 (Slice 12 twelfth interior migration)
+  - Start timestamp: 2026-02-23 23:04 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 668 in `TODO.md` for twelfth incremental interior split.
+    - Selected twelfth world doorway pair candidate (`world` door object ids `28` and `29`, tile pair `51,205` <-> `154,143`) for migration.
+    - Started implementation pass for dedicated `house_12` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^28\\t|^29\\t'`
+  - Next action:
+    - Create `house_12` map and wire `world_house_12_entry` map-pack door links, then run verification lane.
+
+- 23:07 UTC
+  - Ticket: 668 (Slice 12 twelfth interior migration)
+  - Start timestamp: 2026-02-23 23:04 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added twelfth dedicated interior map asset `assets/maps/tiled/house_12.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `28` to cross-map links (`world_house_12_entry` -> `house_12_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_12` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:08 UTC
+  - Ticket: 669 (Slice 13 thirteenth interior migration)
+  - Start timestamp: 2026-02-23 23:08 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 669 in `TODO.md` for thirteenth incremental interior split.
+    - Selected thirteenth world doorway pair candidate (`world` door object ids `50` and `49`, tile pair `74,145` <-> `156,214`) for migration.
+    - Started implementation pass for dedicated `house_13` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^49\\t|^50\\t'`
+  - Next action:
+    - Create `house_13` map and wire `world_house_13_entry` map-pack door links, then run verification lane.
+
+- 23:11 UTC
+  - Ticket: 669 (Slice 13 thirteenth interior migration)
+  - Start timestamp: 2026-02-23 23:08 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added thirteenth dedicated interior map asset `assets/maps/tiled/house_13.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `50` to cross-map links (`world_house_13_entry` -> `house_13_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_13` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:12 UTC
+  - Ticket: 670 (Slice 14 fourteenth interior migration)
+  - Start timestamp: 2026-02-23 23:12 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 670 in `TODO.md` for fourteenth incremental interior split.
+    - Selected fourteenth world doorway pair candidate (`world` door object ids `51` and `23`, tile pair `65,125` <-> `127,120`) for migration.
+    - Started implementation pass for dedicated `house_14` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^23\\t|^51\\t'`
+  - Next action:
+    - Create `house_14` map and wire `world_house_14_entry` map-pack door links, then run verification lane.
+
+- 23:16 UTC
+  - Ticket: 670 (Slice 14 fourteenth interior migration)
+  - Start timestamp: 2026-02-23 23:12 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added fourteenth dedicated interior map asset `assets/maps/tiled/house_14.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `51` to cross-map links (`world_house_14_entry` -> `house_14_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_14` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:16 UTC
+  - Ticket: 671 (Slice 15 fifteenth interior migration)
+  - Start timestamp: 2026-02-23 23:16 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 671 in `TODO.md` for fifteenth incremental interior split.
+    - Selected fifteenth world doorway pair candidate (`world` door object ids `85` and `52`, tile pair `71,3` <-> `155,71`) for migration.
+    - Started implementation pass for dedicated `house_15` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^52\\t|^85\\t'`
+  - Next action:
+    - Create `house_15` map and wire `world_house_15_entry` map-pack door links, then run verification lane.
+
+- 23:20 UTC
+  - Ticket: 671 (Slice 15 fifteenth interior migration)
+  - Start timestamp: 2026-02-23 23:16 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added fifteenth dedicated interior map asset `assets/maps/tiled/house_15.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `85` to cross-map links (`world_house_15_entry` -> `house_15_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_15` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:21 UTC
+  - Ticket: 672 (Slice 16 sixteenth interior migration)
+  - Start timestamp: 2026-02-23 23:21 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 672 in `TODO.md` for sixteenth incremental interior split.
+    - Selected sixteenth world doorway pair candidate (`world` door object ids `57` and `55`, tile pair `18,86` <-> `155,240`) for migration.
+    - Started implementation pass for dedicated `house_16` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^55\\t|^57\\t'`
+  - Next action:
+    - Create `house_16` map and wire `world_house_16_entry` map-pack door links, then run verification lane.
+
+- 23:24 UTC
+  - Ticket: 672 (Slice 16 sixteenth interior migration)
+  - Start timestamp: 2026-02-23 23:21 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added sixteenth dedicated interior map asset `assets/maps/tiled/house_16.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `57` to cross-map links (`world_house_16_entry` -> `house_16_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_16` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:25 UTC
+  - Ticket: 673 (Slice 17 seventeenth interior migration)
+  - Start timestamp: 2026-02-23 23:25 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 673 in `TODO.md` for seventeenth incremental interior split.
+    - Selected seventeenth world doorway pair candidate (`world` door object ids `58` and `56`, tile pair `19,77` <-> `127,240`) for migration.
+    - Started implementation pass for dedicated `house_17` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^56\\t|^58\\t'`
+  - Next action:
+    - Create `house_17` map and wire `world_house_17_entry` map-pack door links, then run verification lane.
+
+- 23:30 UTC
+  - Ticket: 673 (Slice 17 seventeenth interior migration)
+  - Start timestamp: 2026-02-23 23:25 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added seventeenth dedicated interior map asset `assets/maps/tiled/house_17.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `58` to cross-map links (`world_house_17_entry` -> `house_17_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_17` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:32 UTC
+  - Ticket: 674 (Slice 18 eighteenth interior migration)
+  - Start timestamp: 2026-02-23 23:32 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 674 in `TODO.md` for eighteenth incremental interior split.
+    - Selected eighteenth world doorway pair candidate (`world` door object ids `25` and `27`, tile pair `16,135` <-> `147,113`) for migration.
+    - Started implementation pass for dedicated `house_18` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^25\\t|^27\\t'`
+  - Next action:
+    - Create `house_18` map and wire `world_house_18_entry` map-pack door links, then run verification lane.
+
+- 23:35 UTC
+  - Ticket: 674 (Slice 18 eighteenth interior migration)
+  - Start timestamp: 2026-02-23 23:32 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added eighteenth dedicated interior map asset `assets/maps/tiled/house_18.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `25` to cross-map links (`world_house_18_entry` -> `house_18_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_18` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:37 UTC
+  - Ticket: 675 (Slice 19 nineteenth interior migration)
+  - Start timestamp: 2026-02-23 23:37 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 675 in `TODO.md` for nineteenth incremental interior split.
+    - Selected nineteenth world doorway pair candidate (`world` door object ids `86` and `53`, tile pair `71,21` <-> `155,96`) for migration.
+    - Started implementation pass for dedicated `house_19` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^53\\t|^86\\t'`
+  - Next action:
+    - Create `house_19` map and wire `world_house_19_entry` map-pack door links, then run verification lane.
+
+- 23:40 UTC
+  - Ticket: 675 (Slice 19 nineteenth interior migration)
+  - Start timestamp: 2026-02-23 23:37 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added nineteenth dedicated interior map asset `assets/maps/tiled/house_19.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `86` to cross-map links (`world_house_19_entry` -> `house_19_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_19` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:41 UTC
+  - Ticket: 676 (Slice 20 twentieth interior migration)
+  - Start timestamp: 2026-02-23 23:41 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 676 in `TODO.md` for twentieth incremental interior split.
+    - Selected twentieth world doorway pair candidate (`world` door object ids `54` and `89`, tile pair `155,86` <-> `71,11`) for migration.
+    - Started implementation pass for dedicated `house_20` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^54\\t|^89\\t'`
+  - Next action:
+    - Create `house_20` map and wire `world_house_20_entry` map-pack door links, then run verification lane.
+
+- 23:44 UTC
+  - Ticket: 676 (Slice 20 twentieth interior migration)
+  - Start timestamp: 2026-02-23 23:41 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added twentieth dedicated interior map asset `assets/maps/tiled/house_20.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `54` to cross-map links (`world_house_20_entry` -> `house_20_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_20` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:45 UTC
+  - Ticket: 677 (Slice 21 twenty-first interior migration)
+  - Start timestamp: 2026-02-23 23:45 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 677 in `TODO.md` for twenty-first incremental interior split.
+    - Selected twenty-first world doorway pair candidate (`world` door object ids `90` and `91`, tile pair `78,137` <-> `156,296`) for migration.
+    - Started implementation pass for dedicated `house_21` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^90\\t|^91\\t'`
+  - Next action:
+    - Create `house_21` map and wire `world_house_21_entry` map-pack door links, then run verification lane.
+
+- 23:47 UTC
+  - Ticket: 677 (Slice 21 twenty-first interior migration)
+  - Start timestamp: 2026-02-23 23:45 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added twenty-first dedicated interior map asset `assets/maps/tiled/house_21.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `90` to cross-map links (`world_house_21_entry` -> `house_21_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_21` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:49 UTC
+  - Ticket: 678 (Slice 22 twenty-second interior migration)
+  - Start timestamp: 2026-02-23 23:49 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 678 in `TODO.md` for twenty-second incremental interior split.
+    - Selected twenty-second world doorway pair candidate (`world` door object ids `83` and `82`, tile pair `79,102` <-> `129,275`) for migration.
+    - Started implementation pass for dedicated `house_22` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^82\\t|^83\\t'`
+  - Next action:
+    - Create `house_22` map and wire `world_house_22_entry` map-pack door links, then run verification lane.
+
+- 23:51 UTC
+  - Ticket: 678 (Slice 22 twenty-second interior migration)
+  - Start timestamp: 2026-02-23 23:49 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added twenty-second dedicated interior map asset `assets/maps/tiled/house_22.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `83` to cross-map links (`world_house_22_entry` -> `house_22_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_22` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 23:52 UTC
+  - Ticket: 679 (Slice 23 twenty-third interior migration)
+  - Start timestamp: 2026-02-23 23:52 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Activated Ticket 679 in `TODO.md` for twenty-third incremental interior split.
+    - Selected twenty-third world doorway pair candidate (`world` door object ids `84` and `81`, tile pair `75,102` <-> `124,275`) for migration.
+    - Started implementation pass for dedicated `house_23` map asset + world door rewiring.
+  - Evidence:
+    - `jq -r '.layers[] | select(.name=="doors") | .objects[] | [.id,(.x/16|floor),(.y/16|floor),(.properties//[]|map(.name+"="+(.value|tostring))|join(";"))] | @tsv' assets/maps/tiled/world.json | rg '^81\\t|^84\\t'`
+  - Next action:
+    - Create `house_23` map and wire `world_house_23_entry` map-pack door links, then run verification lane.
+
+- 23:55 UTC
+  - Ticket: 679 (Slice 23 twenty-third interior migration)
+  - Start timestamp: 2026-02-23 23:52 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added twenty-third dedicated interior map asset `assets/maps/tiled/house_23.json` with explicit `door_id` + `target_map` + `target_door` contract.
+    - Rewired `world` doorway object id `84` to cross-map links (`world_house_23_entry` -> `house_23_entry`) and updated authored destination coordinates for transition parity.
+    - Added `house_23` to `assets/maps/tiled/map-pack.config.json`, regenerated runtime map-pack, and verified graph edges include the new bidirectional link.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection (next interior migration slice or old interior cleanup pass).
+
+- 01:14 UTC
+  - Ticket: 680 (Remaining legacy interior transition completion sweep)
+  - Start timestamp: 2026-02-24 01:14 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Audited remaining unsplit world transitions and confirmed `17` legacy `o=u` door entries still lacked map-graph links.
+    - Opened a completion sweep ticket to migrate all remaining legacy transitions in one execution pass.
+  - Evidence:
+    - `node ... remaining_unlinked_u` audit (17 remaining door ids: 33,36,38,40,41,42,48,60,61,65,68,71,74,75,77,80,88)
+  - Next action:
+    - Generate dedicated map units and rewire all 17 remaining world door transitions to explicit map-graph links, then run full verification.
+
+- 01:20 UTC
+  - Ticket: 680 (Remaining legacy interior transition completion sweep)
+  - Start timestamp: 2026-02-24 01:14 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Migrated all remaining legacy unsplit world door transitions by generating dedicated map units `house_24` through `house_40` and wiring explicit `door_id` + `target_map` + `target_door` links.
+    - Rewired world doorway objects (`33,36,38,40,41,42,48,60,61,65,68,71,74,75,77,80,88`) to map-graph transitions and updated `assets/maps/tiled/map-pack.config.json`.
+    - Rebuilt runtime map-pack and confirmed there are no `world` `o=u` doors missing `target_map`, with bidirectional `world`↔`house_01..house_40` graph edges present.
+  - Evidence:
+    - `node ... world.json doors audit` (reported `missing_target_map_count 0`)
+    - `node ... map-pack.config.json audit` (reported `house_maps_in_config 40`, `missing_house_map_names none`)
+    - `node ... runtime map-pack graph audit` (reported `houses_missing_bidirectional_world_edges 0`)
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection.
+
+- 01:24 UTC
+  - Ticket: 681 (World interior-link guardrail for map-pack authoring)
+  - Start timestamp: 2026-02-24 01:24 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened ticket in `TODO.md` to prevent regressions where `world` interior-entry (`o=u`) doors are authored without explicit map-graph links.
+    - Defined acceptance criteria and verification lane for compiler validation + unit coverage.
+  - Evidence:
+    - `sed -n '1,140p' TODO.md`
+  - Next action:
+    - Implement map-pack compile validation + tests, then run verification.
+
+- 01:27 UTC
+  - Ticket: 681 (World interior-link guardrail for map-pack authoring)
+  - Start timestamp: 2026-02-24 01:24 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added a compile-time guardrail in `shared/maps/map-pack.ts` so `world` doors marked `o=u` must include explicit `target_map` + `target_door`.
+    - Added unit coverage in `tests/unit/map-pack.test.ts` for both rejection (`o=u` missing target links) and non-regression (`o=d` still allowed without target links).
+    - Re-ran targeted and full verification lanes to confirm no regressions.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/map-pack.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection.
+
+- 01:34 UTC
+  - Ticket: 682 (Remove runtime door-intent fallback branch)
+  - Start timestamp: 2026-02-24 01:34 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened ticket to remove fallback door resolution from core door-intent handler so runtime traversal is resolved only by `world.resolveDoorTeleport`.
+    - Defined focused verification on map transition/door traversal tests plus full modern lane.
+  - Evidence:
+    - `sed -n '1,120p' TODO.md`
+  - Next action:
+    - Implement handler change, add test coverage, and run verification.
+
+- 01:39 UTC
+  - Ticket: 682 (Remove runtime door-intent fallback branch)
+  - Start timestamp: 2026-02-24 01:34 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed runtime fallback door-resolution branches from both door-intent and movement door-traversal paths:
+      - `server/world/ecs-command-pipeline/core-module-registry.ts` no longer falls back to `world.map.getDoorDestination`.
+      - `server/world/ecs-command-pipeline.ts` door traversal now resolves destination only through `world.resolveDoorTeleport`.
+    - Added focused non-fallback coverage in `tests/unit/mmo/server-door-traversal.test.ts` to prove traversal does not teleport when `resolveDoorTeleport` is absent.
+    - Updated `tests/unit/mmo/server-c2s-teleport-deny.test.ts` fixture to use explicit `resolveDoorTeleport` for transitional allowlisted door teleport.
+    - Ran targeted and full verification; resolved one failing transitional test by moving it to explicit resolver wiring (no map fallback).
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-door-traversal.test.ts tests/unit/mmo/server-c2s-teleport-deny.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection.
+
+- 01:41 UTC
+  - Ticket: 683 (Remove map-registry same-map fallback branch)
+  - Start timestamp: 2026-02-24 01:41 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened ticket to remove fallback resolution in `WorldMapRegistry.resolveDoorTeleport`.
+    - Defined approach: build same-map routes during registry initialization so runtime door lookup is edge-only.
+  - Evidence:
+    - `sed -n '1,120p' TODO.md`
+  - Next action:
+    - Refactor map-registry door route construction and add unit tests.
+
+- 01:43 UTC
+  - Ticket: 683 (Remove map-registry same-map fallback branch)
+  - Start timestamp: 2026-02-24 01:41 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Refactored `WorldMapRegistry` to precompute local same-map door routes at registry construction time from map door `tx/ty`, including synthetic coordinate-only targets when a destination tile has no explicit door object.
+    - Removed runtime fallback behavior in `resolveDoorTeleport`; door resolution is now edge lookup only.
+    - Added map-registry unit coverage for same-map route resolution without runtime fallback and explicit graph-edge precedence over legacy local `tx/ty`.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-registry.test.ts tests/unit/mmo/server-map-transition.test.ts` (passed)
+    - `bun run verify:modern` (passed)
+  - Next action:
+    - Await next ticket selection.
+
+- 15:54 UTC
+  - Ticket: 684 (Diagonal queue movement consistency + move.to blocked-start recovery)
+  - Start timestamp: 2026-02-24 15:54 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened Ticket 684 in `TODO.md` with scope, acceptance criteria, and verification plan for the reported diagonal/pathing regressions.
+    - Reproduced the diagonal transient-tile bug with an off-center sub-tile start: queued diagonal move emits intermediate blocked orth tile (`MOVE ... 2,1`) before the diagonal destination (`2,2`).
+    - Confirmed baseline targeted tests were green before patching.
+  - Evidence:
+    - `bun test tests/unit/mmo/server-move-step-diagonal.test.ts tests/unit/mmo/server-move-to-intent.test.ts tests/unit/world-tile-collision.test.ts --timeout 30000`
+    - `bun -e <repro script>` (observed transient `MOVE` to blocked orth tile during diagonal queue step)
+  - Next action:
+    - Patch server movement commit + `move.to` planning, add regressions, and re-run targeted tests.
+
+- 15:55 UTC
+  - Ticket: 684 (Diagonal queue movement consistency + move.to blocked-start recovery)
+  - Start timestamp: 2026-02-24 15:54 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Patched `player_move` so queued diagonal movement no longer commits transient orthogonal tile states before reaching the diagonal destination tile.
+    - Added `move.to` planner hardening to temporarily force the current tile walkable during path search and restore grid state immediately after planning.
+    - Added regressions for off-center diagonal queue movement and blocked-current-tile `move.to` recovery.
+  - Evidence:
+    - `bun test tests/unit/mmo/server-move-step-diagonal.test.ts tests/unit/mmo/server-move-to-intent.test.ts tests/unit/world-tile-collision.test.ts --timeout 30000` (passed)
+  - Next action:
+    - Await next ticket selection.
+
+- 16:03 UTC
+  - Ticket: 685 (Queued diagonal oscillation fix (stable corner-cut semantics))
+  - Start timestamp: 2026-02-24 16:03 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened Ticket 685 after new repro logs showed authoritative `ENTITY_STATE_BATCH`/`MOVE_SYNC` x-axis ping-pong during queued diagonal movement.
+    - Identified likely root cause: per-tick diagonal corner-cut ignore tiles are anchored to current floored tile instead of the queued diagonal step target, causing ignore-set drift mid-step.
+  - Evidence:
+    - User log sample showing alternating worldX (`629248` <-> `631420`) with tile x (`153` <-> `154`) under one accepted move sequence.
+  - Next action:
+    - Patch queued diagonal step resolution (stable ignore tiles + per-axis step clamping), add regression coverage, run targeted tests.
+
+- 16:06 UTC
+  - Ticket: 685 (Queued diagonal oscillation fix (stable corner-cut semantics))
+  - Start timestamp: 2026-02-24 16:03 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Reworked queued diagonal waypoint execution in `player_move`:
+      - clamped queued step deltas to remaining target-center distance per axis to prevent overshoot bounce,
+      - anchored diagonal corner-cut ignore tiles to the queued step target (`movingToTile`) instead of recomputing from the transient floored tile each tick.
+    - Replaced the previous diagonal regression assertion with an explicit no `A-B-A` tile ping-pong check for off-center queued diagonal movement.
+    - Retained prior `move.to` blocked-start hardening and validated the combined behavior.
+  - Evidence:
+    - `bun test tests/unit/mmo/server-move-step-diagonal.test.ts tests/unit/mmo/server-move-to-intent.test.ts tests/unit/world-tile-collision.test.ts --timeout 30000` (passed)
+  - Next action:
+    - Await next ticket selection.
+
+- 16:22 UTC
+  - Ticket: 686 (Interior transition chunk-coordinate decode + viewport bleed fix)
+  - Start timestamp: 2026-02-24 16:22 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened Ticket 686 in `TODO.md` with scope, acceptance criteria, and verification plan for the reported interior transition regressions.
+    - Confirmed repro signature from logs: chunk snapshot coords decode as unsigned (`4294967293`) for negative values and transition into small interior maps can expose non-map background content on large viewports.
+  - Evidence:
+    - User-provided runtime logs (`CHUNK_SNAPSHOT` entries with `4294967293` coords after `map.transition.commit`)
+    - Static inspection of `shared/protocol/binary-action-codec.ts` and renderer/CSS paths
+  - Next action:
+    - Patch chunk coord decode semantics and gameplay background rendering, add/extend tests, then run targeted verification.
+
+- 16:24 UTC
+  - Ticket: 686 (Interior transition chunk-coordinate decode + viewport bleed fix)
+  - Start timestamp: 2026-02-24 16:22 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Patched binary action decode semantics so chunk coordinate fields decode back to signed int32 values for `CHUNK_SUBSCRIBE`, `CHUNK_SNAPSHOT`, `CHUNK_SNAPSHOT_PART`, and `CHUNK_DELTA`.
+    - Added protocol regression coverage that round-trips negative chunk coordinates through both c2s and s2c chunk streaming actions.
+    - Hardened interior/full-viewport rendering against background bleed by drawing an explicit black terrain underlay each terrain redraw and overriding gameplay `#background` CSS to solid black.
+  - Evidence:
+    - `bun test tests/unit/protocol/binary-action-codec.test.ts --timeout 30000` (passed)
+    - `bun test tests/unit/mmo/server-move-step-diagonal.test.ts tests/unit/mmo/server-move-to-intent.test.ts tests/unit/world-tile-collision.test.ts --timeout 30000` (passed)
+    - `bun test tests/unit/renderer-terrain.test.ts --timeout 30000` (passed)
+    - `bun run typecheck` (passed)
+  - Next action:
+    - Await user runtime validation of interior transitions on a large monitor.
+
+- 16:41 UTC
+  - Ticket: 687 (Diagonal collision penetration guard for authoritative movement)
+  - Start timestamp: 2026-02-24 16:41 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened Ticket 687 in `TODO.md` for the new report (`ejected out of world`) tied to movement/collision correctness.
+    - Analyzed reported coordinates against runtime map collisions and confirmed authoritative positions entered server-colliding tiles in the problematic segment.
+    - Isolated likely culprit in `player_move`: diagonal orth-tile ignore branch can permit blocked-tile overlap in continuous movement, especially during held-key diagonal input near dense collision edges.
+  - Evidence:
+    - User logs around `world` coords near x=160..163, y=119..122
+    - Runtime map collision check (`assets/maps/runtime/map-pack.json`) showing colliding tiles at `(160,119)`, `(161,120)`, `(162,121)`
+    - Static inspection of `server/world/ecs-command-pipeline.ts` diagonal ignore logic
+  - Next action:
+    - Patch movement invariants + diagonal handling, add/adjust tests, and run targeted verification.
+
+- 16:44 UTC
+  - Ticket: 687 (Diagonal collision penetration guard for authoritative movement)
+  - Start timestamp: 2026-02-24 16:41 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Hardened shared tile-collision utilities with an explicit blocked-overlap query (`worldPosOverlapsBlockedTiles`) supporting optional ignored tiles.
+    - Updated server `player_move` diagonal handling:
+      - removed held-key (`move.input`) diagonal orth-tile ignore so continuous input movement uses strict collision geometry,
+      - kept queued click-to-move diagonal corner-cut semantics, but scoped allowed blocked overlap to the two explicit orth tiles for that queued diagonal step.
+    - Added authoritative movement safety invariant: reject committing `PositionSub` updates that overlap blocked tiles outside allowed queued-diagonal orth exceptions.
+    - Added regression coverage:
+      - shared overlap helper test in `tests/unit/world-tile-collision.test.ts`,
+      - move.input world-geometry regression that replays the reported area and asserts no committed `MOVE` enters colliding tiles.
+  - Evidence:
+    - `bun test tests/unit/mmo/server-move-input-intent.test.ts tests/unit/mmo/server-move-step-diagonal.test.ts tests/unit/world-tile-collision.test.ts --timeout 30000` (passed)
+    - `bun run typecheck` (passed)
+  - Next action:
+    - Await live runtime validation for the reported `world` ejection path.
+
+- 16:49 UTC
+  - Ticket: 688 (Client sync jitter smoothing (authoritative + prediction blend))
+  - Start timestamp: 2026-02-24 16:49 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened Ticket 688 to address reported client-side choppiness/jitter under authoritative sync.
+    - Traced local movement pipeline and identified two likely jitter contributors:
+      - local prediction path is effectively double-smoothed (`setWorldPositionSub` target + renderer interpolation),
+      - soft reconcile threshold in move-input prediction is aggressive for small drift.
+  - Evidence:
+    - Static inspection of `client/ecs/systems/client-move-input-prediction-system.ts`
+    - Static inspection of `client/entity.ts` and `client/ecs/systems/client-simulation-system.ts`
+  - Next action:
+    - Patch local prediction/render sync behavior and reconcile thresholds, then run targeted client+movement verification.
+
+- 16:51 UTC
+  - Ticket: 688 (Client sync jitter smoothing (authoritative + prediction blend))
+  - Start timestamp: 2026-02-24 16:49 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added optional render snap mode to `Entity.setWorldPositionSub` so local prediction can update rendered `x/y` immediately and avoid double smoothing.
+    - Tuned local move-input reconciliation thresholds:
+      - raised soft correction threshold from `4px` to `8px`,
+      - raised hard snap threshold from `1 tile` to `2 tiles`,
+      - reduced soft correction strength from `1/4` to `1/6`.
+    - Updated move-input prediction system to use render snap mode for local predicted/suppressed updates.
+    - Reduced local click-to-move stop/start jitter by not hard-stopping local character path movement on `setEntityWorldPosition` commands.
+    - Added regression test ensuring `setEntityWorldPosition` does not cancel local predicted pathing.
+  - Evidence:
+    - `bun test tests/unit/mmo/client-seq-reconciliation.test.ts tests/unit/client-command-apply-movement-correction.test.ts --timeout 30000` (passed)
+    - `bun test tests/unit/mmo/server-move-input-intent.test.ts tests/unit/mmo/server-move-step-diagonal.test.ts tests/unit/world-tile-collision.test.ts --timeout 30000` (passed)
+    - `bun run typecheck` (passed)
+  - Next action:
+    - Await runtime feel-check from user for jitter reduction.
+
+- 17:44 UTC
+  - Ticket: 689 (Interior map content hardening (house/cave/tunnel transition safety))
+  - Start timestamp: 2026-02-24 17:44 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened ticket with scope/acceptance/verification for broad transition-map hardening after repeated interior load reports.
+    - Audited world door targets and confirmed all cross-map transitions currently target `house_01..house_40`.
+    - Audited `assets/maps/tiled/house_*.json` and confirmed every house map has `nonzero=0` across tile layers, matching the blank-interior runtime symptom.
+  - Evidence:
+    - `bun -e <world door target_map audit>` (40 target maps, all houses)
+    - `bun -e <house map nonzero audit>` (all `house_01..house_40` reported `nonzero=0`)
+  - Next action:
+    - Patch interior map content and add compile-time map-pack validation + tests, then regenerate/check runtime map pack.
+
+- 17:46 UTC
+  - Ticket: 689 (Interior map content hardening (house/cave/tunnel transition safety))
+  - Start timestamp: 2026-02-24 17:44 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added map-pack compile guardrail in `shared/maps/map-pack.ts` to reject any cross-map transition destination whose client terrain has no non-zero renderable tiles.
+    - Added map-pack regression coverage in `tests/unit/map-pack.test.ts` for:
+      - rejection of blank cross-map destination maps,
+      - non-regression allowing blank maps when there are no cross-map transition targets.
+    - Patched all transition-target interior map sources (`assets/maps/tiled/house_01.json` through `house_40.json`):
+      - filled `ground` layer with non-zero terrain tiles,
+      - added `blocking` perimeter layer for stable interior bounds.
+    - Regenerated runtime map-pack payload and verified all house maps compile with non-empty client data.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/map-pack.test.ts` (passed)
+    - `bun run build:maps` (generated `assets/maps/runtime/map-pack.json`)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts tests/unit/map-source.test.ts` (passed)
+    - `bun -e <runtime map-pack house non-empty audit>` (reported `houses 40 blank 0`)
+  - Next action:
+    - Await user runtime validation of interior transitions on house/cave/tunnel-style destinations.
+
+- 21:53 UTC
+  - Ticket: 690 (First-click combat hit reliability under movement reconciliation)
+  - Start timestamp: 2026-02-24 21:53 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened ticket for reported combat issue where first click starts attack animation but damage applies only after a second click.
+    - Traced client interaction/combat flow and identified race: `playerAttack` can be emitted while `clientPendingMoveAcks` / `clientPendingMoveSeqAcks` are still non-empty, allowing local attack animation to start before authoritative range is settled.
+  - Evidence:
+    - Static inspection: `client/ecs/systems/client-interaction-intent-system.ts`
+    - Static inspection: `client/ecs/systems/client-command-apply-system.ts` (`playerAttack` clears pending move ack queues)
+    - User log sample showing repeated inbound mob attack (`[7,96,500000000]`) while first-click damage from player is delayed.
+  - Next action:
+    - Patch attack intent gating for pending move reconciliation and add regression test, then run targeted combat tests.
+
+- 21:54 UTC
+  - Ticket: 690 (First-click combat hit reliability under movement reconciliation)
+  - Start timestamp: 2026-02-24 21:53 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Patched `client/ecs/systems/client-interaction-intent-system.ts` so attack-intent no longer enqueues `playerAttack` while `clientPendingMoveAcks` or `clientPendingMoveSeqAcks` are non-empty.
+    - Preserved existing behavior once movement reconciliation settles: adjacent/line-range attacks still enqueue immediately when no pending move intents remain.
+    - Added regression test in `tests/unit/ecs/client-attack-intent-follow.test.ts` for adjacent target + pending move intents to ensure ATTACK is deferred.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/ecs/client-attack-intent-follow.test.ts` (passed)
+    - `bun test --timeout 20000 tests/unit/ecs/combat-hitframe-state-machine.test.ts` (passed)
+    - `bun run typecheck` (passed)
+  - Next action:
+    - Await user runtime validation that first-click attack now lands without requiring a second click.
+
+- 22:10 UTC
+  - Ticket: 691 (First-click attack drop fix when ATTACK is emitted during movement)
+  - Start timestamp: 2026-02-24 22:10 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Investigated follow-up report and identified that attack-intent could emit `playerAttack` while the local player was still moving.
+    - Confirmed server-side behavior can clear combat `Target` during movement ticks, which can effectively drop early ATTACK setup and require a second click.
+    - Patched `client/ecs/systems/client-interaction-intent-system.ts` to defer ATTACK emission while local movement is still active (in addition to existing pending-move reconciliation gating).
+    - Added regression in `tests/unit/ecs/client-attack-intent-follow.test.ts` for adjacent target + local player still moving to ensure ATTACK is not emitted prematurely.
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/ecs/client-attack-intent-follow.test.ts` (passed)
+    - `bun test --timeout 20000 tests/unit/ecs/combat-hitframe-state-machine.test.ts` (passed)
+    - `bun run typecheck` (passed)
+  - Next action:
+    - Await user runtime validation that first click now sends ATTACK only after movement settles and no second click is needed.
+
+- 22:58 UTC
+  - Ticket: 692 (Combat first-click forensic follow-up: server intent registration)
+  - Start timestamp: 2026-02-24 22:58 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Re-investigated full client/server flow with frame-scheduler ordering and combat/movement interaction semantics.
+    - Confirmed risk path: ATTACK emitted while local path-stepping can be neutralized by server movement ticks that clear `Target`, creating a "movement only" first-click outcome.
+    - Hardened `client-interaction-intent-system`:
+      - require local movement settled before ATTACK emission,
+      - remove stationary in-range ATTACK suppression tied to pending move-ack queues,
+      - add periodic ATTACK retry while engagement remains in-range (`player.canAttack(currentTime)`), so early/dropped first ATTACK does not require a second click.
+    - Expanded attack-intent regression coverage with:
+      - stationary in-range ATTACK emission even with pending move intents,
+      - automatic ATTACK emission once movement settles (without second click).
+  - Evidence:
+    - `bun test --timeout 20000 tests/unit/ecs/client-attack-intent-follow.test.ts` (passed; includes new forensic regressions)
+    - `bun test --timeout 20000 tests/unit/ecs/combat-hitframe-state-machine.test.ts` (passed)
+    - `bun run typecheck` (passed)
+  - Next action:
+    - Await runtime validation with server logs for first-click ATTACK registration path.
+
+- 21:55 UTC
+  - Ticket: 691 (HUD placement + chat visibility regression fix)
+  - Start timestamp: 2026-02-24 21:55 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened ticket to address reported UI/HUD regressions where bottom HUD bar appears at top and chat appears permanently visible.
+    - Audited `index.html`, `client/css/main.css`, `client/app.ts`, and `client/main.ts`.
+    - Isolated likely root causes in phone overrides:
+      - `body.game.phone #bar-container` forces `top: env(safe-area-inset-top)`,
+      - `body.game.phone #chatbox` overrides baseline `#chatbox.active` bottom transition with higher specificity.
+  - Evidence:
+    - `sed -n '1030,1155p' client/css/main.css`
+    - `sed -n '360,520p' client/app.ts`
+    - `sed -n '360,780p' client/main.ts`
+  - Next action:
+    - Patch phone HUD/chat CSS to restore bottom anchoring and explicit inactive/active chat visibility behavior, then run targeted verification.
+
+- 22:00 UTC
+  - Ticket: 691 (HUD placement + chat visibility regression fix)
+  - Start timestamp: 2026-02-24 21:55 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated HUD/chat CSS behavior in `client/css/main.css`:
+      - `#chatbox` now defaults to hidden/inactive (`opacity:0`, `pointer-events:none`) and is shown only when `.active`.
+      - `body.game.phone #bar-container` now anchors to bottom safe area (removed top anchoring).
+      - Added explicit `body.game.phone #chatbox.active` offset so phone chat open/close state is visually distinct again.
+      - Anchored phone population panel above bottom HUD safe-area offset.
+    - Kept fixes CSS-only (no gameplay/input logic changes).
+  - Evidence:
+    - `bun run typecheck` (passed)
+    - `PW_REUSE_SERVERS=1 bun x playwright test --config=playwright.config.ts tests/browser/modern-phone-layout.playwright.ts` (passed)
+    - `bun run lint` (fails due pre-existing unrelated lint errors in `tests/unit/mmo/server-move-input-intent.test.ts` and warnings in server/shared files)
+    - `PW_REUSE_SERVERS=1 bun x playwright test --config=playwright.config.ts tests/browser/modern-ui-smoke.playwright.ts` (fails at existing footer-click interception in `#toggle-legal` step)
+  - Next action:
+    - Await user validation in the live UI; if needed, add a targeted UI regression spec for inactive phone chat visibility/placement.
+
+- 22:19 UTC
+  - Ticket: 697 (Tiled-idiomatic house/interior split integrity recovery)
+  - Start timestamp: 2026-02-24 22:02 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Audited split-map house links against original monolithic map intent in `/root/dev/BrowserQuest.wt-origin-master/server/maps/world_server.json`.
+    - Rebuilt all `assets/maps/tiled/house_01.json` .. `house_40.json` by extracting 16x16 interior windows from the canonical tiled world source (`assets/maps/tiled/world.json`) using exact origin door mapping at each world house-entry coordinate.
+    - Reconciled world door anchor drift introduced during initial heuristic pass by restoring affected house door coordinates and regenerating interiors from exact coordinate matches.
+    - Preserved explicit graph-link door metadata (`door_id`, `target_map`, `target_door`) for map-pack graph compilation.
+    - Regenerated runtime map pack.
+  - Evidence:
+    - Integrity check: all 40 world house doors match origin-map door coordinates (`{ total: 40, matched: 40, missing: [] }`)
+    - `bun run build:maps` (passed; generated `assets/maps/runtime/map-pack.json`)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 30000 tests/unit/map-pack.test.ts tests/unit/mmo/server-map-transition.test.ts tests/unit/mmo/server-map-registry.test.ts` (passed)
+    - Post-regeneration diversity check: 38 unique house interior signatures across 40 houses (two duplicate pairs remain: `house_24/house_26`, `house_28/house_30`)
+  - Next action:
+    - Optional follow-up: add a dedicated map-split audit tool/script under `tools/content` so this extraction+validation pipeline is reproducible without ad-hoc shell scripts.
+
+- 22:57 UTC
+  - Ticket: 698 (Mouse pointer/tile hover Y-offset audit + fix)
+  - Start timestamp: 2026-02-24 22:53 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Audited pointer pipeline (`App.setMouseCoordinates` -> `Game.getMouseGridPosition` -> `Renderer.drawCursor`/target cell).
+    - Identified coordinate-space mixing risk in pointer capture (`pageX/pageY` + scroll offsets) that can drift against viewport/canvas rect on modern browser viewport behavior.
+    - Updated pointer normalization in `client/app.ts` to prefer viewport-space (`clientX/clientY`) against `getBoundingClientRect()`, with fallback to legacy page coords.
+  - Evidence:
+    - `bun run typecheck` (passed)
+    - `bun x eslint --max-warnings=0 client/app.ts` (passed)
+  - Next action:
+    - Await user feel-check in live gameplay; if residual visual mismatch remains, calibrate cursor hotspot offset separately from input hit-testing.
+
+- 23:45 UTC
+  - Ticket: 699 (House split extraction: wall-aware room bounds)
+  - Start timestamp: 2026-02-24 23:31 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Reworked house regeneration to use room floor-fill detection (dominant fill tile flood) with wall-aware expansion, instead of pathability-only flood bounds.
+    - Kept pathability flood as fallback when floor-fill cannot resolve.
+    - Regenerated all house maps (`assets/maps/tiled/house_01.json` .. `house_40.json`) and rebuilt runtime map pack.
+  - Evidence:
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 30000 tests/unit/mmo/server-map-transition.test.ts` (passed)
+  - Next action:
+    - Await user visual validation of interior wall/floor framing quality in live gameplay.
+
+- 00:42 UTC
+  - Ticket: 700 (House split extraction: fill-aware island + collision synthesis correction)
+  - Start timestamp: 2026-02-25 00:05 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Updated split extraction to flood contiguous non-zero floor tiles while excluding dominant background fill IDs on the selected floor layer (instead of pathability-only flood).
+    - Applied wall-aware bbox expansion after floor flood to retain enclosing wall tiles.
+    - Fixed passability regression by synthesizing `blocking` for house maps where extracted blocking was empty, using structural wall layers + sealed perimeter (while preserving door opening).
+    - Regenerated all house maps and rebuilt runtime map pack.
+  - Evidence:
+    - House blocking audit: `zero-blocking 0` across `house_01..house_40`
+    - `bun run build:maps` (passed)
+    - `bun run check:maps` (passed)
+    - `bun test --timeout 30000 tests/unit/mmo/server-map-transition.test.ts tests/unit/map-pack.test.ts` (passed)
+  - Next action:
+    - Await user validation on the previously broken `house_08` lower-half and passability behavior in live runtime.

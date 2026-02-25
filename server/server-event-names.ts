@@ -25,6 +25,9 @@ export const WS_EVENT_NAMES = {
 export const WORLD_EVENT_NAMES = {
     PLAYER_JOIN: 'world.player.join',
     PLAYER_LEAVE: 'world.player.leave',
+    MAP_TRANSITION_BEGIN: 'world.map.transition.begin',
+    MAP_TRANSITION_COMMIT: 'world.map.transition.commit',
+    MAP_TRANSITION_REJECT: 'world.map.transition.reject',
 } as const;
 
 export type ServerEventName = (typeof SERVER_EVENT_NAMES)[keyof typeof SERVER_EVENT_NAMES];

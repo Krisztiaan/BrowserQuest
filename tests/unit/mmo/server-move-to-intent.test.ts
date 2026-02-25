@@ -6,6 +6,7 @@ import type { Command } from '../../../server/ecs/commands';
 import type { DomainEvent } from '../../../server/ecs/events';
 import { registerMovementComponents } from '../../../server/ecs/movement-components';
 import { WorldState } from '../../../server/ecs/world-state';
+import { SparseSetStore } from '../../../server/ecs/component-store';
 import { registerSpawnReplicationComponents } from '../../../server/replication/spawn-replication';
 import { applyMoveToIntentCommand } from '../../../server/world/intents/move-to-intent';
 import type { PlayerLike } from '../../../server/world/player-like';
@@ -80,6 +81,7 @@ test('move.to populates MoveQueue with a multi-step path (no occupancy)', () => 
 
     const Position = replication.Position;
     const Kind = replication.Kind;
+    const MapId = state.world.components.register('MapId', new SparseSetStore<string>());
 
     const grid = makeEmptyGrid(8, 8);
     const world: IntentWorldHost = {
@@ -100,6 +102,7 @@ test('move.to populates MoveQueue with a multi-step path (no occupancy)', () => 
     const res = applyMoveToIntentCommand({
         state,
         Position,
+        MapId,
         Kind,
         player: makePlayerLike(playerId, 1, 1),
         movement,
@@ -126,6 +129,7 @@ test('move.to respects stopAdjacentToTarget when the target tile is occupied by 
 
     const Position = replication.Position;
     const Kind = replication.Kind;
+    const MapId = state.world.components.register('MapId', new SparseSetStore<string>());
 
     const grid = makeEmptyGrid(8, 8);
     const world: IntentWorldHost = {
@@ -150,6 +154,7 @@ test('move.to respects stopAdjacentToTarget when the target tile is occupied by 
     const reject = applyMoveToIntentCommand({
         state,
         Position,
+        MapId,
         Kind,
         player: makePlayerLike(playerId, 1, 1),
         movement,
@@ -168,6 +173,7 @@ test('move.to respects stopAdjacentToTarget when the target tile is occupied by 
     const res = applyMoveToIntentCommand({
         state,
         Position,
+        MapId,
         Kind,
         player: makePlayerLike(playerId, 1, 1),
         movement,
@@ -193,6 +199,7 @@ test('move.to pathing uses constrained diagonal routing (keeps diagonal steps)',
 
     const Position = replication.Position;
     const Kind = replication.Kind;
+    const MapId = state.world.components.register('MapId', new SparseSetStore<string>());
 
     const grid = makeEmptyGrid(8, 8);
     const world: IntentWorldHost = {
@@ -213,6 +220,7 @@ test('move.to pathing uses constrained diagonal routing (keeps diagonal steps)',
     const res = applyMoveToIntentCommand({
         state,
         Position,
+        MapId,
         Kind,
         player: makePlayerLike(playerId, 1, 1),
         movement,
@@ -241,6 +249,7 @@ test('move.to diagonal routing allows corner cutting (blocked orth neighbor does
 
     const Position = replication.Position;
     const Kind = replication.Kind;
+    const MapId = state.world.components.register('MapId', new SparseSetStore<string>());
 
     const grid = makeEmptyGrid(3, 3);
     grid[0][1] = 1; // block east of start; diagonal (0,0)->(1,1) is allowed under corner-cut rules.
@@ -263,6 +272,7 @@ test('move.to diagonal routing allows corner cutting (blocked orth neighbor does
     const res = applyMoveToIntentCommand({
         state,
         Position,
+        MapId,
         Kind,
         player: makePlayerLike(playerId, 0, 0),
         movement,
@@ -287,6 +297,7 @@ test('move.to does not crash when map.isOutOfBounds relies on `this`', () => {
 
     const Position = replication.Position;
     const Kind = replication.Kind;
+    const MapId = state.world.components.register('MapId', new SparseSetStore<string>());
 
     const grid = makeEmptyGrid(4, 4);
 
@@ -314,6 +325,7 @@ test('move.to does not crash when map.isOutOfBounds relies on `this`', () => {
     const res = applyMoveToIntentCommand({
         state,
         Position,
+        MapId,
         Kind,
         player: makePlayerLike(playerId, 1, 1),
         movement,
@@ -326,4 +338,53 @@ test('move.to does not crash when map.isOutOfBounds relies on `this`', () => {
         },
     });
     expect(res).toBeUndefined();
+});
+
+test('move.to can recover when current tile is blocked in the map grid', () => {
+    const state = new WorldState<Command, DomainEvent>();
+    const replication = registerSpawnReplicationComponents(state.world);
+    const movement = registerMovementComponents(state.world);
+
+    const Position = replication.Position;
+    const Kind = replication.Kind;
+    const MapId = state.world.components.register('MapId', new SparseSetStore<string>());
+
+    const grid = makeEmptyGrid(5, 5);
+    grid[1][1] = 1; // Simulate transient invalid current tile; planner should still recover.
+    const world: IntentWorldHost = {
+        map: {
+            getDoorDestination: () => null,
+            grid,
+            width: 5,
+            height: 5,
+            isOutOfBounds: (x, y) => x < 0 || y < 0 || x >= 5 || y >= 5,
+        },
+        isValidPosition: (x, y) => x >= 0 && y >= 0 && x < 5 && y < 5 && grid[y]?.[x] === 0,
+    };
+
+    const playerId = state.world.createEntity();
+    state.world.addComponent(playerId, Position, gridPos(1, 1));
+    state.world.addComponent(playerId, Kind, Types.Entities.WARRIOR);
+
+    const res = applyMoveToIntentCommand({
+        state,
+        Position,
+        MapId,
+        Kind,
+        player: makePlayerLike(playerId, 1, 1),
+        movement,
+        world,
+        cmd: {
+            type: 'MOVE_TO',
+            source: { connectionId: 'c1', playerId },
+            to: gridPos(3, 1),
+            stopAdjacentToTarget: false,
+        },
+    });
+    expect(res).toBeUndefined();
+
+    const queue = state.world.getComponent(playerId, movement.MoveQueue);
+    expect(queue?.entries.length).toBeGreaterThan(0);
+    expect(queue?.entries[queue.entries.length - 1]).toEqual(gridPos(3, 1));
+    expect(grid[1]?.[1]).toBe(1); // temporary planner override must be restored
 });

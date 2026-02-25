@@ -166,6 +166,7 @@ export type ClientCommandApplySystemHost = {
     setPlayerMaxHitPoints(hp: number): void;
     setPlayerHealth(points: number): void;
     addItemFromUnknown(item: RuntimeEntity, x: number, y: number): void;
+    loadMapById?(mapId: string): Promise<void>;
 };
 
 function isGridIndexedEntity(value: unknown): value is GridIndexedEntity {
@@ -552,6 +553,48 @@ function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: st
 
     host.showNotification('Welcome back to BrowserQuest!');
     host.storage.setPlayerName(name);
+}
+
+function finalizeClientMapTransition(
+    host: ClientCommandApplySystemHost,
+    getKnownEntity: (id: EntityId) => GridIndexedEntity | undefined
+): void {
+    if (!host.kernel.canFinalizeClientMapTransition()) {
+        return;
+    }
+    const transition = host.kernel.clientMapTransition;
+    if (!transition) {
+        return;
+    }
+
+    const playerId = host.playerId;
+    if (playerId !== null) {
+        const playerEntity = getKnownEntity(playerId);
+        const targetPos = transition.localTeleport ?? { x: transition.x, y: transition.y, mapId: transition.toMapId };
+        if (typeof targetPos.mapId === 'string') {
+            host.kernel.setEntityMapId(playerId, targetPos.mapId);
+            host.kernel.setActiveMapId(targetPos.mapId);
+        }
+        if (playerEntity instanceof Character) {
+            playerEntity.path = null;
+            playerEntity.step = 0;
+            playerEntity.newDestination = null;
+            playerEntity.destination = null;
+            playerEntity.interrupted = false;
+            playerEntity.nextGridX = -1;
+            playerEntity.nextGridY = -1;
+            playerEntity.movement.stop();
+            playerEntity.idle();
+            host.makeCharacterTeleportTo(playerEntity, targetPos.x, targetPos.y);
+        }
+        host.kernel.clientReplicationLastPos.set(playerId, gridPos(targetPos.x, targetPos.y));
+        host.kernel.clientLastSentMovePos = gridPos(targetPos.x, targetPos.y);
+    }
+
+    host.resetCamera();
+    host.audioManager?.updateMusic?.();
+    host.kernel.clientMovementSuppressed = false;
+    host.kernel.clearClientMapTransition();
 }
 
 export function runClientCommandApplySystem(host: ClientCommandApplySystemHost): void {
@@ -991,6 +1034,79 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 host.connectionStartedCallback = null;
                 break;
             }
+            case 'beginMapTransition': {
+                const previous = host.kernel.clientMapTransition;
+                if (
+                    previous &&
+                    (command.seq < previous.seq || (command.seq === previous.seq && command.toMapId === previous.toMapId))
+                ) {
+                    break;
+                }
+
+                host.kernel.startClientMapTransition({
+                    seq: command.seq,
+                    fromMapId: command.fromMapId,
+                    toMapId: command.toMapId,
+                    x: command.x,
+                    y: command.y,
+                });
+                host.kernel.setActiveMapId(command.toMapId);
+                host.kernel.clientMovementSuppressed = true;
+                host.kernel.clearClientMovePlan();
+                host.kernel.clearClientPendingMoveAcks();
+                host.kernel.clearClientPendingMoveSeqAcks();
+                host.kernel.clearClientMoveInput();
+                host.kernel.clientDoorTraversalArmed = false;
+                host.kernel.clearClientPendingDoorTraversal();
+
+                if (typeof host.loadMapById !== 'function') {
+                    host.kernel.enqueueClientCommand({
+                        type: 'mapTransitionMapActivated',
+                        seq: command.seq,
+                        toMapId: command.toMapId,
+                    });
+                    break;
+                }
+
+                void host.loadMapById(command.toMapId)
+                    .then(() => {
+                        host.kernel.enqueueClientCommand({
+                            type: 'mapTransitionMapActivated',
+                            seq: command.seq,
+                            toMapId: command.toMapId,
+                        });
+                    })
+                    .catch((error) => {
+                        const reason = error instanceof Error ? error.message : String(error);
+                        host.kernel.enqueueClientCommand({
+                            type: 'mapTransitionMapFailed',
+                            seq: command.seq,
+                            toMapId: command.toMapId,
+                            reason,
+                        });
+                    });
+                break;
+            }
+            case 'commitMapTransition': {
+                host.kernel.markClientMapTransitionCommitted(command.seq, command.toMapId);
+                finalizeClientMapTransition(host, getKnownEntity);
+                break;
+            }
+            case 'mapTransitionMapActivated': {
+                host.kernel.markClientMapTransitionMapActivated(command.seq, command.toMapId);
+                finalizeClientMapTransition(host, getKnownEntity);
+                break;
+            }
+            case 'mapTransitionMapFailed': {
+                const transition = host.kernel.clientMapTransition;
+                if (transition?.seq === command.seq && transition.toMapId === command.toMapId) {
+                    host.kernel.clearClientMapTransition();
+                    host.kernel.clientMovementSuppressed = false;
+                    host.showNotification('Failed to load destination area. Please retry.');
+                    log.error(`Map transition failed for ${command.toMapId}: ${command.reason}`);
+                }
+                break;
+            }
             case 'emitNbPlayersChange': {
                 host.emit('nbPlayersChange', command.worldPlayers, command.totalPlayers);
                 break;
@@ -1028,7 +1144,8 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     throw new Error(`Entity ${String(command.entityId)} missing setWorldPositionSub`);
                 }
                 if (entity instanceof Character) {
-                    if (entity.isMoving()) {
+                    const isLocalPlayer = host.playerId !== null && command.entityId === host.playerId;
+                    if (entity.isMoving() && !isLocalPlayer) {
                         hardStopCharacterMovement(entity);
                     }
                 }
@@ -1038,7 +1155,13 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
             }
             case 'teleportEntity': {
                 const entity = getKnownEntity(command.entityId);
-                if (entity) {
+                const localPlayerTransition = command.entityId === host.playerId ? host.kernel.clientMapTransition : null;
+                if (localPlayerTransition) {
+                    host.kernel.setClientMapTransitionLocalTeleport(command.x, command.y, command.mapId);
+                }
+                const shouldDeferLocalTeleport = localPlayerTransition !== null;
+
+                if (entity && !shouldDeferLocalTeleport) {
                     if (entity instanceof Character) {
                         // Server teleports/corrections must cancel local pathing; otherwise the client continues an
                         // obsolete predicted path and fights the authoritative position.
@@ -1056,13 +1179,21 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     }
                 }
                 host.kernel.clientReplicationLastPos.set(command.entityId, gridPos(command.x, command.y));
+                if (typeof command.mapId === 'string') {
+                    host.kernel.setEntityMapId(command.entityId, command.mapId);
+                    if (command.entityId === host.playerId) {
+                        host.kernel.setActiveMapId(command.mapId);
+                    }
+                }
                 if (command.entityId === host.playerId) {
                     host.kernel.clientDoorTraversalArmed = false;
                     host.kernel.clearClientMovePlan();
                     host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
                     host.kernel.clearClientPendingMoveAcks();
                     host.kernel.clearClientPendingMoveSeqAcks();
-                    host.kernel.clientMovementSuppressed = false;
+                    if (!localPlayerTransition) {
+                        host.kernel.clientMovementSuppressed = false;
+                    }
                 }
                 break;
             }

@@ -1,6 +1,11 @@
 import { fetchClientRuntimeMap } from "./map-source";
 
+type WorkerRequest = {
+  mapId?: string;
+};
+
 type WorkerMap = {
+  mapId?: string;
   width: number;
   height: number;
   collisions: number[];
@@ -71,12 +76,17 @@ function generatePlateauGrid(map: WorkerMap): void {
   map.plateauGrid = plateauGrid;
 }
 
-self.onmessage = function onmessage(): void {
-  void fetchClientRuntimeMap()
+self.onmessage = function onmessage(event: MessageEvent<WorkerRequest | number>): void {
+  const requestedMapId = typeof event.data === "object" ? event.data.mapId : undefined;
+
+  void fetchClientRuntimeMap(requestedMapId)
     .then((map: WorkerMap) => {
       generateCollisionGrid(map);
       generatePlateauGrid(map);
-      self.postMessage(map);
+      self.postMessage({
+        ...map,
+        ...(requestedMapId ? { mapId: requestedMapId } : {}),
+      } satisfies WorkerMap);
     })
     .catch((error) => {
       const message = error instanceof Error ? error.message : String(error);

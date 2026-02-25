@@ -48,8 +48,16 @@ export function initializeGameConnection(game: Game, onStarted: () => void): voi
         enqueue(game, { type: 'entityList', list });
     });
 
-    effects.on('playerTeleport', function ({ game }, entityId: EntityId, x: number, y: number) {
-        enqueue(game, { type: 'playerTeleport', entityId, x, y });
+    effects.on('playerTeleport', function ({ game }, entityId: EntityId, x: number, y: number, mapId?: string) {
+        enqueue(game, { type: 'playerTeleport', entityId, x, y, mapId });
+    });
+
+    effects.on('mapTransitionBegin', function ({ game }, seq: number, fromMapId: string, toMapId: string, x: number, y: number) {
+        enqueue(game, { type: 'mapTransitionBegin', seq, fromMapId, toMapId, x, y });
+    });
+
+    effects.on('mapTransitionCommit', function ({ game }, seq: number, fromMapId: string, toMapId: string, x: number, y: number) {
+        enqueue(game, { type: 'mapTransitionCommit', seq, fromMapId, toMapId, x, y });
     });
 
     effects.on('playerMoveToItem', function ({ game }, playerId: EntityId, itemId: EntityId) {

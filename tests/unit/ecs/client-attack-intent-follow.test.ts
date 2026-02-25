@@ -41,6 +41,7 @@ test('attack intent enqueues follow when non-adjacent', () => {
 
     runClientInteractionIntentSystem({
         started: true,
+        currentTime: 1_000,
         playerId,
         player,
         entities: { [String(mob.id)]: mob },
@@ -86,6 +87,7 @@ test('attack intent does not enqueue follow while move intents are already pendi
 
     runClientInteractionIntentSystem({
         started: true,
+        currentTime: 1_000,
         playerId,
         player,
         entities: { [String(mob.id)]: mob },
@@ -94,6 +96,278 @@ test('attack intent does not enqueue follow while move intents are already pendi
 
     const commands = kernel.drainClientCommands();
     expect(commands).not.toContainEqual({ type: 'playerFollow', targetId: mob.id });
+});
+
+test('attack intent defers ATTACK in-range while move intents are still pending', () => {
+    const playerId = entityIdFromWire(5105);
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
+    setEntityGrid(player, 10, 10);
+
+    const mob = new Mob(entityIdFromWire(1706), Types.Entities.RAT);
+    setEntityGrid(mob, 11, 10);
+
+    const kernel = new ClientWorldKernel();
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: playerId,
+        kind: player.kind,
+        x: player.gridX,
+        y: player.gridY,
+        isPlayer: true,
+    });
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: mob.id,
+        kind: mob.kind,
+        x: mob.gridX,
+        y: mob.gridY,
+        isPlayer: false,
+    });
+    kernel.enqueueClientPendingMoveAck(10, 10);
+    kernel.enqueueClientPendingMoveSeqAck(99);
+    kernel.setClientInteractionIntent({
+        kind: 'attack',
+        targetId: mob.id,
+        lastKnownTargetPos: gridPos(mob.gridX, mob.gridY),
+    });
+
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_000,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+
+    const commands = kernel.drainClientCommands();
+    expect(commands).not.toContainEqual({ type: 'playerAttack', targetId: mob.id });
+});
+
+test('attack intent emits ATTACK once pending move intents clear without requiring a second click', () => {
+    const playerId = entityIdFromWire(5109);
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
+    setEntityGrid(player, 10, 10);
+
+    const mob = new Mob(entityIdFromWire(1710), Types.Entities.RAT);
+    setEntityGrid(mob, 11, 10);
+
+    const kernel = new ClientWorldKernel();
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: playerId,
+        kind: player.kind,
+        x: player.gridX,
+        y: player.gridY,
+        isPlayer: true,
+        isMoving: false,
+    });
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: mob.id,
+        kind: mob.kind,
+        x: mob.gridX,
+        y: mob.gridY,
+        isPlayer: false,
+    });
+    player.setTarget(mob);
+    player.attackingMode = true;
+    kernel.enqueueClientPendingMoveAck(10, 10);
+    kernel.enqueueClientPendingMoveSeqAck(100);
+    kernel.setClientInteractionIntent({
+        kind: 'attack',
+        targetId: mob.id,
+        lastKnownTargetPos: gridPos(mob.gridX, mob.gridY),
+    });
+
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_000,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+    expect(kernel.drainClientCommands()).not.toContainEqual({ type: 'playerAttack', targetId: mob.id });
+
+    kernel.clearClientPendingMoveAcks();
+    kernel.clearClientPendingMoveSeqAcks();
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_100,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+    expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerAttack', targetId: mob.id });
+});
+
+test('attack intent waits for authoritative tile alignment before emitting ATTACK', () => {
+    const playerId = entityIdFromWire(5110);
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
+    setEntityGrid(player, 10, 10);
+
+    const mob = new Mob(entityIdFromWire(1711), Types.Entities.RAT);
+    setEntityGrid(mob, 11, 10);
+
+    const kernel = new ClientWorldKernel();
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: playerId,
+        kind: player.kind,
+        x: player.gridX,
+        y: player.gridY,
+        isPlayer: true,
+        isMoving: false,
+    });
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: mob.id,
+        kind: mob.kind,
+        x: mob.gridX,
+        y: mob.gridY,
+        isPlayer: false,
+    });
+    kernel.clientReplicationLastPos.set(playerId, gridPos(9, 10));
+    kernel.setClientInteractionIntent({
+        kind: 'attack',
+        targetId: mob.id,
+        lastKnownTargetPos: gridPos(mob.gridX, mob.gridY),
+    });
+
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_000,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+    expect(kernel.drainClientCommands()).not.toContainEqual({ type: 'playerAttack', targetId: mob.id });
+
+    kernel.clientReplicationLastPos.set(playerId, gridPos(10, 10));
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_100,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+    expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerAttack', targetId: mob.id });
+});
+
+test('attack intent defers ATTACK while local player is still moving even if adjacent', () => {
+    const playerId = entityIdFromWire(5106);
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
+    setEntityGrid(player, 10, 10);
+
+    const mob = new Mob(entityIdFromWire(1707), Types.Entities.RAT);
+    setEntityGrid(mob, 11, 10);
+
+    const kernel = new ClientWorldKernel();
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: playerId,
+        kind: player.kind,
+        x: player.gridX,
+        y: player.gridY,
+        isPlayer: true,
+        isMoving: true,
+        nextGridX: 10,
+        nextGridY: 10,
+    });
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: mob.id,
+        kind: mob.kind,
+        x: mob.gridX,
+        y: mob.gridY,
+        isPlayer: false,
+    });
+    kernel.setClientInteractionIntent({
+        kind: 'attack',
+        targetId: mob.id,
+        lastKnownTargetPos: gridPos(mob.gridX, mob.gridY),
+    });
+
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_000,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+
+    const commands = kernel.drainClientCommands();
+    expect(commands).not.toContainEqual({ type: 'playerAttack', targetId: mob.id });
+});
+
+test('attack intent emits ATTACK automatically once movement settles without requiring a second click', () => {
+    const playerId = entityIdFromWire(5107);
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
+    setEntityGrid(player, 10, 10);
+
+    const mob = new Mob(entityIdFromWire(1708), Types.Entities.RAT);
+    setEntityGrid(mob, 11, 10);
+
+    const kernel = new ClientWorldKernel();
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: playerId,
+        kind: player.kind,
+        x: player.gridX,
+        y: player.gridY,
+        isPlayer: true,
+        isMoving: true,
+        nextGridX: 10,
+        nextGridY: 10,
+    });
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: mob.id,
+        kind: mob.kind,
+        x: mob.gridX,
+        y: mob.gridY,
+        isPlayer: false,
+    });
+    kernel.setClientInteractionIntent({
+        kind: 'attack',
+        targetId: mob.id,
+        lastKnownTargetPos: gridPos(mob.gridX, mob.gridY),
+    });
+
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_000,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+    expect(kernel.drainClientCommands()).not.toContainEqual({ type: 'playerAttack', targetId: mob.id });
+
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: playerId,
+        kind: player.kind,
+        x: player.gridX,
+        y: player.gridY,
+        isPlayer: true,
+        isMoving: false,
+    });
+
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_100,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+    expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerAttack', targetId: mob.id });
 });
 
 test('attack intent emits ATTACK once adjacent even if target already assigned', () => {
@@ -132,6 +406,7 @@ test('attack intent emits ATTACK once adjacent even if target already assigned',
 
     runClientInteractionIntentSystem({
         started: true,
+        currentTime: 1_000,
         playerId,
         player,
         entities: { [String(mob.id)]: mob },
@@ -176,6 +451,7 @@ test('attack intent emits ATTACK at 2-tile line range for heavy melee weapon', (
 
     runClientInteractionIntentSystem({
         started: true,
+        currentTime: 1_000,
         playerId,
         player,
         entities: { [String(mob.id)]: mob },
@@ -221,6 +497,7 @@ test('attack intent keeps follow when target is diagonal even with heavy melee w
 
     runClientInteractionIntentSystem({
         started: true,
+        currentTime: 1_000,
         playerId,
         player,
         entities: { [String(mob.id)]: mob },

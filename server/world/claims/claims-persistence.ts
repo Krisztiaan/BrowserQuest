@@ -19,6 +19,7 @@ function resolveDatabasePath(configuredPath: string | null | undefined): string 
 
 type ClaimRow = {
     id: number;
+    map_id: string;
     owner_name: string;
     editors_json: string;
     x1: number;
@@ -52,6 +53,7 @@ export class SqliteClaimsPersistence {
 
             CREATE TABLE IF NOT EXISTS claims (
                 id INTEGER PRIMARY KEY,
+                map_id TEXT NOT NULL DEFAULT 'world',
                 owner_name TEXT NOT NULL,
                 editors_json TEXT NOT NULL DEFAULT '[]',
                 x1 INTEGER NOT NULL,
@@ -62,14 +64,23 @@ export class SqliteClaimsPersistence {
                 updated_at INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS claims_owner_name ON claims(owner_name);
+            CREATE INDEX IF NOT EXISTS claims_map_id ON claims(map_id);
         `);
+
+        const claimColumns = this.#db.query("PRAGMA table_info('claims')").all() as Array<{ name?: string }>;
+        const hasMapId = claimColumns.some((column) => column.name === 'map_id');
+        if (!hasMapId) {
+            this.#db.exec(`ALTER TABLE claims ADD COLUMN map_id TEXT NOT NULL DEFAULT 'world'`);
+            this.#db.exec(`CREATE INDEX IF NOT EXISTS claims_map_id ON claims(map_id)`);
+        }
 
         this.#upsertClaim = this.#db.prepare(`
             INSERT INTO claims
-                (id, owner_name, editors_json, x1, y1, x2, y2, created_at, updated_at)
+                (id, map_id, owner_name, editors_json, x1, y1, x2, y2, created_at, updated_at)
             VALUES
-                (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+                (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
             ON CONFLICT(id) DO UPDATE SET
+                map_id = excluded.map_id,
                 owner_name = excluded.owner_name,
                 editors_json = excluded.editors_json,
                 x1 = excluded.x1,
@@ -81,7 +92,7 @@ export class SqliteClaimsPersistence {
 
         this.#deleteClaim = this.#db.prepare(`DELETE FROM claims WHERE id = ?1`);
         this.#selectAll = this.#db.prepare(`
-            SELECT id, owner_name, editors_json, x1, y1, x2, y2, created_at, updated_at
+            SELECT id, map_id, owner_name, editors_json, x1, y1, x2, y2, created_at, updated_at
             FROM claims
             ORDER BY id ASC
         `);
@@ -95,6 +106,7 @@ export class SqliteClaimsPersistence {
         const updatedAt = Math.floor(nowMs);
         this.#upsertClaim.run(
             claim.id,
+            claim.mapId,
             claim.ownerName,
             JSON.stringify(claim.editorNameKeys.slice()),
             claim.x1,
@@ -115,6 +127,7 @@ export class SqliteClaimsPersistence {
         return rows.map((row) =>
             Object.freeze({
                 id: row.id,
+                mapId: typeof row.map_id === 'string' && row.map_id.trim().length > 0 ? row.map_id : 'world',
                 ownerName: row.owner_name,
                 editorNameKeys: decodeEditorNameKeys(row.editors_json),
                 x1: row.x1,

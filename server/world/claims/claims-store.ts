@@ -3,6 +3,7 @@ import { normalizeIdentityKey, normalizeIdentityKeyList } from '../../identity';
 
 export type RectClaim = Readonly<{
     id: number;
+    mapId: string;
     ownerName: string;
     editorNameKeys: ReadonlyArray<string>;
     x1: number;
@@ -29,6 +30,18 @@ function normalizeEditorNameKeys(ownerName: string, rawEditorNameKeys: ReadonlyA
     return normalizeIdentityKeyList(rawEditorNameKeys, { exclude: ownerName });
 }
 
+function normalizeMapId(mapId: string): string {
+    const trimmed = mapId.trim();
+    if (trimmed.length === 0) {
+        throw new Error('ClaimsStore: mapId is required');
+    }
+    return trimmed;
+}
+
+function mapScopedIndexKey(mapId: string, chunkX: number, chunkY: number): string {
+    return `${mapId}:${makeChunkKey(chunkX, chunkY).toString()}`;
+}
+
 function intersectsRect(a: { x1: number; y1: number; x2: number; y2: number }, b: { x1: number; y1: number; x2: number; y2: number }): boolean {
     return a.x1 <= b.x2 && a.x2 >= b.x1 && a.y1 <= b.y2 && a.y2 >= b.y1;
 }
@@ -38,7 +51,7 @@ export class ClaimsStore {
     readonly maxIndexCellsPerClaim: number;
 
     readonly #claimsById = new Map<number, RectClaim>();
-    readonly #index = new Map<bigint, number[]>();
+    readonly #index = new Map<string, number[]>();
     #nextId = 1;
 
     constructor({ indexChunkSize = 32, maxIndexCellsPerClaim = 4096 }: { indexChunkSize?: number; maxIndexCellsPerClaim?: number } = {}) {
@@ -79,6 +92,7 @@ export class ClaimsStore {
     }
 
     createClaim({
+        mapId = 'world',
         ownerName,
         editorNameKeys,
         x1,
@@ -87,6 +101,7 @@ export class ClaimsStore {
         y2,
         nowMs = Date.now(),
     }: {
+        mapId?: string;
         ownerName: string;
         editorNameKeys?: ReadonlyArray<string>;
         x1: number;
@@ -107,9 +122,11 @@ export class ClaimsStore {
 
         const id = this.#nextId++;
         const bounds = clampRectBounds(x1, y1, x2, y2);
+        const normalizedMapId = normalizeMapId(mapId);
         const normalizedOwnerName = normalizeIdentityKey(ownerName);
         const claim: RectClaim = Object.freeze({
             id,
+            mapId: normalizedMapId,
             ownerName: normalizedOwnerName,
             editorNameKeys: normalizeEditorNameKeys(normalizedOwnerName, editorNameKeys),
             ...bounds,
@@ -178,6 +195,7 @@ export class ClaimsStore {
 
         const nextClaim: RectClaim = Object.freeze({
             id: existing.id,
+            mapId: existing.mapId,
             ownerName: nextOwnerName,
             editorNameKeys: nextEditorNameKeys,
             ...nextBounds,
@@ -188,14 +206,15 @@ export class ClaimsStore {
         return nextClaim;
     }
 
-    countClaimsByOwner(ownerName: string): number {
+    countClaimsByOwner(ownerName: string, mapId?: string): number {
         const normalizedOwner = normalizeIdentityKey(ownerName);
         if (!normalizedOwner) {
             return 0;
         }
+        const normalizedMapId = typeof mapId === 'string' ? normalizeMapId(mapId) : null;
         let count = 0;
         for (const claim of this.#claimsById.values()) {
-            if (claim.ownerName === normalizedOwner) {
+            if (claim.ownerName === normalizedOwner && (normalizedMapId === null || claim.mapId === normalizedMapId)) {
                 count += 1;
             }
         }
@@ -203,12 +222,14 @@ export class ClaimsStore {
     }
 
     findFirstOverlappingClaim({
+        mapId = 'world',
         x1,
         y1,
         x2,
         y2,
         excludeClaimId,
     }: {
+        mapId?: string;
         x1: number;
         y1: number;
         x2: number;
@@ -219,13 +240,14 @@ export class ClaimsStore {
             return null;
         }
         const target = clampRectBounds(x1, y1, x2, y2);
+        const normalizedMapId = normalizeMapId(mapId);
         const { chunkX: startX, chunkY: startY } = resolveIndexChunkCoords(this.indexChunkSize, target.x1, target.y1);
         const { chunkX: endX, chunkY: endY } = resolveIndexChunkCoords(this.indexChunkSize, target.x2, target.y2);
         const candidateIds = new Set<number>();
 
         for (let cy = startY; cy <= endY; cy += 1) {
             for (let cx = startX; cx <= endX; cx += 1) {
-                const bucket = this.#index.get(makeChunkKey(cx, cy));
+                const bucket = this.#index.get(mapScopedIndexKey(normalizedMapId, cx, cy));
                 if (!bucket) {
                     continue;
                 }
@@ -243,6 +265,9 @@ export class ClaimsStore {
         for (const id of candidateIds) {
             const claim = this.#claimsById.get(id);
             if (!claim) {
+                continue;
+            }
+            if (claim.mapId !== normalizedMapId) {
                 continue;
             }
             if (!intersectsRect(target, claim)) {
@@ -265,12 +290,13 @@ export class ClaimsStore {
         return true;
     }
 
-    getClaimAt(x: number, y: number): RectClaim | null {
+    getClaimAt(x: number, y: number, mapId = 'world'): RectClaim | null {
         if (!Number.isInteger(x) || !Number.isInteger(y)) {
             return null;
         }
+        const normalizedMapId = normalizeMapId(mapId);
         const { chunkX, chunkY } = resolveIndexChunkCoords(this.indexChunkSize, x, y);
-        const bucket = this.#index.get(makeChunkKey(chunkX, chunkY));
+        const bucket = this.#index.get(mapScopedIndexKey(normalizedMapId, chunkX, chunkY));
         if (!bucket || bucket.length === 0) {
             return null;
         }
@@ -282,6 +308,9 @@ export class ClaimsStore {
             }
             const claim = this.#claimsById.get(id);
             if (!claim) {
+                continue;
+            }
+            if (claim.mapId !== normalizedMapId) {
                 continue;
             }
             if (!(x >= claim.x1 && x <= claim.x2 && y >= claim.y1 && y <= claim.y2)) {
@@ -298,6 +327,9 @@ export class ClaimsStore {
         if (!Number.isInteger(claim.id) || claim.id <= 0) {
             throw new Error('ClaimsStore: invalid claim id');
         }
+        if (typeof claim.mapId !== 'string' || claim.mapId.trim() === '') {
+            throw new Error('ClaimsStore: invalid mapId');
+        }
         if (typeof claim.ownerName !== 'string' || claim.ownerName.trim() === '') {
             throw new Error('ClaimsStore: invalid ownerName');
         }
@@ -309,8 +341,10 @@ export class ClaimsStore {
         }
         const bounds = clampRectBounds(claim.x1, claim.y1, claim.x2, claim.y2);
         const normalizedOwnerName = normalizeIdentityKey(claim.ownerName);
+        const normalizedMapId = normalizeMapId(claim.mapId);
         const normalized: RectClaim = Object.freeze({
             ...claim,
+            mapId: normalizedMapId,
             ownerName: normalizedOwnerName,
             editorNameKeys: normalizeEditorNameKeys(normalizedOwnerName, claim.editorNameKeys),
             ...bounds,
@@ -337,7 +371,7 @@ export class ClaimsStore {
 
         for (let cy = startY; cy <= endY; cy += 1) {
             for (let cx = startX; cx <= endX; cx += 1) {
-                const key = makeChunkKey(cx, cy);
+                const key = mapScopedIndexKey(claim.mapId, cx, cy);
                 const bucket = this.#index.get(key);
                 if (!bucket) {
                     this.#index.set(key, [claim.id]);
@@ -364,7 +398,7 @@ export class ClaimsStore {
 
         for (let cy = startY; cy <= endY; cy += 1) {
             for (let cx = startX; cx <= endX; cx += 1) {
-                const key = makeChunkKey(cx, cy);
+                const key = mapScopedIndexKey(claim.mapId, cx, cy);
                 const bucket = this.#index.get(key);
                 if (!bucket) {
                     continue;

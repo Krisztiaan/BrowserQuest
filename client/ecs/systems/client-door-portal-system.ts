@@ -6,6 +6,7 @@ type DoorDestination = Readonly<{
     x: number;
     y: number;
     orientation: number;
+    targetMapId?: string;
     cameraX?: number;
     cameraY?: number;
     portal: boolean;
@@ -61,6 +62,7 @@ export type ClientDoorPortalSystemHost = Readonly<{
                   doorY: number;
                   toX: number;
                   toY: number;
+                  targetMapId?: string;
                   orientation: number;
                   portal: boolean;
                   cameraX?: number;
@@ -72,12 +74,14 @@ export type ClientDoorPortalSystemHost = Readonly<{
             doorY: number;
             toX: number;
             toY: number;
+            targetMapId?: string;
             orientation: number;
             portal: boolean;
             cameraX?: number;
             cameraY?: number;
         }): void;
         clearClientPendingDoorTraversal(): void;
+        getEntityMapId?(id: EntityId): string | null;
     };
     assignBubbleTo(character: DoorTraversalPlayer): void;
     resetZone(): void;
@@ -102,7 +106,14 @@ export function runClientDoorPortalSystem(host: ClientDoorPortalSystemHost): voi
         if (nowMs - pending.requestedAtMs > PENDING_TTL_MS) {
             debugDoors('pending:expired', pending);
             host.kernel.clearClientPendingDoorTraversal();
-        } else if (host.player.gridX === pending.toX && host.player.gridY === pending.toY) {
+        } else if (
+            host.player.gridX === pending.toX &&
+            host.player.gridY === pending.toY &&
+            (
+                !pending.targetMapId ||
+                host.kernel.getEntityMapId?.(host.player.id as EntityId) === pending.targetMapId
+            )
+        ) {
             debugDoors('pending:complete', pending);
             // Door traversal completion is driven by server-issued TELEPORT; apply client-side camera/audio/UX once.
             host.player.turnTo(pending.orientation);
@@ -169,6 +180,7 @@ export function runClientDoorPortalSystem(host: ClientDoorPortalSystemHost): voi
             doorY,
             toX: destination.x,
             toY: destination.y,
+            ...(typeof destination.targetMapId === 'string' ? { targetMapId: destination.targetMapId } : {}),
             orientation: destination.orientation,
             portal: destination.portal,
             cameraX: destination.cameraX,

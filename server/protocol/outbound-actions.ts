@@ -63,8 +63,12 @@ export function buildAckAction(seq: number): ServerToClientAckAction {
     return [Types.Messages.ACK, seq];
 }
 
-export function buildCorrectionMoveAction(seq: number, x: number, y: number): ServerToClientCorrectionAction {
-    return [Types.Messages.CORRECTION, seq, x, y];
+export function buildOutcomeAction(seq: number, outcomeTypeId: string, payload: string): ServerToClientProtocolAction {
+    return [Types.Messages.OUTCOME, seq, outcomeTypeId, payload];
+}
+
+export function buildCorrectionMoveAction(seq: number, x: number, y: number, mapId: string): ServerToClientCorrectionAction {
+    return [Types.Messages.CORRECTION, seq, x, y, mapId];
 }
 
 export function buildMoveSyncAction(
@@ -72,9 +76,10 @@ export function buildMoveSyncAction(
     worldX: number,
     worldY: number,
     tick: number,
-    flags: number
+    flags: number,
+    mapId: string
 ): ServerToClientMoveSyncAction {
-    return [Types.Messages.MOVE_SYNC, ackSeq, worldX, worldY, tick, flags];
+    return [Types.Messages.MOVE_SYNC, ackSeq, worldX, worldY, tick, flags, mapId];
 }
 
 export function buildEntityStateBatchAction({
@@ -162,8 +167,8 @@ export function buildDropAction(
     return [Types.Messages.DROP, entityIdToWire(mobId), entityIdToWire(itemId), itemKind, haters];
 }
 
-export function buildTeleportAction(id: EntityId, x: number, y: number): ServerToClientTeleportAction {
-    return [Types.Messages.TELEPORT, entityIdToWire(id), x, y];
+export function buildTeleportAction(id: EntityId, x: number, y: number, mapId: string): ServerToClientTeleportAction {
+    return [Types.Messages.TELEPORT, entityIdToWire(id), x, y, mapId];
 }
 
 export function buildDamageAction(id: EntityId, points: number): ServerToClientDamageAction {

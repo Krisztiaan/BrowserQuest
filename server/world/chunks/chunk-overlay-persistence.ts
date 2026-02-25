@@ -17,6 +17,7 @@ function resolveDatabasePath(configuredPath: string | null | undefined): string 
 }
 
 type OverlayRow = {
+    map_id: string;
     chunk_x: number;
     chunk_y: number;
     chunk_size: number;
@@ -45,6 +46,7 @@ export class SqliteChunkOverlayPersistence {
             PRAGMA foreign_keys=ON;
 
             CREATE TABLE IF NOT EXISTS chunk_overlays (
+                map_id TEXT NOT NULL DEFAULT 'world',
                 chunk_x INTEGER NOT NULL,
                 chunk_y INTEGER NOT NULL,
                 chunk_size INTEGER NOT NULL,
@@ -52,17 +54,31 @@ export class SqliteChunkOverlayPersistence {
                 values_blob BLOB NOT NULL,
                 present_blob BLOB NOT NULL,
                 updated_at INTEGER NOT NULL,
-                PRIMARY KEY (chunk_x, chunk_y)
+                PRIMARY KEY (map_id, chunk_x, chunk_y)
             );
             CREATE INDEX IF NOT EXISTS chunk_overlays_updated_at ON chunk_overlays(updated_at);
+            CREATE INDEX IF NOT EXISTS chunk_overlays_map_id ON chunk_overlays(map_id);
+            CREATE UNIQUE INDEX IF NOT EXISTS chunk_overlays_map_coords ON chunk_overlays(map_id, chunk_x, chunk_y);
         `);
+
+        const overlayColumns = this.#db.query("PRAGMA table_info('chunk_overlays')").all() as Array<{ name?: string }>;
+        const hasMapId = overlayColumns.some((column) => column.name === 'map_id');
+        if (!hasMapId) {
+            this.#db.exec(`ALTER TABLE chunk_overlays ADD COLUMN map_id TEXT NOT NULL DEFAULT 'world'`);
+            this.#db.exec(`DROP INDEX IF EXISTS chunk_overlays_updated_at`);
+            this.#db.exec(`DROP INDEX IF EXISTS chunk_overlays_map_id`);
+            this.#db.exec(`DROP INDEX IF EXISTS chunk_overlays_map_coords`);
+            this.#db.exec(`CREATE INDEX IF NOT EXISTS chunk_overlays_updated_at ON chunk_overlays(updated_at)`);
+            this.#db.exec(`CREATE INDEX IF NOT EXISTS chunk_overlays_map_id ON chunk_overlays(map_id)`);
+            this.#db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS chunk_overlays_map_coords ON chunk_overlays(map_id, chunk_x, chunk_y)`);
+        }
 
         this.#upsertOverlay = this.#db.prepare(`
             INSERT INTO chunk_overlays
-                (chunk_x, chunk_y, chunk_size, version, values_blob, present_blob, updated_at)
+                (map_id, chunk_x, chunk_y, chunk_size, version, values_blob, present_blob, updated_at)
             VALUES
-                (?1, ?2, ?3, ?4, ?5, ?6, ?7)
-            ON CONFLICT(chunk_x, chunk_y) DO UPDATE SET
+                (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+            ON CONFLICT(map_id, chunk_x, chunk_y) DO UPDATE SET
                 chunk_size = excluded.chunk_size,
                 version = excluded.version,
                 values_blob = excluded.values_blob,
@@ -71,16 +87,16 @@ export class SqliteChunkOverlayPersistence {
         `);
 
         this.#selectRecent = this.#db.prepare(`
-            SELECT chunk_x, chunk_y, chunk_size, version, values_blob, present_blob
+            SELECT map_id, chunk_x, chunk_y, chunk_size, version, values_blob, present_blob
             FROM chunk_overlays
             ORDER BY updated_at DESC
             LIMIT ?1
         `);
 
         this.#selectChunkByCoords = this.#db.prepare(`
-            SELECT chunk_x, chunk_y, chunk_size, version, values_blob, present_blob
+            SELECT map_id, chunk_x, chunk_y, chunk_size, version, values_blob, present_blob
             FROM chunk_overlays
-            WHERE chunk_x = ?1 AND chunk_y = ?2
+            WHERE map_id = ?1 AND chunk_x = ?2 AND chunk_y = ?3
             LIMIT 1
         `);
     }
@@ -95,7 +111,15 @@ export class SqliteChunkOverlayPersistence {
     }
 
     flushChunks(
-        chunks: ReadonlyArray<{ chunkX: number; chunkY: number; size: number; version: number; values: Uint32Array; present: Uint8Array }>,
+        chunks: ReadonlyArray<{
+            mapId: string;
+            chunkX: number;
+            chunkY: number;
+            size: number;
+            version: number;
+            values: Uint32Array;
+            present: Uint8Array;
+        }>,
         store: ChunkOverlayStore,
         nowMs = Date.now(),
         opts?: { maxChunks?: number }
@@ -127,6 +151,7 @@ export class SqliteChunkOverlayPersistence {
                 const valuesBlob = new Uint8Array(chunk.values.buffer.slice(0));
                 const presentBlob = new Uint8Array(chunk.present.buffer.slice(0));
                 this.#upsertOverlay.run(
+                    chunk.mapId,
                     chunk.chunkX,
                     chunk.chunkY,
                     chunkSize,
@@ -143,7 +168,7 @@ export class SqliteChunkOverlayPersistence {
         }
 
         for (const chunk of dirty) {
-            store.markChunkClean(chunk.chunkX, chunk.chunkY);
+            store.markChunkClean(chunk.chunkX, chunk.chunkY, chunk.mapId);
         }
         return { flushed: dirty.length };
     }
@@ -165,15 +190,15 @@ export class SqliteChunkOverlayPersistence {
         return { loaded };
     }
 
-    loadChunkIntoStore(store: ChunkOverlayStore, chunkX: number, chunkY: number): { loaded: boolean } {
+    loadChunkIntoStore(store: ChunkOverlayStore, chunkX: number, chunkY: number, mapId = 'world'): { loaded: boolean } {
         if (!Number.isSafeInteger(chunkX) || !Number.isSafeInteger(chunkY)) {
             throw new Error(`loadChunkIntoStore: invalid chunk coords: (${String(chunkX)}, ${String(chunkY)})`);
         }
-        if (store.getChunk(chunkX, chunkY)) {
+        if (store.getChunk(chunkX, chunkY, mapId)) {
             return { loaded: false };
         }
 
-        const row = this.#selectChunkByCoords.get(chunkX, chunkY) as OverlayRow | null;
+        const row = this.#selectChunkByCoords.get(mapId, chunkX, chunkY) as OverlayRow | null;
         if (!row) {
             return { loaded: false };
         }
@@ -196,13 +221,14 @@ export class SqliteChunkOverlayPersistence {
             return false;
         }
 
-        const chunk = store.getOrCreateChunk(row.chunk_x, row.chunk_y);
+        const mapId = typeof row.map_id === 'string' && row.map_id.trim().length > 0 ? row.map_id : 'world';
+        const chunk = store.getOrCreateChunk(row.chunk_x, row.chunk_y, mapId);
         const valuesView = new Uint32Array(valuesBlob.buffer.slice(valuesBlob.byteOffset, valuesBlob.byteOffset + valuesBlob.byteLength));
         chunk.values.set(valuesView);
         chunk.present.set(presentBlob);
         chunk.version = row.version >>> 0;
         chunk.dirty = false;
-        store.markChunkClean(chunk.chunkX, chunk.chunkY);
+        store.markChunkClean(chunk.chunkX, chunk.chunkY, mapId);
         return true;
     }
 }

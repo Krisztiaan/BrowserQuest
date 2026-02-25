@@ -17,6 +17,8 @@ import {
     INTENT_MOVE_TO,
     INTENT_TILE_EDIT,
     OUTCOME_DOOR_TELEPORT,
+    OUTCOME_MAP_TRANSITION_BEGIN,
+    OUTCOME_MAP_TRANSITION_COMMIT,
 } from './intents';
 import { CLIENT_TO_SERVER_PROTOCOL_MANIFEST, SERVER_TO_CLIENT_PROTOCOL_MANIFEST } from './manifest';
 
@@ -36,6 +38,7 @@ const SPAWN_FLAG_HAS_NAME = 1 << 0;
 const SPAWN_FLAG_HAS_ORIENTATION = 1 << 1;
 const SPAWN_FLAG_HAS_EQUIPMENT = 1 << 2;
 const SPAWN_FLAG_HAS_TARGET = 1 << 3;
+const SPAWN_FLAG_HAS_MAP_ID = 1 << 4;
 
 const WIRE_INTENT_TYPE_IDS = [
     INTENT_MOVE_STEP,
@@ -49,7 +52,11 @@ const WIRE_INTENT_TYPE_IDS = [
     INTENT_MOVE_INPUT,
 ] as const;
 
-const WIRE_OUTCOME_TYPE_IDS = [OUTCOME_DOOR_TELEPORT] as const;
+const WIRE_OUTCOME_TYPE_IDS = [
+    OUTCOME_DOOR_TELEPORT,
+    OUTCOME_MAP_TRANSITION_BEGIN,
+    OUTCOME_MAP_TRANSITION_COMMIT,
+] as const;
 
 const WIRE_INTENT_TYPE_ID_TO_ID = new Map<string, number>(
     WIRE_INTENT_TYPE_IDS.map((value, index) => [value, index])
@@ -310,6 +317,12 @@ function isKindCategory(kindId: number, category: string): boolean {
     return KIND_ID_TO_CATEGORY.get(kindId) === category;
 }
 
+function decodeSignedChunkCoord(encoded: number): number {
+    // Chunk coordinates are written as 32-bit two's-complement via `>>> 0`.
+    // Convert decoded varu32 back to signed int32 for runtime handlers.
+    return encoded | 0;
+}
+
 function toByteArray(payload: unknown): Uint8Array {
     if (payload instanceof Uint8Array) {
         return payload;
@@ -539,9 +552,18 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             const tail = action.slice(5);
 
             if (isKindCategory(kindId, 'player')) {
+                const maybeTail4 = tail[4];
+                const maybeTail5 = tail[5];
+                const targetId = typeof maybeTail4 === 'number' ? maybeTail4 : undefined;
+                const mapId = typeof maybeTail5 === 'string'
+                    ? maybeTail5
+                    : (targetId === undefined && typeof maybeTail4 === 'string' ? maybeTail4 : undefined);
                 flags |= SPAWN_FLAG_HAS_NAME | SPAWN_FLAG_HAS_ORIENTATION | SPAWN_FLAG_HAS_EQUIPMENT;
-                if (typeof tail[4] === 'number') {
+                if (typeof targetId === 'number') {
                     flags |= SPAWN_FLAG_HAS_TARGET;
+                }
+                if (typeof mapId === 'string') {
+                    flags |= SPAWN_FLAG_HAS_MAP_ID;
                 }
                 writer.writeU8(flags);
                 writer.writeString(typeof tail[0] === 'string' ? tail[0] : '');
@@ -549,25 +571,46 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
                 writer.writeVarU32(normalizeKindId(tail[2]));
                 writer.writeVarU32(normalizeKindId(tail[3]));
                 if ((flags & SPAWN_FLAG_HAS_TARGET) !== 0) {
-                    writer.writeVarU32(Number(tail[4]) >>> 0);
+                    writer.writeVarU32(Number(targetId) >>> 0);
+                }
+                if ((flags & SPAWN_FLAG_HAS_MAP_ID) !== 0) {
+                    writer.writeString(mapId as string);
                 }
                 return;
             }
 
             if (isKindCategory(kindId, 'mob')) {
+                const maybeTail1 = tail[1];
+                const maybeTail2 = tail[2];
+                const targetId = typeof maybeTail1 === 'number' ? maybeTail1 : undefined;
+                const mapId = typeof maybeTail2 === 'string'
+                    ? maybeTail2
+                    : (targetId === undefined && typeof maybeTail1 === 'string' ? maybeTail1 : undefined);
                 flags |= SPAWN_FLAG_HAS_ORIENTATION;
-                if (typeof tail[1] === 'number') {
+                if (typeof targetId === 'number') {
                     flags |= SPAWN_FLAG_HAS_TARGET;
+                }
+                if (typeof mapId === 'string') {
+                    flags |= SPAWN_FLAG_HAS_MAP_ID;
                 }
                 writer.writeU8(flags);
                 writer.writeVarU32(Number(tail[0]) >>> 0);
                 if ((flags & SPAWN_FLAG_HAS_TARGET) !== 0) {
-                    writer.writeVarU32(Number(tail[1]) >>> 0);
+                    writer.writeVarU32(Number(targetId) >>> 0);
+                }
+                if ((flags & SPAWN_FLAG_HAS_MAP_ID) !== 0) {
+                    writer.writeString(mapId as string);
                 }
                 return;
             }
 
-            writer.writeU8(0);
+            if (typeof tail[0] === 'string') {
+                flags |= SPAWN_FLAG_HAS_MAP_ID;
+            }
+            writer.writeU8(flags);
+            if ((flags & SPAWN_FLAG_HAS_MAP_ID) !== 0) {
+                writer.writeString(String(tail[0]));
+            }
             return;
         }
         case Types.Messages.DESPAWN:
@@ -578,13 +621,25 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             writer.writeVarU32(Number(action[1]) >>> 0);
             return;
         }
-        case Types.Messages.MOVE:
-        case Types.Messages.TELEPORT: {
+        case Types.Messages.MOVE: {
             const id = action[1];
             const x = action[2];
             const y = action[3];
             writer.writeVarU32(Number(id) >>> 0);
             writer.writePos20(Number(x), Number(y));
+            return;
+        }
+        case Types.Messages.TELEPORT: {
+            const id = action[1];
+            const x = action[2];
+            const y = action[3];
+            const mapId = action[4];
+            writer.writeVarU32(Number(id) >>> 0);
+            writer.writePos20(Number(x), Number(y));
+            if (typeof mapId !== 'string') {
+                throw new Error('invalid teleport mapId');
+            }
+            writer.writeString(mapId);
             return;
         }
         case Types.Messages.LOOTMOVE:
@@ -688,10 +743,12 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             const seq = action[1];
             const a = action[2];
             const b = action[3];
+            const c = action[4];
             writer.writeVarU32(Number(seq) >>> 0);
-            if (typeof a === 'number' && typeof b === 'number') {
+            if (typeof a === 'number' && typeof b === 'number' && typeof c === 'string') {
                 writer.writeU8(0);
                 writer.writePos20(Number(a), Number(b));
+                writer.writeString(c);
                 return;
             }
             if (typeof a === 'string' && typeof b === 'string') {
@@ -708,10 +765,15 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             const y = action[3];
             const tick = action[4];
             const flags = action[5];
+            const mapId = action[6];
             writer.writeVarU32(Number(ackSeq) >>> 0);
             writer.writePosVarU32(Number(x), Number(y));
             writer.writeVarU32(Number(tick) >>> 0);
             writer.writeU8(Number(flags) >>> 0);
+            if (typeof mapId !== 'string') {
+                throw new Error('invalid move_sync mapId');
+            }
+            writer.writeString(mapId);
             return;
         }
         case Types.Messages.ENTITY_STATE_BATCH: {
@@ -858,8 +920,8 @@ function decodeClientToServerActionFromOpcode(opcode: number, reader: ByteReader
             return [opcode, seq, intentTypeId, payload];
         }
         case Types.Messages.CHUNK_SUBSCRIBE: {
-            const chunkX = reader.readVarU32();
-            const chunkY = reader.readVarU32();
+            const chunkX = decodeSignedChunkCoord(reader.readVarU32());
+            const chunkY = decodeSignedChunkCoord(reader.readVarU32());
             const radius = reader.readVarU32();
             return [opcode, chunkX, chunkY, radius];
         }
@@ -911,6 +973,9 @@ function decodeServerToClientActionFromOpcode(opcode: number, reader: ByteReader
             if ((flags & SPAWN_FLAG_HAS_TARGET) !== 0) {
                 out.push(reader.readVarU32());
             }
+            if ((flags & SPAWN_FLAG_HAS_MAP_ID) !== 0) {
+                out.push(reader.readString());
+            }
 
             return out;
         }
@@ -920,11 +985,16 @@ function decodeServerToClientActionFromOpcode(opcode: number, reader: ByteReader
         case Types.Messages.BLINK:
         case Types.Messages.ACK:
             return [opcode, reader.readVarU32()];
-        case Types.Messages.MOVE:
-        case Types.Messages.TELEPORT: {
+        case Types.Messages.MOVE: {
             const id = reader.readVarU32();
             const pos = reader.readPos20();
             return [opcode, id, pos.x, pos.y];
+        }
+        case Types.Messages.TELEPORT: {
+            const id = reader.readVarU32();
+            const pos = reader.readPos20();
+            const mapId = reader.readString();
+            return [opcode, id, pos.x, pos.y, mapId];
         }
         case Types.Messages.LOOTMOVE:
         case Types.Messages.ATTACK:
@@ -997,7 +1067,8 @@ function decodeServerToClientActionFromOpcode(opcode: number, reader: ByteReader
             const variant = reader.readU8();
             if (variant === 0) {
                 const pos = reader.readPos20();
-                return [opcode, seq, pos.x, pos.y];
+                const mapId = reader.readString();
+                return [opcode, seq, pos.x, pos.y, mapId];
             }
             if (variant === 1) {
                 return [opcode, seq, reader.readString(), reader.readString()];
@@ -1009,7 +1080,8 @@ function decodeServerToClientActionFromOpcode(opcode: number, reader: ByteReader
             const pos = reader.readPosVarU32();
             const tick = reader.readVarU32();
             const flags = reader.readU8();
-            return [opcode, ackSeq, pos.x, pos.y, tick, flags];
+            const mapId = reader.readString();
+            return [opcode, ackSeq, pos.x, pos.y, tick, flags, mapId];
         }
         case Types.Messages.ENTITY_STATE_BATCH: {
             const tick = reader.readVarU32();
@@ -1024,16 +1096,16 @@ function decodeServerToClientActionFromOpcode(opcode: number, reader: ByteReader
             return out;
         }
         case Types.Messages.CHUNK_SNAPSHOT: {
-            const chunkX = reader.readVarU32();
-            const chunkY = reader.readVarU32();
+            const chunkX = decodeSignedChunkCoord(reader.readVarU32());
+            const chunkY = decodeSignedChunkCoord(reader.readVarU32());
             const version = reader.readVarU32();
             const payloadLen = reader.readVarU32();
             const payload = reader.readBytes(payloadLen);
             return [opcode, chunkX, chunkY, version, payload];
         }
         case Types.Messages.CHUNK_SNAPSHOT_PART: {
-            const chunkX = reader.readVarU32();
-            const chunkY = reader.readVarU32();
+            const chunkX = decodeSignedChunkCoord(reader.readVarU32());
+            const chunkY = decodeSignedChunkCoord(reader.readVarU32());
             const version = reader.readVarU32();
             const partIndex = reader.readVarU32();
             const partCount = reader.readVarU32();
@@ -1042,8 +1114,8 @@ function decodeServerToClientActionFromOpcode(opcode: number, reader: ByteReader
             return [opcode, chunkX, chunkY, version, partIndex, partCount, payload];
         }
         case Types.Messages.CHUNK_DELTA: {
-            const chunkX = reader.readVarU32();
-            const chunkY = reader.readVarU32();
+            const chunkX = decodeSignedChunkCoord(reader.readVarU32());
+            const chunkY = decodeSignedChunkCoord(reader.readVarU32());
             const fromVersion = reader.readVarU32();
             const toVersion = reader.readVarU32();
             const payloadLen = reader.readVarU32();
@@ -1146,6 +1218,9 @@ function skipServerToClientActionFromOpcode(opcode: number, reader: ByteReader):
             if ((flags & SPAWN_FLAG_HAS_TARGET) !== 0) {
                 void reader.readVarU32();
             }
+            if ((flags & SPAWN_FLAG_HAS_MAP_ID) !== 0) {
+                void reader.readString();
+            }
             return;
         }
         case Types.Messages.DESPAWN:
@@ -1156,9 +1231,13 @@ function skipServerToClientActionFromOpcode(opcode: number, reader: ByteReader):
             void reader.readVarU32();
             return;
         case Types.Messages.MOVE:
+            void reader.readVarU32();
+            void reader.readPos20();
+            return;
         case Types.Messages.TELEPORT:
             void reader.readVarU32();
             void reader.readPos20();
+            void reader.readString();
             return;
         case Types.Messages.LOOTMOVE:
         case Types.Messages.ATTACK:
@@ -1222,6 +1301,7 @@ function skipServerToClientActionFromOpcode(opcode: number, reader: ByteReader):
             const variant = reader.readU8();
             if (variant === 0) {
                 void reader.readPos20();
+                void reader.readString();
                 return;
             }
             if (variant === 1) {
@@ -1236,6 +1316,7 @@ function skipServerToClientActionFromOpcode(opcode: number, reader: ByteReader):
             void reader.readPosVarU32();
             void reader.readVarU32();
             void reader.readU8();
+            void reader.readString();
             return;
         case Types.Messages.ENTITY_STATE_BATCH: {
             void reader.readVarU32(); // tick

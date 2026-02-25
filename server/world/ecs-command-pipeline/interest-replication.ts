@@ -13,19 +13,45 @@ import {
     type registerSpawnReplicationComponents,
 } from '../../replication/spawn-replication';
 
+const MAP_GROUP_SCOPE_SEPARATOR = '::';
+
 type WorldInterestHost = Readonly<{
     map: {
         getGroupIdFromPosition(x: number, y: number): string;
-        forEachAdjacentGroup(groupId: string, callback: (groupId: string) => void): void;
+        forEachAdjacentGroup(groupId: string | null | undefined, callback: (groupId: string) => void): void;
     };
+    getDefaultMapId?(): string;
+    getMapById?(mapId: string): {
+        getGroupIdFromPosition(x: number, y: number): string;
+        forEachAdjacentGroup(groupId: string | null | undefined, callback: (groupId: string) => void): void;
+    } | null;
     isPlayerActive(playerId: EntityId): boolean;
     pushToPlayerId(playerId: EntityId, action: unknown): void;
 }>;
+
+function mapScopedGroupKey(mapId: string, groupId: string): string {
+    return `${mapId}${MAP_GROUP_SCOPE_SEPARATOR}${groupId}`;
+}
+
+function parseScopedFallbackGroupId(
+    value: string,
+    defaultMapId: string
+): Readonly<{ mapId: string; groupId: string }> {
+    const splitIndex = value.indexOf(MAP_GROUP_SCOPE_SEPARATOR);
+    if (splitIndex <= 0) {
+        return { mapId: defaultMapId, groupId: value };
+    }
+    return {
+        mapId: value.slice(0, splitIndex),
+        groupId: value.slice(splitIndex + MAP_GROUP_SCOPE_SEPARATOR.length),
+    };
+}
 
 export function replicateInterestVisibility({
     world,
     state,
     Position,
+    MapId,
     replication,
     interest,
     idsByGroup,
@@ -33,11 +59,13 @@ export function replicateInterestVisibility({
     world: WorldInterestHost;
     state: WorldState<Command, DomainEvent>;
     Position: ComponentType<GridPos>;
+    MapId: ComponentType<string>;
     replication: ReturnType<typeof registerSpawnReplicationComponents>;
     interest: InterestTracker;
     idsByGroup: Map<string, EntityId[]>;
 }): void {
     const Kind = replication.Kind;
+    const defaultMapId = world.getDefaultMapId?.() ?? 'world';
 
     Kind.store.forEach((observerId, kind) => {
         if (!Types.isPlayer(kind)) {
@@ -54,10 +82,13 @@ export function replicateInterestVisibility({
             return;
         }
 
-        const groupId = world.map.getGroupIdFromPosition(pos.x, pos.y);
+        const observerMapId = MapId.store.get(observerId) ?? defaultMapId;
+        const map = world.getMapById?.(observerMapId) ?? world.map;
+
+        const groupId = map.getGroupIdFromPosition(pos.x, pos.y);
         const visible: EntityId[] = [];
-        world.map.forEachAdjacentGroup(groupId, (adjacent) => {
-            const groupIds = idsByGroup.get(adjacent);
+        map.forEachAdjacentGroup(groupId, (adjacent) => {
+            const groupIds = idsByGroup.get(mapScopedGroupKey(observerMapId, adjacent));
             if (groupIds) {
                 visible.push(...groupIds);
             }
@@ -70,7 +101,8 @@ export function replicateInterestVisibility({
                 continue;
             }
             try {
-                world.pushToPlayerId(observerId, buildSpawnActionFromReplicationState(state.world, replication, id));
+                const spawnMapId = MapId.store.get(id) ?? defaultMapId;
+                world.pushToPlayerId(observerId, buildSpawnActionFromReplicationState(state.world, replication, id, spawnMapId));
             } catch {
                 // Entity may have been destroyed during this tick or missing replication components.
             }
@@ -89,27 +121,32 @@ export function replicateInterestVisibility({
 export function broadcastNearbyOutboxMessage({
     world,
     Position,
+    MapId,
     msg,
     idsByGroup,
 }: {
     world: WorldInterestHost;
     Position: ComponentType<GridPos>;
+    MapId: ComponentType<string>;
     msg: Extract<OutboxMessage, { kind: 'broadcast_nearby' }>;
     idsByGroup: Map<string, EntityId[]>;
 }): void {
+    const defaultMapId = world.getDefaultMapId?.() ?? 'world';
     const pos = Position.store.get(msg.actorId);
-    const groupId =
-        pos !== undefined
-            ? world.map.getGroupIdFromPosition(pos.x, pos.y)
-            : typeof msg.fallbackGroupId === 'string'
-              ? msg.fallbackGroupId
-              : null;
+    const actorMapId = MapId.store.get(msg.actorId) ?? defaultMapId;
+    const fallback = typeof msg.fallbackGroupId === 'string' ? parseScopedFallbackGroupId(msg.fallbackGroupId, defaultMapId) : null;
+    const mapId = pos !== undefined ? actorMapId : fallback?.mapId ?? null;
+    const map = mapId ? world.getMapById?.(mapId) ?? world.map : null;
+    if (!map || !mapId) {
+        return;
+    }
+    const groupId = pos !== undefined ? map.getGroupIdFromPosition(pos.x, pos.y) : fallback?.groupId ?? null;
     if (!groupId) {
         return;
     }
 
-    world.map.forEachAdjacentGroup(groupId, (adjacent) => {
-        const ids = idsByGroup.get(adjacent);
+    map.forEachAdjacentGroup(groupId, (adjacent) => {
+        const ids = idsByGroup.get(mapScopedGroupKey(mapId, adjacent));
         if (!ids) {
             return;
         }
@@ -125,3 +162,5 @@ export function broadcastNearbyOutboxMessage({
         }
     });
 }
+
+export { mapScopedGroupKey };

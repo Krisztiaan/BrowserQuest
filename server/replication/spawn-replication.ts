@@ -26,6 +26,7 @@ export type LegacySpawnReplicationEntity = Readonly<{
     kind: EntityKind;
     x: number;
     y: number;
+    mapId?: string;
     name?: string;
     orientation?: number;
     armor?: EntityKind;
@@ -91,7 +92,8 @@ export function syncSpawnReplicationFromLegacyEntity(
 export function buildSpawnActionFromReplicationState(
     world: EcsWorld,
     components: SpawnReplicationComponents,
-    id: EntityId
+    id: EntityId,
+    mapId?: string
 ): ServerToClientSpawnAction {
     const kind = world.getComponent(id, components.Kind);
     const pos = world.getComponent(id, components.Position);
@@ -105,6 +107,7 @@ export function buildSpawnActionFromReplicationState(
         kind,
         x: pos.x,
         y: pos.y,
+        ...(typeof mapId === 'string' && mapId.trim().length > 0 ? { mapId } : {}),
         extras,
     };
     return encodeSpawnSnapshot(snapshot);

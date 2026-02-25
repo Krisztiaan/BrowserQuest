@@ -1,8 +1,12 @@
-import type { EntityId } from '../../shared/domain/ids';
+import { entityIdFromWire, type EntityId } from '../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../shared/domain/positions';
 import { isEntityWithinAttackRange } from '../../shared/combat/engagement';
 import { SUBPIXELS, TILE_SUBPX, tileToWorldPosCenter, worldPosToTile } from '../../shared/world/worldpos';
-import { resolveSubTileMotionAgainstTiles } from '../../shared/world/collision/tile-collision';
+import {
+    clampWorldPosInsideMap,
+    resolveSubTileMotionAgainstTiles,
+    worldPosOverlapsBlockedTiles,
+} from '../../shared/world/collision/tile-collision';
 import {
     MOVE_STEP_REJECT_NON_ADJACENT,
     resolveMoveBaseline,
@@ -18,6 +22,7 @@ import { Queue } from '../ecs/queues';
 import { flushDomainEventsToOutboxSystem } from '../ecs/outbox-systems';
 import { createDeriveGridPositionFromWorldPosSystem } from '../ecs/position-systems';
 import type { ComponentType } from '../ecs/component-registry';
+import { SparseSetStore } from '../ecs/component-store';
 import { InterestTracker } from '../ecs/interest-tracker';
 import { INTEREST_TRACKER_RESOURCE } from '../ecs/spatial-resources';
 import { registerCombatComponents } from '../ecs/combat-components';
@@ -41,6 +46,7 @@ import {
     buildMoveSyncAction,
     buildEntityStateBatchAction,
     buildCorrectionMoveAction,
+    buildOutcomeAction,
     buildRejectAction,
     buildTeleportAction,
     buildWelcomeAction,
@@ -74,15 +80,19 @@ import {
     decodeClaimCreateIntentPayload,
     decodeClaimDeleteIntentPayload,
     decodeClaimUpdateIntentPayload,
+    decodeAttackIntentPayload,
     decodeDoorTeleportIntentPayload,
     decodeMoveInputIntentPayload,
     decodeMoveToIntentPayload,
     decodeMoveStepIntentPayload,
     decodeTileEditIntentPayload,
+    encodeMapTransitionOutcomePayload,
     MOVE_INPUT_KEY_A,
     MOVE_INPUT_KEY_D,
     MOVE_INPUT_KEY_S,
     MOVE_INPUT_KEY_W,
+    OUTCOME_MAP_TRANSITION_BEGIN,
+    OUTCOME_MAP_TRANSITION_COMMIT,
 } from '../../shared/protocol/intents';
 import {
     classifyIntentSeq,
@@ -97,10 +107,12 @@ import {
 } from './ecs-command-pipeline/chunk-aoi-streaming';
 import {
     broadcastNearbyOutboxMessage,
+    mapScopedGroupKey,
     replicateInterestVisibility,
 } from './ecs-command-pipeline/interest-replication';
 import {
     createCoreServerModuleRegistry,
+    INTENT_ATTACK,
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
@@ -114,8 +126,12 @@ import {
     type IntentWorldHost,
 } from './ecs-command-pipeline/core-module-registry';
 import { applyMoveToIntentCommand as applyMoveToIntentCommandImpl } from './intents/move-to-intent';
+import {
+    recordMapTransitionEvent,
+    type MapTransitionEvent,
+} from './map-transition-observability';
 
-type DoorTeleportOutcome = Readonly<{ playerId: EntityId; to: GridPos }>;
+type DoorTeleportOutcome = Readonly<{ playerId: EntityId; fromMapId: string; toMapId: string; to: GridPos }>;
 type DroppedItem = Readonly<{ id: EntityId; kind: EntityKind }>;
 type DroppedMob = Readonly<{ kind: EntityKind; x: number; y: number }>;
 type LooseValue = string | number | boolean | bigint | symbol | null | undefined | object;
@@ -173,6 +189,7 @@ function toKnownEntityKind(value: number): EntityKind | null {
 }
 
 type WorldCommandHost = Readonly<{
+    id?: string;
     ups: number;
     map: {
         getCheckpoint(id: string | number): { id?: string | number } | null | undefined;
@@ -186,6 +203,20 @@ type WorldCommandHost = Readonly<{
         height?: number;
         isOutOfBounds?(x: number, y: number): boolean;
     };
+    getDefaultMapId?(): string;
+    getMapById?(mapId: string): {
+        getCheckpoint(id: string | number): { id?: string | number } | null | undefined;
+        isDoor(x: number, y: number): boolean;
+        getDoorDestination(x: number, y: number): { x: number; y: number } | null;
+        getGroupIdFromPosition(x: number, y: number): string;
+        forEachAdjacentGroup(groupId: string | null | undefined, callback: (groupId: string) => void): void;
+        grid?: number[][];
+        width?: number;
+        height?: number;
+        isOutOfBounds?(x: number, y: number): boolean;
+    } | null;
+    resolveDoorTeleport?(mapId: string, x: number, y: number): Readonly<{ toMapId: string; to: GridPos }> | null;
+    isValidPositionForMap?(mapId: string, x: number, y: number): boolean;
     getConnectionPlayerById(playerId: EntityId): PlayerLike | null;
     removeEntityFromAreas(entityId: EntityId): void;
     scheduleMobRespawn(params: { mobId: EntityId; kind: EntityKind; spawn: GridPos; tickNow?: number; delaySeconds?: number }): void;
@@ -208,8 +239,9 @@ type WorldCommandHost = Readonly<{
     recordPlayerRevive(playerName: string): void;
     persistClaimUpsert?(claim: RectClaim): void;
     persistClaimDelete?(claimId: number): void;
-    ensureChunkOverlayLoaded?(chunkX: number, chunkY: number): boolean;
-    ensureChunkOverlayLoadedForTile?(x: number, y: number): boolean;
+    ensureChunkOverlayLoaded?(mapId: string, chunkX: number, chunkY: number): boolean;
+    ensureChunkOverlayLoadedForTile?(x: number, y: number, mapId?: string): boolean;
+    recordMapTransitionEvent?(event: MapTransitionEvent): void;
 }>;
 
 const DEFAULT_CHUNK_SIZE = 32;
@@ -241,17 +273,100 @@ function resolvePlayerIdentityKey(player: { accountNameKey?: string; name?: stri
     return resolveIdentityKey(player);
 }
 
+function resolveDefaultMapId(world: Pick<WorldCommandHost, 'getDefaultMapId'>): string {
+    return world.getDefaultMapId?.() ?? 'world';
+}
+
+function resolveEntityMapId({
+    MapId,
+    entityId,
+    world,
+}: {
+    MapId: ComponentType<string>;
+    entityId: EntityId;
+    world: Pick<WorldCommandHost, 'getDefaultMapId'>;
+}): string {
+    return MapId.store.get(entityId) ?? resolveDefaultMapId(world);
+}
+
+function resolveMapForId({
+    world,
+    mapId,
+}: {
+    world: Pick<WorldCommandHost, 'map' | 'getMapById'>;
+    mapId: string;
+}): WorldCommandHost['map'] | null {
+    return world.getMapById?.(mapId) ?? world.map;
+}
+
+function isValidPositionInMap({
+    world,
+    mapId,
+    x,
+    y,
+}: {
+    world: Pick<WorldCommandHost, 'isValidPosition' | 'isValidPositionForMap'>;
+    mapId: string;
+    x: number;
+    y: number;
+}): boolean {
+    return world.isValidPositionForMap ? world.isValidPositionForMap(mapId, x, y) : world.isValidPosition(x, y);
+}
+
+function emitMapTransitionEvent({
+    world,
+    event,
+}: {
+    world: Pick<WorldCommandHost, 'recordMapTransitionEvent'>;
+    event: MapTransitionEvent;
+}): void {
+    recordMapTransitionEvent(world, event);
+}
+
+function resolveDoorTeleportDestination({
+    world,
+    mapId,
+    x,
+    y,
+}: {
+    world: Pick<WorldCommandHost, 'resolveDoorTeleport'>;
+    mapId: string;
+    x: number;
+    y: number;
+}): Readonly<{ toMapId: string; to: GridPos }> | null {
+    return world.resolveDoorTeleport?.(mapId, x, y) ?? null;
+}
+
 function isAdjacentNonDiagonal(a: GridPos, b: GridPos): boolean {
     const dx = Math.abs(a.x - b.x);
     const dy = Math.abs(a.y - b.y);
     return dx + dy === 1;
 }
 
-function isEntityVisibleToPlayer(world: WorldCommandHost, playerPos: GridPos, entityPos: GridPos): boolean {
-    const playerGroupId = world.map.getGroupIdFromPosition(playerPos.x, playerPos.y);
-    const entityGroupId = world.map.getGroupIdFromPosition(entityPos.x, entityPos.y);
+function isEntityVisibleToPlayer({
+    world,
+    playerPos,
+    playerMapId,
+    entityPos,
+    entityMapId,
+}: {
+    world: WorldCommandHost;
+    playerPos: GridPos;
+    playerMapId: string;
+    entityPos: GridPos;
+    entityMapId: string;
+}): boolean {
+    if (playerMapId !== entityMapId) {
+        return false;
+    }
+    const map = resolveMapForId({ world, mapId: playerMapId });
+    if (!map) {
+        return false;
+    }
+    const playerGroupId = map.getGroupIdFromPosition(playerPos.x, playerPos.y);
+    const entityGroupId = map.getGroupIdFromPosition(entityPos.x, entityPos.y);
     let visible = false;
-    world.map.forEachAdjacentGroup(playerGroupId, (groupId) => {
+    map.forEachAdjacentGroup(playerGroupId, (groupId) => {
         if (groupId === entityGroupId) {
             visible = true;
         }
@@ -482,6 +597,7 @@ function clearPlayerFromMobAggro({
 function applyHello({
     state,
     Position,
+    MapId,
     PositionSub,
     Kind,
     Name,
@@ -497,6 +613,7 @@ function applyHello({
 }: {
     state: WorldState<Command, DomainEvent>;
     Position: ComponentType<GridPos>;
+    MapId: ComponentType<string>;
     PositionSub: ReturnType<typeof registerSpawnReplicationComponents>['PositionSub'];
     Kind: ComponentType<EntityKind>;
     Name: ComponentType<string>;
@@ -550,7 +667,9 @@ function applyHello({
     const hitPoints = maxHitPoints;
 
     state.world.ensureEntity(player.id);
+    const mapId = resolveEntityMapId({ MapId, entityId: player.id, world });
     state.world.addComponent(player.id, Kind, player.kind);
+    state.world.addComponent(player.id, MapId, mapId);
     state.world.addComponent(player.id, Position, gridPos(player.x, player.y));
     state.world.addComponent(player.id, PositionSub, tileToWorldPosCenter(player.x, player.y));
     state.world.addComponent(player.id, Name, player.name);
@@ -566,11 +685,18 @@ function applyHello({
     world.addPlayer(player);
 
     const shouldSendCapabilities = typeof cmd.protocolRevision === 'number';
+    const protocolOutcomeTypeIds = Array.from(
+        new Set<string>([
+            ...modules.outcomeHandlers.keys(),
+            OUTCOME_MAP_TRANSITION_BEGIN,
+            OUTCOME_MAP_TRANSITION_COMMIT,
+        ])
+    );
     const serverCapabilitiesJson = shouldSendCapabilities
         ? encodeProtocolCapabilitiesJson({
             moduleIds: [...modules.moduleOrder],
             intentTypeIds: [...modules.intentHandlers.keys()],
-            outcomeTypeIds: [...modules.outcomeHandlers.keys()],
+            outcomeTypeIds: protocolOutcomeTypeIds,
         })
         : undefined;
 
@@ -608,6 +734,7 @@ function applyHello({
 function applyMoveIntentCommand({
     state,
     Position,
+    MapId,
     player,
     movement,
     world,
@@ -615,6 +742,7 @@ function applyMoveIntentCommand({
 }: {
     state: WorldState<Command, DomainEvent>;
     Position: ComponentType<GridPos>;
+    MapId: ComponentType<string>;
     player: PlayerLike;
     movement: ReturnType<typeof registerMovementComponents>;
     world: IntentWorldHost;
@@ -632,11 +760,12 @@ function applyMoveIntentCommand({
         return;
     }
     const baseline = resolveMoveBaseline(currentPos, existing);
+    const playerMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
     const validation = validateMoveStepIntent({
         baseline,
         to: cmd.to,
         existingQueueLength: existing.length,
-        isValidPosition: (x, y) => world.isValidPosition(x, y),
+        isValidPosition: (x, y) => isValidPositionInMap({ world, mapId: playerMapId, x, y }),
     });
     if (!validation.ok) {
         if (validation.reason === MOVE_STEP_REJECT_NON_ADJACENT) {
@@ -919,6 +1048,7 @@ function resolveCombatStat({
 function handleMobDeath({
     state,
     replication,
+    MapId,
     world,
     mobId,
     killerId,
@@ -929,6 +1059,7 @@ function handleMobDeath({
 }: {
     state: WorldState<Command, DomainEvent>;
     replication: ReturnType<typeof registerSpawnReplicationComponents>;
+    MapId: ComponentType<string>;
     world: WorldCommandHost;
     mobId: EntityId;
     killerId: EntityId;
@@ -943,7 +1074,10 @@ function handleMobDeath({
 
     const outbox = state.resources.require(OUTBOX_RESOURCE);
     const pos = state.world.getComponent(mobId, replication.Position);
-    const fallbackGroupId = pos !== undefined ? world.map.getGroupIdFromPosition(pos.x, pos.y) : undefined;
+    const mobMapId = resolveEntityMapId({ MapId, entityId: mobId, world });
+    const map = resolveMapForId({ world, mapId: mobMapId });
+    const fallbackGroupId =
+        pos !== undefined && map ? mapScopedGroupKey(mobMapId, map.getGroupIdFromPosition(pos.x, pos.y)) : undefined;
 
     const dropPos = pos ?? spawn;
     const droppedItem = world.getDroppedItem({ kind: mobKind, x: dropPos.x, y: dropPos.y });
@@ -1003,6 +1137,7 @@ function runServerAuthoritativeCombatSystem({
     combat,
     mobAi,
     replication,
+    MapId,
     world,
 }: {
     state: WorldState<Command, DomainEvent>;
@@ -1010,6 +1145,7 @@ function runServerAuthoritativeCombatSystem({
     combat: ReturnType<typeof registerCombatComponents>;
     mobAi: ReturnType<typeof registerMobAiComponents>;
     replication: ReturnType<typeof registerSpawnReplicationComponents>;
+    MapId: ComponentType<string>;
     world: WorldCommandHost;
 }): void {
     const AttackWindup = combat.AttackWindup;
@@ -1090,7 +1226,13 @@ function runServerAuthoritativeCombatSystem({
             });
         const isVisible =
             isMobVsPlayer && attackerPos !== undefined && targetPos !== undefined
-                ? isEntityVisibleToPlayer(world, targetPos, attackerPos)
+                ? isEntityVisibleToPlayer({
+                    world,
+                    playerPos: targetPos,
+                    playerMapId: resolveEntityMapId({ MapId, entityId: engagement.targetId, world }),
+                    entityPos: attackerPos,
+                    entityMapId: resolveEntityMapId({ MapId, entityId: engagement.attackerId, world }),
+                })
                 : true;
 
         const windup = AttackWindup.store.get(engagement.attackerId);
@@ -1205,6 +1347,7 @@ function runServerAuthoritativeCombatSystem({
                 handleMobDeath({
                     state,
                     replication,
+                    MapId,
                     world,
                     mobId: engagement.targetId,
                     killerId: engagement.attackerId,
@@ -1418,6 +1561,7 @@ function _applyTeleportCommand({
     state,
     ctx,
     Position,
+    MapId,
     Target,
     mobAi,
     movement,
@@ -1429,6 +1573,7 @@ function _applyTeleportCommand({
     state: WorldState<Command, DomainEvent>;
     ctx: SystemContext;
     Position: ComponentType<GridPos>;
+    MapId: ComponentType<string>;
     Target: ComponentType<EntityId>;
     mobAi: ReturnType<typeof registerMobAiComponents>;
     movement: ReturnType<typeof registerMovementComponents>;
@@ -1438,14 +1583,39 @@ function _applyTeleportCommand({
     cmd: Extract<Command, { type: 'TELEPORT' }>;
 }): void {
     const currentPos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
-    const doorDestination = world.map.getDoorDestination(currentPos.x, currentPos.y);
+    const currentMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
+    const doorDestination = resolveDoorTeleportDestination({ world, mapId: currentMapId, x: currentPos.x, y: currentPos.y });
     if (!doorDestination) {
         return;
     }
-    if (doorDestination.x !== cmd.to.x || doorDestination.y !== cmd.to.y) {
+    if (doorDestination.to.x !== cmd.to.x || doorDestination.to.y !== cmd.to.y) {
+        emitMapTransitionEvent({
+            world,
+            event: {
+                kind: 'reject',
+                reason: 'invalid_destination',
+                playerId: player.id,
+                fromMapId: currentMapId,
+                toMapId: doorDestination.toMapId,
+                toX: cmd.to.x,
+                toY: cmd.to.y,
+            },
+        });
         return;
     }
-    if (!world.isValidPosition(cmd.to.x, cmd.to.y)) {
+    if (!isValidPositionInMap({ world, mapId: doorDestination.toMapId, x: cmd.to.x, y: cmd.to.y })) {
+        emitMapTransitionEvent({
+            world,
+            event: {
+                kind: 'reject',
+                reason: 'invalid_destination',
+                playerId: player.id,
+                fromMapId: currentMapId,
+                toMapId: doorDestination.toMapId,
+                toX: cmd.to.x,
+                toY: cmd.to.y,
+            },
+        });
         return;
     }
 
@@ -1453,6 +1623,7 @@ function _applyTeleportCommand({
         state,
         ctx,
         Position,
+        MapId,
         PositionSub: replication.PositionSub,
         Target,
         mobAi,
@@ -1460,6 +1631,8 @@ function _applyTeleportCommand({
         replication,
         world,
         playerId: player.id,
+        fromMapId: currentMapId,
+        toMapId: doorDestination.toMapId,
         to: cmd.to,
     });
 }
@@ -1468,6 +1641,7 @@ function applyTeleportOutcome({
     state,
     ctx,
     Position,
+    MapId,
     PositionSub,
     Target,
     mobAi,
@@ -1475,11 +1649,14 @@ function applyTeleportOutcome({
     replication,
     world,
     playerId,
+    fromMapId,
+    toMapId,
     to,
 }: {
     state: WorldState<Command, DomainEvent>;
     ctx: SystemContext;
     Position: ComponentType<GridPos>;
+    MapId: ComponentType<string>;
     PositionSub: ReturnType<typeof registerSpawnReplicationComponents>['PositionSub'];
     Target: ComponentType<EntityId>;
     mobAi: ReturnType<typeof registerMobAiComponents>;
@@ -1487,23 +1664,79 @@ function applyTeleportOutcome({
     replication: ReturnType<typeof registerSpawnReplicationComponents>;
     world: WorldCommandHost;
     playerId: EntityId;
+    fromMapId: string;
+    toMapId: string;
     to: GridPos;
 }): void {
+    const transitionPayload = encodeMapTransitionOutcomePayload({
+        fromMapId,
+        toMapId,
+        x: to.x,
+        y: to.y,
+    });
+    if (!transitionPayload) {
+        emitMapTransitionEvent({
+            world,
+            event: {
+                kind: 'reject',
+                reason: 'invalid_transition_payload',
+                playerId,
+                fromMapId,
+                toMapId,
+                toX: to.x,
+                toY: to.y,
+            },
+        });
+        return;
+    }
+    emitMapTransitionEvent({
+        world,
+        event: {
+            kind: 'begin',
+            playerId,
+            fromMapId,
+            toMapId,
+            toX: to.x,
+            toY: to.y,
+        },
+    });
+    state.world.addComponent(playerId, MapId, toMapId);
     state.world.addComponent(playerId, Position, to);
     const toSub = tileToWorldPosCenter(to.x, to.y);
     state.world.addComponent(playerId, PositionSub, toSub);
     state.world.removeComponent(playerId, Target);
 
-    const teleport = buildTeleportAction(playerId, to.x, to.y);
+    const teleport = buildTeleportAction(playerId, to.x, to.y, toMapId);
     const outbox = state.resources.require(OUTBOX_RESOURCE);
     const seqState = state.resources.require(INTENT_SEQ_STATE_RESOURCE);
     const moveSyncState = state.resources.require(MOVE_SYNC_STATE_RESOURCE);
     const ackSeq = seqState.lastAcceptedByPlayerId.get(playerId) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
+    outbox.push({
+        kind: 'to_player',
+        playerId,
+        action: buildOutcomeAction(ackSeq, OUTCOME_MAP_TRANSITION_BEGIN, transitionPayload),
+    });
     // Teleports are authoritative corrections; stop predicting until the next input.
-    const moveSync = buildMoveSyncAction(ackSeq, toSub.x, toSub.y, ctx.tick, 1);
+    const moveSync = buildMoveSyncAction(ackSeq, toSub.x, toSub.y, ctx.tick, 1, toMapId);
     moveSyncState.set(playerId, ctx.tick);
     outbox.push({ kind: 'to_player', playerId, action: teleport });
     outbox.push({ kind: 'to_player', playerId, action: moveSync });
+    outbox.push({
+        kind: 'to_player',
+        playerId,
+        action: buildOutcomeAction(ackSeq, OUTCOME_MAP_TRANSITION_COMMIT, transitionPayload),
+    });
+    emitMapTransitionEvent({
+        world,
+        event: {
+            kind: 'commit',
+            playerId,
+            fromMapId,
+            toMapId,
+            toX: to.x,
+            toY: to.y,
+        },
+    });
     outbox.push({ kind: 'broadcast_nearby', actorId: playerId, ignoredPlayerId: playerId, action: teleport });
 
     state.world.removeComponent(playerId, movement.MoveQueue);
@@ -1549,8 +1782,20 @@ function applyOpenCommand({
     }
 }
 
-function applyCheckCommand(world: WorldCommandHost, player: PlayerLike, cmd: Extract<Command, { type: 'CHECK' }>): void {
-    const checkpoint = world.map.getCheckpoint(cmd.checkpointId);
+function applyCheckCommand({
+    world,
+    MapId,
+    player,
+    cmd,
+}: {
+    world: WorldCommandHost;
+    MapId: ComponentType<string>;
+    player: PlayerLike;
+    cmd: Extract<Command, { type: 'CHECK' }>;
+}): void {
+    const mapId = resolveEntityMapId({ MapId, entityId: player.id, world });
+    const map = resolveMapForId({ world, mapId });
+    const checkpoint = map?.getCheckpoint(cmd.checkpointId);
     if (checkpoint) {
         player.lastCheckpoint = checkpoint;
         world.persistPlayerCheckpoint(resolvePlayerIdentityKey(player) ?? player.name, cmd.checkpointId);
@@ -1567,6 +1812,7 @@ function applyChatCommand(state: WorldState<Command, DomainEvent>, playerId: Ent
 function createApplyInboundCommandsSystem(
     world: WorldCommandHost,
     Position: ComponentType<GridPos>,
+    MapId: ComponentType<string>,
     Target: ComponentType<EntityId>,
     replication: ReturnType<typeof registerSpawnReplicationComponents>,
     combat: ReturnType<typeof registerCombatComponents>,
@@ -1595,6 +1841,7 @@ function createApplyInboundCommandsSystem(
                 applyHello({
                     state,
                     Position,
+                    MapId,
                     PositionSub: replication.PositionSub,
                     Kind: replication.Kind,
                     Name: replication.Name,
@@ -1625,6 +1872,7 @@ function createApplyInboundCommandsSystem(
                         world,
                         player,
                         Position,
+                        MapId,
                         Target,
                         movement,
                         mobAi,
@@ -1649,12 +1897,13 @@ function createApplyInboundCommandsSystem(
 
                     const correction = () => {
                         const pos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
-                        world.pushToPlayerId(cmd.source.playerId, buildCorrectionMoveAction(cmd.seq, pos.x, pos.y));
+                        const playerMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
+                        world.pushToPlayerId(cmd.source.playerId, buildCorrectionMoveAction(cmd.seq, pos.x, pos.y, playerMapId));
                         // Corrections are authoritative; stop prediction until the next input.
                         const sub = replication.PositionSub.store.get(player.id) ?? tileToWorldPosCenter(pos.x, pos.y);
                         world.pushToPlayerId(
                             cmd.source.playerId,
-                            buildMoveSyncAction(lastAccepted, sub.x, sub.y, ctx.tick, 1)
+                            buildMoveSyncAction(lastAccepted, sub.x, sub.y, ctx.tick, 1, playerMapId)
                         );
                         state.resources.require(MOVE_SYNC_STATE_RESOURCE).set(player.id, ctx.tick);
                     };
@@ -1707,6 +1956,15 @@ function createApplyInboundCommandsSystem(
                                   source: cmd.source,
                                   keysMask: decoded.keysMask,
                               } satisfies Extract<Command, { type: 'MOVE_INPUT' }>)
+                            : null;
+                    } else if (cmd.intentTypeId === INTENT_ATTACK) {
+                        const decoded = decodeAttackIntentPayload(cmd.payloadBytes);
+                        bridged = decoded
+                            ? ({
+                                  type: 'ATTACK',
+                                  source: cmd.source,
+                                  targetId: entityIdFromWire(decoded.targetId),
+                              } satisfies Extract<Command, { type: 'ATTACK' }>)
                             : null;
                     } else if (cmd.intentTypeId === INTENT_DOOR_TELEPORT) {
                         const to = decodeDoorTeleportIntentPayload(cmd.payloadBytes);
@@ -1776,6 +2034,9 @@ function createApplyInboundCommandsSystem(
                         }
                         break;
                     }
+                    if (cmd.intentTypeId === INTENT_ATTACK && bridged.type === 'ATTACK') {
+                        applyAttackCommand({ state, mobAi, replication, Target, cmd: bridged });
+                    }
                     seqState.lastAcceptedByPlayerId.set(player.id, cmd.seq);
                     world.pushToPlayerId(cmd.source.playerId, buildAckAction(cmd.seq));
 
@@ -1784,7 +2045,11 @@ function createApplyInboundCommandsSystem(
                         // This keeps clients/sniff tests from relying on a tile-boundary MOVE to observe progress.
                         const pos = replication.PositionSub.store.get(player.id);
                         if (pos) {
-                            world.pushToPlayerId(cmd.source.playerId, buildMoveSyncAction(cmd.seq, pos.x, pos.y, ctx.tick, 0));
+                            const playerMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
+                            world.pushToPlayerId(
+                                cmd.source.playerId,
+                                buildMoveSyncAction(cmd.seq, pos.x, pos.y, ctx.tick, 0, playerMapId)
+                            );
                             state.resources.require(MOVE_SYNC_STATE_RESOURCE).set(player.id, ctx.tick);
                         }
                     }
@@ -1799,7 +2064,8 @@ function createApplyInboundCommandsSystem(
                         const result = handler(intentCtx, cmd);
                         if (result && typeof result === 'object' && 'ok' in result && result.ok === false) {
                             const pos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
-                            world.pushToPlayerId(cmd.source.playerId, buildTeleportAction(player.id, pos.x, pos.y));
+                            const playerMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
+                            world.pushToPlayerId(cmd.source.playerId, buildTeleportAction(player.id, pos.x, pos.y, playerMapId));
                         }
                     }
                     break;
@@ -1879,7 +2145,12 @@ function createApplyInboundCommandsSystem(
                     });
                     break;
                 case 'CHECK':
-                    applyCheckCommand(world, player, cmd);
+                    applyCheckCommand({
+                        world,
+                        MapId,
+                        player,
+                        cmd,
+                    });
                     break;
                 case 'ACHIEVEMENT':
                     world.persistPlayerAchievementUnlock(resolvePlayerIdentityKey(player) ?? player.name, cmd.achievementId);
@@ -1891,17 +2162,18 @@ function createApplyInboundCommandsSystem(
                         chunkY: cmd.chunkY,
                     };
                     const existing = chunkAoi.byPlayerId.get(player.id);
-                    const knownChunks = existing?.knownChunks ?? new Set<bigint>();
+                    const knownChunks = existing?.knownChunks ?? new Set<string>();
                     knownChunks.clear();
-                    const knownChunkVersions = existing?.knownChunkVersions ?? new Map<bigint, number>();
+                    const knownChunkVersions = existing?.knownChunkVersions ?? new Map<string, number>();
                     knownChunkVersions.clear();
-                    const pendingChunkKeys = existing?.pendingChunkKeys ?? new Set<bigint>();
+                    const pendingChunkKeys = existing?.pendingChunkKeys ?? new Set<string>();
                     pendingChunkKeys.clear();
-                    const inFlightSnapshotKeys = existing?.inFlightSnapshotKeys ?? new Set<bigint>();
+                    const inFlightSnapshotKeys = existing?.inFlightSnapshotKeys ?? new Set<string>();
                     inFlightSnapshotKeys.clear();
 
                     const next: ChunkSubscription = {
                         radius,
+                        lastMapId: null,
                         lastCenterChunkX: center.chunkX,
                         lastCenterChunkY: center.chunkY,
                         knownChunks,
@@ -1912,7 +2184,9 @@ function createApplyInboundCommandsSystem(
                         pendingSnapshotParts: [],
                     };
                     chunkAoi.byPlayerId.set(player.id, next);
-                    enqueueChunkAoiUpdates(next, center.chunkX, center.chunkY);
+                    const mapId = resolveEntityMapId({ MapId, entityId: player.id, world });
+                    next.lastMapId = mapId;
+                    enqueueChunkAoiUpdates(next, mapId, center.chunkX, center.chunkY);
                     break;
                 }
                 case 'CHUNK_UNSUBSCRIBE':
@@ -1941,6 +2215,7 @@ export class WorldEcsCommandPipeline {
     readonly chests = registerChestComponents(this.state.world);
     readonly mobAi = registerMobAiComponents(this.state.world);
     readonly movement = registerMovementComponents(this.state.world);
+    readonly MapId = this.state.world.components.register('MapId', new SparseSetStore<string>());
     readonly chunkOverlays: ChunkOverlayStore;
     #maxChunkSnapshotPayloadUtf8Bytes: number;
     #maxChunkSnapshotParts: number;
@@ -1970,20 +2245,22 @@ export class WorldEcsCommandPipeline {
         const modules = createCoreServerModuleRegistry({
             chunkOverlayStoreResource: CHUNK_OVERLAY_STORE_RESOURCE,
             resolvePlayerIdentityKey,
-            applyMoveIntentCommand({ state, Position, player, movement, world, cmd }) {
+            applyMoveIntentCommand({ state, Position, MapId, player, movement, world, cmd }) {
                 return applyMoveIntentCommand({
                     state,
                     Position,
+                    MapId,
                     player,
                     movement,
                     world,
                     cmd,
                 });
             },
-            applyMoveToIntentCommand({ state, Position, Kind, player, movement, world, cmd }) {
+            applyMoveToIntentCommand({ state, Position, MapId, Kind, player, movement, world, cmd }) {
                 return applyMoveToIntentCommandImpl({
                     state,
                     Position,
+                    MapId,
                     Kind,
                     player,
                     movement,
@@ -1999,11 +2276,26 @@ export class WorldEcsCommandPipeline {
                     cmd,
                 });
             },
-            applyTeleportOutcome: ({ state, ctx, Position, Target, mobAi, movement, replication, world: _intentWorld, playerId, to }) => {
+            applyTeleportOutcome: ({
+                state,
+                ctx,
+                Position,
+                MapId,
+                Target,
+                mobAi,
+                movement,
+                replication,
+                world: _intentWorld,
+                playerId,
+                fromMapId,
+                toMapId,
+                to,
+            }) => {
                 applyTeleportOutcome({
                     state,
                     ctx,
                     Position,
+                    MapId,
                     PositionSub,
                     Target,
                     mobAi,
@@ -2011,6 +2303,8 @@ export class WorldEcsCommandPipeline {
                     replication,
                     world,
                     playerId,
+                    fromMapId,
+                    toMapId,
                     to,
                 });
             },
@@ -2023,6 +2317,7 @@ export class WorldEcsCommandPipeline {
             createApplyInboundCommandsSystem(
                 world,
                 this.Position,
+                this.MapId,
                 this.replication.Target,
                 this.replication,
                 this.combat,
@@ -2042,6 +2337,7 @@ export class WorldEcsCommandPipeline {
         this.#scheduler.register('sim', 'player_move', (state, ctx: SystemContext) => {
             const Kind = this.replication.Kind;
             const Position = this.Position;
+            const MapId = this.MapId;
             const PositionSub = this.PositionSub;
             const Target = this.replication.Target;
             const { MoveQueue, MoveInput, MoveSpeedRemainder } = this.movement;
@@ -2053,7 +2349,7 @@ export class WorldEcsCommandPipeline {
             const entityStateBatches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
 
             const ups = Math.max(1, this.#world.ups);
-            const positionKey = (x: number, y: number) => `${x},${y}`;
+            const positionKey = (mapId: string, x: number, y: number) => `${mapId}:${x},${y}`;
             const occupiedBy = new Map<string, EntityId>();
 
             Position.store.forEach((id, pos) => {
@@ -2065,7 +2361,8 @@ export class WorldEcsCommandPipeline {
                 if (!Types.isPlayer(kind) && !Types.isMob(kind) && !Types.isChest(kind) && !Types.isNpc(kind)) {
                     return;
                 }
-                occupiedBy.set(positionKey(pos.x, pos.y), id);
+                const mapId = resolveEntityMapId({ MapId, entityId: id, world: this.#world });
+                occupiedBy.set(positionKey(mapId, pos.x, pos.y), id);
             });
 
             const pushMoveSync = (playerId: EntityId, pos: { x: number; y: number }, flags: number, force: boolean) => {
@@ -2075,22 +2372,27 @@ export class WorldEcsCommandPipeline {
                 }
                 const ackSeq =
                     seqState.lastAcceptedByPlayerId.get(playerId) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
+                const playerMapId = resolveEntityMapId({ MapId, entityId: playerId, world: this.#world });
                 outbox.push({
                     kind: 'to_player',
                     playerId,
-                    action: buildMoveSyncAction(ackSeq, pos.x, pos.y, ctx.tick, flags),
+                    action: buildMoveSyncAction(ackSeq, pos.x, pos.y, ctx.tick, flags, playerMapId),
                 });
                 moveSyncState.set(playerId, ctx.tick);
             };
 
-            const enqueueEntityState = (entityId: EntityId, pos: GridPos) => {
-                const groupId = this.#world.map.getGroupIdFromPosition(pos.x, pos.y);
-                const bucket = entityStateBatches.get(groupId);
+            const enqueueEntityState = (entityId: EntityId, mapId: string, pos: GridPos) => {
+                const map = resolveMapForId({ world: this.#world, mapId });
+                if (!map) {
+                    return;
+                }
+                const scopedGroupId = mapScopedGroupKey(mapId, map.getGroupIdFromPosition(pos.x, pos.y));
+                const bucket = entityStateBatches.get(scopedGroupId);
                 const entry = { x: pos.x, y: pos.y, flags: 0 };
                 if (bucket) {
                     bucket.set(entityId, entry);
                 } else {
-                    entityStateBatches.set(groupId, new Map([[entityId, entry]]));
+                    entityStateBatches.set(scopedGroupId, new Map([[entityId, entry]]));
                 }
             };
 
@@ -2138,7 +2440,6 @@ export class WorldEcsCommandPipeline {
             const PLAYER_HALF_EXTENTS = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
             const DIAG_NUM = 181;
             const DIAG_DEN = 256;
-            const isBlockedTile = (x: number, y: number) => !this.#world.isValidPosition(x, y);
 
             const movingIds = new Set<EntityId>();
             MoveInput.store.forEach((id) => movingIds.add(id));
@@ -2168,6 +2469,20 @@ export class WorldEcsCommandPipeline {
                     state.world.removeComponent(playerId, MoveSpeedRemainder);
                     continue;
                 }
+                const currentMapId = resolveEntityMapId({ MapId, entityId: playerId, world: this.#world });
+                const mapForPlayer = resolveMapForId({ world: this.#world, mapId: currentMapId });
+                if (!mapForPlayer) {
+                    state.world.removeComponent(playerId, MoveInput);
+                    state.world.removeComponent(playerId, MoveQueue);
+                    state.world.removeComponent(playerId, MoveSpeedRemainder);
+                    continue;
+                }
+                const mapWidthTiles = resolvePositiveIntegerOrNull(mapForPlayer.width)
+                    ?? resolvePositiveIntegerOrNull(mapForPlayer.grid?.[0]?.length);
+                const mapHeightTiles = resolvePositiveIntegerOrNull(mapForPlayer.height)
+                    ?? resolvePositiveIntegerOrNull(mapForPlayer.grid?.length);
+                const isBlockedTile = (x: number, y: number) =>
+                    !isValidPositionInMap({ world: this.#world, mapId: currentMapId, x, y });
 
                 const input = MoveInput.store.get(playerId);
                 if (input) {
@@ -2244,16 +2559,42 @@ export class WorldEcsCommandPipeline {
                     stepDy = Math.trunc((stepDy * DIAG_NUM) / DIAG_DEN);
                 }
 
-                const isBlockedTileForStep =
-                    dx !== 0 && dy !== 0
-                        ? (x: number, y: number) => {
-                              // Grid-style diagonal corner cutting: destination-only walkability.
-                              // Ignore the two orthogonal neighbor tiles for the current diagonal step.
-                              if (x === currentGrid.x + dx && y === currentGrid.y) return false;
-                              if (x === currentGrid.x && y === currentGrid.y + dy) return false;
-                              return isBlockedTile(x, y);
-                          }
-                        : isBlockedTile;
+                let queuedStepTargetCenter: ReturnType<typeof tileToWorldPosCenter> | null = null;
+                if (!input && movingToTile) {
+                    queuedStepTargetCenter = tileToWorldPosCenter(movingToTile.x, movingToTile.y);
+                    // Prevent queued click-to-move waypoint overshoot; this avoids target-center ping-pong.
+                    const remX = queuedStepTargetCenter.x - posSub.x;
+                    const remY = queuedStepTargetCenter.y - posSub.y;
+                    if (stepDx !== 0) {
+                        if (remX === 0) {
+                            stepDx = 0;
+                        } else if (Math.abs(stepDx) > Math.abs(remX)) {
+                            stepDx = remX;
+                        }
+                    }
+                    if (stepDy !== 0) {
+                        if (remY === 0) {
+                            stepDy = 0;
+                        } else if (Math.abs(stepDy) > Math.abs(remY)) {
+                            stepDy = remY;
+                        }
+                    }
+                }
+
+                let isBlockedTileForStep = isBlockedTile;
+                let allowedBlockedOverlapTiles: ReadonlyArray<{ x: number; y: number }> | undefined;
+                if (dx !== 0 && dy !== 0 && !input && movingToTile) {
+                    // Keep diagonal corner-cut ignores stable for queued click-to-move steps so waypoint execution
+                    // matches path planner intent.
+                    const ignoreOrthA = { x: movingToTile.x, y: movingToTile.y - dy };
+                    const ignoreOrthB = { x: movingToTile.x - dx, y: movingToTile.y };
+                    allowedBlockedOverlapTiles = [ignoreOrthA, ignoreOrthB];
+                    isBlockedTileForStep = (x: number, y: number) => {
+                        if (x === ignoreOrthA.x && y === ignoreOrthA.y) return false;
+                        if (x === ignoreOrthB.x && y === ignoreOrthB.y) return false;
+                        return isBlockedTile(x, y);
+                    };
+                }
 
                 const resolved = resolveSubTileMotionAgainstTiles({
                     pos: posSub,
@@ -2267,7 +2608,7 @@ export class WorldEcsCommandPipeline {
 
                 // If click-to-move is close enough to the target center, snap to it and consume the waypoint.
                 if (!input && movingToTile) {
-                    const targetCenter = tileToWorldPosCenter(movingToTile.x, movingToTile.y);
+                    const targetCenter = queuedStepTargetCenter ?? tileToWorldPosCenter(movingToTile.x, movingToTile.y);
                     const dxToTarget = targetCenter.x - nextSub.x;
                     const dyToTarget = targetCenter.y - nextSub.y;
                     if (Math.abs(dxToTarget) <= speed && Math.abs(dyToTarget) <= speed) {
@@ -2287,10 +2628,31 @@ export class WorldEcsCommandPipeline {
                     }
                 }
 
+                if (mapWidthTiles !== null && mapHeightTiles !== null) {
+                    nextSub = clampWorldPosInsideMap({
+                        pos: nextSub,
+                        halfExtents: PLAYER_HALF_EXTENTS,
+                        mapWidthTiles,
+                        mapHeightTiles,
+                    });
+                    nextGrid = worldPosToTile(nextSub);
+                }
+
+                // Safety invariant: never commit penetration into blocked geometry.
+                if (worldPosOverlapsBlockedTiles({
+                    pos: nextSub,
+                    halfExtents: PLAYER_HALF_EXTENTS,
+                    isBlockedTile,
+                    ignoreTiles: allowedBlockedOverlapTiles,
+                })) {
+                    pushMoveSync(playerId, posSub, 1, false);
+                    continue;
+                }
+
                 // Tile-structured entity collision: block entry into an occupied destination tile.
                 const wantsTileChange = nextGrid.x !== currentGrid.x || nextGrid.y !== currentGrid.y;
                 if (wantsTileChange) {
-                    const occupant = occupiedBy.get(positionKey(nextGrid.x, nextGrid.y));
+                    const occupant = occupiedBy.get(positionKey(currentMapId, nextGrid.x, nextGrid.y));
                     if (occupant !== undefined && occupant !== playerId) {
                         pushMoveSync(playerId, posSub, 1, false);
                         continue;
@@ -2306,50 +2668,112 @@ export class WorldEcsCommandPipeline {
                 pushMoveSync(playerId, nextSub, 0, false);
 
                 if (wantsTileChange) {
-                    const oldKey = positionKey(currentGrid.x, currentGrid.y);
+                    const oldKey = positionKey(currentMapId, currentGrid.x, currentGrid.y);
                     if (occupiedBy.get(oldKey) === playerId) {
                         occupiedBy.delete(oldKey);
                     }
-                    occupiedBy.set(positionKey(nextGrid.x, nextGrid.y), playerId);
+                    occupiedBy.set(positionKey(currentMapId, nextGrid.x, nextGrid.y), playerId);
 
                     outbox.push({ kind: 'to_player', playerId, action: buildMoveAction(playerId, nextGrid.x, nextGrid.y) });
                     pushMoveSync(playerId, nextSub, 0, true);
-                    enqueueEntityState(playerId, nextGrid);
+                    enqueueEntityState(playerId, currentMapId, nextGrid);
 
-                    const doorDestination = this.#world.map.getDoorDestination(nextGrid.x, nextGrid.y);
-                    if (doorDestination && this.#world.isValidPosition(doorDestination.x, doorDestination.y)) {
-                        const destinationKey = positionKey(doorDestination.x, doorDestination.y);
-                        const destinationOccupant = occupiedBy.get(destinationKey);
-                        if (destinationOccupant === undefined || destinationOccupant === playerId) {
-                            occupiedBy.delete(positionKey(nextGrid.x, nextGrid.y));
-                            occupiedBy.set(destinationKey, playerId);
-
-                            const teleport = modules.getOutcomeHandler(OUTCOME_DOOR_TELEPORT);
-                            if (!teleport) {
-                                throw new Error(`Missing outcome handler: ${OUTCOME_DOOR_TELEPORT}`);
-                            }
-
-                            const player = this.#world.getConnectionPlayerById(playerId);
-                            if (!player) {
-                                state.world.removeComponent(playerId, MoveQueue);
-                                continue;
-                            }
-
-                            teleport(
-                                {
-                                    modules,
-                                    state,
-                                    ctx,
-                                    world: this.#world,
-                                    player,
-                                    Position,
-                                    Target,
-                                    movement: this.movement,
-                                    mobAi: this.mobAi,
-                                    replication: this.replication,
+                    const doorDestination = resolveDoorTeleportDestination({
+                        world: this.#world,
+                        mapId: currentMapId,
+                        x: nextGrid.x,
+                        y: nextGrid.y,
+                    });
+                    if (doorDestination) {
+                        const validDestination = isValidPositionInMap({
+                            world: this.#world,
+                            mapId: doorDestination.toMapId,
+                            x: doorDestination.to.x,
+                            y: doorDestination.to.y,
+                        });
+                        if (!validDestination) {
+                            emitMapTransitionEvent({
+                                world: this.#world,
+                                event: {
+                                    kind: 'reject',
+                                    reason: 'invalid_destination',
+                                    playerId,
+                                    fromMapId: currentMapId,
+                                    toMapId: doorDestination.toMapId,
+                                    toX: doorDestination.to.x,
+                                    toY: doorDestination.to.y,
                                 },
-                                { playerId, to: gridPos(doorDestination.x, doorDestination.y) } satisfies DoorTeleportOutcome
+                            });
+                        } else {
+                            const destinationKey = positionKey(
+                                doorDestination.toMapId,
+                                doorDestination.to.x,
+                                doorDestination.to.y
                             );
+                            const destinationOccupant = occupiedBy.get(destinationKey);
+                            if (destinationOccupant !== undefined && destinationOccupant !== playerId) {
+                                emitMapTransitionEvent({
+                                    world: this.#world,
+                                    event: {
+                                        kind: 'reject',
+                                        reason: 'destination_occupied',
+                                        playerId,
+                                        fromMapId: currentMapId,
+                                        toMapId: doorDestination.toMapId,
+                                        toX: doorDestination.to.x,
+                                        toY: doorDestination.to.y,
+                                        destinationOccupantId: destinationOccupant,
+                                    },
+                                });
+                            } else {
+                                occupiedBy.delete(positionKey(currentMapId, nextGrid.x, nextGrid.y));
+                                occupiedBy.set(destinationKey, playerId);
+
+                                const teleport = modules.getOutcomeHandler(OUTCOME_DOOR_TELEPORT);
+                                if (!teleport) {
+                                    throw new Error(`Missing outcome handler: ${OUTCOME_DOOR_TELEPORT}`);
+                                }
+
+                                const player = this.#world.getConnectionPlayerById(playerId);
+                                if (!player) {
+                                    state.world.removeComponent(playerId, MoveQueue);
+                                    emitMapTransitionEvent({
+                                        world: this.#world,
+                                        event: {
+                                            kind: 'reject',
+                                            reason: 'player_missing',
+                                            playerId,
+                                            fromMapId: currentMapId,
+                                            toMapId: doorDestination.toMapId,
+                                            toX: doorDestination.to.x,
+                                            toY: doorDestination.to.y,
+                                        },
+                                    });
+                                    continue;
+                                }
+
+                                teleport(
+                                    {
+                                        modules,
+                                        state,
+                                        ctx,
+                                        world: this.#world,
+                                        player,
+                                        Position,
+                                        MapId,
+                                        Target,
+                                        movement: this.movement,
+                                        mobAi: this.mobAi,
+                                        replication: this.replication,
+                                    },
+                                    {
+                                        playerId,
+                                        fromMapId: currentMapId,
+                                        toMapId: doorDestination.toMapId,
+                                        to: gridPos(doorDestination.to.x, doorDestination.to.y),
+                                    } satisfies DoorTeleportOutcome
+                                );
+                            }
                         }
                     }
                 }
@@ -2368,8 +2792,12 @@ export class WorldEcsCommandPipeline {
                 }
                 if (ctx.tick >= timer.destroyAtTick) {
                     const pos = this.Position.store.get(id);
+                    const mapId = resolveEntityMapId({ MapId: this.MapId, entityId: id, world: this.#world });
+                    const map = resolveMapForId({ world: this.#world, mapId });
                     const fallbackGroupId =
-                        pos !== undefined ? this.#world.map.getGroupIdFromPosition(pos.x, pos.y) : undefined;
+                        pos !== undefined && map
+                            ? mapScopedGroupKey(mapId, map.getGroupIdFromPosition(pos.x, pos.y))
+                            : undefined;
                     toDestroy.push({ id, fallbackGroupId });
                 }
             });
@@ -2460,6 +2888,7 @@ export class WorldEcsCommandPipeline {
         });
         this.#scheduler.register('sim', 'mob_ai', (state, ctx: SystemContext) => {
             const Kind = this.replication.Kind;
+            const MapId = this.MapId;
             const Position = this.Position;
             const PositionSub = this.PositionSub;
             const Target = this.replication.Target;
@@ -2472,7 +2901,7 @@ export class WorldEcsCommandPipeline {
 
             const returnDelayTicks = ups * 4;
             const leashDistance = 50;
-            const positionKey = (x: number, y: number) => `${x},${y}`;
+            const positionKey = (mapId: string, x: number, y: number) => `${mapId}:${x},${y}`;
             const occupiedBy = new Map<string, EntityId>();
 
             Position.store.forEach((id, pos) => {
@@ -2483,14 +2912,15 @@ export class WorldEcsCommandPipeline {
                 if (!Types.isPlayer(kind) && !Types.isMob(kind) && !Types.isChest(kind) && !Types.isNpc(kind)) {
                     return;
                 }
-                occupiedBy.set(positionKey(pos.x, pos.y), id);
+                const mapId = resolveEntityMapId({ MapId, entityId: id, world: this.#world });
+                occupiedBy.set(positionKey(mapId, pos.x, pos.y), id);
             });
 
-            const canMobMoveTo = (mobId: EntityId, x: number, y: number) => {
-                if (!this.#world.isValidPosition(x, y)) {
+            const canMobMoveTo = (mobId: EntityId, mapId: string, x: number, y: number) => {
+                if (!isValidPositionInMap({ world: this.#world, mapId, x, y })) {
                     return false;
                 }
-                const occupant = occupiedBy.get(positionKey(x, y));
+                const occupant = occupiedBy.get(positionKey(mapId, x, y));
                 return occupant === undefined || occupant === mobId;
             };
 
@@ -2511,7 +2941,6 @@ export class WorldEcsCommandPipeline {
             const MOB_HALF_EXTENTS = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
             const DIAG_NUM = 181;
             const DIAG_DEN = 256;
-            const isBlockedTile = (x: number, y: number) => !this.#world.isValidPosition(x, y);
 
             const mobIds: EntityId[] = [];
             Kind.store.forEach((id, kind) => {
@@ -2534,6 +2963,17 @@ export class WorldEcsCommandPipeline {
                 if (!currentPos) {
                     continue;
                 }
+                const mobMapId = resolveEntityMapId({ MapId, entityId: mobId, world: this.#world });
+                const mapForMob = resolveMapForId({ world: this.#world, mapId: mobMapId });
+                if (!mapForMob) {
+                    continue;
+                }
+                const mapWidthTiles = resolvePositiveIntegerOrNull(mapForMob.width)
+                    ?? resolvePositiveIntegerOrNull(mapForMob.grid?.[0]?.length);
+                const mapHeightTiles = resolvePositiveIntegerOrNull(mapForMob.height)
+                    ?? resolvePositiveIntegerOrNull(mapForMob.grid?.length);
+                const isBlockedTile = (x: number, y: number) =>
+                    !isValidPositionInMap({ world: this.#world, mapId: mobMapId, x, y });
 
                 let subNow = PositionSub.store.get(mobId) ?? tileToWorldPosCenter(currentPos.x, currentPos.y);
                 if (!PositionSub.store.get(mobId)) {
@@ -2586,25 +3026,34 @@ export class WorldEcsCommandPipeline {
                         state.world.removeComponent(mobId, MobMoveRemainder);
                     }
 
+                    if (mapWidthTiles !== null && mapHeightTiles !== null) {
+                        subNow = clampWorldPosInsideMap({
+                            pos: subNow,
+                            halfExtents: MOB_HALF_EXTENTS,
+                            mapWidthTiles,
+                            mapHeightTiles,
+                        });
+                    }
+
                     state.world.addComponent(mobId, PositionSub, subNow);
                     const nextGrid = worldPosToTile(subNow);
                     if (nextGrid.x !== currentPos.x || nextGrid.y !== currentPos.y) {
-                        const oldKey = positionKey(currentPos.x, currentPos.y);
+                        const oldKey = positionKey(mobMapId, currentPos.x, currentPos.y);
                         if (occupiedBy.get(oldKey) === mobId) {
                             occupiedBy.delete(oldKey);
                         }
                         state.world.addComponent(mobId, Position, nextGrid);
-                        occupiedBy.set(positionKey(nextGrid.x, nextGrid.y), mobId);
+                        occupiedBy.set(positionKey(mobMapId, nextGrid.x, nextGrid.y), mobId);
                     }
 
-                    const groupId = this.#world.map.getGroupIdFromPosition(nextGrid.x, nextGrid.y);
+                    const scopedGroupId = mapScopedGroupKey(mobMapId, mapForMob.getGroupIdFromPosition(nextGrid.x, nextGrid.y));
                     const batches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
-                    const bucket = batches.get(groupId);
+                    const bucket = batches.get(scopedGroupId);
                     const entry = { x: nextGrid.x, y: nextGrid.y, flags: 0 };
                     if (bucket) {
                         bucket.set(mobId, entry);
                     } else {
-                        batches.set(groupId, new Map([[mobId, entry]]));
+                        batches.set(scopedGroupId, new Map([[mobId, entry]]));
                     }
                 };
 
@@ -2623,7 +3072,7 @@ export class WorldEcsCommandPipeline {
                                     from: currentPos,
                                     to: spawn,
                                     avoidExactTargetTile: false,
-                                    isValidPosition: (x, y) => canMobMoveTo(mobId, x, y),
+                                    isValidPosition: (x, y) => canMobMoveTo(mobId, mobMapId, x, y),
                                 });
                                 if (next) {
                                     state.world.addComponent(mobId, MobMoveGoal, next);
@@ -2648,6 +3097,10 @@ export class WorldEcsCommandPipeline {
                     }
                     const playerKind = Kind.store.get(entry.id);
                     if (playerKind === undefined || !Types.isPlayer(playerKind)) {
+                        continue;
+                    }
+                    const playerMapId = resolveEntityMapId({ MapId, entityId: entry.id, world: this.#world });
+                    if (playerMapId !== mobMapId) {
                         continue;
                     }
                     const playerHp = this.combat.HitPoints.store.get(entry.id) ?? 0;
@@ -2694,6 +3147,10 @@ export class WorldEcsCommandPipeline {
                 if (!targetPos) {
                     continue;
                 }
+                const targetMapId = resolveEntityMapId({ MapId, entityId: desiredTargetId, world: this.#world });
+                if (targetMapId !== mobMapId) {
+                    continue;
+                }
 
                 if (isAdjacentNonDiagonal(currentPos, targetPos)) {
                     continue;
@@ -2707,7 +3164,7 @@ export class WorldEcsCommandPipeline {
                 let next = chooseStepTowards({
                     from: currentPos,
                     to: targetPos,
-                    isValidPosition: (x, y) => canMobMoveTo(mobId, x, y),
+                    isValidPosition: (x, y) => canMobMoveTo(mobId, mobMapId, x, y),
                 });
 
                 next ??= chooseStepTowardsAdjacentViaBfs({
@@ -2715,7 +3172,7 @@ export class WorldEcsCommandPipeline {
                     target: targetPos,
                     spawn,
                     leashDistance,
-                    isValidPosition: (x, y) => canMobMoveTo(mobId, x, y),
+                    isValidPosition: (x, y) => canMobMoveTo(mobId, mobMapId, x, y),
                 });
 
                 if (!next) {
@@ -2741,6 +3198,7 @@ export class WorldEcsCommandPipeline {
                 combat: this.combat,
                 mobAi: this.mobAi,
                 replication: this.replication,
+                MapId: this.MapId,
                 world: this.#world,
             });
         });
@@ -2855,6 +3313,10 @@ export class WorldEcsCommandPipeline {
 
     syncSpawnReplicationEntity(entity: LegacySpawnReplicationEntity): void {
         syncSpawnReplicationFromLegacyEntity(this.state.world, this.replication, entity);
+        const mapId = typeof entity.mapId === 'string' && entity.mapId.trim().length > 0
+            ? entity.mapId
+            : resolveDefaultMapId(this.#world);
+        this.state.world.addComponent(entity.id, this.MapId, mapId);
     }
 
     seedItemFromSpawn({
@@ -2862,13 +3324,16 @@ export class WorldEcsCommandPipeline {
         kind,
         x,
         y,
+        mapId,
     }: {
         id: EntityId;
         kind: EntityKind;
         x: number;
         y: number;
+        mapId?: string;
     }): void {
         this.state.world.ensureEntity(id);
+        this.state.world.addComponent(id, this.MapId, mapId ?? resolveDefaultMapId(this.#world));
         this.state.world.addComponent(id, this.replication.Kind, kind);
         this.state.world.addComponent(id, this.Position, gridPos(x, y));
         this.state.world.addComponent(id, this.PositionSub, tileToWorldPosCenter(x, y));
@@ -2881,6 +3346,7 @@ export class WorldEcsCommandPipeline {
         y,
         spawnX,
         spawnY,
+        mapId,
         orientation,
     }: {
         id: EntityId;
@@ -2889,9 +3355,10 @@ export class WorldEcsCommandPipeline {
         y: number;
         spawnX: number;
         spawnY: number;
+        mapId?: string;
         orientation?: number;
     }): void {
-        this.seedItemFromSpawn({ id, kind, x, y });
+        this.seedItemFromSpawn({ id, kind, x, y, mapId });
         this.state.world.addComponent(id, this.replication.Orientation, orientation ?? resolveDeterministicOrientation(id));
         this.state.world.addComponent(id, this.mobAi.MobSpawnPos, gridPos(spawnX, spawnY));
 
@@ -2992,11 +3459,13 @@ export class WorldEcsCommandPipeline {
 
     buildSpawnActionForLegacyEntity(entity: LegacySpawnReplicationEntity): ServerToClientSpawnAction {
         this.syncSpawnReplicationEntity(entity);
-        return buildSpawnActionFromReplicationState(this.state.world, this.replication, entity.id);
+        const mapId = resolveEntityMapId({ MapId: this.MapId, entityId: entity.id, world: this.#world });
+        return buildSpawnActionFromReplicationState(this.state.world, this.replication, entity.id, mapId);
     }
 
     buildSpawnActionForEntityId(entityId: EntityId): ServerToClientSpawnAction {
-        return buildSpawnActionFromReplicationState(this.state.world, this.replication, entityId);
+        const mapId = resolveEntityMapId({ MapId: this.MapId, entityId, world: this.#world });
+        return buildSpawnActionFromReplicationState(this.state.world, this.replication, entityId, mapId);
     }
 
     setServerConfig(config: ServerConfig | null | undefined): void {
@@ -3030,6 +3499,7 @@ export class WorldEcsCommandPipeline {
             world: this.#world,
             state: this.state,
             Position: this.Position,
+            MapId: this.MapId,
             replication: this.replication,
             interest: this.state.resources.require(INTEREST_TRACKER_RESOURCE),
             idsByGroup,
@@ -3052,6 +3522,7 @@ export class WorldEcsCommandPipeline {
             broadcastNearbyOutboxMessage({
                 world: this.#world,
                 Position: this.Position,
+                MapId: this.MapId,
                 msg,
                 idsByGroup,
             });
@@ -3060,14 +3531,20 @@ export class WorldEcsCommandPipeline {
 
     #buildGroupIndex(): Map<string, EntityId[]> {
         const idsByGroup = new Map<string, EntityId[]>();
+        const defaultMapId = resolveDefaultMapId(this.#world);
 
         this.Position.store.forEach((id, pos) => {
-            const groupId = this.#world.map.getGroupIdFromPosition(pos.x, pos.y);
-            const list = idsByGroup.get(groupId);
+            const mapId = this.MapId.store.get(id) ?? defaultMapId;
+            const map = resolveMapForId({ world: this.#world, mapId });
+            if (!map) {
+                return;
+            }
+            const scopedGroupId = mapScopedGroupKey(mapId, map.getGroupIdFromPosition(pos.x, pos.y));
+            const list = idsByGroup.get(scopedGroupId);
             if (list) {
                 list.push(id);
             } else {
-                idsByGroup.set(groupId, [id]);
+                idsByGroup.set(scopedGroupId, [id]);
             }
         });
 
@@ -3081,6 +3558,7 @@ export class WorldEcsCommandPipeline {
             overlays: this.state.resources.require(CHUNK_OVERLAY_STORE_RESOURCE),
             chunkAoi: this.state.resources.require(CHUNK_AOI_STATE_RESOURCE),
             getPlayerPosition: (playerId) => this.Position.store.get(playerId),
+            getPlayerMapId: (playerId) => resolveEntityMapId({ MapId: this.MapId, entityId: playerId, world: this.#world }),
             maxChunkSnapshotPayloadUtf8Bytes: this.#maxChunkSnapshotPayloadUtf8Bytes,
             maxChunkSnapshotParts: this.#maxChunkSnapshotParts,
             maxSnapshotsPerTickPerPlayer: MAX_CHUNK_SNAPSHOTS_PER_TICK_PER_PLAYER,

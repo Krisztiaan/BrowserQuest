@@ -56,12 +56,24 @@ export type ClientPendingDoorTraversal = Readonly<{
     doorY: number;
     toX: number;
     toY: number;
+    targetMapId?: string;
     orientation: number;
     portal: boolean;
     cameraX?: number;
     cameraY?: number;
     requestedAtMs: number;
 }>;
+
+export type ClientMapTransitionState = {
+    seq: number;
+    fromMapId: string;
+    toMapId: string;
+    x: number;
+    y: number;
+    mapActivated: boolean;
+    commitReceived: boolean;
+    localTeleport: Readonly<{ x: number; y: number; mapId?: string }> | null;
+};
 
 export type ClientSpatialRecord = Readonly<{
     gridX: number;
@@ -112,6 +124,8 @@ export class ClientWorldKernel {
     readonly kind = new Map<EntityId, EntityKind>();
     readonly position = new Map<EntityId, GridPos>();
     readonly worldPosition = new Map<EntityId, WorldPos>();
+    readonly mapId = new Map<EntityId, string>();
+    activeMapId: string | null = null;
 
     readonly name = new Map<EntityId, string>();
     readonly orientation = new Map<EntityId, number>();
@@ -168,6 +182,7 @@ export class ClientWorldKernel {
     clientPredictedWorldPos: WorldPos | null = null;
     clientDoorTraversalArmed = false;
     clientPendingDoorTraversal: ClientPendingDoorTraversal | null = null;
+    clientMapTransition: ClientMapTransitionState | null = null;
     clientLocalPlayerDead = false;
     readonly clientChunkOverlayCache = new ClientChunkOverlayCache();
 
@@ -359,6 +374,77 @@ export class ClientWorldKernel {
         this.clientPendingDoorTraversal = null;
     }
 
+    startClientMapTransition({
+        seq,
+        fromMapId,
+        toMapId,
+        x,
+        y,
+    }: {
+        seq: number;
+        fromMapId: string;
+        toMapId: string;
+        x: number;
+        y: number;
+    }): void {
+        this.clientMapTransition = {
+            seq,
+            fromMapId,
+            toMapId,
+            x,
+            y,
+            mapActivated: false,
+            commitReceived: false,
+            localTeleport: null,
+        };
+    }
+
+    markClientMapTransitionMapActivated(seq: number, toMapId: string): void {
+        const transition = this.clientMapTransition;
+        if (transition?.seq !== seq) {
+            return;
+        }
+        if (transition.toMapId !== toMapId) {
+            return;
+        }
+        transition.mapActivated = true;
+    }
+
+    markClientMapTransitionCommitted(seq: number, toMapId: string): void {
+        const transition = this.clientMapTransition;
+        if (transition?.seq !== seq) {
+            return;
+        }
+        if (transition.toMapId !== toMapId) {
+            return;
+        }
+        transition.commitReceived = true;
+    }
+
+    setClientMapTransitionLocalTeleport(x: number, y: number, mapId?: string): void {
+        const transition = this.clientMapTransition;
+        if (!transition) {
+            return;
+        }
+        transition.localTeleport = {
+            x,
+            y,
+            ...(typeof mapId === 'string' && mapId.trim().length > 0 ? { mapId } : {}),
+        };
+    }
+
+    canFinalizeClientMapTransition(): boolean {
+        const transition = this.clientMapTransition;
+        if (!transition) {
+            return false;
+        }
+        return transition.mapActivated && transition.commitReceived;
+    }
+
+    clearClientMapTransition(): void {
+        this.clientMapTransition = null;
+    }
+
     applySpatialRemoveRecord(entityId: EntityId, record: ClientSpatialRecord): void {
         removeFromCellIndex(this.clientSpatialRenderIndex, record.gridX, record.gridY, entityId);
 
@@ -408,6 +494,11 @@ export class ClientWorldKernel {
         const pos = gridPos(snapshot.x, snapshot.y);
         this.position.set(id, pos);
         this.worldPosition.set(id, tileToWorldPosCenter(snapshot.x, snapshot.y));
+        if (typeof snapshot.mapId === 'string' && snapshot.mapId.trim().length > 0) {
+            this.mapId.set(id, snapshot.mapId);
+        } else {
+            this.mapId.delete(id);
+        }
 
         // Clear optional components first; extras will re-add what applies.
         this.name.delete(id);
@@ -439,6 +530,7 @@ export class ClientWorldKernel {
         this.kind.set(id, kind);
         this.position.set(id, gridPos(x, y));
         this.worldPosition.set(id, tileToWorldPosCenter(x, y));
+        this.mapId.delete(id);
 
         // Clear optional components: this is a "simple" entity unless later promoted by spawn snapshots.
         this.name.delete(id);
@@ -456,6 +548,29 @@ export class ClientWorldKernel {
         }
         this.position.set(id, gridPos(x, y));
         this.worldPosition.set(id, tileToWorldPosCenter(x, y));
+    }
+
+    setEntityMapId(id: EntityId, mapId: string): void {
+        if (!this.alive.has(id)) {
+            return;
+        }
+        const trimmed = mapId.trim();
+        if (trimmed.length === 0) {
+            return;
+        }
+        this.mapId.set(id, trimmed);
+    }
+
+    getEntityMapId(id: EntityId): string | null {
+        return this.mapId.get(id) ?? null;
+    }
+
+    setActiveMapId(mapId: string): void {
+        const trimmed = mapId.trim();
+        if (trimmed.length === 0) {
+            return;
+        }
+        this.activeMapId = trimmed;
     }
 
     setWorldPosition(id: EntityId, worldX: number, worldY: number): void {
@@ -483,6 +598,7 @@ export class ClientWorldKernel {
         this.kind.delete(id);
         this.position.delete(id);
         this.worldPosition.delete(id);
+        this.mapId.delete(id);
         this.name.delete(id);
         this.orientation.delete(id);
         this.armor.delete(id);
@@ -507,6 +623,8 @@ export class ClientWorldKernel {
         this.kind.clear();
         this.position.clear();
         this.worldPosition.clear();
+        this.mapId.clear();
+        this.activeMapId = null;
         this.name.clear();
         this.orientation.clear();
         this.armor.clear();
@@ -539,6 +657,7 @@ export class ClientWorldKernel {
         this.clientMoveInputDirty = false;
         this.clientDoorTraversalArmed = false;
         this.clientPendingDoorTraversal = null;
+        this.clientMapTransition = null;
         this.clientLocalPlayerDead = false;
     }
 

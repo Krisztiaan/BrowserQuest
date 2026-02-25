@@ -1,4 +1,4 @@
-export const PROTOCOL_REVISION = 1 as const;
+export const PROTOCOL_REVISION = 2 as const;
 
 const MAX_CAPABILITIES_JSON_BYTES = 4096;
 const MAX_ID_COUNT = 256;

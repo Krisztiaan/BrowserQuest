@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import { validateMapPayload } from '../map';
+import { isMapPack } from '../../shared/maps/map-pack';
 
 type EmitErrorFn = (message: string) => void;
 type FailFn = (code: number) => void;
@@ -101,14 +102,28 @@ export async function ensureMapPreflightValid({
         return false;
     }
 
-    const validation = await validateMapPayloadFn(parsedMapPayload);
-    if (!validation.ok) {
-        const reason = typeof validation.reason === 'string' && validation.reason.length > 0
-            ? validation.reason
-            : 'invalid map payload';
-        emitError(`Startup preflight: map file contains invalid map payload: ${mapFilePath} (${reason})`);
+    if (!isMapPack(parsedMapPayload)) {
+        emitError(`Startup preflight: map pack file has invalid schema: ${mapFilePath}`);
         fail(1);
         return false;
+    }
+
+    for (let i = 0; i < parsedMapPayload.maps.length; i += 1) {
+        const entry = parsedMapPayload.maps[i];
+        if (!entry) {
+            continue;
+        }
+        const mapValidation = await validateMapPayloadFn(entry.server);
+        if (!mapValidation.ok) {
+            const reason = typeof mapValidation.reason === 'string' && mapValidation.reason.length > 0
+                ? mapValidation.reason
+                : 'invalid map payload';
+            emitError(
+                `Startup preflight: map pack contains invalid server map payload: ${mapFilePath} (mapId=${entry.id}, ${reason})`
+            );
+            fail(1);
+            return false;
+        }
     }
 
     return true;

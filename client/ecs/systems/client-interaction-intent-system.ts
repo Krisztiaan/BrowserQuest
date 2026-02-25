@@ -21,6 +21,7 @@ export function clearClientInteractionIntentWithSideEffects(host: { kernel: Clie
 
 export type ClientInteractionIntentSystemHost = Readonly<{
     started: boolean;
+    currentTime: number;
     playerId: EntityId | null;
     player: Player;
     entities: Record<string, Character | Player | object | null | undefined>;
@@ -104,19 +105,36 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             attackerKind: host.player.kind,
             attackerWeaponKind: playerWeaponKind,
         });
+        const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
+        const hasPendingMoveIntents =
+            host.kernel.clientPendingMoveAcks.length > 0 || host.kernel.clientPendingMoveSeqAcks.length > 0;
+        const authoritativePlayerPos = host.kernel.clientReplicationLastPos.get(host.playerId);
+        const isAuthoritativelyAligned =
+            !authoritativePlayerPos ||
+            (authoritativePlayerPos.x === host.player.gridX && authoritativePlayerPos.y === host.player.gridY);
         if (engagement === 'attack') {
-            if (host.player.target?.id !== intent.targetId || !host.player.isAttacking()) {
+            // Do not send ATTACK while movement is still in flight. Server-side movement processing clears
+            // Target during movement ticks, so ATTACK emitted before move acks drain can be dropped.
+            if (isMoving || hasPendingMoveIntents || !isAuthoritativelyAligned) {
+                return;
+            }
+
+            const shouldRetryAttack =
+                host.player.target?.id === intent.targetId &&
+                host.player.isAttacking() &&
+                host.player.canAttack(host.currentTime);
+
+            // Keep ATTACK emission idempotent and resilient: send on first engage and periodically retry while
+            // staying in range, so dropped/early packets don't require a second click.
+            if (host.player.target?.id !== intent.targetId || !host.player.isAttacking() || shouldRetryAttack) {
                 const cmd: ClientCommand = { type: 'playerAttack', targetId: intent.targetId };
                 host.kernel.enqueueClientCommand(cmd);
             }
             return;
         }
-        const hasPendingMoveIntents =
-            host.kernel.clientPendingMoveAcks.length > 0 || host.kernel.clientPendingMoveSeqAcks.length > 0;
         if (hasPendingMoveIntents) {
             return;
         }
-        const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
         if (hasTargetMoved || !isMoving) {
             const cmd: ClientCommand = { type: 'playerFollow', targetId: intent.targetId };
             host.kernel.enqueueClientCommand(cmd);

@@ -89,17 +89,41 @@ test('preflight validation helper emits compacted error payload and fails for in
     expect(errors).toEqual(['Startup preflight: invalid server configuration: trimmed-errors']);
 });
 
-test('map preflight helper accepts readable valid JSON map files', async () => {
+test('map preflight helper accepts readable valid map-pack JSON files', async () => {
     const errors: string[] = [];
     let failCode: number | null = null;
 
     const isValid = await ensureMapPreflightValid({
-        activeConfig: { map_filepath: './assets/maps/tiled/world.json' },
+        activeConfig: { map_filepath: './assets/maps/runtime/map-pack.json' },
         emitError: (message) => errors.push(message),
         fail: (code) => {
             failCode = code;
         },
-        readFileText: () => Promise.resolve('{"width":1,"height":1,"collisions":[],"roamingAreas":[],"chestAreas":[],"staticChests":[],"staticEntities":{}}'),
+        readFileText: () =>
+            Promise.resolve(
+                JSON.stringify({
+                    schemaVersion: 1,
+                    maps: [
+                        {
+                            id: 'world',
+                            server: {
+                                width: 1,
+                                height: 1,
+                                collisions: [],
+                                roamingAreas: [],
+                                chestAreas: [],
+                                staticChests: [],
+                                staticEntities: {},
+                            },
+                            client: { width: 1, height: 1 },
+                        },
+                    ],
+                    graph: {
+                        maps: [{ id: 'world', width: 1, height: 1, doors: [] }],
+                        edges: [],
+                    },
+                })
+            ),
     });
 
     expect(isValid).toBe(true);
@@ -107,7 +131,80 @@ test('map preflight helper accepts readable valid JSON map files', async () => {
     expect(errors).toEqual([]);
 });
 
-test('map preflight helper fails for parseable but semantically invalid map payload', async () => {
+test('map preflight helper accepts valid map-pack payloads and validates nested server maps', async () => {
+    const errors: string[] = [];
+    let failCode: number | null = null;
+    const validations: unknown[] = [];
+
+    const isValid = await ensureMapPreflightValid({
+        activeConfig: { map_filepath: './assets/maps/runtime/map-pack.json' },
+        emitError: (message) => errors.push(message),
+        fail: (code) => {
+            failCode = code;
+        },
+        readFileText: () =>
+            Promise.resolve(
+                JSON.stringify({
+                    schemaVersion: 1,
+                    maps: [
+                        {
+                            id: 'world',
+                            server: {
+                                width: 1,
+                                height: 1,
+                                collisions: [],
+                                roamingAreas: [],
+                                chestAreas: [],
+                                staticChests: [],
+                                staticEntities: {},
+                            },
+                            client: { width: 1, height: 1 },
+                        },
+                    ],
+                    graph: {
+                        maps: [{ id: 'world', width: 1, height: 1, doors: [] }],
+                        edges: [],
+                    },
+                })
+            ),
+        validateMapPayloadFn: (payload) => {
+            validations.push(payload);
+            return { ok: true };
+        },
+    });
+
+    expect(isValid).toBe(true);
+    expect(failCode).toBeNull();
+    expect(errors).toEqual([]);
+    expect(validations).toHaveLength(1);
+});
+
+test('map preflight helper fails fast for invalid map-pack-shaped payloads', async () => {
+    const errors: string[] = [];
+    let failCode: number | null = null;
+
+    const isValid = await ensureMapPreflightValid({
+        activeConfig: { map_filepath: './assets/maps/runtime/map-pack.json' },
+        emitError: (message) => errors.push(message),
+        fail: (code) => {
+            failCode = code;
+        },
+        readFileText: () =>
+            Promise.resolve(
+                JSON.stringify({
+                    schemaVersion: 2,
+                    maps: [],
+                    graph: { maps: [], edges: [] },
+                })
+            ),
+    });
+
+    expect(isValid).toBe(false);
+    expect(failCode).toBe(1);
+    expect(errors).toEqual(['Startup preflight: map pack file has invalid schema: ./assets/maps/runtime/map-pack.json']);
+});
+
+test('map preflight helper fails for parseable non-map-pack payloads', async () => {
     const errors: string[] = [];
     let failCode: number | null = null;
 
@@ -118,13 +215,50 @@ test('map preflight helper fails for parseable but semantically invalid map payl
             failCode = code;
         },
         readFileText: () => Promise.resolve('{"width":1}'),
+    });
+
+    expect(isValid).toBe(false);
+    expect(failCode).toBe(1);
+    expect(errors).toEqual(['Startup preflight: map pack file has invalid schema: ./bad-shape-map.json']);
+});
+
+test('map preflight helper fails for semantically invalid server map payload in map pack', async () => {
+    const errors: string[] = [];
+    let failCode: number | null = null;
+
+    const isValid = await ensureMapPreflightValid({
+        activeConfig: { map_filepath: './bad-shape-map.json' },
+        emitError: (message) => errors.push(message),
+        fail: (code) => {
+            failCode = code;
+        },
+        readFileText: () =>
+            Promise.resolve(
+                JSON.stringify({
+                    schemaVersion: 1,
+                    maps: [
+                        {
+                            id: 'world',
+                            server: {
+                                width: 1,
+                                height: 1,
+                            },
+                            client: { width: 1, height: 1 },
+                        },
+                    ],
+                    graph: {
+                        maps: [{ id: 'world', width: 1, height: 1, doors: [] }],
+                        edges: [],
+                    },
+                })
+            ),
         validateMapPayloadFn: () => Promise.resolve({ ok: false, reason: 'missing required map fields' }),
     });
 
     expect(isValid).toBe(false);
     expect(failCode).toBe(1);
     expect(errors).toEqual([
-        'Startup preflight: map file contains invalid map payload: ./bad-shape-map.json (missing required map fields)',
+        'Startup preflight: map pack contains invalid server map payload: ./bad-shape-map.json (mapId=world, missing required map fields)',
     ]);
 });
 

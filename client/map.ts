@@ -18,6 +18,7 @@ type DoorDestination = {
     x: number;
     y: number;
     orientation: number;
+    targetMapId?: string;
     cameraX?: number;
     cameraY?: number;
     portal: boolean;
@@ -28,6 +29,7 @@ type RawDoor = { [key: string]: JsonLike | undefined };
 type RawCheckpoint = { [key: string]: JsonLike | undefined };
 type MapGlobals = typeof globalThis & { __BQ_MAP_WORKER_URL__?: string };
 type RuntimeMapPayload = {
+    mapId?: string;
     width: number;
     height: number;
     tilesize: number;
@@ -55,6 +57,7 @@ function resolveMapWorkerModuleUrl(): string | URL {
 
 class Map {
     game: MapGameLike;
+    mapId: string;
     data: Array<number | number[]>;
     isLoaded: boolean;
     tilesetsLoaded: boolean;
@@ -81,8 +84,9 @@ class Map {
     ready_func: (() => void) | null;
     collisionOverrideResolver: ((x: number, y: number) => number | null) | null;
 
-    constructor(loadMultiTilesheets: boolean, game: MapGameLike) {
+    constructor(loadMultiTilesheets: boolean, game: MapGameLike, mapId: string) {
         this.game = game;
+        this.mapId = mapId.trim().length > 0 ? mapId.trim() : 'world';
         this.data = [];
         this.isLoaded = false;
         this.tilesetsLoaded = false;
@@ -111,7 +115,7 @@ class Map {
 
         const useWorker = !(this.game.renderer.mobile || this.game.renderer.tablet);
 
-        this._loadMap(useWorker);
+        this._loadMap(useWorker, this.mapId);
         this._initTilesets();
     }
 
@@ -124,7 +128,7 @@ class Map {
         }
     }
 
-    _loadMap(useWorker: boolean): void {
+    _loadMap(useWorker: boolean, mapId: string): void {
         const self = this;
         this.loadError = null;
 
@@ -136,7 +140,7 @@ class Map {
             } catch (error) {
                 const message = error instanceof Error ? error.message : String(error);
                 log.error(`Map worker failed to initialize (${message}); falling back to main-thread map load.`);
-                self._loadMap(false);
+                self._loadMap(false, mapId);
                 return;
             }
             let settled = false;
@@ -152,7 +156,7 @@ class Map {
                     // ignore
                 }
                 log.error(`Map worker failed (${reason}); falling back to main-thread map load.`);
-                self._loadMap(false);
+                self._loadMap(false, mapId);
             };
 
             worker.onmessage = function (event: MessageEvent<RuntimeMapPayload>) {
@@ -161,7 +165,8 @@ class Map {
                 }
                 try {
                     const map = event.data;
-                    self._initMap(map);
+                    const payloadMapId = typeof map.mapId === 'string' && map.mapId.trim().length > 0 ? map.mapId : mapId;
+                    self._initMap(map, payloadMapId);
                     if (map.grid && map.plateauGrid) {
                         self.grid = map.grid;
                         self.plateauGrid = map.plateauGrid;
@@ -194,12 +199,12 @@ class Map {
                 fallbackToMainThread('message_error');
             };
 
-            worker.postMessage(1);
+            worker.postMessage({ mapId });
         } else {
             log.info('Loading map via Tiled world JSON runtime transform.');
-            fetchClientRuntimeMap()
+            fetchClientRuntimeMap(mapId)
                 .then(function (runtimeMap) {
-                    self._initMap(runtimeMap);
+                    self._initMap(runtimeMap, mapId);
                     self._generateCollisionGrid();
                     self._generatePlateauGrid();
                     self.mapLoaded = true;
@@ -216,6 +221,28 @@ class Map {
 
     getLoadError(): string | null {
         return this.loadError;
+    }
+
+    async loadRuntimeMapById(mapId: string): Promise<void> {
+        const resolvedMapId = mapId.trim();
+        if (resolvedMapId.length === 0) {
+            throw new Error('Runtime map id must be a non-empty string.');
+        }
+        this.loadError = null;
+        this.mapLoaded = false;
+        this.isLoaded = false;
+        try {
+            const runtimeMap = await fetchClientRuntimeMap(resolvedMapId);
+            this._initMap(runtimeMap, resolvedMapId);
+            this._generateCollisionGrid();
+            this._generatePlateauGrid();
+            this.mapLoaded = true;
+            this._checkReady();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.loadError = message;
+            throw new Error(`Failed to activate runtime map "${resolvedMapId}": ${message}`);
+        }
     }
 
     _initTilesets(): void {
@@ -240,7 +267,8 @@ class Map {
         this.tilesets = [tileset1, tileset2, tileset3];
     }
 
-    _initMap(map: RuntimeMapPayload): void {
+    _initMap(map: RuntimeMapPayload, mapId: string): void {
+        this.mapId = mapId;
         this.width = map.width;
         this.height = map.height;
         this.tilesize = map.tilesize;
@@ -268,7 +296,13 @@ class Map {
             const fromY = Number(door.y);
             const toX = Number(door.tx);
             const toY = Number(door.ty);
+            if (!Number.isFinite(fromX) || !Number.isFinite(fromY) || !Number.isFinite(toX) || !Number.isFinite(toY)) {
+                return;
+            }
             const to = typeof door.to === 'string' ? door.to : '';
+            const targetMapId = typeof door.ttarget_map === 'string' && door.ttarget_map.trim().length > 0
+                ? door.ttarget_map
+                : undefined;
 
             switch (to) {
                 case 'u':
@@ -289,6 +323,7 @@ class Map {
                 x: toX,
                 y: toY,
                 orientation: o,
+                ...(targetMapId ? { targetMapId } : {}),
                 cameraX: typeof door.tcx === 'number' ? door.tcx : undefined,
                 cameraY: typeof door.tcy === 'number' ? door.tcy : undefined,
                 portal: door.p === 1,

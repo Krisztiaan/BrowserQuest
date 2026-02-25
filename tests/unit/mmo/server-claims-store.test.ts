@@ -75,3 +75,16 @@ test('ClaimsStore can update claims and detect overlaps with optional exclusion'
     const overlapWithOther = store.findFirstOverlappingClaim({ x1: 11, y1: 11, x2: 14, y2: 14 });
     expect(overlapWithOther?.id).toBe(claimB.id);
 });
+
+test('ClaimsStore isolates claims by map id for identical coordinates', () => {
+    const store = new ClaimsStore({ indexChunkSize: 16 });
+    const worldClaim = store.createClaim({ mapId: 'world', ownerName: 'alice', x1: 2, y1: 2, x2: 4, y2: 4, nowMs: 1000 });
+    const dungeonClaim = store.createClaim({ mapId: 'dungeon_1', ownerName: 'bob', x1: 2, y1: 2, x2: 4, y2: 4, nowMs: 1001 });
+
+    expect(store.getClaimAt(3, 3, 'world')?.id).toBe(worldClaim.id);
+    expect(store.getClaimAt(3, 3, 'dungeon_1')?.id).toBe(dungeonClaim.id);
+    expect(store.getClaimAt(3, 3, 'unknown')).toBeNull();
+
+    expect(store.findFirstOverlappingClaim({ mapId: 'world', x1: 2, y1: 2, x2: 4, y2: 4 })?.id).toBe(worldClaim.id);
+    expect(store.findFirstOverlappingClaim({ mapId: 'dungeon_1', x1: 2, y1: 2, x2: 4, y2: 4 })?.id).toBe(dungeonClaim.id);
+});

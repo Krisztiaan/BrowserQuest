@@ -4,7 +4,7 @@ import Player from '../../../server/player';
 import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import { CHUNK_AOI_STATE_RESOURCE } from '../../../server/world/chunks/chunk-aoi';
-import { makeChunkKey } from '../../../server/world/chunks/chunk-overlay-store';
+import { makeScopedChunkKey } from '../../../server/world/chunks/chunk-overlay-store';
 import { decodeChunkSnapshotPayloadBinary } from '../../../shared/protocol/chunks/chunk-snapshot-codec';
 import type { WorldMessage } from '../../../server/world/contracts';
 
@@ -254,27 +254,29 @@ test('chunk AOI prunes stale/out-of-window state and enforces pending queue caps
         return;
     }
 
-    const nearKey = makeChunkKey(0, 0);
-    const farKey = makeChunkKey(200, 200);
+    const nearKey = makeScopedChunkKey('world', 0, 0);
+    const farKey = makeScopedChunkKey('world', 200, 200);
     sub.knownChunks.add(nearKey);
     sub.knownChunkVersions.set(nearKey, 1);
     sub.knownChunks.add(farKey);
     sub.knownChunkVersions.set(farKey, 7);
 
-    sub.pendingChunks.push({ chunkX: 0, chunkY: 0 });
-    sub.pendingChunks.push({ chunkX: 0, chunkY: 0 });
-    sub.pendingChunks.push({ chunkX: 200, chunkY: 200 });
-    sub.pendingChunkKeys.add(makeChunkKey(0, 0));
-    sub.pendingChunkKeys.add(makeChunkKey(200, 200));
+    sub.lastMapId = 'world';
+    sub.pendingChunks.push({ mapId: 'world', chunkX: 0, chunkY: 0 });
+    sub.pendingChunks.push({ mapId: 'world', chunkX: 0, chunkY: 0 });
+    sub.pendingChunks.push({ mapId: 'world', chunkX: 200, chunkY: 200 });
+    sub.pendingChunkKeys.add(makeScopedChunkKey('world', 0, 0));
+    sub.pendingChunkKeys.add(makeScopedChunkKey('world', 200, 200));
 
     sub.pendingSnapshotParts = [];
     sub.inFlightSnapshotKeys.clear();
     for (let i = 0; i < 40; i += 1) {
         const chunkX = (i % 10) - 5;
         const chunkY = Math.floor(i / 10) - 2;
-        const key = makeChunkKey(chunkX, chunkY);
+        const key = makeScopedChunkKey('world', chunkX, chunkY);
         sub.pendingSnapshotParts.push({
             key,
+            mapId: 'world',
             chunkX,
             chunkY,
             version: i + 1,

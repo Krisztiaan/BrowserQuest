@@ -201,3 +201,45 @@ test('diagonal steps can cut past occupied corner tiles (execution-time)', () =>
     // MOVE should be emitted; corner occupancy does not block destination-only diagonal steps.
     expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);
 });
+
+test('diagonal queued step does not ping-pong between two tiles when starting off-center', () => {
+    const blocked = new Set(['2,1']);
+    const { host, delivered, player } = makeHost({
+        isValidPosition: (x, y) => !blocked.has(`${x},${y}`),
+    });
+    const pipeline = new WorldEcsCommandPipeline(host as never);
+    pipeline.state.world.ensureEntity(player.id);
+    pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, Types.Entities.WARRIOR);
+    pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(1, 1));
+    const center = tileToWorldPosCenter(1, 1);
+    pipeline.state.world.addComponent(player.id, pipeline.PositionSub, { x: center.x + 1500, y: center.y });
+    pipeline.state.world.addComponent(player.id, pipeline.combat.HitPoints, 100);
+    pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, 100);
+
+    const payloadBytes = encodeMoveStepIntentPayload(gridPos(2, 2));
+    expect(payloadBytes).toBeTruthy();
+    if (!payloadBytes) {
+        throw new Error('Failed to encode move.step');
+    }
+
+    pipeline.enqueue({
+        type: 'INTENT',
+        source: { connectionId: 'c', playerId: player.id },
+        seq: 1,
+        intentTypeId: 'move.step',
+        payloadBytes,
+    });
+    for (let i = 0; i < 16; i += 1) {
+        pipeline.tick();
+    }
+
+    const moves = delivered.filter(
+        (msg): msg is [number, number, number, number] => Array.isArray(msg) && msg[0] === Types.Messages.MOVE
+    );
+    const moveTiles = moves.map((msg) => `${msg[2]},${msg[3]}`);
+    for (let i = 2; i < moveTiles.length; i += 1) {
+        const oscillates = moveTiles[i] === moveTiles[i - 2] && moveTiles[i] !== moveTiles[i - 1];
+        expect(oscillates).toBe(false);
+    }
+    expect(moveTiles.includes('2,2')).toBe(true);
+});

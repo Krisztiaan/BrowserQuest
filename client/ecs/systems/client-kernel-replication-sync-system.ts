@@ -26,13 +26,28 @@ function addSpawnedEntity(host: ClientKernelReplicationSyncSystemHost, view: Ker
     }
 }
 
+function isEntityInActiveMap(kernel: ClientWorldKernel, id: EntityId, localPlayerId: EntityId | null): boolean {
+    if (localPlayerId !== null && id === localPlayerId) {
+        return true;
+    }
+    const activeMapId = kernel.activeMapId;
+    if (!activeMapId) {
+        return true;
+    }
+    const mapId = kernel.getEntityMapId(id);
+    if (!mapId) {
+        return true;
+    }
+    return mapId === activeMapId;
+}
+
 export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicationSyncSystemHost): void {
     const kernel = host.kernel;
     const localPlayerIsDead = host.playerId !== null && kernel.clientLocalPlayerDead;
 
     // Removed entities: kernel no longer considers them alive.
     for (const id of Array.from(kernel.clientReplicationKnownAlive)) {
-        if (kernel.alive.has(id)) {
+        if (kernel.alive.has(id) && isEntityInActiveMap(kernel, id, host.playerId)) {
             continue;
         }
         kernel.enqueueClientCommand({ type: 'removeEntityById', entityId: id });
@@ -47,6 +62,9 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         if (kernel.clientReplicationKnownAlive.has(id)) {
             continue;
         }
+        if (!isEntityInActiveMap(kernel, id, host.playerId)) {
+            continue;
+        }
 
         const view = kernel.getEntityView(id);
         if (view.type === 'player' && host.playerId === null) {
@@ -58,6 +76,9 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
     // Movement: drive entities toward their authoritative kernel world positions.
     for (const [id, worldPos] of kernel.worldPosition.entries()) {
         if (!kernel.clientReplicationKnownAlive.has(id)) {
+            continue;
+        }
+        if (!isEntityInActiveMap(kernel, id, host.playerId)) {
             continue;
         }
         if (isSameWorldPos(kernel.clientReplicationLastWorldPos.get(id), worldPos)) {

@@ -56,7 +56,7 @@ export type ServerToClientHealthAction = [typeof Types.Messages.HEALTH, number] 
 export type ServerToClientChatAction = [typeof Types.Messages.CHAT, number, string];
 export type ServerToClientEquipAction = [typeof Types.Messages.EQUIP, number, EntityKind];
 export type ServerToClientDropAction = [typeof Types.Messages.DROP, number, number, EntityKind, number[]];
-export type ServerToClientTeleportAction = [typeof Types.Messages.TELEPORT, number, number, number];
+export type ServerToClientTeleportAction = [typeof Types.Messages.TELEPORT, number, number, number, string];
 export type ServerToClientDamageAction = [typeof Types.Messages.DAMAGE, number, number];
 export type ServerToClientPopulationAction = [typeof Types.Messages.POPULATION, number, number];
 export type ServerToClientKillAction = [typeof Types.Messages.KILL, EntityKind];
@@ -77,7 +77,7 @@ export type ServerToClientOutcomeAction = [typeof Types.Messages.OUTCOME, number
 export type ServerToClientRejectAction = [typeof Types.Messages.REJECT, number, string, string];
 export type ServerToClientAckAction = [typeof Types.Messages.ACK, number];
 export type ServerToClientCorrectionAction =
-    | [typeof Types.Messages.CORRECTION, number, number, number]
+    | [typeof Types.Messages.CORRECTION, number, number, number, string]
     | [typeof Types.Messages.CORRECTION, number, string, string];
 export type ServerToClientChunkSnapshotAction = [
     typeof Types.Messages.CHUNK_SNAPSHOT,
@@ -103,8 +103,16 @@ export type ServerToClientChunkDeltaAction = [
     number,
     number[] | Uint8Array,
 ];
-// Layout: `[MOVE_SYNC, ackSeq, worldX, worldY, tick, flags]` where world coords are fixed-point subpixels.
-export type ServerToClientMoveSyncAction = [typeof Types.Messages.MOVE_SYNC, number, number, number, number, number];
+// Layout: `[MOVE_SYNC, ackSeq, worldX, worldY, tick, flags, mapId]` where world coords are fixed-point subpixels.
+export type ServerToClientMoveSyncAction = [
+    typeof Types.Messages.MOVE_SYNC,
+    number,
+    number,
+    number,
+    number,
+    number,
+    string,
+];
 // Packed layout: `[ENTITY_STATE_BATCH, tick, count, ...count*(id,worldX,worldY,flags)]`
 export type ServerToClientEntityStateBatchAction = [
     typeof Types.Messages.ENTITY_STATE_BATCH,

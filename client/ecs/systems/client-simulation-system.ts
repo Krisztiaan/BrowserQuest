@@ -61,6 +61,9 @@ export type ClientSimulationSystemHost = Readonly<{
         FPS: number;
         mobile: boolean;
         tablet: boolean;
+        scale: number;
+        getWidth(): number;
+        getHeight(): number;
         renderStaticCanvases(): void;
         getTileBoundingRect(tile: AnimatedTileLike): DirtyRect;
     } | null;
@@ -70,7 +73,6 @@ export type ClientSimulationSystemHost = Readonly<{
         gridW: number;
         gridH: number;
         setPosition(x: number, y: number): void;
-        isVisible(entity: SimulationPlayer): boolean;
     };
     currentZoning: StepTransition | null;
     zoningOrientation: number | null;
@@ -81,7 +83,6 @@ export type ClientSimulationSystemHost = Readonly<{
     forEachEntity(callback: (entity: SimulationEntity) => void): void;
     initAnimatedTiles(): void;
     endZoning(): void;
-    resetCamera(): void;
     forEachAnimatedTile(callback: (tile: AnimatedTileLike) => void): void;
     checkOtherDirtyRects(rect: DirtyRect, source: AnimatedTileLike, x: number, y: number): void;
 }>;
@@ -109,6 +110,26 @@ function lerpAlpha(dtMs: number, tauMs: number): number {
     // Stable smoothing regardless of FPS; clamp dt to reduce huge jumps on background tab wakeups.
     const dt = Math.max(0, Math.min(250, dtMs));
     return 1 - Math.exp(-dt / tauMs);
+}
+
+export function resolveCameraAxis({
+    mapPixels,
+    viewportPixels,
+    desired,
+}: {
+    mapPixels: number;
+    viewportPixels: number;
+    desired: number;
+}): Readonly<{ min: number; max: number; clamped: number }> {
+    if (mapPixels <= viewportPixels) {
+        const centered = -(viewportPixels - mapPixels) / 2;
+        return Object.freeze({ min: centered, max: centered, clamped: centered });
+    }
+
+    const min = 0;
+    const max = mapPixels - viewportPixels;
+    const clamped = Math.max(min, Math.min(desired, max));
+    return Object.freeze({ min, max, clamped });
 }
 
 function updateEntityFading(host: ClientSimulationSystemHost, entity: SimulationEntity): void {
@@ -397,30 +418,10 @@ function updateInfos(host: ClientSimulationSystemHost): void {
     host.infoManager.update(host.currentTime);
 }
 
-function ensureMobileCameraTracksPlayer(host: ClientSimulationSystemHost): void {
+function updateCameraFollow(host: ClientSimulationSystemHost, dtMs: number): void {
     const renderer = host.renderer;
     const player = host.player;
-    // While awaiting WELCOME (e.g. during revive/restart), the local player is not yet authoritative.
-    // Do not auto-snap the camera to a placeholder position.
     if (!renderer || !player || !host.playerId) {
-        return;
-    }
-    if (!renderer.mobile && !renderer.tablet) {
-        return;
-    }
-    if (host.camera.isVisible(player)) {
-        return;
-    }
-    host.resetCamera();
-}
-
-function updateDesktopCameraFollow(host: ClientSimulationSystemHost, dtMs: number): void {
-    const renderer = host.renderer;
-    const player = host.player;
-    if (!renderer || !player) {
-        return;
-    }
-    if (renderer.mobile || renderer.tablet) {
         return;
     }
     if (!host.map) {
@@ -438,15 +439,30 @@ function updateDesktopCameraFollow(host: ClientSimulationSystemHost, dtMs: numbe
     }
 
     const TILE = 16;
-    const desiredX = Math.round(player.x - (Math.floor(host.camera.gridW / 2) * TILE));
-    const desiredY = Math.round(player.y - (Math.floor(host.camera.gridH / 2) * TILE));
-    const maxX = Math.max(0, (mapW - host.camera.gridW) * TILE);
-    const maxY = Math.max(0, (mapH - host.camera.gridH) * TILE);
-    const clampedX = Math.max(0, Math.min(desiredX, maxX));
-    const clampedY = Math.max(0, Math.min(desiredY, maxY));
+    const mapWorldWidth = mapW * TILE;
+    const mapWorldHeight = mapH * TILE;
+    const viewportWorldWidth = renderer.getWidth() / renderer.scale;
+    const viewportWorldHeight = renderer.getHeight() / renderer.scale;
+    const desiredX = Math.round(player.x - (viewportWorldWidth / 2));
+    const desiredY = Math.round(player.y - (viewportWorldHeight / 2));
+    const xAxis = resolveCameraAxis({
+        mapPixels: mapWorldWidth,
+        viewportPixels: viewportWorldWidth,
+        desired: desiredX,
+    });
+    const yAxis = resolveCameraAxis({
+        mapPixels: mapWorldHeight,
+        viewportPixels: viewportWorldHeight,
+        desired: desiredY,
+    });
 
     const a = lerpAlpha(dtMs, 120);
-    host.camera.setPosition(host.camera.x + (clampedX - host.camera.x) * a, host.camera.y + (clampedY - host.camera.y) * a);
+    const nextX = host.camera.x + (xAxis.clamped - host.camera.x) * a;
+    const nextY = host.camera.y + (yAxis.clamped - host.camera.y) * a;
+    host.camera.setPosition(
+        Math.max(xAxis.min, Math.min(nextX, xAxis.max)),
+        Math.max(yAxis.min, Math.min(nextY, yAxis.max))
+    );
 }
 
 let lastSimulationTimeMs = 0;
@@ -459,8 +475,7 @@ export function runClientSimulationSystem(host: ClientSimulationSystemHost): voi
     const dtMs = lastSimulationTimeMs > 0 ? host.currentTime - lastSimulationTimeMs : 16;
     lastSimulationTimeMs = host.currentTime;
 
-    ensureMobileCameraTracksPlayer(host);
-    updateDesktopCameraFollow(host, dtMs);
+    updateCameraFollow(host, dtMs);
     updateZoning(host);
     updateCharacters(host, dtMs);
     updatePlayerAggro(host);

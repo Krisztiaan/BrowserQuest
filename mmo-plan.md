@@ -37,6 +37,141 @@ This is the active delivery contract for the current backlog cycle:
 - [x] Milestone 205: tiered scheduler/jobs for crops/respawns/weather (Ticket 250 + follow-ups)
 - [x] Milestone 207: headless bot load/soak harness + budgets (Tickets 260–261)
 
+### Proposed Epic: Multi-Map Interiors / Rooms (Ticket 646 planning)
+
+Goal: split interiors/rooms into separate map units while keeping server-authoritative traversal and preserving current door UX.
+
+Current constraints in code:
+
+- Client map source is hard-coded to one tiled map asset (`client/map-source.ts`, `'/assets/maps/tiled/world.json'`).
+- Server world boot is configured with one `map_filepath` and one loaded map object.
+- Door schema is same-map `x/y -> tx/ty` today (no target map id in runtime contract).
+- `processmap` currently processes one Tiled map JSON at a time and exports one runtime map object.
+
+Tiled-idiomatic target model:
+
+- One `.tmj` (or JSON map) per logical area (overworld, house interiors, mines floors, etc.).
+- One `.world` file for editor organization/placement of maps.
+- Door/portal objects in each map reference target map + target spawn (prefer `target_map`, `target_door` IDs over raw coords when possible).
+- Shared tilesets/object templates across maps for consistency.
+
+#### Ticket 647 — Map graph data contract + validation
+
+- Scope:
+  - Define canonical runtime `MapGraph` schema: `maps`, `edges` (door links), optional `mapGroups` metadata.
+  - Define canonical door object properties for Tiled authorship (`target_map`, `target_door`, optional fallback `target_x/target_y`, orientation).
+  - Add validation rules (unique map ids, unique door ids per map, no dangling links, no duplicate edges).
+- Out of scope:
+  - Runtime server/client transition logic.
+- Acceptance criteria:
+  - `shared/maps` exposes typed schema + validator with deterministic errors.
+  - Unit tests cover invalid graph/link cases and pass.
+- Verification:
+  - `bun test --timeout 20000 tests/unit -- --grep map-graph`
+- Dependencies:
+  - None.
+
+#### Ticket 648 — Build-time map pack compiler (single runtime format)
+
+- Scope:
+  - Add build step that compiles multiple Tiled maps (+ optional `.world`) into one runtime map pack artifact (no runtime fallback parsers).
+  - Reuse existing `processmap` extraction logic per map, then pack by `mapId`.
+  - Emit stable deterministic pack output suitable for client and server consumption.
+- Out of scope:
+  - Transition behavior in game loop.
+- Acceptance criteria:
+  - Pack compiler produces same output across repeated runs for identical input.
+  - Existing single-map data can be represented as a one-map pack.
+- Verification:
+  - `bun run build:maps` (or equivalent new script)
+  - `bun test --timeout 20000 tests/unit -- --grep map-pack`
+- Dependencies:
+  - Ticket 647.
+
+#### Ticket 649 — Server multi-map registry + authoritative transitions
+
+- Scope:
+  - Replace single `Map` assumption in world runtime with `MapRegistry` keyed by `mapId`.
+  - Extend authoritative `Position` context to include `mapId` for players/mobs/items where applicable.
+  - Implement door traversal outcome across maps (remove from source map AOI/groups, insert into target map AOI/groups atomically).
+- Out of scope:
+  - Client visual map streaming/loading polish.
+- Acceptance criteria:
+  - Cross-map door traversal is authoritative and cannot place entities into invalid destinations.
+  - Interest replication/grouping remains correct after transition.
+- Verification:
+  - `bun test --timeout 20000 tests/unit/mmo -- --grep door`
+  - `bun test --timeout 20000 tests/unit/mmo -- --grep map transition`
+- Dependencies:
+  - Tickets 647–648.
+
+#### Ticket 650 — Protocol updates for map context/transition
+
+- Scope:
+  - Add explicit `mapId` to relevant replication payloads (spawn, move sync/correction where required).
+  - Add transition outcome/event contract for client orchestration (e.g., `MAP_TRANSITION_BEGIN`, `MAP_TRANSITION_COMMIT`).
+  - Preserve sequencing/ack semantics for transition intents/outcomes.
+- Out of scope:
+  - Client UX animations.
+- Acceptance criteria:
+  - Protocol schema validates map-context payloads.
+  - Mixed old/new ambiguity is removed at runtime (single protocol contract per revision).
+- Verification:
+  - `bun test --timeout 20000 tests/unit/protocol`
+  - `bun test --timeout 20000 tests/unit/mmo -- --grep capabilities`
+- Dependencies:
+  - Ticket 649.
+
+#### Ticket 651 — Client runtime map cache + transition pipeline
+
+- Scope:
+  - Replace one-map loader with map-pack aware runtime cache (`mapId -> map runtime`).
+  - Implement transition pipeline: pause input, load/activate target map, place entity at authoritative spawn, resume.
+  - Ensure camera, terrain redraw, pathing grid, and bubble/UI anchoring reset correctly on map switch.
+- Out of scope:
+  - Art polish and transition VFX.
+- Acceptance criteria:
+  - Player cannot act in stale source-map state after transition.
+  - Terrain/entities/pathing correspond to active `mapId` only.
+- Verification:
+  - `bun test --timeout 20000 tests/unit -- --grep map transition`
+  - `bun run test:e2e -- --grep door`
+- Dependencies:
+  - Tickets 649–650.
+
+#### Ticket 652 — Tiled authoring workflow + CI preflight
+
+- Scope:
+  - Document authoring conventions for multi-map interiors (naming, door IDs, property contract, map/world file layout).
+  - Add CI preflight command validating map pack + graph links before server start/build.
+  - Provide migration checklist to move first interior from monolithic map to separate map.
+- Out of scope:
+  - Large content migration of every existing interior.
+- Acceptance criteria:
+  - Contributors can add a new interior map and wire doors without touching runtime code.
+  - CI fails fast on invalid door links or map graph errors.
+- Verification:
+  - `bun run check:maps`
+  - `bun run verify:modern`
+- Dependencies:
+  - Tickets 647–651.
+
+#### Ticket 653 — Incremental rollout plan (production safety)
+
+- Scope:
+  - Roll out in slices: first one interior pair, then batch migration.
+  - Define rollback and observability signals (transition failure counts, invalid destination rejects, stuck-loading incidents).
+- Out of scope:
+  - New gameplay content unrelated to transitions.
+- Acceptance criteria:
+  - First migrated interior is stable under smoke + bot movement tests.
+  - Transition error budget and alert thresholds are defined.
+- Verification:
+  - `bun run test:smoke`
+  - targeted bot scenario crossing interior thresholds repeatedly.
+- Dependencies:
+  - Tickets 649–652.
+
 ---
 
 ## 0) Decision Matrix (v1 defaults)

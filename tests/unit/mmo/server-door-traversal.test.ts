@@ -22,11 +22,15 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-test('stepping onto a door tile produces a server-issued TELEPORT to its destination', () => {
-    const player = createTestPlayer(21201);
-    player.setPosition(4, 5);
-
-    const delivered: WorldMessage[] = [];
+function createDoorTraversalHost({
+    player,
+    delivered,
+    includeResolveDoorTeleport,
+}: {
+    player: Player;
+    delivered: WorldMessage[];
+    includeResolveDoorTeleport: boolean;
+}) {
     const host = {
         ups: 50,
         map: {
@@ -86,7 +90,26 @@ test('stepping onto a door tile produces a server-issued TELEPORT to its destina
         recordPlayerMobKill() {},
         recordPlayerDamageTaken() {},
         recordPlayerRevive() {},
-    };
+    } as Record<string, unknown>;
+
+    if (includeResolveDoorTeleport) {
+        host.resolveDoorTeleport = (mapId: string, x: number, y: number) => {
+            if (mapId !== 'world') {
+                return null;
+            }
+            return x === 5 && y === 5 ? { toMapId: 'world', to: { x: 10, y: 10 } } : null;
+        };
+    }
+
+    return host;
+}
+
+test('stepping onto a door tile produces a server-issued TELEPORT to its destination', () => {
+    const player = createTestPlayer(21201);
+    player.setPosition(4, 5);
+
+    const delivered: WorldMessage[] = [];
+    const host = createDoorTraversalHost({ player, delivered, includeResolveDoorTeleport: true });
 
     const pipeline = new WorldEcsCommandPipeline(host as never);
     pipeline.state.world.ensureEntity(player.id);
@@ -119,4 +142,37 @@ test('stepping onto a door tile produces a server-issued TELEPORT to its destina
                 msg[3] === 10
         )
     ).toBe(true);
+});
+
+test('door traversal does not use map.getDoorDestination when resolveDoorTeleport is unavailable', () => {
+    const player = createTestPlayer(21202);
+    player.setPosition(4, 5);
+
+    const delivered: WorldMessage[] = [];
+    const host = createDoorTraversalHost({ player, delivered, includeResolveDoorTeleport: false });
+
+    const pipeline = new WorldEcsCommandPipeline(host as never);
+    pipeline.state.world.ensureEntity(player.id);
+    pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, Types.Entities.WARRIOR);
+    pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(4, 5));
+    pipeline.state.world.addComponent(player.id, pipeline.PositionSub, tileToWorldPosCenter(4, 5));
+    pipeline.state.world.addComponent(player.id, pipeline.combat.HitPoints, 100);
+    pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, 100);
+    player.setPosition(4, 5);
+
+    pipeline.enqueue({
+        type: 'MOVE',
+        source: { connectionId: 'c', playerId: player.id },
+        to: gridPos(5, 5),
+    });
+
+    pipeline.tick();
+    for (let i = 0; i < 12; i += 1) {
+        pipeline.tick();
+    }
+
+    expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(5, 5));
+    expect(
+        delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.TELEPORT && msg[1] === player.id)
+    ).toBe(false);
 });

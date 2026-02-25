@@ -41,6 +41,29 @@ export function runClientRuntimeEventSystem(host: ClientRuntimeEventSystemHost):
                     entityId: event.entityId,
                     x: event.x,
                     y: event.y,
+                    ...(typeof event.mapId === 'string' ? { mapId: event.mapId } : {}),
+                });
+                break;
+            }
+            case 'mapTransitionBegin': {
+                host.kernel.enqueueClientCommand({
+                    type: 'beginMapTransition',
+                    seq: event.seq,
+                    fromMapId: event.fromMapId,
+                    toMapId: event.toMapId,
+                    x: event.x,
+                    y: event.y,
+                });
+                break;
+            }
+            case 'mapTransitionCommit': {
+                host.kernel.enqueueClientCommand({
+                    type: 'commitMapTransition',
+                    seq: event.seq,
+                    fromMapId: event.fromMapId,
+                    toMapId: event.toMapId,
+                    x: event.x,
+                    y: event.y,
                 });
                 break;
             }

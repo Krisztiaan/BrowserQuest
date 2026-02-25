@@ -159,7 +159,8 @@ footer, header, hgroup, menu, nav, section {
     
     .barbutton {background:url('/img/1/barsheet.webp');image-rendering:-moz-crispt-edges;position:absolute;}
     
-    #chatbox {background:url('/img/1/barsheet.webp');image-rendering:-moz-crisp-edges;position:absolute;left:50%;z-index:5;-moz-transition:0.2s bottom ease;-webkit-transition:0.2s bottom ease;-o-transition:0.2s bottom ease;transition:0.2s bottom ease;}
+    #chatbox {background:url('/img/1/barsheet.webp');image-rendering:-moz-crisp-edges;position:absolute;left:50%;z-index:5;opacity:0;pointer-events:none;-moz-transition:0.2s bottom ease, 0.2s opacity linear;-webkit-transition:0.2s bottom ease, 0.2s opacity linear;-o-transition:0.2s bottom ease, 0.2s opacity linear;transition:0.2s bottom ease, 0.2s opacity linear;}
+    #chatbox.active {opacity:1;pointer-events:auto;}
     #chatinput {color:#eee;}
     #chatinput.placeholder {color:#aaa;}
 
@@ -973,12 +974,56 @@ footer, header, hgroup, menu, nav, section {
     .windows #playercount, .windows #credits, .windows #loadcharacter, .windows #confirmation, .windows #death, .windows #error, .windows #about, .windows #legal, 
     .windows #parchment p, .windows #portrait p, .windows .alert, .windows footer, .windows .bubble p, .windows #population, .windows #chatinput {font-family:'AdvoCut';}
 
-/* Phone full-viewport gameplay (no framed window) */
+/* Full-viewport gameplay (no framed window) */
 
-    body.phone {
-        --game-width: 480px;
-        --game-height: 224px;
+    body.game #canvasborder {
+        position: fixed;
+        inset: 0;
+        padding: 0;
+        background: none;
     }
+
+    body.game #canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        transform: none;
+    }
+
+    body.game #background,
+    body.game #entities,
+    body.game #foreground {
+        top: 0;
+        left: 0;
+    }
+
+    body.game #background {
+        background: #000;
+    }
+
+    body.game #bubbles {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        top: 0;
+        left: 0;
+        transform: none;
+        pointer-events: none;
+        overflow: hidden;
+    }
+
+    body.game #bar-container {
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+    }
+
+/* Phone full-viewport gameplay (no framed window) */
 
     body.game.phone #container {
         position: fixed;
@@ -1004,10 +1049,10 @@ footer, header, hgroup, menu, nav, section {
     body.game.phone #canvas {
         position: absolute;
         top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: var(--game-width);
-        height: var(--game-height);
+        left: 0;
+        transform: none;
+        width: 100%;
+        height: 100%;
     }
 
     body.game.phone #background,
@@ -1017,13 +1062,17 @@ footer, header, hgroup, menu, nav, section {
         left: 0;
     }
 
+    body.game.phone #background {
+        background: #000;
+    }
+
     body.game.phone #bubbles {
         position: absolute;
         top: 0;
-        left: 50%;
-        transform: translateX(-50%);
-        width: var(--game-width);
-        height: var(--game-height);
+        left: 0;
+        transform: none;
+        width: 100%;
+        height: 100%;
         pointer-events: none;
         overflow: hidden;
     }
@@ -1032,7 +1081,8 @@ footer, header, hgroup, menu, nav, section {
         position: fixed;
         left: 0;
         right: 0;
-        top: env(safe-area-inset-top);
+        top: auto;
+        bottom: env(safe-area-inset-bottom);
         width: 100vw;
         background-repeat: repeat-x;
     }
@@ -1043,8 +1093,12 @@ footer, header, hgroup, menu, nav, section {
         right: 0;
         width: 100vw;
         margin-left: 0;
-        bottom: env(safe-area-inset-bottom);
+        bottom: calc(env(safe-area-inset-bottom) + 2px);
         background-repeat: repeat-x;
+    }
+
+    body.game.phone #chatbox.active {
+        bottom: calc(env(safe-area-inset-bottom) + 34px);
     }
 
     body.game.phone #population {
@@ -1053,6 +1107,7 @@ footer, header, hgroup, menu, nav, section {
         right: 0;
         width: 100vw;
         margin-left: 0;
+        bottom: calc(env(safe-area-inset-bottom) + 44px);
         background-repeat: repeat-x;
     }
 

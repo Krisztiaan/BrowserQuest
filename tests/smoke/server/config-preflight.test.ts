@@ -31,7 +31,7 @@ test('server fails fast with structured config-invalid event when config preflig
             debug_level: 'info',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './assets/maps/tiled/world.json',
+            map_filepath: './assets/maps/runtime/map-pack.json',
             metrics_enabled: false,
         })
     );
@@ -115,5 +115,5 @@ test('server fails fast when startup preflight reads map JSON with invalid paylo
 
     const code = await waitForProcessExit(proc, 4000);
     expect(code).toBe(1);
-    expect(stderrLines.some((line) => line.includes('Startup preflight: map file contains invalid map payload:'))).toBe(true);
+    expect(stderrLines.some((line) => line.includes('Startup preflight: map pack file has invalid schema:'))).toBe(true);
 });

@@ -23,12 +23,18 @@ function shouldBlockForPathfinding(kind: EntityKind): boolean {
 function applyOccupancyOverlayToGrid({
     grid,
     Position,
+    MapId,
     Kind,
+    activeMapId,
+    defaultMapId,
     excludeId,
 }: {
     grid: number[][];
     Position: ComponentType<GridPos>;
+    MapId: ComponentType<string>;
     Kind: ComponentType<EntityKind>;
+    activeMapId: string;
+    defaultMapId: string;
     excludeId: EntityId;
 }): () => void {
     const original = new Map<string, number>();
@@ -49,6 +55,10 @@ function applyOccupancyOverlayToGrid({
 
     Position.store.forEach((id, pos) => {
         if (id === excludeId) {
+            return;
+        }
+        const mapId = MapId.store.get(id) ?? defaultMapId;
+        if (mapId !== activeMapId) {
             return;
         }
         const kind = Kind.store.get(id);
@@ -76,9 +86,29 @@ function applyOccupancyOverlayToGrid({
     };
 }
 
+function forceTileWalkable(grid: number[][], x: number, y: number): () => void {
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0) {
+        return () => {};
+    }
+    const row = grid[y];
+    if (!row || row[x] === undefined) {
+        return () => {};
+    }
+    const previous = row[x] ?? 0;
+    row[x] = 0;
+    return () => {
+        const restoreRow = grid[y];
+        if (!restoreRow || restoreRow[x] === undefined) {
+            return;
+        }
+        restoreRow[x] = previous;
+    };
+}
+
 export function applyMoveToIntentCommand({
     state,
     Position,
+    MapId,
     Kind,
     player,
     movement,
@@ -87,6 +117,7 @@ export function applyMoveToIntentCommand({
 }: {
     state: WorldState<Command, DomainEvent>;
     Position: ComponentType<GridPos>;
+    MapId: ComponentType<string>;
     Kind: ReturnType<typeof registerSpawnReplicationComponents>['Kind'];
     player: PlayerLike;
     movement: ReturnType<typeof registerMovementComponents>;
@@ -104,8 +135,11 @@ export function applyMoveToIntentCommand({
     state.world.removeComponent(player.id, MoveQueue);
 
     const to = cmd.to;
-    const mapWidth = world.map.width;
-    const mapHeight = world.map.height;
+    const defaultMapId = world.getDefaultMapId?.() ?? 'world';
+    const currentMapId = MapId.store.get(player.id) ?? defaultMapId;
+    const activeMap = world.getMapById?.(currentMapId) ?? world.map;
+    const mapWidth = activeMap.width;
+    const mapHeight = activeMap.height;
     if (
         typeof mapWidth !== 'number' ||
         typeof mapHeight !== 'number' ||
@@ -119,10 +153,8 @@ export function applyMoveToIntentCommand({
     const width = mapWidth;
     const height = mapHeight;
     const isOutOfBounds = (x: number, y: number): boolean => {
-        // `world.map.isOutOfBounds` may be a class method that relies on `this.*` (e.g. Map.width/height).
-        // Call it through the owning object (do not capture it unbound).
-        if (typeof world.map.isOutOfBounds === 'function') {
-            return world.map.isOutOfBounds(x, y);
+        if (typeof activeMap.isOutOfBounds === 'function') {
+            return activeMap.isOutOfBounds(x, y);
         }
         return x < 0 || y < 0 || x >= width || y >= height;
     };
@@ -130,7 +162,7 @@ export function applyMoveToIntentCommand({
         return { ok: false, reason: 'Invalid move.to (out of bounds).' };
     }
 
-    const grid = world.map.grid;
+    const grid = activeMap.grid;
     if (!Array.isArray(grid) || grid.length === 0) {
         return { ok: false, reason: 'move.to unavailable (missing collision grid).' };
     }
@@ -138,9 +170,13 @@ export function applyMoveToIntentCommand({
     const restoreOccupancy = applyOccupancyOverlayToGrid({
         grid,
         Position,
+        MapId,
         Kind,
+        activeMapId: currentMapId,
+        defaultMapId,
         excludeId: player.id,
     });
+    const restoreStartTile = forceTileWalkable(grid, currentPos.x, currentPos.y);
 
     try {
         const pathfinder = new Pathfinder(width, height);
@@ -151,7 +187,11 @@ export function applyMoveToIntentCommand({
         });
 
         const bestPath = findBestPathToCandidates({
-            candidates: candidates.filter((candidate) => world.isValidPosition(candidate.x, candidate.y)),
+            candidates: candidates.filter((candidate) =>
+                world.isValidPositionForMap
+                    ? world.isValidPositionForMap(currentMapId, candidate.x, candidate.y)
+                    : world.isValidPosition(candidate.x, candidate.y)
+            ),
             findPathTo: (x, y) =>
                 pathfinder.findPath(
                     grid,
@@ -176,5 +216,6 @@ export function applyMoveToIntentCommand({
         state.world.addComponent(player.id, MoveQueue, { entries: steps });
     } finally {
         restoreOccupancy();
+        restoreStartTile();
     }
 }

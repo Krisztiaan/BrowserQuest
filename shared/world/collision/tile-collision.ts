@@ -9,6 +9,34 @@ export type TileCollisionResult = Readonly<{
     blockedY: boolean;
 }>;
 
+export function clampWorldPosInsideMap({
+    pos,
+    halfExtents,
+    mapWidthTiles,
+    mapHeightTiles,
+}: {
+    pos: WorldPos;
+    halfExtents: AabbHalfExtents;
+    mapWidthTiles: number;
+    mapHeightTiles: number;
+}): WorldPos {
+    if (!Number.isFinite(mapWidthTiles) || !Number.isFinite(mapHeightTiles) || mapWidthTiles <= 0 || mapHeightTiles <= 0) {
+        return pos;
+    }
+
+    const widthSubpx = Math.floor(mapWidthTiles) * TILE_SUBPX;
+    const heightSubpx = Math.floor(mapHeightTiles) * TILE_SUBPX;
+    const minX = halfExtents.hx;
+    const minY = halfExtents.hy;
+    const maxX = Math.max(minX, widthSubpx - halfExtents.hx);
+    const maxY = Math.max(minY, heightSubpx - halfExtents.hy);
+
+    return worldPos(
+        Math.min(maxX, Math.max(minX, pos.x)),
+        Math.min(maxY, Math.max(minY, pos.y))
+    );
+}
+
 function floorDiv(n: number, d: number): number {
     // JS `/` is float; keep deterministic floor division for negative values.
     return Math.floor(n / d);
@@ -27,11 +55,13 @@ function aabbOverlapsAnyBlockedTile({
     cy,
     halfExtents,
     isBlockedTile,
+    ignoreTiles,
 }: {
     cx: number;
     cy: number;
     halfExtents: AabbHalfExtents;
     isBlockedTile: TileBlockQuery;
+    ignoreTiles?: ReadonlyArray<{ x: number; y: number }>;
 }): boolean {
     const left = cx - halfExtents.hx;
     const rightExclusive = cx + halfExtents.hx;
@@ -44,11 +74,34 @@ function aabbOverlapsAnyBlockedTile({
     for (let ty = yRange.min; ty <= yRange.max; ty += 1) {
         for (let tx = xRange.min; tx <= xRange.max; tx += 1) {
             if (isBlockedTile(tx, ty)) {
+                if (ignoreTiles && ignoreTiles.some((tile) => tile.x === tx && tile.y === ty)) {
+                    continue;
+                }
                 return true;
             }
         }
     }
     return false;
+}
+
+export function worldPosOverlapsBlockedTiles({
+    pos,
+    halfExtents,
+    isBlockedTile,
+    ignoreTiles,
+}: {
+    pos: WorldPos;
+    halfExtents: AabbHalfExtents;
+    isBlockedTile: TileBlockQuery;
+    ignoreTiles?: ReadonlyArray<{ x: number; y: number }>;
+}): boolean {
+    return aabbOverlapsAnyBlockedTile({
+        cx: pos.x,
+        cy: pos.y,
+        halfExtents,
+        isBlockedTile,
+        ignoreTiles,
+    });
 }
 
 function resolveAxis({
@@ -201,4 +254,3 @@ export function resolveSubTileMotionAgainstTiles({
 
     return { pos: current, blockedX, blockedY };
 }
-
