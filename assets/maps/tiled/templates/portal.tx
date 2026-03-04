@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object class="Portal" width="16" height="16">
+  <properties>
+   <property name="orientation" type="string" value="u"/>
+   <property name="target_tx" type="int" value="0"/>
+   <property name="target_ty" type="int" value="0"/>
+   <property name="camera_tx" type="int" value="0"/>
+   <property name="camera_ty" type="int" value="0"/>
+   <property name="door_id" type="string" value=""/>
+   <property name="target_map" type="string" value=""/>
+   <property name="target_door" type="string" value=""/>
+  </properties>
+ </object>
+</template>

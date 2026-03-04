@@ -12,3 +12,12 @@ generated
 *.tsbuildinfo
 server/.tmp-config.payload-*.json
 server/.data
+.worktrees
+
+# Tiled scratch/session artifacts
+*.tiled-session
+*.tiled-session.*
+
+# Map/tooling scratch outputs
+assets/maps/tiled/world.backup.*.json
+assets/maps/tiled/world.original.json

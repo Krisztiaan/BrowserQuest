@@ -34,11 +34,14 @@ type RuntimeMapPayload = {
     height: number;
     tilesize: number;
     data: Array<number | number[]>;
+    foreground: Array<number | number[]>;
     blocking?: number[];
     plateau?: number[];
+    navIslandByTile?: number[];
+    navIslandCount?: number;
+    primaryNavIslandId?: number;
     musicAreas?: MusicArea[];
     collisions: number[];
-    high: number[];
     animated: AnimatedTileConfig;
     doors?: RawDoor[];
     checkpoints: RawCheckpoint[];
@@ -59,6 +62,7 @@ class Map {
     game: MapGameLike;
     mapId: string;
     data: Array<number | number[]>;
+    foreground: Array<number | number[]>;
     isLoaded: boolean;
     tilesetsLoaded: boolean;
     mapLoaded: boolean;
@@ -70,10 +74,12 @@ class Map {
     blocking: number[];
     plateau: number[];
     plateauSet: Set<number>;
+    navIslandByTile: number[];
+    navIslandCount: number;
+    primaryNavIslandId: number;
     musicAreas: MusicArea[];
     collisions: number[];
-    high: number[];
-    highSet: Set<number>;
+    foregroundTileIdSet: Set<number>;
     animated: AnimatedTileConfig;
     doors: Record<number, DoorDestination>;
     checkpoints: CheckpointArea[];
@@ -86,8 +92,9 @@ class Map {
 
     constructor(loadMultiTilesheets: boolean, game: MapGameLike, mapId: string) {
         this.game = game;
-        this.mapId = mapId.trim().length > 0 ? mapId.trim() : 'world';
+        this.mapId = mapId.trim().length > 0 ? mapId.trim() : 'world_01';
         this.data = [];
+        this.foreground = [];
         this.isLoaded = false;
         this.tilesetsLoaded = false;
         this.mapLoaded = false;
@@ -99,10 +106,12 @@ class Map {
         this.blocking = [];
         this.plateau = [];
         this.plateauSet = new Set();
+        this.navIslandByTile = [];
+        this.navIslandCount = 0;
+        this.primaryNavIslandId = 0;
         this.musicAreas = [];
         this.collisions = [];
-        this.high = [];
-        this.highSet = new Set();
+        this.foregroundTileIdSet = new Set();
         this.animated = [];
         this.doors = {};
         this.checkpoints = [];
@@ -273,13 +282,31 @@ class Map {
         this.height = map.height;
         this.tilesize = map.tilesize;
         this.data = map.data;
+        this.foreground = map.foreground;
         this.blocking = map.blocking ?? [];
         this.plateau = map.plateau ?? [];
         this.plateauSet = new Set(this.plateau);
+        this.navIslandByTile = map.navIslandByTile ?? [];
+        this.navIslandCount = map.navIslandCount ?? 0;
+        this.primaryNavIslandId = map.primaryNavIslandId ?? 0;
         this.musicAreas = map.musicAreas ?? [];
         this.collisions = map.collisions;
-        this.high = map.high;
-        this.highSet = new Set(this.high);
+        this.foregroundTileIdSet = new Set();
+        for (let i = 0; i < this.foreground.length; i += 1) {
+            const cell = this.foreground[i];
+            if (Array.isArray(cell)) {
+                for (let j = 0; j < cell.length; j += 1) {
+                    const gid = cell[j];
+                    if (typeof gid === 'number' && Number.isFinite(gid) && gid > 0) {
+                        this.foregroundTileIdSet.add(gid - 1);
+                    }
+                }
+                continue;
+            }
+            if (typeof cell === 'number' && Number.isFinite(cell) && cell > 0) {
+                this.foregroundTileIdSet.add(cell - 1);
+            }
+        }
         this.animated = map.animated;
 
         this.doors = this._getDoors(map);
@@ -424,6 +451,24 @@ class Map {
         return row[x] === 1;
     }
 
+    getNavigationIslandId(x: number, y: number): number {
+        if (this.isOutOfBounds(x, y)) {
+            return 0;
+        }
+        const idx = y * this.width + x;
+        const value = this.navIslandByTile[idx];
+        return Number.isInteger(value) ? (value as number) : 0;
+    }
+
+    isSameNavigationIsland(fromX: number, fromY: number, toX: number, toY: number): boolean {
+        if (this.navIslandByTile.length < this.width * this.height) {
+            return true;
+        }
+        const fromIsland = this.getNavigationIslandId(fromX, fromY);
+        const toIsland = this.getNavigationIslandId(toX, toY);
+        return fromIsland > 0 && toIsland > 0 && fromIsland === toIsland;
+    }
+
     _generateCollisionGrid(): void {
         const self = this;
 
@@ -485,15 +530,8 @@ class Map {
         return isOutOfBoundsGridPosition(x, y, this.width, this.height);
     }
 
-    /**
-     * Returns true if the given tile id is "high", i.e. above all entities.
-     * Used by the renderer to know which tiles to draw after all the entities
-     * have been drawn.
-     *
-     * @see Renderer.drawHighTiles
-     */
-    isHighTile(id: number): boolean {
-        return this.highSet.has(id + 1);
+    isForegroundTileId(id: number): boolean {
+        return this.foregroundTileIdSet.has(id);
     }
 
     /**

@@ -21,6 +21,11 @@ export function resolveMoveToTargetCandidates({
         gridPos(to.x - 1, to.y),
         gridPos(to.x, to.y + 1),
         gridPos(to.x, to.y - 1),
+        // Allow diagonal-adjacent stop tiles so interactions can complete even when all 4 cardinals are blocked.
+        gridPos(to.x + 1, to.y + 1),
+        gridPos(to.x + 1, to.y - 1),
+        gridPos(to.x - 1, to.y + 1),
+        gridPos(to.x - 1, to.y - 1),
     ];
     return candidates.filter((pos) => !isOutOfBounds(pos.x, pos.y));
 }
@@ -46,4 +51,3 @@ export function findBestPathToCandidates({
 
     return best;
 }
-

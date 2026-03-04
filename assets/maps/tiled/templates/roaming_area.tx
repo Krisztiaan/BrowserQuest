@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object class="RoamingArea" width="64" height="64">
+  <properties>
+   <property name="mob_kind" type="string" value="rat"/>
+   <property name="count" type="int" value="3"/>
+  </properties>
+ </object>
+</template>

@@ -180,12 +180,12 @@ export class ChunkOverlayStore {
         return trimmed;
     }
 
-    getChunk(chunkX: number, chunkY: number, mapId = 'world'): ChunkOverlay | null {
+    getChunk(chunkX: number, chunkY: number, mapId = 'world_01'): ChunkOverlay | null {
         const scopedKey = makeScopedChunkKey(this.#normalizeMapId(mapId), chunkX, chunkY);
         return this.#overlays.get(scopedKey) ?? null;
     }
 
-    getOrCreateChunk(chunkX: number, chunkY: number, mapId = 'world'): ChunkOverlay {
+    getOrCreateChunk(chunkX: number, chunkY: number, mapId = 'world_01'): ChunkOverlay {
         const normalizedMapId = this.#normalizeMapId(mapId);
         const key = makeScopedChunkKey(normalizedMapId, chunkX, chunkY);
         const existing = this.#overlays.get(key);
@@ -197,7 +197,7 @@ export class ChunkOverlayStore {
         return created;
     }
 
-    getGlobal(x: number, y: number, mapId = 'world'): number | null {
+    getGlobal(x: number, y: number, mapId = 'world_01'): number | null {
         const { chunkX, chunkY, localX, localY } = this.#toChunkLocal(x, y);
         const chunk = this.getChunk(chunkX, chunkY, mapId);
         if (!chunk) {
@@ -206,7 +206,7 @@ export class ChunkOverlayStore {
         return chunk.getLocal(localX, localY);
     }
 
-    setGlobal(x: number, y: number, value: number, mapId = 'world'): boolean {
+    setGlobal(x: number, y: number, value: number, mapId = 'world_01'): boolean {
         const { chunkX, chunkY, localX, localY } = this.#toChunkLocal(x, y);
         const normalizedMapId = this.#normalizeMapId(mapId);
         const key = makeScopedChunkKey(normalizedMapId, chunkX, chunkY);
@@ -219,7 +219,7 @@ export class ChunkOverlayStore {
         return changed;
     }
 
-    clearGlobal(x: number, y: number, mapId = 'world'): boolean {
+    clearGlobal(x: number, y: number, mapId = 'world_01'): boolean {
         const { chunkX, chunkY, localX, localY } = this.#toChunkLocal(x, y);
         const normalizedMapId = this.#normalizeMapId(mapId);
         const key = makeScopedChunkKey(normalizedMapId, chunkX, chunkY);
@@ -263,7 +263,7 @@ export class ChunkOverlayStore {
         return out;
     }
 
-    drainPendingDeltaForChunk(chunkX: number, chunkY: number, mapId = 'world'): ReturnType<ChunkOverlay['drainPendingDelta']> {
+    drainPendingDeltaForChunk(chunkX: number, chunkY: number, mapId = 'world_01'): ReturnType<ChunkOverlay['drainPendingDelta']> {
         const key = makeScopedChunkKey(this.#normalizeMapId(mapId), chunkX, chunkY);
         const chunk = this.#overlays.get(key);
         if (!chunk) {
@@ -277,7 +277,7 @@ export class ChunkOverlayStore {
         return delta;
     }
 
-    markChunkClean(chunkX: number, chunkY: number, mapId = 'world'): void {
+    markChunkClean(chunkX: number, chunkY: number, mapId = 'world_01'): void {
         const key = makeScopedChunkKey(this.#normalizeMapId(mapId), chunkX, chunkY);
         const chunk = this.#overlays.get(key);
         if (chunk) {

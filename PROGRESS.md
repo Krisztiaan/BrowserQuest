@@ -13,7 +13,180 @@ Format per entry:
 
 ---
 
+## 2026-03-03
+
+- 18:36 UTC
+  - Ticket: 451 (Map hygiene: remove generated split maps)
+  - Start timestamp: 2026-03-03 18:36 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Deleted generated split-map JSON artifacts:
+      - `assets/maps/tiled/world_*.json`
+      - `assets/maps/tiled/house_*.json`
+      - `assets/maps/tiled/indoor_*.json`
+      - `assets/maps/tiled/cave_*.json`
+      - `assets/maps/tiled/mase_*.json`
+    - Updated `assets/maps/tiled/map-pack.config.json` to build from monolithic `assets/maps/tiled/world.json` (kept id `world_01`).
+    - Added map-pack option `allow_missing_target_maps` so monolithic builds can temporarily ignore cross-map door edges to missing maps.
+    - Migrated `entity_spawns` in `world.json` to have explicit `mob_kind` (and normalized `mob_gid`) using the embedded `Mobs` tileset in `world.original.json`.
+  - Evidence:
+    - `bun run build:maps` → exit `0`
+    - `bun run check:maps` → exit `0`
+  - Next action:
+    - None (remove Ticket 451 from `TODO.md`).
+
+- 13:17 UTC
+  - Ticket: 450 (Map hygiene: remove obsolete migration scripts)
+  - Start timestamp: 2026-03-03 13:17 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed obsolete world migration scripts:
+      - `tools/content/world-migrate-pass1.ts`
+      - `tools/content/world-migrate-pass2.ts`
+    - Removed Tiled scratch outputs that should not live in the repo working set:
+      - `assets/maps/tiled/browserquest.tiled-session`
+      - `assets/maps/tiled/world copy.json`
+    - Kept world backups but excluded them from git noise via `.gitignore`:
+      - ignore `assets/maps/tiled/world.backup.*.json` + `assets/maps/tiled/world.original.json`
+      - re-created a current snapshot backup after cleanup (`world.backup.<timestamp>.json`)
+  - Evidence:
+    - `bun run build:maps` → exit `0`
+    - `bun run check:maps` → exit `0`
+  - Next action:
+    - None (remove Ticket 450 from `TODO.md`).
+
 ## 2026-02-25
+
+- 19:54 UTC
+  - Ticket: 447 (Re-split world: islands + interiors from monolithic world data)
+  - Start timestamp: 2026-02-25 19:54 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Implemented a deterministic world splitter at `tools/content/world-resplit.ts` that extracts connected-component maps from the monolithic `assets/maps/tiled/world.json` into:
+      - `world_01..world_18`
+      - `indoor_01..indoor_04`
+      - `cave_01..cave_07`
+      - `mase_01..mase_03`
+    - Rewired all legacy door transitions using `assets/maps/legacy/world_server.json`, including creation of “stub” destination doors for legacy door destinations that do not have a corresponding authored door object.
+    - Generated the new maps into `assets/maps/tiled/` and rewrote `assets/maps/tiled/map-pack.config.json` to use the new map set (dropping `world` + `house_01..house_40` from the runtime pack).
+    - Updated default map-id selection to prefer `world_01` in client and server runtime code paths.
+  - Evidence:
+    - `bun tools/content/world-resplit.ts generate --outDir assets/maps/tiled --writeConfig 1`
+    - `bun run build:maps`
+    - `bun run check:maps`
+    - `bun run typecheck`
+  - Next action:
+    - None (remove Ticket 447 from `TODO.md`).
+
+- 19:54 UTC
+  - Ticket: 445 (Map build: resolve external tilesets)
+  - Status: `done`
+  - Key actions taken:
+    - Inlined `tilesets[].source` TSJ tilesets in `tools/content/map-pack.ts` so `processMap` can read tileset `name` + `tiles` metadata.
+    - Updated `shared/maps/processmap.ts` to treat `tilesheet-wang` as a terrain tileset so collision/high/animated properties are discovered when using `tilesheet.wang.tsj`.
+    - Verified the new split maps produce non-empty `client.collisions` and server `staticEntities` when appropriate.
+  - Evidence:
+    - `bun run build:maps`
+    - `bun test tests/unit/mmo/server-client-collision-parity.test.ts --timeout 30000`
+  - Next action:
+    - None (remove Ticket 445 from `TODO.md`).
+
+- 19:54 UTC
+  - Ticket: 444 (Regenerate houses from world sheet)
+  - Status: `deferred`
+  - Key actions taken:
+    - Closed out the original “regenerate 40 houses” plan as superseded: the monolithic world sheet + legacy door graph clearly encode multiple destination categories (outdoor, caves, maze, indoors), so generating `house_01..house_40` as a single interior category is not a correct target.
+    - Implemented the correct replacement plan as Ticket 447: re-split into `world_*` + `indoor_*` + `cave_*` + `mase_*` with doors rewired from legacy destinations.
+  - Evidence:
+    - `bun run build:maps`
+    - `bun run check:maps`
+  - Next action:
+    - None (remove Ticket 444 from `TODO.md`).
+
+- 19:36 UTC
+  - Ticket: 445 (Map build: resolve external tilesets)
+  - Start timestamp: 2026-02-25 19:36 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Updated `tools/content/map-pack.ts` to inline Tiled `tilesets[].source` TSJ files in-memory during map-pack build so `processMap` can see `tileset.name` and `tileset.tiles`.
+    - Updated `shared/maps/processmap.ts` to treat `tilesheet-wang` as the terrain tileset for collision/high/animated property scanning.
+    - Rebuilt maps and observed that previously-silent authoring defects in the current `house_*.json` exports become hard failures once tileset collisions are correctly applied (door egress validation trips).
+  - Evidence:
+    - `bun run build:maps` (fails with `Invalid map pack egress` for several `house_*` destination doors once tileset collisions are enabled)
+  - Next action:
+    - Complete Ticket 447 to regenerate maps (re-split world into `world_*` + interior maps) so door egress is valid under tileset collisions.
+
+- 18:58 UTC
+  - Ticket: 446 (Move-to planning: allow diagonal-adjacent stop tiles)
+  - Start timestamp: 2026-02-25 18:58 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Expanded `resolveMoveToTargetCandidates(... stopAdjacentToTarget=true ...)` to include diagonal-adjacent candidates so move-to plans can complete and trigger interactions even when only a diagonal adjacency is reachable.
+    - Added a unit test that constructs a grid where all 4 cardinal adjacencies are blocked but one diagonal adjacency is reachable, and asserts `findBestPathToCandidates` picks the diagonal stop tile.
+  - Evidence:
+    - `bun test tests/unit/world/move-to-planning.test.ts --timeout 30000`
+  - Next action:
+    - None (remove Ticket 446 from `TODO.md`).
+
+- 18:29 UTC
+  - Ticket: 444 (Regenerate houses from world sheet)
+  - Start timestamp: 2026-02-25 18:29 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Identified that modern `assets/maps/tiled/world.json` contains only the 40 cross-map house entry doors (`target_map=house_*`), and no longer contains the interior-exit door objects needed to derive house seeds.
+    - Confirmed legacy `world_server.json` door destinations encode the interior seed coordinates for each world house-entry door (example: world door at (27,209) -> interior (155,286)).
+    - Observed that many interior regions in the world sheet are separated by large “background filler” on interior layers (`indoor`, etc.), so extraction should use background flood (filler + no features) rather than naive bbox slicing.
+  - Evidence:
+    - `bun -e <world.json door target_map stats>` (reported `withTargetMap 40`, `targetWorld 0`)
+    - `bun -e <origin world_server door lookup for (27,209)>` (reported `tx=155, ty=286`)
+    - `bun -e <world tilelayer histograms>` (showed interior layers dominated by a small set of tile ids)
+  - Next action:
+    - Add `assets/maps/legacy/world_server.json` and implement `tools/content/house-regenerate.ts` (check/generate).
+
+- 18:58 UTC
+  - Ticket: 444 (Regenerate houses from world sheet)
+  - Status: `blocked`
+  - Key actions taken:
+    - Audited legacy door destinations vs. modern `world.json` `target_map=house_*` assignments and found that many of the 40 `house_*` targets are not “houses”: several destinations are caves/maze, and multiple doors teleport to outdoor/empty-space coordinates (world-to-world island jumps).
+    - Confirmed the “legacy seeds keyed by world door xy” idea must include all legacy door directions (`to: "u"`, `to: "d"`, etc.), and that a correct split likely needs to generate world-island maps in addition to interiors, then rewire doors based on destination classification.
+  - Evidence:
+    - `bun -e <audit: classify legacy (tx,ty) neighborhoods as indoor/cave/mase/unknown>` (observed mixed destination kinds and multiple outdoor/empty-space destinations)
+    - `bun -e <audit: existing house_01..40 maps contain many cave/empty/water outputs>` (observed only a minority are indoor interiors)
+  - Next action:
+    - Start Ticket 447 (re-split: world islands + interiors) once naming/wiring decisions are confirmed.
+
+- 18:06 UTC
+  - Ticket: 442 (Map-pack: normalize cross-map door destinations)
+  - Start timestamp: 2026-02-25 18:06 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Reproduced broken interior transitions: runtime pack has 40 graph edges where `world:*` house-entry doors export a constant `tx/ty=3,3`, but the graph destination door coordinates are different per house.
+    - Confirmed server validates `door.teleport` intent payload against graph-resolved destination door coordinates, so mismatched `tx/ty` breaks traversal deterministically.
+    - Patched `compileMapPack` to normalize any graph-linked door’s exported `tx/ty` to match the destination door’s graph coordinates.
+    - Added a unit test that asserts graph-linked `tx/ty` normalization overrides mismatched authored `x/y` door properties.
+  - Evidence:
+    - `bun test tests/unit/map-pack.test.ts --timeout 30000`
+    - `bun run build:maps`
+    - `bun run check:maps`
+    - `bun -e <edge tx/ty mismatch audit>` (reported `mismatched_tx_ty 0`)
+  - Next action:
+    - Start Ticket 443 (door egress hardening).
+
+- 18:06 UTC
+  - Ticket: 443 (Map-pack: door collision egress hardening)
+  - Start timestamp: 2026-02-25 18:06 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added map-pack build-time egress hardening: for every graph edge destination door, ensure the destination door tile has at least one non-colliding adjacent tile; if trapped, carve a corridor out of `client.blocking` (and mirror to server `collisions`) until it connects to existing walkable terrain.
+    - Added a unit test that constructs a trapped destination door via a `blocking` layer and asserts carving removes the sealing tile from both client and server collision lists.
+    - Regenerated runtime map-pack and verified there are no trapped edge-destination doors remaining.
+  - Evidence:
+    - `bun test tests/unit/map-pack.test.ts --timeout 30000`
+    - `bun test tests/unit/mmo/server-client-collision-parity.test.ts --timeout 30000`
+    - `bun run build:maps`
+    - `bun -e <edge destination door egress audit>` (reported `bad 0`)
+  - Next action:
+    - None (tickets 442-443 removed from `TODO.md`).
 
 - 17:45 UTC
   - Ticket: 441 (Diagonal adjacency: end-of-path actions)

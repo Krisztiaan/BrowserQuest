@@ -672,8 +672,8 @@ class World extends Evented<WorldEvents> {
             createMobArea(config: MapMobAreaConfig) {
                 return new MobArea(
                     config.id,
-                    config.nb,
-                    config.type,
+                    config.count,
+                    config.mobKind,
                     config.x,
                     config.y,
                     config.width,
@@ -990,7 +990,7 @@ class World extends Evented<WorldEvents> {
     }
 
     getDefaultMapId(): string {
-        return this.mapRegistry?.defaultMapId ?? 'world';
+        return this.mapRegistry?.defaultMapId ?? 'world_01';
     }
 
     getMapById(mapId: string): WorldMapLike | null {

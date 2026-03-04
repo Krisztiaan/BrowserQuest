@@ -41,6 +41,9 @@ interface MapDefinition {
     width: number;
     height: number;
     collisions: number[];
+    navIslandByTile?: number[];
+    navIslandCount?: number;
+    primaryNavIslandId?: number;
     roamingAreas: MapArea[];
     chestAreas: MapArea[];
     staticChests: StaticChest[];
@@ -213,6 +216,9 @@ class Map {
     width: number;
     height: number;
     collisions: number[];
+    navIslandByTile: number[];
+    navIslandCount: number;
+    primaryNavIslandId: number;
     mobAreas: MapArea[];
     chestAreas: MapArea[];
     staticChests: StaticChest[];
@@ -234,6 +240,9 @@ class Map {
         this.width = 0;
         this.height = 0;
         this.collisions = [];
+        this.navIslandByTile = [];
+        this.navIslandCount = 0;
+        this.primaryNavIslandId = 0;
         this.mobAreas = [];
         this.chestAreas = [];
         this.staticChests = [];
@@ -267,6 +276,17 @@ class Map {
         this.width = map.width;
         this.height = map.height;
         this.collisions = map.collisions;
+        this.navIslandByTile = Array.isArray(map.navIslandByTile)
+            ? map.navIslandByTile.filter((entry) => Number.isInteger(entry) && entry >= 0)
+            : [];
+        this.navIslandCount =
+            Number.isInteger(map.navIslandCount) && (map.navIslandCount as number) >= 0
+                ? (map.navIslandCount as number)
+                : 0;
+        this.primaryNavIslandId =
+            Number.isInteger(map.primaryNavIslandId) && (map.primaryNavIslandId as number) >= 0
+                ? (map.primaryNavIslandId as number)
+                : 0;
         this.mobAreas = map.roamingAreas;
         this.chestAreas = map.chestAreas;
         this.staticChests = map.staticChests;
@@ -383,6 +403,24 @@ class Map {
             return false;
         }
         return this.grid[y]?.[x] === 1;
+    }
+
+    getNavigationIslandId(x: number, y: number): number {
+        if (this.isOutOfBounds(x, y)) {
+            return 0;
+        }
+        const idx = y * this.width + x;
+        const value = this.navIslandByTile[idx];
+        return Number.isInteger(value) ? (value as number) : 0;
+    }
+
+    isSameNavigationIsland(fromX: number, fromY: number, toX: number, toY: number): boolean {
+        if (this.navIslandByTile.length < this.width * this.height) {
+            return true;
+        }
+        const fromIsland = this.getNavigationIslandId(fromX, fromY);
+        const toIsland = this.getNavigationIslandId(toX, toY);
+        return fromIsland > 0 && toIsland > 0 && fromIsland === toIsland;
     }
 
     GroupIdToGroupPosition(id: string): Position {

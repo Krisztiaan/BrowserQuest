@@ -46,7 +46,7 @@ export class SqliteChunkOverlayPersistence {
             PRAGMA foreign_keys=ON;
 
             CREATE TABLE IF NOT EXISTS chunk_overlays (
-                map_id TEXT NOT NULL DEFAULT 'world',
+                map_id TEXT NOT NULL DEFAULT 'world_01',
                 chunk_x INTEGER NOT NULL,
                 chunk_y INTEGER NOT NULL,
                 chunk_size INTEGER NOT NULL,
@@ -107,13 +107,13 @@ export class SqliteChunkOverlayPersistence {
             return;
         }
 
-        const mapIdExpr = hasMapId ? `COALESCE(NULLIF(TRIM(map_id), ''), 'world')` : `'world'`;
+        const mapIdExpr = hasMapId ? `COALESCE(NULLIF(TRIM(map_id), ''), 'world_01')` : `'world_01'`;
         this.#db.exec('BEGIN');
         try {
             this.#db.exec(`ALTER TABLE chunk_overlays RENAME TO chunk_overlays_legacy`);
             this.#db.exec(`
                 CREATE TABLE chunk_overlays (
-                    map_id TEXT NOT NULL DEFAULT 'world',
+                    map_id TEXT NOT NULL DEFAULT 'world_01',
                     chunk_x INTEGER NOT NULL,
                     chunk_y INTEGER NOT NULL,
                     chunk_size INTEGER NOT NULL,
@@ -222,7 +222,7 @@ export class SqliteChunkOverlayPersistence {
         return { loaded };
     }
 
-    loadChunkIntoStore(store: ChunkOverlayStore, chunkX: number, chunkY: number, mapId = 'world'): { loaded: boolean } {
+    loadChunkIntoStore(store: ChunkOverlayStore, chunkX: number, chunkY: number, mapId = 'world_01'): { loaded: boolean } {
         if (!Number.isSafeInteger(chunkX) || !Number.isSafeInteger(chunkY)) {
             throw new Error(`loadChunkIntoStore: invalid chunk coords: (${String(chunkX)}, ${String(chunkY)})`);
         }
@@ -253,7 +253,7 @@ export class SqliteChunkOverlayPersistence {
             return false;
         }
 
-        const mapId = typeof row.map_id === 'string' && row.map_id.trim().length > 0 ? row.map_id : 'world';
+        const mapId = typeof row.map_id === 'string' && row.map_id.trim().length > 0 ? row.map_id : 'world_01';
         const chunk = store.getOrCreateChunk(row.chunk_x, row.chunk_y, mapId);
         const valuesView = new Uint32Array(valuesBlob.buffer.slice(valuesBlob.byteOffset, valuesBlob.byteOffset + valuesBlob.byteLength));
         chunk.values.set(valuesView);

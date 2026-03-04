@@ -92,7 +92,7 @@ export function applyClaimCreateIntent({
     player,
     cmd,
     limits,
-    mapId = 'world',
+    mapId = 'world_01',
 }: {
     state: WorldState<Command, DomainEvent>;
     world: ClaimIntentWorldHost;
@@ -154,7 +154,7 @@ export function applyClaimUpdateIntent({
     player,
     cmd,
     limits,
-    mapId = 'world',
+    mapId = 'world_01',
 }: {
     state: WorldState<Command, DomainEvent>;
     world: ClaimIntentWorldHost;
@@ -241,7 +241,7 @@ export function applyClaimDeleteIntent({
     world,
     player,
     cmd,
-    mapId = 'world',
+    mapId = 'world_01',
 }: {
     state: WorldState<Command, DomainEvent>;
     world: ClaimIntentWorldHost;

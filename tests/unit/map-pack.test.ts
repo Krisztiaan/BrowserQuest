@@ -6,12 +6,15 @@ function createTiledMap({
     height = 8,
     fillTileId = 1,
     doors = [],
+    blockingIndices = [],
 }: {
     width?: number;
     height?: number;
     fillTileId?: number;
-    doors?: Array<{ id: number; x: number; y: number; properties?: Array<{ name: string; value: string }> }>;
+    doors?: Array<{ id: number; x: number; y: number; class?: string; properties?: Array<{ name: string; value: string }> }>;
+    blockingIndices?: number[];
 }) {
+    const blockingSet = new Set(blockingIndices);
     return {
         width,
         height,
@@ -25,6 +28,12 @@ function createTiledMap({
                 data: new Array(width * height).fill(fillTileId),
             },
             {
+                name: 'blocking',
+                type: 'tilelayer',
+                visible: true,
+                data: new Array(width * height).fill(0).map((_, idx) => (blockingSet.has(idx) ? 1 : 0)),
+            },
+            {
                 name: 'doors',
                 type: 'objectgroup',
                 objects: doors.map((door) => ({
@@ -33,6 +42,7 @@ function createTiledMap({
                     y: door.y,
                     width: 16,
                     height: 16,
+                    class: door.class ?? 'Door',
                     properties: door.properties ?? [],
                 })),
             },
@@ -45,7 +55,7 @@ test('compileMapPack supports single-map pack representation', () => {
         maps: [{ id: 'world', tiled: createTiledMap({}) }],
     });
 
-    expect(pack.schemaVersion).toBe(1);
+    expect(pack.schemaVersion).toBe(2);
     expect(pack.maps.length).toBe(1);
     expect(pack.maps[0]?.id).toBe('world');
     expect(pack.graph.maps.map((map) => map.id)).toEqual(['world']);
@@ -146,6 +156,124 @@ test('compileMapPack derives edges from door target_map/target_door properties',
     ]);
 });
 
+test('compileMapPack normalizes graph-linked door tx/ty to destination door coordinates', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'overworld',
+                tiled: createTiledMap({
+                    doors: [
+                        {
+                            id: 10,
+                            x: 32,
+                            y: 16,
+                            properties: [
+                                { name: 'door_id', value: 'enter_house' },
+                                { name: 'target_map', value: 'house_01' },
+                                { name: 'target_door', value: 'exit' },
+                                // Deliberately wrong: should be rewritten to the destination door tile.
+                                { name: 'target_tx', value: '999' },
+                                { name: 'target_ty', value: '999' },
+                            ],
+                        },
+                    ],
+                }),
+            },
+            {
+                id: 'house_01',
+                tiled: createTiledMap({
+                    width: 12,
+                    height: 12,
+                    doors: [
+                        {
+                            id: 20,
+                            x: 16,
+                            y: 16,
+                            properties: [{ name: 'door_id', value: 'exit' }],
+                        },
+                    ],
+                }),
+            },
+        ],
+    });
+
+    const overworld = pack.maps.find((m) => m.id === 'overworld');
+    expect(overworld).toBeTruthy();
+
+    const clientDoor = (overworld?.client.doors as unknown[]).find(
+        (door) => (door as { tdoor_id?: unknown }).tdoor_id === 'enter_house'
+    ) as { tx?: unknown; ty?: unknown } | undefined;
+    const serverDoor = (overworld?.server.doors as unknown[]).find(
+        (door) => (door as { tdoor_id?: unknown }).tdoor_id === 'enter_house'
+    ) as { tx?: unknown; ty?: unknown } | undefined;
+
+    // house_01 exit door is at (1,1) because the object is placed at (16,16) pixels on a 16px tile grid.
+    expect(clientDoor?.tx).toBe(1);
+    expect(clientDoor?.ty).toBe(1);
+    expect(serverDoor?.tx).toBe(1);
+    expect(serverDoor?.ty).toBe(1);
+});
+
+test('compileMapPack carves authored blocking to prevent trapped door soft-locks', () => {
+    const width = 8;
+    const height = 8;
+    const doorTile = { x: 2, y: 2 };
+    const doorPixel = { x: doorTile.x * 16, y: doorTile.y * 16 };
+    const blockedNeighborIndex = (doorTile.y + 1) * width + doorTile.x; // (2,3)
+    const blockingIndices = [
+        (doorTile.y - 1) * width + doorTile.x, // (2,1)
+        blockedNeighborIndex, // (2,3) - expected carve
+        doorTile.y * width + (doorTile.x - 1), // (1,2)
+        doorTile.y * width + (doorTile.x + 1), // (3,2)
+    ];
+
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'overworld',
+                tiled: createTiledMap({
+                    width,
+                    height,
+                    doors: [
+                        {
+                            id: 10,
+                            x: doorPixel.x,
+                            y: doorPixel.y,
+                            properties: [
+                                { name: 'door_id', value: 'enter_house' },
+                                { name: 'target_map', value: 'house_01' },
+                                { name: 'target_door', value: 'exit' },
+                            ],
+                        },
+                    ],
+                }),
+            },
+            {
+                id: 'house_01',
+                tiled: createTiledMap({
+                    width,
+                    height,
+                    // Trap the destination door tile in blocking, but leave (2,4) walkable so a 2-step carve works.
+                    blockingIndices,
+                    doors: [
+                        {
+                            id: 20,
+                            x: doorPixel.x,
+                            y: doorPixel.y,
+                            properties: [{ name: 'door_id', value: 'exit' }],
+                        },
+                    ],
+                }),
+            },
+        ],
+    });
+
+    const house = pack.maps.find((m) => m.id === 'house_01');
+    expect(house).toBeTruthy();
+    expect((house?.client.blocking as number[]).includes(blockedNeighborIndex)).toBe(false);
+    expect((house?.server.collisions as number[]).includes(blockedNeighborIndex)).toBe(false);
+});
+
 test('compileMapPack fails when cross-map transition destination has empty renderable terrain', () => {
     expect(() =>
         compileMapPack({
@@ -234,12 +362,34 @@ test('compileMapPack fails when target_map/target_door are partially declared', 
     ).toThrow('"target_map" and "target_door" must be provided together');
 });
 
-test('compileMapPack fails when world interior-entry door (o=u) omits target map links', () => {
+test('compileMapPack fails when legacy door properties are used', () => {
     expect(() =>
         compileMapPack({
             maps: [
                 {
-                    id: 'world',
+                    id: 'world_01',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 79,
+                                x: 16,
+                                y: 16,
+                                properties: [{ name: 'o', value: 'u' }],
+                            },
+                        ],
+                    }),
+                },
+            ],
+        })
+    ).toThrow('Legacy door property "o" is not supported; use "orientation".');
+});
+
+test('compileMapPack fails when world interior-entry door (orientation=u) omits target map links', () => {
+    expect(() =>
+        compileMapPack({
+            maps: [
+                {
+                    id: 'world_01',
                     tiled: createTiledMap({
                         doors: [
                             {
@@ -248,7 +398,7 @@ test('compileMapPack fails when world interior-entry door (o=u) omits target map
                                 y: 16,
                                 properties: [
                                     { name: 'door_id', value: 'world_house_entry' },
-                                    { name: 'o', value: 'u' },
+                                    { name: 'orientation', value: 'u' },
                                 ],
                             },
                         ],
@@ -256,21 +406,21 @@ test('compileMapPack fails when world interior-entry door (o=u) omits target map
                 },
             ],
         })
-    ).toThrow('world interior-entry doors (o=u) require explicit "target_map" and "target_door"');
+    ).toThrow('world interior-entry doors (orientation=u) require explicit "target_map" and "target_door"');
 });
 
 test('compileMapPack allows non-interior world door without target map links', () => {
     const pack = compileMapPack({
         maps: [
             {
-                id: 'world',
+                id: 'world_01',
                 tiled: createTiledMap({
                     doors: [
                         {
                             id: 78,
                             x: 16,
                             y: 16,
-                            properties: [{ name: 'o', value: 'd' }],
+                            properties: [{ name: 'orientation', value: 'd' }],
                         },
                     ],
                 }),
@@ -278,7 +428,7 @@ test('compileMapPack allows non-interior world door without target map links', (
         ],
     });
 
-    expect(pack.graph.maps.find((map) => map.id === 'world')?.doors).toEqual([{ id: '78', x: 1, y: 1 }]);
+    expect(pack.graph.maps.find((map) => map.id === 'world_01')?.doors).toEqual([{ id: '78', x: 1, y: 1 }]);
     expect(pack.graph.edges).toEqual([]);
 });
 

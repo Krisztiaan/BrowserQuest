@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object class="Zone" width="128" height="128">
+  <properties>
+   <property name="zone_id" type="int" value="0"/>
+  </properties>
+ </object>
+</template>

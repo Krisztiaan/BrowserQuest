@@ -16,7 +16,7 @@ function buildServerMapPayload(width: number, height: number, doors: Array<{ x: 
 
 test('map registry resolves cross-map door links from map graph', () => {
     const registry = createWorldMapRegistryFromMapPack({
-        schemaVersion: 1,
+        schemaVersion: 2,
         maps: [
             {
                 id: 'overworld',
@@ -51,7 +51,7 @@ test('map registry resolves cross-map door links from map graph', () => {
 
 test('map registry resolves same-map legacy door routes without runtime fallback', () => {
     const registry = createWorldMapRegistryFromMapPack({
-        schemaVersion: 1,
+        schemaVersion: 2,
         maps: [
             {
                 id: 'world',
@@ -73,7 +73,7 @@ test('map registry resolves same-map legacy door routes without runtime fallback
 
 test('map registry prefers explicit graph edges over same-map legacy tx/ty', () => {
     const registry = createWorldMapRegistryFromMapPack({
-        schemaVersion: 1,
+        schemaVersion: 2,
         maps: [
             {
                 id: 'overworld',
@@ -109,7 +109,7 @@ test('map registry prefers explicit graph edges over same-map legacy tx/ty', () 
 test('map registry rejects graph/map id mismatches', () => {
     expect(() =>
         createWorldMapRegistryFromMapPack({
-            schemaVersion: 1,
+            schemaVersion: 2,
             maps: [
                 { id: 'a', server: buildServerMapPayload(4, 4), client: {} },
                 { id: 'b', server: buildServerMapPayload(4, 4), client: {} },
@@ -125,7 +125,7 @@ test('map registry rejects graph/map id mismatches', () => {
 test('map registry rejects map dimension mismatches against graph', () => {
     expect(() =>
         createWorldMapRegistryFromMapPack({
-            schemaVersion: 1,
+            schemaVersion: 2,
             maps: [{ id: 'a', server: buildServerMapPayload(8, 4), client: {} }],
             graph: {
                 maps: [{ id: 'a', width: 4, height: 4, doors: [] }],

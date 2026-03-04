@@ -53,7 +53,7 @@ export class SqliteClaimsPersistence {
 
             CREATE TABLE IF NOT EXISTS claims (
                 id INTEGER PRIMARY KEY,
-                map_id TEXT NOT NULL DEFAULT 'world',
+                map_id TEXT NOT NULL DEFAULT 'world_01',
                 owner_name TEXT NOT NULL,
                 editors_json TEXT NOT NULL DEFAULT '[]',
                 x1 INTEGER NOT NULL,
@@ -69,7 +69,7 @@ export class SqliteClaimsPersistence {
         const claimColumns = this.#db.query("PRAGMA table_info('claims')").all() as Array<{ name?: string }>;
         const hasMapId = claimColumns.some((column) => column.name === 'map_id');
         if (!hasMapId) {
-            this.#db.exec(`ALTER TABLE claims ADD COLUMN map_id TEXT NOT NULL DEFAULT 'world'`);
+            this.#db.exec(`ALTER TABLE claims ADD COLUMN map_id TEXT NOT NULL DEFAULT 'world_01'`);
         }
         this.#db.exec(`CREATE INDEX IF NOT EXISTS claims_map_id ON claims(map_id)`);
 
@@ -126,7 +126,7 @@ export class SqliteClaimsPersistence {
         return rows.map((row) =>
             Object.freeze({
                 id: row.id,
-                mapId: typeof row.map_id === 'string' && row.map_id.trim().length > 0 ? row.map_id : 'world',
+                mapId: typeof row.map_id === 'string' && row.map_id.trim().length > 0 ? row.map_id : 'world_01',
                 ownerName: row.owner_name,
                 editorNameKeys: decodeEditorNameKeys(row.editors_json),
                 x1: row.x1,

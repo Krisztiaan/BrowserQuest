@@ -102,7 +102,7 @@ test('map preflight helper accepts readable valid map-pack JSON files', async ()
         readFileText: () =>
             Promise.resolve(
                 JSON.stringify({
-                    schemaVersion: 1,
+                    schemaVersion: 2,
                     maps: [
                         {
                             id: 'world',
@@ -145,7 +145,7 @@ test('map preflight helper accepts valid map-pack payloads and validates nested 
         readFileText: () =>
             Promise.resolve(
                 JSON.stringify({
-                    schemaVersion: 1,
+                    schemaVersion: 2,
                     maps: [
                         {
                             id: 'world',
@@ -192,7 +192,7 @@ test('map preflight helper fails fast for invalid map-pack-shaped payloads', asy
         readFileText: () =>
             Promise.resolve(
                 JSON.stringify({
-                    schemaVersion: 2,
+                    schemaVersion: 1,
                     maps: [],
                     graph: { maps: [], edges: [] },
                 })
@@ -235,7 +235,7 @@ test('map preflight helper fails for semantically invalid server map payload in 
         readFileText: () =>
             Promise.resolve(
                 JSON.stringify({
-                    schemaVersion: 1,
+                    schemaVersion: 2,
                     maps: [
                         {
                             id: 'world',

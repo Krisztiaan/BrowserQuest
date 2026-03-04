@@ -65,7 +65,7 @@ export function replicateInterestVisibility({
     idsByGroup: Map<string, EntityId[]>;
 }): void {
     const Kind = replication.Kind;
-    const defaultMapId = world.getDefaultMapId?.() ?? 'world';
+    const defaultMapId = world.getDefaultMapId?.() ?? 'world_01';
 
     Kind.store.forEach((observerId, kind) => {
         if (!Types.isPlayer(kind)) {
@@ -131,7 +131,7 @@ export function broadcastNearbyOutboxMessage({
     msg: Extract<OutboxMessage, { kind: 'broadcast_nearby' }>;
     idsByGroup: Map<string, EntityId[]>;
 }): void {
-    const defaultMapId = world.getDefaultMapId?.() ?? 'world';
+    const defaultMapId = world.getDefaultMapId?.() ?? 'world_01';
     const pos = Position.store.get(msg.actorId);
     const actorMapId = MapId.store.get(msg.actorId) ?? defaultMapId;
     const fallback = typeof msg.fallbackGroupId === 'string' ? parseScopedFallbackGroupId(msg.fallbackGroupId, defaultMapId) : null;

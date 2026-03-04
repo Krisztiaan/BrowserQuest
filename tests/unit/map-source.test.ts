@@ -26,11 +26,11 @@ function createClientMap(width: number, height: number): Record<string, unknown>
         height,
         tilesize: 16,
         data: new Array(width * height).fill(1),
+        foreground: new Array(width * height).fill(0),
         blocking: [],
         plateau: [],
         musicAreas: [],
         collisions: [],
-        high: [],
         animated: {},
         doors: [],
         checkpoints: [],
@@ -55,7 +55,7 @@ test('map source loads map-pack runtime payload once and resolves maps by id', a
         value: (input: RequestInfo | URL) =>
             Promise.resolve(new Response(
                 JSON.stringify({
-                    schemaVersion: 1,
+                    schemaVersion: 2,
                     maps: [
                         { id: 'world', client: createClientMap(4, 4), server: {} },
                         { id: 'house', client: createClientMap(2, 3), server: {} },
@@ -98,7 +98,7 @@ test('map source defers map payload normalization until a map is requested', asy
             Promise.resolve(
                 new Response(
                     JSON.stringify({
-                        schemaVersion: 1,
+                        schemaVersion: 2,
                         maps: [
                             { id: 'world', client: createClientMap(4, 4), server: {} },
                             { id: 'broken_house', client: { width: 2, height: 2, tilesize: 16, data: 'bad' }, server: {} },

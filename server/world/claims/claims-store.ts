@@ -92,7 +92,7 @@ export class ClaimsStore {
     }
 
     createClaim({
-        mapId = 'world',
+        mapId = 'world_01',
         ownerName,
         editorNameKeys,
         x1,
@@ -222,7 +222,7 @@ export class ClaimsStore {
     }
 
     findFirstOverlappingClaim({
-        mapId = 'world',
+        mapId = 'world_01',
         x1,
         y1,
         x2,
@@ -290,7 +290,7 @@ export class ClaimsStore {
         return true;
     }
 
-    getClaimAt(x: number, y: number, mapId = 'world'): RectClaim | null {
+    getClaimAt(x: number, y: number, mapId = 'world_01'): RectClaim | null {
         if (!Number.isInteger(x) || !Number.isInteger(y)) {
             return null;
         }

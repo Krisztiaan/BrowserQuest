@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object class="ChestArea" width="64" height="64">
+  <properties>
+   <property name="items" type="string" value=""/>
+   <property name="spawn_tx" type="int" value="0"/>
+   <property name="spawn_ty" type="int" value="0"/>
+  </properties>
+ </object>
+</template>

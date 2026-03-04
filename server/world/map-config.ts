@@ -2,8 +2,8 @@ import type { EntityKindName } from '../../shared/entity-kind-domain';
 
 export type MapMobAreaConfig = {
     id: string | number;
-    nb: number;
-    type: EntityKindName;
+    count: number;
+    mobKind: EntityKindName;
     x: number;
     y: number;
     width: number;
@@ -36,8 +36,8 @@ export const isMapMobAreaConfig = (value: MapConfigValue): value is MapMobAreaCo
     const entry = value as Partial<MapMobAreaConfig>;
     return (
         (typeof entry.id === 'string' || typeof entry.id === 'number')
-        && typeof entry.nb === 'number'
-        && typeof entry.type === 'string'
+        && typeof entry.count === 'number'
+        && typeof entry.mobKind === 'string'
         && typeof entry.x === 'number'
         && typeof entry.y === 'number'
         && typeof entry.width === 'number'

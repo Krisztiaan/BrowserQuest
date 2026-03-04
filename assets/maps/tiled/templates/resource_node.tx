@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object class="ResourceNode" width="16" height="16">
+  <properties>
+   <property name="resource_gid" type="int" value="0"/>
+  </properties>
+ </object>
+</template>

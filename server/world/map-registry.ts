@@ -229,7 +229,10 @@ export function createWorldMapRegistryFromMapPack(pack: unknown): WorldMapRegist
         }
     }
 
-    const defaultMapId = mapEntries.find((entry) => entry.id === 'world')?.id ?? mapEntries[0]?.id;
+    const defaultMapId =
+        mapEntries.find((entry) => entry.id === 'world_01')?.id ??
+        mapEntries.find((entry) => entry.id === 'world')?.id ??
+        mapEntries[0]?.id;
     if (!defaultMapId) {
         throw new Error('Invalid map pack: missing default map id.');
     }

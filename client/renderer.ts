@@ -82,7 +82,6 @@ type RendererGameLike = {
               tilesets?: Array<HTMLImageElement | undefined>;
               width: number;
               tilesize: number;
-              isHighTile(id: number): boolean;
               isAnimatedTile(id: number): boolean;
           }
         | null;
@@ -109,6 +108,7 @@ type RendererGameLike = {
     clearTarget: boolean;
     playerId: string | number | null;
     forEachVisibleTile(callback: (id: number, index: number) => void, extra: number): void;
+    forEachVisibleForegroundTile(callback: (id: number, index: number) => void, extra: number): void;
     infoManager: { forEachInfo(callback: (info: RenderInfo) => void): void };
     player: Player;
     started: boolean;
@@ -116,9 +116,6 @@ type RendererGameLike = {
     targetCellVisible: boolean;
 };
 
-type TerrainMapLike = Readonly<{
-    isHighTile(id: number): boolean;
-}>;
 type ViewportLike = Readonly<{
     innerWidth: number;
     innerHeight: number;
@@ -127,10 +124,6 @@ type ViewportLike = Readonly<{
         height: number;
     }> | null;
 }>;
-
-export function shouldDrawTerrainTile(map: TerrainMapLike, id: number): boolean {
-    return !map.isHighTile(id);
-}
 
 export function resolveViewportSize(viewport: ViewportLike): Readonly<{ width: number; height: number }> {
     const visualWidth = viewport.visualViewport?.width;
@@ -164,7 +157,7 @@ class Renderer {
     realFPS: number;
     isDebugInfoVisible: boolean;
     animatedTileCount: number;
-    highTileCount: number;
+    foregroundTileCount: number;
     tablet = false;
     mobile = false;
     fixFlickeringTimer: Timer;
@@ -207,7 +200,7 @@ class Renderer {
         this.isDebugInfoVisible = false;
 
         this.animatedTileCount = 0;
-        this.highTileCount = 0;
+        this.foregroundTileCount = 0;
 
         this.fixFlickeringTimer = new Timer(100);
         this.tileset = null;
@@ -831,11 +824,9 @@ class Renderer {
         const tilesetwidth = tileset.width / m.tilesize;
 
         this.game.forEachVisibleTile(function (id: number, index: number) {
-            if (shouldDrawTerrainTile(m, id)) {
-                // Keep a base terrain underlay even for animated ground tiles.
-                // This prevents faint seams when animated frames contain transparent edge pixels.
-                self.drawTile(self.background, id, tileset, tilesetwidth, m.width, index);
-            }
+            // Keep a base terrain underlay even for animated ground tiles.
+            // This prevents faint seams when animated frames contain transparent edge pixels.
+            self.drawTile(self.background, id, tileset, tilesetwidth, m.width, index);
         }, 1);
     }
 
@@ -869,7 +860,7 @@ class Renderer {
         this.drawAnimatedTiles(true);
     }
 
-    drawHighTiles(ctx: RendererContext2D): void {
+    drawForegroundTiles(ctx: RendererContext2D): void {
         const self = this;
         const m = this.game.map;
         if (!m) {
@@ -881,12 +872,10 @@ class Renderer {
         }
         const tilesetwidth = tileset.width / m.tilesize;
 
-        this.highTileCount = 0;
-        this.game.forEachVisibleTile(function (id: number, index: number) {
-            if (m.isHighTile(id)) {
-                self.drawTile(ctx, id, tileset, tilesetwidth, m.width, index);
-                self.highTileCount += 1;
-            }
+        this.foregroundTileCount = 0;
+        this.game.forEachVisibleForegroundTile(function (id: number, index: number) {
+            self.drawTile(ctx, id, tileset, tilesetwidth, m.width, index);
+            self.foregroundTileCount += 1;
         }, 1);
     }
 
@@ -914,7 +903,7 @@ class Renderer {
         if (this.isDebugInfoVisible) {
             this.drawFPS();
             this.drawText('A: ' + this.animatedTileCount, 100, 30, false);
-            this.drawText('H: ' + this.highTileCount, 140, 30, false);
+            this.drawText('F: ' + this.foregroundTileCount, 140, 30, false);
         }
     }
 
@@ -1016,7 +1005,7 @@ class Renderer {
             this.clearScreen(this.foreground);
             this.foreground.save();
             this.setCameraView(this.foreground);
-            this.drawHighTiles(this.foreground);
+            this.drawForegroundTiles(this.foreground);
             this.foreground.restore();
         }
     }
@@ -1046,7 +1035,7 @@ class Renderer {
         this.drawPathingCells();
         this.drawEntities();
         this.drawCombatInfo();
-        this.drawHighTiles(this.context);
+        this.drawForegroundTiles(this.context);
         this.context.restore();
 
         // Overlay UI elements

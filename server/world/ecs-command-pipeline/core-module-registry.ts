@@ -66,6 +66,7 @@ export type IntentWorldHost = Readonly<{
         width?: number;
         height?: number;
         isOutOfBounds?(x: number, y: number): boolean;
+        isSameNavigationIsland?(fromX: number, fromY: number, toX: number, toY: number): boolean;
     };
     getDefaultMapId?(): string;
     getMapById?(mapId: string): {
@@ -74,6 +75,7 @@ export type IntentWorldHost = Readonly<{
         width?: number;
         height?: number;
         isOutOfBounds?(x: number, y: number): boolean;
+        isSameNavigationIsland?(fromX: number, fromY: number, toX: number, toY: number): boolean;
     } | null;
     isValidPositionForMap?(mapId: string, x: number, y: number): boolean;
     resolveDoorTeleport?(mapId: string, x: number, y: number): Readonly<{ toMapId: string; to: { x: number; y: number } }> | null;
@@ -324,7 +326,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     }
 
                     const currentPos = ctx.Position.store.get(ctx.player.id) ?? gridPos(ctx.player.x, ctx.player.y);
-                    const currentMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world';
+                    const currentMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
                     const doorDestination = ctx.world.resolveDoorTeleport?.(currentMapId, currentPos.x, currentPos.y) ?? null;
                     if (!doorDestination) {
                         return;
@@ -374,7 +376,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     if (!ctx || !cmd) {
                         return;
                     }
-                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world';
+                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
                     if (isTileEditOutOfBounds({ world: ctx.world, mapId: actorMapId, x: cmd.x, y: cmd.y })) {
                         return { ok: false, reason: 'TILE_EDIT:out_of_bounds' };
                     }
@@ -412,7 +414,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     if (!ctx || !cmd) {
                         return;
                     }
-                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world';
+                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
                     return applyClaimCreateIntent({
                         state: ctx.state,
                         world: ctx.world,
@@ -428,7 +430,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     if (!ctx || !cmd) {
                         return;
                     }
-                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world';
+                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
                     return applyClaimUpdateIntent({
                         state: ctx.state,
                         world: ctx.world,
@@ -444,7 +446,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     if (!ctx || !cmd) {
                         return;
                     }
-                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world';
+                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
                     return applyClaimDeleteIntent({ state: ctx.state, world: ctx.world, player: ctx.player, cmd, mapId: actorMapId });
                 });
             },

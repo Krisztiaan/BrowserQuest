@@ -19,7 +19,7 @@ type WorldMapLike = Readonly<{
 }>;
 
 export function resolveDefaultMapId(world: Readonly<{ getDefaultMapId?(): string }>): string {
-    return world.getDefaultMapId?.() ?? 'world';
+    return world.getDefaultMapId?.() ?? 'world_01';
 }
 
 export function resolveEntityMapId({

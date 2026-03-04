@@ -10,6 +10,7 @@ type MapPackConfig = Readonly<{
     maps: ReadonlyArray<Readonly<{ id: string; filepath: string }>>;
     edges: ReadonlyArray<MapGraphEdge>;
     worldFilepath?: string;
+    allowMissingTargetMaps?: boolean;
 }>;
 
 function fail(message: string): never {
@@ -34,6 +35,10 @@ function asNonEmptyString(value: unknown): string | null {
     return value;
 }
 
+function asBoolean(value: unknown): boolean | null {
+    return typeof value === 'boolean' ? value : null;
+}
+
 function toPosixPath(value: string): string {
     return value.split(path.sep).join('/');
 }
@@ -52,6 +57,73 @@ function mapIdFromFilename(filePath: string): string {
 async function readJsonFile(filePath: string): Promise<unknown> {
     const content = await fs.readFile(filePath, 'utf8');
     return JSON.parse(content) as unknown;
+}
+
+async function inlineTilesetSources({
+    tiled,
+    mapFilepath,
+    tilesetCache,
+}: {
+    tiled: unknown;
+    mapFilepath: string;
+    tilesetCache: Map<string, unknown>;
+}): Promise<unknown> {
+    const root = asRecord(tiled);
+    if (!root) {
+        return tiled;
+    }
+    const tilesetsRaw = asArray(root.tilesets);
+    if (tilesetsRaw.length === 0) {
+        return tiled;
+    }
+
+    const mapDir = path.dirname(mapFilepath);
+    let changed = false;
+    const nextTilesets: unknown[] = [];
+
+    for (let i = 0; i < tilesetsRaw.length; i += 1) {
+        const rawEntry = tilesetsRaw[i];
+        const entry = asRecord(rawEntry);
+        if (!entry) {
+            nextTilesets.push(rawEntry);
+            continue;
+        }
+        const source = asNonEmptyString(entry.source);
+        if (!source) {
+            nextTilesets.push(rawEntry);
+            continue;
+        }
+
+        const firstgid = typeof entry.firstgid === 'number' && Number.isFinite(entry.firstgid) ? entry.firstgid : null;
+        if (firstgid === null) {
+            fail(
+                `Invalid tileset entry in ${toPosixPath(path.relative(process.cwd(), mapFilepath))}: tileset source="${source}" is missing firstgid.`
+            );
+        }
+
+        const resolved = path.resolve(mapDir, source);
+        let tsj = tilesetCache.get(resolved);
+        if (!tsj) {
+            tsj = await readJsonFile(resolved);
+            tilesetCache.set(resolved, tsj);
+        }
+        const tsjRecord = asRecord(tsj);
+        if (!tsjRecord) {
+            fail(
+                `Invalid tileset source "${source}" referenced by ${toPosixPath(path.relative(process.cwd(), mapFilepath))}: expected JSON object.`
+            );
+        }
+
+        // Inline tileset metadata so `processMap` can read `name` and `tiles` consistently.
+        nextTilesets.push({ ...tsjRecord, firstgid });
+        changed = true;
+    }
+
+    if (!changed) {
+        return tiled;
+    }
+
+    return { ...root, tilesets: nextTilesets };
 }
 
 function parseConfig(configPath: string, raw: unknown): MapPackConfig {
@@ -87,11 +159,13 @@ function parseConfig(configPath: string, raw: unknown): MapPackConfig {
 
     const worldFilepathRaw = asNonEmptyString(root.world_filepath);
     const worldFilepath = worldFilepathRaw ? resolveAgainstConfig(configPath, worldFilepathRaw) : undefined;
+    const allowMissingTargetMaps = asBoolean(root.allow_missing_target_maps) ?? false;
 
     return {
         maps: explicitMaps,
         edges,
         worldFilepath,
+        allowMissingTargetMaps,
     };
 }
 
@@ -136,6 +210,7 @@ async function compilePackFromConfig(configPath: string): Promise<{ json: string
 
     const seenMapIds = new Set<string>();
     const inputs: MapPackBuildMapInput[] = [];
+    const tilesetCache = new Map<string, unknown>();
     for (let i = 0; i < allMaps.length; i += 1) {
         const mapEntry = allMaps[i];
         if (!mapEntry) {
@@ -146,7 +221,12 @@ async function compilePackFromConfig(configPath: string): Promise<{ json: string
         }
         seenMapIds.add(mapEntry.id);
 
-        const tiled = await readJsonFile(mapEntry.filepath);
+        const tiledRaw = await readJsonFile(mapEntry.filepath);
+        const tiled = await inlineTilesetSources({
+            tiled: tiledRaw,
+            mapFilepath: mapEntry.filepath,
+            tilesetCache,
+        });
         inputs.push({
             id: mapEntry.id,
             tiled,
@@ -157,6 +237,7 @@ async function compilePackFromConfig(configPath: string): Promise<{ json: string
     const pack = compileMapPack({
         maps: inputs,
         edges: parsed.edges,
+        allowMissingTargetMaps: parsed.allowMissingTargetMaps,
     });
 
     const outputPath = path.resolve(path.dirname(configPath), '../runtime/map-pack.json');

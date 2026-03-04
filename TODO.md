@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-02-25 17:37 UTC
+Last updated: 2026-02-25 19:54 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -16,4 +16,4 @@ Definition of done (per ticket):
 
 Cycle objective: improve movement netcode feel based on the external review without regressing current server-authoritative ECS behavior.
 
-- No active tickets in this cycle.
+No active tickets.

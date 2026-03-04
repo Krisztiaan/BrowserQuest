@@ -411,7 +411,7 @@ class Game extends Evented<GameEvents> {
         this.bubbleManager = bubbleManager;
     }
 
-    loadMap(mapId = this.kernel.activeMapId ?? 'world'): void {
+    loadMap(mapId = this.kernel.activeMapId ?? 'world_01'): void {
         const renderer = this.renderer;
         const map = new GameMap(!renderer.upscaledRendering, this, mapId);
         this.map = map;
@@ -1017,13 +1017,49 @@ class Game extends Evented<GameEvents> {
             const y = Math.floor(tileIndex / map.width);
             const overlayValue = this.kernel.clientChunkOverlayCache.getGlobal(x, y);
             if (overlayValue !== null) {
-                if (overlayValue > 0) {
-                    callback(overlayValue - 1, tileIndex);
+                const overlayTileId = overlayValue - 1;
+                if (overlayValue > 0 && !map.isForegroundTileId(overlayTileId)) {
+                    callback(overlayTileId, tileIndex);
                 }
                 return;
             }
 
             const tileData = map.data[tileIndex];
+            if (tileData === undefined) {
+                return;
+            }
+            if (Array.isArray(tileData)) {
+                tileData.forEach((id: number) => {
+                    callback(id - 1, tileIndex);
+                });
+                return;
+            }
+
+            if (typeof tileData === 'number' && !Number.isNaN(tileData - 1)) {
+                callback(tileData - 1, tileIndex);
+            }
+        }, extra);
+    }
+
+    forEachVisibleForegroundTile(callback: (tileId: number, tileIndex: number) => void, extra: number) {
+        const map = this.map;
+        if (!map?.isLoaded) {
+            return;
+        }
+
+        this.forEachVisibleTileIndex((tileIndex: number) => {
+            const x = tileIndex % map.width;
+            const y = Math.floor(tileIndex / map.width);
+            const overlayValue = this.kernel.clientChunkOverlayCache.getGlobal(x, y);
+            if (overlayValue !== null) {
+                const overlayTileId = overlayValue - 1;
+                if (overlayValue > 0 && map.isForegroundTileId(overlayTileId)) {
+                    callback(overlayTileId, tileIndex);
+                }
+                return;
+            }
+
+            const tileData = map.foreground[tileIndex];
             if (tileData === undefined) {
                 return;
             }
@@ -1064,6 +1100,9 @@ class Game extends Evented<GameEvents> {
         const map = this.map;
 
         if (!map || map.isColliding(x, y)) {
+            return path;
+        }
+        if (!map.isSameNavigationIsland(character.gridX, character.gridY, x, y)) {
             return path;
         }
 

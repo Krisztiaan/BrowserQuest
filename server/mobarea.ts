@@ -19,15 +19,15 @@ interface MobAreaWorldContract extends AreaWorldContract {
 }
 
 class MobArea extends Area {
-    nb: number;
-    kind: EntityKindName;
+    spawnCount: number;
+    mobKind: EntityKindName;
     nextMobId: () => EntityId;
     declare world: MobAreaWorldContract;
 
     constructor(
         id: number | string,
-        nb: number,
-        kind: EntityKindName,
+        spawnCount: number,
+        mobKind: EntityKindName,
         x: number,
         y: number,
         width: number,
@@ -37,22 +37,22 @@ class MobArea extends Area {
     ) {
         super(id, x, y, width, height, world);
         this.world = world;
-        this.nb = nb;
-        this.kind = kind;
+        this.spawnCount = spawnCount;
+        this.mobKind = mobKind;
         this.nextMobId = nextMobId;
-        this.setNumberOfEntities(this.nb);
+        this.setNumberOfEntities(this.spawnCount);
 
         //this.initRoaming();
     }
 
     spawnMobs(): void {
-        for (let i = 0; i < this.nb; i += 1) {
+        for (let i = 0; i < this.spawnCount; i += 1) {
             this.addToArea(this._createMobInsideArea());
         }
     }
 
     _createMobInsideArea(): MobAreaMobContract {
-        const k = Types.getKindFromString(this.kind) as EntityKindId;
+        const k = Types.getKindFromString(this.mobKind) as EntityKindId;
         const pos = this._getRandomPositionInsideArea();
         const mob = new MobEntity(this.nextMobId(), k, pos.x, pos.y);
 

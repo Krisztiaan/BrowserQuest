@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object class="MusicZone" width="128" height="128">
+  <properties>
+   <property name="track_id" type="string" value="village"/>
+  </properties>
+ </object>
+</template>

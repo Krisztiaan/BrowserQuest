@@ -12,11 +12,14 @@ type ClientRuntimeMap = {
     height: number;
     tilesize: number;
     data: Array<number | number[]>;
+    foreground: Array<number | number[]>;
     blocking: number[];
     plateau: number[];
+    navIslandByTile: number[];
+    navIslandCount: number;
+    primaryNavIslandId: number;
     musicAreas: Array<{ x: number; y: number; w: number; h: number; id: MusicKey }>;
     collisions: number[];
-    high: number[];
     animated: Record<number, { l?: number; d?: number }>;
     doors: RawMapRecord[];
     checkpoints: RawMapRecord[];
@@ -172,17 +175,22 @@ function normalizeClientRuntimeMap(value: unknown, mapId: string): ClientRuntime
     if (width === null || width <= 0 || height === null || height <= 0 || tilesize === null || tilesize <= 0) {
         throw new Error(`Invalid runtime map pack payload: map "${mapId}" width/height/tilesize must be positive integers.`);
     }
+    const navIslandCountRaw = asFiniteInteger(record.navIslandCount);
+    const primaryNavIslandIdRaw = asFiniteInteger(record.primaryNavIslandId);
 
     return {
         width,
         height,
         tilesize,
         data: normalizeTileData(record.data, `map "${mapId}" client.data`),
+        foreground: normalizeTileData(record.foreground, `map "${mapId}" client.foreground`),
         blocking: normalizeNumberArray(record.blocking ?? [], `map "${mapId}" client.blocking`),
         plateau: normalizeNumberArray(record.plateau ?? [], `map "${mapId}" client.plateau`),
+        navIslandByTile: normalizeNumberArray(record.navIslandByTile ?? [], `map "${mapId}" client.navIslandByTile`),
+        navIslandCount: navIslandCountRaw ?? 0,
+        primaryNavIslandId: primaryNavIslandIdRaw ?? 0,
         musicAreas: normalizeMusicAreas(record.musicAreas ?? [], `map "${mapId}" client.musicAreas`),
         collisions: normalizeNumberArray(record.collisions, `map "${mapId}" client.collisions`),
-        high: normalizeNumberArray(record.high, `map "${mapId}" client.high`),
         animated: normalizeAnimatedConfig(record.animated ?? {}, `map "${mapId}" client.animated`),
         doors: normalizeRawRecordArray(record.doors ?? [], `map "${mapId}" client.doors`),
         checkpoints: normalizeRawRecordArray(record.checkpoints ?? [], `map "${mapId}" client.checkpoints`),
@@ -210,8 +218,8 @@ async function ensureClientRuntimeMapsLoaded(): Promise<void> {
         if (!root) {
             throw new Error('Invalid runtime map pack payload: expected an object payload.');
         }
-        if (root.schemaVersion !== 1 || !Array.isArray(root.maps)) {
-            throw new Error('Invalid runtime map pack payload: expected schemaVersion=1 with maps array.');
+        if (root.schemaVersion !== 2 || !Array.isArray(root.maps)) {
+            throw new Error('Invalid runtime map pack payload: expected schemaVersion=2 with maps array.');
         }
 
         const payloadById = new Map<string, unknown>();
@@ -234,9 +242,19 @@ async function ensureClientRuntimeMapsLoaded(): Promise<void> {
         for (let i = 0; i < root.maps.length; i += 1) {
             const entry = asRecord(root.maps[i]);
             const mapId = asNonEmptyString(entry?.id);
-            if (mapId === 'world') {
+            if (mapId === 'world_01') {
                 defaultMapId = mapId;
                 break;
+            }
+        }
+        if (!defaultMapId) {
+            for (let i = 0; i < root.maps.length; i += 1) {
+                const entry = asRecord(root.maps[i]);
+                const mapId = asNonEmptyString(entry?.id);
+                if (mapId === 'world') {
+                    defaultMapId = mapId;
+                    break;
+                }
             }
         }
         defaultMapId ??= root.maps.length > 0 ? asNonEmptyString(asRecord(root.maps[0])?.id) : null;

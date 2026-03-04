@@ -135,7 +135,7 @@ export function applyMoveToIntentCommand({
     state.world.removeComponent(player.id, MoveQueue);
 
     const to = cmd.to;
-    const defaultMapId = world.getDefaultMapId?.() ?? 'world';
+    const defaultMapId = world.getDefaultMapId?.() ?? 'world_01';
     const currentMapId = MapId.store.get(player.id) ?? defaultMapId;
     const activeMap = world.getMapById?.(currentMapId) ?? world.map;
     const mapWidth = activeMap.width;
@@ -160,6 +160,12 @@ export function applyMoveToIntentCommand({
     };
     if (isOutOfBounds(to.x, to.y)) {
         return { ok: false, reason: 'Invalid move.to (out of bounds).' };
+    }
+    if (
+        typeof activeMap.isSameNavigationIsland === 'function'
+        && !activeMap.isSameNavigationIsland(currentPos.x, currentPos.y, to.x, to.y)
+    ) {
+        return { ok: false, reason: 'Invalid move.to (no path).' };
     }
 
     const grid = activeMap.grid;

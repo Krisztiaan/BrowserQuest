@@ -7,5 +7,339 @@
     "../../../client/public/img/1"
   ],
   "properties": [],
-  "propertyTypes": []
+  "propertyTypes": [
+    {
+      "id": 1,
+      "name": "DoorOrientation",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "u",
+        "r",
+        "d",
+        "l"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 2,
+      "name": "MobKind",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "agent",
+        "bat",
+        "boss",
+        "crab",
+        "deathknight",
+        "eye",
+        "goblin",
+        "goldenarmor",
+        "guard",
+        "king",
+        "octocat",
+        "ogre",
+        "priest",
+        "rat",
+        "rick",
+        "scientist",
+        "skeleton",
+        "skeleton2",
+        "snake",
+        "spectre",
+        "villagegirl",
+        "villager",
+        "wizard"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 3,
+      "name": "MusicTrackId",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "beach",
+        "boss",
+        "cave",
+        "desert",
+        "forest",
+        "lavaland",
+        "village"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "color": "#fffcaf3e",
+      "id": 100,
+      "members": [
+        {
+          "name": "orientation",
+          "propertyType": "DoorOrientation",
+          "type": "string",
+          "value": "d"
+        },
+        {
+          "name": "target_tx",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "target_ty",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "camera_tx",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "camera_ty",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "Door",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ffad7fa8",
+      "id": 101,
+      "members": [
+        {
+          "name": "orientation",
+          "propertyType": "DoorOrientation",
+          "type": "string",
+          "value": "d"
+        },
+        {
+          "name": "target_tx",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "target_ty",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "camera_tx",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "camera_ty",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "door_id",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "target_map",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "target_door",
+          "type": "string",
+          "value": ""
+        }
+      ],
+      "name": "Portal",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ff729fcf",
+      "id": 102,
+      "members": [
+        {
+          "name": "mob_kind",
+          "propertyType": "MobKind",
+          "type": "string",
+          "value": "rat"
+        },
+        {
+          "name": "mob_gid",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "EntitySpawn",
+      "type": "class",
+      "useAs": [
+        "object",
+        "tile"
+      ]
+    },
+    {
+      "color": "#ffe9b96e",
+      "id": 103,
+      "members": [
+        {
+          "name": "mob_kind",
+          "propertyType": "MobKind",
+          "type": "string",
+          "value": "rat"
+        },
+        {
+          "name": "count",
+          "type": "int",
+          "value": 1
+        }
+      ],
+      "name": "RoamingArea",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ff8ae234",
+      "id": 104,
+      "members": [
+        {
+          "name": "resource_gid",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "ResourceNode",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ffef2929",
+      "id": 105,
+      "members": [
+        {
+          "name": "items",
+          "type": "string",
+          "value": ""
+        }
+      ],
+      "name": "ChestSpawn",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ffcc0000",
+      "id": 106,
+      "members": [
+        {
+          "name": "items",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "spawn_tx",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "spawn_ty",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "ChestArea",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ff34e2e2",
+      "id": 107,
+      "members": [
+        {
+          "name": "zone_id",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "Zone",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ff729fcf",
+      "id": 108,
+      "members": [
+        {
+          "name": "zone_id",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "MobileZone",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ffad7fa8",
+      "id": 109,
+      "members": [
+        {
+          "name": "checkpoint_id",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "spawn",
+          "type": "bool",
+          "value": false
+        }
+      ],
+      "name": "Checkpoint",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ff5c3566",
+      "id": 110,
+      "members": [
+        {
+          "name": "track_id",
+          "propertyType": "MusicTrackId",
+          "type": "string",
+          "value": "village"
+        }
+      ],
+      "name": "MusicZone",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ffeeeeec",
+      "id": 111,
+      "members": [],
+      "name": "Foreground",
+      "type": "class",
+      "useAs": [
+        "layer"
+      ]
+    }
+  ]
 }

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object class="Checkpoint" width="16" height="16">
+  <properties>
+   <property name="checkpoint_id" type="int" value="0"/>
+   <property name="spawn" type="bool" value="false"/>
+  </properties>
+ </object>
+</template>
