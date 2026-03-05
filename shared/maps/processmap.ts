@@ -174,6 +174,16 @@ function getPropertyValue(value: { properties?: TiledProperty[] }, name: string)
     return property ? normalizeScalar(property.value) : undefined;
 }
 
+function getObjectClassName(object: TiledObject): string | undefined {
+    if (typeof object.class === 'string' && object.class.trim().length > 0) {
+        return object.class.trim();
+    }
+    if (typeof object.type === 'string' && object.type.trim().length > 0) {
+        return object.type.trim();
+    }
+    return undefined;
+}
+
 function isTileLayer(layer: TiledLayer): layer is TiledTileLayer {
     return layer.type === "tilelayer";
 }
@@ -218,21 +228,12 @@ function normalizeDoorPropertyName(name: string): string {
     }
 }
 
-function assertNoLegacyObjectType(layerName: string, object: TiledObject): void {
-    if (typeof object.type !== 'string' || object.type.trim().length === 0) {
-        return;
-    }
-    throw new Error(
-        `Legacy object type "${object.type}" is not supported in layer "${layerName}"; use object class instead.`
-    );
-}
-
 function assertObjectClassPresent(layerName: string, object: TiledObject): void {
-    if (typeof object.class === 'string' && object.class.trim().length > 0) {
+    if (typeof getObjectClassName(object) === 'string') {
         return;
     }
     const objectId = Number.isInteger(object.id) ? String(object.id) : 'no-id';
-    throw new Error(`Object ${objectId} in layer "${layerName}" is missing required class.`);
+    throw new Error(`Object ${objectId} in layer "${layerName}" is missing required class/type.`);
 }
 
 function toLayerTileData(layer: TiledTileLayer): number[] {
@@ -504,7 +505,6 @@ export default function processMap(
     for (const objectLayer of tiledLayers.filter(isObjectLayer)) {
         if (STRICT_OBJECT_CLASS_LAYERS.has(objectLayer.name)) {
             for (const objectRecord of objectLayer.objects ?? []) {
-                assertNoLegacyObjectType(objectLayer.name, objectRecord);
                 assertObjectClassPresent(objectLayer.name, objectRecord);
             }
         }
@@ -515,13 +515,24 @@ export default function processMap(
             for (const [i, area] of (objectLayer.objects ?? []).entries()) {
                 const count = getPropertyValue(area, "count");
                 const mobKind = getPropertyValue(area, "mob_kind");
+                const resolvedMobKindId =
+                    typeof mobKind === 'string' ? Types.getKindFromString(mobKind) : undefined;
+                const resolvedMobKind =
+                    typeof mobKind === 'string'
+                    && typeof resolvedMobKindId === 'number'
+                    && Types.isMob(resolvedMobKindId as Parameters<typeof Types.isMob>[0])
+                        ? mobKind
+                        : null;
+                if (resolvedMobKind === null) {
+                    continue;
+                }
                 roamingAreas[i] = {
                     id: i,
                     x: area.x / map.tilesize,
                     y: area.y / map.tilesize,
                     width: area.width / map.tilesize,
                     height: area.height / map.tilesize,
-                    mobKind,
+                    mobKind: resolvedMobKind,
                     count,
                 };
             }

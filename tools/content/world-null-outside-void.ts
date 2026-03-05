@@ -440,7 +440,8 @@ async function main(): Promise<void> {
                 return;
             }
             const neighborCost = currentCost + (blockerCost[neighbor] ?? 0);
-            if (neighborCost < reachableCost[neighbor]) {
+            const existingNeighborCost = reachableCost[neighbor] ?? Number.POSITIVE_INFINITY;
+            if (neighborCost < existingNeighborCost) {
                 reachableCost[neighbor] = neighborCost;
                 heap.push(neighbor, neighborCost);
             }
@@ -485,7 +486,8 @@ async function main(): Promise<void> {
             before += 1;
             totalBefore += 1;
             gidStats.before += 1;
-            if (reachableCost[index] <= occlusionDepth) {
+            const reachabilityCost = reachableCost[index] ?? Number.POSITIVE_INFINITY;
+            if (reachabilityCost <= occlusionDepth) {
                 layerData.data[index] = 0;
                 removed += 1;
                 totalRemoved += 1;
@@ -513,7 +515,8 @@ async function main(): Promise<void> {
     const outsideTargetCells = (() => {
         let count = 0;
         for (let index = 0; index < cellCount; index += 1) {
-            if (containsTarget[index] && reachableCost[index] <= occlusionDepth) {
+            const reachabilityCost = reachableCost[index] ?? Number.POSITIVE_INFINITY;
+            if (containsTarget[index] && reachabilityCost <= occlusionDepth) {
                 count += 1;
             }
         }
@@ -522,7 +525,8 @@ async function main(): Promise<void> {
     const outsideRemovableCells = (() => {
         let count = 0;
         for (let index = 0; index < cellCount; index += 1) {
-            if (containsRemovable[index] && reachableCost[index] <= occlusionDepth) {
+            const reachabilityCost = reachableCost[index] ?? Number.POSITIVE_INFINITY;
+            if (containsRemovable[index] && reachabilityCost <= occlusionDepth) {
                 count += 1;
             }
         }

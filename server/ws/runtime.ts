@@ -203,7 +203,10 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
             fetch: async (request, server) => {
                 const requestPath = parseRequestPathname(request.url);
                 if (requestPath === '/healthz') {
-                    return new Response(getHealthzResponseBody(), { status: 200 });
+                    const isReady = typeof this.statusProvider === 'function';
+                    return new Response(getHealthzResponseBody(isReady ? 'ok' : 'starting'), {
+                        status: isReady ? 200 : 503,
+                    });
                 }
                 if (requestPath === '/version') {
                     return new Response(getVersionResponseBody(), { status: 200 });

@@ -103,6 +103,7 @@ test('modern browser emits HELLO and CHAT protocol actions over live websocket',
         .poll(() => sentTypes.filter((type) => type === MSG_CHAT).length, { timeout: 20_000 })
         .toBeGreaterThan(0);
     await expect.poll(() => receivedChats.includes(message), { timeout: 20_000 }).toBe(true);
+    await expect(page.locator('#chatbox')).not.toHaveClass(/active/);
 });
 
 test('modern browser deterministic cross-zone control causes player movement', async ({ page }) => {

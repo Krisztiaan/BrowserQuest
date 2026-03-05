@@ -214,6 +214,92 @@ test('compileMapPack normalizes graph-linked door tx/ty to destination door coor
     expect(serverDoor?.ty).toBe(1);
 });
 
+test('compileMapPack accepts legacy object type metadata and skips invalid roaming-area mob kinds', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'world',
+                tiled: {
+                    width: 8,
+                    height: 8,
+                    tilewidth: 16,
+                    tilesets: [{ name: 'tilesheet', firstgid: 1, tiles: [] }],
+                    layers: [
+                        {
+                            name: 'background',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(64).fill(1),
+                        },
+                        {
+                            name: 'blocking',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(64).fill(0),
+                        },
+                        {
+                            name: 'resource_nodes',
+                            type: 'objectgroup',
+                            objects: [
+                                {
+                                    id: 1,
+                                    type: 'ResourceNode',
+                                    x: 16,
+                                    y: 16,
+                                    width: 16,
+                                    height: 16,
+                                    properties: [{ name: 'resource_gid', value: 1886 }],
+                                },
+                            ],
+                        },
+                        {
+                            name: 'roaming_areas',
+                            type: 'objectgroup',
+                            objects: [
+                                {
+                                    id: 2,
+                                    type: 'RoamingArea',
+                                    x: 32,
+                                    y: 32,
+                                    width: 16,
+                                    height: 16,
+                                    properties: [
+                                        { name: 'count', value: 1 },
+                                        { name: 'mob_kind', value: 'RoamingArea' },
+                                    ],
+                                },
+                            ],
+                        },
+                        {
+                            name: 'entity_spawns',
+                            type: 'objectgroup',
+                            objects: [
+                                {
+                                    id: 3,
+                                    type: 'EntitySpawn',
+                                    x: 48,
+                                    y: 48,
+                                    width: 16,
+                                    height: 16,
+                                    properties: [{ name: 'mob_kind', value: 'rat' }],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
+    });
+
+    const worldServer = pack.maps[0]?.server as {
+        roamingAreas?: unknown[];
+        staticEntities?: Record<string, string>;
+    };
+
+    expect(worldServer.roamingAreas ?? []).toEqual([]);
+    expect(worldServer.staticEntities).toEqual({ '27': 'rat' });
+});
+
 test('compileMapPack carves authored blocking to prevent trapped door soft-locks', () => {
     const width = 8;
     const height = 8;

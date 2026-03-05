@@ -127,6 +127,11 @@ Send a GET request to: `http://[host]:[port]/status`
 
 It will return a JSON array containing the number of players in all instanced worlds on this game server.
 
+`/healthz` returns readiness state for the gameplay world:
+
+- `200` with `{ "status": "ok" }` once worlds are ready
+- `503` with `{ "status": "starting" }` while startup is still incomplete
+
 WebSocket gameplay endpoint
 ---------------------------
 

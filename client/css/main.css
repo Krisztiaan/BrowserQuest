@@ -157,7 +157,7 @@ footer, header, hgroup, menu, nav, section {
     #population span:nth-child(1) {color:#FCE045;}
     #population.visible {opacity:1;pointer-events:auto;}
     
-    .barbutton {background:url('/img/1/barsheet.webp');image-rendering:-moz-crispt-edges;position:absolute;}
+    .barbutton {background:url('/img/1/barsheet.webp');image-rendering:-moz-crisp-edges;position:absolute;}
     
     #chatbox {background:url('/img/1/barsheet.webp');image-rendering:-moz-crisp-edges;position:absolute;left:50%;z-index:5;opacity:0;pointer-events:none;-moz-transition:0.2s bottom ease, 0.2s opacity linear;-webkit-transition:0.2s bottom ease, 0.2s opacity linear;-o-transition:0.2s bottom ease, 0.2s opacity linear;transition:0.2s bottom ease, 0.2s opacity linear;}
     #chatbox.active {opacity:1;pointer-events:auto;}

@@ -13,6 +13,17 @@ let app: App | null = null;
 let game: Game | null = null;
 let queuedResizeFrame: number | null = null;
 
+const isInteractiveTextTarget = (target: EventTarget | null): boolean => {
+    if (!(target instanceof HTMLElement)) {
+        return false;
+    }
+    return (
+        target instanceof HTMLInputElement
+        || target instanceof HTMLTextAreaElement
+        || target.isContentEditable
+    );
+};
+
 const scheduleUiResize = function (): void {
     if (queuedResizeFrame !== null) {
         return;
@@ -545,6 +556,9 @@ function initGame(): void {
 
             document.addEventListener('keydown', function (e: KeyboardEvent) {
                 const key = e.which;
+                if (!game.started || e.defaultPrevented || isInteractiveTextTarget(e.target)) {
+                    return;
+                }
 
                 if (key === 13) {
                     if (chatBox?.classList.contains('active')) {

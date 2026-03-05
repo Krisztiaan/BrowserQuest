@@ -68,7 +68,9 @@ Runtime Probes and Shutdown
 ---------------------------
 
 - `/status`: JSON world population distribution (existing contract)
-- `/healthz`: JSON liveness payload `{ "status": "ok" }`
+- `/healthz`: JSON readiness payload
+  - returns `200` with `{ "status": "ok" }` after worlds are ready
+  - returns `503` with `{ "status": "starting" }` while startup is still incomplete
 - `/version`: JSON version payload `{ "version": "<value>" }`
   - Source: `BQ_VERSION` env, fallback `npm_package_version`, fallback `"dev"`
 - Controlled shutdown signals:

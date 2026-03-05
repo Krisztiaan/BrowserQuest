@@ -4,8 +4,8 @@ export function getRuntimeVersion(): string {
     return typeof envVersion === 'string' && envVersion.length > 0 ? envVersion : 'dev';
 }
 
-export function getHealthzResponseBody(): string {
-    return JSON.stringify({ status: 'ok' });
+export function getHealthzResponseBody(status: 'ok' | 'starting' = 'ok'): string {
+    return JSON.stringify({ status });
 }
 
 export function getVersionResponseBody(): string {

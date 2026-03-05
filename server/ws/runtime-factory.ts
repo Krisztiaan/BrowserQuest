@@ -275,8 +275,9 @@ export function createWebSocketRuntimeClasses({
                 const requestPath = parseUrlPathname(request.url);
 
                 if (requestPath === '/healthz') {
-                    response.writeHead(200);
-                    response.write(getHealthzResponseBody());
+                    const isReady = typeof this.statusProvider === 'function';
+                    response.writeHead(isReady ? 200 : 503);
+                    response.write(getHealthzResponseBody(isReady ? 'ok' : 'starting'));
                     response.end();
                     return;
                 }

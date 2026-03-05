@@ -154,6 +154,9 @@ async function main(): Promise<void> {
     const sourceColorIndexByName = new Map<string, number>();
     for (let index = 0; index < sourceColors.length; index += 1) {
         const color = sourceColors[index];
+        if (!color) {
+            continue;
+        }
         const name = asString(color.name);
         if (!name || name.trim().length === 0) {
             continue;
