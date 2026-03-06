@@ -192,6 +192,84 @@ test('move.to respects stopAdjacentToTarget when the target tile is occupied by 
     expect(grid[1]?.[4]).toBe(0); // occupancy overlay must be restored
 });
 
+test('move.to ignores other players as occupancy blockers but still blocks on mobs', () => {
+    const state = new WorldState<Command, DomainEvent>();
+    const replication = registerSpawnReplicationComponents(state.world);
+    const movement = registerMovementComponents(state.world);
+
+    const Position = replication.Position;
+    const Kind = replication.Kind;
+    const MapId = state.world.components.register('MapId', new SparseSetStore<string>());
+
+    const grid = makeEmptyGrid(8, 8);
+    const world: IntentWorldHost = {
+        map: {
+            getDoorDestination: () => null,
+            grid,
+            width: 8,
+            height: 8,
+            isOutOfBounds: (x, y) => x < 0 || y < 0 || x >= 8 || y >= 8,
+        },
+        isValidPosition: (x, y) => x >= 0 && y >= 0 && x < 8 && y < 8 && grid[y]?.[x] === 0,
+    };
+
+    const playerId = state.world.createEntity();
+    state.world.addComponent(playerId, Position, gridPos(1, 1));
+    state.world.addComponent(playerId, Kind, Types.Entities.WARRIOR);
+
+    const otherPlayerId = state.world.createEntity();
+    state.world.addComponent(otherPlayerId, Position, gridPos(2, 1));
+    state.world.addComponent(otherPlayerId, Kind, Types.Entities.WARRIOR);
+
+    const res = applyMoveToIntentCommand({
+        state,
+        Position,
+        MapId,
+        Kind,
+        player: makePlayerLike(playerId, 1, 1),
+        movement,
+        world,
+        cmd: {
+            type: 'MOVE_TO',
+            source: { connectionId: 'c1', playerId },
+            to: gridPos(4, 1),
+            stopAdjacentToTarget: false,
+        },
+    });
+    expect(res).toBeUndefined();
+
+    const queueThroughPlayer = state.world.getComponent(playerId, movement.MoveQueue);
+    expect(queueThroughPlayer?.entries[0]).toEqual(gridPos(2, 1));
+
+    state.world.removeComponent(playerId, movement.MoveQueue);
+    state.world.removeComponent(otherPlayerId, Position);
+    state.world.removeComponent(otherPlayerId, Kind);
+
+    const mobId = state.world.createEntity();
+    state.world.addComponent(mobId, Position, gridPos(2, 1));
+    state.world.addComponent(mobId, Kind, Types.Entities.RAT);
+
+    const resBlocked = applyMoveToIntentCommand({
+        state,
+        Position,
+        MapId,
+        Kind,
+        player: makePlayerLike(playerId, 1, 1),
+        movement,
+        world,
+        cmd: {
+            type: 'MOVE_TO',
+            source: { connectionId: 'c1', playerId },
+            to: gridPos(4, 1),
+            stopAdjacentToTarget: false,
+        },
+    });
+    expect(resBlocked).toBeUndefined();
+
+    const queueAroundMob = state.world.getComponent(playerId, movement.MoveQueue);
+    expect(queueAroundMob?.entries[0]).not.toEqual(gridPos(2, 1));
+});
+
 test('move.to pathing uses constrained diagonal routing (keeps diagonal steps)', () => {
     const state = new WorldState<Command, DomainEvent>();
     const replication = registerSpawnReplicationComponents(state.world);

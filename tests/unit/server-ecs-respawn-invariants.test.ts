@@ -2,7 +2,10 @@ import { expect, test } from 'bun:test';
 import { entityIdFromWire } from '../../shared/domain/ids';
 import { gridPos } from '../../shared/domain/positions';
 import Types from '../../shared/gametypes-browser';
-import { WorldEcsCommandPipeline } from '../../server/world/ecs-command-pipeline';
+import {
+    PLAYER_RECENT_POSITION_HISTORY_RESOURCE,
+    WorldEcsCommandPipeline,
+} from '../../server/world/ecs-command-pipeline';
 import type { WorldMessage } from '../../server/world/contracts';
 
 function createPlayerLike(playerId: number) {
@@ -114,7 +117,7 @@ test('LOOT of a static item schedules respawn and destroys the item entity', () 
 
     pipeline.state.world.ensureEntity(player.id);
     pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, player.kind);
-    pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(1, 1));
+    pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(5, 4));
     pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, player.maxHitPoints);
     pipeline.state.world.addComponent(player.id, pipeline.combat.HitPoints, player.hitPoints);
 
@@ -130,6 +133,47 @@ test('LOOT of a static item schedules respawn and destroys the item entity', () 
         droppedItemId: itemId,
     });
 
+    pipeline.tick();
+
+    expect(scheduled.items.length).toBe(1);
+    expect(scheduled.items[0]?.itemId).toBe(itemId);
+    expect(pipeline.state.world.entities.isAlive(itemId)).toBe(false);
+});
+
+test('LOOT accepts recent authoritative proximity grace but rejects remote looting', () => {
+    const { world, player, scheduled } = createWorldHostStub();
+    const pipeline = new WorldEcsCommandPipeline(world as never);
+
+    pipeline.state.world.ensureEntity(player.id);
+    pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, player.kind);
+    pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(0, 0));
+    pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, player.maxHitPoints);
+    pipeline.state.world.addComponent(player.id, pipeline.combat.HitPoints, player.hitPoints);
+
+    const itemId = entityIdFromWire(9002);
+    pipeline.state.world.ensureEntity(itemId);
+    pipeline.state.world.addComponent(itemId, pipeline.replication.Kind, Types.Entities.FLASK);
+    pipeline.state.world.addComponent(itemId, pipeline.Position, gridPos(5, 5));
+    pipeline.state.world.addComponent(itemId, pipeline.items.StaticSpawnPos, gridPos(5, 5));
+
+    pipeline.enqueue({
+        type: 'LOOT',
+        source: { connectionId: 'conn', playerId: player.id },
+        droppedItemId: itemId,
+    });
+    pipeline.tick();
+
+    expect(scheduled.items.length).toBe(0);
+    expect(pipeline.state.world.entities.isAlive(itemId)).toBe(true);
+
+    pipeline.state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE).set(player.id, [
+        { pos: gridPos(5, 4), tick: pipeline.getTick() },
+    ]);
+    pipeline.enqueue({
+        type: 'LOOT',
+        source: { connectionId: 'conn', playerId: player.id },
+        droppedItemId: itemId,
+    });
     pipeline.tick();
 
     expect(scheduled.items.length).toBe(1);

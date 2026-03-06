@@ -12,12 +12,17 @@ import type { WorldState } from '../../ecs/world-state';
 import type { registerSpawnReplicationComponents } from '../../replication/spawn-replication';
 import type { PlayerLike } from '../player-like';
 import type { IntentWorldHost } from '../ecs-command-pipeline/core-module-registry';
+import { resolveServerMovementNetcodeConfig } from '../../movement-netcode-config';
 
 const MOVE_TO_MAX_QUEUE_ENTRIES = 64;
 const MOVE_TO_MAX_VISITED = 50_000;
 
 function shouldBlockForPathfinding(kind: EntityKind): boolean {
-    return Types.isPlayer(kind) || Types.isMob(kind) || Types.isNpc(kind) || Types.isChest(kind);
+    const config = resolveServerMovementNetcodeConfig();
+    if (Types.isPlayer(kind)) {
+        return !config.rollout.playerPathingIgnoresPlayers;
+    }
+    return Types.isMob(kind) || Types.isNpc(kind) || Types.isChest(kind);
 }
 
 function applyOccupancyOverlayToGrid({

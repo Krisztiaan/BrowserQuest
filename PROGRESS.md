@@ -105,6 +105,324 @@ Format per entry:
   - Next action:
     - None (ticket removed from `TODO.md`).
 
+## 2026-03-07
+
+- 10:44 UTC
+  - Ticket: 759 (Instrumentation, tuning, and staged rollout guardrails)
+  - Start timestamp: 2026-03-07 10:14 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added a shared movement tuning catalog in `shared/netcode/movement-tuning.ts` with explicit profiles for:
+      - farming/social traversal,
+      - combat proximity,
+      - minigame-critical movement.
+    - Added centralized client/server config resolvers:
+      - `client/movement-netcode-config.ts` reads rollout/profile overrides from browser globals,
+      - `server/movement-netcode-config.ts` reads rollout/profile overrides from environment variables.
+    - Wired rollout flags through the risky movement slices:
+      - local presentation motor,
+      - remote smoothing timeline,
+      - server move-step grace,
+      - server interaction/combat grace,
+      - player-nonblocking pathing.
+    - Replaced the remaining hardcoded movement/netcode constants in:
+      - client prediction,
+      - client presentation motor,
+      - client remote snapshot interpolation/extrapolation,
+      - server interaction grace history.
+    - Extended structured observability with:
+      - client `movement.config`,
+      - client `movement.remote_snap`,
+      - client `movement.local_prediction_teleport`,
+      - client `prediction.suppressed_snap`,
+      - client `prediction.hard_reconcile`,
+      - server `movement.config`,
+      - server `movement.move_step_grace_accepted`,
+      - server `movement.move_step_idempotent`,
+      - server `movement.move_step_grace_rejected`,
+      - server `interaction.loot_grace_accepted`,
+      - server `interaction.open_grace_accepted`,
+      - server profile fields on combat-start logs.
+    - Added focused config coverage for the new runtime surfaces on both client and server.
+    - Critical-review pass on the two likeliest regression points:
+      - remote teleport/discontinuity snap behavior was rechecked and fixed so the shared tuning still preserves the old no-extrapolation guardrail for large jumps,
+      - rollout-flag defaults were rechecked against existing movement/pathing regressions so default behavior still matches the intended post-refactor policy.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/server-log.test.ts tests/unit/client-movement-netcode-config.test.ts tests/unit/server-movement-netcode-config.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts`
+    - `bun test --timeout 30000 tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/client-pathing-dynamic-occupancy.test.ts tests/unit/mmo/server-move-to-intent.test.ts tests/unit/ecs/command-pipeline-move.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts`
+    - `bun x eslint client/gameclient.ts client/platform/log.ts client/movement-netcode-config.ts client/ecs/systems/client-simulation-system.ts client/ecs/systems/client-kernel-replication-sync-system.ts client/ecs/systems/client-move-input-prediction-system.ts client/runtime/pathing-dynamic-occupancy.ts client/ecs/world-kernel.ts server/log.ts server/movement-netcode-config.ts server/world/ecs-command-pipeline.ts server/world/intents/move-to-intent.ts shared/netcode/movement-tuning.ts tests/unit/client-movement-netcode-config.test.ts tests/unit/server-movement-netcode-config.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`; movement refactor roadmap cycle complete).
+
+- 10:22 UTC
+  - Ticket: 759 (Instrumentation, tuning, and staged rollout guardrails)
+  - Start timestamp: 2026-03-07 10:14 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Tightened Ticket 759 so the remaining scope is concrete and testable:
+      - central tuning surface for movement smoothing and interaction grace,
+      - rollout flags for the riskiest movement refactor slices,
+      - structured observability on correction, remote snap, and grace acceptance paths.
+    - Audited the existing hardcoded constants and confirmed they are still spread across:
+      - client prediction,
+      - client presentation motor,
+      - client replication/interpolation,
+      - server interaction/combat grace handling.
+    - Audited the current logs and identified the remaining evidence gaps:
+      - remote snap/discontinuity decisions are not yet logged,
+      - server move-step grace acceptance is not yet logged,
+      - grace-based interaction acceptance is implicit rather than explicit in logs,
+      - rollout/rollback policy is not yet represented as a central runtime surface.
+  - Evidence:
+    - `sed -n '1,260p' TODO.md`
+    - `sed -n '1,260p' PROGRESS.md`
+    - `sed -n '1,220p' client/ecs/systems/client-simulation-system.ts`
+    - `sed -n '1,220p' client/ecs/systems/client-kernel-replication-sync-system.ts`
+    - `sed -n '1,220p' client/ecs/systems/client-move-input-prediction-system.ts`
+    - `sed -n '240,380p' server/world/ecs-command-pipeline.ts`
+    - `sed -n '760,875p' server/world/ecs-command-pipeline.ts`
+    - `sed -n '1400,1705p' server/world/ecs-command-pipeline.ts`
+  - Next action:
+    - Add the shared tuning/rollout modules, wire them through the remaining client/server code paths, and lock the behavior with focused config/logging tests.
+
+- 10:06 UTC
+  - Ticket: 758 (Pathing occupancy policy and crowd-flow simplification)
+  - Start timestamp: 2026-03-07 09:54 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed players from client/server path-planning occupancy overlays:
+      - client dynamic occupancy overlay no longer blocks on players,
+      - server `move.to` occupancy overlay no longer blocks on players.
+    - Left mobs/NPCs/chests blocking, so the change is limited to crowd-flow simplification rather than a blanket occupancy removal.
+    - Confirmed the existing client command-apply path already behaved this way for player occupancy, so this change mainly aligned the reusable client overlay helper and the server planner with the de facto client policy.
+    - Added focused regressions proving:
+      - players do not block client path overlays,
+      - server `move.to` can path through another player,
+      - mobs still force rerouting.
+    - Critical-review pass on the main risk:
+      - the server regression explicitly keeps mob blocking intact,
+      - chest/NPC blocking behavior is unchanged because only `Types.isPlayer` was removed from the helper predicates.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-pathing-dynamic-occupancy.test.ts tests/unit/mmo/server-move-to-intent.test.ts tests/unit/ecs/command-pipeline-move.test.ts`
+    - `bun x eslint client/runtime/pathing-dynamic-occupancy.ts client/ecs/systems/client-command-apply-system.ts server/world/intents/move-to-intent.ts tests/unit/client-pathing-dynamic-occupancy.test.ts tests/unit/mmo/server-move-to-intent.test.ts`
+  - Next action:
+    - Start Ticket 759: instrumentation, tuning, and staged rollout guardrails.
+
+- 10:00 UTC
+  - Ticket: 758 (Pathing occupancy policy and crowd-flow simplification)
+  - Start timestamp: 2026-03-07 09:54 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Tightened Ticket 758 so the occupancy change is explicit and bounded:
+      - players become non-blocking for path planning,
+      - mobs/NPCs/chests remain blocking,
+      - collision/combat truth stays untouched.
+    - Audited current client/server occupancy behavior and confirmed the mismatch:
+      - client command-apply already skips player occupancy in pathing-grid updates,
+      - the shared client overlay helper still blocks players,
+      - server `move.to` overlay still blocks players.
+    - Scoped the implementation to the overlay helpers and their tests instead of touching movement simulation or combat systems again.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,260p' PROGRESS.md`
+    - `sed -n '1,240p' server/world/intents/move-to-intent.ts`
+    - `sed -n '1,260p' client/runtime/pathing-dynamic-occupancy.ts`
+    - `sed -n '1,220p' tests/unit/client-pathing-dynamic-occupancy.test.ts`
+    - `sed -n '1,260p' tests/unit/mmo/server-move-to-intent.test.ts`
+  - Next action:
+    - Remove players from client/server path occupancy overlays and add regressions proving crowd-pathing parity without changing mob/NPC/chest blocking.
+
+- 09:47 UTC
+  - Ticket: 757 (Combat and interaction grace for movement divergence)
+  - Start timestamp: 2026-03-07 09:31 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added authoritative recent-position history for players in the ECS command pipeline and kept it updated on:
+      - login/spawn seed,
+      - authoritative tile movement commits,
+      - teleports/map transitions,
+      - entity removal cleanup.
+    - Applied bounded grace to combat and interactions:
+      - player attack windup can start from recent authoritative in-range history,
+      - `LOOT` and `OPEN` now require explicit current-or-recent proximity instead of effectively unlimited server acceptance,
+      - player hit-frame damage still requires current authoritative range and does not use grace.
+    - Extended structured combat logging with:
+      - `inRangeWithGraceAtAccept`,
+      - `startedViaGrace`,
+      so accepted-vs-started grace cases are visible in live repro logs.
+    - Added focused regressions proving:
+      - attack windup can start from recent authoritative proximity without immediate damage,
+      - remote `OPEN`/`LOOT` attempts are rejected,
+      - the same interactions succeed when recent authoritative proximity history exists.
+    - Critical-review pass on the main risk:
+      - grace does not apply to hit-frame damage resolution,
+      - proximity checks for `LOOT`/`OPEN` are now explicit and bounded to current-or-recent adjacency rather than remaining unrestricted.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts tests/unit/ecs/server-attack-broadcast.test.ts tests/unit/ecs/command-pipeline-open-chest.test.ts tests/unit/server-ecs-respawn-invariants.test.ts`
+    - `bun x eslint client/ecs/systems/client-interaction-intent-system.ts server/world/ecs-command-pipeline.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts tests/unit/ecs/command-pipeline-open-chest.test.ts tests/unit/server-ecs-respawn-invariants.test.ts`
+  - Next action:
+    - Start Ticket 758: pathing occupancy policy and crowd-flow simplification.
+
+- 09:39 UTC
+  - Ticket: 757 (Combat and interaction grace for movement divergence)
+  - Start timestamp: 2026-03-07 09:31 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Tightened Ticket 757 around a more precise server contract:
+      - explicit proximity rules for `ATTACK`, `LOOT`, and `OPEN`,
+      - bounded recent-authoritative grace layered on top,
+      - no grace at player hit-frame damage resolution.
+    - Audited the current server behavior and found a larger consistency gap than expected:
+      - `ATTACK` windup start only looks at current authoritative range,
+      - `LOOT` and `OPEN` currently have no server proximity enforcement at all.
+    - Scoped the implementation to authoritative recent-position history plus proximity helpers in the ECS command pipeline, rather than widening client-side heuristics further.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,240p' PROGRESS.md`
+    - `sed -n '560,900p' server/world/ecs-command-pipeline.ts`
+    - `sed -n '1400,1735p' server/world/ecs-command-pipeline.ts`
+    - `sed -n '150,280p' tests/unit/ecs/combat-hitframe-state-machine.test.ts`
+    - `sed -n '1,220p' tests/unit/ecs/command-pipeline-open-chest.test.ts`
+  - Next action:
+    - Add bounded authoritative recent-position history, apply it to attack windup and interaction acceptance, and lock the behavior with focused tests.
+
+- 09:25 UTC
+  - Ticket: 756 (Server validation envelopes and correction policy)
+  - Start timestamp: 2026-03-07 09:12 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added a narrow server-side grace path for `move.step` intents in `applyMoveIntentCommand`:
+      - stale queued baselines are pruned when the requested tile is still adjacent to the current authoritative tile and is valid for the map,
+      - already-queued target tiles are treated as idempotent replays instead of immediate rejects.
+    - Kept the trust boundary strict:
+      - blocked tiles still reject,
+      - multi-tile jumps still reject,
+      - true seq errors still reject and correct as before.
+    - Added focused regressions proving:
+      - stale queued baselines no longer force a correction when the requested step is still plausible from current authority,
+      - replayed already-queued move targets ack cleanly instead of generating correction churn.
+    - Critical-review pass on the main risk:
+      - the new grace path still gates on `isValidPositionInMap`, so it cannot admit blocked or out-of-bounds tiles,
+      - only current-authoritative adjacency or current-tile repeats qualify.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/command-pipeline-move.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+    - `bun x eslint server/world/ecs-command-pipeline.ts server/world/intents/move-to-intent.ts tests/unit/mmo/server-seq-idempotency.test.ts`
+  - Next action:
+    - Start Ticket 757: combat and interaction grace for movement divergence, now that the local motor, remote smoothing, and server movement acceptance envelope are all in place.
+
+- 09:19 UTC
+  - Ticket: 756 (Server validation envelopes and correction policy)
+  - Start timestamp: 2026-03-07 09:12 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Tightened Ticket 756 so the implementation target is explicit:
+      - narrow server-side grace for plausible `move.step` divergence,
+      - no relaxation of blocked-tile or multi-tile validation,
+      - reduced correction churn from stale queued baselines and harmless replays.
+    - Audited the current server movement path and confirmed the main correction-spam source is the `move.step` bridge:
+      - baseline is always the tail of the authoritative queue,
+      - any mismatch is rejected immediately,
+      - corrections are emitted even when the requested tile is still adjacent to the current authoritative tile.
+    - Scoped the server change to `applyMoveIntentCommand` and seq/idempotency coverage, leaving `move.to` path policy untouched for Ticket 758.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,220p' PROGRESS.md`
+    - `sed -n '660,760p' server/world/ecs-command-pipeline.ts`
+    - `sed -n '1780,1975p' server/world/ecs-command-pipeline.ts`
+    - `sed -n '130,240p' tests/unit/mmo/server-seq-idempotency.test.ts`
+  - Next action:
+    - Patch the bounded `move.step` grace rules and add regression coverage for stale-queue acceptance vs true invalid jumps.
+
+- 09:08 UTC
+  - Ticket: 755 (Remote player buffered interpolation and short extrapolation)
+  - Start timestamp: 2026-03-07 08:52 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Extended the kernel remote snapshot timeline so it now:
+      - keeps a slightly deeper bounded history,
+      - ignores stale out-of-order packets,
+      - replaces duplicate-tick packets in place,
+      - extrapolates only a short undershooting horizon beyond the newest snapshot.
+    - Added discontinuity protection in two places:
+      - the kernel stops extrapolating across large remote jumps,
+      - replication sync now flags large remote presentation jumps with `snapRender` so teleports do not get smoothed as normal motion.
+    - Added focused regressions covering:
+      - delayed interpolation,
+      - stale-packet rejection,
+      - bounded extrapolation,
+      - discontinuity snap behavior.
+    - Critical-review pass focused on the two likely failure points:
+      - stale packet ordering now fails closed by ignoring older ticks instead of rewinding presentation,
+      - large remote jumps still snap because both the timeline and replication layer treat them as discontinuities.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts`
+    - `bun x eslint client/ecs/world-kernel.ts client/ecs/systems/client-kernel-replication-sync-system.ts tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts`
+  - Next action:
+    - Start Ticket 756: server validation envelopes and correction policy, now that local and remote presentation paths are separated and explicitly tested.
+
+- 09:00 UTC
+  - Ticket: 755 (Remote player buffered interpolation and short extrapolation)
+  - Start timestamp: 2026-03-07 08:52 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Tightened Ticket 755 so the remote slice has explicit boundaries around:
+      - stale/out-of-order snapshot handling,
+      - short-horizon extrapolation,
+      - discontinuity snapping.
+    - Audited the current remote path and confirmed it is still basic delayed interpolation only:
+      - no bounded extrapolation after the newest snapshot,
+      - no out-of-order packet rejection,
+      - no explicit remote snap policy apart from later renderer behavior.
+    - Scoped the implementation to the kernel timeline helper plus replication sync, avoiding overlap with the already-landed local motor work.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,220p' PROGRESS.md`
+    - `sed -n '1,260p' client/ecs/systems/client-kernel-replication-sync-system.ts`
+    - `sed -n '620,760p' client/ecs/world-kernel.ts`
+    - `sed -n '1,260p' tests/unit/client-kernel-despawn-sync.test.ts`
+  - Next action:
+    - Patch remote snapshot history/interpolation behavior and add regression coverage for extrapolation, stale packets, and discontinuity snapping.
+
+- 08:44 UTC
+  - Ticket: 754 (Local player presentation motor and immediate-response movement)
+  - Start timestamp: 2026-03-07 08:24 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Routed local `move.input` prediction through kernel presentation-target state so new input resumes from the intended local motion track instead of a stale rendered/auth snapshot.
+    - Added a stronger local presentation motor in `client-simulation-system.ts`:
+      - active local input uses a tighter catch-up tau than remotes,
+      - modest local drift accelerates more aggressively without snapping,
+      - local path-stepping keeps the same presentation-target surface updated during step interpolation.
+    - Added focused regressions proving:
+      - move-input prediction resumes from the local presentation target,
+      - local simulation advances the active local player faster than the remote interpolation path under the same displacement.
+    - Updated the simulation host test fixture to include explicit `playerId` parity with the production host contract.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/client-simulation-system.test.ts`
+    - `bun x eslint client/ecs/systems/client-move-input-prediction-system.ts client/ecs/systems/client-command-apply-system.ts client/ecs/systems/client-simulation-system.ts tests/unit/ecs/client-simulation-system.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/ecs/client-auto-aggro-system.test.ts`
+  - Next action:
+    - Start Ticket 755: remote buffered interpolation and short extrapolation, now that local presentation has its own distinct motor behavior.
+
+- 08:31 UTC
+  - Ticket: 754 (Local player presentation motor and immediate-response movement)
+  - Start timestamp: 2026-03-07 08:24 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Re-read the active movement roadmap and tightened Ticket 754 so the next slice has explicit implementation boundaries instead of a broad “make it smoother” goal.
+    - Confirmed the current coupling point: local `move.input` prediction still writes straight into the legacy entity target/render flow, while local `move.to` path-stepping updates renderer state separately.
+    - Scoped the implementation around three concrete changes:
+      - move-input should update kernel presentation-target state first,
+      - local simulation should use a stronger distance-aware presentation motor than remotes,
+      - local path-stepping should keep the same presentation surfaces warm so later tickets can tune one model.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,260p' PROGRESS.md`
+    - `sed -n '1,260p' client/ecs/systems/client-move-input-prediction-system.ts`
+    - `sed -n '1,320p' client/ecs/systems/client-simulation-system.ts`
+    - `sed -n '1160,1275p' client/ecs/systems/client-command-apply-system.ts`
+  - Next action:
+    - Patch the local movement presentation path and add focused regression coverage for the new local motor behavior.
+
 - 21:24 UTC
   - Ticket: 752 (Verify and document attack-start alignment)
   - Start timestamp: 2026-03-06 21:24 UTC

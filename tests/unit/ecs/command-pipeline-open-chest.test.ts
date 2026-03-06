@@ -3,7 +3,10 @@ import Types from '../../../shared/gametypes-browser';
 import { entityIdFromWire } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
 import Player from '../../../server/player';
-import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
+import {
+    PLAYER_RECENT_POSITION_HISTORY_RESOURCE,
+    WorldEcsCommandPipeline,
+} from '../../../server/world/ecs-command-pipeline';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
 
 function createTestPlayer(wireId: number): Player {
@@ -24,6 +27,7 @@ function createTestPlayer(wireId: number): Player {
 
 test('OPEN uses ECS chest loot table + ECS Position (not legacy fields)', () => {
     const player = createTestPlayer(100);
+    player.setPosition(5, 5);
     const chest = {
         id: entityIdFromWire(900),
         kind: Types.Entities.CHEST,
@@ -127,4 +131,98 @@ test('OPEN uses ECS chest loot table + ECS Position (not legacy fields)', () => 
     expect(pipeline.state.world.entities.isAlive(chest.id)).toBe(false);
     expect(spawned).toEqual([{ kind: Types.Entities.AXE, x: 5, y: 6 }]);
     expect(despawnScheduled.length).toBe(1);
+});
+
+test('OPEN accepts recent authoritative proximity grace but rejects remote opens', () => {
+    const player = createTestPlayer(101);
+    const chestId = entityIdFromWire(901);
+    const spawned: Array<{ kind: EntityKind; x: number; y: number }> = [];
+
+    const host = {
+        ups: 5,
+        map: {
+            getCheckpoint() {
+                return null;
+            },
+            isDoor() {
+                return false;
+            },
+            getDoorDestination() {
+                return null;
+            },
+            getGroupIdFromPosition() {
+                return 'g';
+            },
+            forEachAdjacentGroup(_groupId: string | null | undefined, cb: (groupId: string) => void) {
+                cb('g');
+            },
+        },
+        getConnectionPlayerById(id: number) {
+            return id === player.id ? player : null;
+        },
+        removeEntityFromAreas() {},
+        scheduleMobRespawn() {},
+        scheduleStaticItemRespawn() {},
+        getEntityById() {
+            return null;
+        },
+        addPlayer() {},
+        emitPlayerEnter() {},
+        isPlayerActive() {
+            return true;
+        },
+        pushSpawnsToPlayerId() {},
+        isValidPosition() {
+            return true;
+        },
+        getDroppedItem() {
+            return null;
+        },
+        handleItemDespawn() {},
+        moveEntity() {},
+        removeEntity() {},
+        addItemFromChest(kind: EntityKind, x: number, y: number) {
+            spawned.push({ kind, x, y });
+            return { id: entityIdFromWire(902) };
+        },
+        pushToPlayerId() {},
+        persistPlayerEquipment() {},
+        persistPlayerCheckpoint() {},
+        persistPlayerAchievementUnlock() {},
+        recordPlayerMobKill() {},
+        recordPlayerDamageTaken() {},
+        recordPlayerRevive() {},
+    };
+
+    const pipeline = new WorldEcsCommandPipeline(host as never);
+    pipeline.state.world.ensureEntity(player.id);
+    pipeline.state.world.addComponent(player.id, pipeline.replication.Kind, player.kind);
+    pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(0, 0));
+
+    pipeline.state.world.ensureEntity(chestId);
+    pipeline.state.world.addComponent(chestId, pipeline.replication.Kind, Types.Entities.CHEST);
+    pipeline.state.world.addComponent(chestId, pipeline.Position, gridPos(5, 6));
+    pipeline.state.world.addComponent(chestId, pipeline.chests.ChestLootTable, {
+        items: [Types.Entities.SWORD1],
+    });
+
+    pipeline.enqueue({
+        type: 'OPEN',
+        source: { connectionId: String(player.id), playerId: player.id },
+        chestId,
+    });
+    pipeline.tick();
+    expect(spawned).toEqual([]);
+
+    pipeline.state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE).set(player.id, [
+        { pos: gridPos(5, 5), tick: pipeline.getTick() },
+    ]);
+    pipeline.enqueue({
+        type: 'OPEN',
+        source: { connectionId: String(player.id), playerId: player.id },
+        chestId,
+    });
+    pipeline.tick();
+
+    expect(spawned).toEqual([{ kind: Types.Entities.SWORD1, x: 5, y: 6 }]);
 });

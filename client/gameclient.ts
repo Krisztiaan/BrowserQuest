@@ -75,6 +75,7 @@ import {
 } from '../shared/protocol/intents';
 import { nextIntentSeq } from '../shared/protocol/intent-seq';
 import { debugMoves } from './debug-flags';
+import { resolveClientMovementNetcodeConfig } from './movement-netcode-config';
 
 function isRecord(value: JsonValue | object | null | undefined): value is Record<string, JsonValue> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -209,6 +210,12 @@ class GameClient extends Evented<GameClientEvents> {
         this.isTimeout = false;
         this.kernel = kernel ?? new ClientWorldKernel();
         this.handlers = createGameClientInboundHandlers(this);
+        const movementConfig = resolveClientMovementNetcodeConfig();
+        logProtocolInfo('movement.config', {
+            profile: movementConfig.profileId,
+            profileLabel: movementConfig.profileLabel,
+            rollout: movementConfig.rollout,
+        });
 
         this.enable();
     }

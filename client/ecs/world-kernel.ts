@@ -9,6 +9,7 @@ import { tileToWorldPosCenter, worldPos, worldPosToTile, type WorldPos } from '.
 import type { ClientCommand } from './client-commands';
 import type { ClientRuntimeEvent } from './runtime-events';
 import { ClientChunkOverlayCache } from '../world/chunks/client-chunk-overlay-cache';
+import { resolveClientMovementNetcodeConfig } from '../movement-netcode-config';
 
 export type KernelEntityType = 'player' | 'mob' | 'simple';
 
@@ -95,8 +96,6 @@ export type ClientRemoteStateSnapshot = Readonly<{
     tick: number;
     receivedAtMs: number;
 }>;
-
-const REMOTE_STATE_SNAPSHOT_HISTORY_LIMIT = 4;
 
 function cellKey(x: number, y: number): string {
     return `${x},${y}`;
@@ -648,6 +647,7 @@ export class ClientWorldKernel {
         if (!this.alive.has(id)) {
             return;
         }
+        const tuning = resolveClientMovementNetcodeConfig().tuning;
 
         const snapshot: ClientRemoteStateSnapshot = {
             worldX,
@@ -663,18 +663,25 @@ export class ClientWorldKernel {
         }
 
         const last = history[history.length - 1];
-        if (last?.worldX === snapshot.worldX && last.worldY === snapshot.worldY) {
+        if (last && snapshot.tick < last.tick) {
+            return;
+        }
+
+        if (last?.tick === snapshot.tick) {
+            history[history.length - 1] = snapshot;
+        } else if (last?.worldX === snapshot.worldX && last.worldY === snapshot.worldY) {
             history[history.length - 1] = snapshot;
         } else {
             history.push(snapshot);
         }
 
-        if (history.length > REMOTE_STATE_SNAPSHOT_HISTORY_LIMIT) {
-            history.splice(0, history.length - REMOTE_STATE_SNAPSHOT_HISTORY_LIMIT);
+        if (history.length > tuning.remoteSnapshotHistoryLimit) {
+            history.splice(0, history.length - tuning.remoteSnapshotHistoryLimit);
         }
     }
 
     getClientRemoteInterpolatedWorldPosition(id: EntityId, nowMs: number, interpolationDelayMs: number): WorldPos | null {
+        const tuning = resolveClientMovementNetcodeConfig().tuning;
         const history = this.clientRemoteStateSnapshots.get(id);
         if (!history || history.length === 0) {
             return null;
@@ -698,7 +705,39 @@ export class ClientWorldKernel {
             return null;
         }
         if (renderTime >= last.receivedAtMs) {
-            return worldPos(last.worldX, last.worldY);
+            if (history.length < 2) {
+                return worldPos(last.worldX, last.worldY);
+            }
+
+            const previous = history[history.length - 2];
+            if (!previous) {
+                return worldPos(last.worldX, last.worldY);
+            }
+
+            const span = last.receivedAtMs - previous.receivedAtMs;
+            if (span <= 0) {
+                return worldPos(last.worldX, last.worldY);
+            }
+
+            const deltaX = last.worldX - previous.worldX;
+            const deltaY = last.worldY - previous.worldY;
+            const discontinuity = Math.max(Math.abs(deltaX), Math.abs(deltaY));
+            if (discontinuity > tuning.remoteSnapshotDiscontinuitySubpx) {
+                return worldPos(last.worldX, last.worldY);
+            }
+
+            const extrapolationMs = Math.min(
+                Math.max(0, renderTime - last.receivedAtMs),
+                Math.min(tuning.remoteExtrapolationMaxMs, span)
+            );
+            if (extrapolationMs <= 0) {
+                return worldPos(last.worldX, last.worldY);
+            }
+
+            const t = (extrapolationMs / span) * tuning.remoteExtrapolationUndershoot;
+            const extrapolatedX = Math.round(last.worldX + deltaX * t);
+            const extrapolatedY = Math.round(last.worldY + deltaY * t);
+            return worldPos(extrapolatedX, extrapolatedY);
         }
 
         for (let i = 1; i < history.length; i += 1) {

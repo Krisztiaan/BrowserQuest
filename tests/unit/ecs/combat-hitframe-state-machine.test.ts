@@ -2,7 +2,10 @@ import { expect, test } from 'bun:test';
 import Types from '../../../shared/gametypes-browser';
 import { entityIdFromWire } from '../../../shared/domain/ids';
 import { gridPos } from '../../../shared/domain/positions';
-import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
+import {
+    PLAYER_RECENT_POSITION_HISTORY_RESOURCE,
+    WorldEcsCommandPipeline,
+} from '../../../server/world/ecs-command-pipeline';
 
 function createPipelineFixture() {
     const player = {
@@ -219,6 +222,36 @@ test('player ATTACK broadcast starts when windup really starts, not on out-of-ra
     pipeline.state.world.addComponent(mobId, pipeline.Position, gridPos(1, 0));
     pipeline.tick(); // now in range -> start windup and broadcast ATTACK
 
+    expect(host.pushedMessages).toContainEqual({
+        playerId: player.id,
+        action: [Types.Messages.ATTACK, player.id, mobId],
+    });
+});
+
+test('player ATTACK windup can start from recent authoritative proximity grace without immediate damage', () => {
+    const { pipeline, player, host } = createPipelineFixture();
+
+    const mobId = entityIdFromWire(9006);
+    pipeline.state.world.ensureEntity(mobId);
+    pipeline.state.world.addComponent(mobId, pipeline.replication.Kind, Types.Entities.RAT);
+    pipeline.state.world.addComponent(mobId, pipeline.Position, gridPos(2, 0));
+    pipeline.state.world.addComponent(mobId, pipeline.combat.ArmorLevel, 1);
+    pipeline.state.world.addComponent(mobId, pipeline.combat.HitPoints, 1000);
+
+    pipeline.state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE).set(player.id, [
+        { pos: gridPos(1, 0), tick: 0 },
+    ]);
+
+    pipeline.enqueue({
+        type: 'ATTACK',
+        source: { connectionId: 'test', playerId: player.id },
+        targetId: mobId,
+    });
+
+    pipeline.tick();
+
+    expect(pipeline.combat.AttackWindup.store.has(player.id)).toBe(true);
+    expect(pipeline.combat.HitPoints.store.get(mobId)).toBe(1000);
     expect(host.pushedMessages).toContainEqual({
         playerId: player.id,
         action: [Types.Messages.ATTACK, player.id, mobId],

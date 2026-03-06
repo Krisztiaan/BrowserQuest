@@ -2,6 +2,8 @@ import type { EntityId } from '../../../shared/domain/ids';
 import type { WorldPos } from '../../../shared/world/worldpos';
 import type { ClientWorldKernel, KernelEntityView } from '../world-kernel';
 import type { ClientCommand } from '../client-commands';
+import log from '../../platform/log';
+import { resolveClientMovementNetcodeConfig } from '../../movement-netcode-config';
 
 export type ClientKernelReplicationSyncSystemHost = {
     kernel: ClientWorldKernel;
@@ -9,13 +11,19 @@ export type ClientKernelReplicationSyncSystemHost = {
     currentTime?: number;
 };
 
-const REMOTE_INTERPOLATION_DELAY_MS = 100;
-
 function isSameWorldPos(a: WorldPos | undefined, b: WorldPos): boolean {
     if (!a) {
         return false;
     }
     return a.x === b.x && a.y === b.y;
+}
+
+function isSnapworthyRemoteDiscontinuity(current: WorldPos | null, next: WorldPos): boolean {
+    const tuning = resolveClientMovementNetcodeConfig().tuning;
+    if (!current) {
+        return false;
+    }
+    return Math.max(Math.abs(next.x - current.x), Math.abs(next.y - current.y)) > tuning.remoteSnapshotDiscontinuitySubpx;
 }
 
 function addSpawnedEntity(host: ClientKernelReplicationSyncSystemHost, view: KernelEntityView): void {
@@ -48,6 +56,8 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
     const kernel = host.kernel;
     const localPlayerIsDead = host.playerId !== null && kernel.clientLocalPlayerDead;
     const nowMs = typeof host.currentTime === 'number' ? host.currentTime : Date.now();
+    const config = resolveClientMovementNetcodeConfig();
+    const tuning = config.tuning;
 
     // Removed entities: kernel no longer considers them alive.
     for (const id of Array.from(kernel.clientReplicationKnownAlive)) {
@@ -89,8 +99,8 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         const isLocalPlayer = host.playerId !== null && id === host.playerId;
         let targetWorldPos = worldPos;
 
-        if (!isLocalPlayer) {
-            const interpolated = kernel.getClientRemoteInterpolatedWorldPosition(id, nowMs, REMOTE_INTERPOLATION_DELAY_MS);
+        if (!isLocalPlayer && config.rollout.remoteSmoothingTimeline) {
+            const interpolated = kernel.getClientRemoteInterpolatedWorldPosition(id, nowMs, tuning.remoteInterpolationDelayMs);
             if (interpolated) {
                 targetWorldPos = interpolated;
             }
@@ -121,6 +131,18 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
                     kernel.clientReplicationLastPos.set(id, pos);
                     continue;
                 }
+                log.warn({
+                    scope: 'movement_replication',
+                    level: 'warn',
+                    event: 'movement.local_prediction_teleport',
+                    entityId: id,
+                    profile: config.profileId,
+                    drift,
+                    authGridX: pos.x,
+                    authGridY: pos.y,
+                    predictedGridX: record.gridX,
+                    predictedGridY: record.gridY,
+                });
                 kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: id, x: pos.x, y: pos.y });
                 kernel.setClientPresentationTargetWorldPosition(id, worldPos.x, worldPos.y);
                 kernel.setClientRenderedWorldPosition(id, worldPos.x, worldPos.y);
@@ -134,12 +156,28 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         // local player remains prediction-aware.
         if (kind !== undefined) {
             // Items/chests are static, but keeping the same command path simplifies the client state model.
+            const currentPresentation = kernel.getClientPresentationTargetWorldPosition(id);
+            const snapRender = !isLocalPlayer && isSnapworthyRemoteDiscontinuity(currentPresentation, targetWorldPos);
+            if (snapRender) {
+                log.warn({
+                    scope: 'movement_replication',
+                    level: 'warn',
+                    event: 'movement.remote_snap',
+                    entityId: id,
+                    profile: config.profileId,
+                    fromX: currentPresentation?.x ?? null,
+                    fromY: currentPresentation?.y ?? null,
+                    toX: targetWorldPos.x,
+                    toY: targetWorldPos.y,
+                });
+            }
             kernel.setClientPresentationTargetWorldPosition(id, targetWorldPos.x, targetWorldPos.y);
             kernel.enqueueClientCommand({
                 type: 'setEntityWorldPosition',
                 entityId: id,
                 worldX: targetWorldPos.x,
                 worldY: targetWorldPos.y,
+                ...(snapRender ? { snapRender: true } : {}),
             });
         }
 

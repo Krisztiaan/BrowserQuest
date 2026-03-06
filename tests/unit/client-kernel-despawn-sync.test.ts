@@ -147,6 +147,37 @@ test('replication sync renders remote entities from delayed interpolation snapsh
     expect(kernel.clientReplicationLastWorldPos.get(mobId)).toEqual({ x: 150, y: 100 });
 });
 
+test('replication sync snap-renders remote discontinuities instead of smoothing teleports', () => {
+    const kernel = new ClientWorldKernel();
+    const mobId = entityIdFromWire(56);
+
+    kernel.upsertFromSpawnSnapshot({
+        id: 56,
+        kind: Types.Entities.RAT,
+        x: 1,
+        y: 1,
+        extras: { type: 'mob', orientation: 0 },
+    });
+
+    kernel.clientReplicationKnownAlive.add(mobId);
+    kernel.clientReplicationLastPos.set(mobId, gridPos(1, 1));
+    kernel.clientReplicationLastWorldPos.set(mobId, { x: 100, y: 100 });
+    kernel.setClientPresentationTargetWorldPosition(mobId, 100, 100);
+
+    kernel.setWorldPosition(mobId, 10_000, 100);
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId: null, currentTime: 1_150 });
+    const cmds = kernel.drainClientCommands();
+
+    expect(cmds).toContainEqual({
+        type: 'setEntityWorldPosition',
+        entityId: mobId,
+        worldX: 10_000,
+        worldY: 100,
+        snapRender: true,
+    });
+});
+
 test('lockstep mode applies authoritative local-player world updates even when move input is active', () => {
     const kernel = new ClientWorldKernel();
     const playerId = entityIdFromWire(1);

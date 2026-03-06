@@ -117,6 +117,60 @@ test('move-input prediction updates local player target without render snapping'
     expect(kernel.clientPredictedWorldPos).not.toBeNull();
 });
 
+test('move-input prediction resumes from the local presentation target instead of older rendered state', () => {
+    const kernel = new ClientWorldKernel();
+    const playerId = entityIdFromWire(22);
+    const start = tileToWorldPosCenter(10, 10);
+    let predictedWorldX = 0;
+
+    kernel.upsertFromSpawnSnapshot({
+        id: 22,
+        kind: Types.Entities.WARRIOR,
+        x: 10,
+        y: 10,
+        extras: {
+            type: 'player',
+            name: 'K',
+            orientation: Types.Orientations.DOWN,
+            armor: Types.Entities.CLOTHARMOR,
+            weapon: Types.Entities.SWORD1,
+        },
+    });
+    kernel.setWorldPosition(playerId, start.x, start.y);
+    kernel.setClientPresentationTargetWorldPosition(playerId, start.x + 1024, start.y);
+    kernel.pressClientMoveInputKey(MOVE_INPUT_KEY_D);
+
+    runClientMoveInputPredictionSystem({
+        started: true,
+        currentTime: 1_500,
+        kernel,
+        playerId,
+        player: {
+            gridX: 10,
+            gridY: 10,
+            worldX: start.x,
+            worldY: start.y,
+            isDead: false,
+            isOnPlateau: false,
+            isMoving: () => false,
+            setWorldPositionSub: (worldX: number) => {
+                predictedWorldX = worldX;
+            },
+        },
+        map: {
+            isOutOfBounds: () => false,
+            isColliding: () => false,
+            isPlateau: () => false,
+            width: 100,
+            height: 100,
+        },
+        isZoning: () => false,
+        isZoningTile: () => false,
+    });
+
+    expect(predictedWorldX).toBeGreaterThan(start.x + 1024);
+});
+
 test('move-input prediction ignores tiny authoritative drift inside deadzone', () => {
     const kernel = new ClientWorldKernel();
     const playerId = entityIdFromWire(3);

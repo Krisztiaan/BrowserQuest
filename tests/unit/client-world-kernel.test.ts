@@ -115,12 +115,66 @@ test('ClientWorldKernel keeps bounded remote snapshot history and interpolates d
     kernel.pushClientRemoteStateSnapshot(view.id, 400, 100, 4, 1_300);
     kernel.pushClientRemoteStateSnapshot(view.id, 500, 100, 5, 1_400);
 
-    // Bounded history keeps only the newest 4 entries.
-    expect(kernel.clientRemoteStateSnapshots.get(view.id)?.length).toBe(4);
+    // Bounded history keeps only the newest 6 entries.
+    expect(kernel.clientRemoteStateSnapshots.get(view.id)?.length).toBe(5);
 
     // Render time = now - 100ms => 1250 is midway between 1200 and 1300.
     const interpolated = kernel.getClientRemoteInterpolatedWorldPosition(view.id, 1_350, 100);
     expect(interpolated).toEqual({ x: 350, y: 100 });
+});
+
+test('ClientWorldKernel ignores stale out-of-order remote snapshots', () => {
+    const kernel = new ClientWorldKernel();
+    const view = kernel.upsertFromSpawnSnapshot({
+        id: 80,
+        kind: Types.Entities.RAT,
+        x: 1,
+        y: 1,
+        extras: { type: 'mob', orientation: 0 },
+    });
+
+    kernel.pushClientRemoteStateSnapshot(view.id, 100, 100, 10, 1_000);
+    kernel.pushClientRemoteStateSnapshot(view.id, 200, 100, 11, 1_100);
+    kernel.pushClientRemoteStateSnapshot(view.id, 150, 100, 9, 1_150);
+
+    expect(kernel.clientRemoteStateSnapshots.get(view.id)).toEqual([
+        { worldX: 100, worldY: 100, tick: 10, receivedAtMs: 1_000 },
+        { worldX: 200, worldY: 100, tick: 11, receivedAtMs: 1_100 },
+    ]);
+});
+
+test('ClientWorldKernel extrapolates remotes for a short undershooting horizon', () => {
+    const kernel = new ClientWorldKernel();
+    const view = kernel.upsertFromSpawnSnapshot({
+        id: 81,
+        kind: Types.Entities.RAT,
+        x: 1,
+        y: 1,
+        extras: { type: 'mob', orientation: 0 },
+    });
+
+    kernel.pushClientRemoteStateSnapshot(view.id, 100, 100, 1, 1_000);
+    kernel.pushClientRemoteStateSnapshot(view.id, 200, 100, 2, 1_100);
+
+    const extrapolated = kernel.getClientRemoteInterpolatedWorldPosition(view.id, 1_250, 100);
+    expect(extrapolated).toEqual({ x: 238, y: 100 });
+});
+
+test('ClientWorldKernel does not extrapolate across discontinuity-sized remote jumps', () => {
+    const kernel = new ClientWorldKernel();
+    const view = kernel.upsertFromSpawnSnapshot({
+        id: 82,
+        kind: Types.Entities.RAT,
+        x: 1,
+        y: 1,
+        extras: { type: 'mob', orientation: 0 },
+    });
+
+    kernel.pushClientRemoteStateSnapshot(view.id, 100, 100, 1, 1_000);
+    kernel.pushClientRemoteStateSnapshot(view.id, 10_000, 100, 2, 1_100);
+
+    const snapped = kernel.getClientRemoteInterpolatedWorldPosition(view.id, 1_250, 100);
+    expect(snapped).toEqual({ x: 10_000, y: 100 });
 });
 
 test('ClientWorldKernel clears remote snapshot history on authoritative tile position set', () => {

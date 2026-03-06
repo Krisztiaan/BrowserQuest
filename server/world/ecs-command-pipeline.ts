@@ -9,6 +9,7 @@ import {
 } from '../../shared/world/collision/tile-collision';
 import {
     MOVE_STEP_REJECT_NON_ADJACENT,
+    isAdjacentStep,
     resolveMoveBaseline,
     validateMoveStepIntent,
 } from '../../shared/world/movement-intents';
@@ -126,6 +127,7 @@ import {
     type InboundIntentContext,
     type IntentWorldHost,
 } from './ecs-command-pipeline/core-module-registry';
+import { resolveServerMovementNetcodeConfig } from '../movement-netcode-config';
 import { applyMoveToIntentCommand as applyMoveToIntentCommandImpl } from './intents/move-to-intent';
 import type { MapTransitionEvent } from './map-transition-observability';
 import {
@@ -151,6 +153,9 @@ type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
 
 export const CHUNK_OVERLAY_STORE_RESOURCE = createResourceKey<ChunkOverlayStore>('chunk_overlay_store');
 export const MOVE_SYNC_STATE_RESOURCE = createResourceKey<Map<EntityId, number>>('move_sync_state');
+export const PLAYER_RECENT_POSITION_HISTORY_RESOURCE = createResourceKey<Map<EntityId, Array<{ pos: GridPos; tick: number }>>>(
+    'player_recent_position_history'
+);
 export const ENTITY_STATE_BATCH_RESOURCE = createResourceKey<Map<string, Map<EntityId, { x: number; y: number; flags: number }>>>(
     'entity_state_batch'
 );
@@ -268,6 +273,114 @@ function isAdjacentNonDiagonal(a: GridPos, b: GridPos): boolean {
     const dx = Math.abs(a.x - b.x);
     const dy = Math.abs(a.y - b.y);
     return dx + dy === 1;
+}
+
+function isWithinInteractionDistance(a: GridPos, b: GridPos, maxAxisDistance: number): boolean {
+    return Math.abs(a.x - b.x) <= maxAxisDistance && Math.abs(a.y - b.y) <= maxAxisDistance;
+}
+
+function recordRecentPlayerPosition({
+    state,
+    playerId,
+    pos,
+    tick,
+}: {
+    state: WorldState<Command, DomainEvent>;
+    playerId: EntityId;
+    pos: GridPos;
+    tick: number;
+}): void {
+    const config = resolveServerMovementNetcodeConfig();
+    const historyByPlayer = state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE);
+    const history = historyByPlayer.get(playerId) ?? [];
+    const last = history[history.length - 1];
+    if (last?.pos.x === pos.x && last.pos.y === pos.y) {
+        last.tick = tick;
+        historyByPlayer.set(playerId, history);
+        return;
+    }
+
+    history.push({ pos: gridPos(pos.x, pos.y), tick });
+    if (history.length > config.tuning.interactionGraceHistoryLimit) {
+        history.splice(0, history.length - config.tuning.interactionGraceHistoryLimit);
+    }
+    historyByPlayer.set(playerId, history);
+}
+
+function getRecentPlayerPositionsWithinGrace({
+    state,
+    playerId,
+    currentTick,
+    maxAgeTicks,
+}: {
+    state: WorldState<Command, DomainEvent>;
+    playerId: EntityId;
+    currentTick: number;
+    maxAgeTicks?: number;
+}): GridPos[] {
+    const config = resolveServerMovementNetcodeConfig();
+    const history = state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE).get(playerId) ?? [];
+    const recent: GridPos[] = [];
+    for (let i = history.length - 1; i >= 0; i -= 1) {
+        const entry = history[i];
+        if (!entry) {
+            continue;
+        }
+        if (currentTick - entry.tick > Math.max(0, maxAgeTicks ?? config.tuning.interactionGraceMaxAgeTicks)) {
+            break;
+        }
+        recent.push(entry.pos);
+    }
+    return recent;
+}
+
+function isPlayerWithinInteractionGrace({
+    state,
+    playerId,
+    targetPos,
+    currentTick,
+    maxAxisDistance,
+}: {
+    state: WorldState<Command, DomainEvent>;
+    playerId: EntityId;
+    targetPos: GridPos;
+    currentTick: number;
+    maxAxisDistance: number;
+}): boolean {
+    if (!resolveServerMovementNetcodeConfig().rollout.serverInteractionGrace) {
+        return false;
+    }
+    const recentPositions = getRecentPlayerPositionsWithinGrace({ state, playerId, currentTick });
+    return recentPositions.some((pos) => isWithinInteractionDistance(pos, targetPos, maxAxisDistance));
+}
+
+function isPlayerInAttackRangeWithGrace({
+    state,
+    attackerId,
+    targetPos,
+    attackerKind,
+    attackerWeaponKind,
+    currentTick,
+}: {
+    state: WorldState<Command, DomainEvent>;
+    attackerId: EntityId;
+    targetPos: GridPos;
+    attackerKind: EntityKind;
+    attackerWeaponKind: EntityKind | undefined;
+    currentTick: number;
+}): boolean {
+    if (!resolveServerMovementNetcodeConfig().rollout.serverInteractionGrace) {
+        return false;
+    }
+    const recentPositions = getRecentPlayerPositionsWithinGrace({ state, playerId: attackerId, currentTick });
+    return recentPositions.some((attackerPos) =>
+        isEntityWithinAttackRange({
+            attackerPos,
+            targetPos,
+            attackerKind,
+            attackerWeaponKind,
+        })
+    );
 }
 
 function isEntityVisibleToPlayer({
@@ -608,6 +721,7 @@ function applyHello({
     state.world.addComponent(player.id, combat.MaxHitPoints, maxHitPoints);
     state.world.addComponent(player.id, combat.ArmorLevel, player.armorLevel);
     state.world.addComponent(player.id, combat.WeaponLevel, player.weaponLevel);
+    recordRecentPlayerPosition({ state, playerId: player.id, pos: gridPos(player.x, player.y), tick: 0 });
 
     world.addPlayer(player);
 
@@ -675,8 +789,12 @@ function applyMoveIntentCommand({
     world: IntentWorldHost;
     cmd: Extract<Command, { type: 'MOVE' }>;
 }): { ok: false; reason: string } | void {
+    const config = resolveServerMovementNetcodeConfig();
     const { MoveQueue } = movement;
     const existing = MoveQueue.store.get(player.id)?.entries ?? [];
+    if (existing.some((entry) => entry.x === cmd.to.x && entry.y === cmd.to.y)) {
+        return;
+    }
     const lastQueued = existing.length > 0 ? existing[existing.length - 1] : null;
     if (lastQueued && lastQueued.x === cmd.to.x && lastQueued.y === cmd.to.y) {
         return;
@@ -695,8 +813,42 @@ function applyMoveIntentCommand({
         isValidPosition: (x, y) => isValidPositionInMap({ world, mapId: playerMapId, x, y }),
     });
     if (!validation.ok) {
-        if (validation.reason === MOVE_STEP_REJECT_NON_ADJACENT) {
+        if (config.rollout.serverMoveStepGrace && validation.reason === MOVE_STEP_REJECT_NON_ADJACENT) {
+            const adjacentToCurrent = isAdjacentStep(currentPos, cmd.to);
+            const currentTileRepeated = currentPos.x === cmd.to.x && currentPos.y === cmd.to.y;
+            const isValidRequestedTile = isValidPositionInMap({ world, mapId: playerMapId, x: cmd.to.x, y: cmd.to.y });
+            if ((adjacentToCurrent || currentTileRepeated) && isValidRequestedTile) {
+                if (currentTileRepeated) {
+                    log.event('info', 'movement.move_step_idempotent', {
+                        playerId: player.id,
+                        profile: config.profileId,
+                        requestedPos: { x: cmd.to.x, y: cmd.to.y },
+                    });
+                    return;
+                }
+                log.event('info', 'movement.move_step_grace_accepted', {
+                    playerId: player.id,
+                    profile: config.profileId,
+                    baseline: { x: baseline.x, y: baseline.y },
+                    currentPos: { x: currentPos.x, y: currentPos.y },
+                    requestedPos: { x: cmd.to.x, y: cmd.to.y },
+                    queuedEntries: existing.length,
+                });
+                state.world.addComponent(player.id, MoveQueue, { entries: [cmd.to] });
+                return;
+            }
             // Client got ahead or desynced; clear queued intents and force correction.
+            log.event('warn', 'movement.move_step_grace_rejected', {
+                playerId: player.id,
+                profile: config.profileId,
+                baseline: { x: baseline.x, y: baseline.y },
+                currentPos: { x: currentPos.x, y: currentPos.y },
+                requestedPos: { x: cmd.to.x, y: cmd.to.y },
+                queuedEntries: existing.length,
+                isValidRequestedTile,
+                adjacentToCurrent,
+                currentTileRepeated,
+            });
             state.world.removeComponent(player.id, MoveQueue);
         }
         return validation;
@@ -788,12 +940,14 @@ function applyLootMoveCommand({
 
 function applyAttackCommand({
     state,
+    ctx,
     mobAi,
     replication,
     Target,
     cmd,
 }: {
     state: WorldState<Command, DomainEvent>;
+    ctx: SystemContext;
     mobAi: ReturnType<typeof registerMobAiComponents>;
     replication: ReturnType<typeof registerSpawnReplicationComponents>;
     Target: ComponentType<EntityId>;
@@ -806,6 +960,7 @@ function applyAttackCommand({
         Target,
         attackerId: cmd.source.playerId,
         targetId: cmd.targetId,
+        currentTick: ctx.tick,
     });
 }
 
@@ -816,6 +971,7 @@ function applyAttackIntent({
     Target,
     attackerId,
     targetId,
+    currentTick,
 }: {
     state: WorldState<Command, DomainEvent>;
     mobAi: ReturnType<typeof registerMobAiComponents>;
@@ -823,7 +979,9 @@ function applyAttackIntent({
     Target: ComponentType<EntityId>;
     attackerId: EntityId;
     targetId: EntityId;
+    currentTick: number;
 }): void {
+    const config = resolveServerMovementNetcodeConfig();
     const targetKind = replication.Kind.store.get(targetId);
     if (targetKind === undefined) {
         log.event('warn', 'combat.attack_intent_missing_target', { attackerId, targetId });
@@ -847,14 +1005,27 @@ function applyAttackIntent({
             attackerKind,
             attackerWeaponKind,
         });
+    const inRangeWithGraceAtAccept =
+        attackerKind !== undefined &&
+        targetPos !== undefined &&
+        isPlayerInAttackRangeWithGrace({
+            state,
+            attackerId,
+            targetPos,
+            attackerKind,
+            attackerWeaponKind,
+            currentTick,
+        });
     state.world.addComponent(attackerId, Target, targetId);
     log.event('info', 'combat.attack_intent_accepted', {
         attackerId,
         targetId,
         targetKind,
+        profile: config.profileId,
         attackerPos: attackerPos ? { x: attackerPos.x, y: attackerPos.y } : null,
         targetPos: targetPos ? { x: targetPos.x, y: targetPos.y } : null,
         inRangeAtAccept,
+        inRangeWithGraceAtAccept,
     });
 
     addMobHate({
@@ -1177,6 +1348,17 @@ function runServerAuthoritativeCombatSystem({
                 attackerKind,
                 attackerWeaponKind,
             });
+        const isInRangeWithGrace =
+            isPlayerVsMob &&
+            targetPos !== undefined &&
+            isPlayerInAttackRangeWithGrace({
+                state,
+                attackerId: engagement.attackerId,
+                targetPos,
+                attackerKind,
+                attackerWeaponKind,
+                currentTick: ctx.tick,
+            });
         const isVisible =
             isMobVsPlayer && attackerPos !== undefined && targetPos !== undefined
                 ? isEntityVisibleToPlayer({
@@ -1195,7 +1377,7 @@ function runServerAuthoritativeCombatSystem({
         }
 
         if (!windup) {
-            if (!isInRange || !isVisible) {
+            if ((!isInRange && !isInRangeWithGrace) || !isVisible) {
                 continue;
             }
             if (isPlayerVsMob) {
@@ -1203,9 +1385,11 @@ function runServerAuthoritativeCombatSystem({
                 log.event('info', 'combat.player_windup_started', {
                     attackerId: engagement.attackerId,
                     targetId: engagement.targetId,
+                    profile: resolveServerMovementNetcodeConfig().profileId,
                     tick: ctx.tick,
                     attackerPos: { x: attackerPos.x, y: attackerPos.y },
                     targetPos: { x: targetPos.x, y: targetPos.y },
+                    startedViaGrace: !isInRange && isInRangeWithGrace,
                 });
             }
             if (isMobVsPlayer) {
@@ -1395,6 +1579,7 @@ function applyLootCommand({
     replication,
     effects,
     items,
+    Position,
     world,
     player,
     cmd,
@@ -1405,6 +1590,7 @@ function applyLootCommand({
     replication: ReturnType<typeof registerSpawnReplicationComponents>;
     effects: ReturnType<typeof registerEffectsComponents>;
     items: ReturnType<typeof registerItemLifecycleComponents>;
+    Position: ComponentType<GridPos>;
     world: WorldCommandHost;
     player: PlayerLike;
     cmd: Extract<Command, { type: 'LOOT' }>;
@@ -1413,6 +1599,32 @@ function applyLootCommand({
     const droppedKind = replication.Kind.store.get(droppedItemId);
     if (droppedKind === undefined || !Types.isItem(droppedKind) || !state.world.entities.isAlive(droppedItemId)) {
         return;
+    }
+    const playerPos = Position.store.get(player.id);
+    const itemPos = Position.store.get(droppedItemId);
+    if (!playerPos || !itemPos) {
+        return;
+    }
+    const canLoot =
+        isWithinInteractionDistance(playerPos, itemPos, 1)
+        || isPlayerWithinInteractionGrace({
+            state,
+            playerId: player.id,
+            targetPos: itemPos,
+            currentTick: ctx.tick,
+            maxAxisDistance: 1,
+        });
+    if (!canLoot) {
+        return;
+    }
+    if (!isWithinInteractionDistance(playerPos, itemPos, 1)) {
+        log.event('info', 'interaction.loot_grace_accepted', {
+            playerId: player.id,
+            profile: resolveServerMovementNetcodeConfig().profileId,
+            playerPos: { x: playerPos.x, y: playerPos.y },
+            itemPos: { x: itemPos.x, y: itemPos.y },
+            tick: ctx.tick,
+        });
     }
 
     const staticSpawn = items.StaticSpawnPos.store.get(droppedItemId);
@@ -1619,6 +1831,7 @@ function applyTeleportOutcome({
     const toSub = tileToWorldPosCenter(to.x, to.y);
     state.world.addComponent(playerId, PositionSub, toSub);
     state.world.removeComponent(playerId, Target);
+    recordRecentPlayerPosition({ state, playerId, pos: to, tick: ctx.tick });
 
     const teleport = buildTeleportAction(playerId, to.x, to.y, toMapId);
     const outbox = state.resources.require(OUTBOX_RESOURCE);
@@ -1660,17 +1873,21 @@ function applyTeleportOutcome({
 
 function applyOpenCommand({
     state,
+    ctx,
     Kind,
     Position,
     ChestLootTable,
     world,
+    player,
     cmd,
 }: {
     state: WorldState<Command, DomainEvent>;
+    ctx: SystemContext;
     Kind: ComponentType<EntityKind>;
     Position: ComponentType<GridPos>;
     ChestLootTable: ComponentType<{ items: ReadonlyArray<EntityKind> }>;
     world: WorldCommandHost;
+    player: PlayerLike;
     cmd: Extract<Command, { type: 'OPEN' }>;
 }): void {
     const kind = Kind.store.get(cmd.chestId);
@@ -1681,6 +1898,31 @@ function applyOpenCommand({
     const pos = Position.store.get(cmd.chestId);
     if (!pos) {
         return;
+    }
+    const playerPos = Position.store.get(player.id);
+    if (!playerPos) {
+        return;
+    }
+    const canOpen =
+        isWithinInteractionDistance(playerPos, pos, 1)
+        || isPlayerWithinInteractionGrace({
+            state,
+            playerId: player.id,
+            targetPos: pos,
+            currentTick: ctx.tick,
+            maxAxisDistance: 1,
+        });
+    if (!canOpen) {
+        return;
+    }
+    if (!isWithinInteractionDistance(playerPos, pos, 1)) {
+        log.event('info', 'interaction.open_grace_accepted', {
+            playerId: player.id,
+            profile: resolveServerMovementNetcodeConfig().profileId,
+            playerPos: { x: playerPos.x, y: playerPos.y },
+            chestPos: { x: pos.x, y: pos.y },
+            tick: ctx.tick,
+        });
     }
 
     const loot = ChestLootTable.store.get(cmd.chestId);
@@ -1949,7 +2191,7 @@ function createApplyInboundCommandsSystem(
                         break;
                     }
                     if (cmd.intentTypeId === INTENT_ATTACK && bridged.type === 'ATTACK') {
-                        applyAttackCommand({ state, mobAi, replication, Target, cmd: bridged });
+                        applyAttackCommand({ state, ctx, mobAi, replication, Target, cmd: bridged });
                     }
                     seqState.lastAcceptedByPlayerId.set(player.id, cmd.seq);
                     world.pushToPlayerId(cmd.source.playerId, buildAckAction(cmd.seq));
@@ -2034,10 +2276,10 @@ function createApplyInboundCommandsSystem(
                     addMobHate({ state, mobAi, replication, mobId: cmd.mobId, playerId: player.id, hatePoints: 5 });
                     break;
                 case 'ATTACK':
-                    applyAttackCommand({ state, mobAi, replication, Target, cmd });
+                    applyAttackCommand({ state, ctx, mobAi, replication, Target, cmd });
                     break;
                 case 'LOOT':
-                    applyLootCommand({ state, ctx, combat, replication, effects, items, world, player, cmd });
+                    applyLootCommand({ state, ctx, combat, replication, effects, items, Position, world, player, cmd });
                     break;
                 case 'TELEPORT':
                     {
@@ -2051,10 +2293,12 @@ function createApplyInboundCommandsSystem(
                 case 'OPEN':
                     applyOpenCommand({
                         state,
+                        ctx,
                         Kind: replication.Kind,
                         Position,
                         ChestLootTable: chests.ChestLootTable,
                         world,
+                        player,
                         cmd,
                     });
                     break;
@@ -2140,6 +2384,12 @@ export class WorldEcsCommandPipeline {
 
     constructor(world: WorldCommandHost, { chunkSize }: { chunkSize?: number } = {}) {
         this.#world = world;
+        const movementConfig = resolveServerMovementNetcodeConfig();
+        log.event('info', 'movement.config', {
+            profile: movementConfig.profileId,
+            profileLabel: movementConfig.profileLabel,
+            rollout: movementConfig.rollout,
+        });
         this.#maxChunkSnapshotPayloadUtf8Bytes = resolveMaxChunkSnapshotPayloadUtf8BytesFromEnv();
         this.#maxChunkSnapshotParts = DEFAULT_MAX_CHUNK_SNAPSHOT_PARTS;
         this.#maxInboundCommandQueue = resolveMaxInboundCommandQueueFromEnv();
@@ -2154,6 +2404,7 @@ export class WorldEcsCommandPipeline {
         this.state.resources.set(RESPAWN_TASKS_RESOURCE, []);
         this.state.resources.set(INTENT_SEQ_STATE_RESOURCE, createIntentSeqState());
         this.state.resources.set(MOVE_SYNC_STATE_RESOURCE, new Map());
+        this.state.resources.set(PLAYER_RECENT_POSITION_HISTORY_RESOURCE, new Map());
         this.state.resources.set(ENTITY_STATE_BATCH_RESOURCE, new Map());
         this.state.resources.set(CHUNK_AOI_STATE_RESOURCE, createChunkAoiState());
         this.state.resources.set(CHUNK_OVERLAY_STORE_RESOURCE, this.chunkOverlays);
@@ -2586,6 +2837,7 @@ export class WorldEcsCommandPipeline {
                 pushMoveSync(playerId, nextSub, 0, false);
 
                 if (wantsTileChange) {
+                    recordRecentPlayerPosition({ state, playerId, pos: nextGrid, tick: ctx.tick });
                     const oldKey = positionKey(currentMapId, currentGrid.x, currentGrid.y);
                     if (occupiedBy.get(oldKey) === playerId) {
                         occupiedBy.delete(oldKey);
@@ -3364,6 +3616,7 @@ export class WorldEcsCommandPipeline {
     removeEntity(id: EntityId): void {
         this.state.resources.get(INTENT_SEQ_STATE_RESOURCE)?.lastAcceptedByPlayerId.delete(id);
         this.state.resources.get(MOVE_SYNC_STATE_RESOURCE)?.delete(id);
+        this.state.resources.get(PLAYER_RECENT_POSITION_HISTORY_RESOURCE)?.delete(id);
         this.state.resources.get(CHUNK_AOI_STATE_RESOURCE)?.byPlayerId.delete(id);
         this.state.resources.get(ENTITY_STATE_BATCH_RESOURCE)?.forEach((entries) => entries.delete(id));
         this.state.resources.get(INTEREST_TRACKER_RESOURCE)?.clearObserver(id);

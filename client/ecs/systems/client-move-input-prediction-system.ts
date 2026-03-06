@@ -2,6 +2,8 @@ import type { EntityId } from '../../../shared/domain/ids';
 import type { ClientWorldKernel } from '../world-kernel';
 import { SUBPIXELS, TILE_SUBPX, worldDelta, worldPos, type WorldPos } from '../../../shared/world/worldpos';
 import { clampWorldPosInsideMap, resolveSubTileMotionAgainstTiles } from '../../../shared/world/collision/tile-collision';
+import log from '../../platform/log';
+import { resolveClientMovementNetcodeConfig } from '../../movement-netcode-config';
 
 export type ClientMoveInputPredictionSystemHost = Readonly<{
     started: boolean;
@@ -33,13 +35,7 @@ export type ClientMoveInputPredictionSystemHost = Readonly<{
     isZoningTile(x: number, y: number): boolean;
 }>;
 
-const MOVE_COOLDOWN_MS = 200;
-const DIAG_NUM = 181;
-const DIAG_DEN = 256;
 const PLAYER_HALF_EXTENTS = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS } as const;
-const RECONCILE_DEADZONE_ERR_SUBPX = 3 * SUBPIXELS;
-const SOFT_RECONCILE_ERR_SUBPX = 10 * SUBPIXELS;
-const HARD_RECONCILE_ERR_SUBPX = TILE_SUBPX;
 
 let lastPredictionTimeMs = 0;
 
@@ -48,17 +44,18 @@ function reconcileTowardAuthoritative(next: WorldPos, auth: WorldPos | undefined
         return next;
     }
 
+    const tuning = resolveClientMovementNetcodeConfig().tuning;
     const errX = auth.x - next.x;
     const errY = auth.y - next.y;
     const err = Math.max(Math.abs(errX), Math.abs(errY));
-    if (err <= RECONCILE_DEADZONE_ERR_SUBPX) {
+    if (err <= tuning.reconcileDeadzoneErrSubpx) {
         return next;
     }
-    if (err > HARD_RECONCILE_ERR_SUBPX) {
+    if (err > tuning.hardReconcileErrSubpx) {
         return auth;
     }
 
-    const divisor = err > SOFT_RECONCILE_ERR_SUBPX ? 8 : 16;
+    const divisor = err > tuning.softReconcileErrSubpx ? 8 : 16;
     return worldPos(next.x + Math.trunc(errX / divisor), next.y + Math.trunc(errY / divisor));
 }
 
@@ -72,6 +69,8 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
         lastPredictionTimeMs = 0;
         return;
     }
+    const config = resolveClientMovementNetcodeConfig();
+    const tuning = config.tuning;
 
     const map = host.map;
     const fallbackGrid = host.kernel.clientPathingGrid;
@@ -108,7 +107,18 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
                 mapHeightTiles,
             });
             host.kernel.clientPredictedWorldPos = clampedAuth;
+            host.kernel.setClientPresentationTargetWorldPosition(host.playerId, clampedAuth.x, clampedAuth.y);
+            host.kernel.setClientRenderedWorldPosition(host.playerId, clampedAuth.x, clampedAuth.y);
             player.setWorldPositionSub(clampedAuth.x, clampedAuth.y, { snapRender: true });
+            log.warn({
+                scope: 'movement_prediction',
+                level: 'warn',
+                event: 'prediction.suppressed_snap',
+                playerId: host.playerId,
+                profile: config.profileId,
+                worldX: clampedAuth.x,
+                worldY: clampedAuth.y,
+            });
         }
         return;
     }
@@ -118,16 +128,22 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
         return;
     }
 
-    // Seed prediction from last predicted state (preferred), otherwise from the current entity world position.
-    const predicted: WorldPos = host.kernel.clientPredictedWorldPos ?? worldPos(player.worldX, player.worldY);
+    // Seed prediction from the local presentation target first so new input resumes from what the player
+    // is already trying to do, not from a slightly older render/auth snapshot.
+    const predicted: WorldPos =
+        host.kernel.getClientPresentationTargetWorldPosition(host.playerId)
+        ?? host.kernel.clientPredictedWorldPos
+        ?? worldPos(player.worldX, player.worldY);
 
-    const baseMoveSubpx = Math.round((dtMs * TILE_SUBPX) / MOVE_COOLDOWN_MS);
+    const baseMoveSubpx = Math.round((dtMs * TILE_SUBPX) / tuning.moveCooldownMs);
     if (baseMoveSubpx <= 0) {
         return;
     }
 
     const movingDiagonal = axis.dx !== 0 && axis.dy !== 0;
-    const moveSubpx = movingDiagonal ? Math.round((baseMoveSubpx * DIAG_NUM) / DIAG_DEN) : baseMoveSubpx;
+    const moveSubpx = movingDiagonal
+        ? Math.round((baseMoveSubpx * tuning.diagonalNumerator) / tuning.diagonalDenominator)
+        : baseMoveSubpx;
 
     const isBlockedTile = (tx: number, ty: number): boolean => {
         if (map.isOutOfBounds(tx, ty) || host.isZoningTile(tx, ty)) {
@@ -155,6 +171,7 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
 
     // Reconcile softly against authoritative world position (from MOVE_SYNC).
     const auth = host.kernel.worldPosition.get(host.playerId);
+    const predictionError = auth ? Math.max(Math.abs(auth.x - next.x), Math.abs(auth.y - next.y)) : 0;
     let reconciled = reconcileTowardAuthoritative(next, auth);
     reconciled = clampWorldPosInsideMap({
         pos: reconciled,
@@ -162,7 +179,24 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
         mapWidthTiles,
         mapHeightTiles,
     });
+    if (auth && predictionError > tuning.hardReconcileErrSubpx) {
+            log.warn({
+                scope: 'movement_prediction',
+                level: 'warn',
+                event: 'prediction.hard_reconcile',
+                playerId: host.playerId,
+                profile: config.profileId,
+                authX: auth.x,
+                authY: auth.y,
+                predictedX: next.x,
+                predictedY: next.y,
+                reconciledX: reconciled.x,
+                reconciledY: reconciled.y,
+                divergence: predictionError,
+            });
+    }
 
     host.kernel.clientPredictedWorldPos = reconciled;
+    host.kernel.setClientPresentationTargetWorldPosition(host.playerId, reconciled.x, reconciled.y);
     player.setWorldPositionSub(reconciled.x, reconciled.y);
 }

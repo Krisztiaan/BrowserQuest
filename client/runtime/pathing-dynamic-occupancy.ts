@@ -1,6 +1,7 @@
 import Types from '../../shared/gametypes-browser';
 import type { EntityId } from '../../shared/domain/ids';
 import type { EntityKind } from '../../shared/entity-kind-domain';
+import { resolveClientMovementNetcodeConfig } from '../movement-netcode-config';
 
 export type ClientDynamicOccupancySpatialRecord = Readonly<{
     gridX: number;
@@ -17,7 +18,11 @@ function key(x: number, y: number): string {
 }
 
 function shouldBlock(kind: EntityKind): boolean {
-    return Types.isPlayer(kind) || Types.isMob(kind) || Types.isNpc(kind) || Types.isChest(kind);
+    const config = resolveClientMovementNetcodeConfig();
+    if (Types.isPlayer(kind)) {
+        return !config.rollout.playerPathingIgnoresPlayers;
+    }
+    return Types.isMob(kind) || Types.isNpc(kind) || Types.isChest(kind);
 }
 
 type ApplyOverlayArgs = Readonly<{

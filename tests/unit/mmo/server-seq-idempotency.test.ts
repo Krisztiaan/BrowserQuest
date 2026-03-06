@@ -236,6 +236,57 @@ test('server rejects invalid move.step (non-adjacent) and emits CORRECTION (no A
     expect(hasAction(delivered, (action) => action[0] === Types.Messages.ACK && action[1] === 1)).toBe(false);
 });
 
+test('server accepts move.step adjacent to current tile by pruning a stale queued baseline', () => {
+    const player = createTestPlayer(221031);
+    player.setPosition(0, 0);
+    const { pipeline, delivered } = createPipelineFixture(player);
+    seedPlayerEntity(pipeline, player);
+
+    pipeline.state.world.addComponent(player.id, pipeline.movement.MoveQueue, {
+        entries: [gridPos(1, 0), gridPos(2, 0)],
+    });
+
+    pipeline.enqueue({
+        type: 'INTENT',
+        source: { connectionId: 'c', playerId: player.id },
+        seq: 1,
+        intentTypeId: 'move.step',
+        payloadBytes: encodeMoveStepIntentPayload(gridPos(0, 1)) ?? [],
+    });
+    pipeline.tick();
+    for (let i = 0; i < 12; i += 1) {
+        pipeline.tick();
+    }
+
+    expect(hasAction(delivered, (action) => action[0] === Types.Messages.ACK && action[1] === 1)).toBe(true);
+    expect(hasAction(delivered, (action) => action[0] === Types.Messages.REJECT && action[1] === 1)).toBe(false);
+    expect(pipeline.Position.store.get(player.id)).toEqual(gridPos(0, 1));
+});
+
+test('server treats already-queued move.step targets as idempotent instead of rejecting', () => {
+    const player = createTestPlayer(221032);
+    player.setPosition(0, 0);
+    const { pipeline, delivered } = createPipelineFixture(player);
+    seedPlayerEntity(pipeline, player);
+
+    pipeline.state.world.addComponent(player.id, pipeline.movement.MoveQueue, {
+        entries: [gridPos(1, 0), gridPos(2, 0)],
+    });
+
+    pipeline.enqueue({
+        type: 'INTENT',
+        source: { connectionId: 'c', playerId: player.id },
+        seq: 1,
+        intentTypeId: 'move.step',
+        payloadBytes: encodeMoveStepIntentPayload(gridPos(1, 0)) ?? [],
+    });
+    pipeline.tick();
+
+    expect(hasAction(delivered, (action) => action[0] === Types.Messages.ACK && action[1] === 1)).toBe(true);
+    expect(hasAction(delivered, (action) => action[0] === Types.Messages.REJECT && action[1] === 1)).toBe(false);
+    expect(pipeline.movement.MoveQueue.store.get(player.id)?.entries).toEqual([gridPos(1, 0), gridPos(2, 0)]);
+});
+
 test('server clears per-player seq state when entity is removed', () => {
     const player = createTestPlayer(22104);
     const { pipeline } = createPipelineFixture(player);

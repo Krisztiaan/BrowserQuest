@@ -5,6 +5,7 @@ import type Timer from '../../timer';
 import Types from '../../../shared/gametypes-browser';
 import type { EntityId } from '../../../shared/domain/ids';
 import { SUBPIXELS, TILE_PX } from '../../../shared/world/worldpos';
+import { resolveClientMovementNetcodeConfig } from '../../movement-netcode-config';
 
 type DirtyRect = {
     x: number;
@@ -57,6 +58,9 @@ export type ClientSimulationSystemHost = Readonly<{
     kernel: {
         enqueueClientCommand(command: { type: 'clientSendAggro'; mobId: EntityId }): void;
         setClientRenderedWorldPosition?(entityId: EntityId, worldX: number, worldY: number): void;
+        setClientPresentationTargetWorldPosition?(entityId: EntityId, worldX: number, worldY: number): void;
+        clientMoveInputKeysMask?: number;
+        clientMovePlan?: { target: { x: number; y: number } } | null;
     };
     map: { grid: number[][] } | null;
     renderer: {
@@ -126,6 +130,13 @@ function syncRenderedWorldPosition(host: ClientSimulationSystemHost, entity: Sim
         (entity.x + TILE_PX / 2) * SUBPIXELS,
         (entity.y + TILE_PX / 2) * SUBPIXELS
     );
+}
+
+function hasLocalPresentationIntent(host: ClientSimulationSystemHost, entity: Character): boolean {
+    if (host.playerId === null || entity.id !== host.playerId) {
+        return false;
+    }
+    return (host.kernel.clientMoveInputKeysMask ?? 0) !== 0 || host.kernel.clientMovePlan !== null;
 }
 
 export function resolveCameraAxis({
@@ -205,6 +216,13 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
                 character.y = startY + dy * d;
                 character.targetX = character.x;
                 character.targetY = character.y;
+                if (host.playerId !== null && character.id === host.playerId) {
+                    host.kernel.setClientPresentationTargetWorldPosition?.(
+                        character.id as EntityId,
+                        (character.x + TILE_PX / 2) * SUBPIXELS,
+                        (character.y + TILE_PX / 2) * SUBPIXELS
+                    );
+                }
                 character.hasMoved();
             },
             function () {
@@ -212,6 +230,13 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
                 character.y = endY;
                 character.targetX = character.x;
                 character.targetY = character.y;
+                if (host.playerId !== null && character.id === host.playerId) {
+                    host.kernel.setClientPresentationTargetWorldPosition?.(
+                        character.id as EntityId,
+                        (character.x + TILE_PX / 2) * SUBPIXELS,
+                        (character.y + TILE_PX / 2) * SUBPIXELS
+                    );
+                }
                 character.hasMoved();
                 character.nextStep();
             },
@@ -222,7 +247,7 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
     }
 }
 
-function updateEntityInterpolation(entity: SimulationEntity, dtMs: number): void {
+function updateEntityInterpolation(host: ClientSimulationSystemHost, entity: SimulationEntity, dtMs: number): void {
     if (!isInterpolatedEntity(entity)) {
         return;
     }
@@ -232,22 +257,39 @@ function updateEntityInterpolation(entity: SimulationEntity, dtMs: number): void
 
     const dx = entity.targetX - entity.x;
     const dy = entity.targetY - entity.y;
-    const manhattan = Math.abs(dx) + Math.abs(dy);
-    if (manhattan < 0.01) {
+    const maxAxisDistance = Math.max(Math.abs(dx), Math.abs(dy));
+    if (maxAxisDistance < 0.01) {
         return;
     }
 
     const prevX = entity.x;
     const prevY = entity.y;
+    const isLocalPlayer = entity instanceof Character && host.playerId !== null && entity.id === host.playerId;
+    const config = resolveClientMovementNetcodeConfig();
+    const tuning = config.tuning;
 
     // Large drift: snap immediately (eg teleport/correction).
-    if (manhattan > 96) {
+    const snapDistancePx = isLocalPlayer
+        ? tuning.localPresentationSnapDistancePx
+        : tuning.remotePresentationSnapDistancePx;
+    if (maxAxisDistance > snapDistancePx) {
         entity.x = entity.targetX;
         entity.y = entity.targetY;
     } else {
-        const a = lerpAlpha(dtMs, 80);
-        entity.x = entity.x + dx * a;
-        entity.y = entity.y + dy * a;
+        let blend = lerpAlpha(dtMs, tuning.remotePresentationTauMs);
+        if (isLocalPlayer && config.rollout.localPresentationMotor) {
+            const activeIntent = hasLocalPresentationIntent(host, entity);
+            const baseTauMs = activeIntent ? tuning.localPresentationTauActiveMs : tuning.localPresentationTauIdleMs;
+            const boostedTauMs = maxAxisDistance >= 8 ? Math.max(10, Math.round(baseTauMs * 0.7)) : baseTauMs;
+            blend = lerpAlpha(dtMs, boostedTauMs);
+            if (activeIntent && maxAxisDistance > 0.1) {
+                const minBlend = Math.min(1, ((tuning.localPresentationMinStepPx * Math.max(dtMs, 1)) / 16) / maxAxisDistance);
+                blend = Math.max(blend, minBlend);
+            }
+        }
+
+        entity.x = entity.x + dx * blend;
+        entity.y = entity.y + dy * blend;
     }
 
     if (entity instanceof Character) {
@@ -344,7 +386,7 @@ function updateCharacters(host: ClientSimulationSystemHost, dtMs: number): void 
         if (entity instanceof Character) {
             updateCharacter(host, entity);
         }
-        updateEntityInterpolation(entity, dtMs);
+        updateEntityInterpolation(host, entity, dtMs);
         syncRenderedWorldPosition(host, entity);
         updateEntityFading(host, entity);
     });

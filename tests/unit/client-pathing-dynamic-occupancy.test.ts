@@ -25,7 +25,7 @@ function makeGrid(width: number, height: number, fill = 0): number[][] {
     return grid;
 }
 
-test('dynamic occupancy overlay blocks live entities and restores the shared grid', () => {
+test('dynamic occupancy overlay blocks mobs but not players and restores the shared grid', () => {
     const grid = makeGrid(5, 5, 0);
     const records = new Map<number, OccupancyRecord>();
 
@@ -71,8 +71,8 @@ test('dynamic occupancy overlay blocks live entities and restores the shared gri
     expect(grid[2]?.[2]).toBe(1);
     expect(grid[1]?.[2]).toBe(0); // items do not block
     expect(grid[3]?.[2]).toBe(0); // dead entities do not block
-    expect(grid[1]?.[1]).toBe(1);
-    expect(grid[2]?.[1]).toBe(1);
+    expect(grid[1]?.[1]).toBe(0); // players do not block dynamic pathing
+    expect(grid[2]?.[1]).toBe(0); // moving players do not reserve their next tile either
 
     const pathfinder = new Pathfinder(5, 5);
     const path = pathfinder.findPath(grid, { gridX: 0, gridY: 2 }, 4, 2, false);
