@@ -23,7 +23,7 @@ function addSpawnedEntity(host: ClientKernelReplicationSyncSystemHost, view: Ker
     host.kernel.enqueueClientCommand(cmd);
     host.kernel.clientReplicationKnownAlive.add(view.id);
     host.kernel.clientReplicationLastPos.set(view.id, view.position);
-    host.kernel.clientReplicationLastWorldPos.set(view.id, view.worldPosition);
+    host.kernel.clientReplicationLastWorldPos.set(view.id, view.presentationTargetWorldPosition);
     if (view.targetId !== undefined) {
         host.kernel.clientReplicationLastTarget.set(view.id, view.targetId);
     }
@@ -88,17 +88,15 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
 
         const isLocalPlayer = host.playerId !== null && id === host.playerId;
         let targetWorldPos = worldPos;
-        let snapRender = false;
 
         if (!isLocalPlayer) {
             const interpolated = kernel.getClientRemoteInterpolatedWorldPosition(id, nowMs, REMOTE_INTERPOLATION_DELAY_MS);
             if (interpolated) {
                 targetWorldPos = interpolated;
-                snapRender = true;
             }
         }
 
-        if (isSameWorldPos(kernel.clientReplicationLastWorldPos.get(id), targetWorldPos)) {
+        if (isSameWorldPos(kernel.getClientPresentationTargetWorldPosition(id) ?? undefined, targetWorldPos)) {
             continue;
         }
 
@@ -124,6 +122,8 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
                     continue;
                 }
                 kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: id, x: pos.x, y: pos.y });
+                kernel.setClientPresentationTargetWorldPosition(id, worldPos.x, worldPos.y);
+                kernel.setClientRenderedWorldPosition(id, worldPos.x, worldPos.y);
                 kernel.clientReplicationLastWorldPos.set(id, worldPos);
                 kernel.clientReplicationLastPos.set(id, pos);
                 continue;
@@ -134,12 +134,12 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         // local player remains prediction-aware.
         if (kind !== undefined) {
             // Items/chests are static, but keeping the same command path simplifies the client state model.
+            kernel.setClientPresentationTargetWorldPosition(id, targetWorldPos.x, targetWorldPos.y);
             kernel.enqueueClientCommand({
                 type: 'setEntityWorldPosition',
                 entityId: id,
                 worldX: targetWorldPos.x,
                 worldY: targetWorldPos.y,
-                ...(snapRender ? { snapRender: true } : {}),
             });
         }
 

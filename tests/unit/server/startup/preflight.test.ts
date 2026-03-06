@@ -94,7 +94,7 @@ test('map preflight helper accepts readable valid map-pack JSON files', async ()
     let failCode: number | null = null;
 
     const isValid = await ensureMapPreflightValid({
-        activeConfig: { map_filepath: './assets/maps/runtime/map-pack.json' },
+        activeConfig: { map_filepath: './assets/maps/tiled/world.json' },
         emitError: (message) => errors.push(message),
         fail: (code) => {
             failCode = code;
@@ -137,7 +137,7 @@ test('map preflight helper accepts valid map-pack payloads and validates nested 
     const validations: unknown[] = [];
 
     const isValid = await ensureMapPreflightValid({
-        activeConfig: { map_filepath: './assets/maps/runtime/map-pack.json' },
+        activeConfig: { map_filepath: './assets/maps/tiled/world.json' },
         emitError: (message) => errors.push(message),
         fail: (code) => {
             failCode = code;
@@ -179,12 +179,12 @@ test('map preflight helper accepts valid map-pack payloads and validates nested 
     expect(validations).toHaveLength(1);
 });
 
-test('map preflight helper fails fast for invalid map-pack-shaped payloads', async () => {
+test('map preflight helper fails fast for invalid runtime map source payloads', async () => {
     const errors: string[] = [];
     let failCode: number | null = null;
 
     const isValid = await ensureMapPreflightValid({
-        activeConfig: { map_filepath: './assets/maps/runtime/map-pack.json' },
+        activeConfig: { map_filepath: './assets/maps/tiled/world.json' },
         emitError: (message) => errors.push(message),
         fail: (code) => {
             failCode = code;
@@ -201,10 +201,12 @@ test('map preflight helper fails fast for invalid map-pack-shaped payloads', asy
 
     expect(isValid).toBe(false);
     expect(failCode).toBe(1);
-    expect(errors).toEqual(['Startup preflight: map pack file has invalid schema: ./assets/maps/runtime/map-pack.json']);
+    expect(errors).toEqual([
+        'Startup preflight: runtime map source is invalid: ./assets/maps/tiled/world.json (Invalid runtime map config: no maps declared.)',
+    ]);
 });
 
-test('map preflight helper fails for parseable non-map-pack payloads', async () => {
+test('map preflight helper fails for parseable non-runtime-map payloads', async () => {
     const errors: string[] = [];
     let failCode: number | null = null;
 
@@ -219,10 +221,12 @@ test('map preflight helper fails for parseable non-map-pack payloads', async () 
 
     expect(isValid).toBe(false);
     expect(failCode).toBe(1);
-    expect(errors).toEqual(['Startup preflight: map pack file has invalid schema: ./bad-shape-map.json']);
+    expect(errors).toEqual([
+        'Startup preflight: runtime map source is invalid: ./bad-shape-map.json (Invalid runtime map source: expected map-pack, map-pack config, or Tiled map payload.)',
+    ]);
 });
 
-test('map preflight helper fails for semantically invalid server map payload in map pack', async () => {
+test('map preflight helper fails for semantically invalid server map payload in runtime pack', async () => {
     const errors: string[] = [];
     let failCode: number | null = null;
 

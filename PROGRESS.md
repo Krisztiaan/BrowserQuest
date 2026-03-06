@@ -13,6 +13,295 @@ Format per entry:
 
 ---
 
+## 2026-03-06
+
+- 22:05 UTC
+  - Ticket: 753 (Movement architecture foundation and state model)
+  - Start timestamp: 2026-03-06 21:47 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Implemented the first explicit split between movement truth and movement presentation in the client kernel:
+      - authoritative world position remains in `kernel.worldPosition`,
+      - presentation target world position is now tracked separately,
+      - rendered world position is now tracked separately as a kernel-side surface.
+    - Extended `KernelEntityView` to expose:
+      - `authoritativeWorldPosition`,
+      - `presentationTargetWorldPosition`,
+      - `renderedWorldPosition`,
+      while keeping `worldPosition` as the authoritative alias for compatibility.
+    - Updated replication sync to compare and write against presentation targets instead of implicitly treating authoritative world position as the render target.
+    - Updated command-apply movement paths so `setEntityWorldPosition` and `teleportEntity` update kernel presentation state explicitly.
+    - Updated simulation to feed rendered-world-position state back into the kernel so later tickets can build local/remote motors on top of stable state surfaces.
+    - Added regression coverage proving:
+      - authoritative and presentation positions can diverge in the kernel without collapsing,
+      - command-apply updates the new presentation surfaces on world-position updates and teleports.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-world-kernel.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts`
+    - `bun x eslint client/ecs/world-kernel.ts client/ecs/systems/client-kernel-replication-sync-system.ts client/ecs/systems/client-simulation-system.ts client/ecs/systems/client-command-apply-system.ts tests/unit/client-world-kernel.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - Start Ticket 754: local presentation motor and immediate-response movement on top of the new kernel state split.
+
+- 21:38 UTC
+  - Ticket: Planning roadmap for movement/netcode refactor
+  - Start timestamp: 2026-03-06 21:34 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Reframed the movement discussion away from full client authority and toward a presentation-decoupled, server-authoritative architecture.
+    - Converted the direction into an executable multi-ticket roadmap in `TODO.md` covering:
+      - movement state-model foundation,
+      - local presentation motor,
+      - remote buffered interpolation/extrapolation,
+      - server validation envelopes,
+      - combat/interaction grace,
+      - occupancy policy review,
+      - instrumentation/tuning.
+    - Ordered the work so the risky refactor starts with state ownership/invariants before feel tuning.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,160p' PROGRESS.md`
+    - `rg -n "collision|move.to|resolveSubTileMotionAgainstTiles|clientSpatialRecords" client server shared`
+  - Next action:
+    - Start Ticket 753 by defining the concrete authoritative/predicted/rendered state surfaces and ownership rules.
+
+- 21:45 UTC
+  - Ticket: Planning refinement for movement/netcode refactor
+  - Start timestamp: 2026-03-06 21:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Deepened the roadmap using reference patterns from proven implementations:
+      - Source/Valve client prediction + interpolation,
+      - Path of Exile predictive-vs-lockstep tradeoff,
+      - modern latency-hiding state ideas,
+      - Factorio’s caution about scoping latency hiding.
+    - Refined the planned architecture toward a movement-specific latency-state model:
+      - authoritative,
+      - predicted,
+      - rendered/presentation.
+    - Updated `TODO.md` tickets to emphasize deterministic presentation rebuilds, catch-up modulation, stale-remote undershoot bias, and gameplay-tier tuning.
+    - Added a movement/netcode target-model refinement section to `mmo-plan.md` so the architectural intent is documented outside the active backlog.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,220p' mmo-plan.md`
+    - web research on Valve/Source, Path of Exile, Modern Warfare latency-hiding, and Factorio latency hiding
+  - Next action:
+    - Start Ticket 753 with the documented layering and ownership model as the implementation contract.
+
+- 21:24 UTC
+  - Ticket: 751 (Align attack-start signaling with server windup)
+  - Start timestamp: 2026-03-06 21:19 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Re-audited the latest client/server logs and narrowed the false-positive path:
+      - the first click was being accepted server-side,
+      - but that only set the player target,
+      - while both client and server were still treating that acceptance too much like a real combat start.
+    - Removed optimistic local attack-link creation from `playerAttack` application so the client no longer starts a local attack session before authoritative server confirmation.
+    - Moved the player `ENTITY_ATTACKED`/`ATTACK` broadcast point from attack-intent acceptance to actual windup start in server combat authority.
+    - Enriched `combat.attack_intent_accepted` with attacker/target positions and `inRangeAtAccept` so accepted-but-not-started cases are immediately visible in logs.
+    - Added a regression proving an out-of-range accepted attack does not broadcast `ATTACK` until the server later starts windup.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/combat-hitframe-state-machine.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/server-attack-broadcast.test.ts`
+    - `bun x eslint client/ecs/systems/client-command-apply-system.ts server/world/ecs-command-pipeline.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 21:24 UTC
+  - Ticket: 752 (Verify and document attack-start alignment)
+  - Start timestamp: 2026-03-06 21:24 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Completed targeted regression and lint verification for the attack-start alignment patch.
+    - Updated active-ticket tracking to close the cycle.
+    - Documented the new runtime expectation:
+      - `combat.attack_intent_accepted` means target lock only,
+      - `combat.player_windup_started` plus client `attack.received` means real attack session start.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/combat-hitframe-state-machine.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/server-attack-broadcast.test.ts`
+    - `bun x eslint client/ecs/systems/client-command-apply-system.ts server/world/ecs-command-pipeline.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 21:18 UTC
+  - Ticket: 749 (Move/attack observability pass for deterministic repro)
+  - Start timestamp: 2026-03-06 21:07 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added client `warn` support and server `warn`/`warning` support so routine move/attack traffic can stay at `info` while anomaly and recovery paths are elevated to warnings.
+    - Instrumented the client move/attack handoff at the decisive points:
+      - protocol `intent.sent`, `intent.acked`, `movement.sync`, `movement.corrected`, `attack.received`,
+      - interaction-system `attack.follow_sent`, `attack.follow_deferred_pending_move`, `attack.blocked`, `attack.sent`,
+      - command-apply `player_follow_plan`, `player_attack_send`, plus missing-target warnings.
+    - Instrumented the server combat path with structured events for:
+      - `combat.attack_intent_accepted`,
+      - invalid/missing attack targets,
+      - player windup cleared before hit,
+      - player hitframe canceled,
+      - windup cleared because the target changed mid-attack.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/server-attack-broadcast.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/server-log.test.ts`
+    - `bun x eslint client/platform/log.ts client/gameclient.ts client/ecs/systems/client-interaction-intent-system.ts client/ecs/systems/client-command-apply-system.ts server/log.ts server/world/ecs-command-pipeline.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 21:18 UTC
+  - Ticket: 750 (Verification and documentation update for new logs)
+  - Start timestamp: 2026-03-06 21:18 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Completed targeted test/lint verification for the observability patch.
+    - Removed completed tickets from `TODO.md` per repo policy.
+    - Documented the remaining blind spot as live repro collection rather than code-path visibility: the next repro should now show whether the client never sent ATTACK, the server discarded it, or a server-side windup/hitframe was canceled.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/server-attack-broadcast.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/server-log.test.ts`
+    - `bun x eslint client/platform/log.ts client/gameclient.ts client/ecs/systems/client-interaction-intent-system.ts client/ecs/systems/client-command-apply-system.ts server/log.ts server/world/ecs-command-pipeline.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 21:07 UTC
+  - Ticket: 749 (Move/attack observability pass for deterministic repro)
+  - Start timestamp: 2026-03-06 21:07 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened Tickets 749-750 in `TODO.md` for a focused observability pass based on the latest live repro logs.
+    - Audited current client/server logging surfaces and identified a gap:
+      - client logger lacks `warn`,
+      - server has structured events but move/attack handoff points are not yet emitting enough high-signal state for this repro.
+    - Scoped the logging work to movement sequencing, attack intent emission, attack-start authority, and anomaly/recovery paths.
+  - Evidence:
+    - `sed -n '1,220p' client/platform/log.ts`
+    - `sed -n '1,260p' server/log.ts`
+    - `sed -n '1,220p' TODO.md`
+  - Next action:
+    - Patch client/server logging helpers and add targeted move/attack state logs at the relevant handoff points.
+
+- 20:31 UTC
+  - Ticket: 748 (Attack-start desync follow-up from live protocol logs)
+  - Start timestamp: 2026-03-06 20:26 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Re-audited the raw protocol logs against opcode meanings and distinguished two remaining deterministic failure modes:
+      - `animation NO, attack YES`: server combat begins, but the attacker client misses an authoritative combat-start signal,
+      - `animation YES, attack NO`: client-side optimistic attack state can appear before the server-side player attack session is actually active.
+    - Patched `server/ecs/command-systems.ts` so `ENTITY_ATTACKED` broadcasts are no longer suppressed for the attacker client.
+    - Added `tests/unit/ecs/server-attack-broadcast.test.ts` to lock the new outbox behavior.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/server-attack-broadcast.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/combat-hitframe-state-machine.test.ts`
+    - `bun x eslint server/ecs/command-systems.ts tests/unit/ecs/server-attack-broadcast.test.ts client/ecs/systems/client-interaction-intent-system.ts tests/unit/ecs/client-attack-intent-follow.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 20:24 UTC
+  - Ticket: 746 (Diagonal movement reconciliation and first-click attack follow-up)
+  - Start timestamp: 2026-03-06 20:20 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Changed local prediction reconciliation in `client/ecs/systems/client-move-input-prediction-system.ts` to measure correction bands by max-axis error instead of Manhattan error, so diagonal motion is not over-corrected earlier than cardinal motion.
+    - Relaxed ATTACK gating in `client/ecs/systems/client-interaction-intent-system.ts`: after movement settles, ATTACK is allowed when the last authoritative player tile is still in valid attack range, instead of requiring exact tile equality with the rendered player tile.
+    - Added regressions for:
+      - diagonal prediction deadzone parity,
+      - first-click attack emission when authoritative position is still diagonally in range after move settle.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 20:24 UTC
+  - Ticket: 747 (Regression verification and edge-case review)
+  - Start timestamp: 2026-03-06 20:20 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ran the diagonal-focused regression suite covering attack follow-up, prediction deadzones, and movement correction handling.
+    - Ran focused lint on the changed interaction/prediction files and their tests.
+    - Critical-review pass focused on diagonal-only risks:
+      - heavy melee remains line-only at range 2, because authoritative range checks are unchanged and still reject diagonal extended-reach attacks,
+      - movement-in-flight ATTACK deferral is still preserved; only the post-settle authoritative alignment rule changed.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+    - `bun x eslint client/ecs/systems/client-interaction-intent-system.ts client/ecs/systems/client-move-input-prediction-system.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 20:20 UTC
+  - Ticket: 746 (Diagonal movement reconciliation and first-click attack follow-up)
+  - Start timestamp: 2026-03-06 20:20 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened Tickets 746-747 in `TODO.md` for the newly reported diagonal-only movement/combat regression.
+    - Started a targeted audit of diagonal prediction/reconciliation plus move+attack click ordering.
+    - Identified the likely hot spots:
+      - `client/ecs/systems/client-interaction-intent-system.ts` ATTACK deferral/retry gating,
+      - diagonal adjacency/range decisions in shared combat helpers,
+      - local movement settle detection vs pending move reconciliation.
+  - Evidence:
+    - `rg -n "diagonal|move.input|playerAttack|client-interaction-intent-system|client-combat-system" client tests/unit shared`
+    - `sed -n '1,220p' TODO.md`
+  - Next action:
+    - Read interaction/click/combat systems and their regressions, then patch the diagonal-specific mismatch.
+
+- 20:18 UTC
+  - Ticket: 743 (Local movement correction smoothing and command handoff)
+  - Start timestamp: 2026-03-06 20:11 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Reworked local `move.input` reconciliation in `client/ecs/systems/client-move-input-prediction-system.ts` to use a small deadzone, gentler correction bands, and a one-tile hard snap ceiling.
+    - Stopped forcing `snapRender` for ordinary local predicted movement updates so the existing render interpolation layer can smooth the visible avatar motion.
+    - Added regression coverage proving predictive movement updates no longer request render snapping and that small authority drift is blended instead of hard-snapped.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 20:18 UTC
+  - Ticket: 744 (Remote movement presentation smoothing)
+  - Start timestamp: 2026-03-06 20:11 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Removed replication-sync `snapRender` on delayed remote interpolation updates in `client/ecs/systems/client-kernel-replication-sync-system.ts`.
+    - Kept teleports/large corrections on the existing immediate snap path, so ordinary replicated movement now flows through the interpolation layer while true discontinuities still snap.
+    - Updated regression coverage to assert remote interpolated updates no longer emit `snapRender`.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 20:18 UTC
+  - Ticket: 745 (Verification and critical review pass)
+  - Start timestamp: 2026-03-06 20:11 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Ran the targeted movement regression suites covering local prediction, command/correction handling, remote interpolation, and kernel snapshot behavior.
+    - Ran focused lint on the changed movement files and tests.
+    - Critical-review pass focused on two likely failure points:
+      - true teleports/corrections still need immediate snaps: preserved via `teleportEntity` and the simulation large-drift snap path,
+      - local prediction must not fight click-to-move path-stepping: preserved because simulation interpolation still skips `Character.isMoving()` step-driven path motion.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+    - `bun test --timeout 30000 tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts`
+    - `bun x eslint client/ecs/systems/client-move-input-prediction-system.ts client/ecs/systems/client-kernel-replication-sync-system.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-kernel-despawn-sync.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 20:11 UTC
+  - Ticket: 743 (Local movement correction smoothing and command handoff)
+  - Start timestamp: 2026-03-06 20:11 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened tickets 743-745 in `TODO.md` for the reported movement-feel pass.
+    - Audited the active client movement path across prediction, command application, kernel replication sync, simulation interpolation, and existing regression tests.
+    - Isolated the primary jitter sources:
+      - local `move.input` prediction writes `snapRender` every frame, bypassing render interpolation,
+      - remote interpolation is also applied with `snapRender`,
+      - command/correction handoff currently has no bounded visual tolerance layer for local authority drift.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,260p' client/ecs/systems/client-move-input-prediction-system.ts`
+    - `sed -n '1,280p' client/ecs/systems/client-simulation-system.ts`
+    - `sed -n '1,280p' client/ecs/systems/client-kernel-replication-sync-system.ts`
+    - `sed -n '1,260p' tests/unit/ecs/client-move-input-prediction-system.test.ts`
+    - `sed -n '1,620p' tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - Patch local smoothing/correction handoff and remote interpolation render application, then run the targeted movement tests.
+
 ## 2026-03-03
 
 - 18:36 UTC

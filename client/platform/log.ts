@@ -1,5 +1,5 @@
 type LogValue = string | number | boolean | null | undefined | object;
-type LogLevel = 'debug' | 'info' | 'error';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 class Logger {
     level: LogLevel;
@@ -15,6 +15,12 @@ class Logger {
     info(message: LogValue) {
         if (this.level === 'debug' || this.level === 'info') {
             console.info(message);
+        }
+    }
+
+    warn(message: LogValue) {
+        if (this.level === 'debug' || this.level === 'info' || this.level === 'warn') {
+            console.warn(message);
         }
     }
 

@@ -1,17 +1,19 @@
-type LogLevelName = 'error' | 'info' | 'debug';
-type ConsoleMethod = 'error' | 'info' | 'log';
+type LogLevelName = 'error' | 'warn' | 'warning' | 'info' | 'debug';
+type ConsoleMethod = 'error' | 'warn' | 'info' | 'log';
 type LogScalar = string | number | boolean | bigint | null;
 type LogJsonValue = LogScalar | LogJsonValue[] | { [key: string]: LogJsonValue };
 type LogArg = LogJsonValue | Error | undefined;
 type EventFields = Record<string, LogJsonValue>;
 
 export const ERROR = 0;
-export const INFO = 1;
-export const DEBUG = 2;
+export const WARN = 1;
+export const INFO = 2;
+export const DEBUG = 3;
 
 type RuntimeLogger = {
     level: number;
     info(...args: LogArg[]): void;
+    warn(...args: LogArg[]): void;
     debug(...args: LogArg[]): void;
     error(...args: LogArg[]): void;
     event(levelName: string, eventName: string, fields?: EventFields | LogJsonValue): void;
@@ -19,18 +21,28 @@ type RuntimeLogger = {
 
 const LEVELS: Record<LogLevelName, number> = {
     error: ERROR,
+    warn: WARN,
+    warning: WARN,
     info: INFO,
     debug: DEBUG,
 };
 
 const METHODS: Record<LogLevelName, ConsoleMethod> = {
     error: 'error',
+    warn: 'warn',
+    warning: 'warn',
     info: 'info',
     debug: 'log',
 };
 
 function normalizeLevelName(levelName: string): LogLevelName | null {
-    if (levelName === 'error' || levelName === 'info' || levelName === 'debug') {
+    if (
+        levelName === 'error'
+        || levelName === 'warn'
+        || levelName === 'warning'
+        || levelName === 'info'
+        || levelName === 'debug'
+    ) {
         return levelName;
     }
     return null;
@@ -53,6 +65,12 @@ const logger: RuntimeLogger = {
     info(...args: LogArg[]): void {
         if (logger.level >= INFO) {
             write('info', args);
+        }
+    },
+
+    warn(...args: LogArg[]): void {
+        if (logger.level >= WARN) {
+            write('warn', args);
         }
     },
 
@@ -98,7 +116,7 @@ function getLogger(): RuntimeLogger {
 }
 
 function setLevel(level: number): RuntimeLogger {
-    if (level !== ERROR && level !== INFO && level !== DEBUG) {
+    if (level !== ERROR && level !== WARN && level !== INFO && level !== DEBUG) {
         logger.level = INFO;
         return logger;
     }
@@ -109,6 +127,7 @@ function setLevel(level: number): RuntimeLogger {
 
 const Log = {
     ERROR,
+    WARN,
     INFO,
     DEBUG,
     getLogger,

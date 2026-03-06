@@ -18,6 +18,9 @@ export type KernelEntityView = Readonly<{
     type: KernelEntityType;
     position: GridPos;
     worldPosition: WorldPos;
+    authoritativeWorldPosition: WorldPos;
+    presentationTargetWorldPosition: WorldPos;
+    renderedWorldPosition: WorldPos;
     name?: string;
     orientation?: number;
     armor?: EntityKind;
@@ -179,6 +182,8 @@ export class ClientWorldKernel {
     readonly clientSpatialItemIndex = new Map<string, EntityId[]>();
     readonly clientSpatialRenderIndex = new Map<string, EntityId[]>();
     readonly clientRemoteStateSnapshots = new Map<EntityId, ClientRemoteStateSnapshot[]>();
+    readonly clientPresentationTargetWorldPosition = new Map<EntityId, WorldPos>();
+    readonly clientRenderedWorldPosition = new Map<EntityId, WorldPos>();
 
     clientPathingGrid: number[][] | null = null;
 
@@ -503,13 +508,42 @@ export class ClientWorldKernel {
         return this.clientSpatialRenderIndex.get(cellKey(x, y)) ?? [];
     }
 
+    setClientPresentationTargetWorldPosition(id: EntityId, worldX: number, worldY: number): void {
+        if (!this.alive.has(id)) {
+            return;
+        }
+        this.clientPresentationTargetWorldPosition.set(id, worldPos(worldX, worldY));
+    }
+
+    getClientPresentationTargetWorldPosition(id: EntityId): WorldPos | null {
+        return this.clientPresentationTargetWorldPosition.get(id) ?? null;
+    }
+
+    setClientRenderedWorldPosition(id: EntityId, worldX: number, worldY: number): void {
+        if (!this.alive.has(id)) {
+            return;
+        }
+        this.clientRenderedWorldPosition.set(id, worldPos(worldX, worldY));
+    }
+
+    getClientRenderedWorldPosition(id: EntityId): WorldPos | null {
+        return this.clientRenderedWorldPosition.get(id) ?? null;
+    }
+
+    private seedClientPresentationState(id: EntityId, authoritative: WorldPos): void {
+        this.clientPresentationTargetWorldPosition.set(id, authoritative);
+        this.clientRenderedWorldPosition.set(id, authoritative);
+    }
+
     upsertFromSpawnSnapshot(snapshot: SpawnSnapshot): KernelEntityView {
         const id = entityIdFromWire(snapshot.id);
         this.alive.add(id);
         this.kind.set(id, snapshot.kind);
         const pos = gridPos(snapshot.x, snapshot.y);
         this.position.set(id, pos);
-        this.worldPosition.set(id, tileToWorldPosCenter(snapshot.x, snapshot.y));
+        const authoritative = tileToWorldPosCenter(snapshot.x, snapshot.y);
+        this.worldPosition.set(id, authoritative);
+        this.seedClientPresentationState(id, authoritative);
         this.clientRemoteStateSnapshots.delete(id);
         if (typeof snapshot.mapId === 'string' && snapshot.mapId.trim().length > 0) {
             this.mapId.set(id, snapshot.mapId);
@@ -546,7 +580,9 @@ export class ClientWorldKernel {
         this.alive.add(id);
         this.kind.set(id, kind);
         this.position.set(id, gridPos(x, y));
-        this.worldPosition.set(id, tileToWorldPosCenter(x, y));
+        const authoritative = tileToWorldPosCenter(x, y);
+        this.worldPosition.set(id, authoritative);
+        this.seedClientPresentationState(id, authoritative);
         this.clientRemoteStateSnapshots.delete(id);
         this.mapId.delete(id);
 
@@ -565,7 +601,11 @@ export class ClientWorldKernel {
             return;
         }
         this.position.set(id, gridPos(x, y));
-        this.worldPosition.set(id, tileToWorldPosCenter(x, y));
+        const authoritative = tileToWorldPosCenter(x, y);
+        this.worldPosition.set(id, authoritative);
+        if (!this.clientPresentationTargetWorldPosition.has(id) || !this.clientRenderedWorldPosition.has(id)) {
+            this.seedClientPresentationState(id, authoritative);
+        }
         this.clientRemoteStateSnapshots.delete(id);
     }
 
@@ -599,6 +639,9 @@ export class ClientWorldKernel {
         const pos = worldPos(worldX, worldY);
         this.worldPosition.set(id, pos);
         this.position.set(id, worldPosToTile(pos));
+        if (!this.clientPresentationTargetWorldPosition.has(id) || !this.clientRenderedWorldPosition.has(id)) {
+            this.seedClientPresentationState(id, pos);
+        }
     }
 
     pushClientRemoteStateSnapshot(id: EntityId, worldX: number, worldY: number, tick: number, receivedAtMs: number): void {
@@ -699,6 +742,8 @@ export class ClientWorldKernel {
         this.position.delete(id);
         this.worldPosition.delete(id);
         this.clientRemoteStateSnapshots.delete(id);
+        this.clientPresentationTargetWorldPosition.delete(id);
+        this.clientRenderedWorldPosition.delete(id);
         this.mapId.delete(id);
         this.name.delete(id);
         this.orientation.delete(id);
@@ -725,6 +770,8 @@ export class ClientWorldKernel {
         this.position.clear();
         this.worldPosition.clear();
         this.clientRemoteStateSnapshots.clear();
+        this.clientPresentationTargetWorldPosition.clear();
+        this.clientRenderedWorldPosition.clear();
         this.mapId.clear();
         this.activeMapId = null;
         this.name.clear();
@@ -831,10 +878,13 @@ export class ClientWorldKernel {
     getEntityView(id: EntityId): KernelEntityView {
         const kind = this.kind.get(id);
         const position = this.position.get(id);
-        const worldPosition = this.worldPosition.get(id);
-        if (kind === undefined || !position || !worldPosition) {
+        const authoritativeWorldPosition = this.worldPosition.get(id);
+        if (kind === undefined || !position || !authoritativeWorldPosition) {
             throw new Error(`Kernel missing entity ${String(id)}`);
         }
+        const presentationTargetWorldPosition =
+            this.clientPresentationTargetWorldPosition.get(id) ?? authoritativeWorldPosition;
+        const renderedWorldPosition = this.clientRenderedWorldPosition.get(id) ?? presentationTargetWorldPosition;
 
         const weapon = this.weapon.get(id);
         const armor = this.armor.get(id);
@@ -854,7 +904,10 @@ export class ClientWorldKernel {
             kind,
             type,
             position,
-            worldPosition,
+            worldPosition: authoritativeWorldPosition,
+            authoritativeWorldPosition,
+            presentationTargetWorldPosition,
+            renderedWorldPosition,
             name,
             orientation,
             armor,

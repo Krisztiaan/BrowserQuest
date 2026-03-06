@@ -16,30 +16,21 @@ function createValidConfig() {
     };
 }
 
-test('main runtime wires passkey auth handler when websocket server exposes auth route seam', async () => {
+test('main runtime serves compiled runtime map payload from authored world.json', async () => {
     const timerHandle = { id: 'timer' };
     const processObject = {
         env: {},
-        on() {
-            // no-op
-        },
-        off() {
-            // no-op
-        },
+        on() {},
+        off() {},
         exit() {
-            // no-op
             return undefined as never;
         },
     };
 
-    let passkeyAuthHandler: (request: Request) => Promise<Response> = () =>
-        Promise.reject(new Error('Passkey auth handler was not installed.'));
-    let passkeyHandlerInstalled = false;
+    let runtimeMapPackHandler: ((request: Request) => Response | Promise<Response>) | null = null;
 
     class FakeServer implements RuntimeServer {
-        constructor(_port: number) {
-            // no-op
-        }
+        constructor(_port: number) {}
 
         on(_eventName: 'connect', _callback: (connection: RuntimeConnection) => void): void;
         on(
@@ -55,44 +46,31 @@ test('main runtime wires passkey auth handler when websocket server exposes auth
             // no-op
         }
 
-        onRequestStatus(_callback: () => string): void {
-            // no-op
-        }
+        onRequestStatus(_callback: () => string): void {}
 
-        onRequestPasskeyAuth(callback: (request: Request) => Response | Promise<Response>): void {
-            passkeyHandlerInstalled = true;
-            passkeyAuthHandler = (request: Request) => Promise.resolve(callback(request));
+        onRequestRuntimeMapPack(callback: (request: Request) => Response | Promise<Response>): void {
+            runtimeMapPackHandler = callback;
         }
     }
 
     class FakeWorld implements RuntimeWorld {
         playerCount = 0;
 
-        constructor(_name: string, _cap: number, _server: RuntimeServer) {
-            // no-op
-        }
+        constructor(_name: string, _cap: number, _server: RuntimeServer) {}
 
         on(_eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void): void {
             callback();
         }
 
-        emit(_eventName: 'playerConnect', _player: { id?: string | number }): void {
-            // no-op
-        }
+        emit(_eventName: 'playerConnect', _player: { id?: string | number }): void {}
 
-        run(_path: string): void {
-            // no-op
-        }
+        run(_path: string): void {}
 
-        updatePopulation(_totalPlayers?: number): void {
-            // no-op
-        }
+        updatePopulation(_totalPlayers?: number): void {}
     }
 
     class FakePlayer {
-        constructor(_connection: RuntimeConnection, _world: RuntimeWorld) {
-            // no-op
-        }
+        constructor(_connection: RuntimeConnection, _world: RuntimeWorld) {}
     }
 
     const runtime = MainRuntime.main(createValidConfig(), {
@@ -126,20 +104,17 @@ test('main runtime wires passkey auth handler when websocket server exposes auth
         },
     });
 
-    expect(passkeyHandlerInstalled).toBe(true);
-
-    const response = await passkeyAuthHandler(
-        new Request('http://localhost/auth/passkey/register/options', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: 'alice' }),
-        })
-    );
-
+    expect(runtimeMapPackHandler).not.toBeNull();
+    const response = await runtimeMapPackHandler!(new Request('http://localhost/assets/maps/runtime/map-pack.json'));
     expect(response.status).toBe(200);
-    const body = (await response.json()) as { ok?: boolean; options?: { challenge?: string } };
-    expect(body.ok).toBe(true);
-    expect(typeof body.options?.challenge).toBe('string');
+    expect(response.headers.get('content-type')).toContain('application/json');
+
+    const payload = await response.json() as {
+        schemaVersion?: number;
+        maps?: Array<{ id?: string; client?: object; server?: object }>;
+    };
+    expect(payload.schemaVersion).toBe(2);
+    expect(payload.maps?.some((map) => map.id === 'world_01')).toBe(true);
 
     runtime?.cleanup();
 });

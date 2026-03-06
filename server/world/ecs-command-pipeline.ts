@@ -76,6 +76,7 @@ import { ClaimsStore, type RectClaim } from './claims/claims-store';
 import { CLAIMS_STORE_RESOURCE } from './claims/claims-resource';
 import type { ServerConfig } from '../runtime-types';
 import { normalizeIdentityKey, resolveIdentityKey } from '../identity';
+import Log from '../log';
 import {
     decodeClaimCreateIntentPayload,
     decodeClaimDeleteIntentPayload,
@@ -257,6 +258,7 @@ type WorldCommandHost = Readonly<{
 const DEFAULT_CHUNK_SIZE = 32;
 const MAX_CHUNK_SNAPSHOTS_PER_TICK_PER_PLAYER = 8;
 const MAX_CHUNK_DELTA_CHANGES_PER_MESSAGE = 256;
+const log = Log.getLogger();
 
 function resolvePlayerIdentityKey(player: { accountNameKey?: string; name?: string } | null | undefined): string | null {
     return resolveIdentityKey(player);
@@ -823,11 +825,37 @@ function applyAttackIntent({
     targetId: EntityId;
 }): void {
     const targetKind = replication.Kind.store.get(targetId);
-    if (targetKind === undefined || !Types.isMob(targetKind)) {
+    if (targetKind === undefined) {
+        log.event('warn', 'combat.attack_intent_missing_target', { attackerId, targetId });
         return;
     }
+    if (!Types.isMob(targetKind)) {
+        log.event('warn', 'combat.attack_intent_invalid_target_kind', { attackerId, targetId, targetKind });
+        return;
+    }
+    const attackerPos = state.world.getComponent(attackerId, replication.Position);
+    const targetPos = state.world.getComponent(targetId, replication.Position);
+    const attackerKind = replication.Kind.store.get(attackerId);
+    const attackerWeaponKind = state.world.getComponent(attackerId, replication.Weapon);
+    const inRangeAtAccept =
+        attackerPos !== undefined &&
+        targetPos !== undefined &&
+        attackerKind !== undefined &&
+        isEntityWithinAttackRange({
+            attackerPos,
+            targetPos,
+            attackerKind,
+            attackerWeaponKind,
+        });
     state.world.addComponent(attackerId, Target, targetId);
-    state.events.push({ type: 'ENTITY_ATTACKED', attackerId, targetId });
+    log.event('info', 'combat.attack_intent_accepted', {
+        attackerId,
+        targetId,
+        targetKind,
+        attackerPos: attackerPos ? { x: attackerPos.x, y: attackerPos.y } : null,
+        targetPos: targetPos ? { x: targetPos.x, y: targetPos.y } : null,
+        inRangeAtAccept,
+    });
 
     addMobHate({
         state,
@@ -1170,6 +1198,16 @@ function runServerAuthoritativeCombatSystem({
             if (!isInRange || !isVisible) {
                 continue;
             }
+            if (isPlayerVsMob) {
+                state.events.push({ type: 'ENTITY_ATTACKED', attackerId: engagement.attackerId, targetId: engagement.targetId });
+                log.event('info', 'combat.player_windup_started', {
+                    attackerId: engagement.attackerId,
+                    targetId: engagement.targetId,
+                    tick: ctx.tick,
+                    attackerPos: { x: attackerPos.x, y: attackerPos.y },
+                    targetPos: { x: targetPos.x, y: targetPos.y },
+                });
+            }
             if (isMobVsPlayer) {
                 const outbox = state.resources.require(OUTBOX_RESOURCE);
                 const attack = buildAttackAction(engagement.attackerId, engagement.targetId);
@@ -1192,12 +1230,32 @@ function runServerAuthoritativeCombatSystem({
         }
 
         if (windup.targetId !== engagement.targetId) {
+            if (isPlayerVsMob) {
+                log.event('warn', 'combat.player_windup_cleared_target_changed', {
+                    attackerId: engagement.attackerId,
+                    windupTargetId: windup.targetId,
+                    currentTargetId: engagement.targetId,
+                    tick: ctx.tick,
+                });
+            }
             state.world.removeComponent(engagement.attackerId, AttackWindup);
             continue;
         }
 
         if (ctx.tick < windup.hitAtTick) {
             if (!isInRange || !isVisible) {
+                if (isPlayerVsMob) {
+                    log.event('warn', 'combat.player_windup_cleared_before_hit', {
+                        attackerId: engagement.attackerId,
+                        targetId: engagement.targetId,
+                        tick: ctx.tick,
+                        hitAtTick: windup.hitAtTick,
+                        isInRange,
+                        isVisible,
+                        attackerPos: attackerPos ? { x: attackerPos.x, y: attackerPos.y } : null,
+                        targetPos: targetPos ? { x: targetPos.x, y: targetPos.y } : null,
+                    });
+                }
                 state.world.removeComponent(engagement.attackerId, AttackWindup);
             }
             continue;
@@ -1206,6 +1264,17 @@ function runServerAuthoritativeCombatSystem({
         // Hit-frame: apply damage only if still in range at this tick.
         state.world.removeComponent(engagement.attackerId, AttackWindup);
         if (!isInRange || !isVisible) {
+            if (isPlayerVsMob) {
+                log.event('warn', 'combat.player_hitframe_canceled', {
+                    attackerId: engagement.attackerId,
+                    targetId: engagement.targetId,
+                    tick: ctx.tick,
+                    isInRange,
+                    isVisible,
+                    attackerPos: attackerPos ? { x: attackerPos.x, y: attackerPos.y } : null,
+                    targetPos: targetPos ? { x: targetPos.x, y: targetPos.y } : null,
+                });
+            }
             if (isMobVsPlayer) {
                 state.world.removeComponent(engagement.attackerId, replication.Target);
             }

@@ -63,7 +63,6 @@ export function mapDomainEventToProtocolAction(event: DomainEvent): OutboxMessag
                 kind: 'broadcast_nearby',
                 actorId: event.attackerId,
                 action,
-                ignoredPlayerId: event.attackerId,
             },
         ];
     }

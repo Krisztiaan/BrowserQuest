@@ -703,6 +703,9 @@ export default function processMap(
         doors: [],
         checkpoints: [],
     };
+    const tileCount = map.width * map.height;
+    const renderableOccupancy = new Uint8Array(tileCount);
+    const collisionCarveIndices = new Set<number>();
 
     const tiledLayers = flattenTiledLayers(rawLayers, map.width, map.height, tileSize);
 
@@ -1038,7 +1041,6 @@ export default function processMap(
     }
 
     if (mode === "client") {
-        const tileCount = map.width * map.height;
         const data = (map.data ??= []);
         if (data.length < tileCount) {
             data.length = tileCount;
@@ -1055,18 +1057,29 @@ export default function processMap(
         }
     }
 
-    const tileCount = map.width * map.height;
-    const normalizedCollisions = uniqueValidIndices(map.collisions, tileCount);
-    map.collisions = normalizedCollisions;
+    if (tileCount > 0) {
+        for (let x = 0; x < map.width; x += 1) {
+            sealEmptyPerimeterTile(x, 0);
+            sealEmptyPerimeterTile(x, map.height - 1);
+        }
+        for (let y = 1; y < map.height - 1; y += 1) {
+            sealEmptyPerimeterTile(0, y);
+            sealEmptyPerimeterTile(map.width - 1, y);
+        }
+    }
 
-    let blockedForNavigation = normalizedCollisions;
+    const normalizedCollisions = uniqueValidIndices(map.collisions, tileCount);
+    map.collisions = normalizedCollisions.filter((index) => !collisionCarveIndices.has(index));
+
+    let blockedForNavigation = map.collisions;
     if (mode === "client") {
         const normalizedBlocking = uniqueValidIndices(
             [...(map.blocking ?? []), ...normalizedCollisions],
             tileCount
         );
-        map.blocking = normalizedBlocking;
-        blockedForNavigation = normalizedBlocking;
+        const carvedBlocking = normalizedBlocking.filter((index) => !collisionCarveIndices.has(index));
+        map.blocking = carvedBlocking;
+        blockedForNavigation = carvedBlocking;
     }
 
     const navigation = deriveNavigationIslands(map.width, map.height, blockedForNavigation);
@@ -1123,6 +1136,12 @@ export default function processMap(
 
             if (mode === "client" && gid > 0) {
                 writeRenderableTile(i, gid, foregroundLayer);
+            }
+            if (gid > 0) {
+                renderableOccupancy[i] = 1;
+                if (layer.name === 'bridge') {
+                    collisionCarveIndices.add(i);
+                }
             }
 
             if (gid in collidingTiles) {
@@ -1303,6 +1322,7 @@ export default function processMap(
         if (mode === 'client') {
             writeRenderableTile(resolved.tileIndex, resolved.gid, foregroundLayer);
         }
+        renderableOccupancy[resolved.tileIndex] = 1;
         if (resolved.gid in collidingTiles) {
             map.collisions.push(resolved.tileIndex);
         }
@@ -1380,6 +1400,17 @@ export default function processMap(
         } else {
             destination[tileIndex] = [gid, existing];
         }
+    }
+
+    function sealEmptyPerimeterTile(x: number, y: number): void {
+        if (x < 0 || y < 0 || x >= map.width || y >= map.height) {
+            return;
+        }
+        const index = y * map.width + x;
+        if (renderableOccupancy[index]) {
+            return;
+        }
+        map.collisions.push(index);
     }
 
     function resolveStaticEntityKind(spawn: TiledObject): EntityKindName | null {

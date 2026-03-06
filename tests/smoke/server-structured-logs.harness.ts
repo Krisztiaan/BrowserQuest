@@ -141,7 +141,7 @@ export function createStructuredLogHarness(): StructuredLogHarness {
             debug_level: 'info',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './assets/maps/runtime/map-pack.json',
+            map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         };
         const mergedConfig = Object.assign({}, baseConfig, options?.configOverrides ?? {});

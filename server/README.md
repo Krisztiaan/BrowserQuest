@@ -41,7 +41,7 @@ Example (metrics disabled, default-safe):
   "debug_level": "info",
   "nb_players_per_world": 2000,
   "nb_worlds": 1,
-  "map_filepath": "./assets/maps/runtime/map-pack.json",
+  "map_filepath": "./assets/maps/tiled/world.json",
   "metrics_enabled": false
 }
 ```
@@ -54,7 +54,7 @@ Example (metrics enabled):
   "debug_level": "info",
   "nb_players_per_world": 2000,
   "nb_worlds": 1,
-  "map_filepath": "./assets/maps/runtime/map-pack.json",
+  "map_filepath": "./assets/maps/tiled/world.json",
   "metrics_enabled": true,
   "memcached_host": "127.0.0.1",
   "memcached_port": 11211,
@@ -112,7 +112,7 @@ Bundle deploy (recommended baseline):
 2. Deploy `dist/bundle/**`.
 3. Start from bundle root with `bun server/entry.ts server/config.json`.
 
-`assets/maps/runtime/map-pack.json` is the default runtime map dependency via `map_filepath`.
+`assets/maps/tiled/world.json` is the default runtime map source via `map_filepath`. The server now compiles and serves the runtime map payload directly from authored Tiled data.
 Generate/update it with `bun run build:maps`; validate freshness with `bun run check:maps`.
 Multi-map rollout and transition error-budget runbook: `docs/map-transition-rollout.md`.
 Structured event taxonomy (including map transition telemetry): `docs/server-logging-taxonomy.md`.

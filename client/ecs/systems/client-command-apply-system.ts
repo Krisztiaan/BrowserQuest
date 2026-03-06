@@ -21,6 +21,7 @@ import { adaptKernelEntityForRendering } from '../kernel-entity-adapter';
 import Exceptions from '../../exceptions';
 import { debugMoves } from '../../debug-flags';
 import type { AudioSoundKey } from '../../asset-key-domain';
+import { SUBPIXELS, TILE_PX, tileToWorldPosCenter } from '../../../shared/world/worldpos';
 
 type GridIndexedEntity = {
     id: EntityId;
@@ -248,6 +249,13 @@ function resolveAuthoritativeLocalPlayerPos(host: ClientCommandApplySystemHost):
     // For click-to-move prediction, treat the rendered player's current tile as the baseline.
     // Server authority is reconciled via kernel replication sync + teleport correction.
     return gridPos(host.player.gridX, host.player.gridY);
+}
+
+function renderTopLeftPxToWorldSub(x: number, y: number): { worldX: number; worldY: number } {
+    return {
+        worldX: (x + TILE_PX / 2) * SUBPIXELS,
+        worldY: (y + TILE_PX / 2) * SUBPIXELS,
+    };
 }
 
 function resolvePlanOrigin(host: ClientCommandApplySystemHost): { x: number; y: number } {
@@ -897,16 +905,38 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     host.kernel.clearClientPendingMoveAcks();
                     host.kernel.clearClientPendingMoveSeqAcks();
 
-                    host.createAttackLink(host.player, entity);
+                    log.info({
+                        scope: 'client_command_apply',
+                        level: 'info',
+                        event: 'player_attack_send',
+                        targetId: command.targetId,
+                        targetGrid: { x: entity.gridX, y: entity.gridY },
+                        playerGrid: { x: host.player.gridX, y: host.player.gridY },
+                    });
                     if (host.started && host.client) {
                         host.client.sendAttack(entity);
                     }
+                } else {
+                    log.warn({
+                        scope: 'client_command_apply',
+                        level: 'warn',
+                        event: 'player_attack_missing_target',
+                        targetId: command.targetId,
+                    });
                 }
                 break;
             }
             case 'playerFollow': {
                 const entity = getKnownEntity(command.targetId);
                 if (entity) {
+                    log.info({
+                        scope: 'client_command_apply',
+                        level: 'info',
+                        event: 'player_follow_plan',
+                        targetId: command.targetId,
+                        targetGrid: { x: entity.gridX, y: entity.gridY },
+                        playerGrid: { x: host.player.gridX, y: host.player.gridY },
+                    });
                     if (entity instanceof Character && host.player.target !== entity) {
                         host.player.setTarget(entity);
                     }
@@ -915,6 +945,13 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                         toX: entity.gridX,
                         toY: entity.gridY,
                         stopAdjacentToTarget: true,
+                    });
+                } else {
+                    log.warn({
+                        scope: 'client_command_apply',
+                        level: 'warn',
+                        event: 'player_follow_missing_target',
+                        targetId: command.targetId,
                     });
                 }
                 break;
@@ -1154,11 +1191,17 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                         hardStopCharacterMovement(entity);
                     }
                 }
+                const renderedBefore = renderTopLeftPxToWorldSub(entity.x, entity.y);
+                host.kernel.setClientRenderedWorldPosition(command.entityId, renderedBefore.worldX, renderedBefore.worldY);
+                host.kernel.setClientPresentationTargetWorldPosition(command.entityId, command.worldX, command.worldY);
                 entity.setWorldPositionSub(
                     command.worldX,
                     command.worldY,
                     command.snapRender ? { snapRender: true } : undefined
                 );
+                if (command.snapRender) {
+                    host.kernel.setClientRenderedWorldPosition(command.entityId, command.worldX, command.worldY);
+                }
                 entity.setDirty();
                 break;
             }
@@ -1204,6 +1247,18 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                         host.kernel.clientMovementSuppressed = false;
                     }
                 }
+
+                const teleportedWorldPos = tileToWorldPosCenter(command.x, command.y);
+                host.kernel.setClientPresentationTargetWorldPosition(
+                    command.entityId,
+                    teleportedWorldPos.x,
+                    teleportedWorldPos.y
+                );
+                host.kernel.setClientRenderedWorldPosition(
+                    command.entityId,
+                    teleportedWorldPos.x,
+                    teleportedWorldPos.y
+                );
                 break;
             }
             case 'playerMoveToItem': {

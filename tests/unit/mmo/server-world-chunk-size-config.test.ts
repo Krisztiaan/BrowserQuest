@@ -16,7 +16,7 @@ test('WorldServer applies ServerConfig.chunk_size before players join', () => {
         debug_level: 'info',
         nb_players_per_world: 2000,
         nb_worlds: 1,
-        map_filepath: './assets/maps/runtime/map-pack.json',
+        map_filepath: './assets/maps/tiled/world.json',
         metrics_enabled: false,
         chunk_size: 64,
     });

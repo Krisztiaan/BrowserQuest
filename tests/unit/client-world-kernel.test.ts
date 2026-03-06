@@ -25,10 +25,33 @@ test('ClientWorldKernel upserts spawn snapshots and exposes stable views', () =>
     expect(view.type).toBe('player');
     expect(view.position.x).toBe(10);
     expect(view.position.y).toBe(11);
+    expect(view.authoritativeWorldPosition).toEqual(view.worldPosition);
+    expect(view.presentationTargetWorldPosition).toEqual(view.worldPosition);
+    expect(view.renderedWorldPosition).toEqual(view.worldPosition);
     expect(view.name).toBe('alice');
     expect(view.orientation).toBe(2);
     expect(view.armor).toBe(Types.Entities.CLOTHARMOR);
     expect(view.weapon).toBe(Types.Entities.SWORD1);
+});
+
+test('ClientWorldKernel keeps authoritative and presentation world positions separately', () => {
+    const kernel = new ClientWorldKernel();
+    const view = kernel.upsertFromSpawnSnapshot({
+        id: 79,
+        kind: Types.Entities.RAT,
+        x: 2,
+        y: 3,
+        extras: { type: 'mob', orientation: 0 },
+    });
+
+    kernel.setClientRenderedWorldPosition(view.id, 600, 700);
+    kernel.setClientPresentationTargetWorldPosition(view.id, 800, 900);
+    kernel.setWorldPosition(view.id, 1000, 1100);
+
+    const moved = kernel.getEntityView(view.id);
+    expect(moved.authoritativeWorldPosition).toEqual({ x: 1000, y: 1100 });
+    expect(moved.presentationTargetWorldPosition).toEqual({ x: 800, y: 900 });
+    expect(moved.renderedWorldPosition).toEqual({ x: 600, y: 700 });
 });
 
 test('ClientWorldKernel updates positions only for alive entities', () => {

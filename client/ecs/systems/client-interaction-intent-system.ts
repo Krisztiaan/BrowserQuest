@@ -6,9 +6,46 @@ import type { ClientWorldKernel } from '../world-kernel';
 import type { ClientCommand } from '../client-commands';
 import type Player from '../../player';
 import Character from '../../character';
+import log from '../../platform/log';
 
-export function clearClientInteractionIntentWithSideEffects(host: { kernel: ClientWorldKernel }): void {
+const lastAttackIntentDiagnosticByPlayerId = new Map<EntityId, string>();
+
+function clearAttackIntentDiagnostic(playerId: EntityId | null): void {
+    if (playerId === null) {
+        return;
+    }
+    lastAttackIntentDiagnosticByPlayerId.delete(playerId);
+}
+
+function updateAttackIntentDiagnostic({
+    playerId,
+    key,
+    level,
+    payload,
+}: {
+    playerId: EntityId | null;
+    key: string;
+    level: 'info' | 'warn';
+    payload: Record<string, unknown>;
+}): void {
+    if (playerId === null) {
+        return;
+    }
+    const prev = lastAttackIntentDiagnosticByPlayerId.get(playerId);
+    if (prev === key) {
+        return;
+    }
+    lastAttackIntentDiagnosticByPlayerId.set(playerId, key);
+    if (level === 'warn') {
+        log.warn({ scope: 'client_interaction', level, ...payload });
+        return;
+    }
+    log.info({ scope: 'client_interaction', level, ...payload });
+}
+
+export function clearClientInteractionIntentWithSideEffects(host: { kernel: ClientWorldKernel; playerId?: EntityId | null }): void {
     const prev = host.kernel.clientInteractionIntent;
+    clearAttackIntentDiagnostic(host.playerId ?? null);
     if (prev?.kind === 'attack') {
         const cmd: ClientCommand = { type: 'stopPlayerCombat' };
         host.kernel.enqueueClientCommand(cmd);
@@ -32,6 +69,50 @@ function isAdjacentIncludingDiagonal(ax: number, ay: number, bx: number, by: num
     const dx = Math.abs(ax - bx);
     const dy = Math.abs(ay - by);
     return dx <= 1 && dy <= 1 && dx + dy > 0;
+}
+
+function isAuthoritativeAttackAligned({
+    authoritativePlayerPos,
+    targetPos,
+    player,
+}: {
+    authoritativePlayerPos: { x: number; y: number } | undefined;
+    targetPos: { x: number; y: number };
+    player: Player;
+}): boolean {
+    if (!authoritativePlayerPos) {
+        return true;
+    }
+    const playerWeaponName = player.getWeaponName();
+    const playerWeaponKind = typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
+    return resolveEngagementDecision({
+        attackerPos: gridPos(authoritativePlayerPos.x, authoritativePlayerPos.y),
+        targetPos: gridPos(targetPos.x, targetPos.y),
+        attackerKind: player.kind,
+        attackerWeaponKind: playerWeaponKind,
+    }) === 'attack';
+}
+
+function resolveAuthoritativeEngagementDecision({
+    authoritativePlayerPos,
+    targetPos,
+    player,
+}: {
+    authoritativePlayerPos: { x: number; y: number } | undefined;
+    targetPos: { x: number; y: number };
+    player: Player;
+}): 'attack' | 'pursue' | null {
+    if (!authoritativePlayerPos) {
+        return null;
+    }
+    const playerWeaponName = player.getWeaponName();
+    const playerWeaponKind = typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
+    return resolveEngagementDecision({
+        attackerPos: gridPos(authoritativePlayerPos.x, authoritativePlayerPos.y),
+        targetPos: gridPos(targetPos.x, targetPos.y),
+        attackerKind: player.kind,
+        attackerWeaponKind: playerWeaponKind,
+    });
 }
 
 export function runClientInteractionIntentSystem(host: ClientInteractionIntentSystemHost): void {
@@ -101,7 +182,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         }
         const playerWeaponName = host.player.getWeaponName();
         const playerWeaponKind = typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
-        const engagement = resolveEngagementDecision({
+        const renderedEngagement = resolveEngagementDecision({
             attackerPos: gridPos(host.player.gridX, host.player.gridY),
             targetPos: gridPos(targetRecord.gridX, targetRecord.gridY),
             attackerKind: host.player.kind,
@@ -111,13 +192,38 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         const hasPendingMoveIntents =
             host.kernel.clientPendingMoveAcks.length > 0 || host.kernel.clientPendingMoveSeqAcks.length > 0;
         const authoritativePlayerPos = host.kernel.clientReplicationLastPos.get(host.playerId);
-        const isAuthoritativelyAligned =
-            !authoritativePlayerPos ||
-            (authoritativePlayerPos.x === host.player.gridX && authoritativePlayerPos.y === host.player.gridY);
+        const authoritativeEngagement = resolveAuthoritativeEngagementDecision({
+            authoritativePlayerPos,
+            targetPos,
+            player: host.player,
+        });
+        const isAuthoritativelyAligned = isAuthoritativeAttackAligned({
+            authoritativePlayerPos,
+            targetPos,
+            player: host.player,
+        });
+        const engagement = renderedEngagement === 'attack' || authoritativeEngagement === 'attack' ? 'attack' : 'pursue';
         if (engagement === 'attack') {
             // Do not send ATTACK while movement is still in flight. Server-side movement processing clears
             // Target during movement ticks, so ATTACK emitted before move acks drain can be dropped.
             if (isMoving || hasPendingMoveIntents || !isAuthoritativelyAligned) {
+                updateAttackIntentDiagnostic({
+                    playerId: host.playerId,
+                    key: `attack_blocked:${intent.targetId}:${Number(isMoving)}:${Number(hasPendingMoveIntents)}:${Number(isAuthoritativelyAligned)}`,
+                    level: !isAuthoritativelyAligned && !isMoving && !hasPendingMoveIntents ? 'warn' : 'info',
+                    payload: {
+                        event: 'attack.blocked',
+                        targetId: intent.targetId,
+                        isMoving,
+                        hasPendingMoveIntents,
+                        isAuthoritativelyAligned,
+                        renderedEngagement,
+                        authoritativeEngagement,
+                        renderedPlayerPos: { x: host.player.gridX, y: host.player.gridY },
+                        authoritativePlayerPos: authoritativePlayerPos ?? null,
+                        targetPos,
+                    },
+                });
                 return;
             }
 
@@ -129,15 +235,56 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             // Keep ATTACK emission idempotent and resilient: send on first engage and periodically retry while
             // staying in range, so dropped/early packets don't require a second click.
             if (host.player.target?.id !== intent.targetId || !host.player.isAttacking() || shouldRetryAttack) {
+                updateAttackIntentDiagnostic({
+                    playerId: host.playerId,
+                    key: `attack_sent:${intent.targetId}:${Number(shouldRetryAttack)}`,
+                    level: 'info',
+                    payload: {
+                        event: 'attack.sent',
+                        targetId: intent.targetId,
+                        shouldRetryAttack,
+                        renderedEngagement,
+                        authoritativeEngagement,
+                        renderedPlayerPos: { x: host.player.gridX, y: host.player.gridY },
+                        authoritativePlayerPos: authoritativePlayerPos ?? null,
+                        targetPos,
+                    },
+                });
                 const cmd: ClientCommand = { type: 'playerAttack', targetId: intent.targetId };
                 host.kernel.enqueueClientCommand(cmd);
             }
             return;
         }
         if (hasPendingMoveIntents) {
+            updateAttackIntentDiagnostic({
+                playerId: host.playerId,
+                key: `follow_pending:${intent.targetId}`,
+                level: 'info',
+                payload: {
+                    event: 'attack.follow_deferred_pending_move',
+                    targetId: intent.targetId,
+                    renderedEngagement,
+                    authoritativeEngagement,
+                    targetPos,
+                },
+            });
             return;
         }
         if (hasTargetMoved || !isMoving) {
+            updateAttackIntentDiagnostic({
+                playerId: host.playerId,
+                key: `follow_sent:${intent.targetId}:${targetPos.x}:${targetPos.y}`,
+                level: 'info',
+                payload: {
+                    event: 'attack.follow_sent',
+                    targetId: intent.targetId,
+                    hasTargetMoved,
+                    isMoving,
+                    renderedEngagement,
+                    authoritativeEngagement,
+                    targetPos,
+                },
+            });
             const cmd: ClientCommand = { type: 'playerFollow', targetId: intent.targetId };
             host.kernel.enqueueClientCommand(cmd);
         }

@@ -31,7 +31,7 @@ test("server entry with websocket bridge probe sends initial 'go' handshake", as
             debug_level: 'error',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './assets/maps/runtime/map-pack.json',
+            map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         })
     );
@@ -77,7 +77,7 @@ test('server entry websocket bridge probe fails fast with structured failure sig
             debug_level: 'error',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './assets/maps/runtime/map-pack.json',
+            map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         })
     );

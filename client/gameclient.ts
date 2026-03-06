@@ -123,6 +123,14 @@ function formatProtocolValueForLog(value: unknown): string {
     return '[unknown]';
 }
 
+function logProtocolInfo(event: string, fields: Record<string, unknown>): void {
+    log.info({ scope: 'protocol', level: 'info', event, ...fields });
+}
+
+function logProtocolWarn(event: string, fields: Record<string, unknown>): void {
+    log.warn({ scope: 'protocol', level: 'warn', event, ...fields });
+}
+
 type ClientPlayerLike = {
     name: string;
     getSpriteName(): string;
@@ -348,6 +356,10 @@ class GameClient extends Evented<GameClientEvents> {
 
     sendMessage(json: ClientOutboundProtocolAction): void {
         if (this.connection?.readyState !== WebSocket.OPEN) {
+            logProtocolWarn('message.dropped_socket_not_open', {
+                opcode: Array.isArray(json) ? json[0] : null,
+                readyState: this.connection?.readyState ?? null,
+            });
             return;
         }
         const data = encodeClientToServerProtocolActionBinary(json);
@@ -460,6 +472,13 @@ class GameClient extends Evented<GameClientEvents> {
         const [, attacker, target] = data;
         const attackerId = entityIdFromWire(attacker);
         const targetId = entityIdFromWire(target);
+        if (this.localPlayerId !== null && (attackerId === this.localPlayerId || targetId === this.localPlayerId)) {
+            logProtocolInfo('attack.received', {
+                attackerId,
+                targetId,
+                localPerspective: attackerId === this.localPlayerId ? 'attacker' : 'target',
+            });
+        }
         this.kernel.setTarget(attackerId, targetId);
         this.emit('entityAttack', attackerId, targetId);
     }
@@ -626,7 +645,7 @@ class GameClient extends Evented<GameClientEvents> {
     receiveReject(data: ClientInboundActionByOpcode<typeof Types.Messages.REJECT>): void {
         const [, seq, intentTypeId, reason] = data;
         this.emit('intentRejected', seq, intentTypeId, reason);
-        log.info(`Intent rejected (seq=${seq}, type=${intentTypeId}): ${reason}`);
+        logProtocolWarn('intent.rejected', { seq, intentTypeId, reason });
         debugMoves('in:REJECT', { seq, intentTypeId, reason });
         if (intentTypeId === INTENT_MOVE_TO) {
             // `move.to` rejection should stop prediction and allow immediate re-try.
@@ -649,6 +668,7 @@ class GameClient extends Evented<GameClientEvents> {
     receiveAck(data: ClientInboundActionByOpcode<typeof Types.Messages.ACK>): void {
         const [, seq] = data;
         this.emit('intentAcked', seq);
+        logProtocolInfo('intent.acked', { seq });
         debugMoves('in:ACK', { seq });
         this.kernel.consumeClientPendingMoveSeqAck(seq);
     }
@@ -671,6 +691,7 @@ class GameClient extends Evented<GameClientEvents> {
                     this.kernel.setEntityMapId(playerId, mapId);
                     this.kernel.setActiveMapId(mapId);
                 }
+                logProtocolWarn('movement.corrected', { seq, x: a, y: b, mapId: typeof mapId === 'string' ? mapId : null });
                 debugMoves('in:CORRECTION', { seq, x: a, y: b });
                 this.kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: playerId, x: a, y: b });
             }
@@ -704,8 +725,10 @@ class GameClient extends Evented<GameClientEvents> {
 
         const suppressed = (flags & 1) !== 0;
         this.kernel.clientMovementSuppressed = suppressed;
+        logProtocolInfo('movement.sync', { ackSeq, worldX, worldY, tick, flags, suppressed, mapId });
         if (suppressed) {
             // Stop local prediction immediately; authoritative state will be applied via kernel replication sync.
+            logProtocolWarn('movement.sync_suppressed', { ackSeq, worldX, worldY, tick, flags, mapId });
             this.kernel.enqueueClientCommand({ type: 'playerStop' });
         }
         debugMoves('in:MOVE_SYNC', { ackSeq, worldX, worldY, tick, flags });
@@ -827,6 +850,7 @@ class GameClient extends Evented<GameClientEvents> {
 
     sendIntent(intentTypeId: string, payloadBytes: number[], options?: { trackMoveAck?: boolean }): number | null {
         if (!this.supportsIntent(intentTypeId)) {
+            logProtocolWarn('intent.unsupported', { intentTypeId });
             return null;
         }
         const seq = this.nextIntentSeq;
@@ -834,6 +858,12 @@ class GameClient extends Evented<GameClientEvents> {
         if (options?.trackMoveAck) {
             this.kernel.enqueueClientPendingMoveSeqAck(seq);
         }
+        logProtocolInfo('intent.sent', {
+            seq,
+            intentTypeId,
+            payloadBytes: payloadBytes.length,
+            trackMoveAck: options?.trackMoveAck === true,
+        });
         this.sendMessage(createIntentAction(seq, intentTypeId, payloadBytes));
         return seq;
     }
@@ -984,10 +1014,12 @@ class GameClient extends Evented<GameClientEvents> {
 
     sendAttack(mob: IdCarrier): void {
         if (!this.supportsIntent(INTENT_ATTACK)) {
+            logProtocolWarn('attack.intent_unavailable', { targetId: mob.id });
             return;
         }
         const payloadBytes = encodeAttackIntentPayload({ targetId: toProtocolEntityId(mob.id) });
         if (payloadBytes === null) {
+            logProtocolWarn('attack.intent_encode_failed', { targetId: mob.id });
             return;
         }
         this.sendIntent(INTENT_ATTACK, payloadBytes);

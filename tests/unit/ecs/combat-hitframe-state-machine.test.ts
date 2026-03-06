@@ -65,7 +65,10 @@ function createPipelineFixture() {
         addItemFromChest() {
             return null;
         },
-        pushToPlayerId() {},
+        pushedMessages: [] as Array<{ playerId: number; action: unknown }>,
+        pushToPlayerId(playerId: number, action: unknown) {
+            host.pushedMessages.push({ playerId, action });
+        },
         persistPlayerEquipment() {},
         persistPlayerCheckpoint() {},
         persistPlayerAchievementUnlock() {},
@@ -81,7 +84,7 @@ function createPipelineFixture() {
     pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(0, 0));
     pipeline.state.world.addComponent(player.id, pipeline.combat.WeaponLevel, 10);
 
-    return { pipeline, player };
+    return { pipeline, player, host };
 }
 
 test('combat applies damage at hit-frame (not on windup start)', () => {
@@ -189,4 +192,35 @@ test('ATTACK commands drive server-authoritative hit-frame combat', () => {
     }
 
     expect(pipeline.combat.HitPoints.store.get(mobId) ?? 0).toBeLessThan(1000);
+});
+
+test('player ATTACK broadcast starts when windup really starts, not on out-of-range intent acceptance', () => {
+    const { pipeline, player, host } = createPipelineFixture();
+
+    const mobId = entityIdFromWire(9005);
+    pipeline.state.world.ensureEntity(mobId);
+    pipeline.state.world.addComponent(mobId, pipeline.replication.Kind, Types.Entities.RAT);
+    pipeline.state.world.addComponent(mobId, pipeline.Position, gridPos(5, 5));
+    pipeline.state.world.addComponent(mobId, pipeline.combat.ArmorLevel, 1);
+    pipeline.state.world.addComponent(mobId, pipeline.combat.HitPoints, 1000);
+
+    pipeline.enqueue({
+        type: 'ATTACK',
+        source: { connectionId: 'test', playerId: player.id },
+        targetId: mobId,
+    });
+
+    pipeline.tick(); // accepts target but target is still out of range
+
+    expect(pipeline.replication.Target.store.get(player.id)).toBe(mobId);
+    expect(pipeline.combat.AttackWindup.store.has(player.id)).toBe(false);
+    expect(host.pushedMessages).toEqual([]);
+
+    pipeline.state.world.addComponent(mobId, pipeline.Position, gridPos(1, 0));
+    pipeline.tick(); // now in range -> start windup and broadcast ATTACK
+
+    expect(host.pushedMessages).toContainEqual({
+        playerId: player.id,
+        action: [Types.Messages.ATTACK, player.id, mobId],
+    });
 });

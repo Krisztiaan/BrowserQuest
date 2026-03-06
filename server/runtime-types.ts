@@ -34,6 +34,7 @@ export interface RuntimeServer {
     onRequestStatus(callback: () => string): void;
     onRequestProfilePreview?(callback: (request: Request) => Response): void;
     onRequestPasskeyAuth?(callback: (request: Request) => Response | Promise<Response>): void;
+    onRequestRuntimeMapPack?(callback: (request: Request) => Response | Promise<Response>): void;
     getConnection(id: string): { send(payload: unknown): void } | undefined;
 }
 

@@ -5,6 +5,7 @@ import { ClientWorldKernel } from '../../client/ecs/world-kernel';
 import { runClientCommandApplySystem } from '../../client/ecs/systems/client-command-apply-system';
 import { runClientCombatSystem } from '../../client/ecs/systems/client-combat-system';
 import Warrior from '../../client/warrior';
+import Mob from '../../client/mob';
 import Types from '../../shared/gametypes-browser';
 import { getZoneGroupIdFromGrid, isOutOfBoundsGridPosition } from '../../shared/world/coordinate-contract';
 import { tileToWorldPosCenter } from '../../shared/world/worldpos';
@@ -23,6 +24,8 @@ function createHostFixture(playerId: number) {
     const chunkSubscriptions: Array<{ chunkX: number; chunkY: number; radius: number }> = [];
     const loadMapByIdCalls: string[] = [];
     const notifications: string[] = [];
+    const sentAttacks: number[] = [];
+    const attackLinks: Array<{ attackerId: number; targetId: number }> = [];
     let chunkUnsubscribeCount = 0;
     let resetCameraCalls = 0;
 
@@ -37,7 +40,9 @@ function createHostFixture(playerId: number) {
             sendChunkUnsubscribe() {
                 chunkUnsubscribeCount += 1;
             },
-            sendAttack() {},
+            sendAttack(mob: { id: number }) {
+                sentAttacks.push(mob.id);
+            },
             sendOpen() {},
         },
         playerId: entityIdFromWire(playerId),
@@ -75,7 +80,9 @@ function createHostFixture(playerId: number) {
             entity.setGridPosition(x, y);
         },
         makeCharacterGoTo() {},
-        createAttackLink() {},
+        createAttackLink(attacker: { id: number }, target: { id: number }) {
+            attackLinks.push({ attackerId: attacker.id, targetId: target.id });
+        },
         removeItem() {},
         removeEntity() {},
         enqueueZoningFrom() {},
@@ -126,6 +133,8 @@ function createHostFixture(playerId: number) {
         chunkSubscriptions,
         loadMapByIdCalls,
         notifications,
+        sentAttacks,
+        attackLinks,
         getChunkUnsubscribeCount: () => chunkUnsubscribeCount,
         getResetCameraCalls: () => resetCameraCalls,
     };
@@ -359,6 +368,7 @@ test('teleportEntity cancels local pathing so client does not continue obsolete 
 test('setEntityWorldPosition keeps local predicted path movement active', () => {
     const playerId = entityIdFromWire(7011);
     const { host, kernel, player } = createHostFixture(playerId);
+    kernel.upsertSimpleEntity(playerId, player.kind, player.gridX, player.gridY);
 
     player.setPathRequestResolver(() => [
         [10, 10],
@@ -378,6 +388,37 @@ test('setEntityWorldPosition keeps local predicted path movement active', () => 
     runClientCommandApplySystem(host);
 
     expect(player.isMoving()).toBe(true);
+    expect(kernel.getClientPresentationTargetWorldPosition(playerId)).toEqual(world);
+});
+
+test('teleportEntity resets kernel presentation state to the authoritative tile center', () => {
+    const playerId = entityIdFromWire(7013);
+    const { host, kernel, player } = createHostFixture(playerId);
+    kernel.upsertSimpleEntity(playerId, player.kind, player.gridX, player.gridY);
+
+    kernel.setClientRenderedWorldPosition(playerId, 123, 456);
+    kernel.setClientPresentationTargetWorldPosition(playerId, 234, 567);
+    kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: playerId, x: 8, y: 4 });
+    runClientCommandApplySystem(host);
+
+    const teleported = tileToWorldPosCenter(8, 4);
+    expect(kernel.getClientPresentationTargetWorldPosition(playerId)).toEqual(teleported);
+    expect(kernel.getClientRenderedWorldPosition(playerId)).toEqual(teleported);
+});
+
+test('playerAttack sends attack intent without creating a local optimistic attack link', () => {
+    const playerId = entityIdFromWire(7100);
+    const { host, kernel, sentAttacks, attackLinks } = createHostFixture(playerId);
+    const mobId = entityIdFromWire(9001);
+    const mob = new Mob(mobId, Types.Entities.RAT);
+    mob.setGridPosition(11, 10);
+    host.entities[String(mobId)] = mob as never;
+
+    kernel.enqueueClientCommand({ type: 'playerAttack', targetId: mobId });
+    runClientCommandApplySystem(host);
+
+    expect(sentAttacks).toEqual([mobId]);
+    expect(attackLinks).toEqual([]);
 });
 
 test('non-local adjacent characterGoTo starts authoritative step without pathfinder', () => {

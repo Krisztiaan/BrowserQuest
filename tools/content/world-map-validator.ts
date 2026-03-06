@@ -48,7 +48,6 @@ const TARGET_BASE_TILE_LAYER_SPECS: ReadonlyArray<TargetLayerSpec> = [
     { name: 'mud', type: 'tilelayer', visible: true },
     { name: 'grass', type: 'tilelayer', visible: true },
     { name: 'stone', type: 'tilelayer', visible: true },
-    { name: 'water', type: 'tilelayer', visible: true },
     { name: 'grass_variations', type: 'tilelayer', visible: true },
     { name: 'lakes', type: 'tilelayer', visible: true },
     { name: 'village_boundaries', type: 'tilelayer', visible: true },
@@ -489,6 +488,18 @@ function getPropertyMap(value: unknown): Map<string, unknown> {
     return map;
 }
 
+function getObjectClassName(objectRecord: UnknownRecord): string | null {
+    const objectClass = asString(objectRecord.class)?.trim();
+    if (objectClass && objectClass.length > 0) {
+        return objectClass;
+    }
+    const objectType = asString(objectRecord.type)?.trim();
+    if (objectType && objectType.length > 0) {
+        return objectType;
+    }
+    return null;
+}
+
 function checkLayerPayloads(map: ParsedMap, layers: ReadonlyArray<LayerContext>, diags: Diagnostic[]): void {
     const expectedCellCount = map.width * map.height;
     for (const layer of layers) {
@@ -683,7 +694,7 @@ function extractDoorPortalCoords(layer: LayerContext | undefined, tileWidth: num
         return coords;
     }
     for (const objectRecord of getObjects(layer)) {
-        const objectClass = asString(objectRecord.class);
+        const objectClass = getObjectClassName(objectRecord);
         if (objectClass !== 'Portal') {
             continue;
         }
@@ -951,8 +962,8 @@ function requireNonEmptyObjectClass(
     code: string
 ): void {
     const objectId = asInteger(objectRecord.id);
-    const objectClass = asString(objectRecord.class) ?? '';
-    if (objectClass.trim().length === 0) {
+    const objectClass = getObjectClassName(objectRecord) ?? '';
+    if (objectClass.length === 0) {
         pushDiagnostic(
             diags,
             'error',
@@ -1014,7 +1025,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
                 }
             }
 
-            const objectClass = asString(objectRecord.class) ?? '';
+            const objectClass = getObjectClassName(objectRecord) ?? '';
             if (objectClass === 'Portal') {
                 requireProperty(diags, doors, objectId, props, 'door_id', 'PORTAL_PROPERTY_MISSING');
                 requireProperty(diags, doors, objectId, props, 'target_door', 'PORTAL_PROPERTY_MISSING');

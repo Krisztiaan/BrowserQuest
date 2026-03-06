@@ -143,7 +143,6 @@ test('replication sync renders remote entities from delayed interpolation snapsh
         entityId: mobId,
         worldX: 150,
         worldY: 100,
-        snapRender: true,
     });
     expect(kernel.clientReplicationLastWorldPos.get(mobId)).toEqual({ x: 150, y: 100 });
 });

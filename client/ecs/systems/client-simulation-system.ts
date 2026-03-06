@@ -4,6 +4,7 @@ import type AnimatedTile from '../../tile';
 import type Timer from '../../timer';
 import Types from '../../../shared/gametypes-browser';
 import type { EntityId } from '../../../shared/domain/ids';
+import { SUBPIXELS, TILE_PX } from '../../../shared/world/worldpos';
 
 type DirtyRect = {
     x: number;
@@ -55,6 +56,7 @@ export type ClientSimulationSystemHost = Readonly<{
     playerId: EntityId | null;
     kernel: {
         enqueueClientCommand(command: { type: 'clientSendAggro'; mobId: EntityId }): void;
+        setClientRenderedWorldPosition?(entityId: EntityId, worldX: number, worldY: number): void;
     };
     map: { grid: number[][] } | null;
     renderer: {
@@ -110,6 +112,20 @@ function lerpAlpha(dtMs: number, tauMs: number): number {
     // Stable smoothing regardless of FPS; clamp dt to reduce huge jumps on background tab wakeups.
     const dt = Math.max(0, Math.min(250, dtMs));
     return 1 - Math.exp(-dt / tauMs);
+}
+
+function syncRenderedWorldPosition(host: ClientSimulationSystemHost, entity: SimulationEntity): void {
+    if (!('id' in entity) || typeof entity.id !== 'number') {
+        return;
+    }
+    if (!isInterpolatedEntity(entity)) {
+        return;
+    }
+    host.kernel.setClientRenderedWorldPosition?.(
+        entity.id as EntityId,
+        (entity.x + TILE_PX / 2) * SUBPIXELS,
+        (entity.y + TILE_PX / 2) * SUBPIXELS
+    );
 }
 
 export function resolveCameraAxis({
@@ -329,6 +345,7 @@ function updateCharacters(host: ClientSimulationSystemHost, dtMs: number): void 
             updateCharacter(host, entity);
         }
         updateEntityInterpolation(entity, dtMs);
+        syncRenderedWorldPosition(host, entity);
         updateEntityFading(host, entity);
     });
 }

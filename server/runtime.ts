@@ -26,6 +26,8 @@ import { DEFAULT_PLAYER_DB_PATH, SqlitePlayerPersistence } from './player-persis
 import { createProfilePreviewJsonResponse, createProfilePreviewResponse } from './profile-preview';
 import { createPasskeyAuthResponse } from './passkey-auth';
 import { parseRequestPathname } from './http-utils';
+import { loadRuntimeMapPackFromSource } from './runtime-map-pack-source';
+import { renderMapPackJson } from '../shared/maps/map-pack';
 
 const WsRuntime = WsRuntimeModule as MainRuntimeDependencies['ws'];
 type SessionAttachArgs = Parameters<typeof attachWorldConnectionSession>[0];
@@ -460,6 +462,19 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
                 request,
                 persistence: playerPersistence,
             });
+        });
+    }
+    if (typeof server.onRequestRuntimeMapPack === 'function') {
+        let pendingRuntimeMapPackJson: Promise<string> | null = null;
+        server.onRequestRuntimeMapPack(function () {
+            pendingRuntimeMapPackJson ??= loadRuntimeMapPackFromSource(config.map_filepath).then((pack) => renderMapPackJson(pack));
+            return pendingRuntimeMapPackJson.then((json) => new Response(json, {
+                status: 200,
+                headers: {
+                    'content-type': 'application/json; charset=utf-8',
+                    'cache-control': 'no-store',
+                },
+            }));
         });
     }
 

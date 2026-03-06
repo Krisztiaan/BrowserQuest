@@ -37,10 +37,30 @@ const MOVE_COOLDOWN_MS = 200;
 const DIAG_NUM = 181;
 const DIAG_DEN = 256;
 const PLAYER_HALF_EXTENTS = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS } as const;
-const SOFT_RECONCILE_ERR_SUBPX = 8 * SUBPIXELS;
-const HARD_RECONCILE_ERR_SUBPX = 2 * TILE_SUBPX;
+const RECONCILE_DEADZONE_ERR_SUBPX = 3 * SUBPIXELS;
+const SOFT_RECONCILE_ERR_SUBPX = 10 * SUBPIXELS;
+const HARD_RECONCILE_ERR_SUBPX = TILE_SUBPX;
 
 let lastPredictionTimeMs = 0;
+
+function reconcileTowardAuthoritative(next: WorldPos, auth: WorldPos | undefined): WorldPos {
+    if (!auth) {
+        return next;
+    }
+
+    const errX = auth.x - next.x;
+    const errY = auth.y - next.y;
+    const err = Math.max(Math.abs(errX), Math.abs(errY));
+    if (err <= RECONCILE_DEADZONE_ERR_SUBPX) {
+        return next;
+    }
+    if (err > HARD_RECONCILE_ERR_SUBPX) {
+        return auth;
+    }
+
+    const divisor = err > SOFT_RECONCILE_ERR_SUBPX ? 8 : 16;
+    return worldPos(next.x + Math.trunc(errX / divisor), next.y + Math.trunc(errY / divisor));
+}
 
 export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredictionSystemHost): void {
     if (!host.started || !host.playerId || !host.player || !host.map) {
@@ -135,17 +155,7 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
 
     // Reconcile softly against authoritative world position (from MOVE_SYNC).
     const auth = host.kernel.worldPosition.get(host.playerId);
-    let reconciled = next;
-    if (auth) {
-        const errX = auth.x - next.x;
-        const errY = auth.y - next.y;
-        const err = Math.abs(errX) + Math.abs(errY);
-        if (err > HARD_RECONCILE_ERR_SUBPX) {
-            reconciled = auth;
-        } else if (err > SOFT_RECONCILE_ERR_SUBPX) {
-            reconciled = worldPos(next.x + Math.trunc(errX / 6), next.y + Math.trunc(errY / 6));
-        }
-    }
+    let reconciled = reconcileTowardAuthoritative(next, auth);
     reconciled = clampWorldPosInsideMap({
         pos: reconciled,
         halfExtents: PLAYER_HALF_EXTENTS,
@@ -154,5 +164,5 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
     });
 
     host.kernel.clientPredictedWorldPos = reconciled;
-    player.setWorldPositionSub(reconciled.x, reconciled.y, { snapRender: true });
+    player.setWorldPositionSub(reconciled.x, reconciled.y);
 }

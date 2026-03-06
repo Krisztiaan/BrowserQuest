@@ -13,7 +13,7 @@ This runbook defines the production rollout sequence for multi-map interiors and
 ### Slice 0: Preflight-only
 
 - Keep current content.
-- Ensure `assets/maps/runtime/map-pack.json` is generated and fresh.
+- Ensure the server is pointed at the latest authored `assets/maps/tiled/world.json` or regenerate runtime assets if you are explicitly deploying a prebuilt pack.
 - Verify telemetry capture pipeline for `world.map.transition.*` events.
 
 Commands:
@@ -53,7 +53,7 @@ If any threshold is breached:
 
 1. Freeze new map migrations.
 2. Revert `assets/maps/tiled/map-pack.config.json` to last known-good slice.
-3. Rebuild runtime assets (`bun run build:maps`) and redeploy.
+3. Rebuild runtime assets only if you are explicitly deploying a prebuilt pack; otherwise redeploy with the latest authored `assets/maps/tiled/world.json`.
 4. Re-run:
    - `bun run check:maps`
    - `bun test --timeout 20000 tests/unit/mmo/server-map-transition.test.ts`

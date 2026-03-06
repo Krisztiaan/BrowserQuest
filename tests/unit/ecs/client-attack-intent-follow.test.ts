@@ -258,6 +258,98 @@ test('attack intent waits for authoritative tile alignment before emitting ATTAC
     expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerAttack', targetId: mob.id });
 });
 
+test('attack intent allows first-click ATTACK once authoritative position is still diagonally in range', () => {
+    const playerId = entityIdFromWire(5111);
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
+    setEntityGrid(player, 10, 10);
+
+    const mob = new Mob(entityIdFromWire(1712), Types.Entities.RAT);
+    setEntityGrid(mob, 11, 11);
+
+    const kernel = new ClientWorldKernel();
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: playerId,
+        kind: player.kind,
+        x: player.gridX,
+        y: player.gridY,
+        isPlayer: true,
+        isMoving: false,
+    });
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: mob.id,
+        kind: mob.kind,
+        x: mob.gridX,
+        y: mob.gridY,
+        isPlayer: false,
+    });
+    // Server-side tile can lag by one axis during diagonal settle while still being valid attack range.
+    kernel.clientReplicationLastPos.set(playerId, gridPos(10, 11));
+    kernel.setClientInteractionIntent({
+        kind: 'attack',
+        targetId: mob.id,
+        lastKnownTargetPos: gridPos(mob.gridX, mob.gridY),
+    });
+
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_000,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+
+    expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerAttack', targetId: mob.id });
+});
+
+test('attack intent uses authoritative in-range tile even when rendered tile is one diagonal step behind', () => {
+    const playerId = entityIdFromWire(5112);
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
+    setEntityGrid(player, 10, 10);
+
+    const mob = new Mob(entityIdFromWire(1713), Types.Entities.RAT);
+    setEntityGrid(mob, 12, 11);
+
+    const kernel = new ClientWorldKernel();
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: playerId,
+        kind: player.kind,
+        x: player.gridX,
+        y: player.gridY,
+        isPlayer: true,
+        isMoving: false,
+    });
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: mob.id,
+        kind: mob.kind,
+        x: mob.gridX,
+        y: mob.gridY,
+        isPlayer: false,
+    });
+    // Rendered tile is still out of range, but the last authoritative tile is already diagonally adjacent.
+    kernel.clientReplicationLastPos.set(playerId, gridPos(11, 10));
+    kernel.setClientInteractionIntent({
+        kind: 'attack',
+        targetId: mob.id,
+        lastKnownTargetPos: gridPos(mob.gridX, mob.gridY),
+    });
+
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_000,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+
+    expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerAttack', targetId: mob.id });
+});
+
 test('attack intent defers ATTACK while local player is still moving even if adjacent', () => {
     const playerId = entityIdFromWire(5106);
     const player = new Player(playerId, 'K', Types.Entities.WARRIOR);

@@ -190,6 +190,55 @@ These are “safe to decide now” because they mostly affect knobs and extensio
 - [ ] **Persistence durability tiers**: default WAL+NORMAL and “lose ~10s on power loss”; decide if Tier-0 should be WAL+FULL on the VPS.
 - [ ] **Instancing strategy (future)**: default shared zones everywhere; decide first instancing trigger (party, solo dungeon, guild).
 
+### 0.0.a Movement/netcode target model refinement (2026-03-06)
+
+This is the refined target for the next movement epic, based on current code constraints and references from proven client/server models:
+
+- Valve / Source-style local prediction + reconciliation for immediate self-feel.
+- Path of Exile-style preference for predictive feel over strict lockstep under ordinary internet latency.
+- Call of Duty / modern latency-hiding approach where the client keeps a presentation-oriented latency state, but authoritative state still wins.
+- Factorio-style warning that latency hiding should be scoped carefully and not allowed to contaminate gameplay truth indiscriminately.
+
+For this project, the practical conclusion is:
+
+- Server remains authoritative for gameplay truth.
+- Client owns short-term movement presentation.
+- Combat truth stays server-side.
+- Farming/building/world-state sync should not be forced through the same high-frequency movement path as combatants.
+
+Target movement layering:
+
+- `authoritative state`
+  - Last validated server position/trajectory.
+  - Sole source for gameplay truth and downstream replication.
+- `predicted state`
+  - Local estimate derived from current input / move plan.
+  - Can drive the local player only, and only for short-horizon feel.
+- `rendered state`
+  - Presentation motor that follows a bounded blend of predicted and authoritative state.
+  - May accelerate/decelerate or “catch up” smoothly rather than snapping.
+
+Design constraints:
+
+- Never let both client prediction and server authority write the same state surface directly.
+- Prefer slight remote undershoot over overshoot-and-snap-back.
+- Keep hard snaps for teleports, impossible movement, or large discontinuities only.
+- Use bounded validation envelopes on the server, not blind trust in client coordinates.
+- Add small grace windows for attack/loot/talk/open based on recent validated movement, not purely rendered client position.
+
+Gameplay-tier recommendation:
+
+- Farming/social traversal:
+  - prioritize feel and visual continuity,
+  - tolerate small divergence and correction delay.
+- Combat proximity:
+  - tighter bounds,
+  - authoritative attack-start and hit validation,
+  - presentation may be predictive, truth may not.
+- Minigames:
+  - decide per mode,
+  - latency-sensitive competitive modes may need stricter per-mode policies than overworld traversal.
+
 ### 0.1 Persistence (starter VPS)
 
 - **Default**

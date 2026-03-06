@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import { validateMapPayload } from '../map';
-import { isMapPack } from '../../shared/maps/map-pack';
+import { compileRuntimeMapPackFromPayload } from '../runtime-map-pack-source';
 
 type EmitErrorFn = (message: string) => void;
 type FailFn = (code: number) => void;
@@ -102,14 +102,18 @@ export async function ensureMapPreflightValid({
         return false;
     }
 
-    if (!isMapPack(parsedMapPayload)) {
-        emitError(`Startup preflight: map pack file has invalid schema: ${mapFilePath}`);
+    let runtimePack;
+    try {
+        runtimePack = await compileRuntimeMapPackFromPayload(parsedMapPayload, mapFilePath);
+    } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        emitError(`Startup preflight: runtime map source is invalid: ${mapFilePath} (${reason})`);
         fail(1);
         return false;
     }
 
-    for (let i = 0; i < parsedMapPayload.maps.length; i += 1) {
-        const entry = parsedMapPayload.maps[i];
+    for (let i = 0; i < runtimePack.maps.length; i += 1) {
+        const entry = runtimePack.maps[i];
         if (!entry) {
             continue;
         }

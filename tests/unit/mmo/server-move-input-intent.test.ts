@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import fs from 'node:fs';
 import Types from '../../../shared/gametypes-browser';
 import Player from '../../../server/player';
 import ServerMap from '../../../server/map';
+import { loadRuntimeMapPackFromSource } from '../../../server/runtime-map-pack-source';
 import { gridPos } from '../../../shared/domain/positions';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import {
@@ -415,17 +415,17 @@ test('move.input never leaves map extents even if host isValidPosition is permis
     expect(gridPosNow).toEqual(gridPos(0, 0));
 });
 
-test('move.input diagonal near dense world collisions never commits blocked tiles', () => {
+test('move.input diagonal near dense world collisions never commits blocked tiles', async () => {
     const player = createTestPlayer(24905);
     player.setPosition(158, 117);
 
-    const pack = JSON.parse(fs.readFileSync('assets/maps/runtime/map-pack.json', 'utf8')) as {
+    const pack = await loadRuntimeMapPackFromSource('./assets/maps/tiled/world.json') as {
         maps?: Array<{ id?: string; server?: unknown }>;
     };
-    const worldRecord = pack.maps?.find((entry) => entry.id === 'world')?.server;
+    const worldRecord = pack.maps?.find((entry) => entry.id === 'world_01')?.server;
     expect(worldRecord).toBeTruthy();
     if (!worldRecord) {
-        throw new Error('Missing world server payload in map pack');
+        throw new Error('Missing world_01 server payload compiled from world.json');
     }
 
     const worldMap = new ServerMap();
@@ -437,10 +437,10 @@ test('move.input diagonal near dense world collisions never commits blocked tile
         ups: 50,
         map: worldMap,
         getDefaultMapId() {
-            return 'world';
+            return 'world_01';
         },
         getMapById(mapId: string) {
-            return mapId === 'world' ? worldMap : null;
+            return mapId === 'world_01' ? worldMap : null;
         },
         getCheckpoint() {
             return null;
@@ -464,7 +464,7 @@ test('move.input diagonal near dense world collisions never commits blocked tile
             return !worldMap.isOutOfBounds(x, y) && !worldMap.isColliding(x, y);
         },
         isValidPositionForMap(mapId: string, x: number, y: number) {
-            if (mapId !== 'world') {
+            if (mapId !== 'world_01') {
                 return false;
             }
             return !worldMap.isOutOfBounds(x, y) && !worldMap.isColliding(x, y);

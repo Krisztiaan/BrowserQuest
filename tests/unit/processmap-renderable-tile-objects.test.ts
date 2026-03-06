@@ -285,3 +285,105 @@ test('group layers flatten into runtime data and depth-sorted props with inherit
     expect(clientMap.collisions).toContain(10);
     expect(serverMap.collisions).toContain(10);
 });
+
+test('bridge layer carves passability through colliding terrain', () => {
+    const tiledMap = {
+        width: 3,
+        height: 3,
+        tilewidth: 16,
+        tileheight: 16,
+        tilesets: [
+            {
+                firstgid: 1,
+                name: 'tilesheet-wang',
+                tilewidth: 16,
+                tileheight: 16,
+                tiles: [
+                    {
+                        id: 0,
+                        objectgroup: {
+                            type: 'objectgroup',
+                            objects: [{ id: 1, x: 0, y: 0, width: 16, height: 16 }],
+                        },
+                    },
+                    {
+                        id: 1,
+                    },
+                ],
+            },
+        ],
+        layers: [
+            {
+                id: 1,
+                name: 'cliffs',
+                type: 'tilelayer',
+                visible: true,
+                width: 3,
+                height: 3,
+                data: [0, 0, 0, 0, 1, 0, 0, 0, 0],
+            },
+            {
+                id: 2,
+                name: 'bridge',
+                type: 'tilelayer',
+                visible: true,
+                width: 3,
+                height: 3,
+                data: [0, 0, 0, 0, 2, 0, 0, 0, 0],
+            },
+        ],
+    } as Parameters<typeof processMap>[0];
+
+    const clientMap = processMap(tiledMap, { mode: 'client', quiet: true });
+    const serverMap = processMap(tiledMap, { mode: 'server', quiet: true });
+
+    expect(clientMap.blocking).not.toContain(4);
+    expect(clientMap.collisions).not.toContain(4);
+    expect(serverMap.collisions).not.toContain(4);
+});
+
+test('empty perimeter tiles are sealed as collisions', () => {
+    const tiledMap = {
+        width: 4,
+        height: 4,
+        tilewidth: 16,
+        tileheight: 16,
+        tilesets: [
+            {
+                firstgid: 1,
+                name: 'tilesheet-wang',
+                tilewidth: 16,
+                tileheight: 16,
+                tiles: [],
+            },
+        ],
+        layers: [
+            {
+                id: 1,
+                name: 'ground',
+                type: 'tilelayer',
+                visible: true,
+                width: 4,
+                height: 4,
+                data: [
+                    0, 0, 0, 0,
+                    0, 1, 1, 0,
+                    0, 1, 1, 0,
+                    0, 0, 0, 0,
+                ],
+            },
+        ],
+    } as Parameters<typeof processMap>[0];
+
+    const clientMap = processMap(tiledMap, { mode: 'client', quiet: true });
+    const serverMap = processMap(tiledMap, { mode: 'server', quiet: true });
+
+    expect(clientMap.blocking).toContain(0);
+    expect(clientMap.blocking).toContain(3);
+    expect(clientMap.blocking).toContain(12);
+    expect(clientMap.blocking).toContain(15);
+    expect(serverMap.collisions).toContain(0);
+    expect(serverMap.collisions).toContain(15);
+    expect(clientMap.blocking).not.toContain(5);
+    expect(serverMap.collisions).not.toContain(5);
+});

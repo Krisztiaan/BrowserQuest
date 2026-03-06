@@ -26,6 +26,8 @@
     "check:world-render-clusters:json": "bun tools/content/world-render-cluster-audit.ts --json",
     "check:world-tile-paints": "bun tools/content/world-tile-paint-audit.ts",
     "check:world-tile-paints:json": "bun tools/content/world-tile-paint-audit.ts --json",
+    "check:world-typed-objects": "bun tools/content/world-typed-object-audit.ts",
+    "check:world-typed-objects:json": "bun tools/content/world-typed-object-audit.ts --json",
     "fix:tileset-wang:scaffold": "bun tools/content/tileset-wang-scaffold.ts --write",
     "check:tileset-modernize:dry": "bun tools/content/tileset-modernize-metadata.ts",
     "fix:tileset-modernize": "bun tools/content/tileset-modernize-metadata.ts --write",

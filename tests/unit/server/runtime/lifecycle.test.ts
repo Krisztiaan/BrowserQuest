@@ -19,7 +19,7 @@ function createValidConfig() {
         debug_level: 'info',
         nb_players_per_world: 200,
         nb_worlds: 1,
-        map_filepath: './assets/maps/runtime/map-pack.json',
+        map_filepath: './assets/maps/tiled/world.json',
         metrics_enabled: false,
     } as const;
 }

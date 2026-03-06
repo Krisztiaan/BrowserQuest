@@ -1,6 +1,5 @@
 import type { EntityKind, EntityKindName } from '../shared/entity-kind-domain';
 import type { OutgoingQueues, WorldConnection as RuntimeWorldConnection, WorldMessage } from './world/contracts';
-import fs from 'node:fs/promises';
 import Entity from './entity';
 import Log from './log';
 import MobEntity from './world/mob-entity';
@@ -83,6 +82,7 @@ import {
     createWorldMapRegistryFromMapPack,
     type WorldMapRegistry,
 } from './world/map-registry';
+import { compileRuntimeMapPackFromPayload, loadRuntimeMapPackFromSource } from './runtime-map-pack-source';
 import { WORLD_EVENT_NAMES } from './server-event-names';
 import type {
     MapTransitionEvent,
@@ -704,27 +704,22 @@ class World extends Evented<WorldEvents> {
         self.emit('ready');
     }
 
-    private async loadMapRuntime(mapFilePath: string): Promise<void> {
-        let parsedPayload: unknown = null;
-        try {
-            const raw = await fs.readFile(mapFilePath, 'utf8');
-            parsedPayload = JSON.parse(raw) as unknown;
-        } catch (_) {
-            parsedPayload = null;
+    private async loadMapRuntime(mapSource: string | unknown): Promise<void> {
+        const pack = typeof mapSource === 'string'
+            ? await loadRuntimeMapPackFromSource(mapSource)
+            : await compileRuntimeMapPackFromPayload(mapSource as string | number | boolean | null | undefined | object);
+        if (!isMapPack(pack)) {
+            throw new Error('Invalid runtime map payload after compilation.');
         }
 
-        if (!isMapPack(parsedPayload)) {
-            throw new Error(`Invalid map pack payload: ${mapFilePath}`);
-        }
-
-        const registry = createWorldMapRegistryFromMapPack(parsedPayload);
+        const registry = createWorldMapRegistryFromMapPack(pack);
         this.applyMapRegistry(registry);
         this.initializeWorldRuntimeFromActiveMap();
     }
 
-    run(mapFilePath: string): void {
+    run(mapSource: string | unknown): void {
         this.installPlugins();
-        void this.loadMapRuntime(mapFilePath).catch((error) => {
+        void this.loadMapRuntime(mapSource).catch((error) => {
             const message = `World ${this.id} failed to load map runtime: ${String(error)}`;
             log.error(message);
             setTimeout(() => {

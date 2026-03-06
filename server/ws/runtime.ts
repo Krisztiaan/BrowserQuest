@@ -189,6 +189,7 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
     private statusProvider?: () => string;
     private profilePreviewProvider?: (request: Request) => Response;
     private passkeyAuthProvider?: (request: Request) => Response | Promise<Response>;
+    private runtimeMapPackProvider?: (request: Request) => Response | Promise<Response>;
 
     constructor(port: number) {
         super();
@@ -210,6 +211,9 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                 }
                 if (requestPath === '/version') {
                     return new Response(getVersionResponseBody(), { status: 200 });
+                }
+                if (requestPath === '/assets/maps/runtime/map-pack.json' && this.runtimeMapPackProvider) {
+                    return this.runtimeMapPackProvider(request);
                 }
                 if (requestPath === '/status' && this.statusProvider) {
                     return new Response(this.statusProvider(), { status: 200 });
@@ -328,6 +332,10 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
 
     onRequestPasskeyAuth(passkeyAuthProvider: (request: Request) => Response | Promise<Response>) {
         this.passkeyAuthProvider = passkeyAuthProvider;
+    }
+
+    onRequestRuntimeMapPack(runtimeMapPackProvider: (request: Request) => Response | Promise<Response>) {
+        this.runtimeMapPackProvider = runtimeMapPackProvider;
     }
 
     forEachConnection(

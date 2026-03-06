@@ -32,7 +32,7 @@ test('server exposes stable /healthz and /version probe contracts', async () => 
             debug_level: 'error',
             nb_players_per_world: 5,
             nb_worlds: 1,
-            map_filepath: './assets/maps/runtime/map-pack.json',
+            map_filepath: './assets/maps/tiled/world.json',
             metrics_enabled: false,
         })
     );

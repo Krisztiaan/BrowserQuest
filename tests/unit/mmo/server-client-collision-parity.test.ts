@@ -1,11 +1,19 @@
 import { expect, test } from 'bun:test';
-import processMap from '../../../shared/maps/processmap';
-import tiledWorldMapJson from '../../../assets/maps/tiled/world.json';
+import { loadRuntimeMapPackFromSource } from '../../../server/runtime-map-pack-source';
 
-test('server collisions include client blocking tiles for authority parity', () => {
-    const tiledWorldMap = tiledWorldMapJson as Parameters<typeof processMap>[0];
-    const clientMap = processMap(tiledWorldMap, { mode: 'client', quiet: true });
-    const serverMap = processMap(tiledWorldMap, { mode: 'server', quiet: true });
+test('server collisions include client blocking tiles for authority parity', async () => {
+    const runtimeMapPack = await loadRuntimeMapPackFromSource('./assets/maps/tiled/world.json') as {
+        maps?: Array<{
+            id?: string;
+            client?: { blocking?: number[] };
+            server?: { collisions?: number[] };
+        }>;
+    };
+    const worldMap = runtimeMapPack.maps?.find((entry) => entry.id === 'world_01');
+    expect(worldMap).toBeDefined();
+
+    const clientMap = worldMap?.client ?? {};
+    const serverMap = worldMap?.server ?? {};
 
     const clientBlocking = clientMap.blocking ?? [];
     expect(clientBlocking.length).toBeGreaterThan(0);
@@ -14,4 +22,3 @@ test('server collisions include client blocking tiles for authority parity', () 
     const missingBlockingTiles = clientBlocking.filter((tileIndex) => !serverCollisions.has(tileIndex));
     expect(missingBlockingTiles).toEqual([]);
 });
-
