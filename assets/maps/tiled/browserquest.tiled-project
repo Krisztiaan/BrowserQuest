@@ -1,6 +1,60 @@
 {
-  "automappingRulesFile": "automapping.rules",
-  "commands": [],
+  "commands": [
+    {
+      "arguments": "tools/content/tileset-wang-scaffold.ts --write",
+      "command": "bun",
+      "enabled": true,
+      "name": "Rebuild Terrain Scaffolds",
+      "saveBeforeExecute": true,
+      "showOutput": true,
+      "workingDirectory": "../../.."
+    },
+    {
+      "arguments": "tools/content/tileset-wang-audit.ts",
+      "command": "bun",
+      "enabled": true,
+      "name": "Audit Terrain Wang Sets",
+      "saveBeforeExecute": true,
+      "showOutput": true,
+      "workingDirectory": "../../.."
+    },
+    {
+      "arguments": "tools/content/world-render-cluster-audit.ts",
+      "command": "bun",
+      "enabled": true,
+      "name": "Audit Render Cluster Splits",
+      "saveBeforeExecute": true,
+      "showOutput": true,
+      "workingDirectory": "../../.."
+    },
+    {
+      "arguments": "tools/content/world-standardize-pipeline.ts --write --drop-plateau-mask --drop-blocking-mask",
+      "command": "bun",
+      "enabled": true,
+      "name": "Standardize Authored World",
+      "saveBeforeExecute": true,
+      "showOutput": true,
+      "workingDirectory": "../../.."
+    },
+    {
+      "arguments": "tools/content/world-map-validator.ts --map assets/maps/tiled/world.json --profile target",
+      "command": "bun",
+      "enabled": true,
+      "name": "Validate Authored World",
+      "saveBeforeExecute": true,
+      "showOutput": true,
+      "workingDirectory": "../../.."
+    },
+    {
+      "arguments": "tools/content/map-pack.ts check --config assets/maps/tiled/map-pack.config.json",
+      "command": "bun",
+      "enabled": true,
+      "name": "Check Runtime Map Pack",
+      "saveBeforeExecute": true,
+      "showOutput": true,
+      "workingDirectory": "../../.."
+    }
+  ],
   "extensionsPath": "extensions",
   "folders": [
     ".",
@@ -66,6 +120,19 @@
         "forest",
         "lavaland",
         "village"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 4,
+      "name": "RenderDepthMode",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "collision",
+        "bottom",
+        "top",
+        "explicit"
       ],
       "valuesAsFlags": false
     },
@@ -159,22 +226,80 @@
       ]
     },
     {
+      "id": 5,
+      "name": "EntityKind",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "agent",
+        "axe",
+        "bat",
+        "beachnpc",
+        "bluesword",
+        "boss",
+        "burger",
+        "cake",
+        "chest",
+        "clotharmor",
+        "coder",
+        "crab",
+        "deathknight",
+        "desertnpc",
+        "eye",
+        "firefox",
+        "firepotion",
+        "flask",
+        "forestnpc",
+        "goblin",
+        "goldenarmor",
+        "goldensword",
+        "guard",
+        "king",
+        "lavanpc",
+        "leatherarmor",
+        "mailarmor",
+        "morningstar",
+        "nyan",
+        "octocat",
+        "ogre",
+        "platearmor",
+        "priest",
+        "rat",
+        "redarmor",
+        "redsword",
+        "rick",
+        "scientist",
+        "skeleton",
+        "skeleton2",
+        "snake",
+        "sorcerer",
+        "spectre",
+        "sword1",
+        "sword2",
+        "villagegirl",
+        "villager",
+        "warrior",
+        "wizard"
+      ],
+      "valuesAsFlags": false
+    },
+    {
       "color": "#ff729fcf",
       "id": 102,
       "members": [
         {
-          "name": "mob_kind",
-          "propertyType": "MobKind",
+          "name": "entity_kind",
+          "propertyType": "EntityKind",
           "type": "string",
           "value": "rat"
         },
         {
-          "name": "mob_gid",
+          "name": "entity_gid",
           "type": "int",
           "value": 0
         }
       ],
-      "name": "EntitySpawn",
+      "name": "StaticEntity",
       "type": "class",
       "useAs": [
         "object",
@@ -262,38 +387,6 @@
       ]
     },
     {
-      "color": "#ff34e2e2",
-      "id": 107,
-      "members": [
-        {
-          "name": "zone_id",
-          "type": "int",
-          "value": 0
-        }
-      ],
-      "name": "Zone",
-      "type": "class",
-      "useAs": [
-        "object"
-      ]
-    },
-    {
-      "color": "#ff729fcf",
-      "id": 108,
-      "members": [
-        {
-          "name": "zone_id",
-          "type": "int",
-          "value": 0
-        }
-      ],
-      "name": "MobileZone",
-      "type": "class",
-      "useAs": [
-        "object"
-      ]
-    },
-    {
       "color": "#ffad7fa8",
       "id": 109,
       "members": [
@@ -339,6 +432,100 @@
       "type": "class",
       "useAs": [
         "layer"
+      ]
+    },
+    {
+      "color": "#fffce94f",
+      "id": 112,
+      "members": [
+        {
+          "name": "prop_family",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "prop_kind",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "biome",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "depth_mode",
+          "propertyType": "RenderDepthMode",
+          "type": "string",
+          "value": "collision"
+        },
+        {
+          "name": "depth_offset",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "depth_row",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "DepthSorted",
+      "type": "class",
+      "useAs": [
+        "layer"
+      ]
+    },
+    {
+      "color": "#ffedd400",
+      "id": 113,
+      "members": [
+        {
+          "name": "prop_family",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "prop_kind",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "biome",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "tags",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "depth_mode",
+          "propertyType": "RenderDepthMode",
+          "type": "string",
+          "value": "collision"
+        },
+        {
+          "name": "depth_offset",
+          "type": "int",
+          "value": 0
+        },
+        {
+          "name": "depth_row",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "PropMetadata",
+      "type": "class",
+      "useAs": [
+        "object"
       ]
     }
   ]

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <template>
- <object class="ChestSpawn" width="16" height="16">
+ <tileset firstgid="1" source="../editor-markers.tsj"/>
+ <object class="ChestSpawn" gid="2" width="16" height="16">
   <properties>
    <property name="items" type="string" value=""/>
   </properties>

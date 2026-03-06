@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import Map from '../../server/map';
+import type { EntityKindName } from '../../shared/entity-kind-domain';
+import Map, { validateMapPayload } from '../../server/map';
 
 function createMinimalMapDefinition() {
     return {
@@ -9,11 +10,28 @@ function createMinimalMapDefinition() {
         roamingAreas: [],
         chestAreas: [],
         staticChests: [],
-        staticEntities: {},
+        staticEntities: {} as Record<string, EntityKindName>,
         doors: [],
         checkpoints: [],
     };
 }
+
+test('server map payload validation rejects invalid static entity kinds', async () => {
+    const result = await validateMapPayload({
+        width: 4,
+        height: 4,
+        collisions: [],
+        roamingAreas: [],
+        chestAreas: [],
+        staticChests: [],
+        staticEntities: { '27': 'definitely_not_an_entity' },
+        doors: [],
+        checkpoints: [],
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain('Invalid map payload');
+});
 
 test('server map ready supports multiple callbacks without overwrite', () => {
     const map = Object.create(Map.prototype) as Map;

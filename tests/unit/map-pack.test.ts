@@ -271,17 +271,17 @@ test('compileMapPack accepts legacy object type metadata and skips invalid roami
                             ],
                         },
                         {
-                            name: 'entity_spawns',
+                            name: 'static_entities',
                             type: 'objectgroup',
                             objects: [
                                 {
                                     id: 3,
-                                    type: 'EntitySpawn',
+                                    type: 'StaticEntity',
                                     x: 48,
                                     y: 48,
                                     width: 16,
                                     height: 16,
-                                    properties: [{ name: 'mob_kind', value: 'rat' }],
+                                    properties: [{ name: 'entity_kind', value: 'rat' }],
                                 },
                             ],
                         },
@@ -293,11 +293,83 @@ test('compileMapPack accepts legacy object type metadata and skips invalid roami
 
     const worldServer = pack.maps[0]?.server as {
         roamingAreas?: unknown[];
-        staticEntities?: Record<string, string>;
+        staticEntities?: Record<string, import('../../shared/entity-kind-domain').EntityKindName>;
     };
 
     expect(worldServer.roamingAreas ?? []).toEqual([]);
     expect(worldServer.staticEntities).toEqual({ '27': 'rat' });
+});
+
+test('compileMapPack exports roaming areas with valid mob kinds', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'world',
+                tiled: {
+                    width: 8,
+                    height: 8,
+                    tilewidth: 16,
+                    tilesets: [{ name: 'tilesheet', firstgid: 1, tiles: [] }],
+                    layers: [
+                        {
+                            name: 'background',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(64).fill(1),
+                        },
+                        {
+                            name: 'blocking',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(64).fill(0),
+                        },
+                        {
+                            name: 'roaming_areas',
+                            type: 'objectgroup',
+                            objects: [
+                                {
+                                    id: 1,
+                                    class: 'RoamingArea',
+                                    x: 32,
+                                    y: 32,
+                                    width: 32,
+                                    height: 48,
+                                    properties: [
+                                        { name: 'count', value: 2 },
+                                        { name: 'mob_kind', value: 'rat' },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
+    });
+
+    const worldServer = pack.maps[0]?.server as {
+        roamingAreas?: Array<{
+            id: number;
+            x: number;
+            y: number;
+            width: number;
+            height: number;
+            count: number;
+            mobKind: string;
+        }>;
+    };
+
+    expect(worldServer.roamingAreas).toEqual([
+        {
+            id: 0,
+            x: 2,
+            y: 2,
+            width: 2,
+            height: 3,
+            count: 2,
+            mobKind: 'rat',
+        },
+    ]);
 });
 
 test('compileMapPack carves authored blocking to prevent trapped door soft-locks', () => {

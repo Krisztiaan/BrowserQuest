@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <tileset firstgid="1" source="../tilesheet.wang.tsj"/>
+ <object class="PropMetadata" gid="1564" width="16" height="16">
+  <properties>
+   <property name="prop_kind" type="string" value="totem"/>
+   <property name="tags" type="string" value="ritual"/>
+  </properties>
+ </object>
+</template>

@@ -187,7 +187,7 @@
     - `legacy` profile summary: `0 errors, 62 warnings, 0 infos` (improved from `95` warnings pre-pass)
     - `target` profile summary: `85 errors, 0 warnings, 0 infos` (improved from `975` errors pre-pass)
 - Next action:
-  - Execute pass-2 semantic conversion (`resource_nodes` / `entity_spawns` tilelayers → objectgroups) and resolve remaining target errors.
+  - Execute pass-2 semantic conversion (`resource_nodes` / `static_entities` tilelayers → objectgroups) and resolve remaining target errors.
 
 #### Ticket E
 - Start timestamp: `2026-02-26 12:12:25 CET`
@@ -196,7 +196,7 @@
   - Added and executed `tools/content/world-migrate-pass2.ts`.
   - Converted hidden tilelayers to objectgroups:
     - `resource_nodes`: 6 objects with `resource_gid`
-    - `entity_spawns`: 233 objects with `mob_gid`
+    - `static_entities`: 233 objects with `entity_gid`
   - Filled missing portal routing fields for legacy portal door objects.
   - Clamped 3 out-of-bounds objects back into map bounds.
   - Renamed 59 empty tileset property names (`legacy_empty`) to satisfy target contract.
@@ -205,7 +205,7 @@
     - Result: `convertedResourceNodes=6`, `convertedEntitySpawns=233`, `addedPortalFields=21`, `clampedObjects=3`, `renamedEmptyTileProperties=59`, `nextobjectid=600`
   - Post-pass structure:
     - `resource_nodes` → `objectgroup` (`objects=6`)
-    - `entity_spawns` → `objectgroup` (`objects=233`)
+    - `static_entities` → `objectgroup` (`objects=233`)
     - map layer count remains `68`
   - Validation:
     - `legacy` profile summary: `0 errors, 0 warnings, 0 infos`
@@ -1217,7 +1217,7 @@
 - Key actions taken:
   - Extended `tools/content/world-standardize-idiomatic.ts`:
     - added deterministic object naming (`setObjectNames`, default enabled),
-    - added per-layer naming conventions (doors/zones/mobile_zones/music_zones/roaming_areas/resource_nodes/entity_spawns/chest_spawns/chest_areas/checkpoints),
+    - added per-layer naming conventions (doors/zones/mobile_zones/music_zones/roaming_areas/resource_nodes/static_entities/chest_spawns/chest_areas/checkpoints),
     - classes portal objects as `Portal` on `doors` layer.
   - Extended `tools/content/world-map-validator.ts` target contracts:
     - new non-empty object-name requirement (`OBJECT_NAME_MISSING`) across target object layers,
@@ -1435,7 +1435,7 @@
    - Canonical object layer/object classes:
      - `doors` → `Door` / `Portal`
      - `resource_nodes` → `ResourceNode`
-     - `entity_spawns` → `EntitySpawn`
+     - `static_entities` → `StaticEntity`
      - `chest_spawns` → `ChestSpawn`
      - `chest_areas` → `ChestArea`
      - `roaming_areas` → `RoamingArea`
@@ -1493,12 +1493,12 @@
 
 #### Ticket N — Entity spawn representation modernization (`done`)
 - Scope:
-  - Included: parser support for idiomatic object-based spawns (`entity_spawns`) with `mob_kind`, `mob_gid`, or tile-object `gid`.
+  - Included: parser support for idiomatic object-based static entities (`static_entities`) with `entity_kind`, `entity_gid`, or tile-object `gid`.
   - Included: hard fail on legacy `entities` tilelayer input.
-  - Included: conversion of split maps from `entities` tilelayers to `entity_spawns` object layers.
+  - Included: conversion of split maps from `entities` tilelayers to `static_entities` object layers.
   - Out of scope: monolithic room split and terrain painting.
 - Acceptance criteria:
-  - Split maps have no `entities` layer and use `entity_spawns` object layers.
+  - Split maps have no `entities` layer and use `static_entities` object layers.
   - Build/test/typecheck pass with new strict path.
 - Verification plan:
   - Run modernizer dry-run/write/idempotence, then build/check/tests/typechecks.
@@ -1522,7 +1522,7 @@
 - Key actions taken:
   - Populated `assets/maps/tiled/browserquest.tiled-project` `propertyTypes` with:
     - enums: `DoorOrientation`, `MobKind`, `MusicTrackId`,
-    - classes: `Door`, `Portal`, `EntitySpawn`, `RoamingArea`, `ResourceNode`, `ChestSpawn`, `ChestArea`, `Zone`, `MobileZone`, `Checkpoint`, `MusicZone`, `Foreground`.
+    - classes: `Door`, `Portal`, `StaticEntity`, `RoamingArea`, `ResourceNode`, `ChestSpawn`, `ChestArea`, `Zone`, `MobileZone`, `Checkpoint`, `MusicZone`, `Foreground`.
 - Evidence:
   - `browserquest.tiled-project` now has non-empty `propertyTypes` and typed members for canonical object classes.
 - Next action:
@@ -1533,14 +1533,14 @@
 - Current status: `done`
 - Key actions taken:
   - Updated `shared/maps/processmap.ts`:
-    - supports `entity_spawns` object layer static spawn extraction,
-    - resolves kind via `mob_kind`, `mob_gid`, or tile object `gid` against `Mobs` tileset,
+    - supports `static_entities` object layer static entity extraction,
+    - resolves kind via `entity_kind`, `entity_gid`, or tile object `gid` against `Mobs` tileset,
     - rejects legacy `entities` tilelayer with clear error.
   - Updated validator `tools/content/world-map-validator.ts`:
-    - `entity_spawns` now valid when any of (`mob_kind`, `mob_gid`, tile `gid`) is present.
+    - `static_entities` now valid when any of (`entity_kind`, `entity_gid`, tile `gid`) is present.
   - Extended `tools/content/map-pack-modernize-legacy.ts`:
-    - converts legacy `entities` tilelayer into canonical `entity_spawns` object layer,
-    - adds `mob_gid` + `mob_kind` properties where resolvable,
+    - converts legacy `entities` tilelayer into canonical `static_entities` object layer,
+    - adds `entity_gid` + `entity_kind` properties where resolvable,
     - updates `nextobjectid`, keeps idempotence.
   - Applied conversion to split map set (`map-pack.config.json` maps only; no forced rewrite of `world.json` in this step).
 - Evidence:
@@ -1559,8 +1559,8 @@
 - Key actions taken:
   - Set `assets/maps/tiled/mobs.tsj` to `objectalignment=topleft` for deterministic tile-object placement.
   - Added templates under `assets/maps/tiled/templates/`:
-    - `entity_spawn_rect.tx`
-    - `entity_spawn_tile_rat.tx`
+    - `static_entity_rect.tx`
+    - `static_entity_tile_rat.tx`
     - `roaming_area.tx`
     - `door.tx`
     - `portal.tx`

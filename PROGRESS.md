@@ -28,7 +28,7 @@ Format per entry:
       - `assets/maps/tiled/mase_*.json`
     - Updated `assets/maps/tiled/map-pack.config.json` to build from monolithic `assets/maps/tiled/world.json` (kept id `world_01`).
     - Added map-pack option `allow_missing_target_maps` so monolithic builds can temporarily ignore cross-map door edges to missing maps.
-    - Migrated `entity_spawns` in `world.json` to have explicit `mob_kind` (and normalized `mob_gid`) using the embedded `Mobs` tileset in `world.original.json`.
+    - Migrated `static_entities` in `world.json` to have explicit `entity_kind` (and normalized `entity_gid`) using the embedded `Mobs` tileset in `world.original.json`.
   - Evidence:
     - `bun run build:maps` → exit `0`
     - `bun run check:maps` → exit `0`

@@ -87,20 +87,18 @@ type ObjectLayerRule = Readonly<{
 
 const OBJECT_LAYER_RULES: readonly ObjectLayerRule[] = [
     { layer: 'resource_nodes', defaultType: 'resource_node', className: 'ResourceNode' },
-    { layer: 'entity_spawns', defaultType: 'entity_spawn', className: 'EntitySpawn' },
+    { layer: 'static_entities', defaultType: 'static_entity', className: 'StaticEntity' },
     { layer: 'chest_spawns', defaultType: 'chest_spawn', className: 'ChestSpawn' },
     { layer: 'chest_areas', defaultType: 'chest_area', className: 'ChestArea' },
     { layer: 'doors', defaultType: 'door', className: 'Door' },
     { layer: 'roaming_areas', defaultType: 'roaming_area', className: 'RoamingArea' },
-    { layer: 'zones', defaultType: 'zone', className: 'Zone' },
     { layer: 'music_zones', defaultType: 'music_zone', className: 'MusicZone' },
     { layer: 'checkpoints', defaultType: 'checkpoint', className: 'Checkpoint' },
-    { layer: 'mobile_zones', defaultType: 'mobile_zone', className: 'MobileZone' },
 ];
 
 const INT_PROPERTY_KEYS = new Set([
     'resource_gid',
-    'mob_gid',
+    'entity_gid',
     'target_tx',
     'target_ty',
     'local_tx',
@@ -108,7 +106,6 @@ const INT_PROPERTY_KEYS = new Set([
     'spawn_tx',
     'spawn_ty',
     'count',
-    'zone_id',
     'checkpoint_id',
 ]);
 
@@ -284,8 +281,8 @@ async function main(): Promise<void> {
                 let generatedName = `${resolvedLayerName}_${objectId}`;
                 if (resolvedLayerName === 'resource_nodes') {
                     generatedName = `resource_node_${intProp('resource_gid') ?? objectId}`;
-                } else if (resolvedLayerName === 'entity_spawns') {
-                    generatedName = `entity_spawn_${objectId}_${intProp('mob_gid') ?? 0}`;
+                } else if (resolvedLayerName === 'static_entities') {
+                    generatedName = `static_entity_${objectId}_${intProp('entity_gid') ?? 0}`;
                 } else if (resolvedLayerName === 'chest_spawns') {
                     generatedName = `chest_spawn_${objectId}`;
                 } else if (resolvedLayerName === 'chest_areas') {
@@ -304,14 +301,10 @@ async function main(): Promise<void> {
                     }
                 } else if (resolvedLayerName === 'roaming_areas') {
                     generatedName = `roaming_area_${objectId}`;
-                } else if (resolvedLayerName === 'zones') {
-                    generatedName = `zone_${intProp('zone_id') ?? objectId}`;
                 } else if (resolvedLayerName === 'music_zones') {
                     generatedName = `music_zone_${slugifySegment(strProp('track_id') ?? String(objectId))}_${objectId}`;
                 } else if (resolvedLayerName === 'checkpoints') {
                     generatedName = `checkpoint_${intProp('checkpoint_id') ?? objectId}`;
-                } else if (resolvedLayerName === 'mobile_zones') {
-                    generatedName = `mobile_zone_${intProp('zone_id') ?? objectId}`;
                 }
 
                 const existingName = asString(objectRecord.name) ?? '';

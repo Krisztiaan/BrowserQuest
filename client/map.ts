@@ -35,6 +35,27 @@ type RuntimeMapPayload = {
     tilesize: number;
     data: Array<number | number[]>;
     foreground: Array<number | number[]>;
+    renderProps?: Array<{
+        depth: number;
+        minTileX: number;
+        minTileY: number;
+        maxTileX: number;
+        maxTileY: number;
+        parts: Array<{ index: number; gid: number }>;
+        meta?: {
+            layer: string;
+            layerPath: string;
+            groupPath?: string[];
+            family?: string;
+            kind?: string;
+            biome?: string;
+            tags?: string[];
+            template?: string;
+            depthMode?: string;
+            depthOffset?: number;
+            depthRow?: number;
+        };
+    }>;
     blocking?: number[];
     plateau?: number[];
     navIslandByTile?: number[];
@@ -63,6 +84,27 @@ class Map {
     mapId: string;
     data: Array<number | number[]>;
     foreground: Array<number | number[]>;
+    renderProps: Array<{
+        depth: number;
+        minTileX: number;
+        minTileY: number;
+        maxTileX: number;
+        maxTileY: number;
+        parts: Array<{ index: number; gid: number }>;
+        meta?: {
+            layer: string;
+            layerPath: string;
+            groupPath?: string[];
+            family?: string;
+            kind?: string;
+            biome?: string;
+            tags?: string[];
+            template?: string;
+            depthMode?: string;
+            depthOffset?: number;
+            depthRow?: number;
+        };
+    }>;
     isLoaded: boolean;
     tilesetsLoaded: boolean;
     mapLoaded: boolean;
@@ -95,6 +137,7 @@ class Map {
         this.mapId = mapId.trim().length > 0 ? mapId.trim() : 'world_01';
         this.data = [];
         this.foreground = [];
+        this.renderProps = [];
         this.isLoaded = false;
         this.tilesetsLoaded = false;
         this.mapLoaded = false;
@@ -283,6 +326,7 @@ class Map {
         this.tilesize = map.tilesize;
         this.data = map.data;
         this.foreground = map.foreground;
+        this.renderProps = [...(map.renderProps ?? [])].sort((a, b) => a.depth - b.depth || a.minTileY - b.minTileY || a.minTileX - b.minTileX);
         this.blocking = map.blocking ?? [];
         this.plateau = map.plateau ?? [];
         this.plateauSet = new Set(this.plateau);

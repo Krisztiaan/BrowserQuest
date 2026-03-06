@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-02-27T13:04:58.918Z",
+  "generatedAt": "2026-03-05T22:45:52.915Z",
   "world": "assets/maps/tiled/world.json",
   "tileset": "assets/maps/tiled/tilesheet.wang.tsj",
   "sourceSet": "browserquest-terrain",
@@ -93,7 +93,7 @@
       "topTiles": [
         {
           "tileid": 405,
-          "count": 187
+          "count": 290
         },
         {
           "tileid": 406,
@@ -406,9 +406,13 @@
         },
         {
           "layer": "lakes",
-          "cells": 65,
-          "distinctTiles": 21,
+          "cells": 168,
+          "distinctTiles": 22,
           "topTiles": [
+            {
+              "tileid": 405,
+              "count": 103
+            },
             {
               "tileid": 746,
               "count": 7
@@ -2758,15 +2762,15 @@
           "count": 12
         },
         {
-          "tileid": 1303,
-          "count": 11
-        },
-        {
           "tileid": 1362,
           "count": 11
         },
         {
           "tileid": 1222,
+          "count": 10
+        },
+        {
+          "tileid": 1303,
           "count": 10
         },
         {
@@ -2929,7 +2933,7 @@
       "layers": [
         {
           "layer": "cave_walls",
-          "cells": 1631,
+          "cells": 1630,
           "distinctTiles": 94,
           "topTiles": [
             {
@@ -4044,31 +4048,27 @@
       "topTiles": [
         {
           "tileid": 572,
-          "count": 277
+          "count": 276
         },
         {
           "tileid": 571,
-          "count": 228
+          "count": 227
         },
         {
           "tileid": 552,
           "count": 219
         },
         {
+          "tileid": 27,
+          "count": 211
+        },
+        {
           "tileid": 551,
           "count": 207
         },
         {
-          "tileid": 27,
-          "count": 132
-        },
-        {
           "tileid": 1358,
           "count": 86
-        },
-        {
-          "tileid": 3,
-          "count": 84
         },
         {
           "tileid": 1378,
@@ -4081,6 +4081,10 @@
         {
           "tileid": 1377,
           "count": 63
+        },
+        {
+          "tileid": 3,
+          "count": 56
         },
         {
           "tileid": 1309,
@@ -4325,36 +4329,32 @@
         },
         {
           "layer": "cave",
-          "cells": 1475,
+          "cells": 1524,
           "distinctTiles": 20,
           "topTiles": [
             {
               "tileid": 572,
-              "count": 277
+              "count": 276
             },
             {
               "tileid": 571,
-              "count": 228
+              "count": 227
             },
             {
               "tileid": 552,
               "count": 219
             },
             {
+              "tileid": 27,
+              "count": 211
+            },
+            {
               "tileid": 551,
               "count": 207
             },
             {
-              "tileid": 27,
-              "count": 132
-            },
-            {
               "tileid": 1358,
               "count": 86
-            },
-            {
-              "tileid": 3,
-              "count": 84
             },
             {
               "tileid": 1378,
@@ -4367,6 +4367,10 @@
             {
               "tileid": 1377,
               "count": 63
+            },
+            {
+              "tileid": 3,
+              "count": 56
             },
             {
               "tileid": 478,

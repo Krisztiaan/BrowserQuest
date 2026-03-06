@@ -1,4 +1,4 @@
-import type { EntityKind } from '../shared/entity-kind-domain';
+import type { EntityKind, EntityKindName } from '../shared/entity-kind-domain';
 import type { OutgoingQueues, WorldConnection as RuntimeWorldConnection, WorldMessage } from './world/contracts';
 import fs from 'node:fs/promises';
 import Entity from './entity';
@@ -122,7 +122,7 @@ type WorldMapLike = {
     getGroupIdFromPosition(x: number, y: number): string;
     forEachGroup(callback: (id: string) => void): void;
     forEachAdjacentGroup(groupId: string, callback: (id: string) => void): void;
-    staticEntities?: Record<string, string>;
+    staticEntities?: Record<string, EntityKindName>;
     mobAreas?: object[];
     chestAreas?: object[];
     staticChests?: object[];

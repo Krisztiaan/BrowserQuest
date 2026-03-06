@@ -6,6 +6,19 @@ type JsonScalar = string | number | boolean | null;
 type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
 type UnknownRecord = Record<string, unknown>;
 type RawMapRecord = { [key: string]: JsonLike | undefined };
+type RenderPropMeta = {
+    layer: string;
+    layerPath: string;
+    groupPath?: string[];
+    family?: string;
+    kind?: string;
+    biome?: string;
+    tags?: string[];
+    template?: string;
+    depthMode?: string;
+    depthOffset?: number;
+    depthRow?: number;
+};
 
 type ClientRuntimeMap = {
     width: number;
@@ -13,6 +26,15 @@ type ClientRuntimeMap = {
     tilesize: number;
     data: Array<number | number[]>;
     foreground: Array<number | number[]>;
+    renderProps: Array<{
+        depth: number;
+        minTileX: number;
+        minTileY: number;
+        maxTileX: number;
+        maxTileY: number;
+        parts: Array<{ index: number; gid: number }>;
+        meta?: RenderPropMeta;
+    }>;
     blocking: number[];
     plateau: number[];
     navIslandByTile: number[];
@@ -163,6 +185,108 @@ function normalizeMusicAreas(value: unknown, label: string): Array<{ x: number; 
     return out;
 }
 
+function normalizeRenderProps(
+    value: unknown,
+    label: string
+): Array<{
+    depth: number;
+    minTileX: number;
+    minTileY: number;
+    maxTileX: number;
+    maxTileY: number;
+    parts: Array<{ index: number; gid: number }>;
+    meta?: RenderPropMeta;
+}> {
+    if (!Array.isArray(value)) {
+        throw new Error(`Invalid runtime map pack payload: ${label} must be an array.`);
+    }
+    return value.map((entry, index) => {
+        const record = asRecord(entry);
+        if (!record) {
+            throw new Error(`Invalid runtime map pack payload: ${label}[${index}] must be an object.`);
+        }
+        const depth = asFiniteInteger(record.depth);
+        const minTileX = asFiniteInteger(record.minTileX);
+        const minTileY = asFiniteInteger(record.minTileY);
+        const maxTileX = asFiniteInteger(record.maxTileX);
+        const maxTileY = asFiniteInteger(record.maxTileY);
+        if (
+            depth === null ||
+            minTileX === null ||
+            minTileY === null ||
+            maxTileX === null ||
+            maxTileY === null
+        ) {
+            throw new Error(`Invalid runtime map pack payload: ${label}[${index}] has invalid bounds/depth.`);
+        }
+        const partsValue = record.parts;
+        if (!Array.isArray(partsValue)) {
+            throw new Error(`Invalid runtime map pack payload: ${label}[${index}].parts must be an array.`);
+        }
+        const parts = partsValue.map((part, partIndex) => {
+            const partRecord = asRecord(part);
+            if (!partRecord) {
+                throw new Error(`Invalid runtime map pack payload: ${label}[${index}].parts[${partIndex}] must be an object.`);
+            }
+            const partIndexValue = asFiniteInteger(partRecord.index);
+            const gid = asFiniteInteger(partRecord.gid);
+            if (partIndexValue === null || gid === null || gid <= 0) {
+                throw new Error(`Invalid runtime map pack payload: ${label}[${index}].parts[${partIndex}] has invalid index/gid.`);
+            }
+            return { index: partIndexValue, gid };
+        });
+        const metaValue = record.meta;
+        let meta: RenderPropMeta | undefined;
+        if (metaValue !== undefined) {
+            const metaRecord = asRecord(metaValue);
+            if (!metaRecord) {
+                throw new Error(`Invalid runtime map pack payload: ${label}[${index}].meta must be an object.`);
+            }
+            const layer = asNonEmptyString(metaRecord.layer);
+            const layerPath = asNonEmptyString(metaRecord.layerPath);
+            if (!layer || !layerPath) {
+                throw new Error(`Invalid runtime map pack payload: ${label}[${index}].meta requires layer and layerPath.`);
+            }
+            const readStringArray = (value: unknown, field: string): string[] | undefined => {
+                if (value === undefined) {
+                    return undefined;
+                }
+                if (!Array.isArray(value)) {
+                    throw new Error(`Invalid runtime map pack payload: ${label}[${index}].meta.${field} must be an array.`);
+                }
+                return value.map((entry, itemIndex) => {
+                    const text = asNonEmptyString(entry);
+                    if (!text) {
+                        throw new Error(
+                            `Invalid runtime map pack payload: ${label}[${index}].meta.${field}[${itemIndex}] must be a string.`
+                        );
+                    }
+                    return text;
+                });
+            };
+            const depthOffset = metaRecord.depthOffset === undefined ? undefined : asFiniteInteger(metaRecord.depthOffset);
+            const depthRow = metaRecord.depthRow === undefined ? undefined : asFiniteInteger(metaRecord.depthRow);
+            if ((metaRecord.depthOffset !== undefined && depthOffset === null) || (metaRecord.depthRow !== undefined && depthRow === null)) {
+                throw new Error(`Invalid runtime map pack payload: ${label}[${index}].meta depth values must be integers.`);
+            }
+            meta = {
+                layer,
+                layerPath,
+                groupPath: readStringArray(metaRecord.groupPath, 'groupPath'),
+                family: asNonEmptyString(metaRecord.family) ?? undefined,
+                kind: asNonEmptyString(metaRecord.kind) ?? undefined,
+                biome: asNonEmptyString(metaRecord.biome) ?? undefined,
+                tags: readStringArray(metaRecord.tags, 'tags'),
+                template: asNonEmptyString(metaRecord.template) ?? undefined,
+                depthMode: asNonEmptyString(metaRecord.depthMode) ?? undefined,
+                depthOffset: depthOffset ?? undefined,
+                depthRow: depthRow ?? undefined,
+            };
+        }
+        return { depth, minTileX, minTileY, maxTileX, maxTileY, parts, meta };
+    });
+}
+
 function normalizeClientRuntimeMap(value: unknown, mapId: string): ClientRuntimeMap {
     const record = asRecord(value);
     if (!record) {
@@ -184,6 +308,7 @@ function normalizeClientRuntimeMap(value: unknown, mapId: string): ClientRuntime
         tilesize,
         data: normalizeTileData(record.data, `map "${mapId}" client.data`),
         foreground: normalizeTileData(record.foreground, `map "${mapId}" client.foreground`),
+        renderProps: normalizeRenderProps(record.renderProps ?? [], `map "${mapId}" client.renderProps`),
         blocking: normalizeNumberArray(record.blocking ?? [], `map "${mapId}" client.blocking`),
         plateau: normalizeNumberArray(record.plateau ?? [], `map "${mapId}" client.plateau`),
         navIslandByTile: normalizeNumberArray(record.navIslandByTile ?? [], `map "${mapId}" client.navIslandByTile`),

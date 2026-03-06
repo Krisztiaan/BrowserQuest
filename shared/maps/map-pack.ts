@@ -77,6 +77,53 @@ function asNonEmptyString(value: unknown): string | null {
     return value;
 }
 
+function flattenLayersForExtraction(
+    layers: unknown[],
+    state: Readonly<{ visible: boolean; offsetX: number; offsetY: number }> = { visible: true, offsetX: 0, offsetY: 0 }
+): UnknownRecord[] {
+    const flattened: UnknownRecord[] = [];
+    for (let i = 0; i < layers.length; i += 1) {
+        const layer = asRecord(layers[i]);
+        if (!layer) {
+            continue;
+        }
+        const type = asNonEmptyString(layer.type);
+        const visible = layer.visible !== false && state.visible;
+        const ownOffsetX = asNumber(layer.offsetx) ?? 0;
+        const ownOffsetY = asNumber(layer.offsety) ?? 0;
+        const offsetX = state.offsetX + ownOffsetX;
+        const offsetY = state.offsetY + ownOffsetY;
+        if (type === 'group') {
+            flattened.push(...flattenLayersForExtraction(asArray(layer.layers), { visible, offsetX, offsetY }));
+            continue;
+        }
+        if (type === 'objectgroup') {
+            flattened.push({
+                ...layer,
+                visible,
+                offsetx: 0,
+                offsety: 0,
+                objects: asArray(layer.objects)
+                    .map((entry) => asRecord(entry))
+                    .filter((entry): entry is UnknownRecord => entry !== null)
+                    .map((objectRecord) => ({
+                        ...objectRecord,
+                        x: (asNumber(objectRecord.x) ?? 0) + offsetX,
+                        y: (asNumber(objectRecord.y) ?? 0) + offsetY,
+                    })),
+            });
+            continue;
+        }
+        flattened.push({
+            ...layer,
+            visible,
+            offsetx: 0,
+            offsety: 0,
+        });
+    }
+    return flattened;
+}
+
 function compareStrings(a: string, b: string): number {
     return a.localeCompare(b);
 }
@@ -124,13 +171,13 @@ function extractDoorObjects(tiled: unknown): ReadonlyArray<TiledDoorObject> {
     if (!root) {
         return [];
     }
-    const layers = asArray(root.layers);
+    const layers = flattenLayersForExtraction(asArray(root.layers));
     for (let i = 0; i < layers.length; i += 1) {
         const layer = asRecord(layers[i]);
         if (!layer) {
             continue;
         }
-        if (layer.type !== 'objectgroup' || layer.name !== 'doors') {
+        if (layer.visible === false || layer.type !== 'objectgroup' || layer.name !== 'doors') {
             continue;
         }
         return asArray(layer.objects) as TiledDoorObject[];

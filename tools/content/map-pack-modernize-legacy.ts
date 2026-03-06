@@ -14,7 +14,7 @@ const LEGACY_OBJECT_LAYER_RENAMES = new Map<string, string>([
 
 const OBJECT_LAYER_CLASS_BY_NAME = new Map<string, string>([
     ['resource_nodes', 'ResourceNode'],
-    ['entity_spawns', 'EntitySpawn'],
+    ['static_entities', 'StaticEntity'],
     ['chest_spawns', 'ChestSpawn'],
     ['chest_areas', 'ChestArea'],
     ['doors', 'Door'],
@@ -344,7 +344,7 @@ async function convertLegacyEntitiesLayerToObjectSpawns({
     }
 
     const existingEntitySpawnsIndex = layers.findIndex(
-        (layer) => asString(layer.type) === 'objectgroup' && asString(layer.name) === 'entity_spawns'
+        (layer) => asString(layer.type) === 'objectgroup' && asString(layer.name) === 'static_entities'
     );
     const existingEntitySpawnsLayer =
         existingEntitySpawnsIndex >= 0 ? layers[existingEntitySpawnsIndex] ?? null : null;
@@ -387,17 +387,17 @@ async function convertLegacyEntitiesLayerToObjectSpawns({
             continue;
         }
         const localMobGid = rawGid - mobsFirstgid + 1;
-        const props: UnknownRecord[] = [{ name: 'mob_gid', type: 'int', value: localMobGid }];
+        const props: UnknownRecord[] = [{ name: 'entity_gid', type: 'int', value: localMobGid }];
         const mobKind = mobKindsByLocalId.get(localMobGid);
         if (mobKind) {
-            props.push({ name: 'mob_kind', type: 'string', value: mobKind });
+            props.push({ name: 'entity_kind', type: 'string', value: mobKind });
         }
         const objectId = nextObjectId;
         nextObjectId += 1;
         convertedObjects.push({
             id: objectId,
-            name: `entity_spawn_${tx}_${ty}`,
-            class: 'EntitySpawn',
+            name: `static_entity_${tx}_${ty}`,
+            class: 'StaticEntity',
             x: tx * tileWidth,
             y: ty * tileHeight,
             width: tileWidth,
@@ -410,8 +410,8 @@ async function convertLegacyEntitiesLayerToObjectSpawns({
     if (existingEntitySpawnsLayer) {
         const merged = [...existingObjects, ...convertedObjects];
         existingEntitySpawnsLayer.objects = merged;
-        if (asString(existingEntitySpawnsLayer.class) !== 'EntitySpawn') {
-            existingEntitySpawnsLayer.class = 'EntitySpawn';
+        if (asString(existingEntitySpawnsLayer.class) !== 'StaticEntity') {
+            existingEntitySpawnsLayer.class = 'StaticEntity';
             changed = true;
         }
         if (convertedObjects.length > 0) {
@@ -422,8 +422,8 @@ async function convertLegacyEntitiesLayerToObjectSpawns({
     } else {
         const replacementLayer: UnknownRecord = {
             id: asInteger(entitiesLayer.id) ?? undefined,
-            name: 'entity_spawns',
-            class: 'EntitySpawn',
+            name: 'static_entities',
+            class: 'StaticEntity',
             type: 'objectgroup',
             visible: false,
             opacity: typeof entitiesLayer.opacity === 'number' ? entitiesLayer.opacity : 1,
@@ -655,8 +655,8 @@ async function main(): Promise<void> {
                         localSetObjectClasses += 1;
                     }
                     const legacyType = asString(objectRecord.type);
-                    if (legacyType && legacyType.trim().length > 0 && getPropertyIndex(properties, 'mob_kind') < 0) {
-                        if (upsertProperty(properties, 'mob_kind', 'string', legacyType.trim()).changed) {
+                    if (legacyType && legacyType.trim().length > 0 && getPropertyIndex(properties, 'entity_kind') < 0) {
+                        if (upsertProperty(properties, 'entity_kind', 'string', legacyType.trim()).changed) {
                             addedRoamingKindProps += 1;
                         }
                     }

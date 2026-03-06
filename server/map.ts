@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import Log from './log';
 import Utils from './utils';
 import Checkpoint from './checkpoint';
+import { ENTITY_KIND_DOMAIN, type EntityKindName } from '../shared/entity-kind-domain';
 import { getZoneGroupIdFromGrid, isOutOfBoundsGridPosition } from '../shared/world/coordinate-contract';
 
 interface Position {
@@ -47,7 +48,7 @@ interface MapDefinition {
     roamingAreas: MapArea[];
     chestAreas: MapArea[];
     staticChests: StaticChest[];
-    staticEntities: Record<string, string>;
+    staticEntities: Record<string, EntityKindName>;
     doors?: DoorDefinition[];
     checkpoints?: CheckpointDefinition[];
 }
@@ -124,7 +125,7 @@ function isMapDefinition(payload: LooseValue): payload is MapDefinition {
         roamingAreas?: MapArea[];
         chestAreas?: MapArea[];
         staticChests?: StaticChest[];
-        staticEntities?: Record<string, string>;
+        staticEntities?: Record<string, EntityKindName>;
     };
     return (
         typeof candidate.width === 'number' &&
@@ -134,7 +135,10 @@ function isMapDefinition(payload: LooseValue): payload is MapDefinition {
         Array.isArray(candidate.chestAreas) &&
         Array.isArray(candidate.staticChests) &&
         typeof candidate.staticEntities === 'object' &&
-        !Array.isArray(candidate.staticEntities)
+        !Array.isArray(candidate.staticEntities) &&
+        Object.values(candidate.staticEntities ?? {}).every(
+            (kind): kind is EntityKindName => typeof kind === 'string' && kind in ENTITY_KIND_DOMAIN
+        )
     );
 }
 
@@ -222,7 +226,7 @@ class Map {
     mobAreas: MapArea[];
     chestAreas: MapArea[];
     staticChests: StaticChest[];
-    staticEntities: Record<string, string>;
+    staticEntities: Record<string, EntityKindName>;
     doors: DoorDefinition[];
     doorIndex: globalThis.Map<number, DoorDefinition>;
     zoneWidth: number;

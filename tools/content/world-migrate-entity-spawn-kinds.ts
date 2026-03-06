@@ -172,10 +172,10 @@ async function main(): Promise<void> {
         .map((entry) => asRecord(entry))
         .filter((entry): entry is UnknownRecord => entry !== null);
     const entitySpawnsLayer = layers.find(
-        (layer) => asString(layer.type) === 'objectgroup' && asString(layer.name) === 'entity_spawns'
+        (layer) => asString(layer.type) === 'objectgroup' && asString(layer.name) === 'static_entities'
     );
     if (!entitySpawnsLayer) {
-        fail(`Missing object layer "entity_spawns" in ${toRelative(worldPath)}.`);
+        fail(`Missing object layer "static_entities" in ${toRelative(worldPath)}.`);
     }
 
     const objects = asArray(entitySpawnsLayer.objects)
@@ -190,36 +190,37 @@ async function main(): Promise<void> {
 
     for (const objectRecord of objects) {
         const props = propertyList(objectRecord);
-        const existingKind = asString(readProperty(props, 'mob_kind'));
+        const existingKind = asString(readProperty(props, 'entity_kind'));
         if (existingKind && existingKind.trim().length > 0) {
             skipped += 1;
             continue;
         }
 
-        const mobGidValue = asInteger(readProperty(props, 'mob_gid'));
-        if (mobGidValue === null || mobGidValue <= 0) {
+        const entityGidValue = asInteger(readProperty(props, 'entity_gid'));
+        if (entityGidValue === null || entityGidValue <= 0) {
             skipped += 1;
             continue;
         }
 
-        const oldLocalId = mobGidValue >= originalMobsFirstgid ? mobGidValue - originalMobsFirstgid + 1 : mobGidValue;
+        const oldLocalId =
+            entityGidValue >= originalMobsFirstgid ? entityGidValue - originalMobsFirstgid + 1 : entityGidValue;
         const kind = oldKindByLocalId.get(oldLocalId);
         if (!kind) {
             skipped += 1;
             continue;
         }
 
-        if (upsertProperty(props, 'mob_kind', 'string', kind).changed) {
+        if (upsertProperty(props, 'entity_kind', 'string', kind).changed) {
             addedMobKind += 1;
         }
 
         const newLocalId = newLocalIdByKind.get(kind) ?? null;
         if (newLocalId !== null) {
-            if (upsertProperty(props, 'mob_gid', 'int', newLocalId).changed) {
+            if (upsertProperty(props, 'entity_gid', 'int', newLocalId).changed) {
                 rewrittenMobGid += 1;
             }
         } else {
-            if (removeProperty(props, 'mob_gid').changed) {
+            if (removeProperty(props, 'entity_gid').changed) {
                 removedMobGid += 1;
             }
         }
@@ -256,4 +257,3 @@ void main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
 });
-

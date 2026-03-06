@@ -83,6 +83,14 @@ type RendererGameLike = {
               width: number;
               tilesize: number;
               isAnimatedTile(id: number): boolean;
+              renderProps?: Array<{
+                  depth: number;
+                  minTileX: number;
+                  minTileY: number;
+                  maxTileX: number;
+                  maxTileY: number;
+                  parts: Array<{ index: number; gid: number }>;
+              }>;
           }
         | null;
     renderer?: Renderer;
@@ -674,6 +682,86 @@ class Renderer {
         });
     }
 
+    drawRenderProp(prop: {
+        parts: Array<{ index: number; gid: number }>;
+    }): void {
+        const map = this.game.map;
+        const tileset = this.tileset;
+        if (!map || !tileset) {
+            return;
+        }
+        const tilesetwidth = tileset.width / map.tilesize;
+        for (let i = 0; i < prop.parts.length; i += 1) {
+            const part = prop.parts[i];
+            if (!part) {
+                continue;
+            }
+            this.drawTile(this.context, part.gid - 1, tileset, tilesetwidth, map.width, part.index);
+        }
+    }
+
+    getVisibleDepthSortedProps(extra = 1): Array<{
+        depth: number;
+        minTileX: number;
+        minTileY: number;
+        maxTileX: number;
+        maxTileY: number;
+        parts: Array<{ index: number; gid: number }>;
+    }> {
+        const map = this.game.map;
+        if (!map?.renderProps) {
+            return [];
+        }
+        const minX = this.camera.gridX - extra;
+        const minY = this.camera.gridY - extra;
+        const maxX = this.camera.gridX + this.camera.gridW + extra;
+        const maxY = this.camera.gridY + this.camera.gridH + extra;
+        return map.renderProps.filter(
+            (prop) => prop.maxTileX >= minX && prop.minTileX < maxX && prop.maxTileY >= minY && prop.minTileY < maxY
+        );
+    }
+
+    drawDepthSortedEntitiesAndProps(): void {
+        const map = this.game.map;
+        if (!map) {
+            return;
+        }
+
+        const visibleProps = this.getVisibleDepthSortedProps();
+        const visibleEntities: RenderEntity[] = [];
+        this.game.forEachVisibleEntityByDepth(function (entity: RenderEntity) {
+            if (entity.isLoaded) {
+                visibleEntities.push(entity);
+            }
+        });
+
+        let propIndex = 0;
+        for (let entityIndex = 0; entityIndex < visibleEntities.length; entityIndex += 1) {
+            const entity = visibleEntities[entityIndex];
+            if (!entity) {
+                continue;
+            }
+            const entityDepth = Math.floor(entity.y / map.tilesize);
+            while (propIndex < visibleProps.length) {
+                const prop = visibleProps[propIndex];
+                if (!prop || prop.depth > entityDepth) {
+                    break;
+                }
+                this.drawRenderProp(prop);
+                propIndex += 1;
+            }
+            this.drawEntity(entity);
+        }
+
+        while (propIndex < visibleProps.length) {
+            const prop = visibleProps[propIndex];
+            if (prop) {
+                this.drawRenderProp(prop);
+            }
+            propIndex += 1;
+        }
+    }
+
     drawDirtyEntities(): void {
         this.drawEntities(true);
     }
@@ -1033,7 +1121,7 @@ class Renderer {
 
         //this.drawOccupiedCells();
         this.drawPathingCells();
-        this.drawEntities();
+        this.drawDepthSortedEntitiesAndProps();
         this.drawCombatInfo();
         this.drawForegroundTiles(this.context);
         this.context.restore();
@@ -1053,7 +1141,7 @@ class Renderer {
 
         this.drawDirtyAnimatedTiles();
         this.drawSelectedCell();
-        this.drawDirtyEntities();
+        this.drawDepthSortedEntitiesAndProps();
         this.context.restore();
     }
 

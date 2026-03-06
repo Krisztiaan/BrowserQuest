@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import Types from '../../shared/gametypes-browser';
 import { parseCliArgs } from '../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
@@ -33,13 +34,15 @@ type LayerContext = Readonly<{
 
 type TargetLayerSpec = Readonly<{
     name: string;
-    type: 'tilelayer' | 'objectgroup';
+    type: 'tilelayer' | 'objectgroup' | ReadonlyArray<'tilelayer' | 'objectgroup'>;
     visible: boolean;
 }>;
 
 const TARGET_BASE_TILE_LAYER_SPECS: ReadonlyArray<TargetLayerSpec> = [
     { name: 'sand', type: 'tilelayer', visible: true },
-    { name: 'sand_objects', type: 'tilelayer', visible: true },
+    { name: 'shoreline', type: 'tilelayer', visible: true },
+    { name: 'sea', type: 'tilelayer', visible: true },
+    { name: 'beach_props', type: ['tilelayer', 'objectgroup'], visible: true },
     { name: 'ground', type: 'tilelayer', visible: true },
     { name: 'ground_variations', type: 'tilelayer', visible: true },
     { name: 'mud', type: 'tilelayer', visible: true },
@@ -51,62 +54,55 @@ const TARGET_BASE_TILE_LAYER_SPECS: ReadonlyArray<TargetLayerSpec> = [
     { name: 'village_boundaries', type: 'tilelayer', visible: true },
     { name: 'village_boundaries_level_2', type: 'tilelayer', visible: true },
     { name: 'river', type: 'tilelayer', visible: true },
-    { name: 'houses_layer_2', type: 'tilelayer', visible: true },
-    { name: 'houses', type: 'tilelayer', visible: true },
+    { name: 'houses', type: ['tilelayer', 'objectgroup'], visible: true },
     { name: 'dry_ground', type: 'tilelayer', visible: true },
     { name: 'dry_ground_2', type: 'tilelayer', visible: true },
-    { name: 'big_rocks', type: 'tilelayer', visible: true },
+    { name: 'big_rocks', type: ['tilelayer', 'objectgroup'], visible: true },
     { name: 'graveyard_mud', type: 'tilelayer', visible: true },
     { name: 'dead_grass', type: 'tilelayer', visible: true },
-    { name: 'dead_leaves', type: 'tilelayer', visible: true },
-    { name: 'small_rocks', type: 'tilelayer', visible: true },
-    { name: 'graveyard', type: 'tilelayer', visible: true },
-    { name: 'dead_trees', type: 'tilelayer', visible: true },
-    { name: 'camps', type: 'tilelayer', visible: true },
-    { name: 'bones', type: 'tilelayer', visible: true },
+    { name: 'dead_leaves', type: ['tilelayer', 'objectgroup'], visible: true },
+    { name: 'graveyard', type: ['tilelayer', 'objectgroup'], visible: true },
+    { name: 'dead_trees', type: ['tilelayer', 'objectgroup'], visible: true },
+    { name: 'camps', type: ['tilelayer', 'objectgroup'], visible: true },
+    { name: 'bones', type: ['tilelayer', 'objectgroup'], visible: true },
     { name: 'lava', type: 'tilelayer', visible: true },
     { name: 'canyon', type: 'tilelayer', visible: true },
     { name: 'cliffs', type: 'tilelayer', visible: true },
     { name: 'cliffs_2', type: 'tilelayer', visible: true },
-    { name: 'totems', type: 'tilelayer', visible: true },
-    { name: 'cactus', type: 'tilelayer', visible: true },
+    { name: 'totems', type: ['tilelayer', 'objectgroup'], visible: true },
+    { name: 'cactus', type: ['tilelayer', 'objectgroup'], visible: true },
     { name: 'lava_falls', type: 'tilelayer', visible: true },
     { name: 'lava_boundaries', type: 'tilelayer', visible: true },
     { name: 'cave', type: 'tilelayer', visible: true },
-    { name: 'trees_2', type: 'tilelayer', visible: true },
+    { name: 'trees', type: ['tilelayer', 'objectgroup'], visible: true },
     { name: 'cave_river', type: 'tilelayer', visible: true },
     { name: 'cave_walls', type: 'tilelayer', visible: true },
     { name: 'indoor', type: 'tilelayer', visible: true },
     { name: 'indoor_walls', type: 'tilelayer', visible: true },
     { name: 'indoor_doors', type: 'tilelayer', visible: true },
     { name: 'carpets', type: 'tilelayer', visible: true },
-    { name: 'indoor_objects', type: 'tilelayer', visible: true },
-    { name: 'easter_eggs', type: 'tilelayer', visible: true },
+    { name: 'indoor_props', type: ['tilelayer', 'objectgroup'], visible: true },
     { name: 'forest_paths', type: 'tilelayer', visible: true },
     { name: 'forest', type: 'tilelayer', visible: true },
     { name: 'forest_lakes', type: 'tilelayer', visible: true },
     { name: 'forest_boundaries', type: 'tilelayer', visible: true },
-    { name: 'forest_trees', type: 'tilelayer', visible: true },
+    { name: 'forest_trees', type: ['tilelayer', 'objectgroup'], visible: true },
     { name: 'bridge_shadows', type: 'tilelayer', visible: true },
     { name: 'bridge', type: 'tilelayer', visible: true },
-    { name: 'forest_objects_1', type: 'tilelayer', visible: true },
-    { name: 'forest_objects_2', type: 'tilelayer', visible: true },
+    { name: 'forest_props', type: ['tilelayer', 'objectgroup'], visible: true },
     { name: 'maze_floor', type: 'tilelayer', visible: true },
     { name: 'maze_walls', type: 'tilelayer', visible: true },
-    { name: 'sea', type: 'tilelayer', visible: true },
 ];
 
 const TARGET_OBJECT_LAYER_SPECS: ReadonlyArray<TargetLayerSpec> = [
     { name: 'resource_nodes', type: 'objectgroup', visible: false },
-    { name: 'entity_spawns', type: 'objectgroup', visible: false },
+    { name: 'static_entities', type: 'objectgroup', visible: false },
     { name: 'chest_spawns', type: 'objectgroup', visible: false },
     { name: 'chest_areas', type: 'objectgroup', visible: false },
     { name: 'doors', type: 'objectgroup', visible: false },
     { name: 'roaming_areas', type: 'objectgroup', visible: false },
-    { name: 'zones', type: 'objectgroup', visible: false },
     { name: 'music_zones', type: 'objectgroup', visible: false },
     { name: 'checkpoints', type: 'objectgroup', visible: false },
-    { name: 'mobile_zones', type: 'objectgroup', visible: false },
 ];
 
 function fail(message: string): never {
@@ -149,6 +145,40 @@ function isNumericLike(value: unknown): boolean {
     return false;
 }
 
+function isResolvableMobKindName(value: unknown): value is string {
+    if (typeof value !== 'string') {
+        return false;
+    }
+    const trimmed = value.trim();
+    if (trimmed.length === 0) {
+        return false;
+    }
+    const kind = Types.getKindFromString(trimmed);
+    return kind !== undefined && Types.isMob(kind);
+}
+
+function isResolvableEntityKindName(value: unknown): value is string {
+    if (typeof value !== 'string') {
+        return false;
+    }
+    const trimmed = value.trim();
+    return trimmed.length > 0 && Types.getKindFromString(trimmed) !== undefined;
+}
+
+function isBooleanLike(value: unknown): boolean {
+    if (typeof value === 'boolean') {
+        return true;
+    }
+    if (typeof value === 'number') {
+        return value === 0 || value === 1;
+    }
+    if (typeof value === 'string') {
+        const trimmed = value.trim().toLowerCase();
+        return trimmed === 'true' || trimmed === 'false' || trimmed === '0' || trimmed === '1';
+    }
+    return false;
+}
+
 function formatLayerRef(layer: LayerContext): string {
     return `${layer.name}#${layer.id ?? 'no-id'}@${layer.index}`;
 }
@@ -157,8 +187,53 @@ function pushDiagnostic(diags: Diagnostic[], level: DiagnosticLevel, code: strin
     diags.push({ level, code, message });
 }
 
+function matchesExpectedLayerType(
+    actualType: string,
+    expectedType: TargetLayerSpec['type']
+): boolean {
+    if (Array.isArray(expectedType)) {
+        return expectedType.includes(actualType as 'tilelayer' | 'objectgroup');
+    }
+    return actualType === expectedType;
+}
+
 function relPath(filePath: string): string {
     return path.relative(process.cwd(), filePath).split(path.sep).join('/');
+}
+
+function shiftTileDataForValidation(
+    data: unknown[],
+    width: number,
+    height: number,
+    offsetX: number,
+    offsetY: number,
+    tileWidth: number,
+    tileHeight: number
+): number[] | null {
+    if (offsetX % tileWidth !== 0 || offsetY % tileHeight !== 0) {
+        return null;
+    }
+    const dx = Math.trunc(offsetX / tileWidth);
+    const dy = Math.trunc(offsetY / tileHeight);
+    const shifted = new Array<number>(width * height).fill(0);
+    for (let index = 0; index < data.length; index += 1) {
+        const value = data[index];
+        if (typeof value !== 'number' || !Number.isInteger(value) || value < 0) {
+            return null;
+        }
+        if (value === 0) {
+            continue;
+        }
+        const x = index % width;
+        const y = Math.floor(index / width);
+        const shiftedX = x + dx;
+        const shiftedY = y + dy;
+        if (shiftedX < 0 || shiftedY < 0 || shiftedX >= width || shiftedY >= height) {
+            continue;
+        }
+        shifted[shiftedY * width + shiftedX] = value;
+    }
+    return shifted;
 }
 
 function parseProfile(raw: string): ValidationProfile {
@@ -245,8 +320,85 @@ function buildLayerContexts(map: ParsedMap, diags: Diagnostic[]): LayerContext[]
     const contexts: LayerContext[] = [];
     const seenIds = new Set<number>();
 
-    for (let index = 0; index < map.layers.length; index += 1) {
-        const record = map.layers[index];
+    const flattenLayers = (
+        records: ReadonlyArray<UnknownRecord>,
+        state: Readonly<{ visible: boolean; offsetX: number; offsetY: number }>
+    ): UnknownRecord[] => {
+        const flattened: UnknownRecord[] = [];
+        for (const record of records) {
+            const typeRaw = asString(record.type);
+            const visibleRaw = asBoolean(record.visible);
+            const ownOffsetX =
+                typeof record.offsetx === 'number' && Number.isFinite(record.offsetx) ? (record.offsetx as number) : 0;
+            const ownOffsetY =
+                typeof record.offsety === 'number' && Number.isFinite(record.offsety) ? (record.offsety as number) : 0;
+            const effectiveVisible = state.visible && (visibleRaw ?? true);
+            const effectiveOffsetX = state.offsetX + ownOffsetX;
+            const effectiveOffsetY = state.offsetY + ownOffsetY;
+
+            if (typeRaw === 'group') {
+                const nested = asArray(record.layers)
+                    .map((entry) => asRecord(entry))
+                    .filter((entry): entry is UnknownRecord => entry !== null);
+                flattened.push(
+                    ...flattenLayers(nested, {
+                        visible: effectiveVisible,
+                        offsetX: effectiveOffsetX,
+                        offsetY: effectiveOffsetY,
+                    })
+                );
+                continue;
+            }
+
+            const clone: UnknownRecord = {
+                ...record,
+                visible: effectiveVisible,
+                offsetx: 0,
+                offsety: 0,
+            };
+            if (typeRaw === 'objectgroup') {
+                clone.objects = asArray(record.objects)
+                    .map((entry) => asRecord(entry))
+                    .filter((entry): entry is UnknownRecord => entry !== null)
+                    .map((objectRecord) => ({
+                        ...objectRecord,
+                        x:
+                            (typeof objectRecord.x === 'number' ? objectRecord.x : 0)
+                            + effectiveOffsetX,
+                        y:
+                            (typeof objectRecord.y === 'number' ? objectRecord.y : 0)
+                            + effectiveOffsetY,
+                    }));
+            }
+            if (typeRaw === 'tilelayer' && (effectiveOffsetX !== 0 || effectiveOffsetY !== 0)) {
+                const shifted = shiftTileDataForValidation(
+                    asArray(record.data),
+                    map.width,
+                    map.height,
+                    effectiveOffsetX,
+                    effectiveOffsetY,
+                    map.tileWidth,
+                    map.tileHeight
+                );
+                if (shifted === null) {
+                    pushDiagnostic(
+                        diags,
+                        'error',
+                        'LAYER_OFFSET_UNSUPPORTED',
+                        `Layer ${asString(record.name) ?? '<unnamed>'} uses unsupported sub-tile offset.`
+                    );
+                } else {
+                    clone.data = shifted;
+                }
+            }
+            flattened.push(clone);
+        }
+        return flattened;
+    };
+
+    const flattenedLayers = flattenLayers(map.layers, { visible: true, offsetX: 0, offsetY: 0 });
+    for (let index = 0; index < flattenedLayers.length; index += 1) {
+        const record = flattenedLayers[index];
         if (!record) {
             continue;
         }
@@ -485,7 +637,10 @@ function checkObjectBoundsAndDuplicates(
                 .sort()
                 .join('|');
 
-            const duplicateKey = `${x};${y};${width};${height};${type};${name};${props}`;
+            const gid = asInteger(objectRecord.gid);
+            const renderableTileObjectKeyPart =
+                layer.visible === true && gid !== null && gid > 0 ? `;gid:${gid}` : '';
+            const duplicateKey = `${x};${y};${width};${height};${type};${name};${props}${renderableTileObjectKeyPart}`;
             const previous = seen.get(duplicateKey);
             if (previous !== undefined) {
                 pushDiagnostic(
@@ -626,12 +781,12 @@ function checkTargetLayerContract(layers: ReadonlyArray<LayerContext>, diags: Di
                 `Layer index ${index} expected name ${expected.name}, found ${actual.name}.`
             );
         }
-        if (actual.type !== expected.type) {
+        if (!matchesExpectedLayerType(actual.type, expected.type)) {
             pushDiagnostic(
                 diags,
                 'error',
                 'TARGET_LAYER_TYPE_MISMATCH',
-                `Layer ${actual.name} expected type ${expected.type}, found ${actual.type}.`
+                `Layer ${actual.name} expected type ${Array.isArray(expected.type) ? expected.type.join('|') : expected.type}, found ${actual.type}.`
             );
         }
         if (actual.visible !== expected.visible) {
@@ -681,7 +836,7 @@ function checkTargetLayerContract(layers: ReadonlyArray<LayerContext>, diags: Di
         const hasLegacyForegroundProps = properties.has('bq_foreground') || properties.has('bq_source_layer');
         const hasForegroundClass = layerClass?.trim() === 'Foreground';
         const isForegroundLayer =
-            layer.type === 'tilelayer' &&
+            (layer.type === 'tilelayer' || layer.type === 'objectgroup') &&
             layer.visible === true &&
             layer.name.endsWith('_foreground') &&
             hasForegroundClass;
@@ -690,7 +845,7 @@ function checkTargetLayerContract(layers: ReadonlyArray<LayerContext>, diags: Di
                 diags,
                 'error',
                 'TARGET_LAYER_UNEXPECTED_MIDDLE_LAYER',
-                `${formatLayerRef(layer)} must be an explicit foreground tilelayer (name suffix "_foreground" + class "Foreground").`
+                `${formatLayerRef(layer)} must be an explicit foreground render layer (name suffix "_foreground" + class "Foreground").`
             );
         } else if (hasLegacyForegroundProps) {
             pushDiagnostic(
@@ -723,12 +878,12 @@ function checkTargetLayerContract(layers: ReadonlyArray<LayerContext>, diags: Di
                 `Layer index ${index} expected name ${expected.name}, found ${actual.name}.`
             );
         }
-        if (actual.type !== expected.type) {
+        if (!matchesExpectedLayerType(actual.type, expected.type)) {
             pushDiagnostic(
                 diags,
                 'error',
                 'TARGET_LAYER_TYPE_MISMATCH',
-                `Layer ${actual.name} expected type ${expected.type}, found ${actual.type}.`
+                `Layer ${actual.name} expected type ${Array.isArray(expected.type) ? expected.type.join('|') : expected.type}, found ${actual.type}.`
             );
         }
         if (actual.visible !== expected.visible) {
@@ -907,7 +1062,16 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
             const props = getPropertyMap(objectRecord.properties);
             requireNonEmptyObjectName(diags, roaming, objectRecord, 'OBJECT_NAME_MISSING');
             requireNonEmptyObjectClass(diags, roaming, objectRecord, 'OBJECT_CLASS_MISSING');
+            requireProperty(diags, roaming, objectId, props, 'mob_kind', 'ROAMING_PROPERTY_MISSING');
             requireProperty(diags, roaming, objectId, props, 'count', 'ROAMING_PROPERTY_MISSING');
+            if (props.has('mob_kind') && !isResolvableMobKindName(props.get('mob_kind'))) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'ROAMING_PROPERTY_INVALID',
+                    `${formatLayerRef(roaming)} object ${objectId ?? 'no-id'} has invalid mob_kind.`
+                );
+            }
             if (props.has('count') && !isNumericLike(props.get('count'))) {
                 pushDiagnostic(
                     diags,
@@ -917,48 +1081,6 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
                 );
             }
         }
-    }
-
-    const zones = byName.get('zones');
-    if (zones && zones.type === 'objectgroup') {
-        const objects = getObjects(zones);
-        for (const objectRecord of objects) {
-            const objectId = asInteger(objectRecord.id);
-            const props = getPropertyMap(objectRecord.properties);
-            requireNonEmptyObjectName(diags, zones, objectRecord, 'OBJECT_NAME_MISSING');
-            requireNonEmptyObjectClass(diags, zones, objectRecord, 'OBJECT_CLASS_MISSING');
-            requireProperty(diags, zones, objectId, props, 'zone_id', 'ZONE_PROPERTY_MISSING');
-            if (props.has('zone_id') && !isNumericLike(props.get('zone_id'))) {
-                pushDiagnostic(
-                    diags,
-                    'error',
-                    'ZONE_PROPERTY_INVALID',
-                    `${formatLayerRef(zones)} object ${objectId ?? 'no-id'} has non-numeric zone_id.`
-                );
-            }
-        }
-        checkUniqueIdProperty(diags, zones, objects, 'zone_id');
-    }
-
-    const mobileZones = byName.get('mobile_zones');
-    if (mobileZones && mobileZones.type === 'objectgroup') {
-        const objects = getObjects(mobileZones);
-        for (const objectRecord of objects) {
-            const objectId = asInteger(objectRecord.id);
-            const props = getPropertyMap(objectRecord.properties);
-            requireNonEmptyObjectName(diags, mobileZones, objectRecord, 'OBJECT_NAME_MISSING');
-            requireNonEmptyObjectClass(diags, mobileZones, objectRecord, 'OBJECT_CLASS_MISSING');
-            requireProperty(diags, mobileZones, objectId, props, 'zone_id', 'MOBILE_ZONE_PROPERTY_MISSING');
-            if (props.has('zone_id') && !isNumericLike(props.get('zone_id'))) {
-                pushDiagnostic(
-                    diags,
-                    'error',
-                    'MOBILE_ZONE_PROPERTY_INVALID',
-                    `${formatLayerRef(mobileZones)} object ${objectId ?? 'no-id'} has non-numeric zone_id.`
-                );
-            }
-        }
-        checkUniqueIdProperty(diags, mobileZones, objects, 'zone_id');
     }
 
     const musicZones = byName.get('music_zones');
@@ -980,33 +1102,51 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
             requireNonEmptyObjectName(diags, checkpoints, objectRecord, 'OBJECT_NAME_MISSING');
             requireNonEmptyObjectClass(diags, checkpoints, objectRecord, 'OBJECT_CLASS_MISSING');
             requireProperty(diags, checkpoints, objectId, props, 'checkpoint_id', 'CHECKPOINT_PROPERTY_MISSING');
+            requireProperty(diags, checkpoints, objectId, props, 'spawn', 'CHECKPOINT_PROPERTY_MISSING');
+            if (props.has('spawn') && !isBooleanLike(props.get('spawn'))) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'CHECKPOINT_PROPERTY_INVALID',
+                    `${formatLayerRef(checkpoints)} object ${objectId ?? 'no-id'} has non-boolean spawn.`
+                );
+            }
         }
     }
 
-    const entitySpawns = byName.get('entity_spawns');
-    if (entitySpawns && entitySpawns.type === 'objectgroup') {
-        for (const objectRecord of getObjects(entitySpawns)) {
+    const staticEntities = byName.get('static_entities');
+    if (staticEntities && staticEntities.type === 'objectgroup') {
+        for (const objectRecord of getObjects(staticEntities)) {
             const objectId = asInteger(objectRecord.id);
             const props = getPropertyMap(objectRecord.properties);
-            requireNonEmptyObjectName(diags, entitySpawns, objectRecord, 'OBJECT_NAME_MISSING');
-            requireNonEmptyObjectClass(diags, entitySpawns, objectRecord, 'OBJECT_CLASS_MISSING');
-            const hasMobKind = typeof props.get('mob_kind') === 'string' && String(props.get('mob_kind')).trim().length > 0;
-            const hasMobGid = props.has('mob_gid');
+            requireNonEmptyObjectName(diags, staticEntities, objectRecord, 'OBJECT_NAME_MISSING');
+            requireNonEmptyObjectClass(diags, staticEntities, objectRecord, 'OBJECT_CLASS_MISSING');
+            const hasEntityKind =
+                typeof props.get('entity_kind') === 'string' && String(props.get('entity_kind')).trim().length > 0;
+            const hasEntityGid = props.has('entity_gid');
             const hasTileGid = isNumericLike(objectRecord.gid);
-            if (!hasMobKind && !hasMobGid && !hasTileGid) {
+            if (!hasEntityKind && !hasEntityGid && !hasTileGid) {
                 pushDiagnostic(
                     diags,
                     'error',
-                    'ENTITY_SPAWN_PROPERTY_MISSING',
-                    `${formatLayerRef(entitySpawns)} object ${objectId ?? 'no-id'} must define mob_kind, mob_gid, or tile gid.`
+                    'STATIC_ENTITY_PROPERTY_MISSING',
+                    `${formatLayerRef(staticEntities)} object ${objectId ?? 'no-id'} must define entity_kind, entity_gid, or tile gid.`
                 );
             }
-            if (hasMobGid && !isNumericLike(props.get('mob_gid'))) {
+            if (hasEntityKind && !isResolvableEntityKindName(props.get('entity_kind'))) {
                 pushDiagnostic(
                     diags,
                     'error',
-                    'ENTITY_SPAWN_PROPERTY_INVALID',
-                    `${formatLayerRef(entitySpawns)} object ${objectId ?? 'no-id'} has non-numeric mob_gid.`
+                    'STATIC_ENTITY_PROPERTY_INVALID',
+                    `${formatLayerRef(staticEntities)} object ${objectId ?? 'no-id'} has invalid entity_kind.`
+                );
+            }
+            if (hasEntityGid && !isNumericLike(props.get('entity_gid'))) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'STATIC_ENTITY_PROPERTY_INVALID',
+                    `${formatLayerRef(staticEntities)} object ${objectId ?? 'no-id'} has non-numeric entity_gid.`
                 );
             }
         }

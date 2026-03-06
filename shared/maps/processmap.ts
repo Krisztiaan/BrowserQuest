@@ -1,3 +1,4 @@
+import { ENTITY_KIND_DOMAIN, type EntityKindName } from '../entity-kind-domain';
 import Types from '../gametypes-browser';
 
 type ExportMode = "client" | "server";
@@ -27,6 +28,8 @@ type TiledTileset = {
     name: string;
     firstgid?: number;
     objectalignment?: string;
+    tilewidth?: number;
+    tileheight?: number;
     tiles?: TiledTile[];
 };
 
@@ -37,8 +40,10 @@ type TiledObject = {
     y: number;
     width: number;
     height: number;
+    rotation?: number;
     type?: string;
     class?: string;
+    template?: string;
     properties?: TiledProperty[];
 };
 
@@ -47,6 +52,9 @@ type TiledLayerBase = {
     type: string;
     visible?: boolean | number;
     class?: string;
+    opacity?: number;
+    offsetx?: number;
+    offsety?: number;
     properties?: TiledProperty[];
 };
 
@@ -60,7 +68,33 @@ type TiledObjectLayer = TiledLayerBase & {
     objects?: TiledObject[];
 };
 
-type TiledLayer = TiledTileLayer | TiledObjectLayer | (TiledLayerBase & Record<string, ScalarValue | number[] | object | undefined>);
+type TiledGroupLayer = TiledLayerBase & {
+    type: "group";
+    layers?: TiledLayer[];
+};
+
+type FlattenedLayerMeta = Readonly<{
+    groupPath: string[];
+    layerPath: string[];
+    inheritedProperties: TiledProperty[];
+    offsetX: number;
+    offsetY: number;
+    opacity: number;
+}>;
+
+type FlattenedTiledTileLayer = TiledTileLayer & {
+    _bqMeta?: FlattenedLayerMeta;
+};
+
+type FlattenedTiledObjectLayer = TiledObjectLayer & {
+    _bqMeta?: FlattenedLayerMeta;
+};
+
+type TiledLayer =
+    | TiledTileLayer
+    | TiledObjectLayer
+    | TiledGroupLayer
+    | (TiledLayerBase & Record<string, ScalarValue | number[] | object | undefined>);
 
 type TiledMapJson = {
     width: number;
@@ -86,6 +120,33 @@ type ExportedCheckpoint = {
     s?: number;
 };
 
+type ExportedRenderPropPart = {
+    index: number;
+    gid: number;
+};
+
+type ExportedRenderProp = {
+    depth: number;
+    minTileX: number;
+    minTileY: number;
+    maxTileX: number;
+    maxTileY: number;
+    parts: ExportedRenderPropPart[];
+    meta?: {
+        layer: string;
+        layerPath: string;
+        groupPath?: string[];
+        family?: string;
+        kind?: string;
+        biome?: string;
+        tags?: string[];
+        template?: string;
+        depthMode?: string;
+        depthOffset?: number;
+        depthRow?: number;
+    };
+};
+
 type ExportedMap = {
     width: number;
     height: number;
@@ -95,6 +156,7 @@ type ExportedMap = {
     checkpoints: ExportedCheckpoint[];
     data?: Array<number | number[]>;
     foreground?: Array<number | number[]>;
+    renderProps?: ExportedRenderProp[];
     animated?: Record<number, { l?: number; d?: number }>;
     blocking?: number[];
     plateau?: number[];
@@ -105,7 +167,7 @@ type ExportedMap = {
     roamingAreas?: Array<MapRecord>;
     chestAreas?: Array<MapRecord>;
     staticChests?: Array<{ x: number; y: number; i: number[] }>;
-    staticEntities?: Record<number, string>;
+    staticEntities?: Record<number, EntityKindName>;
 };
 
 const GLOBAL_TILE_ID_MASK = 0x1fffffff;
@@ -119,7 +181,7 @@ const LEGACY_DOOR_PROPERTY_RENAMES: Readonly<Record<string, string>> = {
 const STRICT_OBJECT_CLASS_LAYERS = new Set([
     'doors',
     'resource_nodes',
-    'entity_spawns',
+    'static_entities',
     'chest_spawns',
     'chest_areas',
     'roaming_areas',
@@ -128,6 +190,22 @@ const STRICT_OBJECT_CLASS_LAYERS = new Set([
     'checkpoints',
     'mobile_zones',
 ]);
+const RENDERABLE_TILE_OBJECT_ALIGNMENT = new Set([
+    'unspecified',
+    'topleft',
+    'top',
+    'topright',
+    'left',
+    'center',
+    'right',
+    'bottomleft',
+    'bottom',
+    'bottomright',
+]);
+
+function isEntityKindName(value: string): value is EntityKindName {
+    return value in ENTITY_KIND_DOMAIN;
+}
 
 function normalizeGid(value: number | string | boolean | null | undefined): number {
     if (typeof value !== "number" || !Number.isFinite(value)) {
@@ -192,12 +270,160 @@ function isObjectLayer(layer: TiledLayer): layer is TiledObjectLayer {
     return layer.type === "objectgroup";
 }
 
+function isGroupLayer(layer: TiledLayer): layer is TiledGroupLayer {
+    return layer.type === 'group';
+}
+
 function isLayerVisible(layer: TiledLayerBase): boolean {
     return layer.visible !== false && layer.visible !== 0;
 }
 
 function isForegroundLayer(layer: TiledTileLayer): boolean {
     return typeof layer.class === 'string' && layer.class.trim() === 'Foreground';
+}
+
+function isForegroundObjectLayer(layer: TiledObjectLayer): boolean {
+    return typeof layer.class === 'string' && layer.class.trim() === 'Foreground';
+}
+
+function isDepthSortedObjectLayer(layer: TiledObjectLayer): boolean {
+    return typeof layer.class === 'string' && layer.class.trim() === 'DepthSorted';
+}
+
+function mergeProperties(base: TiledProperty[], override: TiledProperty[] | undefined): TiledProperty[] {
+    const merged = new Map<string, TiledProperty>();
+    for (const property of base) {
+        merged.set(property.name, property);
+    }
+    for (const property of Array.isArray(override) ? override : []) {
+        merged.set(property.name, property);
+    }
+    return [...merged.values()];
+}
+
+function shiftTileLayerData(
+    data: number[] | undefined,
+    width: number,
+    height: number,
+    offsetX: number,
+    offsetY: number,
+    tileSize: number,
+    layerName: string
+): number[] | undefined {
+    if (!Array.isArray(data) || data.length === 0) {
+        return data;
+    }
+    if (offsetX === 0 && offsetY === 0) {
+        return data.map(normalizeGid);
+    }
+    if (offsetX % tileSize !== 0 || offsetY % tileSize !== 0) {
+        throw new Error(
+            `Tile layer "${layerName}" uses sub-tile offset (${offsetX}, ${offsetY}), which BrowserQuest does not support.`
+        );
+    }
+
+    const dx = Math.trunc(offsetX / tileSize);
+    const dy = Math.trunc(offsetY / tileSize);
+    const shifted = new Array<number>(width * height).fill(0);
+    for (let index = 0; index < data.length; index += 1) {
+        const gid = normalizeGid(data[index] ?? 0);
+        if (gid <= 0) {
+            continue;
+        }
+        const x = index % width;
+        const y = Math.floor(index / width);
+        const shiftedX = x + dx;
+        const shiftedY = y + dy;
+        if (shiftedX < 0 || shiftedY < 0 || shiftedX >= width || shiftedY >= height) {
+            continue;
+        }
+        shifted[shiftedY * width + shiftedX] = gid;
+    }
+    return shifted;
+}
+
+function flattenTiledLayers(
+    layers: TiledLayer[],
+    width: number,
+    height: number,
+    tileSize: number,
+    parent: FlattenLayerContext = {
+        visible: true,
+        groupPath: [],
+        inheritedProperties: [],
+        offsetX: 0,
+        offsetY: 0,
+        opacity: 1,
+    }
+): Array<FlattenedTiledTileLayer | FlattenedTiledObjectLayer> {
+    const flattened: Array<FlattenedTiledTileLayer | FlattenedTiledObjectLayer> = [];
+    for (const layer of layers) {
+        if (isGroupLayer(layer)) {
+            const nextContext: FlattenLayerContext = {
+                visible: parent.visible && isLayerVisible(layer),
+                groupPath:
+                    typeof layer.name === 'string' && layer.name.trim().length > 0
+                        ? [...parent.groupPath, layer.name]
+                        : [...parent.groupPath],
+                inheritedProperties: mergeProperties(parent.inheritedProperties, layer.properties),
+                offsetX:
+                    parent.offsetX
+                    + (typeof layer.offsetx === 'number' && Number.isFinite(layer.offsetx) ? layer.offsetx : 0),
+                offsetY:
+                    parent.offsetY
+                    + (typeof layer.offsety === 'number' && Number.isFinite(layer.offsety) ? layer.offsety : 0),
+                opacity:
+                    parent.opacity
+                    * (typeof layer.opacity === 'number' && Number.isFinite(layer.opacity) ? layer.opacity : 1),
+            };
+            flattened.push(...flattenTiledLayers(Array.isArray(layer.layers) ? layer.layers : [], width, height, tileSize, nextContext));
+            continue;
+        }
+
+        const ownOffsetX = typeof layer.offsetx === 'number' && Number.isFinite(layer.offsetx) ? layer.offsetx : 0;
+        const ownOffsetY = typeof layer.offsety === 'number' && Number.isFinite(layer.offsety) ? layer.offsety : 0;
+        const effectiveOffsetX = parent.offsetX + ownOffsetX;
+        const effectiveOffsetY = parent.offsetY + ownOffsetY;
+        const meta: FlattenedLayerMeta = {
+            groupPath: [...parent.groupPath],
+            layerPath: [...parent.groupPath, layer.name],
+            inheritedProperties: mergeProperties(parent.inheritedProperties, layer.properties),
+            offsetX: effectiveOffsetX,
+            offsetY: effectiveOffsetY,
+            opacity:
+                parent.opacity * (typeof layer.opacity === 'number' && Number.isFinite(layer.opacity) ? layer.opacity : 1),
+        };
+
+        if (isTileLayer(layer)) {
+            flattened.push({
+                ...layer,
+                visible: parent.visible && isLayerVisible(layer),
+                properties: meta.inheritedProperties,
+                offsetx: 0,
+                offsety: 0,
+                data: shiftTileLayerData(layer.data, width, height, effectiveOffsetX, effectiveOffsetY, tileSize, layer.name),
+                _bqMeta: meta,
+            });
+            continue;
+        }
+
+        if (isObjectLayer(layer)) {
+            flattened.push({
+                ...layer,
+                visible: parent.visible && isLayerVisible(layer),
+                properties: meta.inheritedProperties,
+                offsetx: 0,
+                offsety: 0,
+                objects: (Array.isArray(layer.objects) ? layer.objects : []).map((object) => ({
+                    ...object,
+                    x: object.x + effectiveOffsetX,
+                    y: object.y + effectiveOffsetY,
+                })),
+                _bqMeta: meta,
+            });
+        }
+    }
+    return flattened;
 }
 
 function isTruthy(value: ScalarValue | undefined): boolean {
@@ -260,6 +486,101 @@ function uniqueValidIndices(indices: number[], limit: number): number[] {
         seen.add(value);
     }
     return [...seen].sort((a, b) => a - b);
+}
+
+type ResolvedTilesetRef = Readonly<{
+    firstgid: number;
+    lastgid: number;
+    name: string;
+    tileWidth: number;
+    tileHeight: number;
+    objectAlignment: string;
+}>;
+
+type ResolvedRenderableTileObject = Readonly<{
+    gid: number;
+    tileX: number;
+    tileY: number;
+    tileIndex: number;
+    objectId: number | null;
+    objectClassName?: string;
+    template?: string;
+    properties: TiledProperty[];
+}>;
+
+type FlattenLayerContext = Readonly<{
+    visible: boolean;
+    groupPath: string[];
+    inheritedProperties: TiledProperty[];
+    offsetX: number;
+    offsetY: number;
+    opacity: number;
+}>;
+
+function resolveTileObjectAlignment(value: string | undefined): string {
+    const normalized = typeof value === 'string' ? value.trim().toLowerCase() : 'unspecified';
+    return RENDERABLE_TILE_OBJECT_ALIGNMENT.has(normalized) ? normalized : 'unspecified';
+}
+
+function alignmentOffsetX(alignment: string, width: number): number {
+    switch (alignment) {
+        case 'top':
+        case 'center':
+        case 'bottom':
+            return width / 2;
+        case 'topright':
+        case 'right':
+        case 'bottomright':
+            return width;
+        default:
+            return 0;
+    }
+}
+
+function alignmentOffsetY(alignment: string, height: number): number {
+    switch (alignment) {
+        case 'left':
+        case 'center':
+        case 'right':
+            return height / 2;
+        case 'bottomleft':
+        case 'bottom':
+        case 'bottomright':
+        case 'unspecified':
+            return height;
+        default:
+            return 0;
+    }
+}
+
+function getLayerPath(layer: TiledLayerBase & { _bqMeta?: FlattenedLayerMeta }): string {
+    const path = layer._bqMeta?.layerPath;
+    return Array.isArray(path) && path.length > 0 ? path.join('/') : layer.name;
+}
+
+function getMetadataValue(
+    layer: TiledLayerBase & { _bqMeta?: FlattenedLayerMeta },
+    entries: ReadonlyArray<ResolvedRenderableTileObject>,
+    name: string
+): ScalarValue | undefined {
+    for (const entry of entries) {
+        const value = getPropertyValue({ properties: entry.properties }, name);
+        if (value !== undefined) {
+            return value;
+        }
+    }
+    return getPropertyValue(layer, name);
+}
+
+function parseTagList(value: ScalarValue | undefined): string[] | undefined {
+    if (typeof value !== 'string') {
+        return undefined;
+    }
+    const tags = value
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
+    return tags.length > 0 ? [...new Set(tags)] : undefined;
 }
 
 function deriveNavigationIslands(width: number, height: number, blockedIndices: ReadonlyArray<number>): {
@@ -364,12 +685,13 @@ export default function processMap(
         error: (...args: Array<string | number | boolean | object | null | undefined>) => console.error(...args),
     };
 
-    const tiledLayers = Array.isArray(json.layers) ? json.layers : [];
+    const rawLayers = Array.isArray(json.layers) ? json.layers : [];
     const tiledTilesets = Array.isArray(json.tilesets) ? json.tilesets : [];
     const tileSize = Number.isFinite(json.tilewidth) ? json.tilewidth : 16;
 
     const collidingTiles: Record<number, true> = {};
-    const staticEntityKindsByTileId: Record<number, string> = {};
+    const staticEntityKindsByTileId: Record<number, EntityKindName> = {};
+    const tilesetRefs: ResolvedTilesetRef[] = [];
     let mobsFirstgid = 0;
     let mobsObjectAlignment = 'unspecified';
 
@@ -381,6 +703,8 @@ export default function processMap(
         doors: [],
         checkpoints: [],
     };
+
+    const tiledLayers = flattenTiledLayers(rawLayers, map.width, map.height, tileSize);
 
     if (mode === "client") {
         map.data = [];
@@ -400,11 +724,40 @@ export default function processMap(
 
     log.info("Processing map info...");
 
+    const sortedTilesets = [...tiledTilesets]
+        .filter((tileset) => typeof tileset.firstgid === 'number' && Number.isFinite(tileset.firstgid))
+        .sort((a, b) => (a.firstgid ?? 0) - (b.firstgid ?? 0));
+
+    for (let index = 0; index < sortedTilesets.length; index += 1) {
+        const tileset = sortedTilesets[index];
+        if (!tileset || typeof tileset.firstgid !== 'number' || !Number.isFinite(tileset.firstgid)) {
+            continue;
+        }
+        const firstgid = tileset.firstgid;
+        const nextFirstgid = sortedTilesets[index + 1]?.firstgid;
+        const lastgid =
+            typeof nextFirstgid === 'number' && Number.isFinite(nextFirstgid) && nextFirstgid > firstgid
+                ? nextFirstgid - 1
+                : Number.MAX_SAFE_INTEGER;
+        tilesetRefs.push({
+            firstgid,
+            lastgid,
+            name: tileset.name,
+            tileWidth:
+                typeof tileset.tilewidth === 'number' && Number.isFinite(tileset.tilewidth) ? tileset.tilewidth : tileSize,
+            tileHeight:
+                typeof tileset.tileheight === 'number' && Number.isFinite(tileset.tileheight) ? tileset.tileheight : tileSize,
+            objectAlignment: resolveTileObjectAlignment(tileset.objectalignment),
+        });
+    }
+
     for (const tileset of tiledTilesets) {
         if (tileset.name === "tilesheet" || tileset.name === "tilesheet-wang") {
             log.info("Processing terrain properties...");
+            const tilesetFirstgid =
+                typeof tileset.firstgid === 'number' && Number.isFinite(tileset.firstgid) ? tileset.firstgid : 1;
             for (const tile of Array.isArray(tileset.tiles) ? tileset.tiles : []) {
-                const tilePropertyId = tile.id + 1;
+                const tilePropertyId = tilesetFirstgid + tile.id;
                 const collisionObjects = Array.isArray(tile.objectgroup?.objects) ? tile.objectgroup.objects : [];
                 if (collisionObjects.length > 0) {
                     collidingTiles[tilePropertyId] = true;
@@ -418,8 +771,8 @@ export default function processMap(
                         throw new Error(`Invalid tile animation duration at tile id ${tile.id}.`);
                     }
 
-                    const expectedStartTileId = tile.id + 1;
-                    const firstFrameTileId = firstFrame.tileid + 1;
+                    const expectedStartTileId = tilesetFirstgid + tile.id;
+                    const firstFrameTileId = tilesetFirstgid + firstFrame.tileid;
                     if (firstFrameTileId !== expectedStartTileId) {
                         throw new Error(
                             `Unsupported tile animation at tile id ${tile.id}: first frame must be the tile itself.`
@@ -466,7 +819,7 @@ export default function processMap(
             mobsObjectAlignment = typeof tileset.objectalignment === 'string' ? tileset.objectalignment : 'unspecified';
             for (const tile of Array.isArray(tileset.tiles) ? tileset.tiles : []) {
                 const entityType = getPropertyValue(tile, "type");
-                if (typeof entityType === "string" && entityType.length > 0) {
+                if (typeof entityType === "string" && entityType.length > 0 && isEntityKindName(entityType)) {
                     staticEntityKindsByTileId[tile.id + 1] = entityType;
                 }
             }
@@ -597,22 +950,22 @@ export default function processMap(
             continue;
         }
 
-        if (objectLayer.name === "entity_spawns" && mode === "server") {
+        if (objectLayer.name === "static_entities" && mode === "server") {
             log.info("Processing static entity spawns...");
             const staticEntities = (map.staticEntities ??= {});
             for (const spawn of objectLayer.objects ?? []) {
-                const resolvedKind = resolveEntitySpawnKind(spawn);
+                const resolvedKind = resolveStaticEntityKind(spawn);
                 if (!resolvedKind) {
                     const objectId = Number.isInteger(spawn.id) ? String(spawn.id) : 'no-id';
                     throw new Error(
-                        `Entity spawn object ${objectId} in layer "entity_spawns" is missing a resolvable mob kind.`
+                        `Static entity object ${objectId} in layer "static_entities" is missing a resolvable entity kind.`
                     );
                 }
 
                 const hasTileGid = typeof spawn.gid === 'number' && spawn.gid > 0;
                 if (hasTileGid && mobsObjectAlignment !== 'topleft') {
                     throw new Error(
-                        'Tile objects in "entity_spawns" require Mobs tileset objectalignment="topleft" for deterministic placement.'
+                        'Tile objects in "static_entities" require Mobs tileset objectalignment="topleft" for deterministic placement.'
                     );
                 }
 
@@ -620,12 +973,12 @@ export default function processMap(
                 const tileY = Math.floor(spawn.y / map.tilesize);
                 if (tileX < 0 || tileY < 0 || tileX >= map.width || tileY >= map.height) {
                     const objectId = Number.isInteger(spawn.id) ? String(spawn.id) : 'no-id';
-                    throw new Error(`Entity spawn object ${objectId} in layer "entity_spawns" is out of map bounds.`);
+                    throw new Error(`Static entity object ${objectId} in layer "static_entities" is out of map bounds.`);
                 }
                 const tileIndex = tileY * map.width + tileX;
                 if (staticEntities[tileIndex] !== undefined) {
                     throw new Error(
-                        `Duplicate entity spawn at tile (${tileX}, ${tileY}) in layer "entity_spawns".`
+                        `Duplicate static entity at tile (${tileX}, ${tileY}) in layer "static_entities".`
                     );
                 }
                 staticEntities[tileIndex] = resolvedKind;
@@ -670,11 +1023,17 @@ export default function processMap(
         }
     }
 
-    const tileLayers = tiledLayers.filter(isTileLayer);
-    for (let i = tileLayers.length - 1; i >= 0; i -= 1) {
-        const layer = tileLayers[i];
-        if (layer) {
+    for (let i = tiledLayers.length - 1; i >= 0; i -= 1) {
+        const layer = tiledLayers[i];
+        if (!layer) {
+            continue;
+        }
+        if (isTileLayer(layer)) {
             processLayer(layer);
+            continue;
+        }
+        if (isObjectLayer(layer)) {
+            processRenderableObjectLayer(layer);
         }
     }
 
@@ -732,7 +1091,7 @@ export default function processMap(
         const tiles = toLayerTileData(layer);
 
         if (mode === "server" && layer.name === "entities") {
-            throw new Error('Legacy tilelayer "entities" is not supported; use object layer "entity_spawns".');
+            throw new Error('Legacy tilelayer "entities" is not supported; use object layer "static_entities".');
         }
 
         if (layer.name === "blocking") {
@@ -763,15 +1122,7 @@ export default function processMap(
             const gid = tiles[i] ?? 0;
 
             if (mode === "client" && gid > 0) {
-                const destination = foregroundLayer ? (map.foreground ??= []) : (map.data ??= []);
-                const existing = destination[i];
-                if (existing === undefined) {
-                    destination[i] = gid;
-                } else if (Array.isArray(existing)) {
-                    existing.unshift(gid);
-                } else {
-                    destination[i] = [gid, existing];
-                }
+                writeRenderableTile(i, gid, foregroundLayer);
             }
 
             if (gid in collidingTiles) {
@@ -780,26 +1131,280 @@ export default function processMap(
         }
     }
 
-    function resolveEntitySpawnKind(spawn: TiledObject): string | null {
-        const kindByName = getPropertyValue(spawn, 'mob_kind');
-        if (typeof kindByName === 'string' && kindByName.trim().length > 0) {
-            return kindByName.trim();
+    function processRenderableObjectLayer(layer: TiledObjectLayer): void {
+        if (!isLayerVisible(layer)) {
+            return;
+        }
+        const objects = Array.isArray(layer.objects) ? layer.objects : [];
+        const tileObjects = objects.filter((object): object is TiledObject => typeof object.gid === 'number' && object.gid > 0);
+        if (tileObjects.length === 0) {
+            return;
         }
 
-        const mobGidRaw = parseIntegerLike(getPropertyValue(spawn, 'mob_gid'));
-        if (mobGidRaw !== null && mobGidRaw > 0) {
-            const mobGid = normalizeGid(mobGidRaw);
+        log.info('Processing renderable object layer: ' + layer.name);
+        const depthSortedLayer = mode === 'client' ? isDepthSortedObjectLayer(layer) : false;
+        if (depthSortedLayer) {
+            processDepthSortedRenderableObjectLayer(layer, tileObjects);
+            return;
+        }
+        const foregroundLayer = isForegroundObjectLayer(layer);
+        for (const object of tileObjects) {
+            processRenderableTileObject(layer, object, foregroundLayer);
+        }
+    }
 
-            // mob_gid may be authored as either:
+    function processDepthSortedRenderableObjectLayer(layer: TiledObjectLayer, objects: TiledObject[]): void {
+        const resolvedObjects = objects
+            .map((object) => resolveRenderableTileObject(layer, object))
+            .filter((entry): entry is ResolvedRenderableTileObject => entry !== null);
+        if (resolvedObjects.length === 0) {
+            return;
+        }
+
+        const objectsByPosition = new Map<string, ResolvedRenderableTileObject[]>();
+        for (const entry of resolvedObjects) {
+            const key = `${entry.tileX},${entry.tileY}`;
+            const bucket = objectsByPosition.get(key);
+            if (bucket) {
+                bucket.push(entry);
+            } else {
+                objectsByPosition.set(key, [entry]);
+            }
+            if (entry.gid in collidingTiles) {
+                map.collisions.push(entry.tileIndex);
+            }
+        }
+
+        const visited = new Set<string>();
+        const renderProps = (map.renderProps ??= []);
+        for (const startKey of objectsByPosition.keys()) {
+            if (visited.has(startKey)) {
+                continue;
+            }
+            const queue = [startKey];
+            visited.add(startKey);
+            const componentEntries: ResolvedRenderableTileObject[] = [];
+            let minTileX = Number.POSITIVE_INFINITY;
+            let minTileY = Number.POSITIVE_INFINITY;
+            let maxTileX = Number.NEGATIVE_INFINITY;
+            let maxTileY = Number.NEGATIVE_INFINITY;
+
+            while (queue.length > 0) {
+                const key = queue.shift();
+                if (!key) {
+                    continue;
+                }
+                const [rawX, rawY] = key.split(',');
+                const tileX = Number.parseInt(rawX ?? '0', 10);
+                const tileY = Number.parseInt(rawY ?? '0', 10);
+                const entriesAtPosition = objectsByPosition.get(key) ?? [];
+                componentEntries.push(...entriesAtPosition);
+                minTileX = Math.min(minTileX, tileX);
+                minTileY = Math.min(minTileY, tileY);
+                maxTileX = Math.max(maxTileX, tileX);
+                maxTileY = Math.max(maxTileY, tileY);
+
+                const neighbors = [
+                    `${tileX - 1},${tileY}`,
+                    `${tileX + 1},${tileY}`,
+                    `${tileX},${tileY - 1}`,
+                    `${tileX},${tileY + 1}`,
+                ];
+                for (const neighbor of neighbors) {
+                    if (!objectsByPosition.has(neighbor) || visited.has(neighbor)) {
+                        continue;
+                    }
+                    visited.add(neighbor);
+                    queue.push(neighbor);
+                }
+            }
+
+            const collidableComponentEntries = componentEntries.filter((entry) => entry.gid in collidingTiles);
+            const depthModeRaw = getMetadataValue(layer, componentEntries, 'depth_mode');
+            const depthMode = typeof depthModeRaw === 'string' && depthModeRaw.trim().length > 0 ? depthModeRaw.trim() : 'collision';
+            const explicitDepth = parseIntegerLike(getMetadataValue(layer, componentEntries, 'depth_row'));
+            const depthOffset = parseIntegerLike(getMetadataValue(layer, componentEntries, 'depth_offset')) ?? 0;
+            const depthSourceEntries =
+                depthMode === 'top'
+                    ? componentEntries
+                    : depthMode === 'bottom'
+                      ? componentEntries
+                      : collidableComponentEntries.length > 0
+                        ? collidableComponentEntries
+                        : componentEntries;
+            let depth =
+                explicitDepth !== null
+                    ? explicitDepth
+                    : depthMode === 'top'
+                      ? depthSourceEntries.reduce((minDepth, entry) => Math.min(minDepth, entry.tileY), Number.POSITIVE_INFINITY)
+                      : depthSourceEntries.reduce((maxDepth, entry) => Math.max(maxDepth, entry.tileY), 0);
+            if (!Number.isFinite(depth)) {
+                depth = 0;
+            }
+            depth += depthOffset;
+
+            const familyValue = getMetadataValue(layer, componentEntries, 'prop_family');
+            const kindValue = getMetadataValue(layer, componentEntries, 'prop_kind');
+            const biomeValue = getMetadataValue(layer, componentEntries, 'biome');
+            const templateValue = componentEntries.find((entry) => typeof entry.template === 'string' && entry.template.length > 0)?.template;
+            const meta: ExportedRenderProp['meta'] = {
+                layer: layer.name,
+                layerPath: getLayerPath(layer as TiledObjectLayer & { _bqMeta?: FlattenedLayerMeta }),
+                depthMode,
+                family: typeof familyValue === 'string' && familyValue.trim().length > 0 ? familyValue.trim() : layer.name,
+            };
+            const groupPath = (layer as TiledObjectLayer & { _bqMeta?: FlattenedLayerMeta })._bqMeta?.groupPath;
+            if (Array.isArray(groupPath) && groupPath.length > 0) {
+                meta.groupPath = [...groupPath];
+            }
+            const kind = typeof kindValue === 'string' && kindValue.trim().length > 0 ? kindValue.trim() : null;
+            if (kind) {
+                meta.kind = kind;
+            }
+            const biome = typeof biomeValue === 'string' && biomeValue.trim().length > 0 ? biomeValue.trim() : null;
+            if (biome) {
+                meta.biome = biome;
+            }
+            const tags = parseTagList(getMetadataValue(layer, componentEntries, 'tags'));
+            if (tags && tags.length > 0) {
+                meta.tags = tags;
+            }
+            const template = typeof templateValue === 'string' && templateValue.trim().length > 0 ? templateValue.trim() : null;
+            if (template) {
+                meta.template = template;
+            }
+            if (depthOffset !== 0) {
+                meta.depthOffset = depthOffset;
+            }
+            if (explicitDepth !== null) {
+                meta.depthRow = explicitDepth;
+            }
+
+            renderProps.push({
+                depth,
+                minTileX,
+                minTileY,
+                maxTileX,
+                maxTileY,
+                parts: componentEntries.map((entry) => ({
+                    index: entry.tileIndex,
+                    gid: entry.gid,
+                })),
+                meta,
+            });
+        }
+    }
+
+    function processRenderableTileObject(layer: TiledObjectLayer, object: TiledObject, foregroundLayer: boolean): void {
+        const resolved = resolveRenderableTileObject(layer, object);
+        if (!resolved) {
+            return;
+        }
+        if (mode === 'client') {
+            writeRenderableTile(resolved.tileIndex, resolved.gid, foregroundLayer);
+        }
+        if (resolved.gid in collidingTiles) {
+            map.collisions.push(resolved.tileIndex);
+        }
+    }
+
+    function resolveRenderableTileObject(layer: TiledObjectLayer, object: TiledObject): ResolvedRenderableTileObject | null {
+        const gid = normalizeGid(object.gid);
+        if (gid <= 0) {
+            return null;
+        }
+
+        const tilesetRef = resolveTilesetRef(gid);
+        if (!tilesetRef) {
+            const objectId = Number.isInteger(object.id) ? String(object.id) : 'no-id';
+            throw new Error(`Renderable tile object ${objectId} in layer "${layer.name}" references an unknown gid ${gid}.`);
+        }
+
+        const nativeWidth = tilesetRef.tileWidth;
+        const nativeHeight = tilesetRef.tileHeight;
+        const width = typeof object.width === 'number' && Number.isFinite(object.width) ? object.width : nativeWidth;
+        const height = typeof object.height === 'number' && Number.isFinite(object.height) ? object.height : nativeHeight;
+        const rotation = typeof object.rotation === 'number' && Number.isFinite(object.rotation) ? object.rotation : 0;
+        if (rotation !== 0) {
+            const objectId = Number.isInteger(object.id) ? String(object.id) : 'no-id';
+            throw new Error(`Renderable tile object ${objectId} in layer "${layer.name}" uses rotation, which is not supported by the BrowserQuest map exporter.`);
+        }
+        if (width !== nativeWidth || height !== nativeHeight) {
+            const objectId = Number.isInteger(object.id) ? String(object.id) : 'no-id';
+            throw new Error(`Renderable tile object ${objectId} in layer "${layer.name}" is resized (${width}x${height}); BrowserQuest currently supports native-size tile objects only.`);
+        }
+
+        const alignment = tilesetRef.objectAlignment === 'unspecified' ? 'bottomleft' : tilesetRef.objectAlignment;
+        const pixelLeft = object.x - alignmentOffsetX(alignment, width);
+        const pixelTop = object.y - alignmentOffsetY(alignment, height);
+        if (!Number.isFinite(pixelLeft) || !Number.isFinite(pixelTop)) {
+            return null;
+        }
+
+        const tileX = Math.round(pixelLeft / map.tilesize);
+        const tileY = Math.round(pixelTop / map.tilesize);
+        if (tileX < 0 || tileY < 0 || tileX >= map.width || tileY >= map.height) {
+            const objectId = Number.isInteger(object.id) ? String(object.id) : 'no-id';
+            throw new Error(`Renderable tile object ${objectId} in layer "${layer.name}" resolves out of bounds at tile (${tileX}, ${tileY}).`);
+        }
+
+        return {
+            gid,
+            tileX,
+            tileY,
+            tileIndex: tileY * map.width + tileX,
+            objectId: Number.isInteger(object.id) ? (object.id ?? null) : null,
+            objectClassName: getObjectClassName(object),
+            template: typeof object.template === 'string' ? object.template : undefined,
+            properties: getProperties(object),
+        };
+    }
+
+    function resolveTilesetRef(gid: number): ResolvedTilesetRef | undefined {
+        for (let i = 0; i < tilesetRefs.length; i += 1) {
+            const tilesetRef = tilesetRefs[i];
+            if (tilesetRef && gid >= tilesetRef.firstgid && gid <= tilesetRef.lastgid) {
+                return tilesetRef;
+            }
+        }
+        return undefined;
+    }
+
+    function writeRenderableTile(tileIndex: number, gid: number, foregroundLayer: boolean): void {
+        const destination = foregroundLayer ? (map.foreground ??= []) : (map.data ??= []);
+        const existing = destination[tileIndex];
+        if (existing === undefined) {
+            destination[tileIndex] = gid;
+        } else if (Array.isArray(existing)) {
+            existing.unshift(gid);
+        } else {
+            destination[tileIndex] = [gid, existing];
+        }
+    }
+
+    function resolveStaticEntityKind(spawn: TiledObject): EntityKindName | null {
+        const kindByName = getPropertyValue(spawn, 'entity_kind');
+        if (typeof kindByName === 'string') {
+            const normalizedKind = kindByName.trim();
+            if (normalizedKind.length > 0 && isEntityKindName(normalizedKind)) {
+                return normalizedKind;
+            }
+        }
+
+        const entityGidRaw = parseIntegerLike(getPropertyValue(spawn, 'entity_gid'));
+        if (entityGidRaw !== null && entityGidRaw > 0) {
+            const entityGid = normalizeGid(entityGidRaw);
+
+            // entity_gid may be authored as either:
             // - local tile id (1-based), or
             // - global gid (with tileset firstgid applied)
-            const directKind = staticEntityKindsByTileId[mobGid];
+            const directKind = staticEntityKindsByTileId[entityGid];
             if (typeof directKind === 'string' && directKind.length > 0) {
                 return directKind;
             }
 
-            if (mobsFirstgid > 0 && mobGid >= mobsFirstgid) {
-                const localTileId = mobGid - mobsFirstgid + 1;
+            if (mobsFirstgid > 0 && entityGid >= mobsFirstgid) {
+                const localTileId = entityGid - mobsFirstgid + 1;
                 if (localTileId > 0) {
                     const kind = staticEntityKindsByTileId[localTileId];
                     if (typeof kind === 'string' && kind.length > 0) {

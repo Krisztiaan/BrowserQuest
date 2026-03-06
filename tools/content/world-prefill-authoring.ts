@@ -11,15 +11,13 @@ type LayerSpec = Readonly<{
 
 const CANONICAL_OBJECT_LAYERS: ReadonlyArray<LayerSpec> = [
     { name: 'resource_nodes', className: 'ResourceNode' },
-    { name: 'entity_spawns', className: 'EntitySpawn' },
+    { name: 'static_entities', className: 'StaticEntity' },
     { name: 'chest_spawns', className: 'ChestSpawn' },
     { name: 'chest_areas', className: 'ChestArea' },
     { name: 'doors', className: 'Door' },
     { name: 'roaming_areas', className: 'RoamingArea' },
-    { name: 'zones', className: 'Zone' },
     { name: 'music_zones', className: 'MusicZone' },
     { name: 'checkpoints', className: 'Checkpoint' },
-    { name: 'mobile_zones', className: 'MobileZone' },
 ];
 
 function fail(message: string): never {

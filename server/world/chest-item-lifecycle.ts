@@ -1,4 +1,4 @@
-import type { EntityKind } from '../../shared/entity-kind-domain';
+import type { EntityKind, EntityKindName } from '../../shared/entity-kind-domain';
 import type { EntityId } from '../../shared/domain/ids';
 
 type JsonScalar = string | number | boolean | null;
@@ -65,7 +65,7 @@ type GridPosition = {
     y: number;
 };
 
-type StaticEntityMap = Record<string, string> | undefined;
+type StaticEntityMap = Record<string, EntityKindName> | undefined;
 
 type SpawnMobLike = {
     id: EntityId;

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<template>
- <object class="EntitySpawn" width="16" height="16">
-  <properties>
-   <property name="mob_kind" type="string" value="rat"/>
-   <property name="mob_gid" type="int" value="4"/>
-  </properties>
- </object>
-</template>

@@ -27,7 +27,7 @@
 
 ## Canonical Target Layer Order (68 layers)
 1. `sand` (tilelayer, visible)
-2. `sand_objects` (tilelayer, visible)
+2. `beach_props` (tilelayer, visible)
 3. `ground` (tilelayer, visible)
 4. `ground_variations` (tilelayer, visible)
 5. `mud` (tilelayer, visible)
@@ -61,14 +61,14 @@
 33. `lava_falls` (tilelayer, visible)
 34. `lava_boundaries` (tilelayer, visible)
 35. `cave` (tilelayer, visible)
-36. `trees_2` (tilelayer, visible)
+36. `trees` (tilelayer, visible)
 37. `cave_river` (tilelayer, visible)
 38. `cave_walls` (tilelayer, visible)
 39. `indoor` (tilelayer, visible)
 40. `indoor_walls` (tilelayer, visible)
 41. `indoor_doors` (tilelayer, visible)
 42. `carpets` (tilelayer, visible)
-43. `indoor_objects` (tilelayer, visible)
+43. `indoor_props` (tilelayer, visible)
 44. `easter_eggs` (tilelayer, visible)
 45. `forest_paths` (tilelayer, visible)
 46. `forest` (tilelayer, visible)
@@ -77,13 +77,13 @@
 49. `forest_trees` (tilelayer, visible)
 50. `bridge_shadows` (tilelayer, visible)
 51. `bridge` (tilelayer, visible)
-52. `forest_objects_1` (tilelayer, visible)
+52. `forest_props` (tilelayer, visible)
 53. `forest_objects_2` (tilelayer, visible)
 54. `maze_floor` (tilelayer, visible)
 55. `maze_walls` (tilelayer, visible)
 56. `sea` (tilelayer, visible)
 57. `resource_nodes` (objectgroup, hidden)
-58. `entity_spawns` (objectgroup, hidden)
+58. `static_entities` (objectgroup, hidden)
 59. `chest_spawns` (objectgroup, hidden)
 60. `chest_areas` (objectgroup, hidden)
 61. `doors` (objectgroup, hidden)
@@ -101,7 +101,7 @@
 |---:|---|---|---|
 | 1 | `don't remove this layer` (tilelayer, hidden) | _removed_ | Delete layer entirely. |
 | 2 | `sand` | `sand` | Keep name/type/visibility. |
-| 3 | `sand objects` | `sand_objects` | Rename layer only. |
+| 3 | `sand objects` | `beach_props` | Rename layer only. |
 | 4 | `ground` | `ground` | Keep name/type/visibility. |
 | 5 | `groundvariations` | `ground_variations` | Rename layer only. |
 | 6 | `mud` | `mud` | Keep name/type/visibility. |
@@ -135,14 +135,14 @@
 | 34 | `lavafalls` | `lava_falls` | Rename layer only. |
 | 35 | `lava boundaries` | `lava_boundaries` | Rename layer only. |
 | 36 | `cave` | `cave` | Keep name/type/visibility. |
-| 37 | `Trees2` | `trees_2` | Rename layer only. |
+| 37 | `Trees2` | `trees` | Rename layer only. |
 | 38 | `caveriver` | `cave_river` | Rename layer only. |
 | 39 | `cavewalls` | `cave_walls` | Rename layer only. |
 | 40 | `indoor` | `indoor` | Keep name/type/visibility. |
 | 41 | `indoorwalls` | `indoor_walls` | Rename layer only. |
 | 42 | `indoor doors` | `indoor_doors` | Rename layer only. |
 | 43 | `carpets` | `carpets` | Keep name/type/visibility. |
-| 44 | `indoor objects` | `indoor_objects` | Rename layer only. |
+| 44 | `indoor objects` | `indoor_props` | Rename layer only. |
 | 45 | `easter eggs` | `easter_eggs` | Rename layer only. |
 | 46 | `forest paths` | `forest_paths` | Rename layer only. |
 | 47 | `forest` | `forest` | Keep name/type/visibility. |
@@ -151,13 +151,13 @@
 | 50 | `forest trees` | `forest_trees` | Rename layer only. |
 | 51 | `bridges shadows` | `bridge_shadows` | Rename layer only. |
 | 52 | `Bridge` | `bridge` | Rename layer only. |
-| 53 | `forest objects 1` | `forest_objects_1` | Rename layer only. |
+| 53 | `forest objects 1` | `forest_props` | Rename layer only. |
 | 54 | `forest objects 2` | `forest_objects_2` | Rename layer only. |
 | 55 | `mase` | `maze_floor` | Rename layer only. |
 | 56 | `mase walls` | `maze_walls` | Rename layer only. |
 | 57 | `sea` | `sea` | Keep name/type/visibility. |
 | 58 | `minerals` (tilelayer, hidden) | `resource_nodes` (objectgroup, hidden) | Convert each nonzero tile to an object spawn node; drop tilelayer payload. |
-| 59 | `entities` (tilelayer, hidden) | `entity_spawns` (objectgroup, hidden) | Convert each nonzero tile to mob spawn object; preserve gid in property (`mob_gid`). |
+| 59 | `entities` (tilelayer, hidden) | `static_entities` (objectgroup, hidden) | Convert each nonzero tile to static entity object; preserve gid in property (`entity_gid`). |
 | 60 | `chests` | `chest_spawns` | Rename layer; keep `items` property on each object. |
 | 61 | `chestareas` | `chest_areas` | Rename layer; rename properties `x`→`spawn_tx`, `y`→`spawn_ty`. |
 | 62 | `doors` | `doors` | Keep layer; rename properties `o`→`orientation`, `x`→`target_tx`, `y`→`target_ty`, `cx`→`local_tx`, `cy`→`local_ty`. |
@@ -186,8 +186,8 @@
   - required: `track_id`
 - `checkpoints` objects:
   - required: `checkpoint_id`
-- `entity_spawns` objects:
-  - required: `mob_gid`
+- `static_entities` objects:
+  - required: `entity_gid`
 - `resource_nodes` objects:
   - required: `resource_gid`
 

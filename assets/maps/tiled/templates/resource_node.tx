@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <template>
- <object class="ResourceNode" width="16" height="16">
+ <tileset firstgid="1" source="../editor-markers.tsj"/>
+ <object class="ResourceNode" gid="1" width="16" height="16">
   <properties>
    <property name="resource_gid" type="int" value="0"/>
   </properties>

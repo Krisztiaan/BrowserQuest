@@ -93,6 +93,21 @@ function nextFirstgid(worldRoot: UnknownRecord, after: number): number {
     return out;
 }
 
+function collectLayersByName(rootLayers: unknown, name: string, out: UnknownRecord[] = []): UnknownRecord[] {
+    const layers = asArray(rootLayers)
+        .map((entry) => asRecord(entry))
+        .filter((entry): entry is UnknownRecord => entry !== null);
+    for (const layer of layers) {
+        if (asString(layer.name) === name) {
+            out.push(layer);
+        }
+        if (asString(layer.type) === 'group') {
+            collectLayersByName(layer.layers, name, out);
+        }
+    }
+    return out;
+}
+
 function parsePairSpecs(): PairSpec[] {
     return [...DEFAULT_PAIR_SPECS];
 }
@@ -268,10 +283,6 @@ async function main(): Promise<void> {
     if (!worldRoot) {
         fail(`Invalid world map root in ${relPath(worldPath)}.`);
     }
-    const worldLayers = asArray(worldRoot.layers)
-        .map((entry) => asRecord(entry))
-        .filter((entry): entry is UnknownRecord => entry !== null);
-
     const tilesetFirstgid = getTilesetFirstgidBySource(worldRoot, '/tilesheet.wang.tsj');
     if (!tilesetFirstgid) {
         fail(`Could not resolve tilesheet firstgid from ${relPath(worldPath)}.`);
@@ -285,32 +296,34 @@ async function main(): Promise<void> {
         const perLayer: UnknownRecord[] = [];
 
         for (const layerName of pair.layers) {
-            const layer = worldLayers.find((entry) => asString(entry.name) === layerName && asString(entry.type) === 'tilelayer');
-            if (!layer) {
-                continue;
-            }
-            const data = asArray(layer.data);
-            let contributingCells = 0;
-            const layerByTile = new Map<number, number>();
+            const matchingLayers = collectLayersByName(worldRoot.layers, layerName).filter(
+                (entry) => asString(entry.type) === 'tilelayer'
+            );
+            for (const layer of matchingLayers) {
+                const data = asArray(layer.data);
+                let contributingCells = 0;
+                const layerByTile = new Map<number, number>();
 
-            for (const entry of data) {
-                if (typeof entry !== 'number' || !Number.isFinite(entry) || entry <= 0) {
-                    continue;
+                for (const entry of data) {
+                    if (typeof entry !== 'number' || !Number.isFinite(entry) || entry <= 0) {
+                        continue;
+                    }
+                    const normalized = normalizeGid(entry);
+                    if (normalized < tilesetFirstgid || normalized >= nextTilesetFirstgid) {
+                        continue;
+                    }
+                    const localTileId = normalized - tilesetFirstgid;
+                    if (localTileId < 0 || localTileId >= tilecount) {
+                        continue;
+                    }
+                    contributingCells += 1;
+                    layerByTile.set(localTileId, (layerByTile.get(localTileId) ?? 0) + 1);
+                    byTile.set(localTileId, (byTile.get(localTileId) ?? 0) + 1);
                 }
-                const normalized = normalizeGid(entry);
-                if (normalized < tilesetFirstgid || normalized >= nextTilesetFirstgid) {
-                    continue;
-                }
-                const localTileId = normalized - tilesetFirstgid;
-                if (localTileId < 0 || localTileId >= tilecount) {
-                    continue;
-                }
-                contributingCells += 1;
-                layerByTile.set(localTileId, (layerByTile.get(localTileId) ?? 0) + 1);
-                byTile.set(localTileId, (byTile.get(localTileId) ?? 0) + 1);
-            }
 
-            if (contributingCells > 0) {
+                if (contributingCells <= 0) {
+                    continue;
+                }
                 const topTiles = [...layerByTile.entries()]
                     .sort((a, b) => b[1] - a[1] || a[0] - b[0])
                     .slice(0, 40)

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object class="StaticEntity" width="16" height="16">
+  <properties>
+   <property name="entity_kind" type="string" value="rat"/>
+   <property name="entity_gid" type="int" value="4"/>
+  </properties>
+ </object>
+</template>

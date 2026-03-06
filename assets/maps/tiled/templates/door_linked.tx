@@ -8,6 +8,11 @@
    <property name="target_ty" type="int" value="0"/>
    <property name="camera_tx" type="int" value="0"/>
    <property name="camera_ty" type="int" value="0"/>
+   <property name="door_id" type="string" value=""/>
+   <property name="target_map" type="string" value=""/>
+   <property name="target_door" type="string" value=""/>
+   <property name="local_tx" type="int" value="0"/>
+   <property name="local_ty" type="int" value="0"/>
   </properties>
  </object>
 </template>

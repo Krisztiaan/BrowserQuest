@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import type { EntityKindName } from '../../shared/entity-kind-domain';
 import { entityIdFromWire } from '../../shared/domain/ids';
 import { handleEmptyChestAreaRefill, spawnStaticEntitiesForWorld } from '../../server/world/chest-item-lifecycle';
 
@@ -49,7 +50,7 @@ test('static mob respawn resets HP and spawn position before re-adding', () => {
     const mobsById = new Map<number, RespawnableMob>();
 
     spawnStaticEntitiesForWorld({
-        staticEntities: { '1305': 'rat' },
+        staticEntities: { '1305': 'rat' satisfies EntityKindName },
         nextMobId: () => entityIdFromWire(720),
         resolveKindFromString: () => 2,
         tileIndexToGridPosition: () => ({ x: 10, y: 20 }),
