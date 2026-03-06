@@ -26,17 +26,17 @@ afterEach(() => {
     }
 });
 
-test('client movement netcode config defaults to farming/social profile', () => {
+test('client movement netcode config defaults to combat-proximity profile for a tighter presentation feel', () => {
     delete (globalThis as MovementGlobals).__BQ_MOVEMENT_PROFILE__;
     delete (globalThis as MovementGlobals).__BQ_MOVEMENT_FLAGS__;
 
     const config = resolveClientMovementNetcodeConfig();
 
-    expect(config.profileId).toBe('farming_social');
+    expect(config.profileId).toBe('combat_proximity');
     expect(config.rollout.localPresentationMotor).toBe(true);
     expect(config.rollout.remoteSmoothingTimeline).toBe(true);
-    expect(config.tuning.remoteInterpolationDelayMs).toBe(100);
-    expect(config.tuning.localPresentationTauActiveMs).toBe(24);
+    expect(config.tuning.remoteInterpolationDelayMs).toBe(90);
+    expect(config.tuning.localPresentationTauActiveMs).toBe(18);
 });
 
 test('client movement netcode config honors global rollout overrides', () => {

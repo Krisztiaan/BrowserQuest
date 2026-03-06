@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-03-07 10:06 UTC
+Last updated: 2026-03-07 11:13 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -14,6 +14,6 @@ Definition of done (per ticket):
 
 ## Active Tickets
 
-Cycle objective: refactor movement into a presentation-decoupled, server-authoritative model that feels closer to real-time client authority without breaking combat, interaction, or MMO consistency.
+Cycle objective: tune the newly refactored movement model toward a more responsive default feel without weakening server authority or interaction consistency.
 
-- None. Current roadmap cycle is complete; new work should be ticketed here before implementation.
+- None. Current tuning slice is complete; new work should be ticketed here before implementation.

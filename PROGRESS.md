@@ -107,6 +107,45 @@ Format per entry:
 
 ## 2026-03-07
 
+- 11:13 UTC
+  - Ticket: 760 (Split client/server default movement profiles and tune the default feel)
+  - Start timestamp: 2026-03-07 11:07 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Split the default movement profile resolution by runtime role while keeping the shared tuning catalog:
+      - client default is now `combat_proximity`,
+      - server default remains `farming_social`.
+    - Kept explicit override precedence intact:
+      - client global profile override still wins,
+      - server environment profile override still wins.
+    - Re-ran the remote interpolation/discontinuity regressions under the new client default and updated the pinned expectations where the more aggressive default intentionally changed the rendered interpolation target.
+    - Critical-review pass on the two main risks:
+      - override wiring still resolves to explicit user/operator settings before defaults,
+      - the tighter client default did not weaken the remote teleport snap/discontinuity guardrail.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-movement-netcode-config.test.ts tests/unit/server-movement-netcode-config.test.ts tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts`
+    - `bun x eslint client/movement-netcode-config.ts server/movement-netcode-config.ts shared/netcode/movement-tuning.ts tests/unit/client-movement-netcode-config.test.ts tests/unit/server-movement-netcode-config.test.ts tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 11:07 UTC
+  - Ticket: 760 (Split client/server default movement profiles and tune the default feel)
+  - Start timestamp: 2026-03-07 11:07 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened the next post-refactor tuning ticket instead of changing behavior ad hoc.
+    - Scoped the first tuning move to a narrow, defensible change:
+      - keep the shared tuning catalog,
+      - let client/server resolve different defaults,
+      - bias the client default toward a more responsive presentation profile while preserving the server's current grace posture.
+    - Confirmed the repository is clean after commit `c9f4c85`, so this slice can be isolated cleanly.
+  - Evidence:
+    - `git status --short`
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,220p' shared/netcode/movement-tuning.ts`
+  - Next action:
+    - Patch the config resolvers to support split defaults, update tests, and re-run the affected movement regressions.
+
 - 10:44 UTC
   - Ticket: 759 (Instrumentation, tuning, and staged rollout guardrails)
   - Start timestamp: 2026-03-07 10:14 UTC

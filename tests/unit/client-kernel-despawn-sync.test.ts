@@ -141,10 +141,10 @@ test('replication sync renders remote entities from delayed interpolation snapsh
     expect(cmds).toContainEqual({
         type: 'setEntityWorldPosition',
         entityId: mobId,
-        worldX: 150,
+        worldX: 160,
         worldY: 100,
     });
-    expect(kernel.clientReplicationLastWorldPos.get(mobId)).toEqual({ x: 150, y: 100 });
+    expect(kernel.clientReplicationLastWorldPos.get(mobId)).toEqual({ x: 160, y: 100 });
 });
 
 test('replication sync snap-renders remote discontinuities instead of smoothing teleports', () => {

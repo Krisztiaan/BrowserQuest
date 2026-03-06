@@ -1,6 +1,6 @@
 import {
     DEFAULT_MOVEMENT_ROLLOUT_FLAGS,
-    DEFAULT_MOVEMENT_TUNING_PROFILE,
+    DEFAULT_CLIENT_MOVEMENT_TUNING_PROFILE,
     MOVEMENT_TUNING_PROFILES,
     type ClientMovementTuningValues,
     type MovementRolloutFlags,
@@ -83,7 +83,7 @@ export function resolveClientMovementNetcodeConfig(): ClientMovementNetcodeConfi
 
     const profileId =
         normalizeProfileId((globalThis as MovementConfigGlobals).__BQ_MOVEMENT_PROFILE__)
-        ?? DEFAULT_MOVEMENT_TUNING_PROFILE;
+        ?? DEFAULT_CLIENT_MOVEMENT_TUNING_PROFILE;
     const profile = MOVEMENT_TUNING_PROFILES[profileId];
     return Object.freeze({
         profileId,
@@ -96,4 +96,3 @@ export function resolveClientMovementNetcodeConfig(): ClientMovementNetcodeConfi
 export function setClientMovementNetcodeConfigForTests(config: ClientMovementNetcodeConfig | null): void {
     configOverride = config;
 }
-

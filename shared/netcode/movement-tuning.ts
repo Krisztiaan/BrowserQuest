@@ -43,7 +43,8 @@ export type MovementTuningProfile = Readonly<{
     server: ServerMovementTuningValues;
 }>;
 
-export const DEFAULT_MOVEMENT_TUNING_PROFILE: MovementTuningProfileId = 'farming_social';
+export const DEFAULT_CLIENT_MOVEMENT_TUNING_PROFILE: MovementTuningProfileId = 'combat_proximity';
+export const DEFAULT_SERVER_MOVEMENT_TUNING_PROFILE: MovementTuningProfileId = 'farming_social';
 
 export const DEFAULT_MOVEMENT_ROLLOUT_FLAGS: MovementRolloutFlags = Object.freeze({
     localPresentationMotor: true,
