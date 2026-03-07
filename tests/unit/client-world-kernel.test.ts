@@ -157,7 +157,7 @@ test('ClientWorldKernel extrapolates remotes for a short undershooting horizon',
     kernel.pushClientRemoteStateSnapshot(view.id, 200, 100, 2, 1_100);
 
     const extrapolated = kernel.getClientRemoteInterpolatedWorldPosition(view.id, 1_250, 100);
-    expect(extrapolated).toEqual({ x: 233, y: 100 });
+    expect(extrapolated).toEqual({ x: 230, y: 100 });
 });
 
 test('ClientWorldKernel does not extrapolate across discontinuity-sized remote jumps', () => {

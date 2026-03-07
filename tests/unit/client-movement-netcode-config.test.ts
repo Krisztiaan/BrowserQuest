@@ -35,8 +35,8 @@ test('client movement netcode config defaults to combat-proximity profile for a 
     expect(config.profileId).toBe('combat_proximity');
     expect(config.rollout.localPresentationMotor).toBe(true);
     expect(config.rollout.remoteSmoothingTimeline).toBe(true);
-    expect(config.tuning.remoteInterpolationDelayMs).toBe(90);
-    expect(config.tuning.localPresentationTauActiveMs).toBe(18);
+    expect(config.tuning.remoteInterpolationDelayMs).toBe(84);
+    expect(config.tuning.localPresentationTauActiveMs).toBe(16);
 });
 
 test('client movement netcode config honors global rollout overrides', () => {
@@ -49,7 +49,7 @@ test('client movement netcode config honors global rollout overrides', () => {
     const config = resolveClientMovementNetcodeConfig();
 
     expect(config.profileId).toBe('combat_proximity');
-    expect(config.tuning.remoteInterpolationDelayMs).toBe(90);
+    expect(config.tuning.remoteInterpolationDelayMs).toBe(84);
     expect(config.rollout.remoteSmoothingTimeline).toBe(false);
     expect(config.rollout.playerPathingIgnoresPlayers).toBe(false);
     expect(config.rollout.localPresentationMotor).toBe(true);

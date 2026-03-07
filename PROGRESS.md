@@ -107,6 +107,54 @@ Format per entry:
 
 ## 2026-03-07
 
+- 11:22 UTC
+  - Ticket: 761 (Refine the client default movement profile values)
+  - Start timestamp: 2026-03-07 11:18 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Tightened the client-default `combat_proximity` profile without changing server authority/grace behavior:
+      - local snap distance `80 -> 76`,
+      - local active tau `18 -> 16`,
+      - local idle tau `36 -> 32`,
+      - local min step `0.75 -> 0.8`,
+      - remote snap distance `80 -> 76`,
+      - remote tau `68 -> 60`,
+      - remote interpolation delay `90 -> 84`,
+      - remote discontinuity threshold `1.75 tiles -> 1.6 tiles`,
+      - remote extrapolation max `60 -> 50`,
+      - remote undershoot `0.65 -> 0.6`.
+    - Updated only the focused regressions that intentionally depend on the active client default profile:
+      - remote extrapolation expectation in `client-world-kernel.test.ts`,
+      - delayed remote interpolation expectation in `client-kernel-despawn-sync.test.ts`,
+      - config expectations in `client-movement-netcode-config.test.ts`.
+    - Critical-review pass on the main risks:
+      - the lower remote discontinuity threshold still preserves teleport snapping for large jumps,
+      - the shorter interpolation delay still produces stable delayed interpolation rather than immediate snap-to-latest behavior.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-movement-netcode-config.test.ts tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts`
+    - `bun x eslint shared/netcode/movement-tuning.ts tests/unit/client-movement-netcode-config.test.ts tests/unit/client-world-kernel.test.ts tests/unit/client-kernel-despawn-sync.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 11:18 UTC
+  - Ticket: 761 (Refine the client default movement profile values)
+  - Start timestamp: 2026-03-07 11:18 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened a narrow post-split tuning ticket rather than broadening the scope again.
+    - Scoped this slice to client-default profile values only:
+      - tighter local presentation motor,
+      - slightly lower remote presentation delay,
+      - no server grace/authority changes.
+    - Audited which regressions are intentionally pinned to the active client default profile so expectation updates stay focused.
+  - Evidence:
+    - `git status --short`
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,220p' shared/netcode/movement-tuning.ts`
+    - `rg -n "remoteInterpolationDelayMs|localPresentationTauActiveMs|localPresentationTauIdleMs|localPresentationMinStepPx|remotePresentationTauMs|remoteExtrapolationUndershoot" tests/unit client/ecs`
+  - Next action:
+    - Tighten the `combat_proximity` client tuning values, update the pinned regression expectations, and verify the affected movement tests.
+
 - 11:13 UTC
   - Ticket: 760 (Split client/server default movement profiles and tune the default feel)
   - Start timestamp: 2026-03-07 11:07 UTC
