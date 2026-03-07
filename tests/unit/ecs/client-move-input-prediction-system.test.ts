@@ -278,6 +278,6 @@ test('move-input prediction treats diagonal authority drift with the same deadzo
         isZoningTile: () => false,
     });
 
-    expect(predictedWorldX).toBe(start.x + 1448);
-    expect(predictedWorldY).toBe(start.y - 1448);
+    expect(predictedWorldX).toBe(start.x + 1405);
+    expect(predictedWorldY).toBe(start.y - 1405);
 });

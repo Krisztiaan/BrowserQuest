@@ -262,6 +262,96 @@ function resolvePlanOrigin(host: ClientCommandApplySystemHost): { x: number; y: 
     return resolveAuthoritativeLocalPlayerPos(host);
 }
 
+function trimConsumedPlanSteps(steps: ReadonlyArray<GridPos>, origin: GridPos): GridPos[] {
+    for (let i = steps.length - 1; i >= 0; i -= 1) {
+        const step = steps[i];
+        if (step?.x === origin.x && step.y === origin.y) {
+            return steps.slice(i + 1);
+        }
+    }
+    return steps.slice();
+}
+
+function countPlanPrefixOverlap(existingSteps: ReadonlyArray<GridPos>, nextSteps: ReadonlyArray<GridPos>): number {
+    const maxOverlap = Math.min(existingSteps.length, nextSteps.length);
+    let overlap = 0;
+    for (let i = 0; i < maxOverlap; i += 1) {
+        const existing = existingSteps[i];
+        const next = nextSteps[i];
+        if (!existing || !next || existing.x !== next.x || existing.y !== next.y) {
+            break;
+        }
+        overlap = i + 1;
+    }
+    return overlap;
+}
+
+function countPlanSuffixPrefixOverlap(existingSteps: ReadonlyArray<GridPos>, nextSteps: ReadonlyArray<GridPos>): number {
+    const maxOverlap = Math.min(existingSteps.length, nextSteps.length);
+    for (let overlap = maxOverlap; overlap > 0; overlap -= 1) {
+        let matches = true;
+        for (let i = 0; i < overlap; i += 1) {
+            const existing = existingSteps[existingSteps.length - overlap + i];
+            const next = nextSteps[i];
+            if (!existing || !next || existing.x !== next.x || existing.y !== next.y) {
+                matches = false;
+                break;
+            }
+        }
+        if (matches) {
+            return overlap;
+        }
+    }
+    return 0;
+}
+
+function mergeOverlappingPlanSteps(
+    existingSteps: ReadonlyArray<GridPos>,
+    nextSteps: ReadonlyArray<GridPos>
+): {
+    steps: GridPos[];
+    overlapCount: number;
+    overlapMode: 'none' | 'prefix' | 'suffix_prefix';
+} {
+    const prefixOverlapCount = countPlanPrefixOverlap(existingSteps, nextSteps);
+    if (prefixOverlapCount > 0) {
+        return {
+            steps: nextSteps.slice(),
+            overlapCount: prefixOverlapCount,
+            overlapMode: 'prefix',
+        };
+    }
+
+    const suffixPrefixOverlapCount = countPlanSuffixPrefixOverlap(existingSteps, nextSteps);
+    if (suffixPrefixOverlapCount > 0) {
+        return {
+            steps: [...existingSteps, ...nextSteps.slice(suffixPrefixOverlapCount)],
+            overlapCount: suffixPrefixOverlapCount,
+            overlapMode: 'suffix_prefix',
+        };
+    }
+
+    return {
+        steps: nextSteps.slice(),
+        overlapCount: 0,
+        overlapMode: 'none',
+    };
+}
+
+function areGridStepListsEqual(a: ReadonlyArray<GridPos>, b: ReadonlyArray<GridPos>): boolean {
+    if (a.length !== b.length) {
+        return false;
+    }
+    for (let i = 0; i < a.length; i += 1) {
+        const left = a[i];
+        const right = b[i];
+        if (!left || !right || left.x !== right.x || left.y !== right.y) {
+            return false;
+        }
+    }
+    return true;
+}
+
 function requestPathFromPlanOrigin({
     host,
     origin,
@@ -312,13 +402,8 @@ function planServerAuthoritativeMoveTo({
         typeof map.isColliding === 'function'
             ? (x: number, y: number) => map.isColliding?.(x, y) === true
             : (x: number, y: number) => (map.grid[y]?.[x] ?? 0) !== 0;
-
-    // New plan supersedes old.
-    host.kernel.clearClientMovePlan();
-    host.kernel.clearClientPendingMoveAcks();
-    host.kernel.clearClientPendingMoveSeqAcks();
-    host.kernel.clientMovementSuppressed = false;
     const origin = resolvePlanOrigin(host);
+    const existingPlan = host.kernel.clientMovePlan;
 
     const requestedTo = gridPos(toX, toY);
     const candidates = resolveMoveToTargetCandidates({
@@ -352,29 +437,61 @@ function planServerAuthoritativeMoveTo({
     if (!target) {
         return;
     }
+
+    const remainingExistingSteps = existingPlan ? trimConsumedPlanSteps(existingPlan.steps, origin) : [];
+    const { steps: mergedSteps, overlapCount, overlapMode } = mergeOverlappingPlanSteps(remainingExistingSteps, steps);
+    const sameRequestedTarget =
+        existingPlan !== null &&
+        existingPlan.requestedTo.x === requestedTo.x &&
+        existingPlan.requestedTo.y === requestedTo.y &&
+        existingPlan.stopAdjacentToTarget === stopAdjacentToTarget;
+    if (sameRequestedTarget && areGridStepListsEqual(remainingExistingSteps, steps)) {
+        debugMoves('plan:reuse_same', {
+            toX,
+            toY,
+            stopAdjacentToTarget,
+            origin,
+            pendingSeqAcks: host.kernel.clientPendingMoveSeqAcks.length,
+            steps: steps.length,
+        });
+        return;
+    }
+
+    host.kernel.clientMovementSuppressed = false;
+    if (overlapCount === 0) {
+        host.kernel.clearClientPendingMoveAcks();
+        host.kernel.clearClientPendingMoveSeqAcks();
+    }
+
     debugMoves('plan:set', {
         toX,
         toY,
         stopAdjacentToTarget,
         origin,
+        overlapCount,
+        overlapMode,
         pendingSeqAcks: host.kernel.clientPendingMoveSeqAcks.length,
-        steps: steps.length,
+        steps: mergedSteps.length,
         target,
     });
     host.kernel.setClientMovePlan({
         requestedTo,
         target,
-        steps,
+        steps: mergedSteps,
         stopAdjacentToTarget,
     });
 
     if (host.kernel.clientMovementNetcodeMode === 'predictive') {
-        // Start local prediction immediately using the already-computed path (avoid a second pathfinding pass).
-        const predictedPath: Array<[number, number]> = [
-            [origin.x, origin.y],
-            ...steps.map((step) => [step.x, step.y] as [number, number]),
-        ];
-        host.player.followPath(predictedPath);
+        if (host.player.isMoving() && overlapCount > 0) {
+            host.player.continueTo(toX, toY);
+        } else {
+            // Start local prediction immediately using the already-computed path (avoid a second pathfinding pass).
+            const predictedPath: Array<[number, number]> = [
+                [origin.x, origin.y],
+                ...mergedSteps.map((step) => [step.x, step.y] as [number, number]),
+            ];
+            host.player.followPath(predictedPath);
+        }
     } else {
         // Lockstep mode intentionally waits for server movement updates before moving the local avatar.
         hardStopCharacterMovement(host.player);

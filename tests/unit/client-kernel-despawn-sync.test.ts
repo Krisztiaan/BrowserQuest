@@ -4,6 +4,7 @@ import { entityIdFromWire } from '../../shared/domain/ids';
 import { gridPos } from '../../shared/domain/positions';
 import { ClientWorldKernel } from '../../client/ecs/world-kernel';
 import { runClientKernelReplicationSyncSystem } from '../../client/ecs/systems/client-kernel-replication-sync-system';
+import { tileToWorldPosCenter } from '../../shared/world/worldpos';
 
 test('kernel removeEntity leaves replication bookkeeping so sync can emit remove command', () => {
     const kernel = new ClientWorldKernel();
@@ -198,7 +199,8 @@ test('lockstep mode applies authoritative local-player world updates even when m
 
     kernel.clientReplicationKnownAlive.add(playerId);
     kernel.clientReplicationLastPos.set(playerId, gridPos(10, 10));
-    kernel.clientReplicationLastWorldPos.set(playerId, { x: 100, y: 100 });
+    const authoritative = tileToWorldPosCenter(10, 10);
+    kernel.clientReplicationLastWorldPos.set(playerId, authoritative);
     kernel.clientMoveInputKeysMask = 1;
     kernel.setClientMovementNetcodeMode('lockstep');
     kernel.setWorldPosition(playerId, 132, 100);
@@ -212,4 +214,52 @@ test('lockstep mode applies authoritative local-player world updates even when m
         worldX: 132,
         worldY: 100,
     });
+});
+
+test('predictive local-player diagonal drift does not trigger teleport correction in replication sync', () => {
+    const kernel = new ClientWorldKernel();
+    const playerId = entityIdFromWire(77);
+
+    kernel.upsertFromSpawnSnapshot({
+        id: 77,
+        kind: Types.Entities.WARRIOR,
+        x: 10,
+        y: 10,
+        extras: {
+            type: 'player',
+            name: 'K',
+            orientation: Types.Orientations.DOWN,
+            armor: Types.Entities.CLOTHARMOR,
+            weapon: Types.Entities.SWORD1,
+        },
+    });
+
+    kernel.clientReplicationKnownAlive.add(playerId);
+    kernel.clientReplicationLastPos.set(playerId, gridPos(10, 10));
+    const authoritative = tileToWorldPosCenter(10, 10);
+    kernel.clientReplicationLastWorldPos.set(playerId, authoritative);
+    kernel.clientSpatialRecords.set(playerId, {
+        gridX: 11,
+        gridY: 11,
+        nextGridX: 11,
+        nextGridY: 11,
+        isMoving: true,
+        isDead: false,
+        kind: Types.Entities.WARRIOR,
+        isPlayer: true,
+    });
+    kernel.clientMovePlan = {
+        requestedTo: gridPos(12, 12),
+        target: gridPos(12, 12),
+        steps: [gridPos(11, 11), gridPos(12, 12)],
+        stopAdjacentToTarget: false,
+        sent: true,
+    };
+    kernel.setWorldPosition(playerId, authoritative.x, authoritative.y);
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId, currentTime: 1_000 });
+    const cmds = kernel.drainClientCommands();
+
+    expect(cmds.some((cmd) => cmd.type === 'teleportEntity' && cmd.entityId === playerId)).toBe(false);
+    expect(kernel.clientReplicationLastPos.get(playerId)).toEqual(gridPos(10, 10));
 });

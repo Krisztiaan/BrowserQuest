@@ -107,6 +107,151 @@ Format per entry:
 
 ## 2026-03-07
 
+- 12:33 UTC
+  - Ticket: 764 (Audit move intent ACK/CORRECTION handling for remaining jump sources)
+  - Start timestamp: 2026-03-07 11:56 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Completed the movement transport/reconciliation audit across:
+      - `receiveAck`,
+      - `receiveReject`,
+      - `receiveCorrection`,
+      - `receiveMoveSync`,
+      - pending move seq-ack pruning and suppression handling.
+    - Ruled out the transport layer as the next concrete jump source in the audited paths:
+      - ACK consumption and MOVE_SYNC pruning behaved consistently with the existing reconciliation tests,
+      - no new stale-seq or suppression-toggle bug was confirmed from this pass.
+    - Found a remaining client plan-continuity bug instead:
+      - the prior overlap merge only handled `existing suffix == new prefix`,
+      - but repeated diagonal replans from the same origin often share a leading segment and only diverge in the tail,
+      - that shape still caused the active local plan to restart instead of rolling forward.
+    - Fixed `client-command-apply-system.ts` to merge both continuity shapes:
+      - shared leading prefix,
+      - existing-tail to new-head continuation.
+    - Added a focused regression proving a repeated diagonal replan with a shared leading segment preserves the common path and only replaces the diverging tail.
+    - Critical-review pass on the main risk:
+      - kept the earlier overlap-extension behavior intact,
+      - preserved pending move ack / seq-ack state when continuity exists,
+      - re-ran the diagonal queue and interaction-follow regressions to ensure the merge change did not regress adjacent paths.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-command-apply-movement-correction.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/ecs/client-click-intent-system-repeat-click.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/mmo/server-move-step-diagonal.test.ts`
+    - `bun x eslint client/ecs/systems/client-command-apply-system.ts tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 11:56 UTC
+  - Ticket: 764 (Audit move intent ACK/CORRECTION handling for remaining jump sources)
+  - Start timestamp: 2026-03-07 11:56 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Extended the audit below plan/intention level into the movement transport/reconciliation layer instead of assuming the higher-level dedupes are sufficient.
+    - Scoped this pass to:
+      - pending move-ack / seq-ack lifecycle,
+      - intent ACK/CORRECTION handling,
+      - suppression / unsuppression timing,
+      - repeated diagonal movement across ACK boundaries.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,260p' PROGRESS.md`
+    - prior ticket evidence from Tickets 762-763
+  - Next action:
+    - Read the client/server reconciliation code paths line-by-line, identify any remaining restart/jump triggers tied to ACK/CORRECTION handling, then patch and verify if found.
+
+- 11:50 UTC
+  - Ticket: 763 (Continue diagonal and repeated-command movement audit)
+  - Start timestamp: 2026-03-07 11:45 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Audited the remaining high-level movement handoff paths after Ticket 762:
+      - click intent -> `playerGoTo`,
+      - interaction intent -> `playerFollow` / `playerTalkTo` / `playerOpenChest`,
+      - move outbox resend logic,
+      - server queued diagonal step execution under repeated targets.
+    - Ruled out the move outbox and server queued diagonal execution as remaining jump sources in the covered paths:
+      - outbox still sends exactly once per unsent plan,
+      - server diagonal queued-step tests remain stable and non-ping-ponging.
+    - Found and fixed one more client-side churn source:
+      - high-level intent systems could still enqueue the same move/follow command again even when an identical active plan already existed.
+    - Added intent-level dedupe for:
+      - repeat walk clicks against the same active `playerGoTo` target,
+      - repeated attack-follow/talk/open movement when the current `clientMovePlan` already targets the same entity tile with the same adjacency mode.
+    - Added focused regressions proving:
+      - repeated clicks against the same active plan no longer enqueue another `playerGoTo`,
+      - attack-follow does not enqueue duplicate `playerFollow` when the same active plan already targets the mob.
+    - Critical-review pass on the main risk:
+      - valid re-click behavior still works when there is no active identical plan,
+      - server diagonal step execution remains unchanged and still passes the dedicated diagonal queue tests.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-command-apply-movement-correction.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-click-intent-system-repeat-click.test.ts tests/unit/mmo/server-move-step-diagonal.test.ts`
+    - `bun x eslint client/ecs/systems/client-click-intent-system.ts client/ecs/systems/client-player-move-outbox-system.ts client/ecs/systems/client-command-apply-system.ts client/ecs/systems/client-interaction-intent-system.ts server/world/ecs-command-pipeline.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-click-intent-system-repeat-click.test.ts tests/unit/mmo/server-move-step-diagonal.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 11:45 UTC
+  - Ticket: 763 (Continue diagonal and repeated-command movement audit)
+  - Start timestamp: 2026-03-07 11:45 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Kept the audit open instead of assuming Ticket 762 exhausted the problem.
+    - Scoped the second pass to the remaining likely handoff paths:
+      - click intent -> move plan issuance,
+      - move outbox resend / ack clearing,
+      - server queued diagonal step execution under repeated targets.
+    - Chose these specifically because they can still retrigger visible restarts even after the local plan-overlap fix.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,260p' PROGRESS.md`
+    - prior targeted audit results from Ticket 762
+  - Next action:
+    - Read the remaining client/server handoff code paths line-by-line, identify any surviving restart/jump triggers, then patch and verify if found.
+
+- 11:38 UTC
+  - Ticket: 762 (Eliminate remaining diagonal and repeated-command movement jumps)
+  - Start timestamp: 2026-03-07 11:29 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Re-audited the remaining jump paths as a class of bugs and found two concrete root causes:
+      - local predictive replication sync still classified one-tile diagonal drift as a teleport-worthy error because it used Manhattan tile drift,
+      - repeated or overlapping click/follow plans still tore down the active local plan and pending move acks before comparing the new path, which restarted movement from behind and caused visible jumps.
+    - Fixed diagonal local-player reconciliation in `client-kernel-replication-sync-system.ts` by switching the predictive drift gate to max-axis distance, so ordinary one-step diagonal divergence no longer hits the local teleport path.
+    - Fixed repeated-command handling in `client-command-apply-system.ts` by:
+      - comparing the new plan against the active one before clearing anything,
+      - no-oping truly identical in-flight plans,
+      - preserving overlapping path segments and only rolling in the non-overlapping tail,
+      - keeping the active predictive path alive with `continueTo(...)` instead of restarting from a stale origin when overlap exists.
+    - Added focused regressions covering:
+      - diagonal predictive drift not teleporting the local player,
+      - repeating the same `playerGoTo` while in flight preserving the plan and pending acks,
+      - replanning with an overlapping in-flight path reusing the overlap and appending only the new tail.
+    - Critical-review pass on the main risk:
+      - verified that large remote discontinuities still snap,
+      - verified that diagonal deadzone feel tests and server diagonal step/idempotency tests still pass after the local changes.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/server-move-step-diagonal.test.ts`
+    - `bun x eslint client/ecs/systems/client-move-input-prediction-system.ts client/ecs/systems/client-kernel-replication-sync-system.ts client/ecs/systems/client-player-move-outbox-system.ts client/ecs/systems/client-command-apply-system.ts server/world/ecs-command-pipeline.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/mmo/server-seq-idempotency.test.ts tests/unit/mmo/server-move-step-diagonal.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 11:29 UTC
+  - Ticket: 762 (Eliminate remaining diagonal and repeated-command movement jumps)
+  - Start timestamp: 2026-03-07 11:29 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Reframed the report as a class-of-bugs audit rather than another single-constant tweak.
+    - Identified the likely remaining jump sources before editing:
+      - local prediction hard-reconcile / suppression snap paths,
+      - replication-triggered local teleport path,
+      - repeated-command queue/ack churn on `move.step` / click-to-move / follow movement,
+      - diagonal-specific queue behavior that has previously regressed.
+    - Opened a bounded ticket with focused verification on the diagonal and repeated-command paths specifically.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '1,260p' PROGRESS.md`
+    - `rg -n "diagonal|snapRender|teleportEntity|hard_reconcile|move_step_grace|remote_snap|resolveMoveBaseline|MOVE_STEP_REJECT_NON_ADJACENT|clientPendingMove|playerFollow|playerAttack|setEntityWorldPosition|prediction\\.hard_reconcile|movement\\.local_prediction_teleport" client server tests -g '!**/node_modules/**'`
+    - `git status --short`
+  - Next action:
+    - Read the client/server movement hot paths line-by-line, identify the concrete jump triggers, then patch them with targeted regressions.
+
 - 11:22 UTC
   - Ticket: 761 (Refine the client default movement profile values)
   - Start timestamp: 2026-03-07 11:18 UTC

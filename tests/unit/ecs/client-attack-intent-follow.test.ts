@@ -600,3 +600,54 @@ test('attack intent keeps follow when target is diagonal even with heavy melee w
     expect(commands).toContainEqual({ type: 'playerFollow', targetId: mob.id });
     expect(commands).not.toContainEqual({ type: 'playerAttack', targetId: mob.id });
 });
+
+test('attack intent does not enqueue duplicate follow when the same active move plan already targets the mob', () => {
+    const playerId = entityIdFromWire(51031);
+    const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
+    player.setWeaponName('axe');
+    setEntityGrid(player, 10, 10);
+
+    const mob = new Mob(entityIdFromWire(17041), Types.Entities.RAT);
+    setEntityGrid(mob, 11, 11);
+
+    const kernel = new ClientWorldKernel();
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: playerId,
+        kind: player.kind,
+        x: player.gridX,
+        y: player.gridY,
+        isPlayer: true,
+    });
+    upsertClientSpatialRecord({
+        kernel,
+        entityId: mob.id,
+        kind: mob.kind,
+        x: mob.gridX,
+        y: mob.gridY,
+        isPlayer: false,
+    });
+    kernel.setClientMovePlan({
+        requestedTo: gridPos(mob.gridX, mob.gridY),
+        target: gridPos(10, 11),
+        steps: [gridPos(10, 11)],
+        stopAdjacentToTarget: true,
+    });
+    kernel.setClientInteractionIntent({
+        kind: 'attack',
+        targetId: mob.id,
+        lastKnownTargetPos: gridPos(mob.gridX, mob.gridY),
+    });
+
+    runClientInteractionIntentSystem({
+        started: true,
+        currentTime: 1_000,
+        playerId,
+        player,
+        entities: { [String(mob.id)]: mob },
+        kernel,
+    });
+
+    const commands = kernel.drainClientCommands();
+    expect(commands).not.toContainEqual({ type: 'playerFollow', targetId: mob.id });
+});

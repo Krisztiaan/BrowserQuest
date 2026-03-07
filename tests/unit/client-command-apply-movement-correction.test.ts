@@ -306,6 +306,115 @@ test('playerGoTo ignores authoritative kernel lag when building a predicted clic
     expect(kernel.clientMovePlan?.target).toEqual(gridPos(13, 10));
 });
 
+test('repeating the same playerGoTo while it is already in flight preserves the active plan and pending acks', () => {
+    const playerId = entityIdFromWire(700121);
+    const { host, kernel, player } = createHostFixture(playerId);
+    const pathRequests: Array<{ x: number; y: number }> = [];
+
+    player.setPathRequestResolver((toX, toY) => {
+        pathRequests.push({ x: toX, y: toY });
+        return [
+            [10, 10],
+            [11, 11],
+            [12, 12],
+        ];
+    });
+
+    kernel.enqueueClientCommand({ type: 'playerGoTo', x: 12, y: 12 });
+    runClientCommandApplySystem(host);
+
+    kernel.enqueueClientPendingMoveAck(11, 11);
+    kernel.enqueueClientPendingMoveSeqAck(41);
+    const activePlan = kernel.clientMovePlan;
+    expect(activePlan).not.toBeNull();
+    if (!activePlan) {
+        throw new Error('Expected active move plan');
+    }
+    kernel.clientMovePlan = { ...activePlan, sent: true };
+
+    kernel.enqueueClientCommand({ type: 'playerGoTo', x: 12, y: 12 });
+    runClientCommandApplySystem(host);
+
+    expect(pathRequests).toEqual([{ x: 12, y: 12 }, { x: 12, y: 12 }]);
+    expect(kernel.clientPendingMoveAcks).toEqual([gridPos(11, 11)]);
+    expect(kernel.clientPendingMoveSeqAcks).toEqual([41]);
+    expect(kernel.clientMovePlan).toEqual({ ...activePlan, sent: true });
+});
+
+test('replanning with an overlapping in-flight path keeps the shared steps and only rolls in the new tail', () => {
+    const playerId = entityIdFromWire(700122);
+    const { host, kernel, player } = createHostFixture(playerId);
+
+    player.setPathRequestResolver((toX, toY) => {
+        if (toX === 13 && toY === 13) {
+            return [
+                [10, 10],
+                [11, 11],
+                [12, 12],
+                [13, 13],
+            ];
+        }
+        return [
+            [10, 10],
+            [12, 12],
+            [13, 13],
+            [14, 14],
+        ];
+    });
+
+    kernel.enqueueClientCommand({ type: 'playerGoTo', x: 13, y: 13 });
+    runClientCommandApplySystem(host);
+
+    kernel.enqueueClientPendingMoveAck(11, 11);
+    kernel.enqueueClientPendingMoveSeqAck(51);
+    player.go(13, 13);
+    kernel.enqueueClientCommand({ type: 'playerGoTo', x: 14, y: 14 });
+    runClientCommandApplySystem(host);
+
+    expect(kernel.clientPendingMoveAcks).toEqual([gridPos(11, 11)]);
+    expect(kernel.clientPendingMoveSeqAcks).toEqual([51]);
+    expect(kernel.clientMovePlan?.steps).toEqual([gridPos(11, 11), gridPos(12, 12), gridPos(13, 13), gridPos(14, 14)]);
+    expect(player.newDestination).toEqual({ x: 14, y: 14 });
+});
+
+test('replanning with a shared leading diagonal segment replaces only the diverging tail', () => {
+    const playerId = entityIdFromWire(700123);
+    const { host, kernel, player } = createHostFixture(playerId);
+
+    player.setPathRequestResolver((toX, toY) => {
+        if (toX === 14 && toY === 14) {
+            return [
+                [10, 10],
+                [11, 11],
+                [12, 12],
+                [13, 13],
+                [14, 14],
+            ];
+        }
+        return [
+            [10, 10],
+            [11, 11],
+            [12, 12],
+            [12, 13],
+            [12, 14],
+        ];
+    });
+
+    kernel.enqueueClientCommand({ type: 'playerGoTo', x: 14, y: 14 });
+    runClientCommandApplySystem(host);
+
+    kernel.enqueueClientPendingMoveAck(11, 11);
+    kernel.enqueueClientPendingMoveSeqAck(61);
+    player.go(14, 14);
+    kernel.enqueueClientCommand({ type: 'playerGoTo', x: 12, y: 14 });
+    runClientCommandApplySystem(host);
+
+    expect(kernel.clientPendingMoveAcks).toEqual([gridPos(11, 11)]);
+    expect(kernel.clientPendingMoveSeqAcks).toEqual([61]);
+    expect(kernel.clientMovePlan?.steps).toEqual([gridPos(11, 11), gridPos(12, 12), gridPos(12, 13), gridPos(12, 14)]);
+    expect(player.newDestination).toEqual({ x: 12, y: 14 });
+});
+
 test('playerStop clears queued move plan and pending move acks', () => {
     const playerId = entityIdFromWire(7006);
     const { host, kernel } = createHostFixture(playerId);

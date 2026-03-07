@@ -125,7 +125,7 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         if (hasPredictionPlan) {
             const record = kernel.clientSpatialRecords.get(id);
             if (record) {
-                const drift = Math.abs(record.gridX - pos.x) + Math.abs(record.gridY - pos.y);
+                const drift = Math.max(Math.abs(record.gridX - pos.x), Math.abs(record.gridY - pos.y));
                 if (drift <= 1) {
                     kernel.clientReplicationLastWorldPos.set(id, worldPos);
                     kernel.clientReplicationLastPos.set(id, pos);

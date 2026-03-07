@@ -256,5 +256,14 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
 
     clearClientInteractionIntentWithSideEffects(host);
     debugClicks('move', { x, y });
+    const activePlan = host.kernel.clientMovePlan;
+    if (
+        activePlan?.requestedTo.x === x &&
+        activePlan.requestedTo.y === y &&
+        activePlan.stopAdjacentToTarget === false
+    ) {
+        debugClicks('move:dedupe_active_plan', { x, y });
+        return;
+    }
     host.kernel.enqueueClientCommand({ type: 'playerGoTo', x, y });
 }

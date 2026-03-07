@@ -1,6 +1,6 @@
 # TODO Backlog
 
-Last updated: 2026-03-07 11:22 UTC
+Last updated: 2026-03-07 12:33 UTC
 Status legend: `todo` | `in_progress` | `done` | `blocked` | `deferred`
 
 This file tracks active work only.
@@ -14,6 +14,4 @@ Definition of done (per ticket):
 
 ## Active Tickets
 
-Cycle objective: tune the newly refactored movement model toward a more responsive default feel without weakening server authority or interaction consistency.
-
-- None. Current tuning slice is complete; new work should be ticketed here before implementation.
+No active tickets. History lives in `PROGRESS.md`.

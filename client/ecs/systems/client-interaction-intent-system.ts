@@ -115,6 +115,22 @@ function resolveAuthoritativeEngagementDecision({
     });
 }
 
+function hasMatchingActiveMovePlan(
+    kernel: ClientWorldKernel,
+    targetPos: { x: number; y: number },
+    stopAdjacentToTarget: boolean
+): boolean {
+    const plan = kernel.clientMovePlan;
+    if (!plan) {
+        return false;
+    }
+    return (
+        plan.requestedTo.x === targetPos.x &&
+        plan.requestedTo.y === targetPos.y &&
+        plan.stopAdjacentToTarget === stopAdjacentToTarget
+    );
+}
+
 export function runClientInteractionIntentSystem(host: ClientInteractionIntentSystemHost): void {
     if (!host.started || !host.playerId) {
         return;
@@ -271,6 +287,9 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             return;
         }
         if (hasTargetMoved || !isMoving) {
+            if (hasMatchingActiveMovePlan(host.kernel, targetPos, true)) {
+                return;
+            }
             updateAttackIntentDiagnostic({
                 playerId: host.playerId,
                 key: `follow_sent:${intent.targetId}:${targetPos.x}:${targetPos.y}`,
@@ -312,6 +331,9 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         }
         const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
         if (hasTargetMoved || !isMoving) {
+            if (hasMatchingActiveMovePlan(host.kernel, targetPos, true)) {
+                return;
+            }
             host.kernel.enqueueClientCommand({ type: 'playerTalkTo', npcId: intent.targetId });
         }
         return;
@@ -338,6 +360,9 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
     }
     const isMoving = host.kernel.clientSpatialRecords.get(host.playerId)?.isMoving ?? false;
     if (hasTargetMoved || !isMoving) {
+        if (hasMatchingActiveMovePlan(host.kernel, targetPos, true)) {
+            return;
+        }
         host.kernel.enqueueClientCommand({ type: 'playerOpenChest', chestId: intent.targetId });
     }
     return;
