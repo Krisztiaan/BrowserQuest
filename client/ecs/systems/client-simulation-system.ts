@@ -2,10 +2,12 @@ import Character from '../../character';
 import Mob from '../../mob';
 import type AnimatedTile from '../../tile';
 import type Timer from '../../timer';
-import Types from '../../../shared/gametypes-browser';
 import type { EntityId } from '../../../shared/domain/ids';
 import { SUBPIXELS, TILE_PX } from '../../../shared/world/worldpos';
+import log from '../../platform/log';
 import { resolveClientMovementNetcodeConfig } from '../../movement-netcode-config';
+import { bridgeCharacterInterpolatedLocomotion, bridgeCharacterRenderPosition, bridgeCharacterRenderTarget } from '../visual-movement-bridge';
+import { classifyInterpolationDivergence, isSnapVisualDivergenceClass } from '../visual-movement-divergence';
 
 type DirtyRect = {
     x: number;
@@ -122,6 +124,14 @@ function syncRenderedWorldPosition(host: ClientSimulationSystemHost, entity: Sim
     if (!('id' in entity) || typeof entity.id !== 'number') {
         return;
     }
+    if (entity instanceof Character) {
+        host.kernel.setClientRenderedWorldPosition?.(
+            entity.id as EntityId,
+            entity.visualState.renderWorldX,
+            entity.visualState.renderWorldY
+        );
+        return;
+    }
     if (!isInterpolatedEntity(entity)) {
         return;
     }
@@ -187,8 +197,11 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
     if (character.isMoving() && character.movement.inProgress === false) {
         // While path-stepping, keep render target aligned with the step interpolation so we don't
         // "snap back" to an old authoritative target when the path completes.
-        character.targetX = character.x;
-        character.targetY = character.y;
+        bridgeCharacterRenderTarget(character, {
+            x: character.visualState.renderX,
+            y: character.visualState.renderY,
+            mode: 'path_step',
+        });
 
         const TILE = 16;
         const dx = character.nextGridX - character.gridX;
@@ -212,29 +225,39 @@ function updateCharacter(host: ClientSimulationSystemHost, character: Character)
         character.movement.start(
             host.currentTime,
             function (d) {
-                character.x = startX + dx * d;
-                character.y = startY + dy * d;
-                character.targetX = character.x;
-                character.targetY = character.y;
+                const nextX = startX + dx * d;
+                const nextY = startY + dy * d;
+                bridgeCharacterRenderPosition(character, {
+                    x: nextX,
+                    y: nextY,
+                    velocityX: dx,
+                    velocityY: dy,
+                    mode: 'path_step',
+                });
+                bridgeCharacterRenderTarget(character, { x: nextX, y: nextY, mode: 'path_step' });
                 if (host.playerId !== null && character.id === host.playerId) {
                     host.kernel.setClientPresentationTargetWorldPosition?.(
                         character.id as EntityId,
-                        (character.x + TILE_PX / 2) * SUBPIXELS,
-                        (character.y + TILE_PX / 2) * SUBPIXELS
+                        character.visualState.renderWorldX,
+                        character.visualState.renderWorldY
                     );
                 }
                 character.hasMoved();
             },
             function () {
-                character.x = endX;
-                character.y = endY;
-                character.targetX = character.x;
-                character.targetY = character.y;
+                bridgeCharacterRenderPosition(character, {
+                    x: endX,
+                    y: endY,
+                    velocityX: dx,
+                    velocityY: dy,
+                    mode: 'path_step',
+                });
+                bridgeCharacterRenderTarget(character, { x: endX, y: endY, mode: 'path_step' });
                 if (host.playerId !== null && character.id === host.playerId) {
                     host.kernel.setClientPresentationTargetWorldPosition?.(
                         character.id as EntityId,
-                        (character.x + TILE_PX / 2) * SUBPIXELS,
-                        (character.y + TILE_PX / 2) * SUBPIXELS
+                        character.visualState.renderWorldX,
+                        character.visualState.renderWorldY
                     );
                 }
                 character.hasMoved();
@@ -255,26 +278,60 @@ function updateEntityInterpolation(host: ClientSimulationSystemHost, entity: Sim
         return;
     }
 
-    const dx = entity.targetX - entity.x;
-    const dy = entity.targetY - entity.y;
+    const renderX = entity instanceof Character ? entity.visualState.renderX : entity.x;
+    const renderY = entity instanceof Character ? entity.visualState.renderY : entity.y;
+    const targetX = entity instanceof Character ? entity.visualState.targetRenderX : entity.targetX;
+    const targetY = entity instanceof Character ? entity.visualState.targetRenderY : entity.targetY;
+    const dx = targetX - renderX;
+    const dy = targetY - renderY;
     const maxAxisDistance = Math.max(Math.abs(dx), Math.abs(dy));
     if (maxAxisDistance < 0.01) {
         return;
     }
 
-    const prevX = entity.x;
-    const prevY = entity.y;
+    const prevX = renderX;
+    const prevY = renderY;
     const isLocalPlayer = entity instanceof Character && host.playerId !== null && entity.id === host.playerId;
     const config = resolveClientMovementNetcodeConfig();
     const tuning = config.tuning;
 
-    // Large drift: snap immediately (eg teleport/correction).
-    const snapDistancePx = isLocalPlayer
-        ? tuning.localPresentationSnapDistancePx
-        : tuning.remotePresentationSnapDistancePx;
-    if (maxAxisDistance > snapDistancePx) {
-        entity.x = entity.targetX;
-        entity.y = entity.targetY;
+    const divergenceClass = classifyInterpolationDivergence({
+        isLocalPlayer,
+        maxAxisDistancePx: maxAxisDistance,
+    });
+    if (entity instanceof Character) {
+        entity.setVisualDivergenceClass(divergenceClass);
+    }
+
+    if (isSnapVisualDivergenceClass(divergenceClass)) {
+        if (entity instanceof Character) {
+            log.warn({
+                scope: 'movement_presentation',
+                level: 'warn',
+                event: 'movement.visual_recovery_snap',
+                entityId: entity.id,
+                profile: config.profileId,
+                isLocalPlayer,
+                divergenceClass,
+                maxAxisDistancePx: maxAxisDistance,
+                renderX,
+                renderY,
+                targetX,
+                targetY,
+            });
+        }
+        if (entity instanceof Character) {
+            bridgeCharacterRenderPosition(entity, {
+                x: targetX,
+                y: targetY,
+                velocityX: 0,
+                velocityY: 0,
+                mode: 'snap',
+            });
+        } else {
+            entity.x = targetX;
+            entity.y = targetY;
+        }
     } else {
         let blend = lerpAlpha(dtMs, tuning.remotePresentationTauMs);
         if (isLocalPlayer && config.rollout.localPresentationMotor) {
@@ -288,25 +345,27 @@ function updateEntityInterpolation(host: ClientSimulationSystemHost, entity: Sim
             }
         }
 
-        entity.x = entity.x + dx * blend;
-        entity.y = entity.y + dy * blend;
+        const nextRenderX = renderX + dx * blend;
+        const nextRenderY = renderY + dy * blend;
+        if (entity instanceof Character) {
+            bridgeCharacterRenderPosition(entity, {
+                velocityX: nextRenderX - renderX,
+                velocityY: nextRenderY - renderY,
+                x: nextRenderX,
+                y: nextRenderY,
+                mode: 'interpolate',
+            });
+        } else {
+            entity.x = nextRenderX;
+            entity.y = nextRenderY;
+        }
     }
 
     if (entity instanceof Character) {
-        const movedX = entity.x - prevX;
-        const movedY = entity.y - prevY;
-        const moved = Math.abs(movedX) + Math.abs(movedY);
+        const movedX = entity.visualState.renderX - prevX;
+        const movedY = entity.visualState.renderY - prevY;
         if (!entity.isAttacking()) {
-            if (moved > 0.05) {
-                // 4-dir sprite facing: choose dominant axis.
-                if (Math.abs(movedX) >= Math.abs(movedY)) {
-                    entity.walk(movedX < 0 ? Types.Orientations.LEFT : Types.Orientations.RIGHT);
-                } else {
-                    entity.walk(movedY < 0 ? Types.Orientations.UP : Types.Orientations.DOWN);
-                }
-            } else {
-                entity.idle();
-            }
+            bridgeCharacterInterpolatedLocomotion(entity, { movedX, movedY, movingThresholdPx: 0.05 });
         }
         entity.hasMoved();
     } else {
@@ -342,11 +401,15 @@ function updateZoning(host: ClientSimulationSystemHost): void {
     let offset = 0;
     let updateFunc: ((value: number) => void) | null = null;
     let endFunc: (() => void) | null = null;
+    const ORIENTATION_UP = 1;
+    const ORIENTATION_DOWN = 2;
+    const ORIENTATION_LEFT = 3;
+    const ORIENTATION_RIGHT = 4;
 
-    if (orientation === Types.Orientations.LEFT || orientation === Types.Orientations.RIGHT) {
+    if (orientation === ORIENTATION_LEFT || orientation === ORIENTATION_RIGHT) {
         offset = (c.gridW - 2) * ts;
-        startValue = orientation === Types.Orientations.LEFT ? c.x - ts : c.x + ts;
-        endValue = orientation === Types.Orientations.LEFT ? c.x - offset : c.x + offset;
+        startValue = orientation === ORIENTATION_LEFT ? c.x - ts : c.x + ts;
+        endValue = orientation === ORIENTATION_LEFT ? c.x - offset : c.x + offset;
         updateFunc = function (x: number) {
             c.setPosition(x, c.y);
             host.initAnimatedTiles();
@@ -356,10 +419,10 @@ function updateZoning(host: ClientSimulationSystemHost): void {
             c.setPosition(z.endValue, c.y);
             host.endZoning();
         };
-    } else if (orientation === Types.Orientations.UP || orientation === Types.Orientations.DOWN) {
+    } else if (orientation === ORIENTATION_UP || orientation === ORIENTATION_DOWN) {
         offset = (c.gridH - 2) * ts;
-        startValue = orientation === Types.Orientations.UP ? c.y - ts : c.y + ts;
-        endValue = orientation === Types.Orientations.UP ? c.y - offset : c.y + offset;
+        startValue = orientation === ORIENTATION_UP ? c.y - ts : c.y + ts;
+        endValue = orientation === ORIENTATION_UP ? c.y - offset : c.y + offset;
         updateFunc = function (y: number) {
             c.setPosition(c.x, y);
             host.initAnimatedTiles();

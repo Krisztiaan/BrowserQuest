@@ -218,13 +218,208 @@ Target movement layering:
   - Presentation motor that follows a bounded blend of predicted and authoritative state.
   - May accelerate/decelerate or “catch up” smoothly rather than snapping.
 
+### 0.0.b Visual movement decoupling execution refinement (2026-03-07)
+
+The next refactor phase should push the current partial movement split into a stricter separation between:
+
+- `gameplay truth`
+  - authoritative server state,
+  - client prediction state,
+  - combat / interaction / occupancy truth.
+- `visual motion`
+  - render-only position,
+  - render-only velocity,
+  - render-only facing,
+  - visual movement mode/state machine.
+- `bridge policy`
+  - maps truth deltas into visual behavior classes rather than directly mutating visible position.
+
+The key architectural problem in the current client is that `client/character.ts` still mixes:
+
+- gameplay-ish movement/path state,
+- visible render state,
+- facing/animation decisions,
+- and some combat presentation behavior.
+
+That is not the desired end state. The idiomatic target is:
+
+- `ClientWorldKernel` + ECS systems own gameplay truth.
+- `Character` (or a successor visual actor object) owns presentation only.
+- one bridge layer translates gameplay deltas into visual state transitions.
+
+The intended visual recovery classes are:
+
+- `smooth`
+  - ordinary locomotion and small prediction drift; never visibly snaps.
+- `catch_up`
+  - moderate divergence; render motor accelerates or settles without changing gameplay truth.
+- `hard_catch_up`
+  - larger but still plausible divergence; may use dash-like presentation without pretending gameplay moved differently.
+- `teleport`
+  - explicit discontinuity class for map transitions, teleports, and impossible corrections.
+
+Animation ownership should follow the visual state machine, not raw tile-step truth:
+
+- movement start/stop should be driven by visual mode transitions,
+- facing should be sticky/hysteretic in the visual layer,
+- future dash/teleport variants should hang off the visual state machine rather than gameplay code paths.
+
+Execution is ticketed in `TODO.md` as Tickets 766–773.
+
 Design constraints:
 
 - Never let both client prediction and server authority write the same state surface directly.
 - Prefer slight remote undershoot over overshoot-and-snap-back.
 - Keep hard snaps for teleports, impossible movement, or large discontinuities only.
-- Use bounded validation envelopes on the server, not blind trust in client coordinates.
-- Add small grace windows for attack/loot/talk/open based on recent validated movement, not purely rendered client position.
+
+Idiomatic extraction rules for this cycle:
+
+- `Character` must stop being treated as a source of gameplay movement truth.
+- raw tile/path truth should not be used directly as render truth.
+- ordinary movement code must not directly mutate visible position from multiple places.
+- movement-facing and locomotion animation must have one visual owner.
+- teleport/discontinuity handling must be explicit, not “large movement with a different threshold”.
+
+Concrete extraction target:
+
+1. `Gameplay movement state`
+   - lives in kernel / ECS state only,
+   - includes authoritative positions, predicted positions, move plans, combat/interaction truth.
+
+2. `Visual actor state`
+   - lives on `Character` or an attached visual-state object only,
+   - includes render position, velocity, facing, visual movement mode, animation-facing state.
+
+3. `Visual bridge`
+   - the only place allowed to translate gameplay movement deltas into visual targets/recovery classes,
+   - ordinary movement systems publish into the bridge instead of directly mutating visible motion.
+
+4. `Visual motor`
+   - owns continuity, damping, catch-up, dash-like recovery, and teleport entry points.
+
+5. `Animation state machine`
+   - consumes the visual actor state,
+   - not raw kernel tile transitions,
+   - not opportunistic `walk()/idle()/turnTo()` calls from multiple systems.
+
+Initial extraction map from current `Character` fields:
+
+- stays visual or visual-adjacent:
+  - `x`, `y`
+  - `targetX`, `targetY`
+  - `worldX`, `worldY`
+  - `orientation`
+  - `flipSpriteX`, `flipSpriteY`
+  - `currentAnimation`
+  - `visible`
+  - `movement` (until a dedicated visual motor fully replaces it)
+
+- legacy mixed state to isolate behind the bridge:
+  - `nextGridX`, `nextGridY`
+  - `path`
+  - `step`
+  - `newDestination`
+  - `destination`
+  - `adjacentTiles`
+
+- gameplay leakage that should eventually stop living on the visual actor:
+  - `hitPoints`, `maxHitPoints`
+  - `isDead`, `isDying`
+  - `attackingMode`, `followingMode`, `interrupted`
+  - `target`, `unconfirmedTarget`, `previousTarget`, `attackers`
+
+Initial direct ordinary visual-write inventory to migrate:
+
+- position:
+  - `Entity.setGridPosition`
+  - `Entity.setWorldPositionSub`
+  - `client/ecs/systems/client-simulation-system.ts`
+  - `client/ecs/systems/client-command-apply-system.ts`
+  - `client/ecs/systems/client-move-input-prediction-system.ts`
+
+- facing / locomotion:
+  - `Character.turnTo`
+  - `Character.idle`
+  - `Character.walk`
+  - `Character.updateMovement`
+  - `client/ecs/systems/client-simulation-system.ts`
+  - `client/ecs/systems/client-combat-system.ts`
+
+Execution order for an average fast developer:
+
+1. classify and label the existing mixed state,
+2. add the new visual actor state surface,
+3. add the bridge skeleton,
+4. migrate local ordinary movement,
+5. migrate remote ordinary movement,
+6. centralize divergence classes,
+7. move facing/locomotion animation ownership,
+8. finish with tuning/logging/residue docs.
+
+Current residue after Tickets 766-773:
+
+- `Character` is now much closer to a visual actor, but it still carries mixed gameplay-adjacent state:
+  - combat targeting/attacker bookkeeping,
+  - hp/death flags,
+  - path/grid progression metadata used by legacy systems.
+- Ordinary movement-facing and locomotion ownership are centralized through the visual bridge and `Character` visual-actor APIs, but explicit non-movement overrides remain intentionally allowed from:
+  - combat/interaction turns,
+  - door/zoning orientation handling,
+  - explicit teleport/discontinuity recovery.
+- Non-character entities still bypass the bridge and use legacy interpolation/mutation paths.
+- `teleportEntity` remains the explicit gameplay-to-visual discontinuity boundary; that is intentional and should not be “smoothed away”.
+- The current tuning/logging layer is sufficient for iteration without reopening structure:
+  - divergence classes are named,
+  - recovery snaps are logged,
+  - movement profile tuning remains centralized in `shared/netcode/movement-tuning.ts`.
+
+Per-ticket implementation bias:
+
+- prefer additive extraction over in-place clever rewrites,
+- prefer one new owner plus adapters over changing four old owners at once,
+- leave explicit comments where legacy coupling remains,
+- do not mix “move ownership” and “tuning feel” in the same code change unless the ticket says so.
+
+Specific legacy couplings to remove over this cycle:
+
+- direct visible-position writes from ordinary movement inside:
+  - replication sync,
+  - command apply,
+  - local prediction,
+  - simulation.
+- path/follow/replan logic assuming that restarting gameplay path state should restart visible motion immediately.
+- movement-facing derived directly from one raw step when the visual layer should own hysteresis.
+
+Allowed explicit exceptions:
+
+- map transition / teleport / impossible discontinuity classes may still snap.
+- explicit non-movement facing commands (for example turning to a combat target while stationary) may bypass locomotion-facing ownership, but should do so through a clearly named path.
+
+Anti-goals for this phase:
+
+- not changing server authority,
+- not introducing client-truth gameplay,
+- not adding fallback movement code paths,
+- not burying architectural coupling under more tuning constants.
+
+Guardrails retained from the earlier movement refactor:
+
+- use bounded validation envelopes on the server, not blind trust in client coordinates.
+- add small grace windows for attack/loot/talk/open based on recent validated movement, not purely rendered client position.
+
+Operational checklist for each implementation ticket:
+
+- macro check:
+  - did ownership get simpler?
+  - is there now one clearer place to look for this concern?
+- micro check:
+  - which direct-write paths were removed?
+  - which legacy paths remain, and are they documented?
+  - which tests prove the new owner works?
+- regression check:
+  - did we accidentally re-couple `Character` to gameplay truth?
+  - did we add a new ad hoc render write outside the bridge?
+  - did we turn a visual exception into a gameplay rule by mistake?
 
 Gameplay-tier recommendation:
 

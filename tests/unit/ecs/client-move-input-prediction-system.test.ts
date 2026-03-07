@@ -5,6 +5,7 @@ import { MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_W } from '../../../shared/protocol/int
 import { tileToWorldPosCenter } from '../../../shared/world/worldpos';
 import { ClientWorldKernel } from '../../../client/ecs/world-kernel';
 import { runClientMoveInputPredictionSystem } from '../../../client/ecs/systems/client-move-input-prediction-system';
+import { worldCenterToPixelTopLeft } from '../../../client/visual-character-state';
 
 test('move-input prediction does not move local player in lockstep mode', () => {
     const kernel = new ClientWorldKernel();
@@ -28,7 +29,7 @@ test('move-input prediction does not move local player in lockstep mode', () => 
     kernel.pressClientMoveInputKey(MOVE_INPUT_KEY_D);
     kernel.setClientMovementNetcodeMode('lockstep');
 
-    let setWorldPositionSubCalls = 0;
+    let setVisualCalls = 0;
     runClientMoveInputPredictionSystem({
         started: true,
         currentTime: 1_100,
@@ -42,8 +43,12 @@ test('move-input prediction does not move local player in lockstep mode', () => 
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
-            setWorldPositionSub: () => {
-                setWorldPositionSubCalls += 1;
+            setVisualDivergenceClass: () => {},
+            setVisualRenderTarget: () => {
+                setVisualCalls += 1;
+            },
+            setVisualRenderPosition: () => {
+                setVisualCalls += 1;
             },
         },
         map: {
@@ -57,7 +62,7 @@ test('move-input prediction does not move local player in lockstep mode', () => 
         isZoningTile: () => false,
     });
 
-    expect(setWorldPositionSubCalls).toBe(0);
+    expect(setVisualCalls).toBe(0);
     expect(kernel.clientPredictedWorldPos).toBeNull();
 });
 
@@ -65,7 +70,8 @@ test('move-input prediction updates local player target without render snapping'
     const kernel = new ClientWorldKernel();
     const playerId = entityIdFromWire(2);
     const start = tileToWorldPosCenter(10, 10);
-    const setWorldPositionSubCalls: Array<{ worldX: number; worldY: number; snapRender: boolean }> = [];
+    const setVisualRenderTargetCalls: Array<{ x: number; y: number; mode: string | undefined }> = [];
+    let divergenceClass = '';
 
     kernel.upsertFromSpawnSnapshot({
         id: 2,
@@ -96,8 +102,14 @@ test('move-input prediction updates local player target without render snapping'
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
-            setWorldPositionSub: (worldX: number, worldY: number, options?: { snapRender?: boolean }) => {
-                setWorldPositionSubCalls.push({ worldX, worldY, snapRender: options?.snapRender === true });
+            setVisualDivergenceClass: (next: string) => {
+                divergenceClass = next;
+            },
+            setVisualRenderTarget: (x: number, y: number, mode?: string) => {
+                setVisualRenderTargetCalls.push({ x, y, mode });
+            },
+            setVisualRenderPosition: () => {
+                throw new Error('Prediction should not snap local render position during ordinary move input');
             },
         },
         map: {
@@ -111,9 +123,10 @@ test('move-input prediction updates local player target without render snapping'
         isZoningTile: () => false,
     });
 
-    expect(setWorldPositionSubCalls).toHaveLength(1);
-    expect(setWorldPositionSubCalls[0]?.worldX).toBeGreaterThan(start.x);
-    expect(setWorldPositionSubCalls[0]?.snapRender).toBe(false);
+    expect(setVisualRenderTargetCalls).toHaveLength(1);
+    expect(setVisualRenderTargetCalls[0]?.x).toBeGreaterThan(worldCenterToPixelTopLeft(start.x, start.y).x);
+    expect(setVisualRenderTargetCalls[0]?.mode).toBe('interpolate');
+    expect(divergenceClass).toBe('ordinary');
     expect(kernel.clientPredictedWorldPos).not.toBeNull();
 });
 
@@ -121,7 +134,7 @@ test('move-input prediction resumes from the local presentation target instead o
     const kernel = new ClientWorldKernel();
     const playerId = entityIdFromWire(22);
     const start = tileToWorldPosCenter(10, 10);
-    let predictedWorldX = 0;
+    let predictedRenderX = 0;
 
     kernel.upsertFromSpawnSnapshot({
         id: 22,
@@ -153,8 +166,12 @@ test('move-input prediction resumes from the local presentation target instead o
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
-            setWorldPositionSub: (worldX: number) => {
-                predictedWorldX = worldX;
+            setVisualDivergenceClass: () => {},
+            setVisualRenderTarget: (x: number) => {
+                predictedRenderX = x;
+            },
+            setVisualRenderPosition: () => {
+                throw new Error('Prediction should not snap local render position while resuming movement');
             },
         },
         map: {
@@ -168,14 +185,14 @@ test('move-input prediction resumes from the local presentation target instead o
         isZoningTile: () => false,
     });
 
-    expect(predictedWorldX).toBeGreaterThan(start.x + 1024);
+    expect(predictedRenderX).toBeGreaterThan(worldCenterToPixelTopLeft(start.x + 1024, start.y).x);
 });
 
 test('move-input prediction ignores tiny authoritative drift inside deadzone', () => {
     const kernel = new ClientWorldKernel();
     const playerId = entityIdFromWire(3);
     const start = tileToWorldPosCenter(10, 10);
-    let predictedWorldX = 0;
+    let predictedRenderX = 0;
 
     kernel.upsertFromSpawnSnapshot({
         id: 3,
@@ -206,8 +223,12 @@ test('move-input prediction ignores tiny authoritative drift inside deadzone', (
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
-            setWorldPositionSub: (worldX: number) => {
-                predictedWorldX = worldX;
+            setVisualDivergenceClass: () => {},
+            setVisualRenderTarget: (x: number) => {
+                predictedRenderX = x;
+            },
+            setVisualRenderPosition: () => {
+                throw new Error('Prediction should not snap local render position for tiny drift');
             },
         },
         map: {
@@ -221,16 +242,17 @@ test('move-input prediction ignores tiny authoritative drift inside deadzone', (
         isZoningTile: () => false,
     });
 
-    expect(predictedWorldX).toBeGreaterThan(start.x + 2 * 256);
-    expect(predictedWorldX).toBeLessThan(start.x + 2048);
+    expect(predictedRenderX).toBeGreaterThan(worldCenterToPixelTopLeft(start.x + 2 * 256, start.y).x);
+    expect(predictedRenderX).toBeLessThan(worldCenterToPixelTopLeft(start.x + 2048, start.y).x);
 });
 
 test('move-input prediction treats diagonal authority drift with the same deadzone feel as cardinal drift', () => {
     const kernel = new ClientWorldKernel();
     const playerId = entityIdFromWire(4);
     const start = tileToWorldPosCenter(10, 10);
-    let predictedWorldX = 0;
-    let predictedWorldY = 0;
+    let predictedRenderX = 0;
+    let predictedRenderY = 0;
+    let divergenceClass = '';
 
     kernel.upsertFromSpawnSnapshot({
         id: 4,
@@ -262,9 +284,15 @@ test('move-input prediction treats diagonal authority drift with the same deadzo
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
-            setWorldPositionSub: (worldX: number, worldY: number) => {
-                predictedWorldX = worldX;
-                predictedWorldY = worldY;
+            setVisualDivergenceClass: (next: string) => {
+                divergenceClass = next;
+            },
+            setVisualRenderTarget: (x: number, y: number) => {
+                predictedRenderX = x;
+                predictedRenderY = y;
+            },
+            setVisualRenderPosition: () => {
+                throw new Error('Prediction should not snap local render position for diagonal drift');
             },
         },
         map: {
@@ -278,6 +306,7 @@ test('move-input prediction treats diagonal authority drift with the same deadzo
         isZoningTile: () => false,
     });
 
-    expect(predictedWorldX).toBe(start.x + 1405);
-    expect(predictedWorldY).toBe(start.y - 1405);
+    expect(predictedRenderX).toBe(worldCenterToPixelTopLeft(start.x + 1405, start.y - 1405).x);
+    expect(predictedRenderY).toBe(worldCenterToPixelTopLeft(start.x + 1405, start.y - 1405).y);
+    expect(divergenceClass).toBe('ordinary');
 });

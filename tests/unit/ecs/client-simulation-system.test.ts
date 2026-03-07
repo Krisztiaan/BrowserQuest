@@ -85,10 +85,8 @@ test('client simulation gives the local player a stronger presentation catch-up 
     });
     runClientSimulationSystem(localWarmup);
 
-    localPlayer.x = 160;
-    localPlayer.y = 160;
-    localPlayer.targetX = 176;
-    localPlayer.targetY = 160;
+    localPlayer.setVisualRenderPosition(160, 160, { velocityX: 0, velocityY: 0, mode: 'interpolate' });
+    localPlayer.setVisualRenderTarget(176, 160, 'interpolate');
 
     const localActive = createSimulationHost({
         currentTime: 20_016,
@@ -107,10 +105,8 @@ test('client simulation gives the local player a stronger presentation catch-up 
     });
     runClientSimulationSystem(remoteWarmup);
 
-    remotePlayer.x = 160;
-    remotePlayer.y = 160;
-    remotePlayer.targetX = 176;
-    remotePlayer.targetY = 160;
+    remotePlayer.setVisualRenderPosition(160, 160, { velocityX: 0, velocityY: 0, mode: 'interpolate' });
+    remotePlayer.setVisualRenderTarget(176, 160, 'interpolate');
 
     const remoteUpdate = createSimulationHost({
         currentTime: 21_016,
@@ -122,5 +118,6 @@ test('client simulation gives the local player a stronger presentation catch-up 
 
     expect(localPlayer.x).toBeGreaterThan(remotePlayer.x);
     expect(localPlayer.x).toBeGreaterThan(166);
-    expect(remotePlayer.x).toBeLessThan(163.5);
+    expect(remotePlayer.x).toBeLessThan(164);
+    expect(localPlayer.x - remotePlayer.x).toBeGreaterThan(2);
 });

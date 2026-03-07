@@ -107,6 +107,386 @@ Format per entry:
 
 ## 2026-03-07
 
+- 14:56 UTC
+  - Ticket: 773 (Finish with tuning, instrumentation, and remaining-coupling notes)
+  - Start timestamp: 2026-03-07 14:52 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Re-audited the end-state after the bridge/facing refinements instead of assuming the earlier closure entry still matched reality.
+    - Kept tuning ownership on the existing netcode config/profile surfaces and confirmed visual recovery logging still reports divergence class context.
+    - Updated the residue documentation so it now reflects the latest ownership correctly:
+      - ordinary locomotion enters through the bridge,
+      - explicit non-movement turns remain intentional bypasses,
+      - non-character entities remain the main legacy render path.
+    - Cleared `TODO.md` again after the verification pass.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-movement-netcode-config.test.ts tests/unit/server-movement-netcode-config.test.ts tests/unit/server-log.test.ts tests/unit/client-visual-movement-divergence.test.ts tests/unit/ecs/client-simulation-system.test.ts`
+    - `bun x eslint client/movement-netcode-config.ts client/platform/log.ts server/movement-netcode-config.ts shared/netcode/movement-tuning.ts client/ecs/visual-movement-divergence.ts client/ecs/visual-movement-bridge.ts client/ecs/systems/client-simulation-system.ts`
+    - `sed -n '356,388p' mmo-plan.md`
+  - Next action:
+    - None (cycle complete; active backlog cleared from `TODO.md`).
+
+- 14:53 UTC
+  - Ticket: 772 (Make movement-facing and locomotion animation bridge-owned)
+  - Start timestamp: 2026-03-07 14:44 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Finished the ownership cleanup by moving ordinary path/interpolated locomotion decisions behind bridge helpers:
+      - `bridgeCharacterPathLocomotion`,
+      - `bridgeCharacterInterpolatedLocomotion`.
+    - Rewired `Character.applyOrdinaryMovementVisuals` to delegate to the bridge-owned sticky-facing contract instead of keeping a second local resolver.
+    - Rewired `client-simulation-system.ts` so interpolation churn now feeds the bridge helper directly instead of deciding walk/idle inline.
+    - Added focused bridge coverage for sticky path-facing plus interpolated walk/idle ownership.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-character-facing.test.ts tests/unit/ecs/client-simulation-system.test.ts tests/unit/client-visual-movement-bridge.test.ts`
+    - `bun x eslint client/character.ts client/ecs/systems/client-simulation-system.ts client/ecs/visual-movement-bridge.ts client/visual-character-state.ts tests/unit/client-character-facing.test.ts tests/unit/client-visual-movement-bridge.test.ts`
+  - Next action:
+    - Re-audit Ticket 773 residue/logging against the final bridge-owned locomotion structure.
+
+- 14:49 UTC
+  - Ticket: 773 (Finish with tuning, instrumentation, and remaining-coupling notes)
+  - Start timestamp: 2026-03-07 14:45 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added visual-layer recovery logging in `client-simulation-system.ts` so large presentation snaps now report:
+      - divergence class,
+      - local/remote context,
+      - render and target positions,
+      - active movement profile.
+    - Kept tuning ownership centralized in the existing movement profile/config surfaces instead of opening new structural knobs.
+    - Documented the post-cycle residue explicitly in:
+      - `client/ecs/visual-movement-bridge.ts`,
+      - `mmo-plan.md`,
+      so future work has a concrete list of what still intentionally bypasses the ordinary movement path.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-movement-netcode-config.test.ts tests/unit/server-movement-netcode-config.test.ts tests/unit/server-log.test.ts tests/unit/client-visual-movement-divergence.test.ts tests/unit/ecs/client-simulation-system.test.ts`
+    - `bun x eslint client/movement-netcode-config.ts client/platform/log.ts server/movement-netcode-config.ts shared/netcode/movement-tuning.ts client/ecs/visual-movement-divergence.ts client/ecs/visual-movement-bridge.ts client/ecs/systems/client-simulation-system.ts`
+  - Next action:
+    - None (cycle complete; active backlog cleared from `TODO.md`).
+
+- 14:43 UTC
+  - Ticket: 772 (Make movement-facing and locomotion animation bridge-owned)
+  - Start timestamp: 2026-03-07 14:40 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added explicit visual locomotion ownership on `Character` through:
+      - `applyOrdinaryMovementVisuals`,
+      - `applyOrdinaryIdleVisuals`,
+      - `visualLocomotionState`.
+    - Moved ordinary path-step facing/locomotion decisions from raw `walk()/idle()` calls to the new visual-owner methods inside `Character`.
+    - Updated `client-simulation-system.ts` so ordinary interpolation now feeds movement deltas into the visual-owner methods instead of choosing facing directly in the system.
+    - Added focused tests covering:
+      - stair-step diagonal stickiness,
+      - clear-cardinal turns,
+      - stop/start churn,
+      - explicit turn overrides remaining allowed.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-character-facing.test.ts tests/unit/ecs/client-simulation-system.test.ts`
+    - `bun x eslint client/character.ts client/visual-character-state.ts client/ecs/systems/client-simulation-system.ts tests/unit/client-character-facing.test.ts`
+  - Next action:
+    - Start Ticket 773: finish with tuning/logging and explicit residue notes.
+
+- 14:34 UTC
+  - Ticket: 771 (Centralize divergence classes and recovery semantics)
+  - Start timestamp: 2026-03-07 14:34 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added a dedicated `visual-movement-divergence.ts` contract so remote discontinuities, prediction hard reconciles, suppressed resyncs, and teleports are named explicitly instead of inferred from scattered booleans and thresholds.
+    - Extended the visual actor state with `visualDivergenceClass` and taught the bridge to map divergence class -> visual recovery behavior.
+    - Updated local prediction, replication sync, and `setEntityWorldPosition` handling to publish/use explicit divergence classes while keeping teleports on the separate `teleportEntity` path.
+    - Added focused divergence tests and expanded bridge/replication regressions to assert the named classes.
+  - Evidence:
+    - `sed -n '1,240p' client/ecs/visual-movement-divergence.ts`
+    - `sed -n '1,220p' client/ecs/visual-movement-bridge.ts`
+    - `sed -n '1,240p' client/ecs/client-commands.ts`
+    - `bun test --timeout 30000 tests/unit/client-kernel-despawn-sync.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-visual-movement-bridge.test.ts tests/unit/client-visual-movement-divergence.test.ts`
+    - `bun x eslint client/ecs/systems/client-kernel-replication-sync-system.ts client/ecs/systems/client-command-apply-system.ts client/ecs/systems/client-move-input-prediction-system.ts client/ecs/visual-movement-bridge.ts client/ecs/visual-movement-divergence.ts client/character.ts client/visual-character-state.ts client/ecs/client-commands.ts tests/unit/client-kernel-despawn-sync.test.ts tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/client-visual-movement-bridge.test.ts tests/unit/client-visual-movement-divergence.test.ts`
+  - Next action:
+    - Start Ticket 772: move ordinary movement-facing and locomotion animation choices behind the visual state/bridge path.
+
+- 14:27 UTC
+  - Ticket: 770 (Migrate remote-player ordinary movement into the bridge)
+  - Start timestamp: 2026-03-07 14:27 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Audited the remaining remote ordinary movement path and narrowed the still-coupled write to `client-kernel-replication-sync-system.ts -> setEntityWorldPosition -> Character.setWorldPositionSub`.
+    - Reworked `setEntityWorldPosition` handling in `client-command-apply-system.ts` so `Character` instances now consume remote ordinary movement through `visual-movement-bridge.ts` instead of direct `setWorldPositionSub`.
+    - Kept non-character entities on the legacy path and kept explicit `snapRender` handling separate from ordinary interpolation.
+    - Added focused regression coverage for:
+      - remote ordinary target-only updates,
+      - remote snap updates through the bridge.
+  - Evidence:
+    - `sed -n '1,320p' client/ecs/systems/client-kernel-replication-sync-system.ts`
+    - `sed -n '1260,1360p' client/ecs/systems/client-command-apply-system.ts`
+    - `bun test --timeout 30000 tests/unit/client-kernel-despawn-sync.test.ts tests/unit/client-world-kernel.test.ts tests/unit/ecs/client-simulation-system.test.ts tests/unit/client-command-apply-movement-correction.test.ts`
+    - `bun x eslint client/ecs/systems/client-kernel-replication-sync-system.ts client/ecs/systems/client-simulation-system.ts client/ecs/systems/client-command-apply-system.ts client/ecs/visual-movement-bridge.ts client/character.ts tests/unit/client-command-apply-movement-correction.test.ts`
+  - Next action:
+    - Start Ticket 771: centralize divergence classes so ordinary movement and discontinuity recovery no longer share ad hoc snap heuristics.
+
+- 14:21 UTC
+  - Ticket: 769 (Migrate local-player ordinary movement into the bridge)
+  - Start timestamp: 2026-03-07 14:21 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Resumed the partially migrated local prediction slice and confirmed `client-move-input-prediction-system.ts` now routes its ordinary target updates and suppression snaps through `visual-movement-bridge.ts`.
+    - Audited the Ticket 769 local scope against current write paths to distinguish ordinary local movement from later remote/discontinuity work.
+    - Confirmed the focused local prediction regression file is already aligned with the bridge-owned visual API.
+    - Verified the full local slice:
+      - local prediction,
+      - local presentation simulation,
+      - local continuity/replan regressions in command apply.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/ecs/client-move-input-prediction-system.test.ts`
+    - `rg -n "setWorldPositionSub\\(|setVisualRender(Position|Target)\\(|bridgeCharacterRender" client/ecs/systems/client-command-apply-system.ts client/ecs/systems/client-move-input-prediction-system.ts client/ecs/systems/client-simulation-system.ts client/character.ts`
+    - `bun test --timeout 30000 tests/unit/client-command-apply-movement-correction.test.ts tests/unit/ecs/client-move-input-prediction-system.test.ts tests/unit/ecs/client-simulation-system.test.ts`
+    - `bun x eslint client/ecs/systems/client-move-input-prediction-system.ts client/ecs/systems/client-simulation-system.ts client/character.ts client/ecs/visual-movement-bridge.ts client/visual-character-state.ts tests/unit/ecs/client-move-input-prediction-system.test.ts`
+  - Next action:
+    - Start Ticket 770: migrate remote ordinary movement into the bridge and remove remaining non-discontinuity remote render writes outside the bridge.
+
+- 14:18 UTC
+  - Ticket: 768 (Add the visual bridge skeleton and make it the only new write path)
+  - Start timestamp: 2026-03-07 14:12 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added [visual-movement-bridge.ts](/Users/krisztiaan/dev/BrowserQuest/client/ecs/visual-movement-bridge.ts) as the first dedicated gameplay-to-visual bridge surface.
+    - Routed the ordinary movement render writes inside [client-simulation-system.ts](/Users/krisztiaan/dev/BrowserQuest/client/ecs/systems/client-simulation-system.ts) through the bridge instead of calling `Character` visual mutation APIs directly from the system body.
+    - Added explicit remaining-migration notes in the bridge header for the ordinary direct-write paths still outside the bridge.
+    - Added focused unit coverage proving the bridge updates visual state and compatibility render fields together.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-visual-movement-bridge.test.ts tests/unit/ecs/client-simulation-system.test.ts tests/unit/client-world-kernel.test.ts`
+    - `bun x eslint client/ecs/visual-movement-bridge.ts client/ecs/systems/client-simulation-system.ts client/character.ts tests/unit/client-visual-movement-bridge.test.ts`
+  - Next action:
+    - Start Ticket 769: migrate local-player ordinary movement into the bridge.
+
+- 14:12 UTC
+  - Ticket: 768 (Add the visual bridge skeleton and make it the only new write path)
+  - Start timestamp: 2026-03-07 14:12 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Added a first dedicated bridge module at `client/ecs/visual-movement-bridge.ts`.
+    - Routed the existing ordinary movement writes inside `client-simulation-system.ts` through the bridge instead of calling `Character` visual mutation APIs directly from the system body.
+    - Added an explicit remaining-migrations note in the bridge module header for the non-bridge direct ordinary movement write paths still left to move in later tickets.
+    - Added focused unit coverage for the bridge-owned write path.
+  - Evidence:
+    - `sed -n '1,220p' client/ecs/visual-movement-bridge.ts`
+    - `sed -n '180,330p' client/ecs/systems/client-simulation-system.ts`
+  - Next action:
+    - Run focused verification/lint, then close Ticket 768 and continue into local-player migration if the code is stable.
+
+- 14:03 UTC
+  - Ticket: 767 (Introduce `VisualCharacterState` and visual-actor APIs)
+  - Start timestamp: 2026-03-07 13:55 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added [visual-character-state.ts](/Users/krisztiaan/dev/BrowserQuest/client/visual-character-state.ts) with a named `VisualCharacterState` surface:
+      - render position,
+      - target render position,
+      - render world position,
+      - target render world position,
+      - render velocity,
+      - render facing,
+      - visual movement mode.
+    - Wired `Character` to own that state and expose minimal visual-actor APIs:
+      - `setVisualRenderPosition`,
+      - `setVisualRenderTarget`,
+      - `setVisualFacing`,
+      - `applyVisualStateToLegacyRenderFields`,
+      - `resyncVisualStateFromLegacyRenderFields`.
+    - Kept legacy render fields (`x/y/targetX/targetY/orientation`) synchronized for compatibility instead of trying to remove them in the same ticket.
+    - Updated `client-simulation-system.ts` to prefer `visualState` as the render source for `Character` interpolation/path stepping while still syncing legacy fields for the rest of the codebase.
+    - Added/updated focused coverage proving:
+      - visual actor state can diverge from target render state without collapsing legacy fields,
+      - simulation still uses the stronger local-vs-remote catch-up contract.
+    - Adjusted the simulation assertion away from an over-pinned float threshold and toward the actual intended contract.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-character-facing.test.ts tests/unit/client-world-kernel.test.ts tests/unit/ecs/client-simulation-system.test.ts`
+    - `bun x eslint client/character.ts client/visual-character-state.ts client/ecs/systems/client-simulation-system.ts tests/unit/ecs/client-simulation-system.test.ts tests/unit/client-character-facing.test.ts`
+  - Next action:
+    - Start Ticket 768: add the visual bridge skeleton and make it the only new write path.
+
+- 13:55 UTC
+  - Ticket: 767 (Introduce `VisualCharacterState` and visual-actor APIs)
+  - Start timestamp: 2026-03-07 13:55 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Started the first behavior-affecting extraction slice after the ownership inventory.
+    - Added a dedicated `client/visual-character-state.ts` surface for visual actor state.
+    - Began wiring `Character` and `client-simulation-system.ts` to prefer that visual state while keeping legacy render fields in sync for compatibility.
+  - Evidence:
+    - `sed -n '1,220p' client/character.ts`
+    - `sed -n '1,340p' client/ecs/systems/client-simulation-system.ts`
+  - Next action:
+    - Finish the initial integration, add focused tests, then verify/lint and close Ticket 767.
+
+- 13:43 UTC
+  - Ticket: 766 (Inventory and classify `Character` state by ownership)
+  - Start timestamp: 2026-03-07 13:39 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Added an explicit Ticket 766 ownership contract to `client/character.ts`:
+      - named visual-actor contract type,
+      - direct ordinary visual-write inventory,
+      - field-level ownership markers separating visual state, legacy mixed state, and gameplay leakage.
+    - Expanded `mmo-plan.md` with:
+      - the initial extraction map from current `Character` fields to future ownership,
+      - the initial direct ordinary visual-write inventory to migrate in later tickets.
+    - Kept the slice intentionally non-behavioral so later tickets can build on a stable ownership map instead of inferred intent.
+  - Evidence:
+    - `bun x eslint client/character.ts`
+  - Next action:
+    - Start Ticket 767: introduce `VisualCharacterState` and visual-actor APIs.
+
+- 13:39 UTC
+  - Ticket: 766 (Inventory and classify `Character` state by ownership)
+  - Start timestamp: 2026-03-07 13:39 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Started the first implementation slice of the visual-decoupling cycle.
+    - Audited the current `Character` field layout and the main direct visible-position/facing write paths across:
+      - `client/character.ts`,
+      - `client/entity.ts`,
+      - `client/ecs/systems/client-simulation-system.ts`,
+      - `client/ecs/systems/client-command-apply-system.ts`,
+      - `client/ecs/systems/client-move-input-prediction-system.ts`.
+    - Confirmed the immediate goal for this ticket is documentation/classification, not behavior change.
+  - Evidence:
+    - `sed -n '1,220p' client/character.ts`
+    - `rg -n "setWorldPositionSub\\(|targetX|targetY|turnTo\\(|walk\\(|idle\\(|orientation =|x =|y =" client/ecs client/gameclient.ts client/character.ts client/entity.ts`
+  - Next action:
+    - Add explicit ownership markers and a named visual-actor contract in `client/character.ts`, then mirror the extraction map in `mmo-plan.md`.
+
+- 13:29 UTC
+  - Ticket: Refine the visual-decoupling roadmap for execution by an average fast developer
+  - Start timestamp: 2026-03-07 13:24 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Split the prior 5-ticket visual-decoupling plan into a more granular execution sequence in `TODO.md`.
+    - Added per-ticket:
+      - macro goal,
+      - micro goals,
+      - expected code outcomes,
+      - expected runtime outcomes,
+      - tighter out-of-scope boundaries,
+      - clearer acceptance criteria.
+    - Reordered the work into smaller, more mechanical slices:
+      - classify ownership,
+      - add visual actor state,
+      - add bridge skeleton,
+      - migrate local movement,
+      - migrate remote movement,
+      - centralize divergence classes,
+      - migrate facing/animation ownership,
+      - finish with tuning/logging/residue docs.
+    - Expanded `mmo-plan.md` with:
+      - execution order,
+      - per-ticket implementation bias,
+      - an operational checklist for macro/micro/regression review.
+    - Critical-review pass:
+      - kept the plan extraction-oriented instead of feature-oriented,
+      - made each ticket narrow enough that a mediocre but fast developer can execute without inventing architecture mid-stream.
+  - Evidence:
+    - `sed -n '1,260p' TODO.md`
+    - `sed -n '220,380p' mmo-plan.md`
+  - Next action:
+    - Start Ticket 766 from the more granular execution contract when ready.
+
+- 13:18 UTC
+  - Ticket: Deepen visual/data decoupling planning into an idiomatic extraction roadmap
+  - Start timestamp: 2026-03-07 13:12 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Tightened the visual-decoupling roadmap from “render motor + smoothing” language into an extraction-oriented architecture plan.
+    - Rewrote `TODO.md` tickets 766–770 to be structurally specific about:
+      - what state leaves `Character`,
+      - what new ownership boundaries are required,
+      - which direct-write paths become forbidden,
+      - what counts as an explicit allowed discontinuity.
+    - Expanded `mmo-plan.md` to document the idiomatic target structure:
+      - gameplay movement state,
+      - visual actor state,
+      - visual bridge,
+      - visual motor,
+      - animation state machine.
+    - Added explicit anti-goals and legacy couplings to remove so implementation can be judged against architecture rather than by feel alone.
+    - Critical-review pass:
+      - kept the phase presentation-only and server-authoritative,
+      - made “Character should stop being treated as gameplay movement truth” an explicit written target instead of an implied future clean-up.
+  - Evidence:
+    - `sed -n '1,220p' TODO.md`
+    - `sed -n '220,360p' mmo-plan.md`
+  - Next action:
+    - Start Ticket 766 from the stricter extraction contract when ready.
+
+- 13:06 UTC
+  - Ticket: Planning next-phase visual/data movement decoupling refactor
+  - Start timestamp: 2026-03-07 13:00 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Converted the high-level “decouple visuals from logic/data” direction into a streamlined execution cycle instead of leaving it as an open-ended idea.
+    - Defined the next five-ticket chain in `TODO.md`:
+      - 766: character render-motor foundation,
+      - 767: authority/prediction to visual bridge rewrite,
+      - 768: divergence-class visual recovery policy,
+      - 769: animation ownership by visual state,
+      - 770: live tuning, instrumentation, and rollout guardrails.
+    - Kept scope explicitly presentation-only:
+      - no client-truth gameplay change,
+      - no fallback paths,
+      - no change to server authority for combat/interactions.
+    - Structured the tickets to build in dependency order:
+      - state surface first,
+      - bridge second,
+      - recovery classes third,
+      - animation state ownership fourth,
+      - tuning/rollout last.
+    - Critical-review pass:
+      - avoided mixing visual refactor with gameplay movement validation,
+      - kept “no snap” scoped to ordinary movement while preserving explicit teleport/discontinuity classes.
+  - Evidence:
+    - `sed -n '1,160p' TODO.md`
+    - `sed -n '108,220p' mmo-plan.md`
+  - Next action:
+    - Start Ticket 766 when ready.
+
+- 12:57 UTC
+  - Ticket: 765 (Add facing-direction stickiness for movement sprites)
+  - Start timestamp: 2026-03-07 12:49 UTC
+  - Status: `done`
+  - Key actions taken:
+    - Patched `Character.updateMovement()` so movement-facing is chosen from a short-horizon path trend instead of only the immediate step delta.
+    - Added shared movement-facing resolution in `client/character.ts` that:
+      - combines the current step and one-step lookahead,
+      - treats stair-step movement as a diagonal trend when appropriate,
+      - preserves the current horizontal or vertical facing axis during that trend to avoid left/up/left/up sprite flip-flopping.
+    - Kept explicit cardinal turns intact once the path becomes clearly single-axis again.
+    - Added focused unit coverage proving:
+      - a stair-step diagonal path keeps a stable facing,
+      - facing still turns once movement becomes clearly cardinal.
+    - Critical-review pass:
+      - stationary/explicit facing commands were left untouched,
+      - the change sits at the shared `Character` layer so it applies consistently to player and mob movement.
+  - Evidence:
+    - `bun test --timeout 30000 tests/unit/client-character-facing.test.ts`
+    - `bun x eslint client/character.ts tests/unit/client-character-facing.test.ts`
+  - Next action:
+    - None (ticket removed from `TODO.md`).
+
+- 12:49 UTC
+  - Ticket: 765 (Add facing-direction stickiness for movement sprites)
+  - Start timestamp: 2026-03-07 12:49 UTC
+  - Status: `in_progress`
+  - Key actions taken:
+    - Opened a focused movement-presentation ticket for sprite-facing stickiness instead of folding it into broader movement tuning.
+    - Audited the likely facing owners and identified `Character.updateMovement()` as the shared hot path:
+      - it currently chooses facing from the immediate step delta,
+      - which is too unstable when diagonal travel arrives as a staircase of single-axis path steps.
+    - Scoped the implementation toward stable path-trend orientation rather than caller-specific masking, so the fix applies consistently to players and mobs.
+  - Evidence:
+    - `sed -n '1,120p' TODO.md`
+    - `rg -n "orientation|turnTo|walk\\(|updateMovement\\(" client/character.ts client/ecs/systems/client-simulation-system.ts client/ecs/systems/client-combat-system.ts`
+  - Next action:
+    - Patch `Character.updateMovement()` to use short-horizon path trend / stickiness for movement-facing, then add focused tests.
+
 - 12:33 UTC
   - Ticket: 764 (Audit move intent ACK/CORRECTION handling for remaining jump sources)
   - Start timestamp: 2026-03-07 11:56 UTC

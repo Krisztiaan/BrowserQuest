@@ -4,6 +4,7 @@ import type { ClientWorldKernel, KernelEntityView } from '../world-kernel';
 import type { ClientCommand } from '../client-commands';
 import log from '../../platform/log';
 import { resolveClientMovementNetcodeConfig } from '../../movement-netcode-config';
+import { classifyRemoteReplicationDivergence, isSnapVisualDivergenceClass } from '../visual-movement-divergence';
 
 export type ClientKernelReplicationSyncSystemHost = {
     kernel: ClientWorldKernel;
@@ -16,14 +17,6 @@ function isSameWorldPos(a: WorldPos | undefined, b: WorldPos): boolean {
         return false;
     }
     return a.x === b.x && a.y === b.y;
-}
-
-function isSnapworthyRemoteDiscontinuity(current: WorldPos | null, next: WorldPos): boolean {
-    const tuning = resolveClientMovementNetcodeConfig().tuning;
-    if (!current) {
-        return false;
-    }
-    return Math.max(Math.abs(next.x - current.x), Math.abs(next.y - current.y)) > tuning.remoteSnapshotDiscontinuitySubpx;
 }
 
 function addSpawnedEntity(host: ClientKernelReplicationSyncSystemHost, view: KernelEntityView): void {
@@ -157,8 +150,10 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         if (kind !== undefined) {
             // Items/chests are static, but keeping the same command path simplifies the client state model.
             const currentPresentation = kernel.getClientPresentationTargetWorldPosition(id);
-            const snapRender = !isLocalPlayer && isSnapworthyRemoteDiscontinuity(currentPresentation, targetWorldPos);
-            if (snapRender) {
+            const visualDivergenceClass = !isLocalPlayer
+                ? classifyRemoteReplicationDivergence(currentPresentation, targetWorldPos)
+                : 'ordinary';
+            if (isSnapVisualDivergenceClass(visualDivergenceClass)) {
                 log.warn({
                     scope: 'movement_replication',
                     level: 'warn',
@@ -177,7 +172,7 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
                 entityId: id,
                 worldX: targetWorldPos.x,
                 worldY: targetWorldPos.y,
-                ...(snapRender ? { snapRender: true } : {}),
+                visualDivergenceClass,
             });
         }
 

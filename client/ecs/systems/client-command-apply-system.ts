@@ -18,6 +18,8 @@ import type { RuntimeEntity } from '../../client-boundary-types';
 import type { ClientCommand } from '../client-commands';
 import type { ClientWorldKernel } from '../world-kernel';
 import { adaptKernelEntityForRendering } from '../kernel-entity-adapter';
+import { bridgeCharacterWorldUpdate } from '../visual-movement-bridge';
+import { isSnapVisualDivergenceClass } from '../visual-movement-divergence';
 import Exceptions from '../../exceptions';
 import { debugMoves } from '../../debug-flags';
 import type { AudioSoundKey } from '../../asset-key-domain';
@@ -1299,7 +1301,7 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (!entity) {
                     break;
                 }
-                if (!entity.setWorldPositionSub) {
+                if (!entity.setWorldPositionSub && !(entity instanceof Character)) {
                     throw new Error(`Entity ${String(command.entityId)} missing setWorldPositionSub`);
                 }
                 if (entity instanceof Character) {
@@ -1311,13 +1313,24 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 const renderedBefore = renderTopLeftPxToWorldSub(entity.x, entity.y);
                 host.kernel.setClientRenderedWorldPosition(command.entityId, renderedBefore.worldX, renderedBefore.worldY);
                 host.kernel.setClientPresentationTargetWorldPosition(command.entityId, command.worldX, command.worldY);
-                entity.setWorldPositionSub(
-                    command.worldX,
-                    command.worldY,
-                    command.snapRender ? { snapRender: true } : undefined
-                );
-                if (command.snapRender) {
-                    host.kernel.setClientRenderedWorldPosition(command.entityId, command.worldX, command.worldY);
+                if (entity instanceof Character) {
+                    bridgeCharacterWorldUpdate(entity, {
+                        worldX: command.worldX,
+                        worldY: command.worldY,
+                        divergenceClass: command.visualDivergenceClass,
+                    });
+                    if (isSnapVisualDivergenceClass(command.visualDivergenceClass)) {
+                        host.kernel.setClientRenderedWorldPosition(command.entityId, command.worldX, command.worldY);
+                    }
+                } else {
+                    entity.setWorldPositionSub?.(
+                        command.worldX,
+                        command.worldY,
+                        isSnapVisualDivergenceClass(command.visualDivergenceClass) ? { snapRender: true } : undefined
+                    );
+                    if (isSnapVisualDivergenceClass(command.visualDivergenceClass)) {
+                        host.kernel.setClientRenderedWorldPosition(command.entityId, command.worldX, command.worldY);
+                    }
                 }
                 entity.setDirty();
                 break;

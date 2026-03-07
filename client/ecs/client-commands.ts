@@ -2,11 +2,18 @@ import type { EntityId } from '../../shared/domain/ids';
 import type { EntityKind } from '../../shared/entity-kind-domain';
 import type { AudioSoundKey } from '../asset-key-domain';
 import type { RuntimeEntity } from '../client-boundary-types';
+import type { VisualDivergenceClass } from '../visual-character-state';
 
 export type ClientCommand =
     | Readonly<{ type: 'stopPlayerCombat' }>
     | Readonly<{ type: 'characterClearTarget'; entityId: EntityId }>
-    | Readonly<{ type: 'setEntityWorldPosition'; entityId: EntityId; worldX: number; worldY: number; snapRender?: boolean }>
+    | Readonly<{
+          type: 'setEntityWorldPosition';
+          entityId: EntityId;
+          worldX: number;
+          worldY: number;
+          visualDivergenceClass: VisualDivergenceClass;
+      }>
     | Readonly<{ type: 'clientSendHello' }>
     | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
     | Readonly<{ type: 'clientSendMoveTo'; x: number; y: number; stopAdjacentToTarget: boolean }>

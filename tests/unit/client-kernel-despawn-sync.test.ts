@@ -144,6 +144,7 @@ test('replication sync renders remote entities from delayed interpolation snapsh
         entityId: mobId,
         worldX: 166,
         worldY: 100,
+        visualDivergenceClass: 'ordinary',
     });
     expect(kernel.clientReplicationLastWorldPos.get(mobId)).toEqual({ x: 166, y: 100 });
 });
@@ -175,7 +176,7 @@ test('replication sync snap-renders remote discontinuities instead of smoothing 
         entityId: mobId,
         worldX: 10_000,
         worldY: 100,
-        snapRender: true,
+        visualDivergenceClass: 'remote_discontinuity',
     });
 });
 
@@ -213,6 +214,7 @@ test('lockstep mode applies authoritative local-player world updates even when m
         entityId: playerId,
         worldX: 132,
         worldY: 100,
+        visualDivergenceClass: 'ordinary',
     });
 });
 

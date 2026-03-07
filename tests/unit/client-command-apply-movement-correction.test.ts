@@ -493,11 +493,72 @@ test('setEntityWorldPosition keeps local predicted path movement active', () => 
         entityId: playerId,
         worldX: world.x,
         worldY: world.y,
+        visualDivergenceClass: 'ordinary',
     });
     runClientCommandApplySystem(host);
 
     expect(player.isMoving()).toBe(true);
     expect(kernel.getClientPresentationTargetWorldPosition(playerId)).toEqual(world);
+});
+
+test('setEntityWorldPosition updates remote character visual target through the bridge without snapping render', () => {
+    const playerId = entityIdFromWire(70114);
+    const { host, kernel } = createHostFixture(playerId);
+    const remoteId = entityIdFromWire(8129);
+    const remote = new Warrior('player', 'remote');
+    remote.id = remoteId;
+    remote.kind = Types.Entities.WARRIOR;
+    remote.setGridPosition(20, 20);
+    host.entities[String(remoteId)] = remote;
+    kernel.upsertSimpleEntity(remoteId, remote.kind, remote.gridX, remote.gridY);
+
+    const renderBefore = { x: remote.x, y: remote.y };
+    const world = tileToWorldPosCenter(21, 20);
+    kernel.enqueueClientCommand({
+        type: 'setEntityWorldPosition',
+        entityId: remoteId,
+        worldX: world.x,
+        worldY: world.y,
+        visualDivergenceClass: 'ordinary',
+    });
+    runClientCommandApplySystem(host);
+
+    expect(remote.x).toBe(renderBefore.x);
+    expect(remote.y).toBe(renderBefore.y);
+    expect(remote.visualState.targetRenderWorldX).toBe(world.x);
+    expect(remote.visualState.targetRenderWorldY).toBe(world.y);
+    expect(remote.visualState.visualMoveMode).toBe('interpolate');
+    expect(remote.visualState.visualDivergenceClass).toBe('ordinary');
+});
+
+test('setEntityWorldPosition remote discontinuity snaps through the bridge', () => {
+    const playerId = entityIdFromWire(70115);
+    const { host, kernel } = createHostFixture(playerId);
+    const remoteId = entityIdFromWire(8130);
+    const remote = new Warrior('player', 'remote');
+    remote.id = remoteId;
+    remote.kind = Types.Entities.WARRIOR;
+    remote.setGridPosition(20, 20);
+    host.entities[String(remoteId)] = remote;
+    kernel.upsertSimpleEntity(remoteId, remote.kind, remote.gridX, remote.gridY);
+
+    const world = tileToWorldPosCenter(25, 24);
+    kernel.enqueueClientCommand({
+        type: 'setEntityWorldPosition',
+        entityId: remoteId,
+        worldX: world.x,
+        worldY: world.y,
+        visualDivergenceClass: 'remote_discontinuity',
+    });
+    runClientCommandApplySystem(host);
+
+    expect(remote.visualState.renderWorldX).toBe(world.x);
+    expect(remote.visualState.renderWorldY).toBe(world.y);
+    expect(remote.visualState.targetRenderWorldX).toBe(world.x);
+    expect(remote.visualState.targetRenderWorldY).toBe(world.y);
+    expect(remote.visualState.visualMoveMode).toBe('snap');
+    expect(remote.visualState.visualDivergenceClass).toBe('remote_discontinuity');
+    expect(kernel.getClientRenderedWorldPosition(remoteId)).toEqual(world);
 });
 
 test('teleportEntity resets kernel presentation state to the authoritative tile center', () => {

@@ -7,6 +7,14 @@ import { gridPos } from '../shared/domain/positions';
 import { isEntityWithinAttackRange } from '../shared/combat/engagement';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { MergeEvents, TypedEventMap, TypedEventSource } from '../shared/typed-event-emitter';
+import {
+    createVisualCharacterState,
+    pixelTopLeftToWorldCenter,
+    type VisualCharacterState,
+    type VisualDivergenceClass,
+    type VisualMoveMode,
+} from './visual-character-state';
+import { bridgeCharacterPathLocomotion } from './ecs/visual-movement-bridge';
 
 type GridPoint = [number, number];
 type Path = GridPoint[];
@@ -28,6 +36,48 @@ type CombatAttacker = CharacterLike & {
 };
 
 type PathRequestResolver = (x: number, y: number) => Path;
+/**
+ * Ticket 766 ownership contract:
+ * - This is the visual-actor surface that later tickets should preserve or extract.
+ * - It is presentation-oriented and is allowed to diverge briefly from gameplay truth.
+ * - Ticket 767 introduces a concrete `VisualCharacterState`; this contract exists now so follow-on tickets have a
+ *   named target instead of inferring intent from mixed fields.
+ */
+export type CharacterVisualActorContract = {
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+    worldX: number;
+    worldY: number;
+    orientation: number;
+    flipSpriteX: boolean;
+    flipSpriteY: boolean;
+    currentAnimation: { name: string } | null;
+    visible: boolean;
+    visualState: VisualCharacterState;
+};
+
+/**
+ * Ticket 766 direct-write inventory for ordinary movement visuals.
+ * These are the main callers that still mutate visible position/facing directly and must migrate toward
+ * gameplay -> bridge -> visual actor ownership in later tickets.
+ *
+ * Visible position writes:
+ * - `Entity.setGridPosition`
+ * - `Entity.setWorldPositionSub`
+ * - `client/ecs/systems/client-simulation-system.ts`
+ * - `client/ecs/systems/client-command-apply-system.ts`
+ * - `client/ecs/systems/client-move-input-prediction-system.ts`
+ *
+ * Visible facing / locomotion writes:
+ * - `Character.turnTo`
+ * - `Character.idle`
+ * - `Character.walk`
+ * - `Character.updateMovement`
+ * - `client/ecs/systems/client-simulation-system.ts`
+ * - `client/ecs/systems/client-combat-system.ts`
+ */
 
 export type CharacterEvents = {
     dirty: [entity: Entity<MergeEvents<EntityEvents, TypedEventMap>>];
@@ -45,15 +95,26 @@ export type CharacterEventSource<TEvents extends MergeEvents<CharacterEvents, Ty
     TypedEventSource<TEvents>;
 
 class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = CharacterEvents> extends Entity<TEvents> {
+    visualState: VisualCharacterState;
+
+    // Visual actor state that should survive the extraction:
+    // - `nextGridX/nextGridY` are currently used to animate toward the next visible step.
+    // - `orientation` is currently both locomotion-facing and general facing state.
+    // These are still mixed with gameplay/path truth today and are not the final ownership model.
     nextGridX: number;
     nextGridY: number;
     orientation: number;
 
+    // Pure presentation tuning / timing knobs.
     atkSpeed: number;
     moveSpeed: number;
     walkSpeed: number;
     idleSpeed: number;
 
+    // Legacy mixed state slated for extraction:
+    // - `movement` is presentation interpolation state.
+    // - `path/step/newDestination/destination/adjacentTiles` are gameplay-ish movement truth leaking into the
+    //   visual actor. Later tickets should move this truth behind ECS/kernel + bridge ownership.
     movement: Transition;
     path: Path | null;
     step: number;
@@ -61,11 +122,13 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     destination: { gridX: number; gridY: number } | null;
     adjacentTiles: Record<string, boolean>;
 
+    // Combat state is still co-located here for legacy reasons. This ticket only documents the coupling.
     target: CombatTarget | null;
     unconfirmedTarget: CharacterLike | null;
     previousTarget: CharacterLike | null;
     attackers: Record<string, CombatAttacker>;
 
+    // Gameplay leakage: health/death state currently lives on the visual actor as well.
     hitPoints: number;
     maxHitPoints: number;
 
@@ -81,11 +144,14 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     private pathRequestResolver: PathRequestResolver | null;
     constructor(id: string | number, kind: EntityKind) {
         super(id, kind);
+        this.visualState = createVisualCharacterState();
+        this.resyncVisualStateFromLegacyRenderFields();
 
         // Position and orientation
         this.nextGridX = -1;
         this.nextGridY = -1;
         this.orientation = Types.Orientations.DOWN;
+        this.visualState.renderFacing = this.orientation;
 
         // Speeds
         this.atkSpeed = 50;
@@ -123,6 +189,81 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
         this.hurting = null;
 
         this.pathRequestResolver = null;
+    }
+
+    resyncVisualStateFromLegacyRenderFields(): void {
+        const visualState = (this as Partial<Character<TEvents>>).visualState;
+        if (!visualState) {
+            return;
+        }
+        const renderWorld = pixelTopLeftToWorldCenter(this.x, this.y);
+        const targetRenderWorld = pixelTopLeftToWorldCenter(this.targetX, this.targetY);
+        visualState.renderX = this.x;
+        visualState.renderY = this.y;
+        visualState.targetRenderX = this.targetX;
+        visualState.targetRenderY = this.targetY;
+        visualState.renderWorldX = renderWorld.x;
+        visualState.renderWorldY = renderWorld.y;
+        visualState.targetRenderWorldX = targetRenderWorld.x;
+        visualState.targetRenderWorldY = targetRenderWorld.y;
+        visualState.renderFacing = this.orientation;
+    }
+
+    applyVisualStateToLegacyRenderFields(): void {
+        this.x = this.visualState.renderX;
+        this.y = this.visualState.renderY;
+        this.targetX = this.visualState.targetRenderX;
+        this.targetY = this.visualState.targetRenderY;
+        this.orientation = this.visualState.renderFacing;
+    }
+
+    setVisualRenderPosition(x: number, y: number, options?: { velocityX?: number; velocityY?: number; mode?: VisualMoveMode }): void {
+        this.visualState.renderX = x;
+        this.visualState.renderY = y;
+        const renderWorld = pixelTopLeftToWorldCenter(x, y);
+        this.visualState.renderWorldX = renderWorld.x;
+        this.visualState.renderWorldY = renderWorld.y;
+        this.visualState.renderVelocityX = options?.velocityX ?? this.visualState.renderVelocityX;
+        this.visualState.renderVelocityY = options?.velocityY ?? this.visualState.renderVelocityY;
+        if (options?.mode) {
+            this.visualState.visualMoveMode = options.mode;
+        }
+        this.applyVisualStateToLegacyRenderFields();
+    }
+
+    setVisualRenderTarget(x: number, y: number, mode?: VisualMoveMode): void {
+        this.visualState.targetRenderX = x;
+        this.visualState.targetRenderY = y;
+        const targetWorld = pixelTopLeftToWorldCenter(x, y);
+        this.visualState.targetRenderWorldX = targetWorld.x;
+        this.visualState.targetRenderWorldY = targetWorld.y;
+        if (mode) {
+            this.visualState.visualMoveMode = mode;
+        }
+        this.applyVisualStateToLegacyRenderFields();
+    }
+
+    setVisualFacing(orientation: number): void {
+        this.visualState.renderFacing = orientation;
+        this.orientation = orientation;
+    }
+
+    setVisualDivergenceClass(divergenceClass: VisualDivergenceClass): void {
+        this.visualState.visualDivergenceClass = divergenceClass;
+    }
+
+    override setGridPosition(x: number, y: number): void {
+        super.setGridPosition(x, y);
+        this.resyncVisualStateFromLegacyRenderFields();
+    }
+
+    override setWorldPositionSub(worldX: number, worldY: number, options?: { snapRender?: boolean }): void {
+        super.setWorldPositionSub(worldX, worldY, options);
+        this.resyncVisualStateFromLegacyRenderFields();
+        if (options?.snapRender) {
+            this.visualState.visualMoveMode = 'snap';
+            this.visualState.visualDivergenceClass = 'teleport';
+        }
     }
 
     override clean(): void {
@@ -172,7 +313,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     }
 
     turnTo(orientation: number): void {
-        this.orientation = orientation;
+        this.setVisualFacing(orientation);
         this.idle();
     }
 
@@ -186,13 +327,22 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
             orientation === Types.Orientations.LEFT ||
             orientation === Types.Orientations.RIGHT
         ) {
-            this.orientation = orientation;
+            this.setVisualFacing(orientation);
         }
     }
 
-    override idle(orientation?: number): void {
+    applyOrdinaryMovementVisuals(dx: number, dy: number, nextDx = 0, nextDy = 0): void {
+        bridgeCharacterPathLocomotion(this, { dx, dy, nextDx, nextDy });
+    }
+
+    applyOrdinaryIdleVisuals(orientation?: number): void {
         this.setOrientation(orientation);
+        this.visualState.visualLocomotionState = 'idle';
         this.animate('idle', this.idleSpeed);
+    }
+
+    override idle(orientation?: number): void {
+        this.applyOrdinaryIdleVisuals(orientation);
     }
 
     hit(orientation?: number): void {
@@ -202,6 +352,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
 
     walk(orientation?: number): void {
         this.setOrientation(orientation);
+        this.visualState.visualLocomotionState = 'walk';
         this.animate('walk', this.walkSpeed);
     }
 
@@ -264,41 +415,10 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
 
         const dx = current[0] - previous[0];
         const dy = current[1] - previous[1];
-
-        // Cardinal movement (legacy 4-dir sprites).
-        if (dx === -1 && dy === 0) {
-            this.walk(Types.Orientations.LEFT);
-            return;
-        }
-        if (dx === 1 && dy === 0) {
-            this.walk(Types.Orientations.RIGHT);
-            return;
-        }
-        if (dx === 0 && dy === -1) {
-            this.walk(Types.Orientations.UP);
-            return;
-        }
-        if (dx === 0 && dy === 1) {
-            this.walk(Types.Orientations.DOWN);
-            return;
-        }
-
-        // Diagonal movement: keep facing stable using existing 4-direction sprites.
-        // Prefer preserving the current facing axis to avoid jitter (eg alternating horizontal/vertical each step).
-        if (dx !== 0 && (this.orientation === Types.Orientations.LEFT || this.orientation === Types.Orientations.RIGHT)) {
-            this.walk(dx < 0 ? Types.Orientations.LEFT : Types.Orientations.RIGHT);
-            return;
-        }
-        if (dy !== 0 && (this.orientation === Types.Orientations.UP || this.orientation === Types.Orientations.DOWN)) {
-            this.walk(dy < 0 ? Types.Orientations.UP : Types.Orientations.DOWN);
-            return;
-        }
-
-        // Default diagonal facing when idle orientation axis doesn't apply: choose horizontal.
-        if (dx !== 0) {
-            this.walk(dx < 0 ? Types.Orientations.LEFT : Types.Orientations.RIGHT);
-            return;
-        }
+        const next = p[i + 1];
+        const nextDx = next ? next[0] - current[0] : 0;
+        const nextDy = next ? next[1] - current[1] : 0;
+        this.applyOrdinaryMovementVisuals(dx, dy, nextDx, nextDy);
     }
 
     updatePositionOnGrid(): void {
@@ -358,7 +478,7 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
             // Path is complete or has been interrupted
             if (stop) {
                 this.path = null;
-                this.idle();
+                this.applyOrdinaryIdleVisuals();
 
                 this.emit('stopPathing', this.gridX, this.gridY);
             }

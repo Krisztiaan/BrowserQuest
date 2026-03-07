@@ -4,6 +4,9 @@ import { SUBPIXELS, TILE_SUBPX, worldDelta, worldPos, type WorldPos } from '../.
 import { clampWorldPosInsideMap, resolveSubTileMotionAgainstTiles } from '../../../shared/world/collision/tile-collision';
 import log from '../../platform/log';
 import { resolveClientMovementNetcodeConfig } from '../../movement-netcode-config';
+import { bridgeCharacterWorldUpdate } from '../visual-movement-bridge';
+import type { VisualDivergenceClass, VisualMoveMode } from '../../visual-character-state';
+import { classifyPredictionDivergence } from '../visual-movement-divergence';
 
 export type ClientMoveInputPredictionSystemHost = Readonly<{
     started: boolean;
@@ -19,7 +22,13 @@ export type ClientMoveInputPredictionSystemHost = Readonly<{
               isDead: boolean;
               isOnPlateau: boolean;
               isMoving(): boolean;
-              setWorldPositionSub(worldX: number, worldY: number, options?: { snapRender?: boolean }): void;
+              setVisualDivergenceClass(divergenceClass: VisualDivergenceClass): void;
+              setVisualRenderTarget(x: number, y: number, mode?: VisualMoveMode): void;
+              setVisualRenderPosition(
+                  x: number,
+                  y: number,
+                  options?: { velocityX?: number; velocityY?: number; mode?: VisualMoveMode }
+              ): void;
           }
         | null;
     map:
@@ -109,7 +118,11 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
             host.kernel.clientPredictedWorldPos = clampedAuth;
             host.kernel.setClientPresentationTargetWorldPosition(host.playerId, clampedAuth.x, clampedAuth.y);
             host.kernel.setClientRenderedWorldPosition(host.playerId, clampedAuth.x, clampedAuth.y);
-            player.setWorldPositionSub(clampedAuth.x, clampedAuth.y, { snapRender: true });
+            bridgeCharacterWorldUpdate(player, {
+                worldX: clampedAuth.x,
+                worldY: clampedAuth.y,
+                divergenceClass: classifyPredictionDivergence({ suppressed: true, predictionError: 0 }),
+            });
             log.warn({
                 scope: 'movement_prediction',
                 level: 'warn',
@@ -118,6 +131,7 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
                 profile: config.profileId,
                 worldX: clampedAuth.x,
                 worldY: clampedAuth.y,
+                divergenceClass: 'suppressed_resync',
             });
         }
         return;
@@ -180,6 +194,7 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
         mapHeightTiles,
     });
     if (auth && predictionError > tuning.hardReconcileErrSubpx) {
+            const divergenceClass = classifyPredictionDivergence({ suppressed: false, predictionError });
             log.warn({
                 scope: 'movement_prediction',
                 level: 'warn',
@@ -193,10 +208,18 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
                 reconciledX: reconciled.x,
                 reconciledY: reconciled.y,
                 divergence: predictionError,
+                divergenceClass,
             });
     }
 
     host.kernel.clientPredictedWorldPos = reconciled;
     host.kernel.setClientPresentationTargetWorldPosition(host.playerId, reconciled.x, reconciled.y);
-    player.setWorldPositionSub(reconciled.x, reconciled.y);
+    bridgeCharacterWorldUpdate(player, {
+        worldX: reconciled.x,
+        worldY: reconciled.y,
+        divergenceClass: classifyPredictionDivergence({
+            suppressed: false,
+            predictionError,
+        }),
+    });
 }
