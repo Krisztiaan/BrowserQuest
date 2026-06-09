@@ -64,7 +64,12 @@ export type ClientSimulationSystemHost = Readonly<{
         clientMoveInputKeysMask?: number;
         clientMovePlan?: { target: { x: number; y: number } } | null;
     };
-    map: { grid: number[][]; width?: number; height?: number } | null;
+    map: {
+        grid: number[][];
+        width?: number;
+        height?: number;
+        getCameraRegionBounds?(gridX: number, gridY: number): Readonly<{ minX: number; minY: number; maxX: number; maxY: number }> | null;
+    } | null;
     renderer: {
         FPS: number;
         mobile: boolean;
@@ -103,8 +108,8 @@ type InterpolatedEntity = {
     setDirty(): void;
 };
 
-function isInterpolatedEntity(entity: SimulationEntity): entity is SimulationEntity & InterpolatedEntity {
-    const candidate = entity as unknown as Partial<InterpolatedEntity>;
+function isInterpolatedEntity<T>(entity: T): entity is T & InterpolatedEntity {
+    const candidate = entity as Partial<InterpolatedEntity>;
     return (
         typeof candidate.x === 'number' &&
         typeof candidate.y === 'number' &&
@@ -121,10 +126,13 @@ function lerpAlpha(dtMs: number, tauMs: number): number {
 }
 
 function syncRenderedWorldPosition(host: ClientSimulationSystemHost, entity: SimulationEntity): void {
-    if (!('id' in entity) || typeof entity.id !== 'number') {
-        return;
-    }
+    // Note: an early `'id' in entity` guard would type-narrow the union to
+    // Character only (NonCharacterEntity does not declare id), collapsing the
+    // non-Character branch to never; read id via a local instead.
     if (entity instanceof Character) {
+        if (typeof entity.id !== 'number') {
+            return;
+        }
         host.kernel.setClientRenderedWorldPosition?.(
             entity.id as EntityId,
             entity.visualState.renderWorldX,
@@ -135,8 +143,12 @@ function syncRenderedWorldPosition(host: ClientSimulationSystemHost, entity: Sim
     if (!isInterpolatedEntity(entity)) {
         return;
     }
+    const id = (entity as { id?: unknown }).id;
+    if (typeof id !== 'number') {
+        return;
+    }
     host.kernel.setClientRenderedWorldPosition?.(
-        entity.id as EntityId,
+        id as EntityId,
         (entity.x + TILE_PX / 2) * SUBPIXELS,
         (entity.y + TILE_PX / 2) * SUBPIXELS
     );
@@ -153,18 +165,26 @@ export function resolveCameraAxis({
     mapPixels,
     viewportPixels,
     desired,
+    rangeMinPixels,
+    rangeMaxPixels,
 }: {
     mapPixels: number;
     viewportPixels: number;
     desired: number;
+    /** Optional clamp range (e.g. the painted region containing the player); defaults to the full map. */
+    rangeMinPixels?: number;
+    rangeMaxPixels?: number;
 }): Readonly<{ min: number; max: number; clamped: number }> {
-    if (mapPixels <= viewportPixels) {
-        const centered = -(viewportPixels - mapPixels) / 2;
+    const rangeMin = rangeMinPixels ?? 0;
+    const rangeMax = rangeMaxPixels ?? mapPixels;
+    const extent = rangeMax - rangeMin;
+    if (extent <= viewportPixels) {
+        const centered = rangeMin - (viewportPixels - extent) / 2;
         return Object.freeze({ min: centered, max: centered, clamped: centered });
     }
 
-    const min = 0;
-    const max = mapPixels - viewportPixels;
+    const min = rangeMin;
+    const max = rangeMax - viewportPixels;
     const clamped = Math.max(min, Math.min(desired, max));
     return Object.freeze({ min, max, clamped });
 }
@@ -571,15 +591,21 @@ function updateCameraFollow(host: ClientSimulationSystemHost, dtMs: number): voi
     const viewportWorldHeight = renderer.getHeight() / renderer.scale;
     const desiredX = Math.round(player.x - (viewportWorldWidth / 2));
     const desiredY = Math.round(player.y - (viewportWorldHeight / 2));
+    // Clamp the camera to the painted region containing the player so it never
+    // pans over the void between regions; small enclosed regions (interior
+    // rooms) center in the viewport instead.
+    const region = host.map.getCameraRegionBounds?.(player.gridX, player.gridY) ?? null;
     const xAxis = resolveCameraAxis({
         mapPixels: mapWorldWidth,
         viewportPixels: viewportWorldWidth,
         desired: desiredX,
+        ...(region ? { rangeMinPixels: region.minX * TILE, rangeMaxPixels: (region.maxX + 1) * TILE } : {}),
     });
     const yAxis = resolveCameraAxis({
         mapPixels: mapWorldHeight,
         viewportPixels: viewportWorldHeight,
         desired: desiredY,
+        ...(region ? { rangeMinPixels: region.minY * TILE, rangeMaxPixels: (region.maxY + 1) * TILE } : {}),
     });
 
     const a = lerpAlpha(dtMs, 120);

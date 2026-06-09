@@ -4,6 +4,7 @@ import Types from '../shared/gametypes-browser';
 import log from './platform/log';
 import { resolveImageAssetPath } from './image-assets';
 import { fetchClientRuntimeMap } from './map-source';
+import { computeCameraRegions, type CameraRegionBounds, type CameraRegions } from './camera-regions';
 import { isOutOfBoundsGridPosition } from '../shared/world/coordinate-contract';
 
 type MapGameLike = {
@@ -119,6 +120,7 @@ class Map {
     navIslandByTile: number[];
     navIslandCount: number;
     primaryNavIslandId: number;
+    cameraRegions: CameraRegions | null = null;
     musicAreas: MusicArea[];
     collisions: number[];
     foregroundTileIdSet: Set<number>;
@@ -355,6 +357,11 @@ class Map {
 
         this.doors = this._getDoors(map);
         this.checkpoints = this._getCheckpoints(map);
+        this.cameraRegions = computeCameraRegions(this.data, this.width, this.height);
+    }
+
+    getCameraRegionBounds(gridX: number, gridY: number): CameraRegionBounds | null {
+        return this.cameraRegions?.boundsAt(gridX, gridY) ?? null;
     }
 
     _getDoors(map: RuntimeMapPayload): Record<number, DoorDestination> {

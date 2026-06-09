@@ -1387,7 +1387,7 @@ function runServerAuthoritativeCombatSystem({
                     targetId: engagement.targetId,
                     profile: resolveServerMovementNetcodeConfig().profileId,
                     tick: ctx.tick,
-                    attackerPos: { x: attackerPos.x, y: attackerPos.y },
+                    attackerPos: attackerPos === undefined ? null : { x: attackerPos.x, y: attackerPos.y },
                     targetPos: { x: targetPos.x, y: targetPos.y },
                     startedViaGrace: !isInRange && isInRangeWithGrace,
                 });
