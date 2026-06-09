@@ -177,7 +177,9 @@ function extractDoorObjects(tiled: unknown): ReadonlyArray<TiledDoorObject> {
         if (!layer) {
             continue;
         }
-        if (layer.visible === false || layer.type !== 'objectgroup' || layer.name !== 'doors') {
+        // Gameplay markup layers are authored invisible (validator target profile);
+        // door graph extraction must not depend on editor visibility.
+        if (layer.type !== 'objectgroup' || layer.name !== 'doors') {
             continue;
         }
         return asArray(layer.objects) as TiledDoorObject[];

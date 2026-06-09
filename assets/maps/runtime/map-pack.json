@@ -10206,7 +10206,7 @@
             "tlocal_ty": 231,
             "to": "d",
             "ttarget_door": "world_portal_82_234",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 82,
             "ty": 234
           },
@@ -10219,7 +10219,7 @@
             "tlocal_ty": 235,
             "to": "d",
             "ttarget_door": "world_portal_77_237",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 77,
             "ty": 237
           },
@@ -10972,8 +10972,8 @@
             "tdoor_id": "world_portal_166_33",
             "to": "l",
             "ttarget_door": "world_portal_158_35",
-            "ttarget_map": "world",
-            "tx": 160,
+            "ttarget_map": "world_01",
+            "tx": 158,
             "ty": 35
           },
           {
@@ -10985,8 +10985,8 @@
             "tlocal_ty": 28,
             "to": "l",
             "ttarget_door": "world_portal_148_32",
-            "ttarget_map": "world",
-            "tx": 150,
+            "ttarget_map": "world_01",
+            "tx": 148,
             "ty": 32
           },
           {
@@ -10998,8 +10998,8 @@
             "tlocal_ty": 26,
             "to": "l",
             "ttarget_door": "world_portal_155_29",
-            "ttarget_map": "world",
-            "tx": 158,
+            "ttarget_map": "world_01",
+            "tx": 155,
             "ty": 29
           },
           {
@@ -11011,9 +11011,9 @@
             "tlocal_ty": 26,
             "to": "l",
             "ttarget_door": "world_portal_142_32",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 142,
-            "ty": 31
+            "ty": 32
           },
           {
             "x": 142,
@@ -11024,9 +11024,9 @@
             "tlocal_ty": 31,
             "to": "d",
             "ttarget_door": "world_portal_166_33",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 166,
-            "ty": 34
+            "ty": 33
           }
         ],
         "checkpoints": [
@@ -263786,7 +263786,7 @@
             "tlocal_ty": 231,
             "to": "d",
             "ttarget_door": "world_portal_82_234",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 82,
             "ty": 234
           },
@@ -263799,7 +263799,7 @@
             "tlocal_ty": 235,
             "to": "d",
             "ttarget_door": "world_portal_77_237",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 77,
             "ty": 237
           },
@@ -264552,8 +264552,8 @@
             "tdoor_id": "world_portal_166_33",
             "to": "l",
             "ttarget_door": "world_portal_158_35",
-            "ttarget_map": "world",
-            "tx": 160,
+            "ttarget_map": "world_01",
+            "tx": 158,
             "ty": 35
           },
           {
@@ -264565,8 +264565,8 @@
             "tlocal_ty": 28,
             "to": "l",
             "ttarget_door": "world_portal_148_32",
-            "ttarget_map": "world",
-            "tx": 150,
+            "ttarget_map": "world_01",
+            "tx": 148,
             "ty": 32
           },
           {
@@ -264578,8 +264578,8 @@
             "tlocal_ty": 26,
             "to": "l",
             "ttarget_door": "world_portal_155_29",
-            "ttarget_map": "world",
-            "tx": 158,
+            "ttarget_map": "world_01",
+            "tx": 155,
             "ty": 29
           },
           {
@@ -264591,9 +264591,9 @@
             "tlocal_ty": 26,
             "to": "l",
             "ttarget_door": "world_portal_142_32",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 142,
-            "ty": 31
+            "ty": 32
           },
           {
             "x": 142,
@@ -264604,9 +264604,9 @@
             "tlocal_ty": 31,
             "to": "d",
             "ttarget_door": "world_portal_166_33",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 166,
-            "ty": 34
+            "ty": 33
           }
         ],
         "checkpoints": [
@@ -319459,9 +319459,501 @@
         "id": "world_01",
         "width": 172,
         "height": 314,
-        "doors": []
+        "doors": [
+          {
+            "id": "100",
+            "x": 53,
+            "y": 76
+          },
+          {
+            "id": "23",
+            "x": 127,
+            "y": 120
+          },
+          {
+            "id": "26",
+            "x": 157,
+            "y": 120
+          },
+          {
+            "id": "27",
+            "x": 147,
+            "y": 113
+          },
+          {
+            "id": "29",
+            "x": 154,
+            "y": 143
+          },
+          {
+            "id": "32",
+            "x": 154,
+            "y": 208
+          },
+          {
+            "id": "34",
+            "x": 156,
+            "y": 202
+          },
+          {
+            "id": "35",
+            "x": 152,
+            "y": 202
+          },
+          {
+            "id": "37",
+            "x": 158,
+            "y": 196
+          },
+          {
+            "id": "39",
+            "x": 127,
+            "y": 214
+          },
+          {
+            "id": "43",
+            "x": 127,
+            "y": 202
+          },
+          {
+            "id": "44",
+            "x": 133,
+            "y": 200
+          },
+          {
+            "id": "45",
+            "x": 127,
+            "y": 196
+          },
+          {
+            "id": "46",
+            "x": 120,
+            "y": 200
+          },
+          {
+            "id": "47",
+            "x": 127,
+            "y": 190
+          },
+          {
+            "id": "49",
+            "x": 156,
+            "y": 214
+          },
+          {
+            "id": "52",
+            "x": 155,
+            "y": 71
+          },
+          {
+            "id": "53",
+            "x": 155,
+            "y": 96
+          },
+          {
+            "id": "55",
+            "x": 155,
+            "y": 240
+          },
+          {
+            "id": "56",
+            "x": 127,
+            "y": 240
+          },
+          {
+            "id": "59",
+            "x": 126,
+            "y": 143
+          },
+          {
+            "id": "66",
+            "x": 117,
+            "y": 94
+          },
+          {
+            "id": "69",
+            "x": 156,
+            "y": 190
+          },
+          {
+            "id": "73",
+            "x": 127,
+            "y": 166
+          },
+          {
+            "id": "76",
+            "x": 25,
+            "y": 292
+          },
+          {
+            "id": "78",
+            "x": 38,
+            "y": 94
+          },
+          {
+            "id": "79",
+            "x": 157,
+            "y": 264
+          },
+          {
+            "id": "81",
+            "x": 124,
+            "y": 275
+          },
+          {
+            "id": "82",
+            "x": 129,
+            "y": 275
+          },
+          {
+            "id": "87",
+            "x": 127,
+            "y": 299
+          },
+          {
+            "id": "89",
+            "x": 71,
+            "y": 11
+          },
+          {
+            "id": "91",
+            "x": 156,
+            "y": 296
+          },
+          {
+            "id": "93",
+            "x": 155,
+            "y": 286
+          },
+          {
+            "id": "94",
+            "x": 155,
+            "y": 311
+          },
+          {
+            "id": "95",
+            "x": 155,
+            "y": 20
+          },
+          {
+            "id": "98",
+            "x": 166,
+            "y": 36
+          },
+          {
+            "id": "99",
+            "x": 143,
+            "y": 26
+          },
+          {
+            "id": "world_house_01_entry",
+            "x": 27,
+            "y": 209
+          },
+          {
+            "id": "world_house_02_entry",
+            "x": 80,
+            "y": 211
+          },
+          {
+            "id": "world_house_03_entry",
+            "x": 18,
+            "y": 113
+          },
+          {
+            "id": "world_house_04_entry",
+            "x": 70,
+            "y": 80
+          },
+          {
+            "id": "world_house_05_entry",
+            "x": 79,
+            "y": 45
+          },
+          {
+            "id": "world_house_06_entry",
+            "x": 78,
+            "y": 40
+          },
+          {
+            "id": "world_house_07_entry",
+            "x": 91,
+            "y": 29
+          },
+          {
+            "id": "world_house_08_entry",
+            "x": 6,
+            "y": 10
+          },
+          {
+            "id": "world_house_09_entry",
+            "x": 9,
+            "y": 17
+          },
+          {
+            "id": "world_house_10_entry",
+            "x": 104,
+            "y": 7
+          },
+          {
+            "id": "world_house_11_entry",
+            "x": 20,
+            "y": 145
+          },
+          {
+            "id": "world_house_12_entry",
+            "x": 51,
+            "y": 205
+          },
+          {
+            "id": "world_house_13_entry",
+            "x": 74,
+            "y": 145
+          },
+          {
+            "id": "world_house_14_entry",
+            "x": 65,
+            "y": 125
+          },
+          {
+            "id": "world_house_15_entry",
+            "x": 71,
+            "y": 3
+          },
+          {
+            "id": "world_house_16_entry",
+            "x": 18,
+            "y": 86
+          },
+          {
+            "id": "world_house_17_entry",
+            "x": 19,
+            "y": 77
+          },
+          {
+            "id": "world_house_18_entry",
+            "x": 16,
+            "y": 135
+          },
+          {
+            "id": "world_house_19_entry",
+            "x": 71,
+            "y": 21
+          },
+          {
+            "id": "world_house_20_entry",
+            "x": 155,
+            "y": 86
+          },
+          {
+            "id": "world_house_21_entry",
+            "x": 78,
+            "y": 137
+          },
+          {
+            "id": "world_house_22_entry",
+            "x": 79,
+            "y": 102
+          },
+          {
+            "id": "world_house_23_entry",
+            "x": 75,
+            "y": 102
+          },
+          {
+            "id": "world_house_24_entry",
+            "x": 158,
+            "y": 208
+          },
+          {
+            "id": "world_house_25_entry",
+            "x": 154,
+            "y": 196
+          },
+          {
+            "id": "world_house_26_entry",
+            "x": 162,
+            "y": 196
+          },
+          {
+            "id": "world_house_27_entry",
+            "x": 127,
+            "y": 208
+          },
+          {
+            "id": "world_house_28_entry",
+            "x": 131,
+            "y": 208
+          },
+          {
+            "id": "world_house_29_entry",
+            "x": 123,
+            "y": 208
+          },
+          {
+            "id": "world_house_30_entry",
+            "x": 127,
+            "y": 183
+          },
+          {
+            "id": "world_house_31_entry",
+            "x": 77,
+            "y": 206
+          },
+          {
+            "id": "world_house_32_entry",
+            "x": 92,
+            "y": 52
+          },
+          {
+            "id": "world_house_33_entry",
+            "x": 135,
+            "y": 88
+          },
+          {
+            "id": "world_house_34_entry",
+            "x": 156,
+            "y": 181
+          },
+          {
+            "id": "world_house_35_entry",
+            "x": 155,
+            "y": 158
+          },
+          {
+            "id": "world_house_36_entry",
+            "x": 127,
+            "y": 158
+          },
+          {
+            "id": "world_house_37_entry",
+            "x": 26,
+            "y": 296
+          },
+          {
+            "id": "world_house_38_entry",
+            "x": 49,
+            "y": 97
+          },
+          {
+            "id": "world_house_39_entry",
+            "x": 147,
+            "y": 254
+          },
+          {
+            "id": "world_house_40_entry",
+            "x": 38,
+            "y": 245
+          },
+          {
+            "id": "world_portal_142_32",
+            "x": 142,
+            "y": 32
+          },
+          {
+            "id": "world_portal_148_32",
+            "x": 148,
+            "y": 32
+          },
+          {
+            "id": "world_portal_155_29",
+            "x": 155,
+            "y": 29
+          },
+          {
+            "id": "world_portal_158_35",
+            "x": 158,
+            "y": 35
+          },
+          {
+            "id": "world_portal_166_33",
+            "x": 166,
+            "y": 33
+          },
+          {
+            "id": "world_portal_77_237",
+            "x": 77,
+            "y": 237
+          },
+          {
+            "id": "world_portal_82_234",
+            "x": 82,
+            "y": 234
+          }
+        ]
       }
     ],
-    "edges": []
+    "edges": [
+      {
+        "from": {
+          "mapId": "world_01",
+          "doorId": "world_portal_142_32"
+        },
+        "to": {
+          "mapId": "world_01",
+          "doorId": "world_portal_166_33"
+        }
+      },
+      {
+        "from": {
+          "mapId": "world_01",
+          "doorId": "world_portal_148_32"
+        },
+        "to": {
+          "mapId": "world_01",
+          "doorId": "world_portal_155_29"
+        }
+      },
+      {
+        "from": {
+          "mapId": "world_01",
+          "doorId": "world_portal_155_29"
+        },
+        "to": {
+          "mapId": "world_01",
+          "doorId": "world_portal_142_32"
+        }
+      },
+      {
+        "from": {
+          "mapId": "world_01",
+          "doorId": "world_portal_158_35"
+        },
+        "to": {
+          "mapId": "world_01",
+          "doorId": "world_portal_148_32"
+        }
+      },
+      {
+        "from": {
+          "mapId": "world_01",
+          "doorId": "world_portal_166_33"
+        },
+        "to": {
+          "mapId": "world_01",
+          "doorId": "world_portal_158_35"
+        }
+      },
+      {
+        "from": {
+          "mapId": "world_01",
+          "doorId": "world_portal_77_237"
+        },
+        "to": {
+          "mapId": "world_01",
+          "doorId": "world_portal_82_234"
+        }
+      },
+      {
+        "from": {
+          "mapId": "world_01",
+          "doorId": "world_portal_82_234"
+        },
+        "to": {
+          "mapId": "world_01",
+          "doorId": "world_portal_77_237"
+        }
+      }
+    ]
   }
 }

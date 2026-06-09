@@ -7,12 +7,14 @@ function createTiledMap({
     fillTileId = 1,
     doors = [],
     blockingIndices = [],
+    doorsLayerVisible = true,
 }: {
     width?: number;
     height?: number;
     fillTileId?: number;
     doors?: Array<{ id: number; x: number; y: number; class?: string; properties?: Array<{ name: string; value: string }> }>;
     blockingIndices?: number[];
+    doorsLayerVisible?: boolean;
 }) {
     const blockingSet = new Set(blockingIndices);
     return {
@@ -36,6 +38,7 @@ function createTiledMap({
             {
                 name: 'doors',
                 type: 'objectgroup',
+                visible: doorsLayerVisible,
                 objects: doors.map((door) => ({
                     id: door.id,
                     x: door.x,
@@ -132,6 +135,59 @@ test('compileMapPack derives edges from door target_map/target_door properties',
                 tiled: createTiledMap({
                     width: 12,
                     height: 12,
+                    doors: [
+                        {
+                            id: 20,
+                            x: 16,
+                            y: 16,
+                            properties: [{ name: 'door_id', value: 'exit' }],
+                        },
+                    ],
+                }),
+            },
+        ],
+    });
+
+    expect(pack.graph.maps.find((map) => map.id === 'overworld')?.doors).toEqual([
+        { id: 'enter_house', x: 2, y: 1 },
+    ]);
+    expect(pack.graph.edges).toEqual([
+        {
+            from: { mapId: 'overworld', doorId: 'enter_house' },
+            to: { mapId: 'house_01', doorId: 'exit' },
+        },
+    ]);
+});
+
+test('compileMapPack extracts the door graph from an invisible doors layer (markup convention)', () => {
+    // Gameplay markup object layers are authored with visible=false (enforced by the
+    // world-map validator target profile); the door graph must still be derived from them.
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'overworld',
+                tiled: createTiledMap({
+                    doorsLayerVisible: false,
+                    doors: [
+                        {
+                            id: 10,
+                            x: 32,
+                            y: 16,
+                            properties: [
+                                { name: 'door_id', value: 'enter_house' },
+                                { name: 'target_map', value: 'house_01' },
+                                { name: 'target_door', value: 'exit' },
+                            ],
+                        },
+                    ],
+                }),
+            },
+            {
+                id: 'house_01',
+                tiled: createTiledMap({
+                    width: 12,
+                    height: 12,
+                    doorsLayerVisible: false,
                     doors: [
                         {
                             id: 20,
