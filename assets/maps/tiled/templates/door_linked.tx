@@ -3,6 +3,8 @@
  <tileset firstgid="1" source="../editor-markers.tsj"/>
  <object class="Door" gid="3" width="16" height="16">
   <properties>
+   <property name="door_kind" type="string" value="door"/>
+   <property name="one_way" type="bool" value="false"/>
    <property name="orientation" type="string" value="d"/>
    <property name="target_tx" type="int" value="0"/>
    <property name="target_ty" type="int" value="0"/>

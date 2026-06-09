@@ -75818,9 +75818,24 @@
                          "name":"world_house_02_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":148
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":306
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_02_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -75831,6 +75846,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -75850,12 +75870,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":155
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":311
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -75871,6 +75891,16 @@
                          "id":23,
                          "name":"door_23",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -75901,9 +75931,24 @@
                          "name":"world_house_11_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":151
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":115
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_11_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -75914,6 +75959,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -75933,12 +75983,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":157
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":120
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -75960,6 +76010,11 @@
                                  "value":"world_house_18_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -75968,6 +76023,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -75987,12 +76047,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":147
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":113
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -76008,6 +76068,16 @@
                          "id":26,
                          "name":"door_26",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -76038,6 +76108,16 @@
                          "name":"door_27",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
+                                {
                                  "name":"orientation",
                                  "type":"string",
                                  "value":"d"
@@ -76067,9 +76147,24 @@
                          "name":"world_house_12_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":147
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":138
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_12_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -76080,6 +76175,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -76099,12 +76199,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":154
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":143
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -76120,6 +76220,16 @@
                          "id":29,
                          "name":"door_29",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -76155,6 +76265,11 @@
                                  "value":"world_portal_77_237"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"portal"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":72
@@ -76163,6 +76278,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":231
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -76209,6 +76329,11 @@
                                  "value":"world_portal_82_234"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"portal"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":65
@@ -76217,6 +76342,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":235
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -76258,6 +76388,16 @@
                          "name":"door_32",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
+                                {
                                  "name":"orientation",
                                  "type":"string",
                                  "value":"d"
@@ -76287,9 +76427,24 @@
                          "name":"world_house_24_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":120
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":210
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_24_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -76300,6 +76455,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -76319,12 +76479,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":127
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":214
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -76340,6 +76500,16 @@
                          "id":34,
                          "name":"door_34",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -76370,6 +76540,11 @@
                          "name":"door_35",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":120
@@ -76378,6 +76553,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":205
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -76414,6 +76594,11 @@
                                  "value":"world_house_25_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -76422,6 +76607,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -76441,12 +76631,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":133
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":200
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -76462,6 +76652,16 @@
                          "id":37,
                          "name":"door_37",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -76497,6 +76697,11 @@
                                  "value":"world_house_26_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -76505,6 +76710,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -76524,12 +76734,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":127
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":214
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -76545,6 +76755,16 @@
                          "id":39,
                          "name":"door_39",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -76580,6 +76800,11 @@
                                  "value":"world_house_27_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -76588,6 +76813,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -76607,12 +76837,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":156
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":202
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -76634,6 +76864,11 @@
                                  "value":"world_house_28_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -76642,6 +76877,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -76661,12 +76901,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":120
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":200
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -76688,6 +76928,11 @@
                                  "value":"world_house_29_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -76696,6 +76941,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -76715,12 +76965,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":127
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":202
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -76736,6 +76986,16 @@
                          "id":43,
                          "name":"door_43",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -76766,6 +77026,16 @@
                          "name":"door_44",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
+                                {
                                  "name":"orientation",
                                  "type":"string",
                                  "value":"d"
@@ -76794,6 +77064,16 @@
                          "id":45,
                          "name":"door_45",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -76824,6 +77104,16 @@
                          "name":"door_46",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
+                                {
                                  "name":"orientation",
                                  "type":"string",
                                  "value":"d"
@@ -76852,6 +77142,16 @@
                          "id":47,
                          "name":"door_47",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -76887,6 +77187,11 @@
                                  "value":"world_house_30_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -76895,6 +77200,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -76914,12 +77224,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":120
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":200
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -76935,6 +77245,16 @@
                          "id":49,
                          "name":"door_49",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -76965,9 +77285,24 @@
                          "name":"world_house_13_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":149
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":211
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_13_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -76978,6 +77313,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -76997,12 +77337,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":156
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":214
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77019,9 +77359,24 @@
                          "name":"world_house_14_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":120
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":115
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_14_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -77032,6 +77387,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77051,12 +77411,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":127
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":120
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77072,6 +77432,16 @@
                          "id":52,
                          "name":"door_52",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -77101,6 +77471,16 @@
                          "id":53,
                          "name":"door_53",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -77136,6 +77516,11 @@
                                  "value":"world_house_20_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -77144,6 +77529,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77163,12 +77553,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":71
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":11
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77184,6 +77574,16 @@
                          "id":55,
                          "name":"door_55",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -77214,6 +77614,16 @@
                          "name":"door_56",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
+                                {
                                  "name":"orientation",
                                  "type":"string",
                                  "value":"d"
@@ -77243,9 +77653,24 @@
                          "name":"world_house_16_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":149
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":236
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_16_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -77256,6 +77681,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77275,12 +77705,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":155
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":240
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77297,9 +77727,24 @@
                          "name":"world_house_17_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":123
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":236
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_17_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -77310,6 +77755,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77329,12 +77779,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":127
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":240
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77350,6 +77800,16 @@
                          "id":59,
                          "name":"door_59",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -77380,9 +77840,24 @@
                          "name":"world_house_31_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":119
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":138
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_31_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -77393,6 +77868,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77412,12 +77892,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":126
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":143
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77439,6 +77919,11 @@
                                  "value":"world_house_32_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -77447,6 +77932,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77466,12 +77956,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":79
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":45
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77488,9 +77978,24 @@
                          "name":"world_house_05_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":89
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":50
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_05_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -77501,6 +78006,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77520,12 +78030,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":92
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":52
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77542,9 +78052,24 @@
                          "name":"world_house_06_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":112
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":91
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_06_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -77555,6 +78080,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77574,12 +78104,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":117
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":94
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77596,9 +78126,24 @@
                          "name":"world_house_07_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":125
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":86
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_07_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -77609,6 +78154,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77628,12 +78178,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":135
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":88
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77655,6 +78205,11 @@
                                  "value":"world_house_33_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -77663,6 +78218,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77682,12 +78242,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":91
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":29
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77704,6 +78264,11 @@
                          "name":"door_66",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":72
@@ -77712,6 +78277,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":40
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77743,9 +78313,24 @@
                          "name":"world_house_08_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":149
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":180
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_08_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -77756,6 +78341,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -77775,12 +78365,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":156
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":183
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77802,6 +78392,11 @@
                                  "value":"world_house_34_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -77810,6 +78405,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -77829,12 +78429,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":6
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":9
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77850,6 +78450,16 @@
                          "id":69,
                          "name":"door_69",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -77880,9 +78490,24 @@
                          "name":"world_house_09_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":149
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":185
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_09_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -77893,6 +78518,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -77912,12 +78542,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":156
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":190
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77939,6 +78569,11 @@
                                  "value":"world_house_35_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -77947,6 +78582,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -77966,12 +78606,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":104
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":6
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -77988,9 +78628,24 @@
                          "name":"world_house_10_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":148
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":157
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_10_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78001,6 +78656,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -78020,12 +78680,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":155
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":161
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78041,6 +78701,16 @@
                          "id":73,
                          "name":"door_73",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -78076,6 +78746,11 @@
                                  "value":"world_house_36_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -78084,6 +78759,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -78103,12 +78783,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":25
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":291
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78125,9 +78805,24 @@
                          "name":"world_house_37_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":120
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":162
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_37_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78138,6 +78833,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -78157,12 +78857,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":127
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":166
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78179,6 +78879,11 @@
                          "name":"door_76",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":120
@@ -78187,6 +78892,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":157
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -78218,9 +78928,24 @@
                          "name":"world_house_38_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":151
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":259
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_38_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78231,6 +78956,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -78250,12 +78980,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":157
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":264
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78271,6 +79001,16 @@
                          "id":78,
                          "name":"door_78",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -78301,6 +79041,16 @@
                          "name":"door_79",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
+                                {
                                  "name":"orientation",
                                  "type":"string",
                                  "value":"d"
@@ -78330,9 +79080,24 @@
                          "name":"world_house_39_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":28
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":90
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_39_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78343,6 +79108,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -78362,12 +79132,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":38
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":93
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78383,6 +79153,16 @@
                          "id":81,
                          "name":"door_81",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -78413,6 +79193,16 @@
                          "name":"door_82",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
+                                {
                                  "name":"orientation",
                                  "type":"string",
                                  "value":"d"
@@ -78442,9 +79232,24 @@
                          "name":"world_house_22_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":120
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":270
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_22_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78455,6 +79260,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -78474,12 +79284,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":129
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":275
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78496,9 +79306,24 @@
                          "name":"world_house_23_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":120
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":270
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_23_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78509,6 +79334,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -78528,12 +79358,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":124
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":275
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78550,9 +79380,24 @@
                          "name":"world_house_15_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":148
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":65
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_15_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78563,6 +79408,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -78582,12 +79432,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":155
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":71
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78609,6 +79459,11 @@
                                  "value":"world_house_19_entry"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":3
@@ -78617,6 +79472,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -78636,12 +79496,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":155
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":96
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78657,6 +79517,16 @@
                          "id":87,
                          "name":"door_87",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -78687,9 +79557,24 @@
                          "name":"world_house_40_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":120
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":294
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_40_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78700,6 +79585,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -78719,12 +79609,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":127
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":299
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78740,6 +79630,16 @@
                          "id":89,
                          "name":"door_89",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -78770,9 +79670,24 @@
                          "name":"world_house_21_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":149
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":291
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_21_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78783,6 +79698,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -78802,12 +79722,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":156
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":296
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78823,6 +79743,16 @@
                          "id":91,
                          "name":"door_91",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -78853,9 +79783,24 @@
                          "name":"world_house_01_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":148
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":281
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_01_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -78866,6 +79811,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -78885,12 +79835,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":155
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":286
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -78906,6 +79856,16 @@
                          "id":93,
                          "name":"door_93",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -78936,6 +79896,16 @@
                          "name":"door_94",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
+                                {
                                  "name":"orientation",
                                  "type":"string",
                                  "value":"d"
@@ -78964,6 +79934,16 @@
                          "id":95,
                          "name":"door_95",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -78994,9 +79974,24 @@
                          "name":"world_house_03_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":148
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":15
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_03_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -79007,6 +80002,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -79026,12 +80026,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":155
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":20
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -79048,9 +80048,24 @@
                          "name":"world_house_04_entry",
                          "properties":[
                                 {
+                                 "name":"camera_tx",
+                                 "type":"int",
+                                 "value":155
+                                },
+                                {
+                                 "name":"camera_ty",
+                                 "type":"int",
+                                 "value":31
+                                },
+                                {
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_house_04_entry"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
                                 },
                                 {
                                  "name":"local_tx",
@@ -79061,6 +80076,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":3
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
                                 },
                                 {
                                  "name":"orientation",
@@ -79080,12 +80100,12 @@
                                 {
                                  "name":"target_tx",
                                  "type":"int",
-                                 "value":3
+                                 "value":166
                                 },
                                 {
                                  "name":"target_ty",
                                  "type":"int",
-                                 "value":3
+                                 "value":36
                                 }],
                          "rotation":0,
                          "template":"templates\/door_linked.tx",
@@ -79101,6 +80121,16 @@
                          "id":98,
                          "name":"door_98",
                          "properties":[
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":false
+                                },
                                 {
                                  "name":"orientation",
                                  "type":"string",
@@ -79131,6 +80161,11 @@
                          "name":"door_99",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":49
@@ -79139,6 +80174,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":75
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -79170,6 +80210,11 @@
                          "name":"door_100",
                          "properties":[
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"door"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":140
@@ -79178,6 +80223,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":27
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -79212,6 +80262,16 @@
                                  "name":"door_id",
                                  "type":"string",
                                  "value":"world_portal_166_33"
+                                },
+                                {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"portal"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -79258,6 +80318,11 @@
                                  "value":"world_portal_158_35"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"portal"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":142
@@ -79266,6 +80331,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":28
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -79312,6 +80382,11 @@
                                  "value":"world_portal_148_32"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"portal"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":148
@@ -79320,6 +80395,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":26
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -79366,6 +80446,11 @@
                                  "value":"world_portal_155_29"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"portal"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":140
@@ -79374,6 +80459,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":26
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",
@@ -79420,6 +80510,11 @@
                                  "value":"world_portal_142_32"
                                 },
                                 {
+                                 "name":"door_kind",
+                                 "type":"string",
+                                 "value":"portal"
+                                },
+                                {
                                  "name":"local_tx",
                                  "type":"int",
                                  "value":155
@@ -79428,6 +80523,11 @@
                                  "name":"local_ty",
                                  "type":"int",
                                  "value":31
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"orientation",

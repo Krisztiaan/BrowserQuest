@@ -847,10 +847,12 @@ export default function processMap(
     if (doorsLayer && Array.isArray(doorsLayer.objects)) {
         log.info("Processing doors...");
         for (const door of doorsLayer.objects) {
+            // The door_kind property is the only source of portal semantics;
+            // Tiled class naming is intentionally ignored.
             const exportedDoor: ExportedDoor = {
                 x: door.x / map.tilesize,
                 y: door.y / map.tilesize,
-                p: door.class === "Portal" ? 1 : 0,
+                p: getPropertyValue(door, 'door_kind') === 'portal' ? 1 : 0,
             };
 
             for (const property of getProperties(door)) {

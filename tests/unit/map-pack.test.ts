@@ -428,6 +428,29 @@ test('compileMapPack exports roaming areas with valid mob kinds', () => {
     ]);
 });
 
+test('compileMapPack derives the portal flag solely from the door_kind property', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'world',
+                tiled: createTiledMap({
+                    doors: [
+                        { id: 1, x: 16, y: 16, class: 'Door', properties: [{ name: 'door_kind', value: 'portal' }] },
+                        { id: 2, x: 32, y: 16, class: 'Portal', properties: [{ name: 'door_kind', value: 'door' }] },
+                        // Tiled class naming is ignored entirely; no door_kind means not a portal
+                        { id: 3, x: 48, y: 16, class: 'Portal', properties: [] },
+                    ],
+                }),
+            },
+        ],
+    });
+    const doors = pack.maps[0]?.server.doors as Array<{ x: number; p: number }>;
+    const byX = new Map(doors.map((d) => [d.x, d.p]));
+    expect(byX.get(1)).toBe(1);
+    expect(byX.get(2)).toBe(0);
+    expect(byX.get(3)).toBe(0);
+});
+
 test('compileMapPack seals unpainted void cells as collisions on both sides', () => {
     const width = 8;
     const height = 8;

@@ -328,9 +328,9 @@ function buildLayerContexts(map: ParsedMap, diags: Diagnostic[]): LayerContext[]
             const typeRaw = asString(record.type);
             const visibleRaw = asBoolean(record.visible);
             const ownOffsetX =
-                typeof record.offsetx === 'number' && Number.isFinite(record.offsetx) ? (record.offsetx as number) : 0;
+                typeof record.offsetx === 'number' && Number.isFinite(record.offsetx) ? (record.offsetx) : 0;
             const ownOffsetY =
-                typeof record.offsety === 'number' && Number.isFinite(record.offsety) ? (record.offsety as number) : 0;
+                typeof record.offsety === 'number' && Number.isFinite(record.offsety) ? (record.offsety) : 0;
             const effectiveVisible = state.visible && (visibleRaw ?? true);
             const effectiveOffsetX = state.offsetX + ownOffsetX;
             const effectiveOffsetY = state.offsetY + ownOffsetY;
@@ -669,7 +669,7 @@ function checkObjectBoundsAndDuplicates(
 
 function extractPortalTileCoords(layer: LayerContext | undefined, width: number): Set<string> {
     const coords = new Set<string>();
-    if (!layer || layer.type !== 'tilelayer') {
+    if (layer?.type !== 'tilelayer') {
         return coords;
     }
     const data = getTileData(layer);
@@ -690,7 +690,7 @@ function extractPortalTileCoords(layer: LayerContext | undefined, width: number)
 
 function extractDoorPortalCoords(layer: LayerContext | undefined, tileWidth: number, tileHeight: number): Set<string> {
     const coords = new Set<string>();
-    if (!layer || layer.type !== 'objectgroup') {
+    if (layer?.type !== 'objectgroup') {
         return coords;
     }
     for (const objectRecord of getObjects(layer)) {
@@ -973,29 +973,6 @@ function requireNonEmptyObjectClass(
     }
 }
 
-function checkUniqueIdProperty(diags: Diagnostic[], layer: LayerContext, objects: ReadonlyArray<UnknownRecord>, propertyName: string): void {
-    const seen = new Set<string>();
-    for (const objectRecord of objects) {
-        const id = asInteger(objectRecord.id);
-        const props = getPropertyMap(objectRecord.properties);
-        const value = props.get(propertyName);
-        if (!isNumericLike(value)) {
-            continue;
-        }
-        const normalized = String(value);
-        if (seen.has(normalized)) {
-            pushDiagnostic(
-                diags,
-                'error',
-                'DUPLICATE_OBJECT_PROPERTY_ID',
-                `${formatLayerRef(layer)} object ${id ?? 'no-id'} repeats ${propertyName}=${normalized}.`
-            );
-            continue;
-        }
-        seen.add(normalized);
-    }
-}
-
 function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: Diagnostic[]): void {
     const byName = new Map<string, LayerContext>();
     for (const layer of layers) {
@@ -1003,7 +980,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
     }
 
     const doors = byName.get('doors');
-    if (doors && doors.type === 'objectgroup') {
+    if (doors?.type === 'objectgroup') {
         for (const objectRecord of getObjects(doors)) {
             const objectId = asInteger(objectRecord.id);
             const props = getPropertyMap(objectRecord.properties);
@@ -1012,6 +989,17 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
             requireProperty(diags, doors, objectId, props, 'orientation', 'DOOR_PROPERTY_MISSING');
             requireProperty(diags, doors, objectId, props, 'target_tx', 'DOOR_PROPERTY_MISSING');
             requireProperty(diags, doors, objectId, props, 'target_ty', 'DOOR_PROPERTY_MISSING');
+            requireProperty(diags, doors, objectId, props, 'door_kind', 'DOOR_PROPERTY_MISSING');
+            requireProperty(diags, doors, objectId, props, 'one_way', 'DOOR_PROPERTY_MISSING');
+            const doorKind = props.get('door_kind');
+            if (doorKind !== undefined && doorKind !== 'door' && doorKind !== 'portal') {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'DOOR_KIND_INVALID',
+                    `${formatLayerRef(doors)} object ${objectId ?? 'no-id'} has unsupported door_kind "${JSON.stringify(doorKind)}" (expected "door" or "portal").`
+                );
+            }
 
             const forbidden = ['o', 'x', 'y', 'cx', 'cy'];
             for (const key of forbidden) {
@@ -1035,7 +1023,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
     }
 
     const chestAreas = byName.get('chest_areas');
-    if (chestAreas && chestAreas.type === 'objectgroup') {
+    if (chestAreas?.type === 'objectgroup') {
         for (const objectRecord of getObjects(chestAreas)) {
             const objectId = asInteger(objectRecord.id);
             const props = getPropertyMap(objectRecord.properties);
@@ -1056,7 +1044,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
     }
 
     const chestSpawns = byName.get('chest_spawns');
-    if (chestSpawns && chestSpawns.type === 'objectgroup') {
+    if (chestSpawns?.type === 'objectgroup') {
         for (const objectRecord of getObjects(chestSpawns)) {
             const objectId = asInteger(objectRecord.id);
             const props = getPropertyMap(objectRecord.properties);
@@ -1067,7 +1055,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
     }
 
     const roaming = byName.get('roaming_areas');
-    if (roaming && roaming.type === 'objectgroup') {
+    if (roaming?.type === 'objectgroup') {
         for (const objectRecord of getObjects(roaming)) {
             const objectId = asInteger(objectRecord.id);
             const props = getPropertyMap(objectRecord.properties);
@@ -1095,7 +1083,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
     }
 
     const musicZones = byName.get('music_zones');
-    if (musicZones && musicZones.type === 'objectgroup') {
+    if (musicZones?.type === 'objectgroup') {
         for (const objectRecord of getObjects(musicZones)) {
             const objectId = asInteger(objectRecord.id);
             const props = getPropertyMap(objectRecord.properties);
@@ -1106,7 +1094,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
     }
 
     const checkpoints = byName.get('checkpoints');
-    if (checkpoints && checkpoints.type === 'objectgroup') {
+    if (checkpoints?.type === 'objectgroup') {
         for (const objectRecord of getObjects(checkpoints)) {
             const objectId = asInteger(objectRecord.id);
             const props = getPropertyMap(objectRecord.properties);
@@ -1126,7 +1114,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
     }
 
     const staticEntities = byName.get('static_entities');
-    if (staticEntities && staticEntities.type === 'objectgroup') {
+    if (staticEntities?.type === 'objectgroup') {
         for (const objectRecord of getObjects(staticEntities)) {
             const objectId = asInteger(objectRecord.id);
             const props = getPropertyMap(objectRecord.properties);
@@ -1164,7 +1152,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
     }
 
     const resourceNodes = byName.get('resource_nodes');
-    if (resourceNodes && resourceNodes.type === 'objectgroup') {
+    if (resourceNodes?.type === 'objectgroup') {
         for (const objectRecord of getObjects(resourceNodes)) {
             const objectId = asInteger(objectRecord.id);
             const props = getPropertyMap(objectRecord.properties);
