@@ -293,7 +293,7 @@ test('compileMapPack accepts legacy object type metadata and skips invalid roami
 
     const worldServer = pack.maps[0]?.server as {
         roamingAreas?: unknown[];
-        staticEntities?: Record<string, import('../../shared/entity-kind-domain').EntityKindName>;
+        staticEntities?: Record<string, string>;
     };
 
     expect(worldServer.roamingAreas ?? []).toEqual([]);
@@ -430,6 +430,82 @@ test('compileMapPack carves authored blocking to prevent trapped door soft-locks
     expect(house).toBeTruthy();
     expect((house?.client.blocking as number[]).includes(blockedNeighborIndex)).toBe(false);
     expect((house?.server.collisions as number[]).includes(blockedNeighborIndex)).toBe(false);
+});
+
+test('compileMapPack allows a door tile to stay walkable when its tileset tile is explicitly passable', () => {
+    const width = 4;
+    const height = 4;
+    const doorTile = { x: 1, y: 1 };
+    const doorIndex = doorTile.y * width + doorTile.x;
+
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'house',
+                tiled: {
+                    width,
+                    height,
+                    tilewidth: 16,
+                    tileheight: 16,
+                    tilesets: [
+                        {
+                            name: 'tilesheet',
+                            firstgid: 1,
+                            tiles: [
+                                {
+                                    id: 0,
+                                    objectgroup: {
+                                        type: 'objectgroup',
+                                        objects: [{ id: 1, x: 0, y: 0, width: 16, height: 16 }],
+                                    },
+                                    properties: [{ name: 'passable', value: true }],
+                                },
+                            ],
+                        },
+                    ],
+                    layers: [
+                        {
+                            name: 'background',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: [
+                                0, 0, 0, 0,
+                                0, 1, 0, 0,
+                                0, 0, 0, 0,
+                                0, 0, 0, 0,
+                            ],
+                        },
+                        {
+                            name: 'blocking',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(width * height).fill(0),
+                        },
+                        {
+                            name: 'doors',
+                            type: 'objectgroup',
+                            objects: [
+                                {
+                                    id: 10,
+                                    x: doorTile.x * 16,
+                                    y: doorTile.y * 16,
+                                    width: 16,
+                                    height: 16,
+                                    class: 'Door',
+                                    properties: [{ name: 'door_id', value: 'entry' }],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
+    });
+
+    const house = pack.maps.find((m) => m.id === 'house');
+    expect(house).toBeTruthy();
+    expect((house?.client.collisions as number[]).includes(doorIndex)).toBe(false);
+    expect((house?.server.collisions as number[]).includes(doorIndex)).toBe(false);
 });
 
 test('compileMapPack fails when cross-map transition destination has empty renderable terrain', () => {

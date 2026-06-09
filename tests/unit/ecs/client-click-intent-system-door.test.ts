@@ -42,9 +42,10 @@ test('click intent allows clicking directly on a colliding door tile', () => {
     expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerGoTo', x: 7, y: 9 });
 });
 
-test('clicking a door tile while standing on it arms door traversal', () => {
+test('clicking a door tile while standing on it leaves traversal ownership to the door system', () => {
     const kernel = new ClientWorldKernel();
     kernel.setClientClickIntent({ x: 3, y: 4 });
+    kernel.setClientDoorTraversalContact({ doorX: 3, doorY: 4, mapId: 'world_01' });
 
     runClientClickIntentSystem({
         started: true,
@@ -59,6 +60,7 @@ test('clicking a door tile while standing on it arms door traversal', () => {
         isZoningTile: () => false,
     });
 
-    expect(kernel.clientDoorTraversalArmed).toBe(true);
+    expect(kernel.clientPendingDoorTraversal).toBeNull();
+    expect(kernel.clientDoorTraversalContact).toBeNull();
     expect(kernel.drainClientCommands()).toEqual([]);
 });

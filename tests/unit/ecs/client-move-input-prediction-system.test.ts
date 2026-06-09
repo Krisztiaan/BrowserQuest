@@ -43,6 +43,7 @@ test('move-input prediction does not move local player in lockstep mode', () => 
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
+            setLogicalWorldPositionSub: () => {},
             setVisualDivergenceClass: () => {},
             setVisualRenderTarget: () => {
                 setVisualCalls += 1;
@@ -71,6 +72,8 @@ test('move-input prediction updates local player target without render snapping'
     const playerId = entityIdFromWire(2);
     const start = tileToWorldPosCenter(10, 10);
     const setVisualRenderTargetCalls: Array<{ x: number; y: number; mode: string | undefined }> = [];
+    let logicalWorldX = start.x;
+    let logicalWorldY = start.y;
     let divergenceClass = '';
 
     kernel.upsertFromSpawnSnapshot({
@@ -102,6 +105,10 @@ test('move-input prediction updates local player target without render snapping'
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
+            setLogicalWorldPositionSub: (worldX: number, worldY: number) => {
+                logicalWorldX = worldX;
+                logicalWorldY = worldY;
+            },
             setVisualDivergenceClass: (next: string) => {
                 divergenceClass = next;
             },
@@ -128,6 +135,8 @@ test('move-input prediction updates local player target without render snapping'
     expect(setVisualRenderTargetCalls[0]?.mode).toBe('interpolate');
     expect(divergenceClass).toBe('ordinary');
     expect(kernel.clientPredictedWorldPos).not.toBeNull();
+    expect(logicalWorldX).toBe(kernel.clientPredictedWorldPos?.x);
+    expect(logicalWorldY).toBe(kernel.clientPredictedWorldPos?.y);
 });
 
 test('move-input prediction resumes from the local presentation target instead of older rendered state', () => {
@@ -166,6 +175,7 @@ test('move-input prediction resumes from the local presentation target instead o
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
+            setLogicalWorldPositionSub: () => {},
             setVisualDivergenceClass: () => {},
             setVisualRenderTarget: (x: number) => {
                 predictedRenderX = x;
@@ -223,6 +233,7 @@ test('move-input prediction ignores tiny authoritative drift inside deadzone', (
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
+            setLogicalWorldPositionSub: () => {},
             setVisualDivergenceClass: () => {},
             setVisualRenderTarget: (x: number) => {
                 predictedRenderX = x;
@@ -284,6 +295,7 @@ test('move-input prediction treats diagonal authority drift with the same deadzo
             isDead: false,
             isOnPlateau: false,
             isMoving: () => false,
+            setLogicalWorldPositionSub: () => {},
             setVisualDivergenceClass: (next: string) => {
                 divergenceClass = next;
             },

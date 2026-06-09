@@ -22,6 +22,7 @@ export type ClientMoveInputPredictionSystemHost = Readonly<{
               isDead: boolean;
               isOnPlateau: boolean;
               isMoving(): boolean;
+              setLogicalWorldPositionSub(worldX: number, worldY: number): void;
               setVisualDivergenceClass(divergenceClass: VisualDivergenceClass): void;
               setVisualRenderTarget(x: number, y: number, mode?: VisualMoveMode): void;
               setVisualRenderPosition(
@@ -118,6 +119,7 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
             host.kernel.clientPredictedWorldPos = clampedAuth;
             host.kernel.setClientPresentationTargetWorldPosition(host.playerId, clampedAuth.x, clampedAuth.y);
             host.kernel.setClientRenderedWorldPosition(host.playerId, clampedAuth.x, clampedAuth.y);
+            player.setLogicalWorldPositionSub(clampedAuth.x, clampedAuth.y);
             bridgeCharacterWorldUpdate(player, {
                 worldX: clampedAuth.x,
                 worldY: clampedAuth.y,
@@ -214,6 +216,7 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
 
     host.kernel.clientPredictedWorldPos = reconciled;
     host.kernel.setClientPresentationTargetWorldPosition(host.playerId, reconciled.x, reconciled.y);
+    player.setLogicalWorldPositionSub(reconciled.x, reconciled.y);
     bridgeCharacterWorldUpdate(player, {
         worldX: reconciled.x,
         worldY: reconciled.y,

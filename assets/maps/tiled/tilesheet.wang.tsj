@@ -14483,7 +14483,13 @@
              "visible":true,
              "x":0,
              "y":0
-            }
+            },
+         "properties":[
+                {
+                 "name":"passable",
+                 "type":"bool",
+                 "value":true
+                }]
         }, 
         {
          "id":1627,
@@ -14508,7 +14514,13 @@
              "visible":true,
              "x":0,
              "y":0
-            }
+            },
+         "properties":[
+                {
+                 "name":"passable",
+                 "type":"bool",
+                 "value":true
+                }]
         }, 
         {
          "id":1632,
@@ -16155,7 +16167,44 @@
              "x":0,
              "y":0
             }
-        }],
+        }, 
+        {
+         "id":7,
+         "properties":[
+                {
+                 "name":"passable",
+                 "type":"bool",
+                 "value":true
+                }]
+        }, 
+        {
+         "id":8,
+         "properties":[
+                {
+                 "name":"passable",
+                 "type":"bool",
+                 "value":true
+                }]
+        }, 
+        {
+         "id":1439,
+         "properties":[
+                {
+                 "name":"passable",
+                 "type":"bool",
+                 "value":true
+                }]
+        }, 
+        {
+         "id":1459,
+         "properties":[
+                {
+                 "name":"passable",
+                 "type":"bool",
+                 "value":true
+                }]
+        }
+        ],
  "tilewidth":16,
  "type":"tileset",
  "version":"1.11",

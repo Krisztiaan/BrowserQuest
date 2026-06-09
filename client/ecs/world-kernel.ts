@@ -69,6 +69,12 @@ export type ClientPendingDoorTraversal = Readonly<{
     requestedAtMs: number;
 }>;
 
+export type ClientDoorTraversalContact = Readonly<{
+    doorX: number;
+    doorY: number;
+    mapId: string | null;
+}>;
+
 export type ClientMapTransitionState = {
     seq: number;
     fromMapId: string;
@@ -196,8 +202,8 @@ export class ClientWorldKernel {
     clientMoveInputDirty = false;
     clientMovementNetcodeMode: ClientMovementNetcodeMode = 'predictive';
     clientPredictedWorldPos: WorldPos | null = null;
-    clientDoorTraversalArmed = false;
     clientPendingDoorTraversal: ClientPendingDoorTraversal | null = null;
+    clientDoorTraversalContact: ClientDoorTraversalContact | null = null;
     clientMapTransition: ClientMapTransitionState | null = null;
     clientLocalPlayerDead = false;
     readonly clientChunkOverlayCache = new ClientChunkOverlayCache();
@@ -392,6 +398,14 @@ export class ClientWorldKernel {
 
     clearClientPendingDoorTraversal(): void {
         this.clientPendingDoorTraversal = null;
+    }
+
+    setClientDoorTraversalContact(contact: ClientDoorTraversalContact): void {
+        this.clientDoorTraversalContact = contact;
+    }
+
+    clearClientDoorTraversalContact(): void {
+        this.clientDoorTraversalContact = null;
     }
 
     startClientMapTransition({
@@ -843,8 +857,8 @@ export class ClientWorldKernel {
         this.clientMoveInputKeysMask = 0;
         this.clientMoveInputRecentKeys.length = 0;
         this.clientMoveInputDirty = false;
-        this.clientDoorTraversalArmed = false;
         this.clientPendingDoorTraversal = null;
+        this.clientDoorTraversalContact = null;
         this.clientMapTransition = null;
         this.clientLocalPlayerDead = false;
     }

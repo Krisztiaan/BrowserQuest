@@ -27,6 +27,7 @@ export type ClientClickIntentSystemHost = Readonly<{
                   y: number;
                   orientation: number;
                   portal: boolean;
+                  targetMapId?: string;
                   cameraX?: number;
                   cameraY?: number;
               } | undefined;
@@ -151,6 +152,12 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
         },
     });
 
+    if (map.isDoor?.(x, y) && host.player.gridX === x && host.player.gridY === y) {
+        debugClicks('door:ready', { x, y });
+        host.kernel.clearClientDoorTraversalContact();
+        return;
+    }
+
     if (doorClick && map.getDoorDestination) {
         const destination = map.getDoorDestination(x, y);
         if (destination) {
@@ -160,6 +167,7 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
                 doorY: y,
                 toX: destination.x,
                 toY: destination.y,
+                ...(typeof destination.targetMapId === 'string' ? { targetMapId: destination.targetMapId } : {}),
                 orientation: destination.orientation,
                 portal: destination.portal,
                 cameraX: destination.cameraX,
@@ -171,12 +179,6 @@ export function runClientClickIntentSystem(host: ClientClickIntentSystemHost): v
         }
     } else {
         host.kernel.clearClientPendingDoorTraversal();
-    }
-
-    if (map.isDoor?.(x, y) && host.player.gridX === x && host.player.gridY === y) {
-        debugClicks('door:arm', { x, y });
-        host.kernel.clientDoorTraversalArmed = true;
-        return;
     }
 
     const nextX = host.player.nextGridX ?? -1;

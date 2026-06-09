@@ -164,6 +164,13 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
         }
     }
 
+    setLogicalWorldPositionSub(worldX: number, worldY: number): void {
+        this.worldX = worldX;
+        this.worldY = worldY;
+        this.gridX = Math.floor(worldX / TILE_SUBPX);
+        this.gridY = Math.floor(worldY / TILE_SUBPX);
+    }
+
     setSprite(sprite: SpriteLike | null): void {
         if (!sprite) {
             log.error(this.id + ' : sprite is null', true);

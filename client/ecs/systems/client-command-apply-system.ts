@@ -1217,8 +1217,8 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 host.kernel.clearClientPendingMoveAcks();
                 host.kernel.clearClientPendingMoveSeqAcks();
                 host.kernel.clearClientMoveInput();
-                host.kernel.clientDoorTraversalArmed = false;
                 host.kernel.clearClientPendingDoorTraversal();
+                host.kernel.clearClientDoorTraversalContact();
 
                 if (typeof host.loadMapById !== 'function') {
                     host.kernel.enqueueClientCommand({
@@ -1368,11 +1368,11 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                     }
                 }
                 if (command.entityId === host.playerId) {
-                    host.kernel.clientDoorTraversalArmed = false;
                     host.kernel.clearClientMovePlan();
                     host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
                     host.kernel.clearClientPendingMoveAcks();
                     host.kernel.clearClientPendingMoveSeqAcks();
+                    host.kernel.clearClientDoorTraversalContact();
                     if (!localPlayerTransition) {
                         host.kernel.clientMovementSuppressed = false;
                     }

@@ -690,6 +690,7 @@ export default function processMap(
     const tileSize = Number.isFinite(json.tilewidth) ? json.tilewidth : 16;
 
     const collidingTiles: Record<number, true> = {};
+    const passableTiles: Record<number, true> = {};
     const staticEntityKindsByTileId: Record<number, EntityKindName> = {};
     const tilesetRefs: ResolvedTilesetRef[] = [];
     let mobsFirstgid = 0;
@@ -764,6 +765,9 @@ export default function processMap(
                 const collisionObjects = Array.isArray(tile.objectgroup?.objects) ? tile.objectgroup.objects : [];
                 if (collisionObjects.length > 0) {
                     collidingTiles[tilePropertyId] = true;
+                }
+                if (isTruthy(getPropertyValue(tile, 'passable'))) {
+                    passableTiles[tilePropertyId] = true;
                 }
                 if (mode === "client" && Array.isArray(tile.animation) && tile.animation.length > 0) {
                     const firstFrame = tile.animation[0];
@@ -1139,12 +1143,12 @@ export default function processMap(
             }
             if (gid > 0) {
                 renderableOccupancy[i] = 1;
-                if (layer.name === 'bridge') {
+                if (gid in passableTiles) {
                     collisionCarveIndices.add(i);
                 }
             }
 
-            if (gid in collidingTiles) {
+            if (gid in collidingTiles && !(gid in passableTiles)) {
                 map.collisions.push(i);
             }
         }
@@ -1189,7 +1193,10 @@ export default function processMap(
             } else {
                 objectsByPosition.set(key, [entry]);
             }
-            if (entry.gid in collidingTiles) {
+            if (entry.gid in passableTiles) {
+                collisionCarveIndices.add(entry.tileIndex);
+            }
+            if (entry.gid in collidingTiles && !(entry.gid in passableTiles)) {
                 map.collisions.push(entry.tileIndex);
             }
         }
@@ -1252,11 +1259,12 @@ export default function processMap(
                         ? collidableComponentEntries
                         : componentEntries;
             let depth =
-                explicitDepth !== null
-                    ? explicitDepth
-                    : depthMode === 'top'
-                      ? depthSourceEntries.reduce((minDepth, entry) => Math.min(minDepth, entry.tileY), Number.POSITIVE_INFINITY)
-                      : depthSourceEntries.reduce((maxDepth, entry) => Math.max(maxDepth, entry.tileY), 0);
+                explicitDepth
+                ?? (
+                    depthMode === 'top'
+                        ? depthSourceEntries.reduce((minDepth, entry) => Math.min(minDepth, entry.tileY), Number.POSITIVE_INFINITY)
+                        : depthSourceEntries.reduce((maxDepth, entry) => Math.max(maxDepth, entry.tileY), 0)
+                );
             if (!Number.isFinite(depth)) {
                 depth = 0;
             }
@@ -1323,7 +1331,10 @@ export default function processMap(
             writeRenderableTile(resolved.tileIndex, resolved.gid, foregroundLayer);
         }
         renderableOccupancy[resolved.tileIndex] = 1;
-        if (resolved.gid in collidingTiles) {
+        if (resolved.gid in passableTiles) {
+            collisionCarveIndices.add(resolved.tileIndex);
+        }
+        if (resolved.gid in collidingTiles && !(resolved.gid in passableTiles)) {
             map.collisions.push(resolved.tileIndex);
         }
     }

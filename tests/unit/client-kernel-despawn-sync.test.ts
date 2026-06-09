@@ -265,3 +265,104 @@ test('predictive local-player diagonal drift does not trigger teleport correctio
     expect(cmds.some((cmd) => cmd.type === 'teleportEntity' && cmd.entityId === playerId)).toBe(false);
     expect(kernel.clientReplicationLastPos.get(playerId)).toEqual(gridPos(10, 10));
 });
+
+test('predictive local move-to drift larger than one tile does not emit a replication visual correction', () => {
+    const kernel = new ClientWorldKernel();
+    const playerId = entityIdFromWire(78);
+
+    kernel.upsertFromSpawnSnapshot({
+        id: 78,
+        kind: Types.Entities.WARRIOR,
+        x: 10,
+        y: 10,
+        extras: {
+            type: 'player',
+            name: 'K',
+            orientation: Types.Orientations.DOWN,
+            armor: Types.Entities.CLOTHARMOR,
+            weapon: Types.Entities.SWORD1,
+        },
+    });
+
+    kernel.clientReplicationKnownAlive.add(playerId);
+    kernel.clientReplicationLastPos.set(playerId, gridPos(10, 10));
+    const authoritative = tileToWorldPosCenter(10, 10);
+    kernel.clientReplicationLastWorldPos.set(playerId, authoritative);
+    kernel.setClientPresentationTargetWorldPosition(playerId, tileToWorldPosCenter(13, 10).x, tileToWorldPosCenter(13, 10).y);
+    kernel.clientSpatialRecords.set(playerId, {
+        gridX: 13,
+        gridY: 10,
+        nextGridX: 14,
+        nextGridY: 10,
+        isMoving: true,
+        isDead: false,
+        kind: Types.Entities.WARRIOR,
+        isPlayer: true,
+    });
+    kernel.clientMovePlan = {
+        requestedTo: gridPos(15, 10),
+        target: gridPos(15, 10),
+        steps: [gridPos(11, 10), gridPos(12, 10), gridPos(13, 10), gridPos(14, 10), gridPos(15, 10)],
+        stopAdjacentToTarget: false,
+        sent: true,
+    };
+    kernel.setWorldPosition(playerId, tileToWorldPosCenter(11, 10).x, tileToWorldPosCenter(11, 10).y);
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId, currentTime: 1_000 });
+    const cmds = kernel.drainClientCommands();
+
+    expect(cmds.some((cmd) => cmd.type === 'teleportEntity' && cmd.entityId === playerId)).toBe(false);
+    expect(cmds.some((cmd) => cmd.type === 'setEntityWorldPosition' && cmd.entityId === playerId)).toBe(false);
+    expect(kernel.clientReplicationLastWorldPos.get(playerId)).toEqual(tileToWorldPosCenter(11, 10));
+    expect(kernel.clientReplicationLastPos.get(playerId)).toEqual(gridPos(11, 10));
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId, currentTime: 1_016 });
+    expect(kernel.drainClientCommands()).toEqual([]);
+});
+
+test('predictive held-input drift larger than one tile does not emit a replication visual correction', () => {
+    const kernel = new ClientWorldKernel();
+    const playerId = entityIdFromWire(79);
+
+    kernel.upsertFromSpawnSnapshot({
+        id: 79,
+        kind: Types.Entities.WARRIOR,
+        x: 10,
+        y: 10,
+        extras: {
+            type: 'player',
+            name: 'K',
+            orientation: Types.Orientations.DOWN,
+            armor: Types.Entities.CLOTHARMOR,
+            weapon: Types.Entities.SWORD1,
+        },
+    });
+
+    kernel.clientReplicationKnownAlive.add(playerId);
+    kernel.clientReplicationLastPos.set(playerId, gridPos(10, 10));
+    kernel.clientReplicationLastWorldPos.set(playerId, tileToWorldPosCenter(10, 10));
+    kernel.setClientPresentationTargetWorldPosition(playerId, tileToWorldPosCenter(13, 10).x, tileToWorldPosCenter(13, 10).y);
+    kernel.clientSpatialRecords.set(playerId, {
+        gridX: 13,
+        gridY: 10,
+        nextGridX: 14,
+        nextGridY: 10,
+        isMoving: true,
+        isDead: false,
+        kind: Types.Entities.WARRIOR,
+        isPlayer: true,
+    });
+    kernel.clientMoveInputKeysMask = 1;
+    kernel.setWorldPosition(playerId, tileToWorldPosCenter(11, 10).x, tileToWorldPosCenter(11, 10).y);
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId, currentTime: 1_000 });
+    const cmds = kernel.drainClientCommands();
+
+    expect(cmds.some((cmd) => cmd.type === 'teleportEntity' && cmd.entityId === playerId)).toBe(false);
+    expect(cmds.some((cmd) => cmd.type === 'setEntityWorldPosition' && cmd.entityId === playerId)).toBe(false);
+    expect(kernel.clientReplicationLastWorldPos.get(playerId)).toEqual(tileToWorldPosCenter(11, 10));
+    expect(kernel.clientReplicationLastPos.get(playerId)).toEqual(gridPos(11, 10));
+
+    runClientKernelReplicationSyncSystem({ kernel, playerId, currentTime: 1_016 });
+    expect(kernel.drainClientCommands()).toEqual([]);
+});

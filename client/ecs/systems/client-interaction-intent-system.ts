@@ -218,7 +218,11 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             targetPos,
             player: host.player,
         });
-        const engagement = renderedEngagement === 'attack' || authoritativeEngagement === 'attack' ? 'attack' : 'pursue';
+        // Conservative-client / tolerant-server policy:
+        // - rendered local state decides when ATTACK is eligible to send
+        // - authoritative state can still block overly-early sends while the server catches up
+        // This keeps the client from over-promising interactions while leaving bounded grace to the server.
+        const engagement = renderedEngagement === 'attack' ? 'attack' : 'pursue';
         if (engagement === 'attack') {
             // Do not send ATTACK while movement is still in flight. Server-side movement processing clears
             // Target during movement ticks, so ATTACK emitted before move acks drain can be dropped.

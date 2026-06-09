@@ -1427,7 +1427,8 @@ function runServerAuthoritativeCombatSystem({
         }
 
         if (ctx.tick < windup.hitAtTick) {
-            if (!isInRange || !isVisible) {
+            const windupRangeOk = isInRange || (isPlayerVsMob && isInRangeWithGrace);
+            if (!windupRangeOk || !isVisible) {
                 if (isPlayerVsMob) {
                     log.event('warn', 'combat.player_windup_cleared_before_hit', {
                         attackerId: engagement.attackerId,
@@ -1435,6 +1436,7 @@ function runServerAuthoritativeCombatSystem({
                         tick: ctx.tick,
                         hitAtTick: windup.hitAtTick,
                         isInRange,
+                        isInRangeWithGrace,
                         isVisible,
                         attackerPos: attackerPos ? { x: attackerPos.x, y: attackerPos.y } : null,
                         targetPos: targetPos ? { x: targetPos.x, y: targetPos.y } : null,

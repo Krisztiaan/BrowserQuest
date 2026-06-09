@@ -304,7 +304,7 @@ test('attack intent allows first-click ATTACK once authoritative position is sti
     expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerAttack', targetId: mob.id });
 });
 
-test('attack intent uses authoritative in-range tile even when rendered tile is one diagonal step behind', () => {
+test('attack intent keeps follow when only authoritative state is in range but rendered state is still clearly out of range', () => {
     const playerId = entityIdFromWire(5112);
     const player = new Player(playerId, 'K', Types.Entities.WARRIOR);
     setEntityGrid(player, 10, 10);
@@ -330,7 +330,7 @@ test('attack intent uses authoritative in-range tile even when rendered tile is 
         y: mob.gridY,
         isPlayer: false,
     });
-    // Rendered tile is still out of range, but the last authoritative tile is already diagonally adjacent.
+    // Rendered tile is still clearly out of range even though the last authoritative tile has already entered range.
     kernel.clientReplicationLastPos.set(playerId, gridPos(11, 10));
     kernel.setClientInteractionIntent({
         kind: 'attack',
@@ -347,7 +347,9 @@ test('attack intent uses authoritative in-range tile even when rendered tile is 
         kernel,
     });
 
-    expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerAttack', targetId: mob.id });
+    const commands = kernel.drainClientCommands();
+    expect(commands).toContainEqual({ type: 'playerFollow', targetId: mob.id });
+    expect(commands).not.toContainEqual({ type: 'playerAttack', targetId: mob.id });
 });
 
 test('attack intent defers ATTACK while local player is still moving even if adjacent', () => {

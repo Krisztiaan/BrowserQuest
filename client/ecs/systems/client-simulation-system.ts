@@ -64,7 +64,7 @@ export type ClientSimulationSystemHost = Readonly<{
         clientMoveInputKeysMask?: number;
         clientMovePlan?: { target: { x: number; y: number } } | null;
     };
-    map: { grid: number[][] } | null;
+    map: { grid: number[][]; width?: number; height?: number } | null;
     renderer: {
         FPS: number;
         mobile: boolean;
@@ -554,8 +554,12 @@ function updateCameraFollow(host: ClientSimulationSystemHost, dtMs: number): voi
     }
 
     const grid: number[][] = host.map.grid;
-    const mapH = grid.length;
-    const mapW = grid[0]?.length ?? 0;
+    const mapH = Number.isInteger(host.map.height) && (host.map.height ?? 0) > 0
+        ? Number(host.map.height)
+        : grid.length;
+    const mapW = Number.isInteger(host.map.width) && (host.map.width ?? 0) > 0
+        ? Number(host.map.width)
+        : (grid[0]?.length ?? 0);
     if (mapW <= 0 || mapH <= 0) {
         return;
     }
@@ -597,9 +601,9 @@ export function runClientSimulationSystem(host: ClientSimulationSystemHost): voi
     const dtMs = lastSimulationTimeMs > 0 ? host.currentTime - lastSimulationTimeMs : 16;
     lastSimulationTimeMs = host.currentTime;
 
+    updateCharacters(host, dtMs);
     updateCameraFollow(host, dtMs);
     updateZoning(host);
-    updateCharacters(host, dtMs);
     updatePlayerAggro(host);
     updateTransitions(host);
     updateAnimations(host);

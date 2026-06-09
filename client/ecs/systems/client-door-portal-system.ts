@@ -54,7 +54,6 @@ export type ClientDoorPortalSystemHost = Readonly<{
         focusEntity(entity: object): void;
     };
     kernel: {
-        clientDoorTraversalArmed: boolean;
         clientPendingDoorTraversal:
             | null
             | Readonly<{
@@ -69,6 +68,13 @@ export type ClientDoorPortalSystemHost = Readonly<{
                   cameraY?: number;
                   requestedAtMs: number;
               }>;
+        clientDoorTraversalContact:
+            | null
+            | Readonly<{
+                  doorX: number;
+                  doorY: number;
+                  mapId: string | null;
+              }>;
         setClientPendingDoorTraversal(pending: {
             doorX: number;
             doorY: number;
@@ -81,6 +87,8 @@ export type ClientDoorPortalSystemHost = Readonly<{
             cameraY?: number;
         }): void;
         clearClientPendingDoorTraversal(): void;
+        setClientDoorTraversalContact(contact: { doorX: number; doorY: number; mapId: string | null }): void;
+        clearClientDoorTraversalContact(): void;
         getEntityMapId?(id: EntityId): string | null;
     };
     assignBubbleTo(character: DoorTraversalPlayer): void;
@@ -102,16 +110,18 @@ export function runClientDoorPortalSystem(host: ClientDoorPortalSystemHost): voi
     const nowMs = Date.now();
 
     const pending = host.kernel.clientPendingDoorTraversal;
+    const currentMapId = host.kernel.getEntityMapId?.(host.player.id as EntityId) ?? null;
     if (pending) {
         if (nowMs - pending.requestedAtMs > PENDING_TTL_MS) {
             debugDoors('pending:expired', pending);
             host.kernel.clearClientPendingDoorTraversal();
+            host.kernel.clearClientDoorTraversalContact();
         } else if (
             host.player.gridX === pending.toX &&
             host.player.gridY === pending.toY &&
             (
                 !pending.targetMapId ||
-                host.kernel.getEntityMapId?.(host.player.id as EntityId) === pending.targetMapId
+                currentMapId === pending.targetMapId
             )
         ) {
             debugDoors('pending:complete', pending);
@@ -151,43 +161,65 @@ export function runClientDoorPortalSystem(host: ClientDoorPortalSystemHost): voi
 
             host.audioManager?.updateMusic();
             host.kernel.clearClientPendingDoorTraversal();
+            host.kernel.setClientDoorTraversalContact({
+                doorX: host.player.gridX,
+                doorY: host.player.gridY,
+                mapId: currentMapId,
+            });
+            return;
         }
     }
 
     if (host.player.isDead || host.player.hasTarget()) {
-        host.kernel.clientDoorTraversalArmed = false;
         return;
     }
 
     const doorX = host.player.gridX;
     const doorY = host.player.gridY;
     if (!host.map.isDoor(doorX, doorY)) {
-        host.kernel.clientDoorTraversalArmed = false;
+        host.kernel.clearClientDoorTraversalContact();
         return;
     }
 
-    if (!host.kernel.clientDoorTraversalArmed) {
-        return;
-    }
-    host.kernel.clientDoorTraversalArmed = false;
-
-    // When the player is already standing on a door tile, request traversal and wait for the server TELEPORT.
     const destination = host.map.getDoorDestination(doorX, doorY);
-    if (destination) {
-        debugDoors('request', { door: { x: doorX, y: doorY }, to: { x: destination.x, y: destination.y }, destination });
-        host.kernel.setClientPendingDoorTraversal({
-            doorX,
-            doorY,
-            toX: destination.x,
-            toY: destination.y,
-            ...(typeof destination.targetMapId === 'string' ? { targetMapId: destination.targetMapId } : {}),
-            orientation: destination.orientation,
-            portal: destination.portal,
-            cameraX: destination.cameraX,
-            cameraY: destination.cameraY,
-        });
-        host.client?.sendTeleport(destination.x, destination.y);
-    } else {
+    if (!destination) {
         debugDoors('request:none', { door: { x: doorX, y: doorY } });
+        return;
     }
+
+    const contactMatchesCurrentDoor = host.kernel.clientDoorTraversalContact !== null &&
+        host.kernel.clientDoorTraversalContact.doorX === doorX &&
+        host.kernel.clientDoorTraversalContact.doorY === doorY &&
+        host.kernel.clientDoorTraversalContact.mapId === currentMapId;
+
+    const pendingMatchesCurrentDoor = pending !== null &&
+        pending.doorX === doorX &&
+        pending.doorY === doorY &&
+        pending.toX === destination.x &&
+        pending.toY === destination.y &&
+        pending.orientation === destination.orientation &&
+        pending.portal === destination.portal &&
+        pending.targetMapId === destination.targetMapId &&
+        pending.cameraX === destination.cameraX &&
+        pending.cameraY === destination.cameraY;
+
+    if (contactMatchesCurrentDoor || pendingMatchesCurrentDoor) {
+        return;
+    }
+
+    // When the player is standing on a walkable door tile, request traversal and wait for the server TELEPORT.
+    host.kernel.setClientDoorTraversalContact({ doorX, doorY, mapId: currentMapId });
+    debugDoors('request', { door: { x: doorX, y: doorY }, to: { x: destination.x, y: destination.y }, destination });
+    host.kernel.setClientPendingDoorTraversal({
+        doorX,
+        doorY,
+        toX: destination.x,
+        toY: destination.y,
+        ...(typeof destination.targetMapId === 'string' ? { targetMapId: destination.targetMapId } : {}),
+        orientation: destination.orientation,
+        portal: destination.portal,
+        cameraX: destination.cameraX,
+        cameraY: destination.cameraY,
+    });
+    host.client?.sendTeleport(destination.x, destination.y);
 }

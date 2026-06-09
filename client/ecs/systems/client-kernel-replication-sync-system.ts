@@ -99,7 +99,15 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
             }
         }
 
-        if (isSameWorldPos(kernel.getClientPresentationTargetWorldPosition(id) ?? undefined, targetWorldPos)) {
+        const hasPredictiveLocalMovement =
+            kernel.clientMovementNetcodeMode === 'predictive'
+            && isLocalPlayer
+            && (kernel.clientMovePlan !== null || kernel.clientMoveInputKeysMask !== 0);
+        const hasRealtimeInputPrediction = hasPredictiveLocalMovement && kernel.clientMoveInputKeysMask !== 0;
+        const lastHandledWorldPos = hasPredictiveLocalMovement
+            ? kernel.clientReplicationLastWorldPos.get(id)
+            : kernel.getClientPresentationTargetWorldPosition(id) ?? undefined;
+        if (isSameWorldPos(lastHandledWorldPos, targetWorldPos)) {
             continue;
         }
 
@@ -109,40 +117,32 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
             continue;
         }
 
-        // Prediction: if the local player is currently predicting, tolerate small drift so we don't fight the
-        // local step interpolation; large drift triggers a teleport snap.
-        const hasPredictionPlan =
-            kernel.clientMovementNetcodeMode === 'predictive'
-            && isLocalPlayer
-            && (kernel.clientMovePlan !== null || kernel.clientMoveInputKeysMask !== 0);
-        if (hasPredictionPlan) {
+        // During real-time held-input prediction the prediction system owns ordinary local visual movement.
+        // Replication sync should only advance authoritative bookkeeping so prediction can reconcile against
+        // `kernel.worldPosition` without a second system pulling the visible player backward every sync frame.
+        if (hasPredictiveLocalMovement) {
             const record = kernel.clientSpatialRecords.get(id);
             if (record) {
                 const drift = Math.max(Math.abs(record.gridX - pos.x), Math.abs(record.gridY - pos.y));
-                if (drift <= 1) {
-                    kernel.clientReplicationLastWorldPos.set(id, worldPos);
-                    kernel.clientReplicationLastPos.set(id, pos);
-                    continue;
+                if (drift > 1) {
+                    log.info({
+                        scope: 'movement_replication',
+                        level: 'info',
+                        event: 'movement.local_prediction_resync',
+                        entityId: id,
+                        profile: config.profileId,
+                        drift,
+                        authGridX: pos.x,
+                        authGridY: pos.y,
+                        predictedGridX: record.gridX,
+                        predictedGridY: record.gridY,
+                        inputDriven: hasRealtimeInputPrediction,
+                    });
                 }
-                log.warn({
-                    scope: 'movement_replication',
-                    level: 'warn',
-                    event: 'movement.local_prediction_teleport',
-                    entityId: id,
-                    profile: config.profileId,
-                    drift,
-                    authGridX: pos.x,
-                    authGridY: pos.y,
-                    predictedGridX: record.gridX,
-                    predictedGridY: record.gridY,
-                });
-                kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: id, x: pos.x, y: pos.y });
-                kernel.setClientPresentationTargetWorldPosition(id, worldPos.x, worldPos.y);
-                kernel.setClientRenderedWorldPosition(id, worldPos.x, worldPos.y);
-                kernel.clientReplicationLastWorldPos.set(id, worldPos);
-                kernel.clientReplicationLastPos.set(id, pos);
-                continue;
             }
+            kernel.clientReplicationLastWorldPos.set(id, worldPos);
+            kernel.clientReplicationLastPos.set(id, pos);
+            continue;
         }
 
         // Apply world position to render entities; remote entities are fed from the interpolation timeline while

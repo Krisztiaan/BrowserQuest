@@ -286,9 +286,9 @@ test('group layers flatten into runtime data and depth-sorted props with inherit
     expect(serverMap.collisions).toContain(10);
 });
 
-test('bridge layer carves passability through colliding terrain', () => {
+test('explicit passable bridge deck tiles carve through colliding terrain while edge tiles stay blocked', () => {
     const tiledMap = {
-        width: 3,
+        width: 4,
         height: 3,
         tilewidth: 16,
         tileheight: 16,
@@ -308,6 +308,14 @@ test('bridge layer carves passability through colliding terrain', () => {
                     },
                     {
                         id: 1,
+                        properties: [{ name: 'passable', type: 'bool', value: true }],
+                    },
+                    {
+                        id: 2,
+                        properties: [{ name: 'passable', type: 'bool', value: true }],
+                    },
+                    {
+                        id: 3,
                     },
                 ],
             },
@@ -318,18 +326,18 @@ test('bridge layer carves passability through colliding terrain', () => {
                 name: 'cliffs',
                 type: 'tilelayer',
                 visible: true,
-                width: 3,
+                width: 4,
                 height: 3,
-                data: [0, 0, 0, 0, 1, 0, 0, 0, 0],
+                data: [0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0],
             },
             {
                 id: 2,
                 name: 'bridge',
                 type: 'tilelayer',
                 visible: true,
-                width: 3,
+                width: 4,
                 height: 3,
-                data: [0, 0, 0, 0, 2, 0, 0, 0, 0],
+                data: [0, 0, 0, 0, 1, 2, 3, 4, 0, 0, 0, 0],
             },
         ],
     } as Parameters<typeof processMap>[0];
@@ -337,9 +345,14 @@ test('bridge layer carves passability through colliding terrain', () => {
     const clientMap = processMap(tiledMap, { mode: 'client', quiet: true });
     const serverMap = processMap(tiledMap, { mode: 'server', quiet: true });
 
-    expect(clientMap.blocking).not.toContain(4);
-    expect(clientMap.collisions).not.toContain(4);
-    expect(serverMap.collisions).not.toContain(4);
+    expect(clientMap.collisions).toContain(4);
+    expect(clientMap.collisions).not.toContain(5);
+    expect(clientMap.collisions).not.toContain(6);
+    expect(clientMap.collisions).toContain(7);
+    expect(serverMap.collisions).toContain(4);
+    expect(serverMap.collisions).not.toContain(5);
+    expect(serverMap.collisions).not.toContain(6);
+    expect(serverMap.collisions).toContain(7);
 });
 
 test('empty perimeter tiles are sealed as collisions', () => {

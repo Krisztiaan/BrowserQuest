@@ -257,3 +257,47 @@ test('player ATTACK windup can start from recent authoritative proximity grace w
         action: [Types.Messages.ATTACK, player.id, mobId],
     });
 });
+
+test('player ATTACK windup started via grace survives until hit-frame, but hit-frame still requires strict current range', () => {
+    const { pipeline, player, host } = createPipelineFixture();
+
+    const mobId = entityIdFromWire(9007);
+    pipeline.state.world.ensureEntity(mobId);
+    pipeline.state.world.addComponent(mobId, pipeline.replication.Kind, Types.Entities.RAT);
+    pipeline.state.world.addComponent(mobId, pipeline.Position, gridPos(2, 0));
+    pipeline.state.world.addComponent(mobId, pipeline.combat.ArmorLevel, 1);
+    pipeline.state.world.addComponent(mobId, pipeline.combat.HitPoints, 1000);
+
+    pipeline.state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE).set(player.id, [
+        { pos: gridPos(1, 0), tick: 0 },
+    ]);
+
+    pipeline.enqueue({
+        type: 'ATTACK',
+        source: { connectionId: 'test', playerId: player.id },
+        targetId: mobId,
+    });
+
+    pipeline.tick(); // windup starts via grace
+
+    expect(pipeline.combat.AttackWindup.store.has(player.id)).toBe(true);
+    expect(host.pushedMessages).toContainEqual({
+        playerId: player.id,
+        action: [Types.Messages.ATTACK, player.id, mobId],
+    });
+
+    const windup = pipeline.combat.AttackWindup.store.get(player.id);
+    expect(windup).toBeDefined();
+    const hitAtTick = windup?.hitAtTick ?? 0;
+
+    pipeline.tick(); // still out of strict range, but windup should survive via grace
+    expect(pipeline.combat.AttackWindup.store.has(player.id)).toBe(true);
+    expect(pipeline.combat.HitPoints.store.get(mobId)).toBe(1000);
+
+    while (pipeline.getTick() <= hitAtTick) {
+        pipeline.tick();
+    }
+
+    expect(pipeline.combat.AttackWindup.store.has(player.id)).toBe(false);
+    expect(pipeline.combat.HitPoints.store.get(mobId)).toBe(1000);
+});

@@ -44,8 +44,8 @@ test('client door traversal does not self-teleport; it requests traversal and wa
         renderer: { mobile: false, tablet: false, context: null, clearScreen() {} },
         camera: { setGridPosition() {}, focusEntity() {} },
         kernel: {
-            clientDoorTraversalArmed: true,
             clientPendingDoorTraversal: null,
+            clientDoorTraversalContact: null,
             setClientPendingDoorTraversal(this: {
                 clientPendingDoorTraversal:
                     | null
@@ -88,6 +88,12 @@ test('client door traversal does not self-teleport; it requests traversal and wa
                       };
             }) {
                 this.clientPendingDoorTraversal = null;
+            },
+            setClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }, contact: { doorX: number; doorY: number; mapId: string | null }) {
+                this.clientDoorTraversalContact = contact;
+            },
+            clearClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }) {
+                this.clientDoorTraversalContact = null;
             },
         },
         assignBubbleTo() {},
