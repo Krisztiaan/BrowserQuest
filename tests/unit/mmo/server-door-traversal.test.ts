@@ -94,10 +94,10 @@ function createDoorTraversalHost({
 
     if (includeResolveDoorTeleport) {
         host.resolveDoorTeleport = (mapId: string, x: number, y: number) => {
-            if (mapId !== 'world') {
+            if (mapId !== 'world_01') {
                 return null;
             }
-            return x === 5 && y === 5 ? { toMapId: 'world', to: { x: 10, y: 10 } } : null;
+            return x === 5 && y === 5 ? { toMapId: 'world_01', to: { x: 10, y: 10 } } : null;
         };
     }
 
