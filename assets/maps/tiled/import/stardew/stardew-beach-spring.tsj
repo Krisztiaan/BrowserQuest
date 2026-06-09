@@ -1,0 +1,20 @@
+{ "columns":17,
+ "image":"beach_spring.png",
+ "imageheight":496,
+ "imagewidth":272,
+ "margin":0,
+ "name":"stardew-beach-spring",
+ "properties":[
+        {
+         "name":"provenance",
+         "type":"string",
+         "value":"Stardew Valley (ConcernedApe) - locally extracted, dev placeholder only, do not distribute"
+        }],
+ "spacing":0,
+ "tilecount":527,
+ "tiledversion":"1.11.2",
+ "tileheight":16,
+ "tilewidth":16,
+ "type":"tileset",
+ "version":"1.11"
+}

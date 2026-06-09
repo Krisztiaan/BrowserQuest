@@ -1,0 +1,20 @@
+{ "columns":24,
+ "image":"objects.png",
+ "imageheight":624,
+ "imagewidth":384,
+ "margin":0,
+ "name":"stardew-objects",
+ "properties":[
+        {
+         "name":"provenance",
+         "type":"string",
+         "value":"Stardew Valley (ConcernedApe) - locally extracted, dev placeholder only, do not distribute"
+        }],
+ "spacing":0,
+ "tilecount":936,
+ "tiledversion":"1.11.2",
+ "tileheight":16,
+ "tilewidth":16,
+ "type":"tileset",
+ "version":"1.11"
+}
