@@ -172,9 +172,6 @@ export function spawnStaticEntitiesForWorld<TMob extends SpawnMobLike, TItem>({
     addStaticItem,
 }: SpawnStaticEntitiesForWorldParams<TMob, TItem>): void {
     Object.entries(staticEntities ?? {}).forEach(([tileId, kindName]) => {
-        if (!kindName) {
-            return;
-        }
         const kind = resolveKindFromString(kindName);
         const position = tileIndexToGridPosition(Number.parseInt(tileId, 10));
         const x = position.x + 1;

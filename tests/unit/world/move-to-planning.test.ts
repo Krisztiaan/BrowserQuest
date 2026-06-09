@@ -40,17 +40,23 @@ test('findBestPathToCandidates can choose a diagonal-adjacent stop tile when all
     const height = 5;
     const grid = makeGrid(width, height, 0);
 
+    const block = (row: number, col: number): void => {
+        const cells = grid[row];
+        if (cells) {
+            cells[col] = 1;
+        }
+    };
     // Target at (2,2). Block all four cardinals around it.
-    grid[2]![3] = 1;
-    grid[2]![1] = 1;
-    grid[3]![2] = 1;
-    grid[1]![2] = 1;
+    block(2, 3);
+    block(2, 1);
+    block(3, 2);
+    block(1, 2);
 
     // Of the four diagonal candidates, leave only (1,1) reachable.
-    grid[3]![3] = 1;
-    grid[1]![3] = 1;
-    grid[3]![1] = 1;
-    // grid[1]![1] remains free
+    block(3, 3);
+    block(1, 3);
+    block(3, 1);
+    // (1,1) remains free
 
     const to = gridPos(2, 2);
     const candidates = resolveMoveToTargetCandidates({
@@ -66,6 +72,6 @@ test('findBestPathToCandidates can choose a diagonal-adjacent stop tile when all
     });
 
     expect(best).not.toBeNull();
-    expect(best!.at(-1)).toEqual([1, 1]);
+    expect(best?.at(-1)).toEqual([1, 1]);
 });
 

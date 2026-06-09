@@ -27,7 +27,9 @@ test('main runtime serves compiled runtime map payload from authored world.json'
         },
     };
 
-    let runtimeMapPackHandler: ((request: Request) => Response | Promise<Response>) | null = null;
+    const runtimeMapPackHandlerRef: { current: ((request: Request) => Response | Promise<Response>) | null } = {
+        current: null,
+    };
 
     class FakeServer implements RuntimeServer {
         constructor(_port: number) {}
@@ -49,7 +51,7 @@ test('main runtime serves compiled runtime map payload from authored world.json'
         onRequestStatus(_callback: () => string): void {}
 
         onRequestRuntimeMapPack(callback: (request: Request) => Response | Promise<Response>): void {
-            runtimeMapPackHandler = callback;
+            runtimeMapPackHandlerRef.current = callback;
         }
     }
 
@@ -104,8 +106,12 @@ test('main runtime serves compiled runtime map payload from authored world.json'
         },
     });
 
-    expect(runtimeMapPackHandler).not.toBeNull();
-    const response = await runtimeMapPackHandler!(new Request('http://localhost/assets/maps/runtime/map-pack.json'));
+    const handler = runtimeMapPackHandlerRef.current;
+    expect(handler).not.toBeNull();
+    if (!handler) {
+        throw new Error('runtime map pack handler was not registered');
+    }
+    const response = await handler(new Request('http://localhost/assets/maps/runtime/map-pack.json'));
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('application/json');
 

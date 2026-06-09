@@ -643,7 +643,12 @@ function checkObjectBoundsAndDuplicates(
             const props = getPropertyEntries(objectRecord.properties)
                 .map((propertyRecord) => {
                     const key = asString(propertyRecord.name) ?? '<missing_name>';
-                    return `${key}:${String(propertyRecord.value ?? '')}`;
+                    const value: unknown = propertyRecord.value ?? '';
+                    const valueText =
+                        typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint'
+                            ? String(value)
+                            : JSON.stringify(value);
+                    return `${key}:${valueText}`;
                 })
                 .sort()
                 .join('|');
@@ -797,7 +802,7 @@ function checkTargetLayerContract(layers: ReadonlyArray<LayerContext>, diags: Di
                 diags,
                 'error',
                 'TARGET_LAYER_TYPE_MISMATCH',
-                `Layer ${actual.name} expected type ${Array.isArray(expected.type) ? expected.type.join('|') : expected.type}, found ${actual.type}.`
+                `Layer ${actual.name} expected type ${typeof expected.type === 'string' ? expected.type : expected.type.join('|')}, found ${actual.type}.`
             );
         }
         if (actual.visible !== expected.visible) {
@@ -894,7 +899,7 @@ function checkTargetLayerContract(layers: ReadonlyArray<LayerContext>, diags: Di
                 diags,
                 'error',
                 'TARGET_LAYER_TYPE_MISMATCH',
-                `Layer ${actual.name} expected type ${Array.isArray(expected.type) ? expected.type.join('|') : expected.type}, found ${actual.type}.`
+                `Layer ${actual.name} expected type ${typeof expected.type === 'string' ? expected.type : expected.type.join('|')}, found ${actual.type}.`
             );
         }
         if (actual.visible !== expected.visible) {

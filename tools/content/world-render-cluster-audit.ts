@@ -41,6 +41,41 @@ type Component = Readonly<{
     entries: TileEntry[];
 }>;
 
+type SignatureSummary = Readonly<{
+    count: number;
+    layers: string[];
+    families: string[];
+    width: number;
+    height: number;
+    tiles: number;
+    collidableTiles: number;
+    sameCellStacks: number;
+    sampleOrigin: number[];
+}>;
+
+type FamilySplitSummary = Readonly<{
+    count: number;
+    splitFamilies: Array<{ family: string; layers: string[] }>;
+    width: number;
+    height: number;
+    tiles: number;
+    collidableTiles: number;
+    sameCellStacks: number;
+    sampleOrigin: number[];
+}>;
+
+type LayerCoverageSummary = Readonly<{
+    layer: string;
+    family: string;
+    bucket: 'base' | 'foreground';
+    tiles: number;
+    collidableTiles: number;
+    sameBucketSharedTiles: number;
+    sameFamilyOtherLayerSharedTiles: number;
+    otherBucketSharedTiles: number;
+    sameCellStackedTiles: number;
+}>;
+
 const GLOBAL_TILE_ID_MASK = 0x1fffffff;
 
 function fail(message: string): never {
@@ -331,7 +366,7 @@ function buildComponents(entries: readonly TileEntry[]): Component[] {
 
         const layerNames = [...new Set(componentEntries.map((entry) => entry.layerName))].sort();
         const families = [...new Set(componentEntries.map((entry) => entry.family))].sort();
-        const buckets = [...new Set(componentEntries.map((entry) => entry.bucket))].sort() as Array<'base' | 'foreground'>;
+        const buckets = [...new Set(componentEntries.map((entry) => entry.bucket))].sort();
         const collidableTiles = componentEntries.reduce((count, entry) => count + (entry.collidable ? 1 : 0), 0);
         components.push({
             id: componentId++,
@@ -353,7 +388,7 @@ function buildComponents(entries: readonly TileEntry[]): Component[] {
     return components;
 }
 
-function summarizeLayerCoverage(entries: readonly TileEntry[], components: readonly Component[]): UnknownRecord[] {
+function summarizeLayerCoverage(entries: readonly TileEntry[], components: readonly Component[]): LayerCoverageSummary[] {
     const componentByEntryId = new Map<string, Component>();
     for (const component of components) {
         for (const entry of component.entries) {
@@ -372,7 +407,7 @@ function summarizeLayerCoverage(entries: readonly TileEntry[], components: reado
     }
 
     return [...byLayer.entries()]
-        .map(([layerName, layerEntries]) => {
+        .map(([layerName, layerEntries]): LayerCoverageSummary => {
             let sameBucketShared = 0;
             let foregroundShared = 0;
             let sameFamilyOtherLayerShared = 0;
@@ -411,7 +446,7 @@ function summarizeLayerCoverage(entries: readonly TileEntry[], components: reado
         .sort((a, b) => String(a.layer).localeCompare(String(b.layer)));
 }
 
-function topRepeatedSignatures(components: readonly Component[], kind: 'sameBucket' | 'foreground'): UnknownRecord[] {
+function topRepeatedSignatures(components: readonly Component[], kind: 'sameBucket' | 'foreground'): SignatureSummary[] {
     const buckets = new Map<string, { count: number; sample: Component }>();
     for (const component of components) {
         const hasForeground = component.buckets.includes('foreground');
@@ -454,7 +489,7 @@ function topRepeatedSignatures(components: readonly Component[], kind: 'sameBuck
         }));
 }
 
-function topSameFamilySplitSignatures(components: readonly Component[]): UnknownRecord[] {
+function topSameFamilySplitSignatures(components: readonly Component[]): FamilySplitSummary[] {
     const buckets = new Map<string, { count: number; sample: Component }>();
     for (const component of components) {
         const familyCounts = new Map<string, Set<string>>();
@@ -587,7 +622,7 @@ async function main(): Promise<void> {
     console.log('Top repeated same-bucket split signatures:');
     for (const item of summary.repeatedSameBucketSignatures) {
         console.log(
-            `- count=${item.count} layers=${(item.layers as string[]).join('+')} size=${item.width}x${item.height} tiles=${item.tiles} collidable=${item.collidableTiles} stacked=${item.sameCellStacks} sample=${(item.sampleOrigin as number[]).join(',')}`
+            `- count=${item.count} layers=${item.layers.join('+')} size=${item.width}x${item.height} tiles=${item.tiles} collidable=${item.collidableTiles} stacked=${item.sameCellStacks} sample=${item.sampleOrigin.join(',')}`
         );
     }
 
@@ -595,18 +630,18 @@ async function main(): Promise<void> {
     console.log('Top repeated foreground split signatures:');
     for (const item of summary.repeatedForegroundSignatures) {
         console.log(
-            `- count=${item.count} layers=${(item.layers as string[]).join('+')} size=${item.width}x${item.height} tiles=${item.tiles} collidable=${item.collidableTiles} stacked=${item.sameCellStacks} sample=${(item.sampleOrigin as number[]).join(',')}`
+            `- count=${item.count} layers=${item.layers.join('+')} size=${item.width}x${item.height} tiles=${item.tiles} collidable=${item.collidableTiles} stacked=${item.sameCellStacks} sample=${item.sampleOrigin.join(',')}`
         );
     }
 
     console.log('');
     console.log('Top repeated same-family split signatures:');
     for (const item of summary.repeatedSameFamilySplitSignatures) {
-        const splitFamilies = (item.splitFamilies as Array<{ family: string; layers: string[] }>)
+        const splitFamilies = item.splitFamilies
             .map((entry) => `${entry.family}=${entry.layers.join('+')}`)
             .join(' ');
         console.log(
-            `- count=${item.count} families=${splitFamilies} size=${item.width}x${item.height} tiles=${item.tiles} collidable=${item.collidableTiles} stacked=${item.sameCellStacks} sample=${(item.sampleOrigin as number[]).join(',')}`
+            `- count=${item.count} families=${splitFamilies} size=${item.width}x${item.height} tiles=${item.tiles} collidable=${item.collidableTiles} stacked=${item.sameCellStacks} sample=${item.sampleOrigin.join(',')}`
         );
     }
 

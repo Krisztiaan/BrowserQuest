@@ -85,7 +85,7 @@ function countExpectedKinds(serverMap: RuntimeServerMap): Record<string, number>
     }
 
     for (const area of serverMap.roamingAreas ?? []) {
-        counts[area.mobKind] = (counts[area.mobKind] ?? 0) + Number(area.count ?? 0);
+        counts[area.mobKind] = (counts[area.mobKind] ?? 0) + Number(area.count);
     }
 
     return counts;
@@ -221,7 +221,7 @@ test('player entering beside a real authored chest receives chest and nearby mob
             (message) => message[2] === Types.Entities.CHEST
         );
         const mobSpawns = spawnMessages.filter(
-            (message) => typeof message[2] === 'number' && Types.isMob(message[2] as number)
+            (message) => typeof message[2] === 'number' && Types.isMob(message[2])
         );
 
         expect(player.hasEnteredGame).toBe(true);

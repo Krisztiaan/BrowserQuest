@@ -108,5 +108,5 @@ test('server entry fails fast when configured map payload shape is invalid', asy
     expect(code).toBe(1);
 
     const [stdoutText, stderrText] = await Promise.all([readStreamText(proc.stdout), readStreamText(proc.stderr)]);
-    expect(`${stdoutText}\n${stderrText}`).toContain('Startup preflight: map pack file has invalid schema:');
+    expect(`${stdoutText}\n${stderrText}`).toContain('Startup preflight: runtime map source is invalid:');
 });

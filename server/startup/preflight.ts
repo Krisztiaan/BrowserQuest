@@ -102,7 +102,7 @@ export async function ensureMapPreflightValid({
         return false;
     }
 
-    let runtimePack;
+    let runtimePack: Awaited<ReturnType<typeof compileRuntimeMapPackFromPayload>>;
     try {
         runtimePack = await compileRuntimeMapPackFromPayload(parsedMapPayload, mapFilePath);
     } catch (error) {

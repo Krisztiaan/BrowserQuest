@@ -180,13 +180,13 @@ function renameProperty(properties: UnknownRecord[], from: string, to: string): 
     const value = source?.value;
     const type = asString(source?.type) ?? 'string';
     properties.splice(index, 1);
-    const upsert = upsertProperty(
+    upsertProperty(
         properties,
         to,
         type === 'int' || type === 'bool' || type === 'string' ? type : 'string',
         value as string | number | boolean
     );
-    return { changed: true || upsert.changed };
+    return { changed: true };
 }
 
 function normalizeIntProperty(properties: UnknownRecord[], name: string): { changed: boolean } {
@@ -199,7 +199,7 @@ function normalizeIntProperty(properties: UnknownRecord[], name: string): { chan
     if (parsed === null) {
         return { changed: false };
     }
-    const changed = property?.type !== 'int' || property?.value !== parsed;
+    const changed = property?.type !== 'int' || property.value !== parsed;
     properties[index] = { name, type: 'int', value: parsed };
     return { changed };
 }

@@ -115,5 +115,5 @@ test('server fails fast when startup preflight reads map JSON with invalid paylo
 
     const code = await waitForProcessExit(proc, 4000);
     expect(code).toBe(1);
-    expect(stderrLines.some((line) => line.includes('Startup preflight: map pack file has invalid schema:'))).toBe(true);
+    expect(stderrLines.some((line) => line.includes('Startup preflight: runtime map source is invalid:'))).toBe(true);
 });

@@ -198,11 +198,13 @@ function detectTransparentBorderGids(params: {
     );
 
     if (processResult.status !== 0) {
-        const stderr = processResult.stderr?.trim() || '(no stderr)';
+        // spawnSync types stderr as string, but it is null at runtime when the process fails to spawn.
+        const stderr = ((processResult.stderr as string | null) ?? '').trim() || '(no stderr)';
         fail(`Failed transparent-border detection via python3/Pillow: ${stderr}`);
     }
 
-    const stdout = processResult.stdout?.trim() || '';
+    // spawnSync types stdout as string, but it is null at runtime when the process fails to spawn.
+    const stdout = ((processResult.stdout as string | null) ?? '').trim();
     const parsed = asRecord(JSON.parse(stdout));
     if (!parsed) {
         fail('Transparent-border detector returned invalid JSON.');

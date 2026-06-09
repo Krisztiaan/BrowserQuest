@@ -254,29 +254,29 @@ test('chunk AOI prunes stale/out-of-window state and enforces pending queue caps
         return;
     }
 
-    const nearKey = makeScopedChunkKey('world', 0, 0);
-    const farKey = makeScopedChunkKey('world', 200, 200);
+    const nearKey = makeScopedChunkKey('world_01', 0, 0);
+    const farKey = makeScopedChunkKey('world_01', 200, 200);
     sub.knownChunks.add(nearKey);
     sub.knownChunkVersions.set(nearKey, 1);
     sub.knownChunks.add(farKey);
     sub.knownChunkVersions.set(farKey, 7);
 
-    sub.lastMapId = 'world';
-    sub.pendingChunks.push({ mapId: 'world', chunkX: 0, chunkY: 0 });
-    sub.pendingChunks.push({ mapId: 'world', chunkX: 0, chunkY: 0 });
-    sub.pendingChunks.push({ mapId: 'world', chunkX: 200, chunkY: 200 });
-    sub.pendingChunkKeys.add(makeScopedChunkKey('world', 0, 0));
-    sub.pendingChunkKeys.add(makeScopedChunkKey('world', 200, 200));
+    sub.lastMapId = 'world_01';
+    sub.pendingChunks.push({ mapId: 'world_01', chunkX: 0, chunkY: 0 });
+    sub.pendingChunks.push({ mapId: 'world_01', chunkX: 0, chunkY: 0 });
+    sub.pendingChunks.push({ mapId: 'world_01', chunkX: 200, chunkY: 200 });
+    sub.pendingChunkKeys.add(makeScopedChunkKey('world_01', 0, 0));
+    sub.pendingChunkKeys.add(makeScopedChunkKey('world_01', 200, 200));
 
     sub.pendingSnapshotParts = [];
     sub.inFlightSnapshotKeys.clear();
     for (let i = 0; i < 40; i += 1) {
         const chunkX = (i % 10) - 5;
         const chunkY = Math.floor(i / 10) - 2;
-        const key = makeScopedChunkKey('world', chunkX, chunkY);
+        const key = makeScopedChunkKey('world_01', chunkX, chunkY);
         sub.pendingSnapshotParts.push({
             key,
-            mapId: 'world',
+            mapId: 'world_01',
             chunkX,
             chunkY,
             version: i + 1,

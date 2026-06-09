@@ -4,8 +4,6 @@ import { parseCliArgs } from '../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
 
-type ScalarValue = string | number | boolean | null;
-
 type TiledProperty = Readonly<{ name: string; value: unknown }>;
 type TiledObject = Readonly<{
     id?: number;
@@ -73,17 +71,6 @@ type TiledMap = Readonly<{
     version?: string | number;
 }>;
 
-type LegacyDoor = Readonly<{
-    x: number;
-    y: number;
-    tx: number;
-    ty: number;
-    to?: string;
-    p?: number;
-    tcx?: number;
-    tcy?: number;
-}>;
-
 function fail(message: string): never {
     throw new Error(message);
 }
@@ -115,7 +102,7 @@ function doorProps(obj: TiledObject): Record<string, unknown> {
         if (!p) {
             continue;
         }
-        const name = p ? asNonEmptyString(p.name) : null;
+        const name = asNonEmptyString(p.name);
         if (!name) {
             continue;
         }
@@ -168,29 +155,6 @@ function makeWindow({
     return { x0, y0, x1, y1, width: x1 - x0 + 1, height: y1 - y0 + 1 };
 }
 
-function computeDominantNonZeroGid(data: ReadonlyArray<number>, window: Window, mapWidth: number): number {
-    const counts = new Map<number, number>();
-    for (let y = window.y0; y <= window.y1; y += 1) {
-        const rowBase = y * mapWidth;
-        for (let x = window.x0; x <= window.x1; x += 1) {
-            const gid = normalizeGid(data[rowBase + x]);
-            if (gid === 0) {
-                continue;
-            }
-            counts.set(gid, (counts.get(gid) ?? 0) + 1);
-        }
-    }
-    let bestGid = 0;
-    let bestCount = 0;
-    for (const [gid, count] of counts.entries()) {
-        if (count > bestCount) {
-            bestCount = count;
-            bestGid = gid;
-        }
-    }
-    return bestGid;
-}
-
 type Extraction = Readonly<{
     componentMask: Uint8Array;
     bbox: Readonly<{ x0: number; y0: number; x1: number; y1: number; width: number; height: number }>;
@@ -206,7 +170,6 @@ function extractHouseComponentFromWorld({
     seedY,
     radius,
     layerDataByName,
-    tileSize,
 }: {
     world: TiledMap;
     seedX: number;
@@ -324,11 +287,18 @@ function extractHouseComponentFromWorld({
         [0, -1],
     ];
     while (head < tail) {
-        const x = qx[head]!;
-        const y = qy[head]!;
+        const x = qx[head];
+        const y = qy[head];
         head += 1;
+        if (x === undefined || y === undefined) {
+            continue;
+        }
         for (let i = 0; i < dirs.length; i += 1) {
-            const [dx, dy] = dirs[i]!;
+            const dir = dirs[i];
+            if (!dir) {
+                continue;
+            }
+            const [dx, dy] = dir;
             const nx = x + dx;
             const ny = y + dy;
             if (!inWindow(nx, ny)) {
@@ -454,11 +424,18 @@ function extractHouseComponentFromWorld({
     tail += 1;
 
     while (head < tail) {
-        const x = qx[head]!;
-        const y = qy[head]!;
+        const x = qx[head];
+        const y = qy[head];
         head += 1;
+        if (x === undefined || y === undefined) {
+            continue;
+        }
         for (let i = 0; i < dirs.length; i += 1) {
-            const [dx, dy] = dirs[i]!;
+            const dir = dirs[i];
+            if (!dir) {
+                continue;
+            }
+            const [dx, dy] = dir;
             const nx = x + dx;
             const ny = y + dy;
             if (!isWalkableInsideCell(nx, ny)) continue;
@@ -604,7 +581,7 @@ function resolveLegacyDoorSeeds(legacy: unknown): Map<string, Readonly<{ seedX: 
     if (!root) {
         fail('Invalid legacy world_server.json: expected object root');
     }
-    const doors = asArray(root.doors) as unknown[];
+    const doors = asArray(root.doors);
     const out = new Map<string, Readonly<{ seedX: number; seedY: number; to: string | null }>>();
     for (const raw of doors) {
         const d = asRecord(raw);
@@ -625,7 +602,7 @@ function requireTileLayer(world: TiledMap, name: string): ReadonlyArray<number> 
     const layer = layers.find((l) => l.type === 'tilelayer' && l.name === name) as Extract<TiledLayer, { type: 'tilelayer' }> | undefined;
     if (!layer || !isVisibleLayer(layer) || !Array.isArray(layer.data)) {
         // Some layers are intentionally absent in certain regions; treat missing as all-zero.
-        return new Array(world.width * world.height).fill(0);
+        return new Array<number>(world.width * world.height).fill(0);
     }
     if (layer.data.length !== world.width * world.height) {
         fail(`Invalid world layer "${name}": expected data length ${world.width * world.height}, got ${layer.data.length}`);
@@ -720,7 +697,7 @@ function buildHouseMap({
         if (!data) {
             continue;
         }
-        const out: number[] = new Array(bbox.width * bbox.height).fill(0);
+        const out: number[] = new Array<number>(bbox.width * bbox.height).fill(0);
         for (let y = bbox.y0; y <= bbox.y1; y += 1) {
             for (let x = bbox.x0; x <= bbox.x1; x += 1) {
                 const wi = windowIndex(x, y);
@@ -825,7 +802,7 @@ async function upsertMobsTilesetTsj({ worldPath, outPath }: { worldPath: string;
         fail(`Invalid world map JSON: ${worldPath}`);
     }
     const tilesets = asArray(root.tilesets);
-    const mobs = tilesets.map(asRecord).find((t) => t && t.name === 'Mobs') ?? null;
+    const mobs = tilesets.map(asRecord).find((t) => t?.name === 'Mobs') ?? null;
     if (!mobs) {
         fail(`World map "${worldPath}" is missing tileset "Mobs"`);
     }
@@ -834,7 +811,7 @@ async function upsertMobsTilesetTsj({ worldPath, outPath }: { worldPath: string;
     // TSJ should not include firstgid; it is provided per-map.
     for (const key of ['name', 'tilewidth', 'tileheight', 'tilecount', 'columns', 'image', 'imagewidth', 'imageheight', 'tiles', 'margin', 'spacing']) {
         if (key in mobs) {
-            tsj[key] = mobs[key] as unknown;
+            tsj[key] = mobs[key];
         }
     }
     tsj.type = 'tileset';

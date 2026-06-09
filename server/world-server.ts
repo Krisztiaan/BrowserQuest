@@ -704,7 +704,7 @@ class World extends Evented<WorldEvents> {
         self.emit('ready');
     }
 
-    private async loadMapRuntime(mapSource: string | unknown): Promise<void> {
+    private async loadMapRuntime(mapSource: unknown): Promise<void> {
         const pack = typeof mapSource === 'string'
             ? await loadRuntimeMapPackFromSource(mapSource)
             : await compileRuntimeMapPackFromPayload(mapSource as string | number | boolean | null | undefined | object);
@@ -717,7 +717,7 @@ class World extends Evented<WorldEvents> {
         this.initializeWorldRuntimeFromActiveMap();
     }
 
-    run(mapSource: string | unknown): void {
+    run(mapSource: unknown): void {
         this.installPlugins();
         void this.loadMapRuntime(mapSource).catch((error) => {
             const message = `World ${this.id} failed to load map runtime: ${String(error)}`;

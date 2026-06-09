@@ -232,17 +232,20 @@ async function main(): Promise<void> {
             }
 
             let supported = true;
-            const remapped = wangId.map((entry) => {
+            const remapped: number[] = [];
+            for (const entry of wangId) {
                 if (entry === 0) {
-                    return 0;
+                    remapped.push(0);
+                    continue;
                 }
                 const mapped = colorRemap.get(entry);
                 if (!mapped) {
                     supported = false;
-                    return 0;
+                    remapped.push(0);
+                    continue;
                 }
-                return mapped;
-            });
+                remapped.push(mapped);
+            }
             if (!supported) {
                 continue;
             }

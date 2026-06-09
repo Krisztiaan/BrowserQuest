@@ -142,7 +142,7 @@ test('delta version gaps are healed by snapshot resync fallback', () => {
     if (!sub) {
         return;
     }
-    const key = makeScopedChunkKey('world', 0, 0);
+    const key = makeScopedChunkKey('world_01', 0, 0);
 
     pipeline.chunkOverlays.setGlobal(1, 1, 123);
     const beforeTick2 = delivered.length;
