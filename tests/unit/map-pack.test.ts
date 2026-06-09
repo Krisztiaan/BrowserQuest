@@ -428,6 +428,30 @@ test('compileMapPack exports roaming areas with valid mob kinds', () => {
     ]);
 });
 
+test('compileMapPack seals unpainted void cells as collisions on both sides', () => {
+    const width = 8;
+    const height = 8;
+    const tiled = createTiledMap({ width, height });
+    const background = (tiled.layers as Array<{ name: string; data?: number[] }>).find(
+        (layer) => layer.name === 'background'
+    );
+    // punch an interior void hole and a void column reaching the map edge
+    const holeIndex = 3 * width + 3;
+    const edgeColumn = [0 * width + 6, 1 * width + 6, 2 * width + 6];
+    for (const idx of [holeIndex, ...edgeColumn]) {
+        (background?.data as number[])[idx] = 0;
+    }
+
+    const pack = compileMapPack({ maps: [{ id: 'world', tiled }] });
+    const world = pack.maps.find((m) => m.id === 'world');
+    const collisions = world?.server.collisions as number[];
+    const blocking = world?.client.blocking as number[];
+    for (const idx of [holeIndex, ...edgeColumn]) {
+        expect(collisions.includes(idx)).toBe(true);
+        expect(blocking.includes(idx)).toBe(true);
+    }
+});
+
 test('compileMapPack carves authored blocking to prevent trapped door soft-locks', () => {
     const width = 8;
     const height = 8;

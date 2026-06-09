@@ -706,6 +706,12 @@ export default function processMap(
     };
     const tileCount = map.width * map.height;
     const renderableOccupancy = new Uint8Array(tileCount);
+    // Ground occupancy is set ONLY by tile layers (identical in both modes).
+    // Object-layer props do not count as ground: a prop standing on unpainted
+    // cells must not make those cells walkable, and the client/server object
+    // pipelines differ (DepthSorted props become render props on the client),
+    // so sealing on renderableOccupancy would break collision parity.
+    const groundOccupancy = new Uint8Array(tileCount);
     const collisionCarveIndices = new Set<number>();
 
     const tiledLayers = flattenTiledLayers(rawLayers, map.width, map.height, tileSize);
@@ -1061,14 +1067,13 @@ export default function processMap(
         }
     }
 
-    if (tileCount > 0) {
-        for (let x = 0; x < map.width; x += 1) {
-            sealEmptyPerimeterTile(x, 0);
-            sealEmptyPerimeterTile(x, map.height - 1);
-        }
-        for (let y = 1; y < map.height - 1; y += 1) {
-            sealEmptyPerimeterTile(0, y);
-            sealEmptyPerimeterTile(map.width - 1, y);
+    // Seal ALL cells without ground paint, not just the map perimeter: collision
+    // is otherwise derived solely from painted colliding tiles, which leaves
+    // interior void (e.g. the corridor between authored regions) walkable and
+    // connected to the play area all the way to the map border.
+    for (let index = 0; index < tileCount; index += 1) {
+        if (!groundOccupancy[index]) {
+            map.collisions.push(index);
         }
     }
 
@@ -1143,6 +1148,7 @@ export default function processMap(
             }
             if (gid > 0) {
                 renderableOccupancy[i] = 1;
+                groundOccupancy[i] = 1;
                 if (gid in passableTiles) {
                     collisionCarveIndices.add(i);
                 }
@@ -1411,17 +1417,6 @@ export default function processMap(
         } else {
             destination[tileIndex] = [gid, existing];
         }
-    }
-
-    function sealEmptyPerimeterTile(x: number, y: number): void {
-        if (x < 0 || y < 0 || x >= map.width || y >= map.height) {
-            return;
-        }
-        const index = y * map.width + x;
-        if (renderableOccupancy[index]) {
-            return;
-        }
-        map.collisions.push(index);
     }
 
     function resolveStaticEntityKind(spawn: TiledObject): EntityKindName | null {
