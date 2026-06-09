@@ -191793,31 +191793,6 @@
             }
           },
           {
-            "depth": 121,
-            "minTileX": 44,
-            "minTileY": 121,
-            "maxTileX": 44,
-            "maxTileY": 121,
-            "parts": [
-              {
-                "index": 20856,
-                "gid": 677
-              }
-            ],
-            "meta": {
-              "layer": "dead_leaves",
-              "layerPath": "render_world/deadlands_biome/dead_leaves",
-              "depthMode": "collision",
-              "family": "dead_leaves",
-              "groupPath": [
-                "render_world",
-                "deadlands_biome"
-              ],
-              "kind": "ground_debris",
-              "biome": "graveyard"
-            }
-          },
-          {
             "depth": 106,
             "minTileX": 54,
             "minTileY": 106,
