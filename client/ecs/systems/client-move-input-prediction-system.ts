@@ -19,9 +19,13 @@ export type ClientMoveInputPredictionSystemHost = Readonly<{
               gridY: number;
               worldX: number;
               worldY: number;
+              orientation: number;
               isDead: boolean;
               isOnPlateau: boolean;
               isMoving(): boolean;
+              setVisualFacing(orientation: number): void;
+              walk(orientation?: number): void;
+              idle(orientation?: number): void;
               setLogicalWorldPositionSub(worldX: number, worldY: number): void;
               setVisualDivergenceClass(divergenceClass: VisualDivergenceClass): void;
               setVisualRenderTarget(x: number, y: number, mode?: VisualMoveMode): void;
