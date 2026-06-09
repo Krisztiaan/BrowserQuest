@@ -1,11 +1,11 @@
 { "columns":20,
  "image":"..\/..\/..\/client\/public\/img\/1\/tilesheet.webp",
- "imageheight":1600,
+ "imageheight":1616,
  "imagewidth":320,
  "margin":0,
  "name":"tilesheet-wang",
  "spacing":0,
- "tilecount":2000,
+ "tilecount":2020,
  "tiledversion":"1.11.2",
  "tileheight":16,
  "tiles":[
@@ -20961,6 +20961,88 @@
                 {
                  "tileid":1993,
                  "wangid":[0, 0, 0, 1, 0, 0, 0, 1]
+                }]
+        }, 
+        {
+         "class":"TerrainPair",
+         "colors":[
+                {
+                 "color":"#e8dcb4",
+                 "name":"sand",
+                 "probability":1,
+                 "tile":319
+                }, 
+                {
+                 "color":"#5a96c8",
+                 "name":"sea",
+                 "probability":1,
+                 "tile":1819
+                }],
+         "name":"coast-sand-sea",
+         "properties":[
+                {
+                 "name":"generated_by",
+                 "type":"string",
+                 "value":"compressed beach assembly, static foam (frame 0)"
+                }],
+         "tile":1819,
+         "type":"corner",
+         "wangtiles":[
+                {
+                 "tileid":319,
+                 "wangid":[0, 1, 0, 1, 0, 1, 0, 1]
+                }, 
+                {
+                 "tileid":1819,
+                 "wangid":[0, 2, 0, 2, 0, 2, 0, 2]
+                }, 
+                {
+                 "tileid":2000,
+                 "wangid":[0, 1, 0, 2, 0, 2, 0, 1]
+                }, 
+                {
+                 "tileid":2001,
+                 "wangid":[0, 2, 0, 1, 0, 1, 0, 2]
+                }, 
+                {
+                 "tileid":2002,
+                 "wangid":[0, 2, 0, 2, 0, 1, 0, 1]
+                }, 
+                {
+                 "tileid":2003,
+                 "wangid":[0, 1, 0, 1, 0, 2, 0, 2]
+                }, 
+                {
+                 "tileid":2004,
+                 "wangid":[0, 2, 0, 1, 0, 1, 0, 1]
+                }, 
+                {
+                 "tileid":2005,
+                 "wangid":[0, 1, 0, 2, 0, 1, 0, 1]
+                }, 
+                {
+                 "tileid":2006,
+                 "wangid":[0, 1, 0, 1, 0, 2, 0, 1]
+                }, 
+                {
+                 "tileid":2007,
+                 "wangid":[0, 1, 0, 1, 0, 1, 0, 2]
+                }, 
+                {
+                 "tileid":2008,
+                 "wangid":[0, 1, 0, 2, 0, 2, 0, 2]
+                }, 
+                {
+                 "tileid":2009,
+                 "wangid":[0, 2, 0, 1, 0, 2, 0, 2]
+                }, 
+                {
+                 "tileid":2010,
+                 "wangid":[0, 2, 0, 2, 0, 1, 0, 2]
+                }, 
+                {
+                 "tileid":2011,
+                 "wangid":[0, 2, 0, 2, 0, 2, 0, 1]
                 }]
         }]
 }
