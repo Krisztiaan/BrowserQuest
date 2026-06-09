@@ -174020,6 +174020,13 @@
             "w": 20,
             "h": 16,
             "id": "lavaland"
+          },
+          {
+            "x": 0,
+            "y": 0,
+            "w": 172,
+            "h": 314,
+            "id": "village"
           }
         ],
         "renderProps": [
@@ -265010,6 +265017,69 @@
             "height": 4,
             "mobKind": "rat",
             "count": 1
+          },
+          {
+            "id": 23,
+            "x": 96,
+            "y": 8,
+            "width": 10,
+            "height": 4,
+            "mobKind": "spectre",
+            "count": 2
+          },
+          {
+            "id": 24,
+            "x": 56,
+            "y": 20,
+            "width": 8,
+            "height": 5,
+            "mobKind": "eye",
+            "count": 2
+          },
+          {
+            "id": 25,
+            "x": 36,
+            "y": 64,
+            "width": 10,
+            "height": 6,
+            "mobKind": "skeleton2",
+            "count": 2
+          },
+          {
+            "id": 26,
+            "x": 34,
+            "y": 74,
+            "width": 10,
+            "height": 5,
+            "mobKind": "snake",
+            "count": 2
+          },
+          {
+            "id": 27,
+            "x": 18,
+            "y": 86,
+            "width": 8,
+            "height": 5,
+            "mobKind": "snake",
+            "count": 2
+          },
+          {
+            "id": 28,
+            "x": 69,
+            "y": 83,
+            "width": 8,
+            "height": 5,
+            "mobKind": "ogre",
+            "count": 2
+          },
+          {
+            "id": 29,
+            "x": 36,
+            "y": 146,
+            "width": 10,
+            "height": 5,
+            "mobKind": "bat",
+            "count": 2
           }
         ],
         "chestAreas": [
