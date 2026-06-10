@@ -165,6 +165,27 @@
           "name": "camera_ty",
           "type": "int",
           "value": 0
+        },
+        {
+          "name": "transition_kind",
+          "propertyType": "TransitionKind",
+          "type": "string",
+          "value": "walk"
+        },
+        {
+          "name": "one_way",
+          "type": "bool",
+          "value": false
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "locked_by",
+          "type": "string",
+          "value": ""
         }
       ],
       "name": "Door",
@@ -215,6 +236,27 @@
         },
         {
           "name": "target_door",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "transition_kind",
+          "propertyType": "TransitionKind",
+          "type": "string",
+          "value": "portal"
+        },
+        {
+          "name": "one_way",
+          "type": "bool",
+          "value": false
+        },
+        {
+          "name": "enabled",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "locked_by",
           "type": "string",
           "value": ""
         }
@@ -526,6 +568,269 @@
       "type": "class",
       "useAs": [
         "object"
+      ]
+    },
+    {
+      "id": 200,
+      "name": "MapKind",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "overworld",
+        "interior",
+        "cave",
+        "mine",
+        "underworld",
+        "debug"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 201,
+      "name": "CameraPolicy",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "clamp_region",
+        "center_room",
+        "free"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 202,
+      "name": "PersistenceScope",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "world",
+        "area",
+        "room",
+        "none"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 203,
+      "name": "RoomKind",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "house",
+        "shop",
+        "dungeon_room",
+        "cave_chamber",
+        "corridor",
+        "shrine",
+        "debug"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 204,
+      "name": "TransitionKind",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "walk",
+        "stairs",
+        "cave",
+        "ladder",
+        "portal",
+        "debug"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 205,
+      "name": "LayerRole",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "base",
+        "transition",
+        "hazard",
+        "decal",
+        "structure",
+        "object_depth",
+        "object_fixed",
+        "foreground",
+        "occluder",
+        "lighting",
+        "gameplay",
+        "debug"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 206,
+      "name": "CollisionSource",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "none",
+        "tile",
+        "object",
+        "explicit"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 207,
+      "name": "OcclusionMode",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "none",
+        "always_front",
+        "fade",
+        "cutaway",
+        "hide"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "color": "#ff729fcf",
+      "id": 220,
+      "members": [
+        {
+          "name": "map_id",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "map_kind",
+          "propertyType": "MapKind",
+          "type": "string",
+          "value": "overworld"
+        },
+        {
+          "name": "area_id",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "default_music",
+          "propertyType": "MusicTrackId",
+          "type": "string",
+          "value": "village"
+        },
+        {
+          "name": "default_biome",
+          "type": "string",
+          "value": "mixed"
+        },
+        {
+          "name": "camera_policy",
+          "propertyType": "CameraPolicy",
+          "type": "string",
+          "value": "free"
+        },
+        {
+          "name": "persistence_scope",
+          "propertyType": "PersistenceScope",
+          "type": "string",
+          "value": "world"
+        }
+      ],
+      "name": "BQMap",
+      "type": "class",
+      "useAs": [
+        "map"
+      ]
+    },
+    {
+      "color": "#ff8ae234",
+      "id": 221,
+      "members": [
+        {
+          "name": "room_id",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "room_kind",
+          "propertyType": "RoomKind",
+          "type": "string",
+          "value": "house"
+        },
+        {
+          "name": "area_id",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "music_override",
+          "propertyType": "MusicTrackId",
+          "type": "string",
+          "value": "village"
+        },
+        {
+          "name": "ambient_light",
+          "type": "string",
+          "value": "warm"
+        },
+        {
+          "name": "camera_policy",
+          "propertyType": "CameraPolicy",
+          "type": "string",
+          "value": "center_room"
+        },
+        {
+          "name": "occlusion_policy",
+          "propertyType": "OcclusionMode",
+          "type": "string",
+          "value": "none"
+        }
+      ],
+      "name": "Room",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ff3465a4",
+      "id": 222,
+      "members": [
+        {
+          "name": "layer_role",
+          "propertyType": "LayerRole",
+          "type": "string",
+          "value": "base"
+        },
+        {
+          "name": "collision_source",
+          "propertyType": "CollisionSource",
+          "type": "string",
+          "value": "none"
+        },
+        {
+          "name": "occlusion",
+          "propertyType": "OcclusionMode",
+          "type": "string",
+          "value": "none"
+        },
+        {
+          "name": "material",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "biome",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "area_id",
+          "type": "string",
+          "value": ""
+        }
+      ],
+      "name": "BQLayer",
+      "type": "class",
+      "useAs": [
+        "layer"
       ]
     }
   ]

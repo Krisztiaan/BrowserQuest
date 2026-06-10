@@ -317,3 +317,97 @@ one-shot, image-verified migration aids run by a human — never as pipeline ste
 5. Introduce `browserquest.world` when the first overworld seam is actively edited.
 
 Each step leaves the pack compiling and the game playable; nothing waits on a big bang.
+
+---
+
+## Execution slice 1 — `world_house_01_entry` to `house_01_entry`
+
+Status: first manual authoring slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_01_entry.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_01_full.png`
+- Legacy in-world interior crop: `.data/map-authoring-crops/world_house_01_legacy_interior.png`
+
+Observed facts:
+
+- `world_house_01_entry` is a real village house facade at world tile `(27, 209)`.
+- The linked `house_01` map was a generated 12x10 placeholder: one repeated tile, a blocking
+  ring, and an inline door.
+- The legacy room still visible in `world.json` around the old destination `(155, 286)` is a
+  small wood interior with a blue carpet and a bottom door threshold.
+
+Applied authoring changes:
+
+- Added reusable Tiled project enums/classes for map kind, camera policy, persistence scope,
+  room kind, transition kind, layer role, collision source, occlusion mode, `BQMap`, `Room`,
+  and `BQLayer`.
+- Extended door templates with `transition_kind`, `one_way`, `enabled`, and `locked_by`.
+- Added `templates/room.tx`.
+- Marked `world.json` as `BQMap` and annotated only the selected source door with the new
+  transition metadata.
+- Rebuilt `house_01.json` as a real 14x10 authored room:
+  - `class: BQMap`
+  - map-level identity/properties
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `village_house_01_main_room`
+  - a template-backed linked door at local tile `(6, 7)`
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_01_after.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+
+Runtime link after export:
+
+- `world_01:world_house_01_entry` exports to `house_01:house_01_entry` at `(6, 7)`.
+- `house_01:house_01_entry` exports back to `world_01:world_house_01_entry` at `(27, 209)`.
+
+---
+
+## Execution slice 2 — first-class visual review command
+
+Status: map-region visual review tool applied.
+
+Applied tooling changes:
+
+- Added `tools/content/render-map-region.ts` as a read-only visual review command.
+- Added package script `render:map-region`.
+- The tool renders a rectangular crop from any finite Tiled JSON map to PNG or SVG.
+- It resolves external `.tsj` tilesets, masks Tiled flip bits, embeds exact cropped tile
+  images, and overlays optional object markers.
+- It accepts `--layers all` by default, or a comma-separated list of flattened layer paths or
+  layer names for semantic layer review.
+
+Example commands:
+
+```sh
+bun run render:map-region -- --map assets/maps/tiled/world.json --x 23 --y 205 --w 10 --h 10 --markers doors --out .data/map-authoring-crops/world_house_01_entry_tool_check.png
+bun run render:map-region -- --map assets/maps/tiled/maps/house_01.json --x 0 --y 0 --w 14 --h 10 --markers all --out .data/map-authoring-crops/house_01_after_tool_check.png
+bun run render:map-region -- --map assets/maps/tiled/maps/house_01.json --x 0 --y 0 --w 14 --h 10 --layers base/carpet --markers none --out .data/map-authoring-crops/house_01_carpet_layer_tool_check.png
+```
+
+Visual evidence:
+
+- `.data/map-authoring-crops/world_house_01_entry_tool_check.png`
+- `.data/map-authoring-crops/house_01_after_tool_check.png`
+- `.data/map-authoring-crops/house_01_carpet_layer_tool_check.png`
+
+Validation evidence:
+
+- `bun run render:map-region -- --map assets/maps/tiled/maps/house_01.json --x 0 --y 0 --w 14 --h 10 --layers base/carpet --markers none --out .data/map-authoring-crops/house_01_carpet_layer_package_check.png`
+- `bun run typecheck:tools`
+- `bun run audit:project-surface`
+- `bun test tests/unit/project-surface-inventory.test.ts --timeout 20000`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`

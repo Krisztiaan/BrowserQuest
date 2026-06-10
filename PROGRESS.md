@@ -1269,3 +1269,67 @@ This is the live execution notebook for `PLAN.md`.
   - Gaps identified: first-class map identity, authored rooms, explicit regions, proper map files/world file, richer door/exit semantics, occluders, typed collision volumes, better layer roles, and richer tileset asset classes.
 - Next action:
   - Use the rethink doc to pick one doorway pair and author it manually before changing generation or map-pack configuration.
+
+### 2026-06-10 18:02 UTC - Manual Tiled Authoring Slice 1
+
+- Status: done
+- Scope:
+  - Execute the first small slice from `docs/tiled-authoring-rethink.md`.
+  - Replace one placeholder destination with an observed, hand-authored room.
+  - Add reusable Tiled authoring vocabulary without changing exporter semantics broadly.
+- Ticket:
+  - done: `world_house_01_entry` -> `house_01_entry` authoring slice.
+- Key actions:
+  - Generated inspection crops under `.data/map-authoring-crops/`.
+  - Confirmed `world_house_01_entry` is a real village house facade and `house_01` was a repeated-tile placeholder.
+  - Inspected the legacy in-world interior around `(155, 286)`.
+  - Added Tiled project enums/classes for map kind, camera policy, persistence scope, room kind, transition kind, layer role, collision source, occlusion mode, `BQMap`, `Room`, and `BQLayer`.
+  - Added `assets/maps/tiled/templates/room.tx`.
+  - Extended door templates with transition metadata.
+  - Rebuilt `assets/maps/tiled/maps/house_01.json` as a 14x10 authored room with grouped semantic layers, a `Room` object, and a template-backed linked door at `(6, 7)`.
+  - Annotated `world.json` as `BQMap` and updated only `world_house_01_entry` with transition metadata and destination coordinates.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_01_entry.png`
+    - `.data/map-authoring-crops/house_01_full.png`
+    - `.data/map-authoring-crops/world_house_01_legacy_interior.png`
+    - `.data/map-authoring-crops/house_01_after.png`
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - Runtime export confirms `world_01:world_house_01_entry` targets `house_01:house_01_entry` at `(6, 7)` and the reverse door targets `(27, 209)`.
+- Next action:
+  - Continue with a second manual slice or add the visual review tool proposed in the rethink doc before touching more door pairs.
+
+### 2026-06-10 21:17 UTC - Manual Tiled Authoring Visual Review Tool
+
+- Status: done
+- Scope:
+  - Add the read-only map-region visual review command proposed in `docs/tiled-authoring-rethink.md`.
+  - Support exact rectangular crops from authored Tiled JSON maps.
+  - Support semantic layer subset review without mutating maps.
+  - Keep the tool as validation/review infrastructure, not an authoring transformer.
+- Ticket:
+  - done: `render:map-region` visual review command.
+- Key actions:
+  - Validated the existing untracked renderer against the authored `house_01` slice.
+  - Found ImageMagick did not reliably rasterize SVG crops that referenced the full atlas directly.
+  - Reworked the renderer to pre-crop unique visible gids into embedded PNG data URIs before rasterization.
+  - Added `--layers` filtering by flattened layer path or layer name.
+  - Added the package script `render:map-region`.
+  - Documented the command in `docs/tiled-authoring-rethink.md` and indexed that doc from `docs/README.md`.
+- Evidence:
+  - `bun tools/content/render-map-region.ts --map assets/maps/tiled/maps/house_01.json --x 0 --y 0 --w 14 --h 10 --out .data/map-authoring-crops/house_01_after_tool_check.png --markers all` passed and produced a visually correct authored-room crop.
+  - `bun tools/content/render-map-region.ts --map assets/maps/tiled/world.json --x 23 --y 205 --w 10 --h 10 --out .data/map-authoring-crops/world_house_01_entry_tool_check.png --markers doors` passed and produced a visually correct overworld-door crop.
+  - `bun tools/content/render-map-region.ts --map assets/maps/tiled/maps/house_01.json --x 0 --y 0 --w 14 --h 10 --layers base/carpet --markers none --out .data/map-authoring-crops/house_01_carpet_layer_tool_check.png` passed and produced a carpet-only layer crop.
+  - `bun run render:map-region -- --map assets/maps/tiled/maps/house_01.json --x 0 --y 0 --w 14 --h 10 --layers base/carpet --markers none --out .data/map-authoring-crops/house_01_carpet_layer_package_check.png` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run audit:project-surface` passed and regenerated `artifacts/project-surface-inventory.json`.
+  - `bun test tests/unit/project-surface-inventory.test.ts --timeout 20000` passed: 3 pass, 0 fail.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+- Next action:
+  - Use `render:map-region` for the next manual doorway/interior slice; do not reintroduce generated house mutation scripts.

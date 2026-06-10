@@ -14,6 +14,10 @@
    <property name="target_door" type="string" value=""/>
    <property name="local_tx" type="int" value="0"/>
    <property name="local_ty" type="int" value="0"/>
+   <property name="transition_kind" propertytype="TransitionKind" value="walk"/>
+   <property name="one_way" type="bool" value="false"/>
+   <property name="enabled" type="bool" value="true"/>
+   <property name="locked_by" type="string" value=""/>
   </properties>
  </object>
 </template>

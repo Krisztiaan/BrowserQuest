@@ -9,6 +9,10 @@
    <property name="target_ty" type="int" value="0"/>
    <property name="camera_tx" type="int" value="0"/>
    <property name="camera_ty" type="int" value="0"/>
+   <property name="transition_kind" propertytype="TransitionKind" value="walk"/>
+   <property name="one_way" type="bool" value="false"/>
+   <property name="enabled" type="bool" value="true"/>
+   <property name="locked_by" type="string" value=""/>
   </properties>
  </object>
 </template>

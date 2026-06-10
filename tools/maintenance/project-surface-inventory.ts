@@ -27,6 +27,7 @@ const activeScriptPrefixes = [
     'dev',
     'format',
     'lint',
+    'render',
     'test',
     'typecheck',
     'verify',

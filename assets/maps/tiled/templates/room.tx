@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<template>
+ <object class="Room" width="160" height="128">
+  <properties>
+   <property name="room_id" type="string" value=""/>
+   <property name="room_kind" propertytype="RoomKind" value="house"/>
+   <property name="area_id" type="string" value=""/>
+   <property name="music_override" propertytype="MusicTrackId" value="village"/>
+   <property name="ambient_light" type="string" value="warm"/>
+   <property name="camera_policy" propertytype="CameraPolicy" value="center_room"/>
+   <property name="occlusion_policy" propertytype="OcclusionMode" value="none"/>
+  </properties>
+ </object>
+</template>

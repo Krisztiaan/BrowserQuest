@@ -13,6 +13,7 @@
 
 ## Active Map Authoring Documentation
 
+- `tiled-authoring-rethink.md`: Current Tiled authoring direction and manual execution slices.
 - `../assets/maps/tiled/templates/README.md`: Tiled object templates.
 - `../assets/maps/tiled/terrain-scaffold-guide.md`: Historical scaffold notes; use Phase 2A terrain grammar for current terrain work.
 

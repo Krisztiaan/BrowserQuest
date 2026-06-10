@@ -11,6 +11,10 @@
    <property name="door_id" type="string" value=""/>
    <property name="target_map" type="string" value=""/>
    <property name="target_door" type="string" value=""/>
+   <property name="transition_kind" propertytype="TransitionKind" value="portal"/>
+   <property name="one_way" type="bool" value="false"/>
+   <property name="enabled" type="bool" value="true"/>
+   <property name="locked_by" type="string" value=""/>
   </properties>
  </object>
 </template>

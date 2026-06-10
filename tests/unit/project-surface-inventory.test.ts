@@ -4,6 +4,7 @@ import { buildProjectSurfaceInventory } from '../../tools/maintenance/project-su
 test('project surface inventory classifies package scripts', async () => {
     const entries = await buildProjectSurfaceInventory();
     expect(entries.some((entry) => entry.kind === 'package_script' && entry.name === 'verify:modern' && entry.status === 'active')).toBe(true);
+    expect(entries.some((entry) => entry.kind === 'package_script' && entry.name === 'render:map-region' && entry.status === 'active')).toBe(true);
 });
 
 test('project surface inventory flags known stale map curation script', async () => {
