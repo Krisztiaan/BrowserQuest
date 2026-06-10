@@ -18,6 +18,7 @@ export type ClientCommand =
     | Readonly<{ type: 'clientSendMove'; x: number; y: number }>
     | Readonly<{ type: 'clientSendMoveTo'; x: number; y: number; stopAdjacentToTarget: boolean }>
     | Readonly<{ type: 'clientSendMoveInput'; keysMask: number }>
+    | Readonly<{ type: 'clientSendMovePos'; x: number; y: number; facing: number; moving: boolean }>
     | Readonly<{ type: 'clientSendChunkSubscribe'; chunkX: number; chunkY: number; radius: number }>
     | Readonly<{ type: 'clientSendChunkUnsubscribe' }>
     | Readonly<{ type: 'clientSendZone' }>

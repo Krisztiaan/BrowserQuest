@@ -59,6 +59,8 @@ function resolveRolloutFlags(env: EnvMap): MovementRolloutFlags {
         playerPathingIgnoresPlayers:
             normalizeFlagValue(env.BQ_PLAYER_PATHING_IGNORES_PLAYERS) ??
             DEFAULT_MOVEMENT_ROLLOUT_FLAGS.playerPathingIgnoresPlayers,
+        clientOwnedMovement:
+            normalizeFlagValue(env.BQ_CLIENT_OWNED_MOVEMENT) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.clientOwnedMovement,
     });
 }
 

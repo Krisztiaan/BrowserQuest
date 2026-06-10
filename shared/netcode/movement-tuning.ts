@@ -8,6 +8,7 @@ export type MovementRolloutFlags = Readonly<{
     serverMoveStepGrace: boolean;
     serverInteractionGrace: boolean;
     playerPathingIgnoresPlayers: boolean;
+    clientOwnedMovement: boolean;
 }>;
 
 export type ClientMovementTuningValues = Readonly<{
@@ -52,6 +53,7 @@ export const DEFAULT_MOVEMENT_ROLLOUT_FLAGS: MovementRolloutFlags = Object.freez
     serverMoveStepGrace: true,
     serverInteractionGrace: true,
     playerPathingIgnoresPlayers: true,
+    clientOwnedMovement: true,
 });
 
 export const MOVEMENT_TUNING_PROFILES: Readonly<Record<MovementTuningProfileId, MovementTuningProfile>> = Object.freeze(

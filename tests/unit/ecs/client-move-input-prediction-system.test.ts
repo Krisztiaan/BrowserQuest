@@ -4,7 +4,10 @@ import { entityIdFromWire } from '../../../shared/domain/ids';
 import { MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_W } from '../../../shared/protocol/intents';
 import { tileToWorldPosCenter } from '../../../shared/world/worldpos';
 import { ClientWorldKernel } from '../../../client/ecs/world-kernel';
-import { runClientMoveInputPredictionSystem } from '../../../client/ecs/systems/client-move-input-prediction-system';
+import {
+    resetClientMovePosOutboxForTests,
+    runClientMoveInputPredictionSystem,
+} from '../../../client/ecs/systems/client-move-input-prediction-system';
 import { worldCenterToPixelTopLeft } from '../../../client/visual-character-state';
 
 test('move-input prediction does not move local player in lockstep mode', () => {
@@ -321,4 +324,133 @@ test('move-input prediction treats diagonal authority drift with the same deadzo
     expect(predictedRenderX).toBe(worldCenterToPixelTopLeft(start.x + 1405, start.y - 1405).x);
     expect(predictedRenderY).toBe(worldCenterToPixelTopLeft(start.x + 1405, start.y - 1405).y);
     expect(divergenceClass).toBe('ordinary');
+});
+
+function createOwnedModeHarness(wireId: number, startTile: { x: number; y: number }) {
+    const kernel = new ClientWorldKernel();
+    const playerId = entityIdFromWire(wireId);
+    const start = tileToWorldPosCenter(startTile.x, startTile.y);
+    kernel.upsertFromSpawnSnapshot({
+        id: wireId,
+        kind: Types.Entities.WARRIOR,
+        x: startTile.x,
+        y: startTile.y,
+        extras: {
+            type: 'player',
+            name: 'K',
+            orientation: Types.Orientations.DOWN,
+            armor: Types.Entities.CLOTHARMOR,
+            weapon: Types.Entities.SWORD1,
+        },
+    });
+    kernel.setWorldPosition(playerId, start.x, start.y);
+    kernel.clientMovePosIntentSupported = true;
+
+    const run = (currentTime: number) =>
+        runClientMoveInputPredictionSystem({
+            started: true,
+            currentTime,
+            kernel,
+            playerId,
+            player: {
+                gridX: startTile.x,
+                gridY: startTile.y,
+                worldX: start.x,
+                worldY: start.y,
+                orientation: Types.Orientations.DOWN,
+                isDead: false,
+                isOnPlateau: false,
+                isMoving: () => false,
+                setVisualFacing: () => {},
+                walk: () => {},
+                idle: () => {},
+                setLogicalWorldPositionSub: () => {},
+                setVisualDivergenceClass: () => {},
+                setVisualRenderTarget: () => {},
+                setVisualRenderPosition: () => {},
+            },
+            map: {
+                isOutOfBounds: () => false,
+                isColliding: () => false,
+                isPlateau: () => false,
+                width: 100,
+                height: 100,
+            },
+            isZoning: () => false,
+            isZoningTile: () => false,
+        });
+
+    return { kernel, playerId, start, run };
+}
+
+function drainMovePosCommands(kernel: ClientWorldKernel) {
+    return kernel
+        .drainClientCommands()
+        .filter((cmd): cmd is Extract<typeof cmd, { type: 'clientSendMovePos' }> => cmd.type === 'clientSendMovePos');
+}
+
+test('owned movement streams move.pos while keys are held and skips move.input reconciliation pull', () => {
+    resetClientMovePosOutboxForTests();
+    const { kernel, run, start } = createOwnedModeHarness(31, { x: 10, y: 10 });
+
+    // Authoritative echo lags behind: owned mode must not get pulled toward it.
+    kernel.setWorldPosition(entityIdFromWire(31), start.x - 512, start.y);
+    kernel.pressClientMoveInputKey(MOVE_INPUT_KEY_D);
+    run(10_000);
+
+    const sent = drainMovePosCommands(kernel);
+    expect(sent).toHaveLength(1);
+    expect(sent[0]?.moving).toBe(true);
+    expect(sent[0]?.facing).toBe(Types.Orientations.RIGHT);
+    // Pure prediction: moved right from the seed, unaffected by the lagging echo.
+    expect(sent[0]?.x).toBeGreaterThan(start.x);
+    expect(kernel.clientPredictedWorldPos?.x).toBe(sent[0]?.x);
+});
+
+test('owned movement throttles position-only updates to the send interval', () => {
+    resetClientMovePosOutboxForTests();
+    const { kernel, run } = createOwnedModeHarness(32, { x: 10, y: 10 });
+
+    kernel.pressClientMoveInputKey(MOVE_INPUT_KEY_D);
+    run(20_000);
+    run(20_016); // 16ms later: position changed but inside the 50ms window
+    const burst = drainMovePosCommands(kernel);
+    expect(burst).toHaveLength(1);
+
+    run(20_064); // past the window: next sample goes out
+    expect(drainMovePosCommands(kernel)).toHaveLength(1);
+});
+
+test('owned movement publishes a final moving=false update when keys are released', () => {
+    resetClientMovePosOutboxForTests();
+    const { kernel, run } = createOwnedModeHarness(33, { x: 10, y: 10 });
+
+    kernel.pressClientMoveInputKey(MOVE_INPUT_KEY_D);
+    run(30_000);
+    const moving = drainMovePosCommands(kernel);
+    expect(moving).toHaveLength(1);
+
+    kernel.releaseClientMoveInputKey(MOVE_INPUT_KEY_D);
+    run(30_032);
+    run(30_048); // idle frames after the stop must not re-send
+    const stopped = drainMovePosCommands(kernel);
+    expect(stopped).toHaveLength(1);
+    expect(stopped[0]?.moving).toBe(false);
+    expect(stopped[0]?.x).toBe(moving[0]?.x ?? 0);
+});
+
+test('owned movement stays silent and resets the stream while corrections suppress local ownership', () => {
+    resetClientMovePosOutboxForTests();
+    const { kernel, run } = createOwnedModeHarness(34, { x: 10, y: 10 });
+
+    kernel.pressClientMoveInputKey(MOVE_INPUT_KEY_D);
+    kernel.clientMovementSuppressed = true;
+    run(40_000);
+    expect(drainMovePosCommands(kernel)).toHaveLength(0);
+
+    kernel.clientMovementSuppressed = false;
+    run(40_016);
+    const resumed = drainMovePosCommands(kernel);
+    expect(resumed).toHaveLength(1);
+    expect(resumed[0]?.moving).toBe(true);
 });

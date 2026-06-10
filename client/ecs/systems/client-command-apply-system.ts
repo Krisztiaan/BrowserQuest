@@ -82,6 +82,7 @@ export type ClientCommandApplySystemHost = {
         sendMove(x: number, y: number): void;
         sendMoveTo(x: number, y: number, stopAdjacentToTarget: boolean): void;
         sendMoveInput(keysMask: number): void;
+        sendMovePos(x: number, y: number, facing: number, moving: boolean): void;
         sendChunkSubscribe(chunkX: number, chunkY: number, radius: number): void;
         sendChunkUnsubscribe(): void;
         sendZone(): void;
@@ -813,6 +814,13 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                         break;
                     }
                     host.client.sendMoveInput(command.keysMask);
+                    break;
+                }
+                case 'clientSendMovePos': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendMovePos(command.x, command.y, command.facing, command.moving);
                     break;
                 }
                 case 'clientSendChunkSubscribe': {

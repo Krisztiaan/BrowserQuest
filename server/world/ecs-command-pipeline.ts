@@ -919,7 +919,13 @@ function applyMoveInputIntentCommand({
 const MOVE_POS_HALF_EXTENTS = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
 const MOVE_POS_ENVELOPE_SLACK = 1.5;
 const MOVE_POS_FIRST_UPDATE_ALLOWANCE_MS = 250;
-export const MOVE_POS_LAST_ACCEPT_RESOURCE = createResourceKey<Map<EntityId, number>>('move_pos_last_accept_tick');
+// Leaky-bucket displacement budget: refills at profile speed (with slack) per
+// elapsed tick, capped so an idle gap cannot bank a teleport. The bucket - as
+// opposed to a per-gap envelope - tolerates network jitter delivering several
+// legal-speed updates in the same tick while still bounding average speed.
+const MOVE_POS_ALLOWANCE_CAP_MS = 500;
+type MovePosBudget = { tick: number; allowanceSubpx: number };
+export const MOVE_POS_BUDGET_RESOURCE = createResourceKey<Map<EntityId, MovePosBudget>>('move_pos_budget');
 
 function applyMovePosIntentCommand({
     intentCtx,
@@ -950,18 +956,19 @@ function applyMovePosIntentCommand({
     const posSub = replication.PositionSub.store.get(playerId) ?? tileToWorldPosCenter(currentGrid.x, currentGrid.y);
 
     // Speed envelope: clients own their position, but displacement is bounded by
-    // profile speed (1 tile per moveCooldownMs) over the elapsed time, with slack
-    // for jitter. Anything beyond is a teleport and gets rejected + corrected.
-    const lastAccept = state.resources.require(MOVE_POS_LAST_ACCEPT_RESOURCE);
+    // the leaky-bucket budget. Anything beyond is a teleport and gets rejected
+    // + corrected.
+    const budgets = state.resources.require(MOVE_POS_BUDGET_RESOURCE);
     const tickMs = 1000 / ups;
-    const lastTick = lastAccept.get(playerId);
-    const elapsedMs =
-        lastTick === undefined ? MOVE_POS_FIRST_UPDATE_ALLOWANCE_MS : Math.max(tickMs, (ctx.tick - lastTick) * tickMs);
     const profile = MOVEMENT_TUNING_PROFILES[resolveServerMovementNetcodeConfig().profileId];
-    const speedSubpxPerMs = TILE_SUBPX / profile.client.moveCooldownMs;
-    const maxDistSubpx = speedSubpxPerMs * elapsedMs * MOVE_POS_ENVELOPE_SLACK + SUBPIXELS;
+    const ratePerMs = (TILE_SUBPX / profile.client.moveCooldownMs) * MOVE_POS_ENVELOPE_SLACK;
+    const prev = budgets.get(playerId);
+    const refillSubpx = prev
+        ? Math.max(0, ctx.tick - prev.tick) * tickMs * ratePerMs
+        : MOVE_POS_FIRST_UPDATE_ALLOWANCE_MS * ratePerMs;
+    const allowanceSubpx = Math.min(MOVE_POS_ALLOWANCE_CAP_MS * ratePerMs, (prev?.allowanceSubpx ?? 0) + refillSubpx);
     const dist = Math.max(Math.abs(cmd.pos.x - posSub.x), Math.abs(cmd.pos.y - posSub.y));
-    if (dist > maxDistSubpx) {
+    if (dist > allowanceSubpx + SUBPIXELS) {
         return { ok: false, reason: 'move.pos exceeds the speed envelope' };
     }
 
@@ -987,7 +994,7 @@ function applyMovePosIntentCommand({
     state.world.removeComponent(playerId, movement.MoveQueue);
     state.world.removeComponent(playerId, movement.MoveInput);
     state.world.addComponent(playerId, replication.Orientation, cmd.facing);
-    lastAccept.set(playerId, ctx.tick);
+    budgets.set(playerId, { tick: ctx.tick, allowanceSubpx: Math.max(0, allowanceSubpx - dist) });
 }
 
 function applyLootMoveCommand({
@@ -2064,7 +2071,7 @@ export class WorldEcsCommandPipeline {
         this.state.resources.set(MOVE_SYNC_STATE_RESOURCE, new Map());
         this.state.resources.set(PLAYER_RECENT_POSITION_HISTORY_RESOURCE, new Map());
         this.state.resources.set(ENTITY_STATE_BATCH_RESOURCE, new Map());
-        this.state.resources.set(MOVE_POS_LAST_ACCEPT_RESOURCE, new Map());
+        this.state.resources.set(MOVE_POS_BUDGET_RESOURCE, new Map());
         this.state.resources.set(CHUNK_AOI_STATE_RESOURCE, createChunkAoiState());
         this.state.resources.set(CHUNK_OVERLAY_STORE_RESOURCE, this.chunkOverlays);
         this.state.resources.set(CLAIMS_STORE_RESOURCE, new ClaimsStore());
@@ -2517,7 +2524,14 @@ export class WorldEcsCommandPipeline {
                 state.world.addComponent(playerId, Position, nextGrid);
 
                 // Periodic authoritative position sync (sub-tile) for client reconciliation.
-                pushMoveSync(playerId, nextSub, 0, false);
+                // Owned movement forces the final (moving=false) sync so the resting
+                // position is never lost to the cadence window, and broadcasts entity
+                // state on every commit so observers track sub-tile motion - tile-change
+                // broadcasts alone would freeze remotes at the last tile boundary.
+                pushMoveSync(playerId, nextSub, 0, ownedTarget !== undefined && !ownedTarget.moving);
+                if (ownedTarget) {
+                    enqueueEntityState(playerId, currentMapId, nextGrid);
+                }
 
                 if (wantsTileChange) {
                     recordRecentPlayerPosition({ state, playerId, pos: nextGrid, tick: ctx.tick });

@@ -48,6 +48,7 @@ import {
     encodeAttackIntentPayload,
     encodeDoorTeleportIntentPayload,
     encodeMoveInputIntentPayload,
+    encodeMovePosIntentPayload,
     encodeMoveToIntentPayload,
     encodeMoveStepIntentPayload,
     encodeTileEditIntentPayload,
@@ -57,6 +58,7 @@ import {
     INTENT_ATTACK,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
+    INTENT_MOVE_POS,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
@@ -352,6 +354,7 @@ class GameClient extends Evented<GameClientEvents> {
         this.isTimeout = false;
         this.serverProtocolRevision = null;
         this.serverCapabilities = null;
+        this.kernel.clientMovePosIntentSupported = false;
         this.nextIntentSeq = 1;
         this.kernel.clearClientPendingMoveSeqAcks();
         this.connect(this.lastDispatcherMode);
@@ -451,6 +454,7 @@ class GameClient extends Evented<GameClientEvents> {
         if (typeof protocolRevision === 'number' && typeof capabilitiesJson === 'string') {
             this.serverProtocolRevision = protocolRevision;
             this.serverCapabilities = decodeProtocolCapabilitiesJson(capabilitiesJson);
+            this.kernel.clientMovePosIntentSupported = this.supportsIntent(INTENT_MOVE_POS);
             this.emit('protocolCapabilities', protocolRevision, this.serverCapabilities);
         }
     }
@@ -674,6 +678,12 @@ class GameClient extends Evented<GameClientEvents> {
             this.kernel.clientMovementSuppressed = false;
         }
         if (intentTypeId === INTENT_MOVE_STEP) {
+            this.kernel.clientMovementSuppressed = true;
+            this.kernel.clearClientPendingMoveSeqAcks();
+        }
+        if (intentTypeId === INTENT_MOVE_POS) {
+            // Client-owned position got vetoed; the server follows up with a
+            // CORRECTION, so suppress local ownership until it lands.
             this.kernel.clientMovementSuppressed = true;
             this.kernel.clearClientPendingMoveSeqAcks();
         }
@@ -956,6 +966,24 @@ class GameClient extends Evented<GameClientEvents> {
             return;
         }
         debugMoves('out:INTENT(move.input)', { seq, keysMask });
+    }
+
+    sendMovePos(x: number, y: number, facing: number, moving: boolean): void {
+        if (!this.supportsIntent(INTENT_MOVE_POS)) {
+            debugMoves('out:INTENT(move.pos):unavailable', { x, y, facing, moving });
+            return;
+        }
+
+        const payloadBytes = encodeMovePosIntentPayload({ x, y, facing, moving });
+        if (payloadBytes === null) {
+            return;
+        }
+
+        const seq = this.sendIntent(INTENT_MOVE_POS, payloadBytes, { trackMoveAck: true });
+        if (seq === null) {
+            return;
+        }
+        debugMoves('out:INTENT(move.pos)', { seq, x, y, facing, moving });
     }
 
     sendTileEdit(x: number, y: number, value: number | null): number | null {

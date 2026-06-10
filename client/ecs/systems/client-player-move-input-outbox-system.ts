@@ -1,5 +1,6 @@
 import type { EntityId } from '../../../shared/domain/ids';
 import type { ClientWorldKernel } from '../world-kernel';
+import { resolveClientMovementNetcodeConfig } from '../../movement-netcode-config';
 
 export type ClientPlayerMoveInputOutboxSystemHost = Readonly<{
     started: boolean;
@@ -14,6 +15,13 @@ export function runClientPlayerMoveInputOutboxSystem(host: ClientPlayerMoveInput
 
     const keysMask = host.kernel.consumeClientMoveInputDirty();
     if (keysMask === null) {
+        return;
+    }
+
+    // Owned mode streams move.pos instead; sending move.input as well would make
+    // the server integrate movement on its own and fight the streamed positions.
+    const config = resolveClientMovementNetcodeConfig();
+    if (config.rollout.clientOwnedMovement && host.kernel.clientMovePosIntentSupported) {
         return;
     }
 

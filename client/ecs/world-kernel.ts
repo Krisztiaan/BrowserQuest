@@ -201,6 +201,7 @@ export class ClientWorldKernel {
     readonly clientMoveInputRecentKeys: number[] = [];
     clientMoveInputDirty = false;
     clientMovementNetcodeMode: ClientMovementNetcodeMode = 'predictive';
+    clientMovePosIntentSupported = false;
     clientPredictedWorldPos: WorldPos | null = null;
     clientPendingDoorTraversal: ClientPendingDoorTraversal | null = null;
     clientDoorTraversalContact: ClientDoorTraversalContact | null = null;

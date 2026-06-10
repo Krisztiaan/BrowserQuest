@@ -182,3 +182,62 @@ test('move.pos into blocked geometry is rejected', () => {
     const rejects = delivered.filter((m) => Array.isArray(m) && m[0] === Types.Messages.REJECT);
     expect(rejects.length).toBe(1);
 });
+
+test('move.pos final moving=false update forces MOVE_SYNC and entity state past the cadence window', () => {
+    const player = createTestPlayer(41405);
+    const delivered: WorldMessage[] = [];
+    const pipeline = setupPipeline(player, delivered);
+
+    const start = tileToWorldPosCenter(4, 5);
+    const mid = { x: start.x + TILE_SUBPX / 4, y: start.y };
+    const stop = { x: start.x + TILE_SUBPX / 2, y: start.y };
+
+    enqueueMovePos(pipeline, player, 1, mid, { moving: true });
+    pipeline.tick();
+    // One tick later - well inside the 6-tick MOVE_SYNC cadence window.
+    enqueueMovePos(pipeline, player, 2, stop, { moving: false });
+    pipeline.tick();
+
+    expect(pipeline.PositionSub.store.get(player.id)).toEqual(stop);
+    const syncs = delivered.filter((m) => Array.isArray(m) && m[0] === Types.Messages.MOVE_SYNC);
+    const last = syncs[syncs.length - 1] as number[];
+    expect(last[2]).toBe(stop.x);
+    expect(last[3]).toBe(stop.y);
+});
+
+test('move.pos jitter burst of legal-speed updates in one tick drains the budget instead of rejecting', () => {
+    const player = createTestPlayer(41406);
+    const delivered: WorldMessage[] = [];
+    const pipeline = setupPipeline(player, delivered);
+
+    const start = tileToWorldPosCenter(4, 5);
+    // Three ~50ms-cadence updates delivered in the same tick (network jitter).
+    for (let i = 1; i <= 3; i += 1) {
+        enqueueMovePos(pipeline, player, i, { x: start.x + (i * TILE_SUBPX) / 4, y: start.y });
+    }
+    pipeline.tick();
+
+    expect(pipeline.PositionSub.store.get(player.id)).toEqual({ x: start.x + (3 * TILE_SUBPX) / 4, y: start.y });
+    const rejects = delivered.filter((m) => Array.isArray(m) && m[0] === Types.Messages.REJECT);
+    expect(rejects.length).toBe(0);
+});
+
+test('move.pos sustained over-speed streaming is rejected once the budget drains', () => {
+    const player = createTestPlayer(41407);
+    const delivered: WorldMessage[] = [];
+    const pipeline = setupPipeline(player, delivered);
+
+    const start = tileToWorldPosCenter(4, 5);
+    // 1 tile per tick is 10x profile speed at 50 UPS; the initial allowance
+    // absorbs a few, then the bucket runs dry and the stream gets vetoed.
+    let rejected = 0;
+    for (let i = 1; i <= 12; i += 1) {
+        enqueueMovePos(pipeline, player, i, { x: start.x + i * TILE_SUBPX, y: start.y });
+        pipeline.tick();
+        rejected = delivered.filter((m) => Array.isArray(m) && m[0] === Types.Messages.REJECT).length;
+        if (rejected > 0) {
+            break;
+        }
+    }
+    expect(rejected).toBeGreaterThan(0);
+});

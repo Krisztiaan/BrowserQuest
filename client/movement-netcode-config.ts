@@ -73,6 +73,8 @@ function readGlobalRolloutFlags(): MovementRolloutFlags {
         playerPathingIgnoresPlayers:
             normalizeFlagValue(override.playerPathingIgnoresPlayers) ??
             DEFAULT_MOVEMENT_ROLLOUT_FLAGS.playerPathingIgnoresPlayers,
+        clientOwnedMovement:
+            normalizeFlagValue(override.clientOwnedMovement) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.clientOwnedMovement,
     });
 }
 
