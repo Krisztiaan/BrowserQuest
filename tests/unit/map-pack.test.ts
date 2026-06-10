@@ -208,6 +208,44 @@ test('compileMapPack accepts a world-to-house door with reverse house link', () 
     });
 });
 
+test('compileMapPack exports explicit portal semantics independently of object class', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'world_01',
+                tiled: createTiledMap({
+                    doors: [
+                        {
+                            id: 1,
+                            x: 16,
+                            y: 16,
+                            class: 'Door',
+                            properties: [{ name: 'door_kind', value: 'portal' }],
+                        },
+                        {
+                            id: 2,
+                            x: 32,
+                            y: 16,
+                            class: 'Door',
+                            properties: [{ name: 'is_portal', value: 'true' }],
+                        },
+                        {
+                            id: 3,
+                            x: 48,
+                            y: 16,
+                            class: 'Door',
+                            properties: [{ name: 'door_kind', value: 'door' }],
+                        },
+                    ],
+                }),
+            },
+        ],
+    });
+
+    const doors = pack.maps[0]?.client.doors as Array<{ p?: number }> | undefined;
+    expect(doors?.map((door) => door.p)).toEqual([1, 1, 0]);
+});
+
 test('compileMapPack extracts graph doors from multiple recursive doors layers', () => {
     const pack = compileMapPack({
         maps: [

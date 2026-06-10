@@ -2257,7 +2257,7 @@ rtk git commit -m "chore: enforce strict map target validation"
 
 **Dependencies/blockers:** Phase 1.
 
-- [ ] **Step 1: Add tests for explicit portal semantics**
+- [x] **Step 1: Add tests for explicit portal semantics**
 
 In `tests/unit/map-pack.test.ts`, add a map-processing test that verifies:
 
@@ -2273,7 +2273,7 @@ properties: [{ name: 'door_kind', type: 'string', value: 'portal' }]
 
 and class `Door`.
 
-- [ ] **Step 2: Implement semantic helper**
+- [x] **Step 2: Implement semantic helper**
 
 In `shared/maps/processmap.ts`, add:
 
@@ -2305,7 +2305,7 @@ with:
 p: isPortalDoorObject(door) ? 1 : 0,
 ```
 
-- [ ] **Step 3: Update templates**
+- [x] **Step 3: Update templates**
 
 Add to `portal.tx`:
 
@@ -2319,7 +2319,7 @@ Add to `door.tx` and `door_linked.tx`:
 <property name="door_kind" type="string" value="door"/>
 ```
 
-- [ ] **Step 4: Add validator rule**
+- [x] **Step 4: Add validator rule**
 
 In `tools/content/world-map-validator.ts`, when an object uses `templates/portal.tx` or class `Portal`, require `door_kind=portal` or `is_portal=true`.
 
@@ -2329,7 +2329,7 @@ Diagnostic name:
 PORTAL_SEMANTIC_MISSING
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -2348,7 +2348,7 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

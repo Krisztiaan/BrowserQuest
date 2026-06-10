@@ -2,6 +2,7 @@
 <template>
  <object class="Portal" width="16" height="16">
   <properties>
+   <property name="door_kind" type="string" value="portal"/>
    <property name="orientation" type="string" value="u"/>
    <property name="target_tx" type="int" value="0"/>
    <property name="target_ty" type="int" value="0"/>

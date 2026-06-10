@@ -437,6 +437,17 @@ function isTruthy(value: ScalarValue | undefined): boolean {
     return false;
 }
 
+function isPortalDoorObject(door: TiledObject): boolean {
+    const kind = getPropertyValue(door, 'door_kind');
+    if (typeof kind === 'string' && kind.trim().toLowerCase() === 'portal') {
+        return true;
+    }
+    if (isTruthy(getPropertyValue(door, 'is_portal'))) {
+        return true;
+    }
+    return door.class === 'Portal';
+}
+
 function normalizeDoorPropertyName(name: string): string {
     switch (name) {
         case 'orientation':
@@ -844,7 +855,7 @@ export default function processMap(
             const exportedDoor: ExportedDoor = {
                 x: door.x / map.tilesize,
                 y: door.y / map.tilesize,
-                p: door.class === "Portal" ? 1 : 0,
+                p: isPortalDoorObject(door) ? 1 : 0,
             };
 
             for (const property of getProperties(door)) {

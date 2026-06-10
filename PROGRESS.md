@@ -384,3 +384,42 @@ This is the live execution notebook for `PLAN.md`.
   - `git commit -m "chore: enforce strict map target validation"`: committed and amended with final live-doc metadata.
 - Next action:
   - Proceed to Phase 2 door and authoring validation work.
+
+### 2026-06-10 11:07 UTC - Ticket 2.1 Replace Class-Based Portal Detection With Explicit Semantics
+
+- Status: done
+- Scope:
+  - Add explicit `door_kind` / `is_portal` portal semantics to map processing.
+  - Update door/linked-door/portal templates with explicit semantics.
+  - Add validator diagnostics for portal objects/templates without explicit portal semantics.
+  - Preserve existing non-portal door output as `p: 0`.
+- TODO:
+  - done: Inspect current portal processing, templates, and validator portal checks.
+  - done: Add map-pack/processMap tests for explicit portal semantics.
+  - done: Implement portal semantic helper in `shared/maps/processmap.ts`.
+  - done: Update Tiled templates.
+  - done: Add `PORTAL_SEMANTIC_MISSING` validator rule.
+  - done: Run map-pack tests, world target validation, map build/check, and static gates.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 2.1.
+- Key actions:
+  - Confirmed clean branch state after Ticket 1.5.
+  - Located class-based portal behavior in `shared/maps/processmap.ts` and `tools/content/world-map-validator.ts`.
+  - Added a focused map-pack test for `door_kind=portal`, `is_portal=true`, and `door_kind=door`.
+  - Added `isPortalDoorObject` in `shared/maps/processmap.ts`.
+  - Added `door_kind` semantics to door, linked-door, and portal templates.
+  - Added `PORTAL_SEMANTIC_MISSING` target validator rule and switched portal coordinate extraction to explicit semantics.
+  - Committed Ticket 2.1 with message `feat: add explicit portal semantics`.
+- Evidence:
+  - `git status --short --branch`: `## modern/cx...origin/modern/cx [ahead 4]`.
+  - Current processing uses `p: door.class === "Portal" ? 1 : 0`.
+  - `bun test tests/unit/map-pack.test.ts --timeout 20000`: initially failed before implementation, then passed 21 pass / 0 fail.
+  - `bun run check:world-map:target`: pass, 0 errors / 0 warnings / 0 infos.
+  - `bun run build:maps`: pass; no runtime map-pack artifact diff remained.
+  - `bun run check:maps`: pass, map pack is up to date.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: initially failed on one optional-chain warning, then passed after cleanup.
+  - `git diff --check`: pass.
+  - `git commit -m "feat: add explicit portal semantics"`: committed and amended with final live-doc metadata.
+- Next action:
+  - Proceed to Ticket 2.2 strict door graph contract.

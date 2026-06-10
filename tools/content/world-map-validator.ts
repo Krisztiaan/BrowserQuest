@@ -504,6 +504,20 @@ function getObjectClassName(objectRecord: UnknownRecord): string | null {
     return null;
 }
 
+function hasExplicitPortalSemantic(props: ReadonlyMap<string, unknown>): boolean {
+    const doorKind = asString(props.get('door_kind'))?.trim().toLowerCase();
+    if (doorKind === 'portal') {
+        return true;
+    }
+    const isPortal = props.get('is_portal');
+    return isPortal === true || isPortal === 1 || (typeof isPortal === 'string' && isPortal.trim().toLowerCase() === 'true');
+}
+
+function usesPortalTemplate(objectRecord: UnknownRecord): boolean {
+    const template = asString(objectRecord.template);
+    return template?.split('\\').join('/').endsWith('templates/portal.tx') === true;
+}
+
 function checkLayerPayloads(map: ParsedMap, layers: ReadonlyArray<LayerContext>, diags: Diagnostic[]): void {
     const expectedCellCount = map.width * map.height;
     for (const layer of layers) {
@@ -699,7 +713,8 @@ function extractDoorPortalCoords(layer: LayerContext | undefined, tileWidth: num
     }
     for (const objectRecord of getObjects(layer)) {
         const objectClass = getObjectClassName(objectRecord);
-        if (objectClass !== 'Portal') {
+        const props = getPropertyMap(objectRecord.properties);
+        if (objectClass !== 'Portal' && !hasExplicitPortalSemantic(props)) {
             continue;
         }
         const x = typeof objectRecord.x === 'number' ? objectRecord.x : null;
@@ -1007,7 +1022,16 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
             }
 
             const objectClass = getObjectClassName(objectRecord) ?? '';
-            if (objectClass === 'Portal') {
+            const isPortalObject = objectClass === 'Portal' || usesPortalTemplate(objectRecord);
+            if (isPortalObject && !hasExplicitPortalSemantic(props)) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'PORTAL_SEMANTIC_MISSING',
+                    `${formatLayerRef(doors)} object ${objectId ?? 'no-id'} must define door_kind=portal or is_portal=true.`
+                );
+            }
+            if (isPortalObject) {
                 requireProperty(diags, doors, objectId, props, 'door_id', 'PORTAL_PROPERTY_MISSING');
                 requireProperty(diags, doors, objectId, props, 'target_door', 'PORTAL_PROPERTY_MISSING');
                 requireProperty(diags, doors, objectId, props, 'target_map', 'PORTAL_PROPERTY_MISSING');
