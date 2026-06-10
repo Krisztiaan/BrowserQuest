@@ -633,3 +633,25 @@ This is the live execution notebook for `PLAN.md`.
   - 2026-06-10 12:05 UTC: Verification complete.
   - Commit: `feat: define terrain authoring grammar`.
   - Next action: Proceed to Ticket 2A.4 terrain asset decision/prototype.
+
+### 2026-06-10 12:10 UTC - Ticket 2A.4 Decide and Prototype the Richer Terrain Asset Set
+
+- Status: done
+- Scope:
+  - Decide between metadata-only repair, manual curation, generated overlays, or a hybrid terrain asset path.
+  - Name terrain pairs that need new art before map authoring can be considered complete.
+  - Verify no prototype runtime references.
+- TODO:
+  - done: Create terrain asset generation decision document.
+  - done: Verify runtime isolation for prototype filenames.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 2A.4.
+- Key actions:
+  - 2026-06-10 12:10 UTC: Ticket started.
+  - Decided no prototype is needed in this ticket because the audit and grammar report already justify the hybrid path.
+  - Added `docs/terrain-asset-generation-plan.md` with option comparison, hybrid recommendation, missing art table, asset model, and next steps.
+  - Verified no prototype references in runtime map sources.
+- Evidence:
+  - `rg -n "terrain-transitions\\.prototype" assets/maps/tiled/world.json assets/maps/tiled/map-pack.config.json assets/maps/runtime/map-pack.json` returned no matches; exit code 1 is expected for an empty result set.
+  - `git diff --check` passed.
+  - Commit: `docs: plan richer terrain asset generation`.
+  - Next action: Proceed to Ticket 2A.5 dry-run safe map authoring repair.

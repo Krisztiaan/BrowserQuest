@@ -3383,7 +3383,7 @@ rtk git commit -m "feat: define terrain authoring grammar"
 
 **Dependencies/blockers:** Tickets 2A.2 and 2A.3.
 
-- [ ] **Step 1: Write decision document**
+- [x] **Step 1: Write decision document**
 
 Create `docs/terrain-asset-generation-plan.md` with sections:
 
@@ -3427,7 +3427,7 @@ Stardew assets are used as organizational reference only: seasonal outdoor sheet
 Use Option D unless the visual atlas proves the current sheet already contains enough curated transition art. The audit evidence currently points away from metadata-only repair because the scaffold sets mostly lack mixed-transition entries.
 ```
 
-- [ ] **Step 2: Identify missing art by pair**
+- [x] **Step 2: Identify missing art by pair**
 
 Use `artifacts/map-authoring/terrain-grammar-report.json` and visual atlas output to refine this initial audit-backed table:
 
@@ -3444,7 +3444,7 @@ Use `artifacts/map-authoring/terrain-grammar-report.json` and visual atlas outpu
 | lava_cave | edge/corner/inner/damage-boundary family | representatives 1180 lava, 3 cave | yes | scaffold has 0 mixed transitions |
 ```
 
-- [ ] **Step 3: Prototype only if needed**
+- [x] **Step 3: Prototype only if needed**
 
 If the decision requires generated transitions, create `tools/content/terrain-transition-prototype.ts` that reads:
 
@@ -3461,7 +3461,9 @@ assets/maps/tiled/prototypes/
 
 The prototype must be deterministic and must not be referenced by runtime map files.
 
-- [ ] **Step 4: Verify runtime isolation**
+No prototype was needed for this ticket. `docs/terrain-asset-generation-plan.md` records the hybrid recommendation and defers deterministic prototype generation until exact source tiles, masks, and output metadata are selected.
+
+- [x] **Step 4: Verify runtime isolation**
 
 Run:
 
@@ -3475,7 +3477,9 @@ Expected:
 no matches
 ```
 
-- [ ] **Step 5: Commit**
+Verified with no matches; `rg` exited 1 as expected for an empty result set.
+
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -3485,6 +3489,8 @@ rtk git commit -m "docs: plan richer terrain asset generation"
 ```
 
 If no prototype was created, omit prototype paths from `git add`.
+
+Commit: `docs: plan richer terrain asset generation`.
 
 ### Ticket 2A.5: Add Dry-Run Safe Map Authoring Repair
 
