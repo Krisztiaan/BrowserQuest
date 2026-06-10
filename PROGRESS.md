@@ -934,3 +934,30 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `feat: add authoritative chest inventory transfers`.
   - Next action: Continue Phase 5 with Ticket 5.1 crop tile state and day advancement.
+
+### 2026-06-10 14:02 UTC - Ticket 5.1 Add Crop Tile State and Day Advancement
+
+- Status: done
+- Scope:
+  - Add persistent crop tile state with till, plant, water, day advancement, and harvest operations.
+  - Add crop definitions and shared farming intent ids/codecs.
+- TODO:
+  - done: Add crop definitions, state type, and persistence/service.
+  - done: Add farming intent constants/codecs.
+  - done: Wire farming intents through the ECS command pipeline and core module registry.
+  - done: Add unit coverage for till, plant, water, day advance, harvest, and handler registration.
+  - done: Run Ticket 5.1 full verification and commit.
+- Key actions:
+  - 2026-06-10 14:02 UTC: Ticket started.
+  - Existing farming vertical slice covers claims and tile overlays; crop state is a new persistence domain under `server/world/farming`.
+  - Added persistent `crop_tiles` SQLite storage with schema metadata, strict tile/crop validation, and day advancement.
+  - Added `tool.use`, `crop.plant`, and `crop.harvest` intent constants/codecs plus binary intent ids.
+  - Added bridged farming command variants and registered authoritative farming handlers that enforce bounds, range, claims, and persistence availability.
+- Evidence:
+  - `bun test tests/unit/mmo/server-farming.test.ts --timeout 20000` passed: 4 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `bun run verify:modern` passed: 676 pass, 1 skip, 0 fail; client and server builds completed.
+  - `git diff --check` passed.
+  - Commit: `feat: add persistent crop tile loop`.
+  - Next action: Continue Phase 5 with Ticket 5.2 resource node harvesting.

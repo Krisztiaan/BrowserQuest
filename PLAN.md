@@ -3802,7 +3802,7 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -4494,8 +4494,11 @@ rtk git commit -m "feat: add authoritative chest inventory transfers"
 **Files:**
 - Create: `server/world/farming/crop-state.ts`
 - Create: `server/world/farming/crop-persistence.ts`
+- Modify: `server/ecs/commands.ts`
+- Modify: `server/world/ecs-command-pipeline.ts`
 - Modify: `server/world/ecs-command-pipeline/core-module-registry.ts`
 - Modify: `shared/protocol/intents.ts`
+- Modify: `shared/protocol/binary-action-codec.ts`
 - Create: `assets/content/crops.json`
 - Test: `tests/unit/mmo/server-farming.test.ts`
 
@@ -4512,7 +4515,7 @@ rtk git commit -m "feat: add authoritative chest inventory transfers"
 
 **Dependencies/blockers:** Ticket 4.3.
 
-- [ ] **Step 1: Add crop definitions**
+- [x] **Step 1: Add crop definitions**
 
 Create `assets/content/crops.json`:
 
@@ -4527,7 +4530,7 @@ Create `assets/content/crops.json`:
 }
 ```
 
-- [ ] **Step 2: Add state type**
+- [x] **Step 2: Add state type**
 
 Create `server/world/farming/crop-state.ts`:
 
@@ -4543,7 +4546,7 @@ export type CropTileState = Readonly<{
 }>;
 ```
 
-- [ ] **Step 3: Add failing tests**
+- [x] **Step 3: Add failing tests**
 
 Create `tests/unit/mmo/server-farming.test.ts` with tests for till, plant, water, day advance, and harvest.
 
@@ -4564,7 +4567,7 @@ After three watered day advances:
 expect(fixture.harvest('world_01', 10, 10)).toEqual({ accepted: true, itemId: 'turnip', quantity: 1 });
 ```
 
-- [ ] **Step 4: Implement persistence**
+- [x] **Step 4: Implement persistence**
 
 Create SQLite table:
 
@@ -4582,7 +4585,7 @@ CREATE TABLE IF NOT EXISTS crop_tiles (
 );
 ```
 
-- [ ] **Step 5: Wire intents**
+- [x] **Step 5: Wire intents**
 
 Add intents:
 
@@ -4598,7 +4601,7 @@ Tool payload includes:
 { tool: 'hoe' | 'watering_can', x: number, y: number }
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 

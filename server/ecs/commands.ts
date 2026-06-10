@@ -183,6 +183,30 @@ export type ChestTransferCommand = Readonly<{
     direction: 'chest_to_inventory' | 'inventory_to_chest';
 }>;
 
+export type ToolUseCommand = Readonly<{
+    type: 'TOOL_USE';
+    source: CommandSource;
+    tool: 'hoe' | 'watering_can';
+    x: number;
+    y: number;
+}>;
+
+export type CropPlantCommand = Readonly<{
+    type: 'CROP_PLANT';
+    source: CommandSource;
+    cropId: string;
+    seedItemId: string;
+    x: number;
+    y: number;
+}>;
+
+export type CropHarvestCommand = Readonly<{
+    type: 'CROP_HARVEST';
+    source: CommandSource;
+    x: number;
+    y: number;
+}>;
+
 export type Command =
     | HelloCommand
     | IntentCommand
@@ -206,4 +230,7 @@ export type Command =
     | ClaimCreateCommand
     | ClaimUpdateCommand
     | ClaimDeleteCommand
-    | ChestTransferCommand;
+    | ChestTransferCommand
+    | ToolUseCommand
+    | CropPlantCommand
+    | CropHarvestCommand;

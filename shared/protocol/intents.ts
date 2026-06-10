@@ -11,6 +11,9 @@ export const INTENT_CLAIM_CREATE = 'claim.create' as const;
 export const INTENT_CLAIM_UPDATE = 'claim.update' as const;
 export const INTENT_CLAIM_DELETE = 'claim.delete' as const;
 export const INTENT_CHEST_TRANSFER = 'chest.transfer' as const;
+export const INTENT_TOOL_USE = 'tool.use' as const;
+export const INTENT_CROP_PLANT = 'crop.plant' as const;
+export const INTENT_CROP_HARVEST = 'crop.harvest' as const;
 
 export const OUTCOME_DOOR_TELEPORT = 'teleport.door' as const;
 export const OUTCOME_MAP_TRANSITION_BEGIN = 'map.transition.begin' as const;
@@ -40,7 +43,10 @@ export type CoreIntentTypeId =
     | typeof INTENT_CLAIM_CREATE
     | typeof INTENT_CLAIM_UPDATE
     | typeof INTENT_CLAIM_DELETE
-    | typeof INTENT_CHEST_TRANSFER;
+    | typeof INTENT_CHEST_TRANSFER
+    | typeof INTENT_TOOL_USE
+    | typeof INTENT_CROP_PLANT
+    | typeof INTENT_CROP_HARVEST;
 
 export type IntentPayloadBytes = ReadonlyArray<number> | Uint8Array;
 
@@ -73,6 +79,9 @@ export type ChestTransferIntentPayload = Readonly<{
     quantity: number;
     direction: ChestTransferDirection;
 }>;
+export type ToolUseIntentPayload = Readonly<{ tool: 'hoe' | 'watering_can'; x: number; y: number }>;
+export type CropPlantIntentPayload = Readonly<{ cropId: string; seedItemId: string; x: number; y: number }>;
+export type CropHarvestIntentPayload = Readonly<{ x: number; y: number }>;
 
 const TEXT_ENCODER = new TextEncoder();
 const TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
@@ -185,6 +194,28 @@ function decodeEditors(reader: ByteReader): string[] | null {
         }
     }
     return editors;
+}
+
+function encodeJsonIntentPayload(payload: JsonValue): number[] | null {
+    return [...TEXT_ENCODER.encode(JSON.stringify(payload))];
+}
+
+function decodeJsonIntentPayload(payload: IntentPayloadBytes): Record<string, JsonValue> | null {
+    const bytes = toByteArray(payload);
+    if (!bytes) {
+        return null;
+    }
+    let text: string;
+    try {
+        text = TEXT_DECODER.decode(bytes);
+    } catch (_) {
+        return null;
+    }
+    const parsed = safeParseJsonValue(text);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        return null;
+    }
+    return parsed;
 }
 
 class ByteReader {
@@ -541,6 +572,62 @@ export function decodeChestTransferIntentPayload(payload: IntentPayloadBytes): C
         return { chestId, itemKind, quantity, direction: 'inventory_to_chest' };
     }
     return null;
+}
+
+export function encodeToolUseIntentPayload(payload: ToolUseIntentPayload): number[] | null {
+    if (!isI32(payload.x) || !isI32(payload.y)) {
+        return null;
+    }
+    return encodeJsonIntentPayload({ tool: payload.tool, x: payload.x, y: payload.y });
+}
+
+export function decodeToolUseIntentPayload(payload: IntentPayloadBytes): ToolUseIntentPayload | null {
+    const parsed = decodeJsonIntentPayload(payload);
+    const tool = parsed?.tool;
+    const x = parsed?.x;
+    const y = parsed?.y;
+    if ((tool !== 'hoe' && tool !== 'watering_can') || typeof x !== 'number' || typeof y !== 'number' || !isI32(x) || !isI32(y)) {
+        return null;
+    }
+    return { tool, x, y };
+}
+
+export function encodeCropPlantIntentPayload(payload: CropPlantIntentPayload): number[] | null {
+    const cropId = asNonEmptyString(payload.cropId);
+    const seedItemId = asNonEmptyString(payload.seedItemId);
+    if (!cropId || !seedItemId || !isI32(payload.x) || !isI32(payload.y)) {
+        return null;
+    }
+    return encodeJsonIntentPayload({ cropId, seedItemId, x: payload.x, y: payload.y });
+}
+
+export function decodeCropPlantIntentPayload(payload: IntentPayloadBytes): CropPlantIntentPayload | null {
+    const parsed = decodeJsonIntentPayload(payload);
+    const cropId = asNonEmptyString(parsed?.cropId);
+    const seedItemId = asNonEmptyString(parsed?.seedItemId);
+    const x = parsed?.x;
+    const y = parsed?.y;
+    if (!cropId || !seedItemId || typeof x !== 'number' || typeof y !== 'number' || !isI32(x) || !isI32(y)) {
+        return null;
+    }
+    return { cropId, seedItemId, x, y };
+}
+
+export function encodeCropHarvestIntentPayload(payload: CropHarvestIntentPayload): number[] | null {
+    if (!isI32(payload.x) || !isI32(payload.y)) {
+        return null;
+    }
+    return encodeJsonIntentPayload({ x: payload.x, y: payload.y });
+}
+
+export function decodeCropHarvestIntentPayload(payload: IntentPayloadBytes): CropHarvestIntentPayload | null {
+    const parsed = decodeJsonIntentPayload(payload);
+    const x = parsed?.x;
+    const y = parsed?.y;
+    if (typeof x !== 'number' || typeof y !== 'number' || !isI32(x) || !isI32(y)) {
+        return null;
+    }
+    return { x, y };
 }
 
 export function encodeMapTransitionOutcomePayload(payload: MapTransitionOutcomePayload): string | null {

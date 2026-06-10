@@ -84,11 +84,14 @@ import {
     decodeClaimUpdateIntentPayload,
     decodeAttackIntentPayload,
     decodeChestTransferIntentPayload,
+    decodeCropHarvestIntentPayload,
+    decodeCropPlantIntentPayload,
     decodeDoorTeleportIntentPayload,
     decodeMoveInputIntentPayload,
     decodeMoveToIntentPayload,
     decodeMoveStepIntentPayload,
     decodeTileEditIntentPayload,
+    decodeToolUseIntentPayload,
     encodeMapTransitionOutcomePayload,
     MOVE_INPUT_KEY_A,
     MOVE_INPUT_KEY_D,
@@ -121,11 +124,14 @@ import {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_CHEST_TRANSFER,
+    INTENT_CROP_HARVEST,
+    INTENT_CROP_PLANT,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
+    INTENT_TOOL_USE,
     OUTCOME_DOOR_TELEPORT,
     type InboundIntentContext,
     type IntentWorldHost,
@@ -260,6 +266,11 @@ type WorldCommandHost = Readonly<{
         quantity: number;
         direction: 'chest_to_inventory' | 'inventory_to_chest';
     }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    isFarmableTile?(mapId: string, x: number, y: number): boolean;
+    tillCropTile?(args: { mapId: string; x: number; y: number; farmable: boolean; playerIdentity: string }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    waterCropTile?(args: { mapId: string; x: number; y: number; playerIdentity: string }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    plantCropTile?(args: { mapId: string; x: number; y: number; cropId: string; seedItemId: string; playerIdentity: string }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    harvestCropTile?(args: { mapId: string; x: number; y: number; playerIdentity: string }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
     recordPlayerMobKill(playerName: string, mobKind: EntityKind): void;
     recordPlayerDamageTaken(playerName: string, damage: number): void;
     recordPlayerRevive(playerName: string): void;
@@ -2207,6 +2218,39 @@ function createApplyInboundCommandsSystem(
                                   direction: transfer.direction,
                               } satisfies Extract<Command, { type: 'CHEST_TRANSFER' }>)
                             : null;
+                    } else if (cmd.intentTypeId === INTENT_TOOL_USE) {
+                        const toolUse = decodeToolUseIntentPayload(cmd.payloadBytes);
+                        bridged = toolUse
+                            ? ({
+                                  type: 'TOOL_USE',
+                                  source: cmd.source,
+                                  tool: toolUse.tool,
+                                  x: toolUse.x,
+                                  y: toolUse.y,
+                              } satisfies Extract<Command, { type: 'TOOL_USE' }>)
+                            : null;
+                    } else if (cmd.intentTypeId === INTENT_CROP_PLANT) {
+                        const cropPlant = decodeCropPlantIntentPayload(cmd.payloadBytes);
+                        bridged = cropPlant
+                            ? ({
+                                  type: 'CROP_PLANT',
+                                  source: cmd.source,
+                                  cropId: cropPlant.cropId,
+                                  seedItemId: cropPlant.seedItemId,
+                                  x: cropPlant.x,
+                                  y: cropPlant.y,
+                              } satisfies Extract<Command, { type: 'CROP_PLANT' }>)
+                            : null;
+                    } else if (cmd.intentTypeId === INTENT_CROP_HARVEST) {
+                        const cropHarvest = decodeCropHarvestIntentPayload(cmd.payloadBytes);
+                        bridged = cropHarvest
+                            ? ({
+                                  type: 'CROP_HARVEST',
+                                  source: cmd.source,
+                                  x: cropHarvest.x,
+                                  y: cropHarvest.y,
+                              } satisfies Extract<Command, { type: 'CROP_HARVEST' }>)
+                            : null;
                     }
 
                     if (!bridged) {
@@ -2275,6 +2319,12 @@ function createApplyInboundCommandsSystem(
                 case 'CHEST_TRANSFER':
                     // CHEST_TRANSFER is only intended to exist as an internal bridged payload inside the INTENT handler.
                     // If it ever lands in the inbound command queue, ignore it (do not crash the server).
+                    break;
+                case 'TOOL_USE':
+                case 'CROP_PLANT':
+                case 'CROP_HARVEST':
+                    // Farming commands are only intended to exist as internal bridged payloads inside INTENT handlers.
+                    // If they ever land in the inbound command queue, ignore them (do not crash the server).
                     break;
                 case 'TILE_EDIT':
                     {

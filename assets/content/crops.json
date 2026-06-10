@@ -1,0 +1,8 @@
+{
+  "turnip": {
+    "seedItem": "turnip_seed",
+    "harvestItem": "turnip",
+    "growthDays": 3,
+    "regrows": false
+  }
+}

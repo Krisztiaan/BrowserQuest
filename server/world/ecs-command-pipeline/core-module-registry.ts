@@ -8,11 +8,14 @@ import {
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
+    INTENT_CROP_HARVEST,
+    INTENT_CROP_PLANT,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
+    INTENT_TOOL_USE,
     OUTCOME_DOOR_TELEPORT,
 } from '../../../shared/protocol/intents';
 export {
@@ -21,11 +24,14 @@ export {
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
+    INTENT_CROP_HARVEST,
+    INTENT_CROP_PLANT,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
+    INTENT_TOOL_USE,
     OUTCOME_DOOR_TELEPORT,
 } from '../../../shared/protocol/intents';
 import type { EntityKind } from '../../../shared/entity-kind-domain';
@@ -93,6 +99,34 @@ export type IntentWorldHost = Readonly<{
         itemKind: EntityKind;
         quantity: number;
         direction: 'chest_to_inventory' | 'inventory_to_chest';
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    isFarmableTile?(mapId: string, x: number, y: number): boolean;
+    tillCropTile?(args: {
+        mapId: string;
+        x: number;
+        y: number;
+        farmable: boolean;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    waterCropTile?(args: {
+        mapId: string;
+        x: number;
+        y: number;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    plantCropTile?(args: {
+        mapId: string;
+        x: number;
+        y: number;
+        cropId: string;
+        seedItemId: string;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    harvestCropTile?(args: {
+        mapId: string;
+        x: number;
+        y: number;
+        playerIdentity: string;
     }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
 }>;
 
@@ -220,6 +254,33 @@ function isTileEditOutOfBounds({
 
 function isWithinInteractionDistance(a: GridPos, b: GridPos, maxAxisDistance: number): boolean {
     return Math.abs(a.x - b.x) <= maxAxisDistance && Math.abs(a.y - b.y) <= maxAxisDistance;
+}
+
+function authorizeCropTile(
+    ctx: InboundIntentContext,
+    options: CoreModuleRegistryOptions,
+    mapId: string,
+    x: number,
+    y: number
+): Readonly<{ ok: true; playerIdentity: string }> | Readonly<{ ok: false; reason: string }> {
+    if (isTileEditOutOfBounds({ world: ctx.world, mapId, x, y })) {
+        return { ok: false, reason: 'out_of_bounds' };
+    }
+    const playerPos = ctx.Position.store.get(ctx.player.id) ?? gridPos(ctx.player.x, ctx.player.y);
+    if (!isWithinInteractionDistance(playerPos, gridPos(x, y), 1)) {
+        return { ok: false, reason: 'out_of_range' };
+    }
+    const claims = ctx.state.resources.require(CLAIMS_STORE_RESOURCE);
+    const claim = claims.getClaimAt(x, y, mapId);
+    const playerIdentity = options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name;
+    const decision = canEditTile({
+        actorName: playerIdentity,
+        claim,
+    });
+    if (!decision.ok) {
+        return { ok: false, reason: `PERMISSION:${decision.code}` };
+    }
+    return { ok: true, playerIdentity };
 }
 
 export function createCoreServerModuleRegistry(options: CoreModuleRegistryOptions): GameModuleRegistry {
@@ -511,6 +572,94 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                         return { ok: false, reason: result.reason };
                     }
                     return { ok: true };
+                });
+            },
+        },
+        {
+            id: 'core.farming',
+            register(registry) {
+                registry.registerIntentHandler(INTENT_TOOL_USE, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'TOOL_USE');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    const authorized = authorizeCropTile(ctx, options, actorMapId, cmd.x, cmd.y);
+                    if (!authorized.ok) {
+                        return { ok: false, reason: authorized.reason };
+                    }
+                    if (cmd.tool === 'hoe') {
+                        if (!ctx.world.tillCropTile || !ctx.world.isFarmableTile) {
+                            return { ok: false, reason: 'farming_unavailable' };
+                        }
+                        const result = ctx.world.tillCropTile({
+                            mapId: actorMapId,
+                            x: cmd.x,
+                            y: cmd.y,
+                            farmable: ctx.world.isFarmableTile(actorMapId, cmd.x, cmd.y),
+                            playerIdentity: authorized.playerIdentity,
+                        });
+                        return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
+                    }
+                    if (!ctx.world.waterCropTile) {
+                        return { ok: false, reason: 'farming_unavailable' };
+                    }
+                    const result = ctx.world.waterCropTile({
+                        mapId: actorMapId,
+                        x: cmd.x,
+                        y: cmd.y,
+                        playerIdentity: authorized.playerIdentity,
+                    });
+                    return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
+                });
+
+                registry.registerIntentHandler(INTENT_CROP_PLANT, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'CROP_PLANT');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    if (!ctx.world.plantCropTile) {
+                        return { ok: false, reason: 'farming_unavailable' };
+                    }
+                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    const authorized = authorizeCropTile(ctx, options, actorMapId, cmd.x, cmd.y);
+                    if (!authorized.ok) {
+                        return { ok: false, reason: authorized.reason };
+                    }
+                    const result = ctx.world.plantCropTile({
+                        mapId: actorMapId,
+                        x: cmd.x,
+                        y: cmd.y,
+                        cropId: cmd.cropId,
+                        seedItemId: cmd.seedItemId,
+                        playerIdentity: authorized.playerIdentity,
+                    });
+                    return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
+                });
+
+                registry.registerIntentHandler(INTENT_CROP_HARVEST, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'CROP_HARVEST');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    if (!ctx.world.harvestCropTile) {
+                        return { ok: false, reason: 'farming_unavailable' };
+                    }
+                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    const authorized = authorizeCropTile(ctx, options, actorMapId, cmd.x, cmd.y);
+                    if (!authorized.ok) {
+                        return { ok: false, reason: authorized.reason };
+                    }
+                    const result = ctx.world.harvestCropTile({
+                        mapId: actorMapId,
+                        x: cmd.x,
+                        y: cmd.y,
+                        playerIdentity: authorized.playerIdentity,
+                    });
+                    return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
                 });
             },
         },
