@@ -904,3 +904,33 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `feat: add sqlite schema metadata and backup cli`.
   - Next action: Continue Phase 4 with Ticket 4.3 inventory and chest transactions.
+
+### 2026-06-10 13:48 UTC - Ticket 4.3 Implement Inventory and Chest Transactions
+
+- Status: done
+- Scope:
+  - Add server-authoritative chest transfer intent and stackable inventory mutation.
+  - Keep transfer mutation atomic and reject out-of-range or claimed-without-permission transfers without state changes.
+- TODO:
+  - done: Add chest transfer intent constants and codecs.
+  - done: Add persistence transaction for stackable inventory.
+  - done: Wire server intent to ECS chest state, range checks, and claim permission checks.
+  - done: Add unit coverage for persistence and server transfer behavior.
+  - done: Run Ticket 4.3 verification and commit.
+- Key actions:
+  - 2026-06-10 13:48 UTC: Ticket started.
+  - Existing player inventory lives in `progression_json`; implementation will mutate that JSON under a SQLite transaction instead of adding a parallel inventory store.
+  - Added `chest.transfer` intent payload codec and `chest.transfer.applied` outcome id, including binary protocol id coverage.
+  - Added `chest_inventory` persistence table plus atomic `transferChestItem` mutation across chest state and player inventory JSON.
+  - Wired the core inventory intent through ECS chest kind/position checks, claim permission checks, persistence, REJECT, ACK, and OUTCOME delivery.
+  - Added `GameClient.sendChestTransfer` transport plumbing without changing click-to-open behavior.
+- Evidence:
+  - `bun test tests/unit/protocol/intents.test.ts tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-inventory-chest-transactions.test.ts --timeout 20000` passed: 21 pass, 0 fail.
+  - `bun test tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-inventory-chest-transactions.test.ts --timeout 20000` passed after permission coverage: 12 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `bun run verify:modern` passed after permission coverage: 672 pass, 1 skip, 0 fail; client and server builds completed.
+  - `git diff --check` passed.
+  - Commit: `feat: add authoritative chest inventory transfers`.
+  - Next action: Continue Phase 5 with Ticket 5.1 crop tile state and day advancement.

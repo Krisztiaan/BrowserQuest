@@ -83,6 +83,7 @@ import {
     decodeClaimDeleteIntentPayload,
     decodeClaimUpdateIntentPayload,
     decodeAttackIntentPayload,
+    decodeChestTransferIntentPayload,
     decodeDoorTeleportIntentPayload,
     decodeMoveInputIntentPayload,
     decodeMoveToIntentPayload,
@@ -95,6 +96,7 @@ import {
     MOVE_INPUT_KEY_W,
     OUTCOME_MAP_TRANSITION_BEGIN,
     OUTCOME_MAP_TRANSITION_COMMIT,
+    OUTCOME_CHEST_TRANSFER,
 } from '../../shared/protocol/intents';
 import {
     classifyIntentSeq,
@@ -118,6 +120,7 @@ import {
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
+    INTENT_CHEST_TRANSFER,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
@@ -250,6 +253,13 @@ type WorldCommandHost = Readonly<{
     persistPlayerEquipment(player: PlayerLike): void;
     persistPlayerCheckpoint(playerName: string, checkpointId: number): void;
     persistPlayerAchievementUnlock(playerName: string, achievementId: number): void;
+    transferChestItem(args: {
+        playerIdentity: string;
+        chestId: EntityId;
+        itemKind: EntityKind;
+        quantity: number;
+        direction: 'chest_to_inventory' | 'inventory_to_chest';
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
     recordPlayerMobKill(playerName: string, mobKind: EntityKind): void;
     recordPlayerDamageTaken(playerName: string, damage: number): void;
     recordPlayerRevive(playerName: string): void;
@@ -2185,6 +2195,18 @@ function createApplyInboundCommandsSystem(
                                   claimId: claim.id,
                               } satisfies Extract<Command, { type: 'CLAIM_DELETE' }>)
                             : null;
+                    } else if (cmd.intentTypeId === INTENT_CHEST_TRANSFER) {
+                        const transfer = decodeChestTransferIntentPayload(cmd.payloadBytes);
+                        bridged = transfer
+                            ? ({
+                                  type: 'CHEST_TRANSFER',
+                                  source: cmd.source,
+                                  chestId: entityIdFromWire(transfer.chestId),
+                                  itemKind: transfer.itemKind as EntityKind,
+                                  quantity: transfer.quantity,
+                                  direction: transfer.direction,
+                              } satisfies Extract<Command, { type: 'CHEST_TRANSFER' }>)
+                            : null;
                     }
 
                     if (!bridged) {
@@ -2205,6 +2227,12 @@ function createApplyInboundCommandsSystem(
                         applyAttackCommand({ state, ctx, mobAi, replication, Target, cmd: bridged });
                     }
                     seqState.lastAcceptedByPlayerId.set(player.id, cmd.seq);
+                    if (cmd.intentTypeId === INTENT_CHEST_TRANSFER) {
+                        world.pushToPlayerId(
+                            cmd.source.playerId,
+                            buildOutcomeAction(cmd.seq, OUTCOME_CHEST_TRANSFER, JSON.stringify({ ok: true }))
+                        );
+                    }
                     world.pushToPlayerId(cmd.source.playerId, buildAckAction(cmd.seq));
 
                     if (cmd.intentTypeId === INTENT_MOVE_INPUT) {
@@ -2242,6 +2270,10 @@ function createApplyInboundCommandsSystem(
                     break;
                 case 'MOVE_INPUT':
                     // MOVE_INPUT is only intended to exist as an internal bridged payload inside the INTENT handler.
+                    // If it ever lands in the inbound command queue, ignore it (do not crash the server).
+                    break;
+                case 'CHEST_TRANSFER':
+                    // CHEST_TRANSFER is only intended to exist as an internal bridged payload inside the INTENT handler.
                     // If it ever lands in the inbound command queue, ignore it (do not crash the server).
                     break;
                 case 'TILE_EDIT':

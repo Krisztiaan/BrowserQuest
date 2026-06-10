@@ -3,6 +3,7 @@ import {
     decodeClaimCreateIntentPayload,
     decodeClaimDeleteIntentPayload,
     decodeAttackIntentPayload,
+    decodeChestTransferIntentPayload,
     decodeClaimUpdateIntentPayload,
     decodeDoorTeleportIntentPayload,
     decodeMoveInputIntentPayload,
@@ -13,6 +14,7 @@ import {
     encodeClaimCreateIntentPayload,
     encodeClaimDeleteIntentPayload,
     encodeAttackIntentPayload,
+    encodeChestTransferIntentPayload,
     encodeClaimUpdateIntentPayload,
     encodeDoorTeleportIntentPayload,
     encodeMoveInputIntentPayload,
@@ -24,6 +26,7 @@ import {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_ATTACK,
+    INTENT_CHEST_TRANSFER,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
     INTENT_MOVE_STEP,
@@ -34,6 +37,7 @@ import {
     MOVE_INPUT_KEY_S,
     MOVE_INPUT_KEY_W,
     OUTCOME_DOOR_TELEPORT,
+    OUTCOME_CHEST_TRANSFER,
     OUTCOME_MAP_TRANSITION_BEGIN,
     OUTCOME_MAP_TRANSITION_COMMIT,
 } from '../../../shared/protocol/intents';
@@ -48,7 +52,9 @@ test('intent id constants remain stable', () => {
     expect(INTENT_CLAIM_CREATE).toBe('claim.create');
     expect(INTENT_CLAIM_UPDATE).toBe('claim.update');
     expect(INTENT_CLAIM_DELETE).toBe('claim.delete');
+    expect(INTENT_CHEST_TRANSFER).toBe('chest.transfer');
     expect(OUTCOME_DOOR_TELEPORT).toBe('teleport.door');
+    expect(OUTCOME_CHEST_TRANSFER).toBe('chest.transfer.applied');
     expect(OUTCOME_MAP_TRANSITION_BEGIN).toBe('map.transition.begin');
     expect(OUTCOME_MAP_TRANSITION_COMMIT).toBe('map.transition.commit');
 });
@@ -146,6 +152,33 @@ test('claim intent decoders reject invalid payloads', () => {
     expect(decodeClaimCreateIntentPayload([1, 0, 0, 0])).toBeNull();
     expect(decodeClaimUpdateIntentPayload([0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0])).toBeNull();
     expect(decodeClaimDeleteIntentPayload([0, 0, 0, 0])).toBeNull();
+});
+
+test('chest transfer codec validates bounds and round-trips', () => {
+    const bytes = encodeChestTransferIntentPayload({
+        chestId: 100,
+        itemKind: 25,
+        quantity: 2,
+        direction: 'chest_to_inventory',
+    });
+    expect(bytes).toEqual([100, 0, 0, 0, 25, 0, 0, 0, 2, 0, 0, 0, 0]);
+    expect(decodeChestTransferIntentPayload(bytes ?? [])).toEqual({
+        chestId: 100,
+        itemKind: 25,
+        quantity: 2,
+        direction: 'chest_to_inventory',
+    });
+
+    const reverseBytes = encodeChestTransferIntentPayload({
+        chestId: 100,
+        itemKind: 25,
+        quantity: 1,
+        direction: 'inventory_to_chest',
+    });
+    expect(decodeChestTransferIntentPayload(reverseBytes ?? [])?.direction).toBe('inventory_to_chest');
+    expect(encodeChestTransferIntentPayload({ chestId: 0, itemKind: 25, quantity: 1, direction: 'chest_to_inventory' })).toBeNull();
+    expect(encodeChestTransferIntentPayload({ chestId: 100, itemKind: 25, quantity: 0, direction: 'chest_to_inventory' })).toBeNull();
+    expect(decodeChestTransferIntentPayload([100, 0, 0, 0, 25, 0, 0, 0, 1, 0, 0, 0, 9])).toBeNull();
 });
 
 test('move.to decoder rejects invalid flag bits', () => {

@@ -10,15 +10,18 @@ export const INTENT_TILE_EDIT = 'tile.edit' as const;
 export const INTENT_CLAIM_CREATE = 'claim.create' as const;
 export const INTENT_CLAIM_UPDATE = 'claim.update' as const;
 export const INTENT_CLAIM_DELETE = 'claim.delete' as const;
+export const INTENT_CHEST_TRANSFER = 'chest.transfer' as const;
 
 export const OUTCOME_DOOR_TELEPORT = 'teleport.door' as const;
 export const OUTCOME_MAP_TRANSITION_BEGIN = 'map.transition.begin' as const;
 export const OUTCOME_MAP_TRANSITION_COMMIT = 'map.transition.commit' as const;
+export const OUTCOME_CHEST_TRANSFER = 'chest.transfer.applied' as const;
 
 export type CoreOutcomeTypeId =
     | typeof OUTCOME_DOOR_TELEPORT
     | typeof OUTCOME_MAP_TRANSITION_BEGIN
-    | typeof OUTCOME_MAP_TRANSITION_COMMIT;
+    | typeof OUTCOME_MAP_TRANSITION_COMMIT
+    | typeof OUTCOME_CHEST_TRANSFER;
 
 export type MapTransitionOutcomePayload = Readonly<{
     fromMapId: string;
@@ -36,7 +39,8 @@ export type CoreIntentTypeId =
     | typeof INTENT_TILE_EDIT
     | typeof INTENT_CLAIM_CREATE
     | typeof INTENT_CLAIM_UPDATE
-    | typeof INTENT_CLAIM_DELETE;
+    | typeof INTENT_CLAIM_DELETE
+    | typeof INTENT_CHEST_TRANSFER;
 
 export type IntentPayloadBytes = ReadonlyArray<number> | Uint8Array;
 
@@ -62,6 +66,13 @@ export type ClaimUpdateIntentPayload = Readonly<{
     editors?: ReadonlyArray<string>;
 }>;
 export type ClaimDeleteIntentPayload = Readonly<{ id: number }>;
+export type ChestTransferDirection = 'chest_to_inventory' | 'inventory_to_chest';
+export type ChestTransferIntentPayload = Readonly<{
+    chestId: number;
+    itemKind: number;
+    quantity: number;
+    direction: ChestTransferDirection;
+}>;
 
 const TEXT_ENCODER = new TextEncoder();
 const TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
@@ -72,6 +83,8 @@ const U16_MAX = 0xffff;
 
 const MOVE_TO_FLAG_STOP_ADJACENT = 1 << 0;
 const MOVE_TO_FLAGS_ALLOWED = MOVE_TO_FLAG_STOP_ADJACENT;
+const CHEST_TRANSFER_CHEST_TO_INVENTORY = 0;
+const CHEST_TRANSFER_INVENTORY_TO_CHEST = 1;
 
 export const MOVE_INPUT_KEY_W = 1 << 0;
 export const MOVE_INPUT_KEY_A = 1 << 1;
@@ -474,6 +487,60 @@ export function decodeClaimDeleteIntentPayload(payload: IntentPayloadBytes): Cla
         return null;
     }
     return { id };
+}
+
+export function encodeChestTransferIntentPayload(payload: ChestTransferIntentPayload): number[] | null {
+    if (
+        !isI32(payload.chestId)
+        || payload.chestId <= 0
+        || !isI32(payload.itemKind)
+        || payload.itemKind <= 0
+        || !isI32(payload.quantity)
+        || payload.quantity <= 0
+    ) {
+        return null;
+    }
+    const direction =
+        payload.direction === 'chest_to_inventory'
+            ? CHEST_TRANSFER_CHEST_TO_INVENTORY
+            : CHEST_TRANSFER_INVENTORY_TO_CHEST;
+    const bytes: number[] = [];
+    pushI32(bytes, payload.chestId);
+    pushI32(bytes, payload.itemKind);
+    pushI32(bytes, payload.quantity);
+    pushU8(bytes, direction);
+    return bytes;
+}
+
+export function decodeChestTransferIntentPayload(payload: IntentPayloadBytes): ChestTransferIntentPayload | null {
+    const bytes = toByteArray(payload);
+    if (bytes?.length !== 13) {
+        return null;
+    }
+    const reader = new ByteReader(bytes);
+    const chestId = reader.readI32();
+    const itemKind = reader.readI32();
+    const quantity = reader.readI32();
+    const direction = reader.readU8();
+    if (
+        chestId === null
+        || itemKind === null
+        || quantity === null
+        || direction === null
+        || chestId <= 0
+        || itemKind <= 0
+        || quantity <= 0
+        || !reader.isDone()
+    ) {
+        return null;
+    }
+    if (direction === CHEST_TRANSFER_CHEST_TO_INVENTORY) {
+        return { chestId, itemKind, quantity, direction: 'chest_to_inventory' };
+    }
+    if (direction === CHEST_TRANSFER_INVENTORY_TO_CHEST) {
+        return { chestId, itemKind, quantity, direction: 'inventory_to_chest' };
+    }
+    return null;
 }
 
 export function encodeMapTransitionOutcomePayload(payload: MapTransitionOutcomePayload): string | null {

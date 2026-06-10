@@ -72,6 +72,7 @@ import {
 } from './world/outgoing-queue-service';
 import type { RectClaim } from './world/claims/claims-store';
 import type {
+    ChestTransferDirection,
     PersistedAchievementProgress,
     PersistedPlayerProfile,
     SqlitePlayerPersistence,
@@ -187,6 +188,7 @@ type PlayerPersistence = Pick<
     | 'persistEquipment'
     | 'persistCheckpoint'
     | 'persistAchievementUnlock'
+    | 'transferChestItem'
     | 'incrementAchievementCounters'
     | 'getAchievementProgressByName'
 >;
@@ -536,6 +538,35 @@ class World extends Evented<WorldEvents> {
         this.playerPersistence.persistAchievementUnlock({
             playerName: identityKey,
             achievementId,
+        });
+    }
+
+    transferChestItem({
+        playerIdentity,
+        chestId,
+        itemKind,
+        quantity,
+        direction,
+    }: {
+        playerIdentity: string;
+        chestId: EntityId;
+        itemKind: EntityKind;
+        quantity: number;
+        direction: ChestTransferDirection;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> {
+        if (!this.playerPersistence) {
+            return { accepted: false, reason: 'persistence_unavailable' };
+        }
+        const identityKey = resolveIdentityKey(playerIdentity);
+        if (!identityKey) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        return this.playerPersistence.transferChestItem({
+            accountNameKey: identityKey,
+            chestId,
+            itemKind,
+            quantity,
+            direction,
         });
     }
 

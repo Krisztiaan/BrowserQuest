@@ -108,6 +108,9 @@ export type PersistedProgressionState = Readonly<{
     inventory: PersistedInventoryEntry[];
 }>;
 
+export type ChestTransferDirection = 'chest_to_inventory' | 'inventory_to_chest';
+export type ChestTransferResult = Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+
 type LooseValue = string | number | boolean | bigint | symbol | object | null | undefined;
 type LooseRecord = Record<string, LooseValue>;
 
@@ -247,6 +250,29 @@ function decodeProgressionState(jsonText: string | null | undefined): PersistedP
 
 function encodeProgressionState(state: PersistedProgressionState): string {
     return JSON.stringify(state);
+}
+
+function getInventoryQuantity(inventory: ReadonlyArray<PersistedInventoryEntry>, itemKind: EntityKind): number {
+    let quantity = 0;
+    for (const entry of inventory) {
+        if (entry.itemKind === itemKind) {
+            quantity += entry.quantity;
+        }
+    }
+    return quantity;
+}
+
+function setInventoryQuantity(
+    inventory: ReadonlyArray<PersistedInventoryEntry>,
+    itemKind: EntityKind,
+    quantity: number
+): PersistedInventoryEntry[] {
+    const next = inventory.filter((entry) => entry.itemKind !== itemKind);
+    if (quantity > 0) {
+        next.push({ itemKind, quantity });
+    }
+    next.sort((a, b) => Number(a.itemKind) - Number(b.itemKind));
+    return next;
 }
 
 function normalizeTransportValue(value: string | null | undefined): AuthenticatorTransportFuture | null {
@@ -421,6 +447,13 @@ export class SqlitePlayerPersistence {
                 FOREIGN KEY(name_key) REFERENCES players(name_key) ON DELETE CASCADE
             );
             CREATE INDEX IF NOT EXISTS player_passkeys_name_key ON player_passkeys(name_key);
+            CREATE TABLE IF NOT EXISTS chest_inventory (
+                chest_id INTEGER NOT NULL,
+                item_kind INTEGER NOT NULL,
+                quantity INTEGER NOT NULL CHECK(quantity > 0),
+                updated_at INTEGER NOT NULL,
+                PRIMARY KEY(chest_id, item_kind)
+            );
         `);
 
         this.#selectProfile = this.#db.prepare(
@@ -742,6 +775,121 @@ export class SqlitePlayerPersistence {
             now,
             now
         );
+    }
+
+    setChestInventoryItem({
+        chestId,
+        itemKind,
+        quantity,
+    }: {
+        chestId: number;
+        itemKind: EntityKind;
+        quantity: number;
+    }): void {
+        const normalizedItemKind = normalizeEntityKind(Number(itemKind));
+        if (!Number.isSafeInteger(chestId) || chestId <= 0 || normalizedItemKind === null) {
+            return;
+        }
+        const safeQuantity = Math.max(0, Math.trunc(quantity));
+        if (safeQuantity <= 0) {
+            this.#db.query(`DELETE FROM chest_inventory WHERE chest_id = ?1 AND item_kind = ?2`).run(chestId, Number(normalizedItemKind));
+            return;
+        }
+        this.#db
+            .query(
+                `INSERT INTO chest_inventory (chest_id, item_kind, quantity, updated_at)
+                 VALUES (?1, ?2, ?3, ?4)
+                 ON CONFLICT(chest_id, item_kind) DO UPDATE SET
+                    quantity = excluded.quantity,
+                    updated_at = excluded.updated_at`
+            )
+            .run(chestId, Number(normalizedItemKind), safeQuantity, Date.now());
+    }
+
+    getChestInventoryQuantity(chestId: number, itemKind: EntityKind): number {
+        const normalizedItemKind = normalizeEntityKind(Number(itemKind));
+        if (!Number.isSafeInteger(chestId) || chestId <= 0 || normalizedItemKind === null) {
+            return 0;
+        }
+        const row = this.#db
+            .query(`SELECT quantity FROM chest_inventory WHERE chest_id = ?1 AND item_kind = ?2`)
+            .get(chestId, Number(normalizedItemKind)) as { quantity?: number } | null;
+        return typeof row?.quantity === 'number' && Number.isFinite(row.quantity) ? Math.max(0, Math.trunc(row.quantity)) : 0;
+    }
+
+    transferChestItem({
+        accountNameKey,
+        chestId,
+        itemKind,
+        quantity,
+        direction,
+    }: {
+        accountNameKey: string;
+        chestId: number;
+        itemKind: EntityKind;
+        quantity: number;
+        direction: ChestTransferDirection;
+    }): ChestTransferResult {
+        const normalizedName = normalizeIdentityKey(accountNameKey);
+        const normalizedItemKind = normalizeEntityKind(Number(itemKind));
+        const safeQuantity = Math.trunc(quantity);
+        if (!normalizedName) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        if (!Number.isSafeInteger(chestId) || chestId <= 0) {
+            return { accepted: false, reason: 'invalid_chest' };
+        }
+        if (normalizedItemKind === null) {
+            return { accepted: false, reason: 'invalid_item' };
+        }
+        if (!Number.isSafeInteger(safeQuantity) || safeQuantity <= 0) {
+            return { accepted: false, reason: 'invalid_quantity' };
+        }
+        const transfer = this.#db.transaction((): ChestTransferResult => {
+            const row = getRow<ProfileRow>(this.#selectProfile, normalizedName);
+            if (!row) {
+                return { accepted: false, reason: 'missing_profile' };
+            }
+            const progression = decodeProgressionState(row.progression_json);
+            const chestQuantity = this.getChestInventoryQuantity(chestId, normalizedItemKind);
+            const inventoryQuantity = getInventoryQuantity(progression.inventory, normalizedItemKind);
+            let nextChestQuantity = chestQuantity;
+            let nextInventoryQuantity = inventoryQuantity;
+
+            if (direction === 'chest_to_inventory') {
+                if (chestQuantity < safeQuantity) {
+                    return { accepted: false, reason: 'insufficient_chest_quantity' };
+                }
+                nextChestQuantity -= safeQuantity;
+                nextInventoryQuantity += safeQuantity;
+            } else {
+                if (inventoryQuantity < safeQuantity) {
+                    return { accepted: false, reason: 'insufficient_inventory_quantity' };
+                }
+                nextInventoryQuantity -= safeQuantity;
+                nextChestQuantity += safeQuantity;
+            }
+
+            this.setChestInventoryItem({ chestId, itemKind: normalizedItemKind, quantity: nextChestQuantity });
+            const nextProgression = {
+                ...progression,
+                inventory: setInventoryQuantity(progression.inventory, normalizedItemKind, nextInventoryQuantity),
+            };
+            const now = Date.now();
+            this.#upsertProgression.run(
+                normalizedName,
+                row.display_name,
+                row.armor_kind,
+                row.weapon_kind,
+                row.checkpoint_id,
+                encodeProgressionState(nextProgression),
+                now,
+                now
+            );
+            return { accepted: true };
+        });
+
+        return transfer();
     }
 
     getProfileByName(playerName: string): PersistedPlayerProfile | null {

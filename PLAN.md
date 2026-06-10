@@ -4356,10 +4356,14 @@ rtk git commit -m "feat: add sqlite schema metadata and backup cli"
 
 **Files:**
 - Modify: `server/player-persistence.ts`
+- Modify: `server/ecs/commands.ts`
+- Modify: `server/world-server.ts`
 - Modify: `server/world/ecs-command-pipeline.ts`
 - Modify: `server/world/ecs-command-pipeline/core-module-registry.ts`
 - Modify: `shared/protocol/intents.ts`
-- Modify: `client/ecs/systems/client-interaction-intent-system.ts`
+- Modify: `shared/protocol/binary-action-codec.ts`
+- Modify: `client/gameclient.ts`
+- Test: `tests/unit/protocol/intents.test.ts`
 - Test: `tests/unit/server-player-persistence.test.ts`
 - Create: `tests/unit/mmo/server-inventory-chest-transactions.test.ts`
 
@@ -4375,7 +4379,7 @@ rtk git commit -m "feat: add sqlite schema metadata and backup cli"
 
 **Dependencies/blockers:** Ticket 4.2.
 
-- [ ] **Step 1: Add intent constants**
+- [x] **Step 1: Add intent constants**
 
 In `shared/protocol/intents.ts`, add:
 
@@ -4385,7 +4389,7 @@ export const INTENT_CHEST_TRANSFER = 'chest.transfer' as const;
 
 Include it in the union of supported intent ids.
 
-- [ ] **Step 2: Add failing transaction tests**
+- [x] **Step 2: Add failing transaction tests**
 
 Create `tests/unit/mmo/server-inventory-chest-transactions.test.ts` with tests:
 
@@ -4424,22 +4428,23 @@ test('chest transfer rejects out-of-range player without mutating state', () => 
 
 Implement fixture helpers in the test file using existing persistence and pipeline helpers.
 
-- [ ] **Step 3: Implement persistence transaction**
+- [x] **Step 3: Implement persistence transaction**
 
 In `server/player-persistence.ts`, add methods:
 
 ```ts
-transferChestItemToInventory(args: {
+transferChestItem(args: {
     accountNameKey: string;
     chestId: number;
     itemKind: EntityKind;
     quantity: number;
+    direction: 'chest_to_inventory' | 'inventory_to_chest';
 }): { accepted: true } | { accepted: false; reason: string }
 ```
 
 Use `this.#db.transaction((args) => { /* mutation statements */ })` so all mutations commit or rollback together.
 
-- [ ] **Step 4: Wire server intent**
+- [x] **Step 4: Wire server intent**
 
 In `server/world/ecs-command-pipeline/core-module-registry.ts`, register `INTENT_CHEST_TRANSFER`. Decode payload fields strictly:
 
@@ -4450,9 +4455,9 @@ quantity: positive safe integer
 direction: 'chest_to_inventory' | 'inventory_to_chest'
 ```
 
-Reject out-of-range before calling persistence.
+Reject out-of-range and claimed-without-permission before calling persistence.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -4467,7 +4472,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

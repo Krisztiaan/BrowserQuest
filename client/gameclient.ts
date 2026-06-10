@@ -55,6 +55,7 @@ import {
     encodeClaimDeleteIntentPayload,
     encodeClaimUpdateIntentPayload,
     encodeAttackIntentPayload,
+    encodeChestTransferIntentPayload,
     encodeDoorTeleportIntentPayload,
     encodeMoveInputIntentPayload,
     encodeMoveToIntentPayload,
@@ -64,6 +65,7 @@ import {
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
     INTENT_ATTACK,
+    INTENT_CHEST_TRANSFER,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
@@ -1009,6 +1011,24 @@ class GameClient extends Evented<GameClientEvents> {
             return null;
         }
         return this.sendIntent(INTENT_CLAIM_DELETE, payloadBytes);
+    }
+
+    sendChestTransfer({
+        chestId,
+        itemKind,
+        quantity,
+        direction,
+    }: {
+        chestId: EntityId;
+        itemKind: number;
+        quantity: number;
+        direction: 'chest_to_inventory' | 'inventory_to_chest';
+    }): number | null {
+        const payloadBytes = encodeChestTransferIntentPayload({ chestId: toProtocolEntityId(chestId), itemKind, quantity, direction });
+        if (payloadBytes === null) {
+            return null;
+        }
+        return this.sendIntent(INTENT_CHEST_TRANSFER, payloadBytes);
     }
 
     sendLootMove(item: IdCarrier, x: number, y: number): void {

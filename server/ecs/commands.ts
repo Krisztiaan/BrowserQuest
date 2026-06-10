@@ -174,6 +174,15 @@ export type ClaimDeleteCommand = Readonly<{
     claimId: number;
 }>;
 
+export type ChestTransferCommand = Readonly<{
+    type: 'CHEST_TRANSFER';
+    source: CommandSource;
+    chestId: EntityId;
+    itemKind: EntityKind;
+    quantity: number;
+    direction: 'chest_to_inventory' | 'inventory_to_chest';
+}>;
+
 export type Command =
     | HelloCommand
     | IntentCommand
@@ -196,4 +205,5 @@ export type Command =
     | TileEditCommand
     | ClaimCreateCommand
     | ClaimUpdateCommand
-    | ClaimDeleteCommand;
+    | ClaimDeleteCommand
+    | ChestTransferCommand;

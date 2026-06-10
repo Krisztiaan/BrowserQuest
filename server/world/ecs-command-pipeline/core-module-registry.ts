@@ -1,8 +1,10 @@
 import { entityIdFromWire, type EntityId } from '../../../shared/domain/ids';
 import { gridPos, type GridPos } from '../../../shared/domain/positions';
+import Types from '../../../shared/gametypes-browser';
 import { GameModuleRegistry } from '../../../shared/modules/module-registry';
 import {
     INTENT_ATTACK,
+    INTENT_CHEST_TRANSFER,
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
@@ -15,6 +17,7 @@ import {
 } from '../../../shared/protocol/intents';
 export {
     INTENT_ATTACK,
+    INTENT_CHEST_TRANSFER,
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
     INTENT_CLAIM_UPDATE,
@@ -84,6 +87,13 @@ export type IntentWorldHost = Readonly<{
     persistClaimUpsert?(claim: RectClaim): void;
     persistClaimDelete?(claimId: number): void;
     recordMapTransitionEvent?(event: MapTransitionEvent): void;
+    transferChestItem?(args: {
+        playerIdentity: string;
+        chestId: EntityId;
+        itemKind: EntityKind;
+        quantity: number;
+        direction: 'chest_to_inventory' | 'inventory_to_chest';
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
 }>;
 
 export type InboundIntentContext = {
@@ -206,6 +216,10 @@ function isTileEditOutOfBounds({
 
     // Fail closed: without map bounds, tile edits can allocate unbounded overlay chunks.
     return true;
+}
+
+function isWithinInteractionDistance(a: GridPos, b: GridPos, maxAxisDistance: number): boolean {
+    return Math.abs(a.x - b.x) <= maxAxisDistance && Math.abs(a.y - b.y) <= maxAxisDistance;
 }
 
 export function createCoreServerModuleRegistry(options: CoreModuleRegistryOptions): GameModuleRegistry {
@@ -448,6 +462,55 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     }
                     const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
                     return applyClaimDeleteIntent({ state: ctx.state, world: ctx.world, player: ctx.player, cmd, mapId: actorMapId });
+                });
+            },
+        },
+        {
+            id: 'core.inventory',
+            register(registry) {
+                registry.registerIntentHandler(INTENT_CHEST_TRANSFER, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'CHEST_TRANSFER');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    if (!ctx.world.transferChestItem) {
+                        return { ok: false, reason: 'persistence_unavailable' };
+                    }
+                    const itemKind = typeof Types.getKindAsString(cmd.itemKind) === 'string' ? cmd.itemKind : null;
+                    if (itemKind === null || !Number.isSafeInteger(cmd.quantity) || cmd.quantity <= 0) {
+                        return { ok: false, reason: 'invalid_payload' };
+                    }
+                    const kind = ctx.replication.Kind.store.get(cmd.chestId);
+                    if (kind !== Types.Entities.CHEST) {
+                        return { ok: false, reason: 'invalid_chest' };
+                    }
+                    const chestPos = ctx.Position.store.get(cmd.chestId);
+                    const playerPos = ctx.Position.store.get(ctx.player.id);
+                    if (!chestPos || !playerPos || !isWithinInteractionDistance(playerPos, chestPos, 1)) {
+                        return { ok: false, reason: 'out_of_range' };
+                    }
+                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    const claims = ctx.state.resources.require(CLAIMS_STORE_RESOURCE);
+                    const claim = claims.getClaimAt(chestPos.x, chestPos.y, actorMapId);
+                    const decision = canEditTile({
+                        actorName: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
+                        claim,
+                    });
+                    if (!decision.ok) {
+                        return { ok: false, reason: `PERMISSION:${decision.code}` };
+                    }
+                    const result = ctx.world.transferChestItem({
+                        playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
+                        chestId: cmd.chestId,
+                        itemKind,
+                        quantity: cmd.quantity,
+                        direction: cmd.direction,
+                    });
+                    if (!result.accepted) {
+                        return { ok: false, reason: result.reason };
+                    }
+                    return { ok: true };
                 });
             },
         },
