@@ -1,6 +1,70 @@
 {
+  "agent": {
+    "displayName": "Agent",
+    "dialogue": ["There is no sword."]
+  },
+  "beachnpc": {
+    "displayName": "Beachcomber",
+    "dialogue": ["These giant crabs are somewhat annoying."]
+  },
+  "coder": {
+    "displayName": "Coder",
+    "dialogue": ["BrowserQuest runs beautifully on the open web."]
+  },
+  "desertnpc": {
+    "displayName": "Desert Wanderer",
+    "dialogue": ["One does not simply walk into these mountains."]
+  },
+  "forestnpc": {
+    "displayName": "Forest Guide",
+    "dialogue": ["The forest paths reward careful travelers."]
+  },
+  "guard": {
+    "displayName": "Guard",
+    "dialogue": ["Move along, move along."]
+  },
+  "king": {
+    "displayName": "King",
+    "dialogue": ["I run this place."]
+  },
+  "lavanpc": {
+    "displayName": "Lava Hermit",
+    "dialogue": ["The lava caves are no place for bare feet."]
+  },
+  "nyan": {
+    "displayName": "Nyan",
+    "dialogue": ["Nyan nyan nyan."]
+  },
+  "octocat": {
+    "displayName": "Octocat",
+    "dialogue": ["Welcome to BrowserQuest."]
+  },
+  "priest": {
+    "displayName": "Priest",
+    "dialogue": ["Wisdom is everything."]
+  },
+  "rick": {
+    "displayName": "Rick",
+    "dialogue": ["You know the rules."]
+  },
+  "scientist": {
+    "displayName": "Scientist",
+    "dialogue": ["I need to get back to my experiments."]
+  },
   "shopkeeper_general": {
     "displayName": "Mara",
     "dialogue": ["Need supplies?"]
+  },
+  "sorcerer": {
+    "displayName": "Sorcerer",
+    "dialogue": ["Exploration is key."]
+  },
+  "villagegirl": {
+    "displayName": "Village Girl",
+    "dialogue": ["Hi there, adventurer!"]
+  },
+  "villager": {
+    "displayName": "Villager",
+    "dialogue": ["Howdy stranger."]
   }
 }

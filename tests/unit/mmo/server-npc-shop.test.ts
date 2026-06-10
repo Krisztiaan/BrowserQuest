@@ -150,6 +150,15 @@ test('npc interaction returns configured dialogue', () => {
     expect(resolveNpcDialogue(npcDefinitions, 'missing_npc')).toEqual({ accepted: false, reason: 'unknown_npc' });
 });
 
+test('all NPC entity kinds have dialogue content keys', () => {
+    Types.forEachKind((_kind, kindName) => {
+        if (!Types.isNpc(_kind)) {
+            return;
+        }
+        expect(resolveNpcDialogue(npcDefinitions, kindName).accepted).toBe(true);
+    });
+});
+
 test('shop buy spends gold and adds item', () => {
     withShopFixture((fixture) => {
         const result = fixture.buy({ shopId: 'general_store', item: 'turnip_seed', quantity: 1 });
@@ -165,6 +174,15 @@ test('shop sell removes owned item and grants gold', () => {
         expect(fixture.sell({ shopId: 'general_store', item: 'wood', quantity: 2 })).toEqual({ accepted: true });
         expect(fixture.profile.gold).toBe(2);
         expect(fixture.inventoryQuantity(Types.Entities.WOOD)).toBe(0);
+    }, { gold: 0 });
+});
+
+test('shop sell prices are resolved from shop content', () => {
+    withShopFixture((fixture) => {
+        fixture.seedInventory(Types.Entities.TURNIP, 2);
+        expect(fixture.sell({ shopId: 'general_store', item: 'turnip', quantity: 2 })).toEqual({ accepted: true });
+        expect(fixture.profile.gold).toBe(4);
+        expect(fixture.inventoryQuantity(Types.Entities.TURNIP)).toBe(0);
     }, { gold: 0 });
 });
 

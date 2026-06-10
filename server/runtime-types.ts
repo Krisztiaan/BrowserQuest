@@ -1,6 +1,7 @@
 import type { RuntimeEventName } from './server-event-names';
 import type { EntityId } from '../shared/domain/ids';
 import type { ServerPlugin } from './plugins/contracts';
+import type { MapPack } from '../shared/maps/map-pack';
 
 export type RuntimeEventFieldValue =
     | string
@@ -24,7 +25,7 @@ export interface RuntimeWorld {
     playerCount: number;
     on(eventName: 'ready' | 'playerAdded' | 'playerRemoved', callback: () => void): void;
     emit(eventName: 'playerConnect', player: RuntimePlayer): void;
-    run(mapFilePath: string): void;
+    run(mapSource: string | Promise<MapPack>): void;
     updatePopulation(totalPlayers?: number): void;
 }
 

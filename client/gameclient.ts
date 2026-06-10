@@ -1047,8 +1047,8 @@ class GameClient extends Evented<GameClientEvents> {
         return this.sendIntent(INTENT_CHEST_TRANSFER, payloadBytes);
     }
 
-    sendNpcTalk(npcId: EntityId): number | null {
-        const payloadBytes = encodeNpcTalkIntentPayload({ npcId: String(toProtocolEntityId(npcId)) });
+    sendNpcTalk(npcId: string): number | null {
+        const payloadBytes = encodeNpcTalkIntentPayload({ npcId });
         if (payloadBytes === null) {
             return null;
         }

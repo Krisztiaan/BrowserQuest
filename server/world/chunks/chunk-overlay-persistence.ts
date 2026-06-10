@@ -1,21 +1,8 @@
 import { Database } from 'bun:sqlite';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
 import type { ChunkOverlayStore } from './chunk-overlay-store';
-import { ensureSchemaVersion } from '../../sqlite-schema-meta';
+import { openSqliteDatabase } from '../../sqlite-schema-meta';
 
 const DEFAULT_CHUNK_DB_PATH = './server/.data/chunk-overlays.sqlite';
-
-function resolveDatabasePath(configuredPath: string | null | undefined): string {
-    const trimmed = typeof configuredPath === 'string' ? configuredPath.trim() : '';
-    if (!trimmed) {
-        return path.resolve(DEFAULT_CHUNK_DB_PATH);
-    }
-    if (trimmed === ':memory:') {
-        return trimmed;
-    }
-    return path.resolve(trimmed);
-}
 
 type OverlayRow = {
     map_id: string;
@@ -35,19 +22,11 @@ export class SqliteChunkOverlayPersistence {
     readonly #selectChunkByCoords: ReturnType<Database['prepare']>;
 
     constructor(configuredPath?: string | null) {
-        this.databasePath = resolveDatabasePath(configuredPath);
-        if (this.databasePath !== ':memory:') {
-            mkdirSync(path.dirname(this.databasePath), { recursive: true });
-        }
-
-        this.#db = new Database(this.databasePath, { create: true });
-        this.#db.exec(`
-            PRAGMA journal_mode=WAL;
-            PRAGMA synchronous=NORMAL;
-            PRAGMA foreign_keys=ON;
-        `);
-        ensureSchemaVersion(this.#db, 1);
-        this.#db.exec(`
+        const opened = openSqliteDatabase({
+            configuredPath,
+            defaultPath: DEFAULT_CHUNK_DB_PATH,
+            schemaVersion: 1,
+            ddl: `
 
             CREATE TABLE IF NOT EXISTS chunk_overlays (
                 map_id TEXT NOT NULL DEFAULT 'world_01',
@@ -60,7 +39,10 @@ export class SqliteChunkOverlayPersistence {
                 updated_at INTEGER NOT NULL,
                 PRIMARY KEY (map_id, chunk_x, chunk_y)
             );
-        `);
+        `,
+        });
+        this.databasePath = opened.databasePath;
+        this.#db = opened.db;
 
         this.#migrateLegacySchemaIfNeeded();
         this.#db.exec(`CREATE INDEX IF NOT EXISTS chunk_overlays_updated_at ON chunk_overlays(updated_at)`);

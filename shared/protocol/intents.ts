@@ -674,44 +674,40 @@ export function decodeNpcTalkIntentPayload(payload: IntentPayloadBytes): NpcTalk
     return npcId ? { npcId } : null;
 }
 
-export function encodeShopBuyIntentPayload(payload: ShopBuyIntentPayload): number[] | null {
+function encodeShopTradeIntentPayload(payload: ShopBuyIntentPayload | ShopSellIntentPayload): number[] | null {
     const shopId = asNonEmptyString(payload.shopId);
     const item = asNonEmptyString(payload.item);
     if (!shopId || !item || !isI32(payload.quantity) || payload.quantity <= 0) {
         return null;
     }
     return encodeJsonIntentPayload({ shopId, item, quantity: payload.quantity });
+}
+
+function decodeShopTradeIntentPayload(payload: IntentPayloadBytes): ShopBuyIntentPayload | ShopSellIntentPayload | null {
+    const parsed = decodeJsonIntentPayload(payload);
+    const shopId = asNonEmptyString(parsed?.shopId);
+    const item = asNonEmptyString(parsed?.item);
+    const quantity = parsed?.quantity;
+    if (!shopId || !item || typeof quantity !== 'number' || !isI32(quantity) || quantity <= 0) {
+        return null;
+    }
+    return { shopId, item, quantity };
+}
+
+export function encodeShopBuyIntentPayload(payload: ShopBuyIntentPayload): number[] | null {
+    return encodeShopTradeIntentPayload(payload);
 }
 
 export function decodeShopBuyIntentPayload(payload: IntentPayloadBytes): ShopBuyIntentPayload | null {
-    const parsed = decodeJsonIntentPayload(payload);
-    const shopId = asNonEmptyString(parsed?.shopId);
-    const item = asNonEmptyString(parsed?.item);
-    const quantity = parsed?.quantity;
-    if (!shopId || !item || typeof quantity !== 'number' || !isI32(quantity) || quantity <= 0) {
-        return null;
-    }
-    return { shopId, item, quantity };
+    return decodeShopTradeIntentPayload(payload);
 }
 
 export function encodeShopSellIntentPayload(payload: ShopSellIntentPayload): number[] | null {
-    const shopId = asNonEmptyString(payload.shopId);
-    const item = asNonEmptyString(payload.item);
-    if (!shopId || !item || !isI32(payload.quantity) || payload.quantity <= 0) {
-        return null;
-    }
-    return encodeJsonIntentPayload({ shopId, item, quantity: payload.quantity });
+    return encodeShopTradeIntentPayload(payload);
 }
 
 export function decodeShopSellIntentPayload(payload: IntentPayloadBytes): ShopSellIntentPayload | null {
-    const parsed = decodeJsonIntentPayload(payload);
-    const shopId = asNonEmptyString(parsed?.shopId);
-    const item = asNonEmptyString(parsed?.item);
-    const quantity = parsed?.quantity;
-    if (!shopId || !item || typeof quantity !== 'number' || !isI32(quantity) || quantity <= 0) {
-        return null;
-    }
-    return { shopId, item, quantity };
+    return decodeShopTradeIntentPayload(payload);
 }
 
 export function encodeMapTransitionOutcomePayload(payload: MapTransitionOutcomePayload): string | null {

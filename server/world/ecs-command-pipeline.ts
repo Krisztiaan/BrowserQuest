@@ -269,7 +269,7 @@ type WorldCommandHost = Readonly<{
     persistPlayerAchievementUnlock(playerName: string, achievementId: number): void;
     transferChestItem(args: {
         playerIdentity: string;
-        chestId: EntityId;
+        chestKey: string;
         itemKind: EntityKind;
         quantity: number;
         direction: 'chest_to_inventory' | 'inventory_to_chest';

@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
-import { mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
@@ -25,7 +25,7 @@ function runBackupCli(args: string[]): CliResult {
     });
 }
 
-test('admin:backup-sqlite copies sqlite db and sidecar files with verified sizes', () => {
+test('admin:backup-sqlite creates a consistent sqlite snapshot without copying sidecars', () => {
     withTempDir((dir) => {
         const dbPath = path.join(dir, 'source.sqlite');
         const outDir = path.join(dir, 'backup');
@@ -40,19 +40,21 @@ test('admin:backup-sqlite copies sqlite db and sidecar files with verified sizes
 
         const body = JSON.parse(String(result.stdout)) as {
             ok?: boolean;
-            copied?: Array<{ source?: string; target?: string; bytes?: number }>;
+            backedUp?: { source?: string; target?: string; bytes?: number };
         };
         expect(body.ok).toBe(true);
-        expect(body.copied?.map((entry) => path.basename(String(entry.source)))).toEqual([
-            'source.sqlite',
-            'source.sqlite-wal',
-            'source.sqlite-shm',
-        ]);
+        expect(path.basename(String(body.backedUp?.source))).toBe('source.sqlite');
+        expect(path.basename(String(body.backedUp?.target))).toBe('source.sqlite');
+        expect(body.backedUp?.bytes).toBe(statSync(String(body.backedUp?.target)).size);
+        expect(existsSync(path.join(outDir, 'source.sqlite-wal'))).toBe(false);
+        expect(existsSync(path.join(outDir, 'source.sqlite-shm'))).toBe(false);
 
-        for (const entry of body.copied ?? []) {
-            expect(entry.target).toBeTruthy();
-            expect(entry.bytes).toBe(statSync(String(entry.source)).size);
-            expect(statSync(String(entry.target)).size).toBe(entry.bytes);
+        const backup = new Database(String(body.backedUp?.target), { readonly: true });
+        try {
+            const row = backup.query(`SELECT value FROM probe WHERE id = 1`).get() as { value?: string } | null;
+            expect(row?.value).toBe('ok');
+        } finally {
+            backup.close();
         }
     });
 });

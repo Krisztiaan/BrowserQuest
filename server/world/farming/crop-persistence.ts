@@ -1,7 +1,5 @@
 import { Database } from 'bun:sqlite';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
-import { ensureSchemaVersion } from '../../sqlite-schema-meta';
+import { openSqliteDatabase } from '../../sqlite-schema-meta';
 import type { CropDefinitions, CropTileState } from './crop-state';
 
 const DEFAULT_CROP_DB_PATH = './server/.data/crops.sqlite';
@@ -23,17 +21,6 @@ type CropMutationResult =
 export type CropHarvestResult =
     | Readonly<{ accepted: true; itemId: string; quantity: number }>
     | Readonly<{ accepted: false; reason: string }>;
-
-function resolveDatabasePath(configuredPath: string | null | undefined): string {
-    const trimmed = typeof configuredPath === 'string' ? configuredPath.trim() : '';
-    if (!trimmed) {
-        return path.resolve(DEFAULT_CROP_DB_PATH);
-    }
-    if (trimmed === ':memory:') {
-        return trimmed;
-    }
-    return path.resolve(trimmed);
-}
 
 function normalizeMapId(mapId: string): string | null {
     const trimmed = mapId.trim();
@@ -67,20 +54,12 @@ export class SqliteCropPersistence {
     readonly #cropDefinitions: CropDefinitions;
 
     constructor(configuredPath: string | null | undefined, cropDefinitions: CropDefinitions) {
-        this.databasePath = resolveDatabasePath(configuredPath);
         this.#cropDefinitions = cropDefinitions;
-        if (this.databasePath !== ':memory:') {
-            mkdirSync(path.dirname(this.databasePath), { recursive: true });
-        }
-
-        this.#db = new Database(this.databasePath, { create: true });
-        this.#db.exec(`
-            PRAGMA journal_mode=WAL;
-            PRAGMA synchronous=NORMAL;
-            PRAGMA foreign_keys=ON;
-        `);
-        ensureSchemaVersion(this.#db, 1);
-        this.#db.exec(`
+        const opened = openSqliteDatabase({
+            configuredPath,
+            defaultPath: DEFAULT_CROP_DB_PATH,
+            schemaVersion: 1,
+            ddl: `
             CREATE TABLE IF NOT EXISTS crop_tiles (
                 map_id TEXT NOT NULL,
                 x INTEGER NOT NULL,
@@ -92,7 +71,10 @@ export class SqliteCropPersistence {
                 updated_at INTEGER NOT NULL,
                 PRIMARY KEY (map_id, x, y)
             );
-        `);
+        `,
+        });
+        this.databasePath = opened.databasePath;
+        this.#db = opened.db;
     }
 
     close(): void {

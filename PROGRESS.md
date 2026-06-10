@@ -1187,3 +1187,85 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Known residual: the 8 high terrain audit findings remain documented blocked Wang transition asset/metadata work in `docs/map-authoring-review-log.md`; they are not untracked executable PLAN tasks.
   - Next action: Mark the persistent goal complete after committing this audit note and confirming the final worktree is clean.
+
+### 2026-06-10 16:08 UTC - REVIEW.md Remediation Pass
+
+- Status: in_progress
+- Scope:
+  - Address every actionable item in `REVIEW.md`.
+  - Remove each `REVIEW.md` item only after implementation and targeted verification prove it is handled.
+  - Delete `REVIEW.md` once no actionable items remain.
+- Tickets:
+  - done: R1 NPC dialogue/shops: map real client NPC entity ids to server-resolvable content keys. Verification: targeted NPC/shop tests plus typecheck as needed. Dependencies: NPC spawn metadata and client entity adaptation.
+  - done: R2 Chest inventory keys: persist chest inventory by stable authored/map-position key instead of runtime ECS id. Verification: chest transaction tests covering respawn/new entity ids. Dependencies: chest spawn position/map metadata.
+  - done: R3 Resources: add production respawn path/lazy `respawn_day` handling and prevent depletion when inventory grant fails. Verification: resource persistence and world harvest tests.
+  - done: R4 SQLite backups: replace raw live WAL copying with a consistent SQLite backup/refusal strategy. Verification: backup CLI tests or direct CLI run against fixture databases.
+  - done: R5 Resource node identity: scope resource node primary keys by map or enforce globally stable ids during seeding. Verification: duplicate-id unit coverage.
+  - done: R6 Door layers: make runtime export match validation for multiple `doors` object layers or reject them. Verification: map-pack/processmap tests.
+  - done: R7 Farming host wiring: remove optional production gap or create required host/store wiring. Verification: farming vertical slice/unit tests.
+  - done: R8 Shop sell pricing: resolve sell prices from content instead of flat 1 gold. Verification: NPC/shop tests.
+  - done: R9 Protocol benchmark: refresh corpus for current protocol schema/opcodes. Verification: `bun tools/bench/protocol-wire.ts`.
+  - done: R10 Cleanup follow-ups: reduce SQLite boilerplate, map-pack compile duplication, shop codec duplication, and debug passability payload if still actionable after correctness fixes.
+- Evidence:
+  - `git status --short --branch` showed `REVIEW.md` untracked and no tracked code changes at start.
+  - `REVIEW.md` contains 10 primary findings and 4 cleanup follow-ups.
+  - `bun test tests/unit/mmo/server-npc-shop.test.ts --timeout 20000` passed: 8 pass, 0 fail.
+  - `bun tools/bench/protocol-wire.ts` initially failed on stale `CORRECTION`, `TELEPORT`, and attack intent samples, then passed after refreshing the corpus to current schemas.
+  - `bun test tests/unit/mmo/server-resource-harvesting.test.ts --timeout 20000` passed: 6 pass, 0 fail.
+  - `bun test tests/unit/mmo/server-resource-harvesting.test.ts --timeout 20000` passed after map-scoping resource-node updates: 7 pass, 0 fail.
+  - `bun test tests/unit/map-pack.test.ts --timeout 20000` passed: 26 pass, 0 fail.
+  - `bun test tests/unit/map-pack.test.ts --timeout 20000` passed after multi-door runtime export: 26 pass, 0 fail.
+  - `bun test tests/unit/tools-admin-backup-sqlite.test.ts --timeout 20000` passed: 1 pass, 0 fail.
+  - `bun test tests/unit/client-npc-talk-content-id.test.ts --timeout 20000` passed: 2 pass, 0 fail.
+  - `bun test tests/unit/mmo/server-npc-shop.test.ts --timeout 20000` passed after NPC content-key and shop pricing updates: 9 pass, 0 fail.
+  - `bun test tests/unit/server-player-persistence.test.ts --timeout 20000` passed: 9 pass, 0 fail.
+  - `bun test tests/unit/mmo/server-inventory-chest-transactions.test.ts --timeout 20000` passed after stable chest storage keys: 4 pass, 0 fail.
+  - `bun test tests/unit/mmo/server-farming.test.ts --timeout 20000` passed after production farming host wiring: 5 pass, 0 fail.
+  - SQLite helper cleanup: added `openSqliteDatabase` and converted player/crop/resource/claims/chunk-overlay persistence constructors.
+  - `bun test tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-claims-store.test.ts tests/unit/mmo/server-chunk-overlay-persistence.test.ts tests/unit/mmo/server-resource-harvesting.test.ts tests/unit/mmo/server-farming.test.ts --timeout 20000` passed: 31 pass, 0 fail.
+  - Map-pack compile cleanup: runtime now creates one shared compiled map-pack promise for worlds and `/runtime-map-pack` response rendering.
+  - `bun test tests/unit/server/runtime/factories.test.ts tests/unit/server/runtime/runtime-map-pack-route.test.ts --timeout 20000` passed: 4 pass, 0 fail.
+  - `bun test tests/unit/server/startup/preflight.test.ts --timeout 20000` passed: 10 pass, 0 fail.
+  - Shop trade cleanup: buy/sell intent payloads and core registry handlers now share side-parameterized helpers.
+  - `bun test tests/unit/protocol/intents.test.ts tests/unit/mmo/server-npc-shop.test.ts --timeout 20000` passed: 19 pass, 0 fail.
+  - `bun test tests/unit/protocol/binary-action-codec.test.ts --timeout 20000` passed: 6 pass, 0 fail.
+  - Debug payload cleanup: default map-pack generation now omits `debugPassability`; runtime map pack regenerated.
+  - `bun test tests/unit/map-pack.test.ts --timeout 20000` passed: 27 pass, 0 fail.
+  - `bun run check:maps` passed after regenerating `assets/maps/runtime/map-pack.json`.
+  - `bun test tests/unit/client-npc-talk-content-id.test.ts tests/unit/mmo/server-npc-shop.test.ts tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-inventory-chest-transactions.test.ts tests/unit/mmo/server-resource-harvesting.test.ts tests/unit/mmo/server-farming.test.ts tests/unit/map-pack.test.ts tests/unit/tools-admin-backup-sqlite.test.ts tests/unit/server/runtime/factories.test.ts tests/unit/server/runtime/runtime-map-pack-route.test.ts tests/unit/protocol/intents.test.ts tests/unit/protocol/binary-action-codec.test.ts --timeout 20000` passed: 84 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `git diff --check` passed.
+  - `test ! -e REVIEW.md` passed.
+- Next action: Final status audit; `REVIEW.md` remediation is complete.
+
+### 2026-06-10 17:09 UTC - Door Linkage Investigation
+
+- Status: aborted
+- Scope:
+  - Investigate why current door links route into placeholder `house_*` maps instead of the intended authored spaces from `origin/master`.
+  - Compare current runtime door destinations against `assets/maps/legacy/world_server.json`.
+- Key actions:
+  - Compared current `world_01` runtime doors with legacy world doors and found many entries now target placeholder `house_*` maps at `(5,8)` instead of legacy coordinates.
+  - Briefly attempted a scripted restoration path, then backed it out after review because this should be handled as manual map authoring, not another conversion pass.
+- Evidence:
+  - Runtime comparison showed 84 legacy doors and many current world entry doors with `target_map=house_*`.
+  - `bun run build:maps` was rerun after rollback.
+  - `bun run check:maps` passed after rollback with `Map pack is up to date`.
+- Next action:
+  - Restart this work as manual map authoring: inspect visual regions, decide durable map boundaries/classes/properties, and make deliberate source edits with screenshots/visual checks.
+
+### 2026-06-10 17:33 UTC - Tiled Authoring Model Rethink
+
+- Status: done
+- Scope:
+  - Inventory current Tiled JSON usage and BrowserQuest map exporter assumptions.
+  - Identify underused Tiled JSON/project features.
+  - Draft a richer manual authoring model for map splits, rooms, links, layers, occlusion, collision, gameplay regions, and tileset semantics.
+- Key actions:
+  - Inspected `assets/maps/tiled/world.json`, `browserquest.tiled-project`, external tilesets, templates, and `shared/maps/processmap.ts`.
+  - Added `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Current world uses nested groups, layer classes, object templates, external tilesets, foreground layers, depth-sorted object layers, tile collision object groups, Wang sets, animated tiles, and gameplay object layers.
+  - Gaps identified: first-class map identity, authored rooms, explicit regions, proper map files/world file, richer door/exit semantics, occluders, typed collision volumes, better layer roles, and richer tileset asset classes.
+- Next action:
+  - Use the rethink doc to pick one doorway pair and author it manually before changing generation or map-pack configuration.

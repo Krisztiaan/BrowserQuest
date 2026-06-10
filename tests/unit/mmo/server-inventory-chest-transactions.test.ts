@@ -64,6 +64,7 @@ function createChestTransactionFixture(
     const messages: unknown[][] = [];
     const playerPosition = opts.playerPosition ?? gridPos(5, 5);
     const chestPosition = opts.chestPosition ?? gridPos(5, 6);
+    const chestKey = `world_01:${chestPosition.x},${chestPosition.y}`;
     player.setPosition(playerPosition.x, playerPosition.y);
 
     const host = {
@@ -118,10 +119,10 @@ function createChestTransactionFixture(
         persistPlayerEquipment() {},
         persistPlayerCheckpoint() {},
         persistPlayerAchievementUnlock() {},
-        transferChestItem(args: Parameters<SqlitePlayerPersistence['transferChestItem']>[0] & { playerIdentity: string }) {
+        transferChestItem(args: Omit<Parameters<SqlitePlayerPersistence['transferChestItem']>[0], 'accountNameKey' | 'chestId'> & { playerIdentity: string; chestKey: string }) {
             return persistence.transferChestItem({
                 accountNameKey: args.playerIdentity,
-                chestId: args.chestId,
+                chestId: args.chestKey,
                 itemKind: args.itemKind,
                 quantity: args.quantity,
                 direction: args.direction,
@@ -145,13 +146,32 @@ function createChestTransactionFixture(
         pipeline,
         player,
         chestId,
+        chestKey,
         messages,
-        seedChest({ itemKind, quantity }: { itemKind: EntityKind; quantity: number }) {
-            persistence.setChestInventoryItem({ chestId, itemKind, quantity });
+        respawnChest(newWireId: number) {
+            pipeline.removeEntity(chestId);
+            const nextChestId = entityIdFromWire(newWireId);
+            pipeline.state.world.ensureEntity(nextChestId);
+            pipeline.state.world.addComponent(nextChestId, pipeline.replication.Kind, Types.Entities.CHEST);
+            pipeline.state.world.addComponent(nextChestId, pipeline.Position, chestPosition);
+            return nextChestId;
         },
-        enqueueTransfer({ itemKind, quantity, direction }: { itemKind: EntityKind; quantity: number; direction: 'chest_to_inventory' | 'inventory_to_chest' }) {
+        seedChest({ itemKind, quantity }: { itemKind: EntityKind; quantity: number }) {
+            persistence.setChestInventoryItem({ chestId: chestKey, itemKind, quantity });
+        },
+        enqueueTransfer({
+            itemKind,
+            quantity,
+            direction,
+            chestWireId = 100,
+        }: {
+            itemKind: EntityKind;
+            quantity: number;
+            direction: 'chest_to_inventory' | 'inventory_to_chest';
+            chestWireId?: number;
+        }) {
             const payloadBytes = encodeChestTransferIntentPayload({
-                chestId: 100,
+                chestId: chestWireId,
                 itemKind,
                 quantity,
                 direction,
@@ -170,7 +190,7 @@ function createChestTransactionFixture(
             return inventory.find((entry) => entry.itemKind === itemKind)?.quantity ?? 0;
         },
         getChestQuantity(itemKind: EntityKind) {
-            return persistence.getChestInventoryQuantity(chestId, itemKind);
+            return persistence.getChestInventoryQuantity(chestKey, itemKind);
         },
     };
 }
@@ -189,6 +209,24 @@ test('chest transfer moves one stack atomically from chest to inventory', () => 
         expect(fixture.getInventoryQuantity(Types.Entities.FLASK)).toBe(2);
         expect(fixture.getChestQuantity(Types.Entities.FLASK)).toBe(1);
         expect(fixture.messages.some((message) => message[0] === Types.Messages.OUTCOME && message[2] === OUTCOME_CHEST_TRANSFER)).toBe(true);
+    });
+});
+
+test('chest transfer persistence follows stable map-position key across chest respawn ids', () => {
+    withFixture((fixture) => {
+        fixture.seedChest({ itemKind: Types.Entities.FLASK, quantity: 3 });
+        fixture.respawnChest(101);
+
+        fixture.enqueueTransfer({
+            chestWireId: 101,
+            itemKind: Types.Entities.FLASK,
+            quantity: 2,
+            direction: 'chest_to_inventory',
+        });
+        fixture.pipeline.tick();
+
+        expect(fixture.getInventoryQuantity(Types.Entities.FLASK)).toBe(2);
+        expect(fixture.getChestQuantity(Types.Entities.FLASK)).toBe(1);
     });
 });
 

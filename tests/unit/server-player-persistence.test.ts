@@ -284,35 +284,36 @@ test('player persistence round-trips progression state fields', () => {
 
 test('player persistence transfers chest stacks atomically into inventory', () => {
     const persistence = createPersistence();
+    const chestId = 'world_01:5,6';
     const claim = persistence.claimPlayerSession({
         connectionId: 'conn-transfer',
         requestedName: 'Farmer',
     });
     expect(claim.accepted).toBe(true);
-    persistence.setChestInventoryItem({ chestId: 100, itemKind: Types.Entities.FLASK, quantity: 3 });
+    persistence.setChestInventoryItem({ chestId, itemKind: Types.Entities.FLASK, quantity: 3 });
 
     const result = persistence.transferChestItem({
         accountNameKey: 'farmer',
-        chestId: 100,
+        chestId,
         itemKind: Types.Entities.FLASK,
         quantity: 2,
         direction: 'chest_to_inventory',
     });
     expect(result).toEqual({ accepted: true });
-    expect(persistence.getChestInventoryQuantity(100, Types.Entities.FLASK)).toBe(1);
+    expect(persistence.getChestInventoryQuantity(chestId, Types.Entities.FLASK)).toBe(1);
     expect(persistence.getProfileByName('farmer')?.progression.inventory).toEqual([
         { itemKind: Types.Entities.FLASK, quantity: 2 },
     ]);
 
     const rejected = persistence.transferChestItem({
         accountNameKey: 'farmer',
-        chestId: 100,
+        chestId,
         itemKind: Types.Entities.FLASK,
         quantity: 2,
         direction: 'chest_to_inventory',
     });
     expect(rejected).toEqual({ accepted: false, reason: 'insufficient_chest_quantity' });
-    expect(persistence.getChestInventoryQuantity(100, Types.Entities.FLASK)).toBe(1);
+    expect(persistence.getChestInventoryQuantity(chestId, Types.Entities.FLASK)).toBe(1);
     expect(persistence.getProfileByName('farmer')?.progression.inventory).toEqual([
         { itemKind: Types.Entities.FLASK, quantity: 2 },
     ]);

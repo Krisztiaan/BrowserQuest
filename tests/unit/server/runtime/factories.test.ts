@@ -159,7 +159,7 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
     const worlds = MainRuntime.createWorlds(config, new (class implements RuntimeServer {
         on(_eventName: 'connect' | 'error', _callback: (...args: never[]) => void): void {}
         onRequestStatus(_callback: () => string): void {}
-    })(), dependencies);
+    })(), dependencies, config.map_filepath);
 
     expect(worlds.length).toBe(2);
     expect(created.map((entry) => entry.name)).toEqual(['world1', 'world2']);
@@ -213,7 +213,7 @@ test('main runtime createWorlds passes configured map-pack config path to worlds
         onRequestStatus(_callback: () => string): void {}
     })();
 
-    MainRuntime.createWorlds(config, server, dependencies);
+    MainRuntime.createWorlds(config, server, dependencies, config.map_filepath);
 
     expect(created[0]?.runPath).toBe('./assets/maps/tiled/map-pack.config.json');
 });

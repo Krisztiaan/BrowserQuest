@@ -18,6 +18,7 @@ import { createCoreServerModuleRegistry } from '../../../server/world/ecs-comman
 import type { ChunkOverlayStore } from '../../../server/world/chunks/chunk-overlay-store';
 import { SqliteCropPersistence } from '../../../server/world/farming/crop-persistence';
 import type { CropDefinitions } from '../../../server/world/farming/crop-state';
+import WorldServer from '../../../server/world-server';
 
 const cropDefinitions: CropDefinitions = Object.freeze({
     turnip: Object.freeze({
@@ -151,4 +152,90 @@ test('crop tile loop rejects unfarmable tilling and planting without seed', () =
             growth: 0,
         });
     });
+});
+
+test('WorldServer wires production farming host methods to crop persistence', () => {
+    const world = new WorldServer('farming-host-test', 2000, {
+        getConnection() {
+            return undefined;
+        },
+    });
+    world.map = {
+        isOutOfBounds() {
+            return false;
+        },
+        isColliding() {
+            return false;
+        },
+    } as never;
+
+    const calls: string[] = [];
+    world.cropPersistence = {
+        tillTile(args: { mapId: string; x: number; y: number; farmable: boolean }) {
+            calls.push(`till:${args.mapId}:${args.x},${args.y}:${String(args.farmable)}`);
+            return { accepted: true };
+        },
+        waterTile(args: { mapId: string; x: number; y: number }) {
+            calls.push(`water:${args.mapId}:${args.x},${args.y}`);
+            return { accepted: true };
+        },
+        plantCrop(args: { mapId: string; x: number; y: number; cropId: string; seedItemId: string | null }) {
+            calls.push(`plant:${args.mapId}:${args.x},${args.y}:${args.cropId}:${String(args.seedItemId)}`);
+            return { accepted: true };
+        },
+        harvest(args: { mapId: string; x: number; y: number }) {
+            calls.push(`harvest:${args.mapId}:${args.x},${args.y}`);
+            return { accepted: true, itemId: 'turnip', quantity: 1 };
+        },
+    } as never;
+    world.setPlayerPersistence({
+        claimPlayerSession() {
+            return { accepted: false, reason: 'invalid_name' };
+        },
+        releasePlayerSession() {},
+        persistEquipment() {},
+        persistCheckpoint() {},
+        persistAchievementUnlock() {},
+        transferChestItem() {
+            return { accepted: false, reason: 'invalid_chest' };
+        },
+        buyShopItem() {
+            return { accepted: false, reason: 'unknown_shop' };
+        },
+        sellShopItem() {
+            return { accepted: false, reason: 'unknown_shop' };
+        },
+        grantInventoryItems(args) {
+            calls.push(`grant:${args.accountNameKey}:${args.items[0]?.item}:${String(args.items[0]?.quantity)}`);
+            return { accepted: true };
+        },
+        incrementAchievementCounters() {},
+        getAchievementProgressByName() {
+            return null;
+        },
+    });
+
+    expect(world.isFarmableTile('world_01', 10, 10)).toBe(true);
+    expect(world.tillCropTile({ mapId: 'world_01', x: 10, y: 10, farmable: true, playerIdentity: 'Farmer' })).toEqual({
+        accepted: true,
+    });
+    expect(world.waterCropTile({ mapId: 'world_01', x: 10, y: 10, playerIdentity: 'Farmer' })).toEqual({ accepted: true });
+    expect(
+        world.plantCropTile({
+            mapId: 'world_01',
+            x: 10,
+            y: 10,
+            cropId: 'turnip',
+            seedItemId: 'turnip_seed',
+            playerIdentity: 'Farmer',
+        })
+    ).toEqual({ accepted: true });
+    expect(world.harvestCropTile({ mapId: 'world_01', x: 10, y: 10, playerIdentity: 'Farmer' })).toEqual({ accepted: true });
+    expect(calls).toEqual([
+        'till:world_01:10,10:true',
+        'water:world_01:10,10',
+        'plant:world_01:10,10:turnip:turnip_seed',
+        'harvest:world_01:10,10',
+        'grant:farmer:turnip:1',
+    ]);
 });

@@ -11,7 +11,7 @@ function createTiledMap({
     width?: number;
     height?: number;
     fillTileId?: number;
-    doors?: Array<{ id: number; x: number; y: number; class?: string; properties?: Array<{ name: string; value: string }> }>;
+    doors?: Array<{ id: number; x: number; y: number; class?: string; properties?: Array<{ name: string; value: string | boolean }> }>;
     blockingIndices?: number[];
 }) {
     const blockingSet = new Set(blockingIndices);
@@ -250,6 +250,14 @@ test('compileMapPack exports explicit portal semantics independently of object c
     expect(doors?.map((door) => door.p)).toEqual([1, 1, 0]);
 });
 
+test('compileMapPack omits debug passability from default client payloads', () => {
+    const pack = compileMapPack({
+        maps: [{ id: 'world', tiled: createTiledMap({}) }],
+    });
+
+    expect('debugPassability' in (pack.maps[0]?.client as Record<string, unknown>)).toBe(false);
+});
+
 test('compileMapPack extracts graph doors from multiple recursive doors layers', () => {
     const pack = compileMapPack({
         maps: [
@@ -316,6 +324,14 @@ test('compileMapPack extracts graph doors from multiple recursive doors layers',
     expect(pack.graph.maps.find((map) => map.id === 'world_01')?.doors).toEqual([
         { id: 'first', x: 1, y: 1 },
         { id: 'second', x: 2, y: 1 },
+    ]);
+    expect(pack.maps[0]?.client.doors).toEqual([
+        { x: 1, y: 1, p: 0, tdoor_id: 'first' },
+        { x: 2, y: 1, p: 0, tdoor_id: 'second' },
+    ]);
+    expect(pack.maps[0]?.server.doors).toEqual([
+        { x: 1, y: 1, p: 0, tdoor_id: 'first' },
+        { x: 2, y: 1, p: 0, tdoor_id: 'second' },
     ]);
 });
 
@@ -603,6 +619,71 @@ test('compileMapPack exports resource nodes with stable ids and resource kinds',
             kind: 'ore_copper_small',
             gid: 1886,
         },
+    ]);
+});
+
+test('compileMapPack de-duplicates resource node ids within a map', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'mine_floor_001',
+                tiled: {
+                    width: 8,
+                    height: 8,
+                    tilewidth: 16,
+                    tilesets: [{ name: 'tilesheet', firstgid: 1, tiles: [] }],
+                    layers: [
+                        {
+                            name: 'background',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(64).fill(1),
+                        },
+                        {
+                            name: 'blocking',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(64).fill(0),
+                        },
+                        {
+                            name: 'resource_nodes',
+                            type: 'objectgroup',
+                            objects: [
+                                {
+                                    id: 10,
+                                    class: 'ResourceNode',
+                                    name: 'resource_node_1894',
+                                    x: 16,
+                                    y: 16,
+                                    width: 16,
+                                    height: 16,
+                                    properties: [{ name: 'resource_kind', value: 'ore_copper_small' }],
+                                },
+                                {
+                                    id: 11,
+                                    class: 'ResourceNode',
+                                    name: 'resource_node_1894',
+                                    x: 32,
+                                    y: 16,
+                                    width: 16,
+                                    height: 16,
+                                    properties: [{ name: 'resource_kind', value: 'ore_copper_small' }],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
+    });
+
+    const mineServer = pack.maps[0]?.server as {
+        resourceNodes?: Array<{ id: string; x: number; y: number; kind: string }>;
+    };
+
+    expect(mineServer.resourceNodes).toEqual([
+        { id: 'resource_node_1894', x: 1, y: 1, kind: 'ore_copper_small' },
+        { id: 'resource_node_1894_11', x: 2, y: 1, kind: 'ore_copper_small' },
     ]);
 });
 

@@ -706,7 +706,7 @@ function deriveNavigationIslands(width: number, height: number, blockedIndices: 
 
 export default function processMap(
     json: TiledMapJson,
-    options: { mode?: string; quiet?: boolean }
+    options: { mode?: string; quiet?: boolean; includeDebugPassability?: boolean }
 ): ExportedMap {
     const mode = toMode(options.mode);
     const quiet = options.quiet === true;
@@ -875,10 +875,14 @@ export default function processMap(
         log.error("A tileset is missing");
     }
 
-    const doorsLayer = tiledLayers.filter(isObjectLayer).find((layer) => layer.name === "doors");
-    if (doorsLayer && Array.isArray(doorsLayer.objects)) {
+    const doorsLayers = tiledLayers.filter(isObjectLayer).filter((layer) => layer.name === "doors");
+    if (doorsLayers.length > 0) {
         log.info("Processing doors...");
-        for (const door of doorsLayer.objects) {
+        for (const doorsLayer of doorsLayers) {
+            if (!Array.isArray(doorsLayer.objects)) {
+                continue;
+            }
+            for (const door of doorsLayer.objects) {
             const exportedDoor: ExportedDoor = {
                 x: door.x / map.tilesize,
                 y: door.y / map.tilesize,
@@ -897,6 +901,7 @@ export default function processMap(
             }
 
             map.doors.push(exportedDoor);
+            }
         }
     }
 
@@ -940,6 +945,7 @@ export default function processMap(
         if (objectLayer.name === "resource_nodes" && mode === "server") {
             log.info("Processing resource nodes...");
             const resourceNodes = (map.resourceNodes ??= []);
+            const usedResourceNodeIds = new Set(resourceNodes.map((node) => String(node.id)));
             for (const [i, node] of (objectLayer.objects ?? []).entries()) {
                 const nodeId = getPropertyValue(node, 'node_id');
                 const resourceKind = getPropertyValue(node, 'resource_kind');
@@ -947,12 +953,16 @@ export default function processMap(
                     continue;
                 }
                 const nodeName = (node as { name?: unknown }).name;
+                const objectId = typeof node.id === 'number' && Number.isSafeInteger(node.id) ? node.id : i;
+                const baseId = typeof nodeId === 'string' && nodeId.trim().length > 0
+                    ? nodeId.trim()
+                    : typeof nodeName === 'string' && nodeName.trim().length > 0
+                        ? nodeName.trim()
+                        : String(objectId);
+                const resolvedId = usedResourceNodeIds.has(baseId) ? `${baseId}_${objectId}` : baseId;
+                usedResourceNodeIds.add(resolvedId);
                 const resourceNode: MapRecord = {
-                    id: typeof nodeId === 'string' && nodeId.trim().length > 0
-                        ? nodeId.trim()
-                        : typeof nodeName === 'string' && nodeName.trim().length > 0
-                            ? nodeName.trim()
-                            : i,
+                    id: resolvedId,
                     x: node.x / map.tilesize,
                     y: node.y / map.tilesize,
                     kind: resourceKind.trim(),
@@ -1168,11 +1178,13 @@ export default function processMap(
                 plateau.push(i);
             }
         }
-        map.debugPassability = {
-            water: [...debugWaterTiles].sort((a, b) => a - b),
-            damage: [...debugDamageTiles].sort((a, b) => a - b),
-            interactable: [...debugInteractableTiles].sort((a, b) => a - b),
-        };
+        if (options.includeDebugPassability === true) {
+            map.debugPassability = {
+                water: [...debugWaterTiles].sort((a, b) => a - b),
+                damage: [...debugDamageTiles].sort((a, b) => a - b),
+                interactable: [...debugInteractableTiles].sort((a, b) => a - b),
+            };
+        }
     }
 
     return map;

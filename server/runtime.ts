@@ -27,7 +27,7 @@ import { createProfilePreviewJsonResponse, createProfilePreviewResponse } from '
 import { createPasskeyAuthResponse } from './passkey-auth';
 import { parseRequestPathname } from './http-utils';
 import { loadRuntimeMapPackFromSource } from './runtime-map-pack-source';
-import { renderMapPackJson } from '../shared/maps/map-pack';
+import { renderMapPackJson, type MapPack } from '../shared/maps/map-pack';
 
 const WsRuntime = WsRuntimeModule as MainRuntimeDependencies['ws'];
 type SessionAttachArgs = Parameters<typeof attachWorldConnectionSession>[0];
@@ -141,6 +141,7 @@ function createWorlds(
     config: ServerConfig,
     server: RuntimeServer,
     dependencies: MainRuntimeDependencies,
+    mapPackSource: string | Promise<MapPack>,
     onWorldReady: () => void = () => {},
     onWorldCreated: (world: RuntimeWorld) => void = () => {}
 ): RuntimeWorld[] {
@@ -154,7 +155,7 @@ function createWorlds(
         if (typeof world.on === 'function') {
             world.on('ready', onWorldReady);
         }
-        world.run(config.map_filepath);
+        world.run(mapPackSource);
         worlds.push(world);
     }
 
@@ -404,6 +405,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     const metrics = runtime.metrics;
     let worlds: RuntimeWorld[] = [];
     const playerPersistence = new SqlitePlayerPersistence(resolvePlayerPersistencePath(config));
+    const runtimeMapPack = loadRuntimeMapPackFromSource(config.map_filepath);
 
     const populationCheckTimer = createPopulationCheckTimer(
         metrics,
@@ -467,7 +469,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     if (typeof server.onRequestRuntimeMapPack === 'function') {
         let pendingRuntimeMapPackJson: Promise<string> | null = null;
         server.onRequestRuntimeMapPack(function () {
-            pendingRuntimeMapPackJson ??= loadRuntimeMapPackFromSource(config.map_filepath).then((pack) => renderMapPackJson(pack));
+            pendingRuntimeMapPackJson ??= runtimeMapPack.then((pack) => renderMapPackJson(pack));
             return pendingRuntimeMapPackJson.then((json) => new Response(json, {
                 status: 200,
                 headers: {
@@ -568,6 +570,7 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
         config,
         server,
         dependencies,
+        runtimeMapPack,
         function () {
             readyCount += 1;
             if (readyCount === config.nb_worlds) {

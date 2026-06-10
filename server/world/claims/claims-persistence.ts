@@ -1,22 +1,9 @@
 import { Database } from 'bun:sqlite';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
 import type { RectClaim } from './claims-store';
 import { normalizeIdentityKeyOrNull } from '../../identity';
-import { ensureSchemaVersion } from '../../sqlite-schema-meta';
+import { openSqliteDatabase } from '../../sqlite-schema-meta';
 
 const DEFAULT_CLAIMS_DB_PATH = './server/.data/claims.sqlite';
-
-function resolveDatabasePath(configuredPath: string | null | undefined): string {
-    const trimmed = typeof configuredPath === 'string' ? configuredPath.trim() : '';
-    if (!trimmed) {
-        return path.resolve(DEFAULT_CLAIMS_DB_PATH);
-    }
-    if (trimmed === ':memory:') {
-        return trimmed;
-    }
-    return path.resolve(trimmed);
-}
 
 type ClaimRow = {
     id: number;
@@ -41,19 +28,11 @@ export class SqliteClaimsPersistence {
     readonly #selectAll: ReturnType<Database['prepare']>;
 
     constructor(configuredPath?: string | null) {
-        this.databasePath = resolveDatabasePath(configuredPath);
-        if (this.databasePath !== ':memory:') {
-            mkdirSync(path.dirname(this.databasePath), { recursive: true });
-        }
-
-        this.#db = new Database(this.databasePath, { create: true });
-        this.#db.exec(`
-            PRAGMA journal_mode=WAL;
-            PRAGMA synchronous=NORMAL;
-            PRAGMA foreign_keys=ON;
-        `);
-        ensureSchemaVersion(this.#db, 1);
-        this.#db.exec(`
+        const opened = openSqliteDatabase({
+            configuredPath,
+            defaultPath: DEFAULT_CLAIMS_DB_PATH,
+            schemaVersion: 1,
+            ddl: `
 
             CREATE TABLE IF NOT EXISTS claims (
                 id INTEGER PRIMARY KEY,
@@ -68,7 +47,10 @@ export class SqliteClaimsPersistence {
                 updated_at INTEGER NOT NULL
             );
             CREATE INDEX IF NOT EXISTS claims_owner_name ON claims(owner_name);
-        `);
+        `,
+        });
+        this.databasePath = opened.databasePath;
+        this.#db = opened.db;
 
         const claimColumns = this.#db.query("PRAGMA table_info('claims')").all() as Array<{ name?: string }>;
         const hasMapId = claimColumns.some((column) => column.name === 'map_id');

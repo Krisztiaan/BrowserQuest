@@ -13,6 +13,7 @@ import { findBestPathToCandidates, resolveMoveToTargetCandidates } from '../../.
 import log from '../../platform/log';
 import Types from '../../../shared/gametypes-browser';
 import { getMobPrefab } from '../../../shared/content/prefabs';
+import { resolveNpcContentIdFromKind } from '../../../shared/content/npc-content';
 import type { MergeEvents, TypedEventMap } from '../../../shared/typed-event-emitter';
 import type { RuntimeEntity } from '../../client-boundary-types';
 import type { ClientCommand } from '../client-commands';
@@ -91,7 +92,7 @@ export type ClientCommandApplySystemHost = {
               sendAggro(mob: { id: EntityId }): void;
               sendAttack(mob: { id: EntityId }): void;
               sendLootMove(item: { id: EntityId }, x: number, y: number): void;
-              sendNpcTalk(npcId: EntityId): void;
+              sendNpcTalk(npcId: string): void;
               sendCheck(id: string | number): void;
               sendOpen(chest: { id: EntityId }): void;
               sendWho(ids: EntityId[]): void;
@@ -858,7 +859,13 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (!host.started || !host.client) {
                     break;
                 }
-                host.client.sendNpcTalk(command.npcId);
+                const npc = getKnownEntity(command.npcId);
+                if (npc instanceof Npc) {
+                    const npcContentId = resolveNpcContentIdFromKind(npc.kind);
+                    if (npcContentId) {
+                        host.client.sendNpcTalk(npcContentId);
+                    }
+                }
                 break;
             }
             case 'enqueueZoningFrom': {

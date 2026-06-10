@@ -1,11 +1,9 @@
 import { Database } from 'bun:sqlite';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
 import { normalizeIdentityKey } from './identity';
-import { ensureSchemaVersion } from './sqlite-schema-meta';
+import { openSqliteDatabase } from './sqlite-schema-meta';
 import type { ShopDefinitions, ShopTransactionResult } from './world/shops/shop-state';
 
 const DEFAULT_PLAYER_DB_PATH = './server/.data/player-profiles.sqlite';
@@ -300,13 +298,22 @@ function resolveShopSellPrice(shopDefinitions: ShopDefinitions, shopId: string, 
     return entry.price;
 }
 
-function shopBuysItem(shopDefinitions: ShopDefinitions, shopId: string, item: string): boolean {
+function resolveShopBuyPrice(shopDefinitions: ShopDefinitions, shopId: string, item: string): number | null {
     const shop = shopDefinitions[shopId];
     if (!shop) {
-        return false;
+        return null;
     }
     const normalizedItem = normalizeIdentityKey(item);
-    return shop.buys.some((candidate) => normalizeIdentityKey(candidate) === normalizedItem);
+    const entry = shop.buys.find((candidate) => normalizeIdentityKey(candidate.item) === normalizedItem);
+    if (!entry || !Number.isSafeInteger(entry.price) || entry.price <= 0) {
+        return null;
+    }
+    return entry.price;
+}
+
+function normalizeChestStorageKey(value: string): string | null {
+    const trimmed = value.trim();
+    return trimmed.length > 0 ? trimmed : null;
 }
 
 function normalizeTransportValue(value: string | null | undefined): AuthenticatorTransportFuture | null {
@@ -387,17 +394,6 @@ function asPersistedPlayerProfile(row: ProfileRow, achievements: PersistedAchiev
     };
 }
 
-function resolveDatabasePath(configuredPath: string | null | undefined): string {
-    const trimmed = typeof configuredPath === 'string' ? configuredPath.trim() : '';
-    if (!trimmed) {
-        return path.resolve(DEFAULT_PLAYER_DB_PATH);
-    }
-    if (trimmed === ':memory:') {
-        return trimmed;
-    }
-    return path.resolve(trimmed);
-}
-
 export class SqlitePlayerPersistence {
     readonly databasePath: string;
     #db: Database;
@@ -425,16 +421,14 @@ export class SqlitePlayerPersistence {
     #touchPasskeyCredentialUse: ReturnType<Database['prepare']>;
 
     constructor(configuredPath?: string | null) {
-        this.databasePath = resolveDatabasePath(configuredPath);
-        if (this.databasePath !== ':memory:') {
-            mkdirSync(path.dirname(this.databasePath), { recursive: true });
-        }
-
-        this.#db = new Database(this.databasePath, { create: true });
-        this.#db.exec(`
-            PRAGMA foreign_keys = ON;
-        `);
-        ensureSchemaVersion(this.#db, 1);
+        const opened = openSqliteDatabase({
+            configuredPath,
+            defaultPath: DEFAULT_PLAYER_DB_PATH,
+            schemaVersion: 1,
+            ddl: '',
+        });
+        this.databasePath = opened.databasePath;
+        this.#db = opened.db;
         this.#db.exec(`
             CREATE TABLE IF NOT EXISTS players (
                 name_key TEXT PRIMARY KEY,
@@ -482,7 +476,7 @@ export class SqlitePlayerPersistence {
             );
             CREATE INDEX IF NOT EXISTS player_passkeys_name_key ON player_passkeys(name_key);
             CREATE TABLE IF NOT EXISTS chest_inventory (
-                chest_id INTEGER NOT NULL,
+                chest_id TEXT NOT NULL,
                 item_kind INTEGER NOT NULL,
                 quantity INTEGER NOT NULL CHECK(quantity > 0),
                 updated_at INTEGER NOT NULL,
@@ -816,17 +810,18 @@ export class SqlitePlayerPersistence {
         itemKind,
         quantity,
     }: {
-        chestId: number;
+        chestId: string;
         itemKind: EntityKind;
         quantity: number;
     }): void {
+        const normalizedChestId = normalizeChestStorageKey(chestId);
         const normalizedItemKind = normalizeEntityKind(Number(itemKind));
-        if (!Number.isSafeInteger(chestId) || chestId <= 0 || normalizedItemKind === null) {
+        if (!normalizedChestId || normalizedItemKind === null) {
             return;
         }
         const safeQuantity = Math.max(0, Math.trunc(quantity));
         if (safeQuantity <= 0) {
-            this.#db.query(`DELETE FROM chest_inventory WHERE chest_id = ?1 AND item_kind = ?2`).run(chestId, Number(normalizedItemKind));
+            this.#db.query(`DELETE FROM chest_inventory WHERE chest_id = ?1 AND item_kind = ?2`).run(normalizedChestId, Number(normalizedItemKind));
             return;
         }
         this.#db
@@ -837,17 +832,18 @@ export class SqlitePlayerPersistence {
                     quantity = excluded.quantity,
                     updated_at = excluded.updated_at`
             )
-            .run(chestId, Number(normalizedItemKind), safeQuantity, Date.now());
+            .run(normalizedChestId, Number(normalizedItemKind), safeQuantity, Date.now());
     }
 
-    getChestInventoryQuantity(chestId: number, itemKind: EntityKind): number {
+    getChestInventoryQuantity(chestId: string, itemKind: EntityKind): number {
+        const normalizedChestId = normalizeChestStorageKey(chestId);
         const normalizedItemKind = normalizeEntityKind(Number(itemKind));
-        if (!Number.isSafeInteger(chestId) || chestId <= 0 || normalizedItemKind === null) {
+        if (!normalizedChestId || normalizedItemKind === null) {
             return 0;
         }
         const row = this.#db
             .query(`SELECT quantity FROM chest_inventory WHERE chest_id = ?1 AND item_kind = ?2`)
-            .get(chestId, Number(normalizedItemKind)) as { quantity?: number } | null;
+            .get(normalizedChestId, Number(normalizedItemKind)) as { quantity?: number } | null;
         return typeof row?.quantity === 'number' && Number.isFinite(row.quantity) ? Math.max(0, Math.trunc(row.quantity)) : 0;
     }
 
@@ -859,18 +855,19 @@ export class SqlitePlayerPersistence {
         direction,
     }: {
         accountNameKey: string;
-        chestId: number;
+        chestId: string;
         itemKind: EntityKind;
         quantity: number;
         direction: ChestTransferDirection;
     }): ChestTransferResult {
         const normalizedName = normalizeIdentityKey(accountNameKey);
+        const normalizedChestId = normalizeChestStorageKey(chestId);
         const normalizedItemKind = normalizeEntityKind(Number(itemKind));
         const safeQuantity = Math.trunc(quantity);
         if (!normalizedName) {
             return { accepted: false, reason: 'invalid_player' };
         }
-        if (!Number.isSafeInteger(chestId) || chestId <= 0) {
+        if (!normalizedChestId) {
             return { accepted: false, reason: 'invalid_chest' };
         }
         if (normalizedItemKind === null) {
@@ -885,7 +882,7 @@ export class SqlitePlayerPersistence {
                 return { accepted: false, reason: 'missing_profile' };
             }
             const progression = decodeProgressionState(row.progression_json);
-            const chestQuantity = this.getChestInventoryQuantity(chestId, normalizedItemKind);
+            const chestQuantity = this.getChestInventoryQuantity(normalizedChestId, normalizedItemKind);
             const inventoryQuantity = getInventoryQuantity(progression.inventory, normalizedItemKind);
             let nextChestQuantity = chestQuantity;
             let nextInventoryQuantity = inventoryQuantity;
@@ -904,7 +901,7 @@ export class SqlitePlayerPersistence {
                 nextChestQuantity += safeQuantity;
             }
 
-            this.setChestInventoryItem({ chestId, itemKind: normalizedItemKind, quantity: nextChestQuantity });
+            this.setChestInventoryItem({ chestId: normalizedChestId, itemKind: normalizedItemKind, quantity: nextChestQuantity });
             const nextProgression = {
                 ...progression,
                 inventory: setInventoryQuantity(progression.inventory, normalizedItemKind, nextInventoryQuantity),
@@ -1015,6 +1012,7 @@ export class SqlitePlayerPersistence {
         const normalizedShopId = normalizeIdentityKey(shopId);
         const normalizedItem = normalizeIdentityKey(item);
         const itemKind = resolveShopItemKind(normalizedItem);
+        const unitPrice = normalizedShopId ? resolveShopBuyPrice(shopDefinitions, normalizedShopId, normalizedItem) : null;
         const safeQuantity = Math.trunc(quantity);
         if (!normalizedName) {
             return { accepted: false, reason: 'invalid_player' };
@@ -1022,11 +1020,15 @@ export class SqlitePlayerPersistence {
         if (!normalizedShopId || !shopDefinitions[normalizedShopId]) {
             return { accepted: false, reason: 'unknown_shop' };
         }
-        if (!normalizedItem || itemKind === null || !shopBuysItem(shopDefinitions, normalizedShopId, normalizedItem)) {
+        if (!normalizedItem || itemKind === null || unitPrice === null) {
             return { accepted: false, reason: 'unknown_item' };
         }
         if (!Number.isSafeInteger(safeQuantity) || safeQuantity <= 0) {
             return { accepted: false, reason: 'invalid_quantity' };
+        }
+        const totalPrice = unitPrice * safeQuantity;
+        if (!Number.isSafeInteger(totalPrice) || totalPrice <= 0) {
+            return { accepted: false, reason: 'invalid_price' };
         }
 
         const tx = this.#db.transaction((): ShopTransactionResult => {
@@ -1041,7 +1043,7 @@ export class SqlitePlayerPersistence {
             }
             const nextProgression = {
                 ...progression,
-                gold: progression.gold + safeQuantity,
+                gold: progression.gold + totalPrice,
                 inventory: setInventoryQuantity(progression.inventory, itemKind, currentQuantity - safeQuantity),
             };
             const now = Date.now();

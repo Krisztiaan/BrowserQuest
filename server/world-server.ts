@@ -88,12 +88,16 @@ import {
     type WorldMapRegistry,
 } from './world/map-registry';
 import { compileRuntimeMapPackFromPayload, loadRuntimeMapPackFromSource } from './runtime-map-pack-source';
+import type { MapPack } from '../shared/maps/map-pack';
 import { WORLD_EVENT_NAMES } from './server-event-names';
 import npcDefinitionsJson from '../assets/content/npcs.json';
+import cropDefinitionsJson from '../assets/content/crops.json';
 import resourceDefinitionsJson from '../assets/content/resources.json';
 import shopDefinitionsJson from '../assets/content/shops.json';
 import type { NpcDefinitions, ShopDefinitions } from './world/shops/shop-state';
 import { resolveNpcDialogue } from './world/shops/shop-service';
+import { SqliteCropPersistence } from './world/farming/crop-persistence';
+import type { CropDefinitions } from './world/farming/crop-state';
 import type {
     MapTransitionEvent,
     MapTransitionRejectReason,
@@ -216,6 +220,7 @@ type WorldEvents = {
 };
 
 const NPC_DEFINITIONS = npcDefinitionsJson as NpcDefinitions;
+const CROP_DEFINITIONS = cropDefinitionsJson as CropDefinitions;
 const RESOURCE_DEFINITIONS = resourceDefinitionsJson as ResourceDefinitions;
 const SHOP_DEFINITIONS = shopDefinitionsJson as ShopDefinitions;
 const MILLIS_PER_DAY = 86_400_000;
@@ -247,6 +252,7 @@ class World extends Evented<WorldEvents> {
     chunkFlushScheduler: ChunkFlushScheduler | null;
     chunkFlushTickErrorLatched: boolean;
     claimsPersistence: SqliteClaimsPersistence | null;
+    cropPersistence: SqliteCropPersistence | null;
     resourcePersistence: SqliteResourcePersistence | null;
     updateLoopHandle: ReturnType<typeof startWorldUpdateLoop> | null;
     mapTransitionCounters: MapTransitionCounters;
@@ -279,6 +285,7 @@ class World extends Evented<WorldEvents> {
         this.chunkFlushScheduler = null;
         this.chunkFlushTickErrorLatched = false;
         this.claimsPersistence = null;
+        this.cropPersistence = null;
         this.resourcePersistence = null;
         this.updateLoopHandle = null;
         this.mapTransitionCounters = {
@@ -368,6 +375,16 @@ class World extends Evented<WorldEvents> {
         this.chunkFlushScheduler = null;
         this.chunkFlushTickErrorLatched = false;
         this.claimsPersistence = null;
+        try {
+            this.cropPersistence?.close();
+        } catch (error) {
+            log.event('error', 'world.persistence.close_failed', {
+                worldId: this.id,
+                target: 'crops',
+                error: String(error),
+            });
+        }
+        this.cropPersistence = null;
         try {
             this.resourcePersistence?.close();
         } catch (error) {
@@ -573,13 +590,13 @@ class World extends Evented<WorldEvents> {
 
     transferChestItem({
         playerIdentity,
-        chestId,
+        chestKey,
         itemKind,
         quantity,
         direction,
     }: {
         playerIdentity: string;
-        chestId: EntityId;
+        chestKey: string;
         itemKind: EntityKind;
         quantity: number;
         direction: ChestTransferDirection;
@@ -593,7 +610,7 @@ class World extends Evented<WorldEvents> {
         }
         return this.playerPersistence.transferChestItem({
             accountNameKey: identityKey,
-            chestId,
+            chestId: chestKey,
             itemKind,
             quantity,
             direction,
@@ -668,6 +685,93 @@ class World extends Evented<WorldEvents> {
         });
     }
 
+    isFarmableTile(mapId: string, x: number, y: number): boolean {
+        return this.isValidPositionForMap(mapId, x, y);
+    }
+
+    tillCropTile({
+        mapId,
+        x,
+        y,
+        farmable,
+    }: {
+        mapId: string;
+        x: number;
+        y: number;
+        farmable: boolean;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> {
+        if (!this.cropPersistence) {
+            return { accepted: false, reason: 'farming_unavailable' };
+        }
+        return this.cropPersistence.tillTile({ mapId, x, y, farmable });
+    }
+
+    waterCropTile({
+        mapId,
+        x,
+        y,
+    }: {
+        mapId: string;
+        x: number;
+        y: number;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> {
+        if (!this.cropPersistence) {
+            return { accepted: false, reason: 'farming_unavailable' };
+        }
+        return this.cropPersistence.waterTile({ mapId, x, y });
+    }
+
+    plantCropTile({
+        mapId,
+        x,
+        y,
+        cropId,
+        seedItemId,
+    }: {
+        mapId: string;
+        x: number;
+        y: number;
+        cropId: string;
+        seedItemId: string;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> {
+        if (!this.cropPersistence) {
+            return { accepted: false, reason: 'farming_unavailable' };
+        }
+        return this.cropPersistence.plantCrop({ mapId, x, y, cropId, seedItemId });
+    }
+
+    harvestCropTile({
+        mapId,
+        x,
+        y,
+        playerIdentity,
+    }: {
+        mapId: string;
+        x: number;
+        y: number;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> {
+        if (!this.cropPersistence || !this.playerPersistence) {
+            return { accepted: false, reason: 'farming_unavailable' };
+        }
+        const identityKey = resolveIdentityKey(playerIdentity);
+        if (!identityKey) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        const harvest = this.cropPersistence.harvest({ mapId, x, y });
+        if (!harvest.accepted) {
+            return harvest;
+        }
+        const grant = this.playerPersistence.grantInventoryItems({
+            accountNameKey: identityKey,
+            items: [{ item: harvest.itemId, quantity: harvest.quantity }],
+        });
+        return grant.accepted ? { accepted: true } : grant;
+    }
+
     upsertResourceNode(config: MapResourceNodeConfig, mapId = this.getDefaultMapId()): void {
         const persistence = this.resourcePersistence;
         if (!persistence) {
@@ -727,6 +831,9 @@ class World extends Evented<WorldEvents> {
             accountNameKey: identityKey,
             items: harvest.drops,
         });
+        if (!grant.accepted) {
+            this.resourcePersistence.restoreResourceNode(nodeId, playerMapId);
+        }
         return grant.accepted ? { accepted: true } : grant;
     }
 
@@ -856,6 +963,10 @@ class World extends Evented<WorldEvents> {
         self.chunkOverlayPersistence = persistence.chunkOverlayPersistence;
         self.chunkFlushScheduler = persistence.chunkFlushScheduler;
         self.claimsPersistence = persistence.claimsPersistence;
+        self.cropPersistence = new SqliteCropPersistence(
+            process.env.BQ_CROP_DB_PATH ?? `./server/.data/${self.id}-crops.sqlite`,
+            CROP_DEFINITIONS
+        );
         self.resourcePersistence = new SqliteResourcePersistence(
             process.env.BQ_RESOURCE_DB_PATH ?? `./server/.data/${self.id}-resources.sqlite`,
             RESOURCE_DEFINITIONS
@@ -910,8 +1021,10 @@ class World extends Evented<WorldEvents> {
         self.emit('ready');
     }
 
-    private async loadMapRuntime(mapSource: string | LooseValue): Promise<void> {
-        const pack = typeof mapSource === 'string'
+    private async loadMapRuntime(mapSource: string | LooseValue | Promise<MapPack>): Promise<void> {
+        const pack = mapSource instanceof Promise
+            ? await mapSource
+            : typeof mapSource === 'string'
             ? await loadRuntimeMapPackFromSource(mapSource)
             : await compileRuntimeMapPackFromPayload(mapSource);
         if (!isMapPack(pack)) {
@@ -923,7 +1036,7 @@ class World extends Evented<WorldEvents> {
         this.initializeWorldRuntimeFromActiveMap();
     }
 
-    run(mapSource: string | LooseValue): void {
+    run(mapSource: string | LooseValue | Promise<MapPack>): void {
         this.installPlugins();
         void this.loadMapRuntime(mapSource).catch((error) => {
             const message = `World ${this.id} failed to load map runtime: ${String(error)}`;

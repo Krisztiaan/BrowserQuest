@@ -12,7 +12,7 @@ export type ShopSellEntry = Readonly<{
 
 export type ShopDefinition = Readonly<{
     npc: string;
-    buys: ReadonlyArray<string>;
+    buys: ReadonlyArray<ShopSellEntry>;
     sells: ReadonlyArray<ShopSellEntry>;
 }>;
 

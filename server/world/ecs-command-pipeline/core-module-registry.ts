@@ -103,7 +103,7 @@ export type IntentWorldHost = Readonly<{
     recordMapTransitionEvent?(event: MapTransitionEvent): void;
     transferChestItem?(args: {
         playerIdentity: string;
-        chestId: EntityId;
+        chestKey: string;
         itemKind: EntityKind;
         quantity: number;
         direction: 'chest_to_inventory' | 'inventory_to_chest';
@@ -286,6 +286,10 @@ function isTileEditOutOfBounds({
 
 function isWithinInteractionDistance(a: GridPos, b: GridPos, maxAxisDistance: number): boolean {
     return Math.abs(a.x - b.x) <= maxAxisDistance && Math.abs(a.y - b.y) <= maxAxisDistance;
+}
+
+function createChestStorageKey(mapId: string, x: number, y: number): string {
+    return `${mapId}:${x},${y}`;
 }
 
 function authorizeCropTile(
@@ -595,7 +599,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     }
                     const result = ctx.world.transferChestItem({
                         playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
-                        chestId: cmd.chestId,
+                        chestKey: createChestStorageKey(actorMapId, chestPos.x, chestPos.y),
                         itemKind,
                         quantity: cmd.quantity,
                         direction: cmd.direction,
@@ -736,41 +740,29 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
                 });
 
-                registry.registerIntentHandler(INTENT_SHOP_BUY, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx);
-                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'SHOP_BUY');
-                    if (!ctx || !cmd) {
-                        return;
-                    }
-                    if (!ctx.world.buyShopItem) {
-                        return { ok: false, reason: 'shop_unavailable' };
-                    }
-                    const result = ctx.world.buyShopItem({
-                        shopId: cmd.shopId,
-                        item: cmd.item,
-                        quantity: cmd.quantity,
-                        playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
+                const registerShopTradeHandler = (intentTypeId: typeof INTENT_SHOP_BUY | typeof INTENT_SHOP_SELL, commandType: 'SHOP_BUY' | 'SHOP_SELL') => {
+                    registry.registerIntentHandler(intentTypeId, (rawCtx, rawPayload) => {
+                        const ctx = decodeInboundIntentContext(rawCtx);
+                        const cmd = decodeCommandByType(rawPayload as LooseValue, commandType);
+                        if (!ctx || !cmd) {
+                            return;
+                        }
+                        const applyTrade = commandType === 'SHOP_BUY' ? ctx.world.buyShopItem : ctx.world.sellShopItem;
+                        if (!applyTrade) {
+                            return { ok: false, reason: 'shop_unavailable' };
+                        }
+                        const result = applyTrade({
+                            shopId: cmd.shopId,
+                            item: cmd.item,
+                            quantity: cmd.quantity,
+                            playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
+                        });
+                        return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
                     });
-                    return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
-                });
+                };
 
-                registry.registerIntentHandler(INTENT_SHOP_SELL, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx);
-                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'SHOP_SELL');
-                    if (!ctx || !cmd) {
-                        return;
-                    }
-                    if (!ctx.world.sellShopItem) {
-                        return { ok: false, reason: 'shop_unavailable' };
-                    }
-                    const result = ctx.world.sellShopItem({
-                        shopId: cmd.shopId,
-                        item: cmd.item,
-                        quantity: cmd.quantity,
-                        playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
-                    });
-                    return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
-                });
+                registerShopTradeHandler(INTENT_SHOP_BUY, 'SHOP_BUY');
+                registerShopTradeHandler(INTENT_SHOP_SELL, 'SHOP_SELL');
             },
         },
     ]);

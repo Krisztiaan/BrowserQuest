@@ -9,6 +9,7 @@ import {
 } from '../../shared/protocol/binary-action-codec';
 import { encodeChunkDeltaPayloadBinary } from '../../shared/protocol/chunks/chunk-delta-codec';
 import { encodeChunkSnapshotPayloadBinary } from '../../shared/protocol/chunks/chunk-snapshot-codec';
+import { encodeAttackIntentPayload, INTENT_ATTACK } from '../../shared/protocol/intents';
 import Types from '../../shared/gametypes-browser';
 import { isDeepStrictEqual } from 'node:util';
 
@@ -36,15 +37,19 @@ const SMALL_CHUNK_DELTA = encodeChunkDeltaPayloadBinary({
         [1, 0, null],
     ],
 });
+const ATTACK_INTENT_PAYLOAD = encodeAttackIntentPayload({ targetId: 184 });
+if (ATTACK_INTENT_PAYLOAD === null) {
+    throw new Error('invalid benchmark attack intent payload');
+}
 
 const SERVER_SAMPLES: WireBatch[] = [
     [[Types.Messages.ACK, 1], [Types.Messages.MOVE, 500000000, 158, 117]],
     [
         [Types.Messages.REJECT, 2, 'move.step', 'Invalid move.step (non-adjacent).'],
-        [Types.Messages.CORRECTION, 2, 158, 117],
+        [Types.Messages.CORRECTION, 2, 158, 117, 'world_01'],
     ],
     [Types.Messages.ATTACK, 174, 500000000],
-    [[Types.Messages.TELEPORT, 500000000, 155, 113], [Types.Messages.HP, 108], [Types.Messages.HP, 103]],
+    [[Types.Messages.TELEPORT, 500000000, 155, 113, 'world_01'], [Types.Messages.HP, 108], [Types.Messages.HP, 103]],
     [Types.Messages.CHUNK_SNAPSHOT, 7, 6, 0, EMPTY_CHUNK_SNAPSHOT],
     [Types.Messages.CHUNK_DELTA, 7, 6, 0, 1, SMALL_CHUNK_DELTA],
     [
@@ -61,8 +66,8 @@ const CLIENT_SAMPLES: WireBatch[] = [
     [Types.Messages.ZONE],
     [Types.Messages.INTENT, 1, 'move.step', [155, 114]],
     [Types.Messages.INTENT, 2, 'claim.create', [10, 10, 12, 12]],
+    [Types.Messages.INTENT, 3, INTENT_ATTACK, ATTACK_INTENT_PAYLOAD],
     [Types.Messages.LOOT, 184],
-    [Types.Messages.ATTACK, 184],
     [Types.Messages.LOOTMOVE, 155, 113, 174],
     [Types.Messages.CHUNK_SUBSCRIBE, 8, 4, 3],
 ];

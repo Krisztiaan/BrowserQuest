@@ -1,12 +1,17 @@
-import { copyFile, mkdir, stat } from 'node:fs/promises';
+import { Database } from 'bun:sqlite';
+import { mkdir, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { parseCliArgs } from '../shared/cli-args';
 
-type CopiedFile = {
+type BackupFile = {
     source: string;
     target: string;
     bytes: number;
 };
+
+function sqlString(value: string): string {
+    return `'${value.replace(/'/g, "''")}'`;
+}
 
 function usage(): never {
     console.log('Usage: bun run admin:backup-sqlite -- --db <path> --out <dir> [--json]');
@@ -31,32 +36,30 @@ if (!dbPath || !outDir) {
 
 await mkdir(outDir, { recursive: true });
 
-const copied: CopiedFile[] = [];
-for (const suffix of ['', '-wal', '-shm']) {
-    const source = `${dbPath}${suffix}`;
-    const sourceStat = await stat(source).catch(() => null);
-    if (!sourceStat?.isFile()) {
-        continue;
-    }
-
-    const target = path.join(outDir, path.basename(source));
-    await copyFile(source, target);
-
-    const targetStat = await stat(target);
-    if (targetStat.size !== sourceStat.size) {
-        throw new Error(`Backup size mismatch for ${source}: ${sourceStat.size} !== ${targetStat.size}`);
-    }
-    copied.push({ source, target, bytes: targetStat.size });
+const sourceStat = await stat(dbPath).catch(() => null);
+if (!sourceStat?.isFile()) {
+    throw new Error(`No SQLite database found for ${dbPath}`);
 }
 
-if (copied.length === 0) {
-    throw new Error(`No SQLite files found for ${dbPath}`);
+const target = path.join(outDir, path.basename(dbPath));
+await unlink(target).catch((error: unknown) => {
+    if ((error as { code?: unknown }).code !== 'ENOENT') {
+        throw error;
+    }
+});
+
+const db = new Database(dbPath, { readonly: true });
+try {
+    db.exec(`VACUUM INTO ${sqlString(target)}`);
+} finally {
+    db.close();
 }
+
+const targetStat = await stat(target);
+const backedUp: BackupFile = { source: dbPath, target, bytes: targetStat.size };
 
 if (args.json) {
-    console.log(JSON.stringify({ ok: true, copied }, null, 2));
+    console.log(JSON.stringify({ ok: true, backedUp }, null, 2));
 } else {
-    for (const entry of copied) {
-        console.log(`${entry.source} -> ${entry.target} (${entry.bytes} bytes)`);
-    }
+    console.log(`${backedUp.source} -> ${backedUp.target} (${backedUp.bytes} bytes)`);
 }
