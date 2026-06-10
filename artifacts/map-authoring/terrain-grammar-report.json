@@ -1,0 +1,392 @@
+{
+  "missingMapProperties": [
+    "map_id",
+    "authoring_version",
+    "default_music",
+    "default_biome"
+  ],
+  "missingFamiliesUsedByMap": [],
+  "missingTransitionShapes": [
+    {
+      "pair": "shoreline",
+      "shape": "edge_n"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "edge_s"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "edge_e"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "edge_w"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "outer_ne"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "outer_nw"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "outer_se"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "outer_sw"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "inner_ne"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "inner_nw"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "inner_se"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "inner_sw"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "island"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "channel_h"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "channel_v"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "edge_n"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "edge_s"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "edge_e"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "edge_w"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "outer_ne"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "outer_nw"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "outer_se"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "outer_sw"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "inner_ne"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "inner_nw"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "inner_se"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "inner_sw"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "island"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "channel_h"
+    },
+    {
+      "pair": "riverbank",
+      "shape": "channel_v"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "edge_n"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "edge_s"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "edge_e"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "edge_w"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "outer_ne"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "outer_nw"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "outer_se"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "outer_sw"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "inner_ne"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "inner_nw"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "inner_se"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "inner_sw"
+    },
+    {
+      "pair": "village_ground",
+      "shape": "island"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "edge_n"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "edge_s"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "edge_e"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "edge_w"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "outer_ne"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "outer_nw"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "outer_se"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "outer_sw"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "inner_ne"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "inner_nw"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "inner_se"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "inner_sw"
+    },
+    {
+      "pair": "field_edges",
+      "shape": "island"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "edge_n"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "edge_s"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "edge_e"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "edge_w"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "outer_ne"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "outer_nw"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "outer_se"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "outer_sw"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "inner_ne"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "inner_nw"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "inner_se"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "inner_sw"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "channel_h"
+    },
+    {
+      "pair": "lava_rock",
+      "shape": "channel_v"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "edge_n"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "edge_s"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "edge_e"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "edge_w"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "outer_ne"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "outer_nw"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "outer_se"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "outer_sw"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "inner_ne"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "inner_nw"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "inner_se"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "inner_sw"
+    },
+    {
+      "pair": "forest_edges",
+      "shape": "island"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "edge_n"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "edge_s"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "edge_e"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "edge_w"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "outer_ne"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "outer_nw"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "outer_se"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "outer_sw"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "inner_ne"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "inner_nw"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "inner_se"
+    },
+    {
+      "pair": "cave_rock",
+      "shape": "inner_sw"
+    }
+  ],
+  "wrongLayerRoleSamples": []
+}

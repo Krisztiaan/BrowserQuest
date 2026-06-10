@@ -604,3 +604,32 @@ This is the live execution notebook for `PLAN.md`.
   - 2026-06-10 11:59 UTC: Verification complete.
   - Commit: `feat: generate terrain authoring visual artifacts`.
   - Next action: Proceed to Ticket 2A.3 terrain and overlay grammar.
+
+### 2026-06-10 12:05 UTC - Ticket 2A.3 Define the Real Terrain and Overlay Grammar
+
+- Status: done
+- Scope:
+  - Add source-of-truth terrain authoring grammar.
+  - Add baseline grammar validator that reports gaps without failing.
+  - Add package script, tests, generated report, and authoring model docs.
+- TODO:
+  - done: Create terrain grammar JSON.
+  - done: Implement terrain grammar validator and package script.
+  - done: Add unit tests and docs.
+  - done: Run grammar audit, typecheck, lint, and diff checks.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 2A.3.
+- Key actions:
+  - 2026-06-10 12:05 UTC: Ticket started.
+  - Added `assets/maps/tiled/terrain-authoring.json` with current terrain families, transition pairs, layer roles, and compositing rules.
+  - Added baseline `terrain-grammar-validator.ts` that writes `artifacts/map-authoring/terrain-grammar-report.json` and exits 0.
+  - Added `audit:terrain-grammar` package script, focused unit tests, and terrain authoring model docs.
+- Evidence:
+  - `bun test tests/unit/terrain-grammar-validator.test.ts --timeout 20000` passed with 2 pass, 0 fail.
+  - `bun run audit:terrain-grammar` passed and wrote `artifacts/map-authoring/terrain-grammar-report.json`.
+  - Generated report: 4 missing map properties, 0 missing families, 95 missing transition shapes, 0 wrong layer-role samples.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+  - 2026-06-10 12:05 UTC: Verification complete.
+  - Commit: `feat: define terrain authoring grammar`.
+  - Next action: Proceed to Ticket 2A.4 terrain asset decision/prototype.

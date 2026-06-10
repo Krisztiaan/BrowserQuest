@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "tileSize": 16,
+  "sourceTilesets": ["tilesheet.wang.tsj"],
+  "mapPropertiesRequired": ["map_id", "authoring_version", "default_music", "default_biome"],
+  "families": [
+    {
+      "id": "grass",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "variation", "transition", "overlay"],
+      "representativeTileIds": [51],
+      "passability": "walkable"
+    },
+    {
+      "id": "sand",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "variation", "transition", "overlay"],
+      "representativeTileIds": [140],
+      "passability": "walkable"
+    },
+    {
+      "id": "soil",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "variation", "transition", "overlay"],
+      "representativeTileIds": [10],
+      "passability": "walkable"
+    },
+    {
+      "id": "stone",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "variation", "transition", "structure"],
+      "representativeTileIds": [200],
+      "passability": "walkable"
+    },
+    {
+      "id": "deadlands",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "variation", "transition", "overlay"],
+      "representativeTileIds": [260],
+      "passability": "walkable"
+    },
+    {
+      "id": "badlands",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "variation", "transition", "structure"],
+      "representativeTileIds": [1180],
+      "passability": "walkable"
+    },
+    {
+      "id": "cave",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "transition", "structure", "foreground"],
+      "representativeTileIds": [1307],
+      "passability": "walkable"
+    },
+    {
+      "id": "forest",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "variation", "transition", "structure", "overlay"],
+      "representativeTileIds": [1605],
+      "passability": "walkable"
+    },
+    {
+      "id": "indoor",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "structure", "foreground", "overlay"],
+      "representativeTileIds": [1506],
+      "passability": "walkable"
+    },
+    {
+      "id": "maze",
+      "kind": "base",
+      "allowedLayerRoles": ["base", "structure", "foreground"],
+      "representativeTileIds": [1859],
+      "passability": "walkable"
+    },
+    {
+      "id": "water",
+      "kind": "liquid",
+      "allowedLayerRoles": ["liquid", "transition"],
+      "representativeTileIds": [405],
+      "passability": "blocked"
+    },
+    {
+      "id": "lava",
+      "kind": "liquid",
+      "allowedLayerRoles": ["liquid", "transition", "damage"],
+      "representativeTileIds": [1180],
+      "passability": "damage"
+    },
+    {
+      "id": "props",
+      "kind": "decoration",
+      "allowedLayerRoles": ["overlay", "structure", "foreground"],
+      "representativeTileIds": [600],
+      "passability": "mixed"
+    }
+  ],
+  "transitionPairs": [
+    {
+      "id": "shoreline",
+      "from": "water",
+      "to": "sand",
+      "requiredShapes": ["edge_n", "edge_s", "edge_e", "edge_w", "outer_ne", "outer_nw", "outer_se", "outer_sw", "inner_ne", "inner_nw", "inner_se", "inner_sw", "island", "channel_h", "channel_v"]
+    },
+    {
+      "id": "riverbank",
+      "from": "water",
+      "to": "grass",
+      "requiredShapes": ["edge_n", "edge_s", "edge_e", "edge_w", "outer_ne", "outer_nw", "outer_se", "outer_sw", "inner_ne", "inner_nw", "inner_se", "inner_sw", "island", "channel_h", "channel_v"]
+    },
+    {
+      "id": "village_ground",
+      "from": "sand",
+      "to": "grass",
+      "requiredShapes": ["edge_n", "edge_s", "edge_e", "edge_w", "outer_ne", "outer_nw", "outer_se", "outer_sw", "inner_ne", "inner_nw", "inner_se", "inner_sw", "island"]
+    },
+    {
+      "id": "field_edges",
+      "from": "soil",
+      "to": "grass",
+      "requiredShapes": ["edge_n", "edge_s", "edge_e", "edge_w", "outer_ne", "outer_nw", "outer_se", "outer_sw", "inner_ne", "inner_nw", "inner_se", "inner_sw", "island"]
+    },
+    {
+      "id": "lava_rock",
+      "from": "lava",
+      "to": "badlands",
+      "requiredShapes": ["edge_n", "edge_s", "edge_e", "edge_w", "outer_ne", "outer_nw", "outer_se", "outer_sw", "inner_ne", "inner_nw", "inner_se", "inner_sw", "channel_h", "channel_v"]
+    },
+    {
+      "id": "forest_edges",
+      "from": "grass",
+      "to": "forest",
+      "requiredShapes": ["edge_n", "edge_s", "edge_e", "edge_w", "outer_ne", "outer_nw", "outer_se", "outer_sw", "inner_ne", "inner_nw", "inner_se", "inner_sw", "island"]
+    },
+    {
+      "id": "cave_rock",
+      "from": "stone",
+      "to": "cave",
+      "requiredShapes": ["edge_n", "edge_s", "edge_e", "edge_w", "outer_ne", "outer_nw", "outer_se", "outer_sw", "inner_ne", "inner_nw", "inner_se", "inner_sw"]
+    }
+  ],
+  "layerRoles": {
+    "base": ["sand", "sea", "ground", "dry_ground", "graveyard_mud", "dead_grass", "lava", "canyon", "cave", "indoor", "carpets", "forest_paths", "forest", "maze_floor"],
+    "variation": ["ground_variations", "grass", "grass_variations", "mud", "stone", "dry_ground_2", "dead_leaves"],
+    "transition": ["shoreline", "lakes", "village_boundaries", "village_boundaries_level_2", "river", "lava_boundaries", "cave_river", "forest_lakes", "forest_boundaries"],
+    "liquid": ["sea", "lakes", "river", "lava", "cave_river", "forest_lakes"],
+    "damage": ["lava", "lava_falls"],
+    "overlay": ["beach_props", "houses", "big_rocks", "graveyard", "dead_trees", "camps", "bones", "totems", "cactus", "trees", "indoor_props", "bridge_shadows", "bridge", "forest_props"],
+    "structure": ["cliffs", "cliffs_2", "lava_falls", "cave_walls", "indoor_walls", "indoor_doors", "forest_trees", "maze_walls"],
+    "foreground": ["cliffs_foreground", "cave_walls_foreground", "indoor_doors_foreground", "bridge_shadows_foreground", "maze_walls_foreground"],
+    "gameplay": ["resource_nodes", "static_entities", "chest_spawns", "chest_areas", "doors", "roaming_areas", "music_zones", "checkpoints"]
+  },
+  "compositingRules": [
+    "exactly_one_base_terrain_owns_full_visual_fill",
+    "transparent_overlays_decorate_but_do_not_replace_base",
+    "water_and_lava_require_explicit_passability_or_damage_semantics",
+    "foreground_roof_and_cliff_tops_do_not_fill_base_cells",
+    "gameplay_markup_layers_do_not_render"
+  ]
+}

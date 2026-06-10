@@ -3203,7 +3203,7 @@ rtk git commit -m "feat: generate terrain authoring visual artifacts"
 
 **Dependencies/blockers:** Ticket 2A.1.
 
-- [ ] **Step 1: Create grammar file**
+- [x] **Step 1: Create grammar file**
 
 Create `assets/maps/tiled/terrain-authoring.json`:
 
@@ -3267,7 +3267,7 @@ Create `assets/maps/tiled/terrain-authoring.json`:
 
 Extend this initial file with every family found by the audit before marking the ticket done.
 
-- [ ] **Step 2: Create grammar validator**
+- [x] **Step 2: Create grammar validator**
 
 Create `tools/content/terrain-grammar-validator.ts` that:
 
@@ -3288,7 +3288,7 @@ artifacts/map-authoring/terrain-grammar-report.json
 
 and exit 0 while the project is in baseline-audit mode.
 
-- [ ] **Step 3: Add tests**
+- [x] **Step 3: Add tests**
 
 Create `tests/unit/terrain-grammar-validator.test.ts` verifying:
 
@@ -3307,7 +3307,7 @@ test('grammar validator reports required map properties', () => {
 });
 ```
 
-- [ ] **Step 4: Add scripts**
+- [x] **Step 4: Add scripts**
 
 In `package.json`, add:
 
@@ -3317,7 +3317,7 @@ In `package.json`, add:
 
 Do not include this in `verify:modern` until the strict variant is introduced after map and asset fixes.
 
-- [ ] **Step 5: Document authoring model**
+- [x] **Step 5: Document authoring model**
 
 Create `docs/terrain-authoring-model.md` describing the target model:
 
@@ -3329,7 +3329,7 @@ Base terrain owns the full cell. Overlay terrain is transparent decoration. Tran
 Stardew-style reference assets under `/Users/krisztiaan/dev/stardew-assets/Maps` are used only to study organization: seasonal outdoor sheets, focused path/overlay sheets, shadows, water, cliffs, and building chunks. BrowserQuest must use its own assets or newly authored/generated assets.
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 
@@ -3345,7 +3345,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
