@@ -586,6 +586,20 @@ export class SqlitePlayerPersistence {
             };
         }
 
+        // Profile create/update + session insert form one atomic claim: a crash
+        // mid-way must not leave a profile without its session row (or vice versa).
+        return this.#db.transaction(() => this.#claimPlayerSessionInTransaction({ connectionId, requestedName, accountNameKey }))();
+    }
+
+    #claimPlayerSessionInTransaction({
+        connectionId,
+        requestedName,
+        accountNameKey,
+    }: {
+        connectionId: string;
+        requestedName: string;
+        accountNameKey: string;
+    }): ClaimPlayerSessionResult {
         const existingByName = getRow<SessionByNameRow>(this.#selectSessionByName, accountNameKey);
         if (existingByName && existingByName.connection_id !== connectionId) {
             return {
@@ -779,8 +793,10 @@ export class SqlitePlayerPersistence {
         if (!normalizedName || !Number.isSafeInteger(achievementId) || achievementId <= 0) {
             return;
         }
-        this.#ensureAchievementProgress(normalizedName);
-        this.#insertUnlockedAchievement.run(normalizedName, achievementId, Date.now());
+        this.#db.transaction(() => {
+            this.#ensureAchievementProgress(normalizedName);
+            this.#insertUnlockedAchievement.run(normalizedName, achievementId, Date.now());
+        })();
     }
 
     incrementAchievementCounters({
@@ -813,8 +829,10 @@ export class SqlitePlayerPersistence {
             return;
         }
 
-        this.#ensureAchievementProgress(normalizedName);
-        this.#incrementAchievementProgress.run(normalizedName, rat, skeleton, kills, damage, revives, Date.now());
+        this.#db.transaction(() => {
+            this.#ensureAchievementProgress(normalizedName);
+            this.#incrementAchievementProgress.run(normalizedName, rat, skeleton, kills, damage, revives, Date.now());
+        })();
     }
 
     listPasskeyCredentialsByName(

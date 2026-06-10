@@ -1,8 +1,39 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
 import { AUTH_COOKIE_MAX_AGE_SECONDS } from '../shared/auth/cookie-keys';
 import { normalizeIdentityKeyOrNull } from './identity';
 
 let runtimeSessionSecret: string | null = null;
+
+function resolveSessionSecretFilePath(): string {
+    const override = process.env.BQ_AUTH_SESSION_SECRET_FILE;
+    return path.resolve(
+        typeof override === 'string' && override.trim().length > 0 ? override.trim() : './server/.data/auth-session-secret'
+    );
+}
+
+function loadOrCreatePersistedSecret(): string | null {
+    // Persist the generated secret so restarts do not invalidate every
+    // session token (logging all players out). Env var still wins.
+    const secretFile = resolveSessionSecretFilePath();
+    try {
+        const existing = readFileSync(secretFile, 'utf8').trim();
+        if (existing.length > 0) {
+            return existing;
+        }
+    } catch {
+        // fall through to creation
+    }
+    try {
+        const secret = randomBytes(32).toString('base64url');
+        mkdirSync(path.dirname(secretFile), { recursive: true });
+        writeFileSync(secretFile, `${secret}\n`, { mode: 0o600 });
+        return secret;
+    } catch {
+        return null;
+    }
+}
 
 function encodeBase64Url(value: string): string {
     return Buffer.from(value, 'utf8').toString('base64url');
@@ -26,10 +57,18 @@ function resolveSessionSecret(explicitSecret?: string): string {
         const fromEnv = typeof process.env.BQ_AUTH_SESSION_SECRET === 'string'
             ? process.env.BQ_AUTH_SESSION_SECRET.trim()
             : '';
-        runtimeSessionSecret = fromEnv.length > 0 ? fromEnv : randomBytes(32).toString('base64url');
+        runtimeSessionSecret =
+            fromEnv.length > 0
+                ? fromEnv
+                : (loadOrCreatePersistedSecret() ?? randomBytes(32).toString('base64url'));
     }
 
     return runtimeSessionSecret;
+}
+
+/** Test-only: clears the process-cached secret so persistence across "restarts" can be exercised. */
+export function resetRuntimeSessionSecretForTest(): void {
+    runtimeSessionSecret = null;
 }
 
 function computeSignature(input: string, secret: string): string {

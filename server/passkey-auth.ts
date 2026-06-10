@@ -428,6 +428,11 @@ function consumePendingChallenge({
     return pending;
 }
 
+/** Test-only: observe pending challenge store sizes to lock the sweep property. */
+export function getPendingChallengeCountsForTest(): Readonly<{ register: number; login: number }> {
+    return Object.freeze({ register: pendingRegisterChallenges.size, login: pendingLoginChallenges.size });
+}
+
 function pruneExpiredChallenges(store: Map<string, PendingChallenge>, nowMs: number): void {
     for (const [key, pending] of store.entries()) {
         if (pending.expiresAtMs <= nowMs) {

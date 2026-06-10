@@ -1990,6 +1990,7 @@ function createApplyInboundCommandsSystem(
             if (!cmd) {
                 continue;
             }
+            try {
 
             if (cmd.type === 'HELLO') {
                 const player = world.getConnectionPlayerById(cmd.source.playerId);
@@ -2359,6 +2360,16 @@ function createApplyInboundCommandsSystem(
                     break;
                 default:
                     throw new Error('Unhandled inbound command type.');
+            }
+            } catch (error) {
+                // Error boundary: one malformed or buggy command must not take
+                // the whole world down. Drop the command, log, keep ticking.
+                log.event('error', 'pipeline.command_error', {
+                    commandType: cmd.type,
+                    playerId: 'source' in cmd ? cmd.source.playerId : null,
+                    tick: ctx.tick,
+                    error: error instanceof Error ? error.message : String(error),
+                });
             }
         }
     };

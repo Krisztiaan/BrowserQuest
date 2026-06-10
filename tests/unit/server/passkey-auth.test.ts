@@ -310,3 +310,33 @@ test('passkey auth endpoint rejects unsupported method and unknown path', async 
         }
     });
 });
+
+test('abandoned register challenges are swept by any later auth request after TTL', async () => {
+    await withTempPlayerDb(async (dbPath) => {
+        const persistence = new SqlitePlayerPersistence(dbPath);
+        try {
+            const { getPendingChallengeCountsForTest } = await import('../../../server/passkey-auth');
+            const t0 = 1_000_000;
+            const optionsResponse = await createPasskeyAuthResponse({
+                request: createJsonRequest('/auth/passkey/register/options', { username: 'abandoner' }),
+                persistence,
+                dependencies: { nowMs: () => t0 },
+            });
+            expect(optionsResponse.status).toBe(200);
+            const before = getPendingChallengeCountsForTest();
+            expect(before.register).toBeGreaterThan(0);
+
+            // an unrelated request after the TTL sweeps the abandoned challenge
+            const afterTtl = t0 + 5 * 60 * 1000 + 1;
+            await createPasskeyAuthResponse({
+                request: createJsonRequest('/auth/passkey/logout', {}),
+                persistence,
+                dependencies: { nowMs: () => afterTtl },
+            });
+            const after = getPendingChallengeCountsForTest();
+            expect(after.register).toBe(0);
+        } finally {
+            persistence.close();
+        }
+    });
+});

@@ -12,6 +12,7 @@ export type SchedulerHooks = Partial<{
     onSystemStart(stage: SchedulerStage, name: string): void;
     onSystemEnd(stage: SchedulerStage, name: string, elapsedMs: number): void;
     onSystemBudgetExceeded(stage: SchedulerStage, name: string, budgetMs: number, elapsedMs: number): void;
+    onSystemError(stage: SchedulerStage, name: string, error: unknown): void;
 }>;
 
 type RegisteredSystem<TCommand, TEvent> = Readonly<{
@@ -73,7 +74,22 @@ export class Scheduler<TCommand = never, TEvent = never> {
             }
             this.#hooks.onSystemStart?.(stage, sys.name);
             const startedAt = this.#nowMs();
-            sys.run(state, ctx);
+            try {
+                sys.run(state, ctx);
+            } catch (error) {
+                // Determinism tripwires must fail fast - they signal a bug that
+                // corrupts simulation reproducibility, not a recoverable fault.
+                if (error instanceof Error && error.message.includes('nondeterminism guard')) {
+                    throw error;
+                }
+                // Error boundary: a throwing system is isolated to this tick;
+                // remaining systems still run and the world keeps ticking.
+                if (this.#hooks.onSystemError) {
+                    this.#hooks.onSystemError(stage, sys.name, error);
+                } else {
+                    console.error(`scheduler: system "${sys.name}" (${stage}) threw`, error);
+                }
+            }
             const elapsedMs = this.#nowMs() - startedAt;
             this.#hooks.onSystemEnd?.(stage, sys.name, elapsedMs);
             const budgetMs = sys.budgetMs;
