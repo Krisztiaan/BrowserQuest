@@ -198,11 +198,11 @@ function detectTransparentBorderGids(params: {
     );
 
     if (processResult.status !== 0) {
-        const stderr = processResult.stderr?.trim() || '(no stderr)';
+        const stderr = processResult.stderr.trim() || '(no stderr)';
         fail(`Failed transparent-border detection via python3/Pillow: ${stderr}`);
     }
 
-    const stdout = processResult.stdout?.trim() || '';
+    const stdout = processResult.stdout.trim() || '';
     const parsed = asRecord(JSON.parse(stdout));
     if (!parsed) {
         fail('Transparent-border detector returned invalid JSON.');

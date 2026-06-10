@@ -15,6 +15,12 @@ function makeGrid(width: number, height: number, fill = 0): number[][] {
     return grid;
 }
 
+function requireGridRow(grid: number[][], y: number): number[] {
+    const row = grid[y];
+    expect(row).toBeDefined();
+    return row as number[];
+}
+
 test('resolveMoveToTargetCandidates returns 8-neighbor candidates when stopAdjacentToTarget is true', () => {
     const to = gridPos(10, 20);
     const candidates = resolveMoveToTargetCandidates({
@@ -41,15 +47,15 @@ test('findBestPathToCandidates can choose a diagonal-adjacent stop tile when all
     const grid = makeGrid(width, height, 0);
 
     // Target at (2,2). Block all four cardinals around it.
-    grid[2]![3] = 1;
-    grid[2]![1] = 1;
-    grid[3]![2] = 1;
-    grid[1]![2] = 1;
+    requireGridRow(grid, 2)[3] = 1;
+    requireGridRow(grid, 2)[1] = 1;
+    requireGridRow(grid, 3)[2] = 1;
+    requireGridRow(grid, 1)[2] = 1;
 
     // Of the four diagonal candidates, leave only (1,1) reachable.
-    grid[3]![3] = 1;
-    grid[1]![3] = 1;
-    grid[3]![1] = 1;
+    requireGridRow(grid, 3)[3] = 1;
+    requireGridRow(grid, 1)[3] = 1;
+    requireGridRow(grid, 3)[1] = 1;
     // grid[1]![1] remains free
 
     const to = gridPos(2, 2);
@@ -66,6 +72,8 @@ test('findBestPathToCandidates can choose a diagonal-adjacent stop tile when all
     });
 
     expect(best).not.toBeNull();
-    expect(best!.at(-1)).toEqual([1, 1]);
+    if (!best) {
+        throw new Error('Expected path to diagonal-adjacent stop tile.');
+    }
+    expect(best.at(-1)).toEqual([1, 1]);
 });
-

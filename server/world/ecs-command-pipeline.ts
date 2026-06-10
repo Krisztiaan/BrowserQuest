@@ -265,6 +265,13 @@ const MAX_CHUNK_SNAPSHOTS_PER_TICK_PER_PLAYER = 8;
 const MAX_CHUNK_DELTA_CHANGES_PER_MESSAGE = 256;
 const log = Log.getLogger();
 
+function requireDefined<T>(value: T | undefined, message: string): T {
+    if (value === undefined) {
+        throw new Error(message);
+    }
+    return value;
+}
+
 function resolvePlayerIdentityKey(player: { accountNameKey?: string; name?: string } | null | undefined): string | null {
     return resolveIdentityKey(player);
 }
@@ -1381,17 +1388,16 @@ function runServerAuthoritativeCombatSystem({
                 continue;
             }
             if (isPlayerVsMob) {
-                if (!attackerPos || !targetPos) {
-                    continue;
-                }
+                const loggedAttackerPos = requireDefined(attackerPos, 'Missing attacker position while starting player windup.');
+                const loggedTargetPos = requireDefined(targetPos, 'Missing target position while starting player windup.');
                 state.events.push({ type: 'ENTITY_ATTACKED', attackerId: engagement.attackerId, targetId: engagement.targetId });
                 log.event('info', 'combat.player_windup_started', {
                     attackerId: engagement.attackerId,
                     targetId: engagement.targetId,
                     profile: resolveServerMovementNetcodeConfig().profileId,
                     tick: ctx.tick,
-                    attackerPos: { x: attackerPos.x, y: attackerPos.y },
-                    targetPos: { x: targetPos.x, y: targetPos.y },
+                    attackerPos: { x: loggedAttackerPos.x, y: loggedAttackerPos.y },
+                    targetPos: { x: loggedTargetPos.x, y: loggedTargetPos.y },
                     startedViaGrace: !isInRange && isInRangeWithGrace,
                 });
             }

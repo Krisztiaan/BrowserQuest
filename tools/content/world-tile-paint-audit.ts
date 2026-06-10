@@ -181,7 +181,7 @@ function findDuplicatePaints(layers: readonly TileLayer[], width: number, height
             for (let b = a + 1; b < stack.length; b += 1) {
                 const lower = stack[a];
                 const higher = stack[b];
-                if (!lower || !higher || lower.gid !== higher.gid) {
+                if (!lower || lower.gid !== higher?.gid) {
                     continue;
                 }
                 duplicates.push({

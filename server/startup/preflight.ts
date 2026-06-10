@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import type { MapPack } from '../../shared/maps/map-pack';
 import { validateMapPayload } from '../map';
 import { compileRuntimeMapPackFromPayload } from '../runtime-map-pack-source';
 
@@ -102,7 +103,7 @@ export async function ensureMapPreflightValid({
         return false;
     }
 
-    let runtimePack;
+    let runtimePack: MapPack;
     try {
         runtimePack = await compileRuntimeMapPackFromPayload(parsedMapPayload, mapFilePath);
     } catch (error) {

@@ -54,3 +54,26 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk bun test tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-auto-aggro-system.test.ts tests/unit/mmo/server-door-traversal.test.ts --timeout 20000`: pass, 17 pass / 0 fail.
 - Next action:
   - Commit Ticket 0.2 and start Ticket 0.3 lint baseline.
+
+### 2026-06-10 11:20 - Ticket 0.3 Restore Lint Baseline
+
+- Status: done
+- Scope:
+  - Fix current lint errors after Ticket 0.2.
+  - Keep changes mechanical and local.
+- Key actions:
+  - Ticket 0.2 committed.
+  - Captured current lint baseline: 25 errors and 96 warnings.
+  - Ran ESLint autofix; remaining lint baseline is 7 errors and 83 warnings.
+- Evidence:
+  - `rtk bun run lint`: failed, 25 errors / 96 warnings.
+  - `rtk bun x eslint --fix "client/**/*.{ts,js}" "server/**/*.{ts,js}" "shared/**/*.{ts,js}" "tools/**/*.ts" "tests/**/*.ts"`: failed after autofix with 7 errors / 83 warnings.
+  - `rtk bun run lint`: failed, 0 errors / 67 warnings after unused-declaration cleanup.
+  - `rtk bun run lint`: passed with `--max-warnings=0` after typed warning cleanup.
+  - `rtk bun run typecheck`: initially failed on position narrowing and queue reads; fixed with explicit local guards/helpers.
+  - `rtk bun run lint`: passed after typecheck follow-up.
+  - `rtk bun run typecheck`: passed.
+  - `rtk bun run format:check`: passed.
+  - `rtk git commit -m "fix: restore lint baseline"`: committed Ticket 0.3.
+- Next action:
+  - Proceed to Ticket 0.4 test baseline.

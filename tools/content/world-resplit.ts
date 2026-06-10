@@ -105,6 +105,10 @@ function asArray(value: unknown): unknown[] {
     return Array.isArray(value) ? value : [];
 }
 
+function zeroTileData(length: number): number[] {
+    return Array.from({ length }, (): number => 0);
+}
+
 function asNonEmptyString(value: unknown): string | null {
     return typeof value === 'string' && value.trim().length > 0 ? value : null;
 }
@@ -113,18 +117,8 @@ function asNumber(value: unknown): number | null {
     return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function isVisibleLayer(layer: { visible?: boolean | number } | null | undefined): boolean {
-    if (!layer) return false;
-    if (layer.visible === undefined) return true;
-    return Boolean(layer.visible);
-}
-
 function tileIndex(x: number, y: number, width: number): number {
     return y * width + x;
-}
-
-function clamp(value: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, value));
 }
 
 function pad2(n: number): string {
@@ -133,11 +127,11 @@ function pad2(n: number): string {
 
 function propMap(obj: { properties?: TiledProperty[] } | null | undefined): Record<string, unknown> {
     const out: Record<string, unknown> = {};
-    const props = Array.isArray(obj?.properties) ? (obj?.properties as TiledProperty[]) : [];
+    const props = Array.isArray(obj?.properties) ? obj.properties : [];
     for (let i = 0; i < props.length; i += 1) {
         const p = props[i];
         if (!p) continue;
-        const name = p ? asNonEmptyString(p.name) : null;
+        const name = asNonEmptyString(p.name);
         if (!name) continue;
         out[name] = p.value;
     }
@@ -146,7 +140,7 @@ function propMap(obj: { properties?: TiledProperty[] } | null | undefined): Reco
 
 function upsertProp(properties: TiledProperty[] | undefined, name: string, type: string, value: ScalarValue): TiledProperty[] {
     const next = Array.isArray(properties) ? [...properties] : [];
-    const idx = next.findIndex((p) => p && p.name === name);
+    const idx = next.findIndex((p) => p.name === name);
     const entry: TiledProperty = { name, type, value };
     if (idx >= 0) {
         next[idx] = entry;
@@ -166,7 +160,7 @@ function requireTileLayerData(world: TiledMap, name: string): ReadonlyArray<numb
     // Note: Tiled `visible=false` is an editor hint. Gameplay-critical layers like `entities` and `blocking`
     // are frequently authored as invisible; we must still preserve their data when regenerating maps.
     if (!layer || !Array.isArray(layer.data)) {
-        return new Array(world.width * world.height).fill(0);
+        return zeroTileData(world.width * world.height);
     }
     if (layer.data.length !== world.width * world.height) {
         fail(`Invalid world layer "${name}": expected ${world.width * world.height}, got ${layer.data.length}`);
@@ -187,7 +181,7 @@ function collectTileLayerNames(world: TiledMap): string[] {
 
 function collectObjectLayers(world: TiledMap): Array<Extract<TiledLayer, { type: 'objectgroup' }>> {
     const layers = Array.isArray(world.layers) ? world.layers : [];
-    return layers.filter((l) => l.type === 'objectgroup') as Array<Extract<TiledLayer, { type: 'objectgroup' }>>;
+    return layers.filter((l) => l.type === 'objectgroup');
 }
 
 function makeMaskFromLayers({
@@ -243,7 +237,10 @@ function labelComponents({
         let y1 = y0;
 
         while (head < tail) {
-            const cur = q[head++]!;
+            const cur = q[head++];
+            if (cur === undefined) {
+                fail('Internal component queue read outside populated range.');
+            }
             area += 1;
             const cx = cur % width;
             const cy = Math.floor(cur / width);
@@ -252,8 +249,7 @@ function labelComponents({
             if (cx > x1) x1 = cx;
             if (cy > y1) y1 = cy;
 
-            for (let d = 0; d < dirs.length; d += 1) {
-                const delta = dirs[d]!;
+            for (const delta of dirs) {
                 const ni = cur + delta;
                 if (ni < 0 || ni >= mask.length) continue;
                 // Prevent wrapping at row edges for +-1.
@@ -278,7 +274,12 @@ function labelComponents({
     // Remap labels to match the sorted component ordering for deterministic ids.
     const idRemap = new Map<number, number>();
     for (let i = 0; i < components.length; i += 1) {
-        idRemap.set(comps[i]!.id, components[i]!.id);
+        const source = comps[i];
+        const target = components[i];
+        if (!source || !target) {
+            fail('Internal component remap mismatch.');
+        }
+        idRemap.set(source.id, target.id);
     }
     for (let i = 0; i < labels.length; i += 1) {
         const v = labels[i] ?? 0;
@@ -398,7 +399,10 @@ function buildCropMask({
         if (labels[i] === componentId) base[i] = 1;
     }
     for (let i = 0; i < extraKeepCells.length; i += 1) {
-        const idx = extraKeepCells[i]!;
+        const idx = extraKeepCells[i];
+        if (idx === undefined) {
+            fail('Internal crop keep-cell read outside populated range.');
+        }
         if (idx >= 0 && idx < base.length) base[idx] = 1;
     }
 
@@ -494,7 +498,7 @@ async function run({
     const legacyDoors: LegacyDoor[] = legacyDoorsRaw.map((d) => d as LegacyDoor);
     const legacyByXY = new Map<string, LegacyDoor>();
     for (const d of legacyDoors) {
-        if (!d || !Number.isInteger(d.x) || !Number.isInteger(d.y)) continue;
+        if (!Number.isInteger(d.x) || !Number.isInteger(d.y)) continue;
         legacyByXY.set(`${d.x},${d.y}`, d);
     }
 
@@ -574,7 +578,6 @@ async function run({
     const allDoorPoints: Array<{ x: number; y: number }> = [];
     const seenDoorPoints = new Set<string>();
     for (const d of legacyDoors) {
-        if (!d) continue;
         const points: Array<[number, number]> = [
             [d.x, d.y],
             [d.tx, d.ty],
@@ -678,13 +681,15 @@ async function run({
     }): void => {
         for (let i = 0; i < labeled.components.length; i += 1) {
             const componentId = i + 1;
-            const mapId = mapIdsByDomainComponent.get(`${domain}:${componentId}`)!;
+            const mapId = mapIdsByDomainComponent.get(`${domain}:${componentId}`);
+            if (!mapId) {
+                fail(`Missing map id for ${domain} component ${componentId}.`);
+            }
             const extraDoorCells = (doorsByMapId.get(mapId) ?? []).map((d) => d.globalIdx);
 
             const hasAnyTileAt = (idx: number): boolean => {
                 // Consider any tilelayer except "don't remove this layer" as tile-bearing for cropping.
-                for (let j = 0; j < layerNames.length; j += 1) {
-                    const name = layerNames[j]!;
+                for (const name of layerNames) {
                     if (name === "don't remove this layer") continue;
                     const data = allTileLayerDataByName[name];
                     if (!data) continue;
@@ -835,8 +840,8 @@ async function run({
                 if (!plan.includedTileLayerNames.includes(name)) {
                     continue;
                 }
-                const data = allTileLayerDataByName[name] ?? [];
-                const out: number[] = new Array(bbox.w * bbox.h).fill(0);
+                const data = allTileLayerDataByName[name] ?? zeroTileData(width * height);
+                const out = zeroTileData(bbox.w * bbox.h);
                 for (let y = bbox.y0; y <= bbox.y1; y += 1) {
                     for (let x = bbox.x0; x <= bbox.x1; x += 1) {
                         const gi = tileIndex(x, y, width);
@@ -844,7 +849,7 @@ async function run({
                         const src = data[gi] ?? 0;
                         const lx = x - bbox.x0;
                         const ly = y - bbox.y0;
-                        out[ly * bbox.w + lx] = src as number;
+                        out[ly * bbox.w + lx] = src;
                     }
                 }
                 outLayers.push({
@@ -862,12 +867,11 @@ async function run({
                 continue;
             }
 
-            if (layer.type === 'objectgroup') {
-                const name = layer.name ?? '';
-                if (!plan.includedObjectLayerNames.includes(name)) {
-                    continue;
-                }
-                const outObjects: unknown[] = [];
+            const name = layer.name ?? '';
+            if (!plan.includedObjectLayerNames.includes(name)) {
+                continue;
+            }
+            const outObjects: unknown[] = [];
 
                 if (name === 'doors') {
                     const doorPoints = doorsByMapId.get(plan.id) ?? [];
@@ -932,19 +936,18 @@ async function run({
                     }
                 }
 
-                if (outObjects.length > 0) {
-                    outLayers.push({
-                        draworder: layer.draworder ?? 'topdown',
-                        id: nextLayerId++,
-                        name,
-                        opacity: typeof layer.opacity === 'number' ? layer.opacity : 1,
-                        type: 'objectgroup',
-                        visible: true,
-                        x: 0,
-                        y: 0,
-                        objects: outObjects,
-                    });
-                }
+            if (outObjects.length > 0) {
+                outLayers.push({
+                    draworder: layer.draworder ?? 'topdown',
+                    id: nextLayerId++,
+                    name,
+                    opacity: typeof layer.opacity === 'number' ? layer.opacity : 1,
+                    type: 'objectgroup',
+                    visible: true,
+                    x: 0,
+                    y: 0,
+                    objects: outObjects,
+                });
             }
         }
 

@@ -10,7 +10,7 @@ type StepSummary = Readonly<{
     command: string[];
     durationMs: number;
     status: number;
-    parsedJson: unknown | null;
+    parsedJson: unknown;
     stdout: string;
     stderr: string;
 }>;
@@ -26,7 +26,7 @@ function parseCsv(raw: string): string[] {
         .filter((entry) => entry.length > 0);
 }
 
-function maybeParseJson(stdout: string): unknown | null {
+function maybeParseJson(stdout: string): unknown {
     const trimmed = stdout.trim();
     if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
         return null;
@@ -43,8 +43,8 @@ function runBunStep(name: string, command: string[]): StepSummary {
     const result = spawnSync('bun', command, { encoding: 'utf8' });
     const durationMs = Date.now() - startedAt;
     const status = result.status ?? 1;
-    const stdout = result.stdout ?? '';
-    const stderr = result.stderr ?? '';
+    const stdout = result.stdout;
+    const stderr = result.stderr;
     const parsedJson = maybeParseJson(stdout);
     if (status !== 0) {
         const printed = [
@@ -117,7 +117,7 @@ async function main(): Promise<void> {
     const mapPathInput = String(parsedArgs.map ?? 'assets/maps/tiled/world.json');
     const mapPathAbs = path.resolve(process.cwd(), mapPathInput);
     const write = Boolean(parsedArgs.write);
-    const backupEnabled = write && !Boolean(parsedArgs['no-backup']);
+    const backupEnabled = write && !parsedArgs['no-backup'];
     const skipVoidCull = Boolean(parsedArgs['skip-void-cull']);
     const skipCollisionMigration = Boolean(parsedArgs['skip-collision-migration']);
     const skipIdiomatic = Boolean(parsedArgs['skip-idiomatic']);
@@ -125,7 +125,7 @@ async function main(): Promise<void> {
     const voidTileId = Number(parsedArgs['void-tile-id'] ?? 3);
     const voidAlsoTileIds = String(parsedArgs['void-also-tile-ids'] ?? '27');
     const voidOcclusionDepth = Number(parsedArgs['void-occlusion-depth'] ?? 1);
-    const transparentSoftEnabled = !Boolean(parsedArgs['disable-transparent-soft']);
+    const transparentSoftEnabled = !parsedArgs['disable-transparent-soft'];
     const voidSoftBorderMinRatio = Number(parsedArgs['void-soft-border-min-ratio'] ?? 0.15);
     const voidAlphaThreshold = Number(parsedArgs['void-alpha-threshold'] ?? 0);
     const dropPlateauMask = Boolean(parsedArgs['drop-plateau-mask']);

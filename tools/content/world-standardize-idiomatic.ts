@@ -132,16 +132,16 @@ async function main(): Promise<void> {
     );
 
     const mapPath = path.resolve(process.cwd(), String(parsedArgs.map ?? 'assets/maps/tiled/world.json'));
-    const externalizeTilesets = !Boolean(parsedArgs['no-externalize-tilesets']);
+    const externalizeTilesets = !parsedArgs['no-externalize-tilesets'];
     const dropPlateauMask = Boolean(parsedArgs['drop-plateau-mask']);
     const dropBlockingMask = Boolean(parsedArgs['drop-blocking-mask']);
     const renamePlateauMask = Boolean(parsedArgs['rename-plateau-mask']);
     const renameBlockingMask = Boolean(parsedArgs['rename-blocking-mask']);
-    const setObjectTypes = !Boolean(parsedArgs['no-set-object-types']);
-    const setLayerClasses = !Boolean(parsedArgs['no-set-layer-classes']);
-    const setObjectNames = !Boolean(parsedArgs['no-set-object-names']);
-    const coerceIntProps = !Boolean(parsedArgs['no-coerce-int-props']);
-    const removeEmptyObjectProps = !Boolean(parsedArgs['no-remove-empty-object-props']);
+    const setObjectTypes = !parsedArgs['no-set-object-types'];
+    const setLayerClasses = !parsedArgs['no-set-layer-classes'];
+    const setObjectNames = !parsedArgs['no-set-object-names'];
+    const coerceIntProps = !parsedArgs['no-coerce-int-props'];
+    const removeEmptyObjectProps = !parsedArgs['no-remove-empty-object-props'];
     const write = Boolean(parsedArgs.write);
 
     const tilesheetSourceAbs = path.resolve(process.cwd(), String(parsedArgs['tilesheet-source'] ?? 'assets/maps/tiled/tilesheet.wang.tsj'));

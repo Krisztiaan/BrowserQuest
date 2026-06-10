@@ -31,30 +31,31 @@ function createDoorTraversalHost({
     delivered: WorldMessage[];
     includeResolveDoorTeleport: boolean;
 }) {
+    const testMap = {
+        getCheckpoint() {
+            return null;
+        },
+        isDoor(x: number, y: number) {
+            return x === 5 && y === 5;
+        },
+        getDoorDestination(x: number, y: number) {
+            return x === 5 && y === 5 ? { x: 10, y: 10 } : null;
+        },
+        getGroupIdFromPosition() {
+            return 'g';
+        },
+        forEachAdjacentGroup(_groupId: string | null | undefined, cb: (groupId: string) => void) {
+            cb('g');
+        },
+    };
     const host = {
         ups: 50,
-        map: {
-            getCheckpoint() {
-                return null;
-            },
-            isDoor(x: number, y: number) {
-                return x === 5 && y === 5;
-            },
-            getDoorDestination(x: number, y: number) {
-                return x === 5 && y === 5 ? { x: 10, y: 10 } : null;
-            },
-            getGroupIdFromPosition() {
-                return 'g';
-            },
-            forEachAdjacentGroup(_groupId: string | null | undefined, cb: (groupId: string) => void) {
-                cb('g');
-            },
-        },
+        map: testMap,
         getDefaultMapId() {
             return 'world_01';
         },
         getMapById(mapId: string) {
-            return mapId === 'world_01' ? this.map : null;
+            return mapId === 'world_01' ? testMap : null;
         },
         getConnectionPlayerById(id: number) {
             return id === player.id ? player : null;

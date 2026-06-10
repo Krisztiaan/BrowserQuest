@@ -311,14 +311,24 @@ rtk git commit -m "fix: restore TypeScript baseline"
 
 **Files:**
 - Modify as reported by `rtk bun run lint`, currently including:
-  - `server/generated/mob-properties.generated.ts`
+  - `server/startup/preflight.ts`
+  - `server/world-server.ts`
+  - `server/world/chest-item-lifecycle.ts`
+  - `server/world/ecs-command-pipeline.ts`
+  - `tests/unit/mmo/server-door-traversal.test.ts`
   - `tests/unit/server-world-map-pack-bootstrap.test.ts`
+  - `tests/unit/server/runtime/runtime-map-pack-route.test.ts`
+  - `tests/unit/world/move-to-planning.test.ts`
   - `tools/content/house-regenerate.ts`
+  - `tools/content/map-pack-modernize-legacy.ts`
+  - `tools/content/tileset-wang-scaffold.ts`
   - `tools/content/world-map-validator.ts`
+  - `tools/content/world-null-outside-void.ts`
   - `tools/content/world-render-cluster-audit.ts`
   - `tools/content/world-resplit.ts`
   - `tools/content/world-standardize-idiomatic.ts`
   - `tools/content/world-standardize-pipeline.ts`
+  - `tools/content/world-tile-paint-audit.ts`
 - Reference: `eslint.config.mjs`
 
 **Acceptance criteria:**
@@ -331,7 +341,7 @@ rtk git commit -m "fix: restore TypeScript baseline"
 
 **Dependencies/blockers:** Ticket 0.2.
 
-- [ ] **Step 1: Re-run lint after type fixes**
+- [x] **Step 1: Re-run lint after type fixes**
 
 Run:
 
@@ -341,7 +351,7 @@ rtk bun run lint
 
 Expected before cleanup: lint errors remain, but the exact list may be smaller after Ticket 0.2.
 
-- [ ] **Step 2: Fix unused declarations**
+- [x] **Step 2: Fix unused declarations**
 
 For every `no-unused-vars` error, either delete the unused declaration or prefix only intentionally required callback parameters with `_`.
 
@@ -355,7 +365,7 @@ function visitLayer(_unusedLayerName: string, layer: LayerRecord): void {
 
 Do not prefix unused top-level functions that are genuinely dead; delete those functions.
 
-- [ ] **Step 3: Fix unnecessary assertions**
+- [x] **Step 3: Fix unnecessary assertions**
 
 For every `no-unnecessary-type-assertion`, remove only the redundant assertion.
 
@@ -373,7 +383,7 @@ const entry = value;
 
 only where TypeScript already infers `ExistingType`.
 
-- [ ] **Step 4: Fix redundant Boolean calls**
+- [x] **Step 4: Fix redundant Boolean calls**
 
 Change redundant Boolean wrappers:
 
@@ -389,9 +399,11 @@ condition
 
 when the surrounding expression already requires a boolean.
 
-- [ ] **Step 5: Fix generated eslint-disable directive**
+- [x] **Step 5: Fix generated eslint-disable directive**
 
-If `server/generated/mob-properties.generated.ts` still starts with an unused disable directive, update the generator that emits it if one exists. Search:
+Status: not applicable in the final Ticket 0.3 lint output. `server/generated/mob-properties.generated.ts` did not require a generated-file edit after the earlier autofix/type cleanup reduced the warning set.
+
+If this returns in a later lint run, update the generator that emits it if one exists. Search:
 
 ```bash
 rtk rg -n "mob-properties.generated|eslint-disable" tools server shared
@@ -403,7 +415,7 @@ If no generator emits the header, remove the directive from the generated file a
 rtk bun run check:content:prefabs
 ```
 
-- [ ] **Step 6: Verify lint and typecheck**
+- [x] **Step 6: Verify lint and typecheck**
 
 Run:
 
@@ -421,7 +433,7 @@ Expected:
 
 from ESLint.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
