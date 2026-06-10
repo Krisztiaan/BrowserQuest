@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
+import { Database } from 'bun:sqlite';
 import { rmSync } from 'node:fs';
 import path from 'node:path';
 import Types from '../../shared/gametypes-browser';
@@ -18,9 +19,25 @@ afterEach(() => {
     for (const dbPath of tempDbPaths.splice(0, tempDbPaths.length)) {
         try {
             rmSync(dbPath, { force: true });
+            rmSync(`${dbPath}-wal`, { force: true });
+            rmSync(`${dbPath}-shm`, { force: true });
         } catch (_) {
             // ignore cleanup errors
         }
+    }
+});
+
+test('player persistence initializes schema metadata version', () => {
+    const persistence = createPersistence();
+    const dbPath = persistence.databasePath;
+    persistence.close();
+
+    const db = new Database(dbPath, { readonly: true });
+    try {
+        const row = db.query(`SELECT value FROM schema_meta WHERE key = 'schema_version'`).get() as { value?: string } | null;
+        expect(row?.value).toBe('1');
+    } finally {
+        db.close();
     }
 });
 

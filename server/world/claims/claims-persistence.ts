@@ -3,6 +3,7 @@ import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import type { RectClaim } from './claims-store';
 import { normalizeIdentityKeyOrNull } from '../../identity';
+import { ensureSchemaVersion } from '../../sqlite-schema-meta';
 
 const DEFAULT_CLAIMS_DB_PATH = './server/.data/claims.sqlite';
 
@@ -50,6 +51,9 @@ export class SqliteClaimsPersistence {
             PRAGMA journal_mode=WAL;
             PRAGMA synchronous=NORMAL;
             PRAGMA foreign_keys=ON;
+        `);
+        ensureSchemaVersion(this.#db, 1);
+        this.#db.exec(`
 
             CREATE TABLE IF NOT EXISTS claims (
                 id INTEGER PRIMARY KEY,

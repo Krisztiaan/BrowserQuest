@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { Database } from 'bun:sqlite';
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,6 +15,21 @@ function withTempDbPath<T>(fn: (dbPath: string) => T): T {
         rmSync(dir, { recursive: true, force: true });
     }
 }
+
+test('claims persistence initializes schema metadata version', () => {
+    withTempDbPath((dbPath) => {
+        const persistence = new SqliteClaimsPersistence(dbPath);
+        persistence.close();
+
+        const db = new Database(dbPath, { readonly: true });
+        try {
+            const row = db.query(`SELECT value FROM schema_meta WHERE key = 'schema_version'`).get() as { value?: string } | null;
+            expect(row?.value).toBe('1');
+        } finally {
+            db.close();
+        }
+    });
+});
 
 test('ClaimsStore resolves claim ownership for a tile and round-trips through sqlite', () => {
     withTempDbPath((dbPath) => {

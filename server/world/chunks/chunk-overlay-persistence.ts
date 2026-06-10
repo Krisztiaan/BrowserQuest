@@ -2,6 +2,7 @@ import { Database } from 'bun:sqlite';
 import { mkdirSync } from 'node:fs';
 import path from 'node:path';
 import type { ChunkOverlayStore } from './chunk-overlay-store';
+import { ensureSchemaVersion } from '../../sqlite-schema-meta';
 
 const DEFAULT_CHUNK_DB_PATH = './server/.data/chunk-overlays.sqlite';
 
@@ -44,6 +45,9 @@ export class SqliteChunkOverlayPersistence {
             PRAGMA journal_mode=WAL;
             PRAGMA synchronous=NORMAL;
             PRAGMA foreign_keys=ON;
+        `);
+        ensureSchemaVersion(this.#db, 1);
+        this.#db.exec(`
 
             CREATE TABLE IF NOT EXISTS chunk_overlays (
                 map_id TEXT NOT NULL DEFAULT 'world_01',

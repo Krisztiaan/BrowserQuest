@@ -876,3 +876,31 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `docs: align defaults with friend-server target`.
   - Next action: Continue Phase 4 with Ticket 4.2 persistence schema versioning and backup CLI.
+
+### 2026-06-10 13:42 UTC - Ticket 4.2 Add Persistence Schema Versioning and Backup CLI
+
+- Status: done
+- Scope:
+  - Add schema metadata to player, claims, and chunk overlay SQLite stores.
+  - Add an admin backup CLI that copies SQLite DB/WAL/SHM files and reports verified sizes.
+- TODO:
+  - done: Add schema metadata helper and wire it into persistence constructors.
+  - done: Add schema metadata and backup CLI tests.
+  - done: Add backup CLI package script.
+  - done: Run targeted persistence and backup verification.
+  - done: Commit Ticket 4.2.
+- Key actions:
+  - 2026-06-10 13:42 UTC: Ticket started.
+  - Found existing tool arg parser at `tools/shared/cli-args.ts`; backup CLI will use the repo-local `../shared/cli-args` import path from `tools/admin`.
+  - Added `server/sqlite-schema-meta.ts` and called `ensureSchemaVersion(..., 1)` from player, claims, and chunk overlay SQLite constructors.
+  - Added `tools/admin/backup-sqlite.ts` and `admin:backup-sqlite` package script.
+  - Added schema metadata assertions and a backup CLI JSON/sidecar copy regression.
+- Evidence:
+  - `bun test tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-claims-store.test.ts tests/unit/mmo/server-chunk-overlay-store.test.ts tests/unit/mmo/server-chunk-overlay-persistence.test.ts tests/unit/tools-admin-backup-sqlite.test.ts --timeout 20000` passed: 24 pass, 0 fail.
+  - `bun run admin:backup-sqlite -- --db server/.data/player-profiles.sqlite --out .tmp/player-profiles.backup --json` passed and emitted `ok: true` with `57344` copied bytes.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+  - Commit: `feat: add sqlite schema metadata and backup cli`.
+  - Next action: Continue Phase 4 with Ticket 4.3 inventory and chest transactions.

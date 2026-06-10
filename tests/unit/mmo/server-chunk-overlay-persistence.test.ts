@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { Database } from 'bun:sqlite';
 import { mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -14,6 +15,21 @@ function withTempDbPath<T>(fn: (dbPath: string) => T): T {
         rmSync(dir, { recursive: true, force: true });
     }
 }
+
+test('chunk overlay persistence initializes schema metadata version', () => {
+    withTempDbPath((dbPath) => {
+        const persistence = new SqliteChunkOverlayPersistence(dbPath);
+        persistence.close();
+
+        const db = new Database(dbPath, { readonly: true });
+        try {
+            const row = db.query(`SELECT value FROM schema_meta WHERE key = 'schema_version'`).get() as { value?: string } | null;
+            expect(row?.value).toBe('1');
+        } finally {
+            db.close();
+        }
+    });
+});
 
 test('flushDirtyChunks persists overlays and loadRecentIntoStore reloads them', () => {
     withTempDbPath((dbPath) => {

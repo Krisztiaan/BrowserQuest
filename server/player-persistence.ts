@@ -5,6 +5,7 @@ import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
 import { normalizeIdentityKey } from './identity';
+import { ensureSchemaVersion } from './sqlite-schema-meta';
 
 const DEFAULT_PLAYER_DB_PATH = './server/.data/player-profiles.sqlite';
 type SqliteValue = string | number | bigint | Uint8Array | null;
@@ -372,6 +373,9 @@ export class SqlitePlayerPersistence {
         this.#db = new Database(this.databasePath, { create: true });
         this.#db.exec(`
             PRAGMA foreign_keys = ON;
+        `);
+        ensureSchemaVersion(this.#db, 1);
+        this.#db.exec(`
             CREATE TABLE IF NOT EXISTS players (
                 name_key TEXT PRIMARY KEY,
                 display_name TEXT NOT NULL,

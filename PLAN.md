@@ -4216,11 +4216,14 @@ rtk git commit -m "docs: align defaults with friend-server target"
 - Modify: `server/player-persistence.ts`
 - Modify: `server/world/claims/claims-persistence.ts`
 - Modify: `server/world/chunks/chunk-overlay-persistence.ts`
+- Create: `server/sqlite-schema-meta.ts`
 - Create: `tools/admin/backup-sqlite.ts`
 - Modify: `package.json`
 - Test: `tests/unit/server-player-persistence.test.ts`
 - Test: `tests/unit/mmo/server-claims-store.test.ts`
 - Test: `tests/unit/mmo/server-chunk-overlay-store.test.ts`
+- Test: `tests/unit/mmo/server-chunk-overlay-persistence.test.ts`
+- Test: `tests/unit/tools-admin-backup-sqlite.test.ts`
 
 **Acceptance criteria:**
 - Each SQLite DB has a `schema_meta` table with key `schema_version`.
@@ -4228,12 +4231,12 @@ rtk git commit -m "docs: align defaults with friend-server target"
 - Backup CLI verifies byte sizes and reports JSON output.
 
 **Verification plan:**
-- `rtk bun test tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-claims-store.test.ts tests/unit/mmo/server-chunk-overlay-store.test.ts --timeout 20000`
-- `rtk bun tools/admin/backup-sqlite.ts --db server/.data/player-profiles.sqlite --out .tmp/player-profiles.backup --json`
+- `rtk bun test tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-claims-store.test.ts tests/unit/mmo/server-chunk-overlay-store.test.ts tests/unit/mmo/server-chunk-overlay-persistence.test.ts tests/unit/tools-admin-backup-sqlite.test.ts --timeout 20000`
+- `rtk bun run admin:backup-sqlite -- --db server/.data/player-profiles.sqlite --out .tmp/player-profiles.backup --json`
 
 **Dependencies/blockers:** Phase 0.
 
-- [ ] **Step 1: Add schema meta helper**
+- [x] **Step 1: Add schema meta helper**
 
 Create a local helper in each persistence module or a shared helper `server/sqlite-schema-meta.ts`:
 
@@ -4254,7 +4257,7 @@ export function ensureSchemaVersion(db: Database, version: number): void {
 }
 ```
 
-- [ ] **Step 2: Call helper during DB init**
+- [x] **Step 2: Call helper during DB init**
 
 Call:
 
@@ -4264,14 +4267,14 @@ ensureSchemaVersion(this.#db, 1);
 
 after opening each SQLite DB and before creating application tables.
 
-- [ ] **Step 3: Add backup CLI**
+- [x] **Step 3: Add backup CLI**
 
 Create `tools/admin/backup-sqlite.ts`:
 
 ```ts
 import { copyFile, mkdir, stat } from 'node:fs/promises';
 import path from 'node:path';
-import { parseCliArgs } from '../../shared/cli-args';
+import { parseCliArgs } from '../shared/cli-args';
 
 const args = parseCliArgs(process.argv.slice(2), [
     { key: 'db', kind: 'string' },
@@ -4298,6 +4301,9 @@ for (const suffix of suffixes) {
     const target = path.join(outDir, path.basename(source));
     await copyFile(source, target);
     const targetStat = await stat(target);
+    if (targetStat.size !== sourceStat.size) {
+        throw new Error(`Backup size mismatch for ${source}: ${sourceStat.size} !== ${targetStat.size}`);
+    }
     copied.push({ source, target, bytes: targetStat.size });
 }
 
@@ -4314,7 +4320,7 @@ if (args.json) {
 }
 ```
 
-- [ ] **Step 4: Add package script**
+- [x] **Step 4: Add package script**
 
 In `package.json`, add:
 
@@ -4322,18 +4328,18 @@ In `package.json`, add:
 "admin:backup-sqlite": "bun tools/admin/backup-sqlite.ts"
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
 ```bash
-rtk bun test tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-claims-store.test.ts tests/unit/mmo/server-chunk-overlay-store.test.ts --timeout 20000
+rtk bun test tests/unit/server-player-persistence.test.ts tests/unit/mmo/server-claims-store.test.ts tests/unit/mmo/server-chunk-overlay-store.test.ts tests/unit/mmo/server-chunk-overlay-persistence.test.ts tests/unit/tools-admin-backup-sqlite.test.ts --timeout 20000
 rtk bun run admin:backup-sqlite -- --db server/.data/player-profiles.sqlite --out .tmp/player-profiles.backup --json
 ```
 
 Expected: tests pass and backup command emits JSON with `ok: true`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
