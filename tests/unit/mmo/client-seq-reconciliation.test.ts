@@ -110,7 +110,9 @@ test('client sends sequenced non-movement intents for tile/claim operations when
         sent.push(action);
     };
 
-    const capsJson = encodeProtocolCapabilitiesJson({ intentTypeIds: ['move.step', 'tile.edit', 'claim.create', 'claim.delete'] });
+    const capsJson = encodeProtocolCapabilitiesJson({
+        intentTypeIds: ['move.step', 'tile.edit', 'claim.create', 'claim.delete'],
+    });
     client.receiveWelcome([Types.Messages.WELCOME, 1, 'name', 0, 0, 100, 2, capsJson]);
 
     const tileSeq = client.sendTileEdit(10, 11, 123);
@@ -122,7 +124,12 @@ test('client sends sequenced non-movement intents for tile/claim operations when
     expect(deleteSeq).toBe(3);
     expect(sent).toEqual([
         [Types.Messages.INTENT, 1, 'tile.edit', encodeTileEditIntentPayload({ x: 10, y: 11, value: 123 }) ?? []],
-        [Types.Messages.INTENT, 2, 'claim.create', encodeClaimCreateIntentPayload({ x1: 10, y1: 10, x2: 12, y2: 12, editors: ['bob'] }) ?? []],
+        [
+            Types.Messages.INTENT,
+            2,
+            'claim.create',
+            encodeClaimCreateIntentPayload({ x1: 10, y1: 10, x2: 12, y2: 12, editors: ['bob'] }) ?? [],
+        ],
         [Types.Messages.INTENT, 3, 'claim.delete', encodeClaimDeleteIntentPayload({ id: 1 }) ?? []],
     ]);
     expect(kernel.clientPendingMoveSeqAcks.length).toBe(0);

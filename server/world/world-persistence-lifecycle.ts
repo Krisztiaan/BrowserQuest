@@ -40,7 +40,8 @@ function resolveWorldScopedDbPath(configured: string | undefined, fallbackPath: 
 }
 
 function resolveChunkOverlayDbPath(worldId: string, serverConfig: ServerConfig | null, env: PersistenceEnv): string {
-    const configuredFromEnv = typeof env.BQ_CHUNK_OVERLAY_DB_PATH === 'string' ? env.BQ_CHUNK_OVERLAY_DB_PATH.trim() : '';
+    const configuredFromEnv =
+        typeof env.BQ_CHUNK_OVERLAY_DB_PATH === 'string' ? env.BQ_CHUNK_OVERLAY_DB_PATH.trim() : '';
     const configuredPath = configuredFromEnv.length > 0 ? configuredFromEnv : serverConfig?.chunk_overlay_db_path;
     const fallbackPath = `./server/.data/chunk-overlays.${worldId}.sqlite`;
     return resolveWorldScopedDbPath(configuredPath, fallbackPath, worldId);
@@ -73,9 +74,9 @@ function resolveChunkFlushConfig(serverConfig: ServerConfig | null, env: Persist
     const maxChunksFromEnv = parsePositiveInteger(env.BQ_CHUNK_OVERLAY_FLUSH_MAX_CHUNKS);
     const loadLimitFromEnv = parsePositiveInteger(env.BQ_CHUNK_OVERLAY_BOOTSTRAP_LOAD_LIMIT_CHUNKS);
 
-    const flushIntervalMs = flushIntervalFromEnv ?? (serverConfig?.chunk_overlay_flush_interval_ms ?? 10_000);
-    const maxChunksPerFlush = maxChunksFromEnv ?? (serverConfig?.chunk_overlay_flush_max_chunks ?? 64);
-    const loadLimitChunks = loadLimitFromEnv ?? (serverConfig?.chunk_overlay_bootstrap_load_limit_chunks ?? 4096);
+    const flushIntervalMs = flushIntervalFromEnv ?? serverConfig?.chunk_overlay_flush_interval_ms ?? 10_000;
+    const maxChunksPerFlush = maxChunksFromEnv ?? serverConfig?.chunk_overlay_flush_max_chunks ?? 64;
+    const loadLimitChunks = loadLimitFromEnv ?? serverConfig?.chunk_overlay_bootstrap_load_limit_chunks ?? 4096;
 
     return Object.freeze({
         flushIntervalMs,

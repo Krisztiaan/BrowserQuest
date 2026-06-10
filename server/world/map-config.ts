@@ -35,13 +35,13 @@ export const isMapMobAreaConfig = (value: MapConfigValue): value is MapMobAreaCo
     }
     const entry = value as Partial<MapMobAreaConfig>;
     return (
-        (typeof entry.id === 'string' || typeof entry.id === 'number')
-        && typeof entry.count === 'number'
-        && typeof entry.mobKind === 'string'
-        && typeof entry.x === 'number'
-        && typeof entry.y === 'number'
-        && typeof entry.width === 'number'
-        && typeof entry.height === 'number'
+        (typeof entry.id === 'string' || typeof entry.id === 'number') &&
+        typeof entry.count === 'number' &&
+        typeof entry.mobKind === 'string' &&
+        typeof entry.x === 'number' &&
+        typeof entry.y === 'number' &&
+        typeof entry.width === 'number' &&
+        typeof entry.height === 'number'
     );
 };
 
@@ -51,15 +51,15 @@ export const isMapChestAreaConfig = (value: MapConfigValue): value is MapChestAr
     }
     const entry = value as Partial<MapChestAreaConfig>;
     return (
-        (typeof entry.id === 'string' || typeof entry.id === 'number')
-        && typeof entry.x === 'number'
-        && typeof entry.y === 'number'
-        && typeof entry.w === 'number'
-        && typeof entry.h === 'number'
-        && typeof entry.tx === 'number'
-        && typeof entry.ty === 'number'
-        && Array.isArray(entry.i)
-        && entry.i.every((item) => typeof item === 'string' || typeof item === 'number')
+        (typeof entry.id === 'string' || typeof entry.id === 'number') &&
+        typeof entry.x === 'number' &&
+        typeof entry.y === 'number' &&
+        typeof entry.w === 'number' &&
+        typeof entry.h === 'number' &&
+        typeof entry.tx === 'number' &&
+        typeof entry.ty === 'number' &&
+        Array.isArray(entry.i) &&
+        entry.i.every((item) => typeof item === 'string' || typeof item === 'number')
     );
 };
 
@@ -69,9 +69,9 @@ export const isMapChestConfig = (value: MapConfigValue): value is MapChestConfig
     }
     const entry = value as Partial<MapChestConfig>;
     return (
-        typeof entry.x === 'number'
-        && typeof entry.y === 'number'
-        && Array.isArray(entry.i)
-        && entry.i.every((item) => typeof item === 'string' || typeof item === 'number')
+        typeof entry.x === 'number' &&
+        typeof entry.y === 'number' &&
+        Array.isArray(entry.i) &&
+        entry.i.every((item) => typeof item === 'string' || typeof item === 'number')
     );
 };

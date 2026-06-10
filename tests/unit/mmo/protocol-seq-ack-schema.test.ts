@@ -15,7 +15,10 @@ test('protocol validates ACK and CORRECTION message shapes', () => {
 test('batch decode accepts ACK/CORRECTION frames and drops invalid entries', () => {
     expect(
         decodeServerToClientProtocolActionBatch(
-            JSON.stringify([[Types.Messages.ACK, 1], [Types.Messages.CORRECTION, 1, 2, 3, 'overworld']])
+            JSON.stringify([
+                [Types.Messages.ACK, 1],
+                [Types.Messages.CORRECTION, 1, 2, 3, 'overworld'],
+            ])
         )
     ).toEqual([
         [Types.Messages.ACK, 1],

@@ -349,12 +349,7 @@ function buildComponents(entries: readonly TileEntry[]): Component[] {
             maxX = Math.max(maxX, x);
             maxY = Math.max(maxY, y);
 
-            const neighbors = [
-                `${x - 1},${y}`,
-                `${x + 1},${y}`,
-                `${x},${y - 1}`,
-                `${x},${y + 1}`,
-            ];
+            const neighbors = [`${x - 1},${y}`, `${x + 1},${y}`, `${x},${y - 1}`, `${x},${y + 1}`];
             for (const neighbor of neighbors) {
                 if (!entriesByPosition.has(neighbor) || visited.has(neighbor)) {
                     continue;
@@ -381,14 +376,19 @@ function buildComponents(entries: readonly TileEntry[]): Component[] {
             buckets,
             collidableTiles,
             sameCellStacks,
-            entries: componentEntries.sort((a, b) => a.tileY - b.tileY || a.tileX - b.tileX || a.layerName.localeCompare(b.layerName)),
+            entries: componentEntries.sort(
+                (a, b) => a.tileY - b.tileY || a.tileX - b.tileX || a.layerName.localeCompare(b.layerName)
+            ),
         });
     }
 
     return components;
 }
 
-function summarizeLayerCoverage(entries: readonly TileEntry[], components: readonly Component[]): LayerCoverageSummary[] {
+function summarizeLayerCoverage(
+    entries: readonly TileEntry[],
+    components: readonly Component[]
+): LayerCoverageSummary[] {
     const componentByEntryId = new Map<string, Component>();
     for (const component of components) {
         for (const entry of component.entries) {
@@ -418,16 +418,31 @@ function summarizeLayerCoverage(entries: readonly TileEntry[], components: reado
                     continue;
                 }
                 const otherEntries = component.entries.filter((candidate) => candidate.id !== entry.id);
-                if (otherEntries.some((candidate) => candidate.bucket === entry.bucket && candidate.layerName !== entry.layerName)) {
+                if (
+                    otherEntries.some(
+                        (candidate) => candidate.bucket === entry.bucket && candidate.layerName !== entry.layerName
+                    )
+                ) {
                     sameBucketShared += 1;
                 }
                 if (otherEntries.some((candidate) => candidate.bucket !== entry.bucket)) {
                     foregroundShared += 1;
                 }
-                if (otherEntries.some((candidate) => candidate.family === entry.family && candidate.layerName !== entry.layerName)) {
+                if (
+                    otherEntries.some(
+                        (candidate) => candidate.family === entry.family && candidate.layerName !== entry.layerName
+                    )
+                ) {
                     sameFamilyOtherLayerShared += 1;
                 }
-                if (otherEntries.some((candidate) => candidate.tileX === entry.tileX && candidate.tileY === entry.tileY && candidate.layerName !== entry.layerName)) {
+                if (
+                    otherEntries.some(
+                        (candidate) =>
+                            candidate.tileX === entry.tileX &&
+                            candidate.tileY === entry.tileY &&
+                            candidate.layerName !== entry.layerName
+                    )
+                ) {
                     stacked += 1;
                 }
             }
@@ -446,7 +461,10 @@ function summarizeLayerCoverage(entries: readonly TileEntry[], components: reado
         .sort((a, b) => String(a.layer).localeCompare(String(b.layer)));
 }
 
-function topRepeatedSignatures(components: readonly Component[], kind: 'sameBucket' | 'foreground'): SignatureSummary[] {
+function topRepeatedSignatures(
+    components: readonly Component[],
+    kind: 'sameBucket' | 'foreground'
+): SignatureSummary[] {
     const buckets = new Map<string, { count: number; sample: Component }>();
     for (const component of components) {
         const hasForeground = component.buckets.includes('foreground');
@@ -525,7 +543,11 @@ function topSameFamilySplitSignatures(components: readonly Component[]): FamilyS
             const splitFamilies = [...new Set(sample.entries.map((entry) => entry.family))]
                 .map((family) => ({
                     family,
-                    layers: [...new Set(sample.entries.filter((entry) => entry.family === family).map((entry) => entry.layerName))].sort(),
+                    layers: [
+                        ...new Set(
+                            sample.entries.filter((entry) => entry.family === family).map((entry) => entry.layerName)
+                        ),
+                    ].sort(),
                 }))
                 .filter((entry) => entry.layers.length > 1);
             return {
@@ -569,7 +591,10 @@ async function main(): Promise<void> {
         .filter((entry): entry is UnknownRecord => entry !== null);
 
     const renderObjectLayers = layers.filter(
-        (layer) => asString(layer.type) === 'objectgroup' && isVisibleLayer(layer) && asArray(layer.objects).some((entry) => asInteger(asRecord(entry)?.gid) !== null)
+        (layer) =>
+            asString(layer.type) === 'objectgroup' &&
+            isVisibleLayer(layer) &&
+            asArray(layer.objects).some((entry) => asInteger(asRecord(entry)?.gid) !== null)
     );
 
     const tileEntries: TileEntry[] = [];
@@ -637,9 +662,7 @@ async function main(): Promise<void> {
     console.log('');
     console.log('Top repeated same-family split signatures:');
     for (const item of summary.repeatedSameFamilySplitSignatures) {
-        const splitFamilies = item.splitFamilies
-            .map((entry) => `${entry.family}=${entry.layers.join('+')}`)
-            .join(' ');
+        const splitFamilies = item.splitFamilies.map((entry) => `${entry.family}=${entry.layers.join('+')}`).join(' ');
         console.log(
             `- count=${item.count} families=${splitFamilies} size=${item.width}x${item.height} tiles=${item.tiles} collidable=${item.collidableTiles} stacked=${item.sameCellStacks} sample=${item.sampleOrigin.join(',')}`
         );

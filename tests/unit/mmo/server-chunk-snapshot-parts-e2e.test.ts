@@ -31,30 +31,30 @@ function isChunkSnapshotPartMessage(
     msg: WorldMessage
 ): msg is [number, number, number, number, number, number, number[] | Uint8Array] {
     return (
-        Array.isArray(msg)
-        && msg[0] === Types.Messages.CHUNK_SNAPSHOT_PART
-        && typeof msg[1] === 'number'
-        && typeof msg[2] === 'number'
-        && typeof msg[3] === 'number'
-        && typeof msg[4] === 'number'
-        && typeof msg[5] === 'number'
-        && (msg[6] instanceof Uint8Array || Array.isArray(msg[6]))
+        Array.isArray(msg) &&
+        msg[0] === Types.Messages.CHUNK_SNAPSHOT_PART &&
+        typeof msg[1] === 'number' &&
+        typeof msg[2] === 'number' &&
+        typeof msg[3] === 'number' &&
+        typeof msg[4] === 'number' &&
+        typeof msg[5] === 'number' &&
+        (msg[6] instanceof Uint8Array || Array.isArray(msg[6]))
     );
 }
 
 function isChunkSnapshotMessage(msg: WorldMessage): msg is [number, number, number, number, number[] | Uint8Array] {
     return (
-        Array.isArray(msg)
-        && msg[0] === Types.Messages.CHUNK_SNAPSHOT
-        && typeof msg[1] === 'number'
-        && typeof msg[2] === 'number'
-        && typeof msg[3] === 'number'
-        && (msg[4] instanceof Uint8Array || Array.isArray(msg[4]))
+        Array.isArray(msg) &&
+        msg[0] === Types.Messages.CHUNK_SNAPSHOT &&
+        typeof msg[1] === 'number' &&
+        typeof msg[2] === 'number' &&
+        typeof msg[3] === 'number' &&
+        (msg[4] instanceof Uint8Array || Array.isArray(msg[4]))
     );
 }
 
 test('server splits oversized chunk snapshots into CHUNK_SNAPSHOT_PART frames and client reassembles', () => {
-        const prev = process.env.BQ_TEST_CHUNK_SNAPSHOT_MAX_UTF8_BYTES;
+    const prev = process.env.BQ_TEST_CHUNK_SNAPSHOT_MAX_UTF8_BYTES;
     try {
         const maxValue = 0xffff_ffff;
         const single = encodeChunkSnapshotPayloadBinary({
@@ -86,7 +86,11 @@ test('server splits oversized chunk snapshots into CHUNK_SNAPSHOT_PART frames an
                 continue;
             }
             try {
-                const parts = encodeChunkSnapshotPayloadBinaryParts({ chunkSize: 32, overrides: fullOverrides, maxBytes: candidate });
+                const parts = encodeChunkSnapshotPayloadBinaryParts({
+                    chunkSize: 32,
+                    overrides: fullOverrides,
+                    maxBytes: candidate,
+                });
                 if (parts.length > 1 && parts.length <= 128) {
                     cap = candidate;
                     break;
@@ -219,12 +223,12 @@ test('server splits oversized chunk snapshots into CHUNK_SNAPSHOT_PART frames an
                 const partCount: unknown = part[5];
                 const payloadBytes: unknown = part[6];
                 if (
-                    typeof chunkX !== 'number'
-                    || typeof chunkY !== 'number'
-                    || typeof version !== 'number'
-                    || typeof partIndex !== 'number'
-                    || typeof partCount !== 'number'
-                    || (!(payloadBytes instanceof Uint8Array) && !Array.isArray(payloadBytes))
+                    typeof chunkX !== 'number' ||
+                    typeof chunkY !== 'number' ||
+                    typeof version !== 'number' ||
+                    typeof partIndex !== 'number' ||
+                    typeof partCount !== 'number' ||
+                    (!(payloadBytes instanceof Uint8Array) && !Array.isArray(payloadBytes))
                 ) {
                     continue;
                 }

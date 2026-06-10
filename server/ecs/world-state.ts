@@ -8,4 +8,3 @@ export class WorldState<TCommand = never, TEvent = never> {
     readonly commands = new Queue<TCommand>();
     readonly events = new Queue<TEvent>();
 }
-

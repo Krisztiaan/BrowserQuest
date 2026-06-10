@@ -48,4 +48,3 @@ test('clicking a dead mob tile issues move (not repeat attack) while corpse enti
     expect(kernel.clientInteractionIntent).toBe(null);
     expect(kernel.drainClientCommands()).toContainEqual({ type: 'playerGoTo', x: 5, y: 6 });
 });
-

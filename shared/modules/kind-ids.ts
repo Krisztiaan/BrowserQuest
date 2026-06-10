@@ -24,4 +24,3 @@ export function effectKindId(id: string): EffectKindId {
 export function outcomeTypeId(id: string): OutcomeTypeId {
     return id;
 }
-

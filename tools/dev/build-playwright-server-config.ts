@@ -31,4 +31,3 @@ main().catch((error) => {
     console.error(`failed to build playwright server config: ${message}`);
     process.exit(1);
 });
-

@@ -38,13 +38,20 @@ const SMALL_CHUNK_DELTA = encodeChunkDeltaPayloadBinary({
 });
 
 const SERVER_SAMPLES: WireBatch[] = [
-    [[Types.Messages.ACK, 1], [Types.Messages.MOVE, 500000000, 158, 117]],
+    [
+        [Types.Messages.ACK, 1],
+        [Types.Messages.MOVE, 500000000, 158, 117],
+    ],
     [
         [Types.Messages.REJECT, 2, 'move.step', 'Invalid move.step (non-adjacent).'],
         [Types.Messages.CORRECTION, 2, 158, 117],
     ],
     [Types.Messages.ATTACK, 174, 500000000],
-    [[Types.Messages.TELEPORT, 500000000, 155, 113], [Types.Messages.HP, 108], [Types.Messages.HP, 103]],
+    [
+        [Types.Messages.TELEPORT, 500000000, 155, 113],
+        [Types.Messages.HP, 108],
+        [Types.Messages.HP, 103],
+    ],
     [Types.Messages.CHUNK_SNAPSHOT, 7, 6, 0, EMPTY_CHUNK_SNAPSHOT],
     [Types.Messages.CHUNK_DELTA, 7, 6, 0, 1, SMALL_CHUNK_DELTA],
     [
@@ -96,9 +103,9 @@ function mutateNumber(value: number, frameIndex: number): number {
 
 function isByteArrayValue(value: WireValue): value is number[] {
     return (
-        Array.isArray(value)
-        && value.length > 0
-        && value.every((entry) => typeof entry === 'number' && Number.isInteger(entry) && entry >= 0 && entry <= 0xff)
+        Array.isArray(value) &&
+        value.length > 0 &&
+        value.every((entry) => typeof entry === 'number' && Number.isInteger(entry) && entry >= 0 && entry <= 0xff)
     );
 }
 
@@ -155,11 +162,18 @@ function buildVectorEntityStateBatchFrame(tick: number, entityCount: number): Wi
     return [out, [Types.Messages.POPULATION, 1, 2]];
 }
 
-function buildMovementScenarioCorpus(kind: 'legacy_move_spam' | 'vector_entity_state_batch', entityCount: number): WireBatch[] {
+function buildMovementScenarioCorpus(
+    kind: 'legacy_move_spam' | 'vector_entity_state_batch',
+    entityCount: number
+): WireBatch[] {
     const corpus: WireBatch[] = [];
     for (let i = 0; i < FRAMES; i += 1) {
         const tick = 2000 + i;
-        corpus.push(kind === 'legacy_move_spam' ? buildLegacyMoveSpamFrame(tick, entityCount) : buildVectorEntityStateBatchFrame(tick, entityCount));
+        corpus.push(
+            kind === 'legacy_move_spam'
+                ? buildLegacyMoveSpamFrame(tick, entityCount)
+                : buildVectorEntityStateBatchFrame(tick, entityCount)
+        );
     }
     return corpus;
 }
@@ -297,7 +311,10 @@ class ByteReader {
 
     readF64(): number {
         this.require(8);
-        const value = new DataView(this.bytes.buffer, this.bytes.byteOffset, this.bytes.byteLength).getFloat64(this.offset, true);
+        const value = new DataView(this.bytes.buffer, this.bytes.byteOffset, this.bytes.byteLength).getFloat64(
+            this.offset,
+            true
+        );
         this.offset += 8;
         return value;
     }
@@ -704,9 +721,7 @@ const CUSTOM_STATIC_STRINGS = [
     'bench',
 ] as const;
 
-const CUSTOM_STATIC_STRING_TO_ID = new Map<string, number>(
-    CUSTOM_STATIC_STRINGS.map((value, index) => [value, index])
-);
+const CUSTOM_STATIC_STRING_TO_ID = new Map<string, number>(CUSTOM_STATIC_STRINGS.map((value, index) => [value, index]));
 
 function customEfficientEncodeValue(writer: ByteWriter, value: WireValue): void {
     if (value === null) {
@@ -746,10 +761,8 @@ function customEfficientEncodeValue(writer: ByteWriter, value: WireValue): void 
     }
 
     const allInts = value.every(
-        (entry) => typeof entry === 'number'
-            && Number.isInteger(entry)
-            && entry >= -2_147_483_648
-            && entry <= 2_147_483_647
+        (entry) =>
+            typeof entry === 'number' && Number.isInteger(entry) && entry >= -2_147_483_648 && entry <= 2_147_483_647
     );
     if (allInts) {
         writer.writeU8(CUSTOM_TAG_INT_ARRAY);
@@ -920,12 +933,12 @@ function printResults(title: string, results: CodecResult[], frames: number): vo
 
     for (const result of results) {
         console.log(
-            `| ${result.codec}`
-                + ` | ${result.encodeMs.toFixed(2)}`
-                + ` | ${result.decodeMs.toFixed(2)}`
-                + ` | ${result.totalBytes}`
-                + ` | ${result.avgBytes.toFixed(2)}`
-                + ` | ${result.p95Bytes.toFixed(2)} |`
+            `| ${result.codec}` +
+                ` | ${result.encodeMs.toFixed(2)}` +
+                ` | ${result.decodeMs.toFixed(2)}` +
+                ` | ${result.totalBytes}` +
+                ` | ${result.avgBytes.toFixed(2)}` +
+                ` | ${result.p95Bytes.toFixed(2)} |`
         );
     }
 
@@ -943,9 +956,9 @@ function printResults(title: string, results: CodecResult[], frames: number): vo
         const encodeDeltaPct = ((result.encodeMs - baseline.encodeMs) / baseline.encodeMs) * 100;
         const decodeDeltaPct = ((result.decodeMs - baseline.decodeMs) / baseline.decodeMs) * 100;
         console.log(
-            `${result.codec}: bytes ${bytesDeltaPct.toFixed(2)}%,`
-                + ` encode ${encodeDeltaPct.toFixed(2)}%,`
-                + ` decode ${decodeDeltaPct.toFixed(2)}%`
+            `${result.codec}: bytes ${bytesDeltaPct.toFixed(2)}%,` +
+                ` encode ${encodeDeltaPct.toFixed(2)}%,` +
+                ` decode ${decodeDeltaPct.toFixed(2)}%`
         );
     }
 }
@@ -1024,7 +1037,12 @@ function main(): void {
         'Movement scenario (S2C) legacy MOVE spam (80 entities/frame)',
         [
             benchmarkCodec('json', movementLegacyFrames, jsonEncodeBatch, jsonDecodeBatch),
-            benchmarkCodec('custom-efficient-v1', movementLegacyFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
+            benchmarkCodec(
+                'custom-efficient-v1',
+                movementLegacyFrames,
+                customEfficientEncodeBatch,
+                customEfficientDecodeBatch
+            ),
         ],
         movementLegacyFrames.length
     );
@@ -1034,7 +1052,12 @@ function main(): void {
         'Movement scenario (S2C) vector ENTITY_STATE_BATCH (80 entities/frame)',
         [
             benchmarkCodec('json', movementVectorFrames, jsonEncodeBatch, jsonDecodeBatch),
-            benchmarkCodec('custom-efficient-v1', movementVectorFrames, customEfficientEncodeBatch, customEfficientDecodeBatch),
+            benchmarkCodec(
+                'custom-efficient-v1',
+                movementVectorFrames,
+                customEfficientEncodeBatch,
+                customEfficientDecodeBatch
+            ),
         ],
         movementVectorFrames.length
     );

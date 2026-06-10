@@ -5,10 +5,7 @@ import { decodeChunkSnapshotPayloadJson } from '../../shared/protocol/chunks/chu
 import { decodeChunkDeltaPayloadJson } from '../../shared/protocol/chunks/chunk-delta-codec';
 import { gridPos } from '../../shared/domain/positions';
 import { encodeClientToServerBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
-import {
-    createHelloAction,
-    createIntentAction,
-} from '../../client/gameclient-outbound-actions';
+import { createHelloAction, createIntentAction } from '../../client/gameclient-outbound-actions';
 import { encodeMoveStepIntentPayload, encodeTileEditIntentPayload } from '../../shared/protocol/intents';
 import { ClientChunkOverlayCache } from '../../client/world/chunks/client-chunk-overlay-cache';
 
@@ -291,7 +288,8 @@ export class BotClient {
         const next = { x: pos.x + dx, y: pos.y + dy };
 
         const supportsMoveIntent =
-            this.#serverProtocolRevision !== null && (this.#serverCapabilities?.intentTypeIds?.includes('move.step') ?? false);
+            this.#serverProtocolRevision !== null &&
+            (this.#serverCapabilities?.intentTypeIds?.includes('move.step') ?? false);
         if (!supportsMoveIntent) {
             return;
         }
@@ -436,10 +434,10 @@ export class BotClient {
                 const version = action[3];
                 const payloadJson = action[4];
                 if (
-                    typeof chunkX !== 'number'
-                    || typeof chunkY !== 'number'
-                    || typeof version !== 'number'
-                    || typeof payloadJson !== 'string'
+                    typeof chunkX !== 'number' ||
+                    typeof chunkY !== 'number' ||
+                    typeof version !== 'number' ||
+                    typeof payloadJson !== 'string'
                 ) {
                     continue;
                 }
@@ -475,12 +473,12 @@ export class BotClient {
                 const partCount = action[5];
                 const payloadJson = action[6];
                 if (
-                    typeof chunkX !== 'number'
-                    || typeof chunkY !== 'number'
-                    || typeof version !== 'number'
-                    || typeof partIndex !== 'number'
-                    || typeof partCount !== 'number'
-                    || typeof payloadJson !== 'string'
+                    typeof chunkX !== 'number' ||
+                    typeof chunkY !== 'number' ||
+                    typeof version !== 'number' ||
+                    typeof partIndex !== 'number' ||
+                    typeof partCount !== 'number' ||
+                    typeof payloadJson !== 'string'
                 ) {
                     continue;
                 }
@@ -519,11 +517,11 @@ export class BotClient {
                 const toVersion = action[4];
                 const payloadJson = action[5];
                 if (
-                    typeof chunkX !== 'number'
-                    || typeof chunkY !== 'number'
-                    || typeof fromVersion !== 'number'
-                    || typeof toVersion !== 'number'
-                    || typeof payloadJson !== 'string'
+                    typeof chunkX !== 'number' ||
+                    typeof chunkY !== 'number' ||
+                    typeof fromVersion !== 'number' ||
+                    typeof toVersion !== 'number' ||
+                    typeof payloadJson !== 'string'
                 ) {
                     continue;
                 }

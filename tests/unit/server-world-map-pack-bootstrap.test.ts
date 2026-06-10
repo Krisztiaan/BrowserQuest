@@ -111,7 +111,7 @@ test('world runtime bootstraps authored static entities, chests, and roaming mob
     world.setUpdatesPerSecond(1);
 
     try {
-        const pack = await loadRuntimeMapPackFromSource('./assets/maps/tiled/world.json') as RuntimeMapPack;
+        const pack = (await loadRuntimeMapPackFromSource('./assets/maps/tiled/world.json')) as RuntimeMapPack;
         const worldMap = pack.maps.find((map) => map.id === 'world_01');
         expect(worldMap).toBeDefined();
         const serverMap = worldMap?.server;
@@ -217,12 +217,8 @@ test('player entering beside a real authored chest receives chest and nearby mob
             (message): message is unknown[] => Array.isArray(message) && message[0] === Types.Messages.SPAWN
         );
 
-        const chestSpawns = spawnMessages.filter(
-            (message) => message[2] === Types.Entities.CHEST
-        );
-        const mobSpawns = spawnMessages.filter(
-            (message) => typeof message[2] === 'number' && Types.isMob(message[2])
-        );
+        const chestSpawns = spawnMessages.filter((message) => message[2] === Types.Entities.CHEST);
+        const mobSpawns = spawnMessages.filter((message) => typeof message[2] === 'number' && Types.isMob(message[2]));
 
         expect(player.hasEnteredGame).toBe(true);
         expect(chestSpawns.length).toBeGreaterThan(0);

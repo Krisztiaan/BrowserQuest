@@ -94,17 +94,17 @@ function validateDecodedOverrides(overrides: unknown, chunkSize: number): ChunkS
         const y = parts[1];
         const value = parts[2];
         if (
-            typeof x !== 'number'
-            || typeof y !== 'number'
-            || typeof value !== 'number'
-            || !Number.isSafeInteger(x)
-            || !Number.isSafeInteger(y)
-            || !Number.isSafeInteger(value)
-            || x < 0
-            || y < 0
-            || x >= chunkSize
-            || y >= chunkSize
-            || value < 0
+            typeof x !== 'number' ||
+            typeof y !== 'number' ||
+            typeof value !== 'number' ||
+            !Number.isSafeInteger(x) ||
+            !Number.isSafeInteger(y) ||
+            !Number.isSafeInteger(value) ||
+            x < 0 ||
+            y < 0 ||
+            x >= chunkSize ||
+            y >= chunkSize ||
+            value < 0
         ) {
             return null;
         }
@@ -244,7 +244,12 @@ export function decodeChunkSnapshotPayloadJson(
     {
         maxDecompressedUtf8Bytes = DEFAULT_MAX_CHUNK_SNAPSHOT_DECOMPRESSED_UTF8_BYTES,
     }: { maxDecompressedUtf8Bytes?: number } = {}
-): { schemaVersion: 1; encoding: 'json' | 'gzip+base64'; chunkSize: number; overrides: ChunkSnapshotOverride[] } | null {
+): {
+    schemaVersion: 1;
+    encoding: 'json' | 'gzip+base64';
+    chunkSize: number;
+    overrides: ChunkSnapshotOverride[];
+} | null {
     if (typeof payloadJson !== 'string') {
         return null;
     }
@@ -501,14 +506,14 @@ export function encodeChunkSnapshotPayloadBinary({
         const y = entry[1];
         const value = entry[2];
         if (
-            !Number.isInteger(x)
-            || !Number.isInteger(y)
-            || !Number.isInteger(value)
-            || x < 0
-            || y < 0
-            || value < 0
-            || x >= chunkSize
-            || y >= chunkSize
+            !Number.isInteger(x) ||
+            !Number.isInteger(y) ||
+            !Number.isInteger(value) ||
+            x < 0 ||
+            y < 0 ||
+            value < 0 ||
+            x >= chunkSize ||
+            y >= chunkSize
         ) {
             throw new Error('encodeChunkSnapshotPayloadBinary: invalid override');
         }
@@ -575,14 +580,14 @@ export function encodeChunkSnapshotPayloadBinaryParts({
         const y = entry[1];
         const value = entry[2];
         if (
-            !Number.isInteger(x)
-            || !Number.isInteger(y)
-            || !Number.isInteger(value)
-            || x < 0
-            || y < 0
-            || value < 0
-            || x >= chunkSize
-            || y >= chunkSize
+            !Number.isInteger(x) ||
+            !Number.isInteger(y) ||
+            !Number.isInteger(value) ||
+            x < 0 ||
+            y < 0 ||
+            value < 0 ||
+            x >= chunkSize ||
+            y >= chunkSize
         ) {
             throw new Error('encodeChunkSnapshotPayloadBinaryParts: invalid override');
         }

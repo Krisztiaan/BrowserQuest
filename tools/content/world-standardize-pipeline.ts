@@ -147,9 +147,7 @@ async function main(): Promise<void> {
         fail(`--void-alpha-threshold must be an integer in [0,255]. Received: ${voidAlphaThreshold}`);
     }
     if (!Number.isFinite(voidSoftBorderMinRatio) || voidSoftBorderMinRatio < 0) {
-        fail(
-            `--void-soft-border-min-ratio must be a non-negative finite number. Received: ${voidSoftBorderMinRatio}`
-        );
+        fail(`--void-soft-border-min-ratio must be a non-negative finite number. Received: ${voidSoftBorderMinRatio}`);
     }
 
     let backupPath: string | null = null;

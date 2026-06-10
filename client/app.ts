@@ -188,7 +188,7 @@ class App {
             return false;
         }
         if (this.isDesktop) {
-            return !!(this.game?.map?.isLoaded);
+            return !!this.game?.map?.isLoaded;
         } else {
             return !!this.game;
         }
@@ -323,14 +323,14 @@ class App {
             typeof event.clientX === 'number'
                 ? event.clientX
                 : typeof event.pageX === 'number'
-                    ? event.pageX - window.scrollX
-                    : 0;
+                  ? event.pageX - window.scrollX
+                  : 0;
         const clientY =
             typeof event.clientY === 'number'
                 ? event.clientY
                 : typeof event.pageY === 'number'
-                    ? event.pageY - window.scrollY
-                    : 0;
+                  ? event.pageY - window.scrollY
+                  : 0;
 
         mouse.x = clientX - gamePos.left;
         mouse.y = clientY - gamePos.top;

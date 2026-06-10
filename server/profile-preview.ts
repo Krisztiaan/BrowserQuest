@@ -73,11 +73,11 @@ function isSpriteSpec(value: JsonValue | object | null | undefined): value is Sp
         height?: number;
     };
     return (
-        typeof candidate.id === 'string'
-        && typeof candidate.width === 'number'
-        && Number.isFinite(candidate.width)
-        && typeof candidate.height === 'number'
-        && Number.isFinite(candidate.height)
+        typeof candidate.id === 'string' &&
+        typeof candidate.width === 'number' &&
+        Number.isFinite(candidate.width) &&
+        typeof candidate.height === 'number' &&
+        Number.isFinite(candidate.height)
     );
 }
 
@@ -238,12 +238,12 @@ export function createProfilePreviewPayload({
     const accountNameKey = verifySignedAuthSessionToken({ token: accountSessionToken });
     const playerName = parseCookieValue(cookieHeader, USERNAME_COOKIE_KEY);
     const profile = accountNameKey
-        ? (typeof profileLookup.getProfileByAccountNameKey === 'function'
-              ? profileLookup.getProfileByAccountNameKey(accountNameKey)
-              : profileLookup.getProfileByName(accountNameKey))
+        ? typeof profileLookup.getProfileByAccountNameKey === 'function'
+            ? profileLookup.getProfileByAccountNameKey(accountNameKey)
+            : profileLookup.getProfileByName(accountNameKey)
         : playerName
-            ? profileLookup.getProfileByName(playerName)
-            : null;
+          ? profileLookup.getProfileByName(playerName)
+          : null;
     const armorSpriteName = resolveArmorSpriteName(profile);
     const weaponSpriteName = resolveWeaponSpriteName(profile);
     return {

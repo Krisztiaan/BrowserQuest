@@ -21,4 +21,3 @@ export class ConnectionIdGenerator {
         return String(id);
     }
 }
-

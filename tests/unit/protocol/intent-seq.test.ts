@@ -32,12 +32,18 @@ test('classifyIntentSeq yields expected decisions', () => {
 
     expect(classifyIntentSeq({ seq: 8, lastAccepted: 8 })).toEqual({ kind: 'duplicate' });
     expect(classifyIntentSeq({ seq: 7, lastAccepted: 8 })).toEqual({ kind: 'stale', lastAccepted: 8 });
-    expect(classifyIntentSeq({ seq: 12, lastAccepted: 8, maxGap: 2 })).toEqual({ kind: 'gap', lastAccepted: 8, maxGap: 2 });
+    expect(classifyIntentSeq({ seq: 12, lastAccepted: 8, maxGap: 2 })).toEqual({
+        kind: 'gap',
+        lastAccepted: 8,
+        maxGap: 2,
+    });
 });
 
 test('formatIntentSeqRejectReason formats stale/gap reasons', () => {
     expect(formatIntentSeqRejectReason(7, { kind: 'stale', lastAccepted: 8 })).toBe('Stale seq: 7 < 8');
-    expect(formatIntentSeqRejectReason(12, { kind: 'gap', lastAccepted: 8, maxGap: 2 })).toBe('Seq gap too large: 12 > 8 + 2');
+    expect(formatIntentSeqRejectReason(12, { kind: 'gap', lastAccepted: 8, maxGap: 2 })).toBe(
+        'Seq gap too large: 12 > 8 + 2'
+    );
     expect(formatIntentSeqRejectReason(8, { kind: 'duplicate' })).toBeNull();
     expect(formatIntentSeqRejectReason(9, { kind: 'accept' })).toBeNull();
 });

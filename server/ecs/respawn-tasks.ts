@@ -10,4 +10,3 @@ export type RespawnTask = Readonly<{
 }>;
 
 export const RESPAWN_TASKS_RESOURCE = createResourceKey<RespawnTask[]>('respawn_tasks');
-

@@ -12,7 +12,13 @@ function createTiledMap({
     width?: number;
     height?: number;
     fillTileId?: number;
-    doors?: Array<{ id: number; x: number; y: number; class?: string; properties?: Array<{ name: string; value: string }> }>;
+    doors?: Array<{
+        id: number;
+        x: number;
+        y: number;
+        class?: string;
+        properties?: Array<{ name: string; value: string }>;
+    }>;
     blockingIndices?: number[];
     doorsLayerVisible?: boolean;
 }) {
@@ -148,9 +154,7 @@ test('compileMapPack derives edges from door target_map/target_door properties',
         ],
     });
 
-    expect(pack.graph.maps.find((map) => map.id === 'overworld')?.doors).toEqual([
-        { id: 'enter_house', x: 2, y: 1 },
-    ]);
+    expect(pack.graph.maps.find((map) => map.id === 'overworld')?.doors).toEqual([{ id: 'enter_house', x: 2, y: 1 }]);
     expect(pack.graph.edges).toEqual([
         {
             from: { mapId: 'overworld', doorId: 'enter_house' },
@@ -201,9 +205,7 @@ test('compileMapPack extracts the door graph from an invisible doors layer (mark
         ],
     });
 
-    expect(pack.graph.maps.find((map) => map.id === 'overworld')?.doors).toEqual([
-        { id: 'enter_house', x: 2, y: 1 },
-    ]);
+    expect(pack.graph.maps.find((map) => map.id === 'overworld')?.doors).toEqual([{ id: 'enter_house', x: 2, y: 1 }]);
     expect(pack.graph.edges).toEqual([
         {
             from: { mapId: 'overworld', doorId: 'enter_house' },
@@ -631,12 +633,7 @@ test('compileMapPack allows a door tile to stay walkable when its tileset tile i
                             name: 'background',
                             type: 'tilelayer',
                             visible: true,
-                            data: [
-                                0, 0, 0, 0,
-                                0, 1, 0, 0,
-                                0, 0, 0, 0,
-                                0, 0, 0, 0,
-                            ],
+                            data: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                         },
                         {
                             name: 'blocking',

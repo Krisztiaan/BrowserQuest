@@ -43,7 +43,10 @@ function updateAttackIntentDiagnostic({
     log.info({ scope: 'client_interaction', level, ...payload });
 }
 
-export function clearClientInteractionIntentWithSideEffects(host: { kernel: ClientWorldKernel; playerId?: EntityId | null }): void {
+export function clearClientInteractionIntentWithSideEffects(host: {
+    kernel: ClientWorldKernel;
+    playerId?: EntityId | null;
+}): void {
     const prev = host.kernel.clientInteractionIntent;
     clearAttackIntentDiagnostic(host.playerId ?? null);
     if (prev?.kind === 'attack') {
@@ -84,13 +87,16 @@ function isAuthoritativeAttackAligned({
         return true;
     }
     const playerWeaponName = player.getWeaponName();
-    const playerWeaponKind = typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
-    return resolveEngagementDecision({
-        attackerPos: gridPos(authoritativePlayerPos.x, authoritativePlayerPos.y),
-        targetPos: gridPos(targetPos.x, targetPos.y),
-        attackerKind: player.kind,
-        attackerWeaponKind: playerWeaponKind,
-    }) === 'attack';
+    const playerWeaponKind =
+        typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
+    return (
+        resolveEngagementDecision({
+            attackerPos: gridPos(authoritativePlayerPos.x, authoritativePlayerPos.y),
+            targetPos: gridPos(targetPos.x, targetPos.y),
+            attackerKind: player.kind,
+            attackerWeaponKind: playerWeaponKind,
+        }) === 'attack'
+    );
 }
 
 function resolveAuthoritativeEngagementDecision({
@@ -106,7 +112,8 @@ function resolveAuthoritativeEngagementDecision({
         return null;
     }
     const playerWeaponName = player.getWeaponName();
-    const playerWeaponKind = typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
+    const playerWeaponKind =
+        typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
     return resolveEngagementDecision({
         attackerPos: gridPos(authoritativePlayerPos.x, authoritativePlayerPos.y),
         targetPos: gridPos(targetPos.x, targetPos.y),
@@ -197,7 +204,8 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
             return;
         }
         const playerWeaponName = host.player.getWeaponName();
-        const playerWeaponKind = typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
+        const playerWeaponKind =
+            typeof playerWeaponName === 'string' ? Types.getKindFromString(playerWeaponName) : undefined;
         const renderedEngagement = resolveEngagementDecision({
             attackerPos: gridPos(host.player.gridX, host.player.gridY),
             targetPos: gridPos(targetRecord.gridX, targetRecord.gridY),

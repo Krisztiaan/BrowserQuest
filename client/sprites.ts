@@ -1,15 +1,15 @@
 type SpriteAnimationData = {
-  length: number;
-  row: number;
+    length: number;
+    row: number;
 };
 
 type SpriteJson = {
-  id: string;
-  width: number;
-  height: number;
-  offset_x?: number;
-  offset_y?: number;
-  animations: Record<string, SpriteAnimationData>;
+    id: string;
+    width: number;
+    height: number;
+    offset_x?: number;
+    offset_y?: number;
+    animations: Record<string, SpriteAnimationData>;
 };
 
 import agent from './sprites/agent.json';
@@ -85,84 +85,84 @@ import villager from './sprites/villager.json';
 import wizard from './sprites/wizard.json';
 
 const spriteCatalog = [
-  agent,
-  arrow,
-  axe,
-  bat,
-  beachnpc,
-  bluesword,
-  boss,
-  chest,
-  clotharmor,
-  coder,
-  crab,
-  death,
-  deathknight,
-  desertnpc,
-  eye,
-  firefox,
-  forestnpc,
-  goblin,
-  goldenarmor,
-  goldensword,
-  guard,
-  hand,
-  impact,
-  item_axe,
-  item_bluesword,
-  item_burger,
-  item_cake,
-  item_clotharmor,
-  item_firepotion,
-  item_flask,
-  item_goldenarmor,
-  item_goldensword,
-  item_leatherarmor,
-  item_mailarmor,
-  item_morningstar,
-  item_platearmor,
-  item_redarmor,
-  item_redsword,
-  item_sword1,
-  item_sword2,
-  king,
-  lavanpc,
-  leatherarmor,
-  loot,
-  mailarmor,
-  morningstar,
-  nyan,
-  octocat,
-  ogre,
-  platearmor,
-  priest,
-  rat,
-  redarmor,
-  redsword,
-  rick,
-  scientist,
-  shadow16,
-  skeleton,
-  skeleton2,
-  snake,
-  sorcerer,
-  sparks,
-  spectre,
-  sword,
-  sword1,
-  sword2,
-  talk,
-  target,
-  villagegirl,
-  villager,
-  wizard,
+    agent,
+    arrow,
+    axe,
+    bat,
+    beachnpc,
+    bluesword,
+    boss,
+    chest,
+    clotharmor,
+    coder,
+    crab,
+    death,
+    deathknight,
+    desertnpc,
+    eye,
+    firefox,
+    forestnpc,
+    goblin,
+    goldenarmor,
+    goldensword,
+    guard,
+    hand,
+    impact,
+    item_axe,
+    item_bluesword,
+    item_burger,
+    item_cake,
+    item_clotharmor,
+    item_firepotion,
+    item_flask,
+    item_goldenarmor,
+    item_goldensword,
+    item_leatherarmor,
+    item_mailarmor,
+    item_morningstar,
+    item_platearmor,
+    item_redarmor,
+    item_redsword,
+    item_sword1,
+    item_sword2,
+    king,
+    lavanpc,
+    leatherarmor,
+    loot,
+    mailarmor,
+    morningstar,
+    nyan,
+    octocat,
+    ogre,
+    platearmor,
+    priest,
+    rat,
+    redarmor,
+    redsword,
+    rick,
+    scientist,
+    shadow16,
+    skeleton,
+    skeleton2,
+    snake,
+    sorcerer,
+    sparks,
+    spectre,
+    sword,
+    sword1,
+    sword2,
+    talk,
+    target,
+    villagegirl,
+    villager,
+    wizard,
 ] as const;
 
 const sprites: Record<string, SpriteJson> = {};
 for (const sprite of spriteCatalog) {
-  if (typeof sprite.id === "string" && sprite.id.length > 0) {
-    sprites[sprite.id] = sprite as SpriteJson;
-  }
+    if (typeof sprite.id === 'string' && sprite.id.length > 0) {
+        sprites[sprite.id] = sprite as SpriteJson;
+    }
 }
 
 export type { SpriteJson, SpriteAnimationData };

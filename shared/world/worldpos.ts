@@ -56,10 +56,7 @@ export function worldPosSub(a: WorldPos, b: WorldPos): WorldDelta {
 }
 
 export function worldPosClamp(pos: WorldPos, min: WorldPos, max: WorldPos): WorldPos {
-    return worldPos(
-        Math.min(max.x, Math.max(min.x, pos.x)),
-        Math.min(max.y, Math.max(min.y, pos.y))
-    );
+    return worldPos(Math.min(max.x, Math.max(min.x, pos.x)), Math.min(max.y, Math.max(min.y, pos.y)));
 }
 
 export function worldPosDistanceSq(a: WorldPos, b: WorldPos): number {

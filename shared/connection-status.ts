@@ -10,8 +10,7 @@ export const DISPATCHER_CONNECT_STATUS = {
     FULL: 'FULL',
 } as const;
 
-export type DispatcherConnectStatus =
-    (typeof DISPATCHER_CONNECT_STATUS)[keyof typeof DISPATCHER_CONNECT_STATUS];
+export type DispatcherConnectStatus = (typeof DISPATCHER_CONNECT_STATUS)[keyof typeof DISPATCHER_CONNECT_STATUS];
 
 type ConnectionStatusValue = string | number | boolean | null | undefined | object;
 

@@ -194,7 +194,9 @@ function enqueueIntent({
 }
 
 function findRejectMessage(delivered: WorldMessage[]): [number, number, string, string] | undefined {
-    return delivered.find((msg) => Array.isArray(msg) && msg[0] === Types.Messages.REJECT) as [number, number, string, string] | undefined;
+    return delivered.find((msg) => Array.isArray(msg) && msg[0] === Types.Messages.REJECT) as
+        | [number, number, string, string]
+        | undefined;
 }
 
 test('unauthorized tile edit intent is rejected with a clear reason code', () => {
@@ -235,7 +237,9 @@ test('delegated editor can edit tiles inside another players claim', () => {
 
     harness.pipeline.tick();
 
-    expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 0)).toBe(true);
+    expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 0)).toBe(
+        true
+    );
     expect(harness.pipeline.chunkOverlays.getGlobal(2, 2)).toBe(7);
 });
 
@@ -252,7 +256,9 @@ test('unclaimed tile edit intent is accepted and mutates chunk overlays', () => 
 
     harness.pipeline.tick();
 
-    expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 0)).toBe(true);
+    expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 0)).toBe(
+        true
+    );
     expect(harness.pipeline.chunkOverlays.getGlobal(10, 10)).toBe(7);
 });
 
@@ -321,7 +327,9 @@ test('tile edit intent can preserve existing chunk state by lazy-loading chunk d
     harness.pipeline.tick();
 
     expect(ensureCalls).toBeGreaterThan(0);
-    expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 0)).toBe(true);
+    expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 0)).toBe(
+        true
+    );
     expect(harness.pipeline.chunkOverlays.getGlobal(10, 10)).toBe(55);
     expect(harness.pipeline.chunkOverlays.getGlobal(11, 10)).toBe(9);
 });
@@ -377,14 +385,24 @@ test('claim create/update/delete intents mutate claim store and call persistence
     expect(claims.getClaimById(createdClaim.id)).toBeNull();
     expect(harness.persistedClaimDeletes).toEqual([createdClaim.id]);
     expect(
-        harness.delivered.filter((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK).map((msg) => (msg as [number, number])[1])
+        harness.delivered
+            .filter((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK)
+            .map((msg) => (msg as [number, number])[1])
     ).toEqual([0, 1, 2]);
 });
 
 test('delegated editor can update claim bounds but cannot modify claim ACL', () => {
     const harness = createPipelineHarness({ wireId: 24106, playerName: 'bob' });
     const claims = harness.pipeline.state.resources.require(CLAIMS_STORE_RESOURCE);
-    const claim = claims.createClaim({ ownerName: 'alice', editorNameKeys: ['bob'], x1: 8, y1: 8, x2: 9, y2: 9, nowMs: 1000 });
+    const claim = claims.createClaim({
+        ownerName: 'alice',
+        editorNameKeys: ['bob'],
+        x1: 8,
+        y1: 8,
+        x2: 9,
+        y2: 9,
+        nowMs: 1000,
+    });
 
     enqueueIntent({
         pipeline: harness.pipeline,
@@ -396,7 +414,9 @@ test('delegated editor can update claim bounds but cannot modify claim ACL', () 
     harness.pipeline.tick();
 
     expect(claims.getClaimById(claim.id)?.x2).toBe(10);
-    expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 0)).toBe(true);
+    expect(harness.delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 0)).toBe(
+        true
+    );
 
     enqueueIntent({
         pipeline: harness.pipeline,

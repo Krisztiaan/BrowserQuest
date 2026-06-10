@@ -288,7 +288,11 @@ test('predictive local move-to drift larger than one tile does not emit a replic
     kernel.clientReplicationLastPos.set(playerId, gridPos(10, 10));
     const authoritative = tileToWorldPosCenter(10, 10);
     kernel.clientReplicationLastWorldPos.set(playerId, authoritative);
-    kernel.setClientPresentationTargetWorldPosition(playerId, tileToWorldPosCenter(13, 10).x, tileToWorldPosCenter(13, 10).y);
+    kernel.setClientPresentationTargetWorldPosition(
+        playerId,
+        tileToWorldPosCenter(13, 10).x,
+        tileToWorldPosCenter(13, 10).y
+    );
     kernel.clientSpatialRecords.set(playerId, {
         gridX: 13,
         gridY: 10,
@@ -341,7 +345,11 @@ test('predictive held-input drift larger than one tile does not emit a replicati
     kernel.clientReplicationKnownAlive.add(playerId);
     kernel.clientReplicationLastPos.set(playerId, gridPos(10, 10));
     kernel.clientReplicationLastWorldPos.set(playerId, tileToWorldPosCenter(10, 10));
-    kernel.setClientPresentationTargetWorldPosition(playerId, tileToWorldPosCenter(13, 10).x, tileToWorldPosCenter(13, 10).y);
+    kernel.setClientPresentationTargetWorldPosition(
+        playerId,
+        tileToWorldPosCenter(13, 10).x,
+        tileToWorldPosCenter(13, 10).y
+    );
     kernel.clientSpatialRecords.set(playerId, {
         gridX: 13,
         gridY: 10,

@@ -1,4 +1,3 @@
-
 import Entity from './entity';
 import type { EntityEvents } from './entity';
 import Types from '../shared/gametypes-browser';
@@ -9,13 +8,12 @@ type ChestEvents = {
 };
 
 class Chest extends Entity<MergeEvents<EntityEvents, ChestEvents>> {
-
     constructor(id: string | number) {
         super(id, Types.Entities.CHEST);
     }
 
     override getSpriteName(): string {
-        return "chest";
+        return 'chest';
     }
 
     isMoving(): boolean {

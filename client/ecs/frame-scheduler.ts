@@ -28,4 +28,3 @@ export class ClientFrameScheduler<THost> {
         }
     }
 }
-

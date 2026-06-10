@@ -260,7 +260,10 @@ try {
         fail(`Budget exceeded: rejectsPerMinute=${rejectsPerMinute.toFixed(2)} > ${args.budget.maxRejectsPerMinute}`);
     }
     if (args.enableChunks) {
-        const minSnapshots = results.reduce((min, r) => Math.min(min, r.metrics.chunkSnapshots), Number.POSITIVE_INFINITY);
+        const minSnapshots = results.reduce(
+            (min, r) => Math.min(min, r.metrics.chunkSnapshots),
+            Number.POSITIVE_INFINITY
+        );
         if (minSnapshots < args.budget.minChunkSnapshotsPerBot) {
             fail(`Budget exceeded: minChunkSnapshotsPerBot=${minSnapshots} < ${args.budget.minChunkSnapshotsPerBot}`);
         }

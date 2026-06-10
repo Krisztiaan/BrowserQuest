@@ -42,10 +42,25 @@ const DEFAULT_PAIR_SPECS: ReadonlyArray<PairSpec> = [
         layers: ['ground_variations', 'grass_variations'],
         scaffold: 'scaffold-field_edges',
     },
-    { name: 'forest_edges', colors: ['grass', 'forest'], layers: ['forest_boundaries'], scaffold: 'scaffold-forest_edges' },
+    {
+        name: 'forest_edges',
+        colors: ['grass', 'forest'],
+        layers: ['forest_boundaries'],
+        scaffold: 'scaffold-forest_edges',
+    },
     { name: 'cave_rock', colors: ['rock', 'cave'], layers: ['cave_walls'], scaffold: 'scaffold-cave_rock' },
-    { name: 'lava_rock', colors: ['lava', 'rock'], layers: ['lava_boundaries', 'cliffs', 'cliffs_2'], scaffold: 'scaffold-lava_rock' },
-    { name: 'lava_cave', colors: ['lava', 'cave'], layers: ['lava_boundaries', 'cave'], scaffold: 'scaffold-lava_cave' },
+    {
+        name: 'lava_rock',
+        colors: ['lava', 'rock'],
+        layers: ['lava_boundaries', 'cliffs', 'cliffs_2'],
+        scaffold: 'scaffold-lava_rock',
+    },
+    {
+        name: 'lava_cave',
+        colors: ['lava', 'cave'],
+        layers: ['lava_boundaries', 'cave'],
+        scaffold: 'scaffold-lava_cave',
+    },
 ];
 
 function fail(message: string): never {
@@ -129,7 +144,11 @@ function summarizeCounts(counts: Map<number, number>, limit: number): UnknownRec
         .map(([tileid, count]) => ({ tileid, count }));
 }
 
-function buildUsedTileCounts(worldRoot: UnknownRecord, firstgid: number, layers: readonly string[]): Map<number, number> {
+function buildUsedTileCounts(
+    worldRoot: UnknownRecord,
+    firstgid: number,
+    layers: readonly string[]
+): Map<number, number> {
     const counts = new Map<number, number>();
     for (const layerName of layers) {
         const matchingLayers = collectLayersByName(worldRoot.layers, layerName).filter(

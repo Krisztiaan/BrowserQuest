@@ -60,13 +60,9 @@ const WIRE_OUTCOME_TYPE_IDS = [
     OUTCOME_MAP_TRANSITION_COMMIT,
 ] as const;
 
-const WIRE_INTENT_TYPE_ID_TO_ID = new Map<string, number>(
-    WIRE_INTENT_TYPE_IDS.map((value, index) => [value, index])
-);
+const WIRE_INTENT_TYPE_ID_TO_ID = new Map<string, number>(WIRE_INTENT_TYPE_IDS.map((value, index) => [value, index]));
 
-const WIRE_OUTCOME_TYPE_ID_TO_ID = new Map<string, number>(
-    WIRE_OUTCOME_TYPE_IDS.map((value, index) => [value, index])
-);
+const WIRE_OUTCOME_TYPE_ID_TO_ID = new Map<string, number>(WIRE_OUTCOME_TYPE_IDS.map((value, index) => [value, index]));
 
 function encodeWireIntentTypeId(intentTypeId: unknown): number {
     if (typeof intentTypeId !== 'string') {
@@ -118,11 +114,12 @@ function readUint32Le(bytes: Uint8Array, offset: number): number {
         throw new Error('decode overflow');
     }
     return (
-        (bytes[offset] ?? 0)
-        | ((bytes[offset + 1] ?? 0) << 8)
-        | ((bytes[offset + 2] ?? 0) << 16)
-        | ((bytes[offset + 3] ?? 0) << 24)
-    ) >>> 0;
+        ((bytes[offset] ?? 0) |
+            ((bytes[offset + 1] ?? 0) << 8) |
+            ((bytes[offset + 2] ?? 0) << 16) |
+            ((bytes[offset + 3] ?? 0) << 24)) >>>
+        0
+    );
 }
 
 function writeUint32Le(bytes: Uint8Array, offset: number, value: number): void {
@@ -287,9 +284,7 @@ class ByteReader {
     }
 }
 
-const KIND_NAME_TO_ID = new Map<string, number>(
-    Object.entries(ENTITY_KIND_DOMAIN).map(([name, [id]]) => [name, id])
-);
+const KIND_NAME_TO_ID = new Map<string, number>(Object.entries(ENTITY_KIND_DOMAIN).map(([name, [id]]) => [name, id]));
 
 const KIND_ID_TO_CATEGORY = new Map<number, string>(
     Object.values(ENTITY_KIND_DOMAIN).map(([id, category]) => [id, category])
@@ -423,7 +418,11 @@ function encodeClientToServerAction(writer: ByteWriter, action: WireAction): voi
             writer.writeVarU32(normalizeKindId(weapon));
 
             if (hasExtras) {
-                if (typeof protocolRevision !== 'number' || !Number.isInteger(protocolRevision) || protocolRevision < 0) {
+                if (
+                    typeof protocolRevision !== 'number' ||
+                    !Number.isInteger(protocolRevision) ||
+                    protocolRevision < 0
+                ) {
                     throw new Error('invalid protocolRevision');
                 }
                 if (typeof capabilitiesJson !== 'string') {
@@ -525,7 +524,11 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
             writer.writeVarU32(Number(hp) >>> 0);
 
             if (hasExtras) {
-                if (typeof protocolRevision !== 'number' || !Number.isInteger(protocolRevision) || protocolRevision < 0) {
+                if (
+                    typeof protocolRevision !== 'number' ||
+                    !Number.isInteger(protocolRevision) ||
+                    protocolRevision < 0
+                ) {
                     throw new Error('invalid protocolRevision');
                 }
                 if (typeof capabilitiesJson !== 'string') {
@@ -557,9 +560,12 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
                 const maybeTail4 = tail[4];
                 const maybeTail5 = tail[5];
                 const targetId = typeof maybeTail4 === 'number' ? maybeTail4 : undefined;
-                const mapId = typeof maybeTail5 === 'string'
-                    ? maybeTail5
-                    : (targetId === undefined && typeof maybeTail4 === 'string' ? maybeTail4 : undefined);
+                const mapId =
+                    typeof maybeTail5 === 'string'
+                        ? maybeTail5
+                        : targetId === undefined && typeof maybeTail4 === 'string'
+                          ? maybeTail4
+                          : undefined;
                 flags |= SPAWN_FLAG_HAS_NAME | SPAWN_FLAG_HAS_ORIENTATION | SPAWN_FLAG_HAS_EQUIPMENT;
                 if (typeof targetId === 'number') {
                     flags |= SPAWN_FLAG_HAS_TARGET;
@@ -585,9 +591,12 @@ function encodeServerToClientAction(writer: ByteWriter, action: WireAction): voi
                 const maybeTail1 = tail[1];
                 const maybeTail2 = tail[2];
                 const targetId = typeof maybeTail1 === 'number' ? maybeTail1 : undefined;
-                const mapId = typeof maybeTail2 === 'string'
-                    ? maybeTail2
-                    : (targetId === undefined && typeof maybeTail1 === 'string' ? maybeTail1 : undefined);
+                const mapId =
+                    typeof maybeTail2 === 'string'
+                        ? maybeTail2
+                        : targetId === undefined && typeof maybeTail1 === 'string'
+                          ? maybeTail1
+                          : undefined;
                 flags |= SPAWN_FLAG_HAS_ORIENTATION;
                 if (typeof targetId === 'number') {
                     flags |= SPAWN_FLAG_HAS_TARGET;
@@ -1484,7 +1493,10 @@ export type BinaryActionBatchDispatchHooks = Readonly<{
     onEntityStateBatchFooter?: () => void;
 }>;
 
-export function dispatchBinaryActionBatchPayload(payload: ArrayBuffer | Uint8Array, hooks: BinaryActionBatchDispatchHooks): void {
+export function dispatchBinaryActionBatchPayload(
+    payload: ArrayBuffer | Uint8Array,
+    hooks: BinaryActionBatchDispatchHooks
+): void {
     const reader = new ByteReader(unwrapFrame(payload));
     const directionByte = reader.readU8();
     if (directionByte !== DIR_CLIENT_TO_SERVER && directionByte !== DIR_SERVER_TO_CLIENT) {

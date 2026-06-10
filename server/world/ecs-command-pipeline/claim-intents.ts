@@ -24,7 +24,12 @@ export type ClaimIntentLimits = Readonly<{
 
 type ClaimIntentResult = { ok: false; reason: string } | { ok: true };
 
-function resolveClaimBounds(x1: number, y1: number, x2: number, y2: number): { x1: number; y1: number; x2: number; y2: number } {
+function resolveClaimBounds(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number
+): { x1: number; y1: number; x2: number; y2: number } {
     const minX = Math.min(x1, x2);
     const maxX = Math.max(x1, x2);
     const minY = Math.min(y1, y2);
@@ -49,10 +54,10 @@ function validateClaimBounds({
 }): { ok: true; bounds: { x1: number; y1: number; x2: number; y2: number } } | { ok: false; reason: string } {
     const bounds = resolveClaimBounds(x1, y1, x2, y2);
     if (
-        Math.abs(bounds.x1) > CLAIM_COORD_ABS_MAX
-        || Math.abs(bounds.y1) > CLAIM_COORD_ABS_MAX
-        || Math.abs(bounds.x2) > CLAIM_COORD_ABS_MAX
-        || Math.abs(bounds.y2) > CLAIM_COORD_ABS_MAX
+        Math.abs(bounds.x1) > CLAIM_COORD_ABS_MAX ||
+        Math.abs(bounds.y1) > CLAIM_COORD_ABS_MAX ||
+        Math.abs(bounds.x2) > CLAIM_COORD_ABS_MAX ||
+        Math.abs(bounds.y2) > CLAIM_COORD_ABS_MAX
     ) {
         return { ok: false, reason: 'CLAIM:coords_out_of_range' };
     }

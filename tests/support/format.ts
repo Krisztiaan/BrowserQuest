@@ -3,10 +3,10 @@ export function formatUnknown(value: unknown): string {
         return value;
     }
     if (
-        typeof value === 'number'
-        || typeof value === 'boolean'
-        || typeof value === 'bigint'
-        || typeof value === 'symbol'
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        typeof value === 'bigint' ||
+        typeof value === 'symbol'
     ) {
         return String(value);
     }

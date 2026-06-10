@@ -173,7 +173,13 @@ async function readCanonical(): Promise<{ mobs: MobPropertyMap; items: ItemLootM
     };
 }
 
-function buildGeneratedModule({ mobs, items }: { mobs: MobPropertyMap; items: ItemLootMessageMap }): GeneratedPrefabModule {
+function buildGeneratedModule({
+    mobs,
+    items,
+}: {
+    mobs: MobPropertyMap;
+    items: ItemLootMessageMap;
+}): GeneratedPrefabModule {
     const mobsByKind: Record<number, GeneratedMobPrefab> = {};
     for (const [mobName, entry] of Object.entries(mobs).sort(([a], [b]) => a.localeCompare(b))) {
         const kind = Types.getKindFromString(mobName);
@@ -257,7 +263,9 @@ async function check(): Promise<void> {
     const expected = renderGeneratedModule(moduleData);
     const current = await fs.readFile(GENERATED_PATH, 'utf8').catch(() => '');
     if (current !== expected) {
-        fail('Generated prefabs are out of date. Run `bun run content:prefabs:generate` to refresh shared/generated/prefabs.generated.ts.');
+        fail(
+            'Generated prefabs are out of date. Run `bun run content:prefabs:generate` to refresh shared/generated/prefabs.generated.ts.'
+        );
     }
     console.log('prefabs generated artifact is up to date.');
 }

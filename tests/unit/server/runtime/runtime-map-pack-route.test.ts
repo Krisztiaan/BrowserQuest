@@ -35,10 +35,7 @@ test('main runtime serves compiled runtime map payload from authored world.json'
         constructor(_port: number) {}
 
         on(_eventName: 'connect', _callback: (connection: RuntimeConnection) => void): void;
-        on(
-            _eventName: 'error',
-            _callback: (...args: Array<string | Error | object | null | undefined>) => void
-        ): void;
+        on(_eventName: 'error', _callback: (...args: Array<string | Error | object | null | undefined>) => void): void;
         on(
             _eventName: 'connect' | 'error',
             _callback:
@@ -115,7 +112,7 @@ test('main runtime serves compiled runtime map payload from authored world.json'
     expect(response.status).toBe(200);
     expect(response.headers.get('content-type')).toContain('application/json');
 
-    const payload = await response.json() as {
+    const payload = (await response.json()) as {
         schemaVersion?: number;
         maps?: Array<{ id?: string; client?: object; server?: object }>;
     };

@@ -6,7 +6,11 @@ import type { EntityId } from '../../../shared/domain/ids';
 import { SUBPIXELS, TILE_PX } from '../../../shared/world/worldpos';
 import log from '../../platform/log';
 import { resolveClientMovementNetcodeConfig } from '../../movement-netcode-config';
-import { bridgeCharacterInterpolatedLocomotion, bridgeCharacterRenderPosition, bridgeCharacterRenderTarget } from '../visual-movement-bridge';
+import {
+    bridgeCharacterInterpolatedLocomotion,
+    bridgeCharacterRenderPosition,
+    bridgeCharacterRenderTarget,
+} from '../visual-movement-bridge';
 import { classifyInterpolationDivergence, isSnapVisualDivergenceClass } from '../visual-movement-divergence';
 
 type DirtyRect = {
@@ -68,7 +72,10 @@ export type ClientSimulationSystemHost = Readonly<{
         grid: number[][];
         width?: number;
         height?: number;
-        getCameraRegionBounds?(gridX: number, gridY: number): Readonly<{ minX: number; minY: number; maxX: number; maxY: number }> | null;
+        getCameraRegionBounds?(
+            gridX: number,
+            gridY: number
+        ): Readonly<{ minX: number; minY: number; maxX: number; maxY: number }> | null;
     } | null;
     renderer: {
         FPS: number;
@@ -360,7 +367,10 @@ function updateEntityInterpolation(host: ClientSimulationSystemHost, entity: Sim
             const boostedTauMs = maxAxisDistance >= 8 ? Math.max(10, Math.round(baseTauMs * 0.7)) : baseTauMs;
             blend = lerpAlpha(dtMs, boostedTauMs);
             if (activeIntent && maxAxisDistance > 0.1) {
-                const minBlend = Math.min(1, ((tuning.localPresentationMinStepPx * Math.max(dtMs, 1)) / 16) / maxAxisDistance);
+                const minBlend = Math.min(
+                    1,
+                    (tuning.localPresentationMinStepPx * Math.max(dtMs, 1)) / 16 / maxAxisDistance
+                );
                 blend = Math.max(blend, minBlend);
             }
         }
@@ -574,12 +584,10 @@ function updateCameraFollow(host: ClientSimulationSystemHost, dtMs: number): voi
     }
 
     const grid: number[][] = host.map.grid;
-    const mapH = Number.isInteger(host.map.height) && (host.map.height ?? 0) > 0
-        ? Number(host.map.height)
-        : grid.length;
-    const mapW = Number.isInteger(host.map.width) && (host.map.width ?? 0) > 0
-        ? Number(host.map.width)
-        : (grid[0]?.length ?? 0);
+    const mapH =
+        Number.isInteger(host.map.height) && (host.map.height ?? 0) > 0 ? Number(host.map.height) : grid.length;
+    const mapW =
+        Number.isInteger(host.map.width) && (host.map.width ?? 0) > 0 ? Number(host.map.width) : (grid[0]?.length ?? 0);
     if (mapW <= 0 || mapH <= 0) {
         return;
     }
@@ -589,8 +597,8 @@ function updateCameraFollow(host: ClientSimulationSystemHost, dtMs: number): voi
     const mapWorldHeight = mapH * TILE;
     const viewportWorldWidth = renderer.getWidth() / renderer.scale;
     const viewportWorldHeight = renderer.getHeight() / renderer.scale;
-    const desiredX = Math.round(player.x - (viewportWorldWidth / 2));
-    const desiredY = Math.round(player.y - (viewportWorldHeight / 2));
+    const desiredX = Math.round(player.x - viewportWorldWidth / 2);
+    const desiredY = Math.round(player.y - viewportWorldHeight / 2);
     // Clamp the camera to the painted region containing the player so it never
     // pans over the void between regions; small enclosed regions (interior
     // rooms) center in the viewport instead.

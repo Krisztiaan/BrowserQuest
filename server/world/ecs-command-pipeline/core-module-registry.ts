@@ -46,10 +46,7 @@ import type { RectClaim } from '../claims/claims-store';
 import { canEditTile } from '../claims/permissions';
 import type { ChunkOverlayStore } from '../chunks/chunk-overlay-store';
 import type { PlayerLike } from '../player-like';
-import {
-    recordMapTransitionEvent,
-    type MapTransitionEvent,
-} from '../map-transition-observability';
+import { recordMapTransitionEvent, type MapTransitionEvent } from '../map-transition-observability';
 
 type JsonScalar = string | number | boolean | null;
 type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
@@ -78,7 +75,11 @@ export type IntentWorldHost = Readonly<{
         isSameNavigationIsland?(fromX: number, fromY: number, toX: number, toY: number): boolean;
     } | null;
     isValidPositionForMap?(mapId: string, x: number, y: number): boolean;
-    resolveDoorTeleport?(mapId: string, x: number, y: number): Readonly<{ toMapId: string; to: { x: number; y: number } }> | null;
+    resolveDoorTeleport?(
+        mapId: string,
+        x: number,
+        y: number
+    ): Readonly<{ toMapId: string; to: { x: number; y: number } }> | null;
     isValidPosition(x: number, y: number): boolean;
     ensureChunkOverlayLoadedForTile?(x: number, y: number, mapId?: string): boolean;
     persistClaimUpsert?(claim: RectClaim): void;
@@ -195,12 +196,7 @@ function isTileEditOutOfBounds({
         return map.isOutOfBounds(x, y);
     }
 
-    if (
-        Number.isInteger(map.width)
-        && Number.isInteger(map.height)
-        && (map.width ?? 0) > 0
-        && (map.height ?? 0) > 0
-    ) {
+    if (Number.isInteger(map.width) && Number.isInteger(map.height) && (map.width ?? 0) > 0 && (map.height ?? 0) > 0) {
         return x < 0 || y < 0 || x >= (map.width ?? 0) || y >= (map.height ?? 0);
     }
 
@@ -223,11 +219,11 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     const playerIdCandidate = payload.playerId;
                     const to = payload.to;
                     if (
-                        typeof playerIdCandidate !== 'number'
-                        || !Number.isInteger(playerIdCandidate)
-                        || !isRecord(to)
-                        || typeof to.x !== 'number'
-                        || typeof to.y !== 'number'
+                        typeof playerIdCandidate !== 'number' ||
+                        !Number.isInteger(playerIdCandidate) ||
+                        !isRecord(to) ||
+                        typeof to.x !== 'number' ||
+                        typeof to.y !== 'number'
                     ) {
                         return;
                     }
@@ -326,8 +322,10 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     }
 
                     const currentPos = ctx.Position.store.get(ctx.player.id) ?? gridPos(ctx.player.x, ctx.player.y);
-                    const currentMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
-                    const doorDestination = ctx.world.resolveDoorTeleport?.(currentMapId, currentPos.x, currentPos.y) ?? null;
+                    const currentMapId =
+                        ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    const doorDestination =
+                        ctx.world.resolveDoorTeleport?.(currentMapId, currentPos.x, currentPos.y) ?? null;
                     if (!doorDestination) {
                         return;
                     }
@@ -363,7 +361,12 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     if (!teleport) {
                         throw new Error(`Missing outcome handler: ${OUTCOME_DOOR_TELEPORT}`);
                     }
-                    teleport(ctx, { playerId: ctx.player.id, fromMapId: currentMapId, toMapId: doorDestination.toMapId, to: cmd.to });
+                    teleport(ctx, {
+                        playerId: ctx.player.id,
+                        fromMapId: currentMapId,
+                        toMapId: doorDestination.toMapId,
+                        to: cmd.to,
+                    });
                 });
             },
         },
@@ -376,7 +379,8 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     if (!ctx || !cmd) {
                         return;
                     }
-                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    const actorMapId =
+                        ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
                     if (isTileEditOutOfBounds({ world: ctx.world, mapId: actorMapId, x: cmd.x, y: cmd.y })) {
                         return { ok: false, reason: 'TILE_EDIT:out_of_bounds' };
                     }
@@ -414,7 +418,8 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     if (!ctx || !cmd) {
                         return;
                     }
-                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    const actorMapId =
+                        ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
                     return applyClaimCreateIntent({
                         state: ctx.state,
                         world: ctx.world,
@@ -430,7 +435,8 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     if (!ctx || !cmd) {
                         return;
                     }
-                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    const actorMapId =
+                        ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
                     return applyClaimUpdateIntent({
                         state: ctx.state,
                         world: ctx.world,
@@ -446,8 +452,15 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     if (!ctx || !cmd) {
                         return;
                     }
-                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
-                    return applyClaimDeleteIntent({ state: ctx.state, world: ctx.world, player: ctx.player, cmd, mapId: actorMapId });
+                    const actorMapId =
+                        ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    return applyClaimDeleteIntent({
+                        state: ctx.state,
+                        world: ctx.world,
+                        player: ctx.player,
+                        cmd,
+                        mapId: actorMapId,
+                    });
                 });
             },
         },

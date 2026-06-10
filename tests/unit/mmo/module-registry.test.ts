@@ -13,9 +13,26 @@ test('module registry orders modules deterministically by dependency graph', () 
     const registry = new GameModuleRegistry();
     const order: string[] = [];
 
-    const modA: ModuleManifest = { id: 'core.a', register() { order.push('core.a'); } };
-    const modB: ModuleManifest = { id: 'core.b', deps: ['core.a'], register() { order.push('core.b'); } };
-    const modC: ModuleManifest = { id: 'core.c', deps: ['core.b'], register() { order.push('core.c'); } };
+    const modA: ModuleManifest = {
+        id: 'core.a',
+        register() {
+            order.push('core.a');
+        },
+    };
+    const modB: ModuleManifest = {
+        id: 'core.b',
+        deps: ['core.a'],
+        register() {
+            order.push('core.b');
+        },
+    };
+    const modC: ModuleManifest = {
+        id: 'core.c',
+        deps: ['core.b'],
+        register() {
+            order.push('core.c');
+        },
+    };
 
     registry.registerModules([modC, modB, modA]);
     expect(registry.moduleOrder).toEqual(['core.a', 'core.b', 'core.c']);

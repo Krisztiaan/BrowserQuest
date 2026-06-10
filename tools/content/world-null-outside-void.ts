@@ -322,7 +322,9 @@ async function main(): Promise<void> {
         if (!imageRef) {
             fail('Selected tileset has no `image` path for transparent-border analysis.');
         }
-        const imageBasePath = asString(tileset.image) ? path.dirname(mapPath) : path.dirname(path.resolve(path.dirname(mapPath), asString(tileset.source) ?? '.'));
+        const imageBasePath = asString(tileset.image)
+            ? path.dirname(mapPath)
+            : path.dirname(path.resolve(path.dirname(mapPath), asString(tileset.source) ?? '.'));
         const imagePath = path.resolve(imageBasePath, imageRef);
         const detectedGids = detectTransparentBorderGids({
             imagePath,

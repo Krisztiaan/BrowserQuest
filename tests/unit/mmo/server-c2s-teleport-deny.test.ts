@@ -25,7 +25,11 @@ function createPipelineFixture(params: {
     player: Player;
     isDoor: (x: number, y: number) => boolean;
     getDoorDestination: (x: number, y: number) => { x: number; y: number } | null;
-    resolveDoorTeleport?: (mapId: string, x: number, y: number) => { toMapId: string; to: { x: number; y: number } } | null;
+    resolveDoorTeleport?: (
+        mapId: string,
+        x: number,
+        y: number
+    ) => { toMapId: string; to: { x: number; y: number } } | null;
 }): { pipeline: WorldEcsCommandPipeline; delivered: WorldMessage[] } {
     const { player, isDoor, getDoorDestination, resolveDoorTeleport } = params;
     const delivered: WorldMessage[] = [];

@@ -23,11 +23,7 @@ function normalizeProfileId(value: string | undefined): MovementTuningProfileId 
         return null;
     }
     const normalized = value.trim().toLowerCase().replaceAll('-', '_');
-    if (
-        normalized === 'farming_social'
-        || normalized === 'combat_proximity'
-        || normalized === 'minigame_critical'
-    ) {
+    if (normalized === 'farming_social' || normalized === 'combat_proximity' || normalized === 'minigame_critical') {
         return normalized;
     }
     return null;
@@ -50,15 +46,19 @@ function normalizeFlagValue(value: string | undefined): boolean | null {
 function resolveRolloutFlags(env: EnvMap): MovementRolloutFlags {
     return Object.freeze({
         localPresentationMotor:
-            normalizeFlagValue(env.BQ_LOCAL_PRESENTATION_MOTOR) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.localPresentationMotor,
+            normalizeFlagValue(env.BQ_LOCAL_PRESENTATION_MOTOR) ??
+            DEFAULT_MOVEMENT_ROLLOUT_FLAGS.localPresentationMotor,
         remoteSmoothingTimeline:
-            normalizeFlagValue(env.BQ_REMOTE_SMOOTHING_TIMELINE) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.remoteSmoothingTimeline,
+            normalizeFlagValue(env.BQ_REMOTE_SMOOTHING_TIMELINE) ??
+            DEFAULT_MOVEMENT_ROLLOUT_FLAGS.remoteSmoothingTimeline,
         serverMoveStepGrace:
             normalizeFlagValue(env.BQ_SERVER_MOVE_STEP_GRACE) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.serverMoveStepGrace,
         serverInteractionGrace:
-            normalizeFlagValue(env.BQ_SERVER_INTERACTION_GRACE) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.serverInteractionGrace,
+            normalizeFlagValue(env.BQ_SERVER_INTERACTION_GRACE) ??
+            DEFAULT_MOVEMENT_ROLLOUT_FLAGS.serverInteractionGrace,
         playerPathingIgnoresPlayers:
-            normalizeFlagValue(env.BQ_PLAYER_PATHING_IGNORES_PLAYERS) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.playerPathingIgnoresPlayers,
+            normalizeFlagValue(env.BQ_PLAYER_PATHING_IGNORES_PLAYERS) ??
+            DEFAULT_MOVEMENT_ROLLOUT_FLAGS.playerPathingIgnoresPlayers,
     });
 }
 

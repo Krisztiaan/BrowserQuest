@@ -1,8 +1,4 @@
-import type {
-    ClientToServerProtocolAction,
-    ProtocolAction,
-    ServerToClientProtocolAction,
-} from './types';
+import type { ClientToServerProtocolAction, ProtocolAction, ServerToClientProtocolAction } from './types';
 import { checkClientToServerProtocolAction, isServerToClientProtocolAction } from './schema';
 import {
     decodeClientToServerBinaryActionBatchPayload,
@@ -35,9 +31,7 @@ export const PROTOCOL_REGISTRY = PROTOCOL_MANIFEST;
 
 type ProtocolDecodeInput = unknown;
 
-export function isClientToServerProtocolAction(
-    value: ProtocolDecodeInput
-): value is ClientToServerProtocolAction {
+export function isClientToServerProtocolAction(value: ProtocolDecodeInput): value is ClientToServerProtocolAction {
     return Array.isArray(value) && checkClientToServerProtocolAction(value);
 }
 
@@ -69,7 +63,9 @@ export function decodeClientToServerProtocolActionBatch(payload: string): Client
     return normalizeClientToServerProtocolActionBatch(decodeClientToServerProtocolActionBatchJson(payload));
 }
 
-export function decodeClientToServerProtocolActionBatchBinary(payload: ArrayBuffer | Uint8Array): ClientToServerProtocolAction[] {
+export function decodeClientToServerProtocolActionBatchBinary(
+    payload: ArrayBuffer | Uint8Array
+): ClientToServerProtocolAction[] {
     try {
         return normalizeClientToServerProtocolActionBatch(decodeClientToServerBinaryActionBatchPayload(payload));
     } catch {
@@ -108,7 +104,9 @@ export function decodeServerToClientProtocolActionBatch(payload: string): Server
     return normalizeServerToClientProtocolActionBatch(decodeServerToClientProtocolActionBatchJson(payload));
 }
 
-export function decodeServerToClientProtocolActionBatchBinary(payload: ArrayBuffer | Uint8Array): ServerToClientProtocolAction[] {
+export function decodeServerToClientProtocolActionBatchBinary(
+    payload: ArrayBuffer | Uint8Array
+): ServerToClientProtocolAction[] {
     try {
         return normalizeServerToClientProtocolActionBatch(decodeServerToClientBinaryActionBatchPayload(payload));
     } catch {

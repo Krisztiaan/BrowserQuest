@@ -161,12 +161,17 @@ class BunSocketAdapter {
 
     on(
         event: string,
-        handler: (...args: Array<WsFrameData | boolean | string | Error | number | bigint | object | null | undefined>) => void
+        handler: (
+            ...args: Array<WsFrameData | boolean | string | Error | number | bigint | object | null | undefined>
+        ) => void
     ): void {
         this.#handlers[event] = handler;
     }
 
-    emit(event: string, ...args: Array<WsFrameData | boolean | string | Error | number | bigint | object | null | undefined>) {
+    emit(
+        event: string,
+        ...args: Array<WsFrameData | boolean | string | Error | number | bigint | object | null | undefined>
+    ) {
         this.#handlers[event]?.(...args);
     }
 
@@ -219,18 +224,18 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
                     return new Response(this.statusProvider(), { status: 200 });
                 }
                 if (
-                    (requestPath === '/profile/preview.svg' || requestPath === '/profile/preview.json')
-                    && this.profilePreviewProvider
+                    (requestPath === '/profile/preview.svg' || requestPath === '/profile/preview.json') &&
+                    this.profilePreviewProvider
                 ) {
                     return this.profilePreviewProvider(request);
                 }
                 if (
-                    (requestPath === '/auth/passkey/register/options'
-                        || requestPath === '/auth/passkey/register/verify'
-                        || requestPath === '/auth/passkey/login/options'
-                        || requestPath === '/auth/passkey/login/verify'
-                        || requestPath === '/auth/passkey/logout')
-                    && this.passkeyAuthProvider
+                    (requestPath === '/auth/passkey/register/options' ||
+                        requestPath === '/auth/passkey/register/verify' ||
+                        requestPath === '/auth/passkey/login/options' ||
+                        requestPath === '/auth/passkey/login/verify' ||
+                        requestPath === '/auth/passkey/logout') &&
+                    this.passkeyAuthProvider
                 ) {
                     return this.passkeyAuthProvider(request);
                 }
@@ -338,9 +343,7 @@ class MultiVersionWebsocketServer extends Evented<BunWebSocketServerEvents> {
         this.runtimeMapPackProvider = runtimeMapPackProvider;
     }
 
-    forEachConnection(
-        callback: (connection: BunConnectionRef, connectionId: string) => void
-    ) {
+    forEachConnection(callback: (connection: BunConnectionRef, connectionId: string) => void) {
         Object.keys(this._connections).forEach((connectionId) => {
             const connection = this._connections[connectionId];
             if (connection) {

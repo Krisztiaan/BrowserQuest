@@ -73,8 +73,5 @@ test('buildMovePlanSteps supports stop-adjacent slicing', () => {
         gridPos(12, 10),
         gridPos(13, 10),
     ]);
-    expect(buildMovePlanSteps({ path, stopAdjacentToTarget: true })).toEqual([
-        gridPos(11, 10),
-        gridPos(12, 10),
-    ]);
+    expect(buildMovePlanSteps({ path, stopAdjacentToTarget: true })).toEqual([gridPos(11, 10), gridPos(12, 10)]);
 });

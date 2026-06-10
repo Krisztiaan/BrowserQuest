@@ -17,12 +17,15 @@ export type ClientClickIntentSystemHost = Readonly<{
         nextGridX?: number;
         nextGridY?: number;
     } | null;
-    map:
-        | {
-              isColliding(x: number, y: number): boolean;
-              isPlateau(x: number, y: number): boolean;
-              isDoor?(x: number, y: number): boolean;
-              getDoorDestination?(x: number, y: number): {
+    map: {
+        isColliding(x: number, y: number): boolean;
+        isPlateau(x: number, y: number): boolean;
+        isDoor?(x: number, y: number): boolean;
+        getDoorDestination?(
+            x: number,
+            y: number
+        ):
+            | {
                   x: number;
                   y: number;
                   orientation: number;
@@ -30,9 +33,9 @@ export type ClientClickIntentSystemHost = Readonly<{
                   targetMapId?: string;
                   cameraX?: number;
                   cameraY?: number;
-              } | undefined;
-          }
-        | null;
+              }
+            | undefined;
+    } | null;
 
     isZoning(): boolean;
     isZoningTile(x: number, y: number): boolean;

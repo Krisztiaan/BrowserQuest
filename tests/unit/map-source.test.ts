@@ -53,17 +53,19 @@ test('map source loads map-pack runtime payload once and resolves maps by id', a
         configurable: true,
         writable: true,
         value: (input: RequestInfo | URL) =>
-            Promise.resolve(new Response(
-                JSON.stringify({
-                    schemaVersion: 2,
-                    maps: [
-                        { id: 'world', client: createClientMap(4, 4), server: {} },
-                        { id: 'house', client: createClientMap(2, 3), server: {} },
-                    ],
-                    graph: { maps: [], edges: [] },
-                }),
-                { status: 200, headers: { 'content-type': 'application/json' } }
-            )).then((response) => {
+            Promise.resolve(
+                new Response(
+                    JSON.stringify({
+                        schemaVersion: 2,
+                        maps: [
+                            { id: 'world', client: createClientMap(4, 4), server: {} },
+                            { id: 'house', client: createClientMap(2, 3), server: {} },
+                        ],
+                        graph: { maps: [], edges: [] },
+                    }),
+                    { status: 200, headers: { 'content-type': 'application/json' } }
+                )
+            ).then((response) => {
                 fetchCalls.push(resolveRequestPath(input));
                 return response;
             }),
@@ -101,7 +103,11 @@ test('map source defers map payload normalization until a map is requested', asy
                         schemaVersion: 2,
                         maps: [
                             { id: 'world', client: createClientMap(4, 4), server: {} },
-                            { id: 'broken_house', client: { width: 2, height: 2, tilesize: 16, data: 'bad' }, server: {} },
+                            {
+                                id: 'broken_house',
+                                client: { width: 2, height: 2, tilesize: 16, data: 'bad' },
+                                server: {},
+                            },
                         ],
                         graph: { maps: [], edges: [] },
                     }),

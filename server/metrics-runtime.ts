@@ -117,11 +117,11 @@ function resolveErrorMessage(err: RuntimeErrorLike): string {
         return err;
     }
     if (
-        typeof err === 'number'
-        || typeof err === 'boolean'
-        || typeof err === 'bigint'
-        || err === null
-        || err === undefined
+        typeof err === 'number' ||
+        typeof err === 'boolean' ||
+        typeof err === 'bigint' ||
+        err === null ||
+        err === undefined
     ) {
         return String(err);
     }

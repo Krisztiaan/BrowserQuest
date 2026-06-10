@@ -29,15 +29,21 @@ type TestApi = {
     isReady: () => boolean;
     getPlayerPos: () => { ok: boolean; reason?: string; x: number | null; y: number | null };
     getOverlayTileValue: (x: number, y: number) => number | null;
-    getIntentStatus: (seq: number) => { status: 'invalid' | 'pending' | 'acked' | 'rejected'; intentTypeId?: string; reason?: string };
-    sendClaimCreateIntent: (payload: {
-        x1: number;
-        y1: number;
-        x2: number;
-        y2: number;
-        editors?: string[];
-    }) => { ok: boolean; reason?: string; seq: number | null };
-    sendTileEditIntent: (x: number, y: number, value: number | null) => { ok: boolean; reason?: string; seq: number | null };
+    getIntentStatus: (seq: number) => {
+        status: 'invalid' | 'pending' | 'acked' | 'rejected';
+        intentTypeId?: string;
+        reason?: string;
+    };
+    sendClaimCreateIntent: (payload: { x1: number; y1: number; x2: number; y2: number; editors?: string[] }) => {
+        ok: boolean;
+        reason?: string;
+        seq: number | null;
+    };
+    sendTileEditIntent: (
+        x: number,
+        y: number,
+        value: number | null
+    ) => { ok: boolean; reason?: string; seq: number | null };
     clickTile: (x: number, y: number) => { ok: boolean; reason?: string };
     getDoorDestination: (x: number, y: number) => { ok: boolean; reason?: string; destination: DoorDestination | null };
     moveToDifferentZone: () => { ok: boolean; reason?: string; from?: ZoneTarget; to?: ZoneTarget };
@@ -155,7 +161,10 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
     let lastKillProbeMobId: string | number | null = null;
     let killProbeInterval: ReturnType<typeof setInterval> | null = null;
     let killProbeTimeout: ReturnType<typeof setTimeout> | null = null;
-    const intentResults = new Map<number, { status: 'pending' | 'acked' | 'rejected'; intentTypeId?: string; reason?: string }>();
+    const intentResults = new Map<
+        number,
+        { status: 'pending' | 'acked' | 'rejected'; intentTypeId?: string; reason?: string }
+    >();
     let intentListenersBound = false;
 
     const stopKillProbe = (): void => {
@@ -203,7 +212,9 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
         },
 
         isReady: function () {
-            return Boolean(game.started && game.client && (game.map as NonNullable<Game['map']>).isLoaded && game.player);
+            return Boolean(
+                game.started && game.client && (game.map as NonNullable<Game['map']>).isLoaded && game.player
+            );
         },
 
         getPlayerPos: function () {
@@ -416,20 +427,20 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
                 itemY,
             };
         },
-	        sendAggroProbe: function () {
-	            if (!game.client || !(game.map as NonNullable<Game['map']>).isLoaded) {
-	                return { ok: false, reason: 'not_ready' };
-	            }
-                const activeGame = game;
-                const activeMap = (activeGame.map as NonNullable<Game['map']>);
+        sendAggroProbe: function () {
+            if (!game.client || !(game.map as NonNullable<Game['map']>).isLoaded) {
+                return { ok: false, reason: 'not_ready' };
+            }
+            const activeGame = game;
+            const activeMap = activeGame.map as NonNullable<Game['map']>;
 
-	            const entities = getTestEntities(game);
+            const entities = getTestEntities(game);
 
-	            const playerX = activeGame.player.gridX;
-	            const playerY = activeGame.player.gridY;
-	            let mob: TestEntity | null = null;
-	            let tile: { x: number; y: number } | null = null;
-	            let bestDist = Number.POSITIVE_INFINITY;
+            const playerX = activeGame.player.gridX;
+            const playerY = activeGame.player.gridY;
+            let mob: TestEntity | null = null;
+            let tile: { x: number; y: number } | null = null;
+            let bestDist = Number.POSITIVE_INFINITY;
 
             for (const candidate of entities.mobs) {
                 const candidateX = candidate.gridX;
@@ -437,56 +448,57 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
                 if (!isSafeInteger(candidateX) || !isSafeInteger(candidateY)) {
                     continue;
                 }
-	                const candidateTiles = [
-	                    { x: candidateX - 1, y: candidateY },
-	                    { x: candidateX + 1, y: candidateY },
-	                    { x: candidateX, y: candidateY - 1 },
-	                    { x: candidateX, y: candidateY + 1 },
-	                ].filter(
-                        (nextTile) =>
-                            !activeMap.isOutOfBounds(nextTile.x, nextTile.y) && !activeMap.isColliding(nextTile.x, nextTile.y)
-                    );
+                const candidateTiles = [
+                    { x: candidateX - 1, y: candidateY },
+                    { x: candidateX + 1, y: candidateY },
+                    { x: candidateX, y: candidateY - 1 },
+                    { x: candidateX, y: candidateY + 1 },
+                ].filter(
+                    (nextTile) =>
+                        !activeMap.isOutOfBounds(nextTile.x, nextTile.y) &&
+                        !activeMap.isColliding(nextTile.x, nextTile.y)
+                );
 
-	                if (candidateTiles.length === 0) {
-	                    continue;
-	                }
+                if (candidateTiles.length === 0) {
+                    continue;
+                }
 
-	                candidateTiles.sort((a, b) => {
-	                    const da = Math.abs(a.x - playerX) + Math.abs(a.y - playerY);
-	                    const db = Math.abs(b.x - playerX) + Math.abs(b.y - playerY);
-	                    return da - db;
-	                });
+                candidateTiles.sort((a, b) => {
+                    const da = Math.abs(a.x - playerX) + Math.abs(a.y - playerY);
+                    const db = Math.abs(b.x - playerX) + Math.abs(b.y - playerY);
+                    return da - db;
+                });
 
-	                const nextTile = candidateTiles[0];
-	                if (!nextTile) {
-	                    continue;
-	                }
+                const nextTile = candidateTiles[0];
+                if (!nextTile) {
+                    continue;
+                }
 
                 const dist = Math.abs(candidateX - playerX) + Math.abs(candidateY - playerY);
-	                if (dist < bestDist) {
-	                    bestDist = dist;
-	                    mob = candidate;
-	                    tile = nextTile;
-	                }
-	            }
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    mob = candidate;
+                    tile = nextTile;
+                }
+            }
 
-	            if (!mob || !tile) {
-	                return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
-	            }
+            if (!mob || !tile) {
+                return { ok: false, reason: 'no_mob', mobCount: entities.mobs.length };
+            }
 
-	            activeGame.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
+            activeGame.kernel.enqueueClientCommand({ type: 'clientSendMove', x: tile.x, y: tile.y });
 
-	            lastAggroMobId = mob.id;
-	            activeGame.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: entityIdFromWire(mob.id) });
+            lastAggroMobId = mob.id;
+            activeGame.kernel.enqueueClientCommand({ type: 'clientSendAggro', mobId: entityIdFromWire(mob.id) });
 
-	            return {
-	                ok: true,
-	                mobId: mob.id,
-	                mobCount: entities.mobs.length,
-	                targetX: tile.x,
-	                targetY: tile.y,
-	            };
-	        },
+            return {
+                ok: true,
+                mobId: mob.id,
+                mobCount: entities.mobs.length,
+                targetX: tile.x,
+                targetY: tile.y,
+            };
+        },
         getAggroProbeStatus: function () {
             if (!game.client || !(game.map as NonNullable<Game['map']>).isLoaded) {
                 return {
@@ -558,7 +570,7 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
                 return { ok: false, reason: 'not_ready' };
             }
             const activeGame = game;
-            const activeMap = (activeGame.map as NonNullable<Game['map']>);
+            const activeMap = activeGame.map as NonNullable<Game['map']>;
 
             const entities = getTestEntities(game);
             const player = activeGame.player;
@@ -638,7 +650,7 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
                 return { ok: false, reason: 'not_ready' };
             }
             const activeGame = game;
-            const activeMap = (activeGame.map as NonNullable<Game['map']>);
+            const activeMap = activeGame.map as NonNullable<Game['map']>;
 
             const entities = getTestEntities(game);
             const player = activeGame.player;
@@ -714,7 +726,7 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
                     stopKillProbe();
                     return;
                 }
-                const currentMap = (currentGame.map as NonNullable<Game['map']>);
+                const currentMap = currentGame.map as NonNullable<Game['map']>;
 
                 const liveMob = currentGame.entities[String(killMobId)];
                 if (!(liveMob instanceof Mob) || liveMob.isDead) {
@@ -728,8 +740,10 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
                         { x: liveMob.gridX + 1, y: liveMob.gridY },
                         { x: liveMob.gridX, y: liveMob.gridY - 1 },
                         { x: liveMob.gridX, y: liveMob.gridY + 1 },
-                    ].filter((candidate) =>
-                        !currentMap.isOutOfBounds(candidate.x, candidate.y) && !currentMap.isColliding(candidate.x, candidate.y)
+                    ].filter(
+                        (candidate) =>
+                            !currentMap.isOutOfBounds(candidate.x, candidate.y) &&
+                            !currentMap.isColliding(candidate.x, candidate.y)
                     );
 
                     chaseTiles.sort((a, b) => {
@@ -740,11 +754,18 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
 
                     const chaseTile = chaseTiles[0];
                     if (chaseTile) {
-                        currentGame.kernel.enqueueClientCommand({ type: 'clientSendMove', x: chaseTile.x, y: chaseTile.y });
+                        currentGame.kernel.enqueueClientCommand({
+                            type: 'clientSendMove',
+                            x: chaseTile.x,
+                            y: chaseTile.y,
+                        });
                     }
                 }
 
-                currentGame.kernel.enqueueClientCommand({ type: 'clientSendAttack', mobId: entityIdFromWire(killMobId) });
+                currentGame.kernel.enqueueClientCommand({
+                    type: 'clientSendAttack',
+                    mobId: entityIdFromWire(killMobId),
+                });
             };
 
             runKillProbeTick();
@@ -789,7 +810,8 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
                 if (!(entity instanceof Mob)) {
                     continue;
                 }
-                const dist = Math.abs(entity.gridX - activeGame.player.gridX) + Math.abs(entity.gridY - activeGame.player.gridY);
+                const dist =
+                    Math.abs(entity.gridX - activeGame.player.gridX) + Math.abs(entity.gridY - activeGame.player.gridY);
                 if (dist < nearestDist) {
                     nearestDist = dist;
                     nearestMobId = entity.id;
@@ -811,7 +833,9 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
                 };
             }
 
-            const dist = Math.abs(requestedMob.gridX - activeGame.player.gridX) + Math.abs(requestedMob.gridY - activeGame.player.gridY);
+            const dist =
+                Math.abs(requestedMob.gridX - activeGame.player.gridX) +
+                Math.abs(requestedMob.gridY - activeGame.player.gridY);
             return {
                 ready: true,
                 requestedMobId,

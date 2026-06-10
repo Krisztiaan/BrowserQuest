@@ -41,12 +41,7 @@ test('visible tile object layers render into client data and foreground with col
                 visible: true,
                 width: 4,
                 height: 4,
-                data: [
-                    0, 0, 0, 0,
-                    0, 0, 0, 0,
-                    0, 0, 0, 0,
-                    0, 0, 0, 0,
-                ],
+                data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             },
             {
                 id: 2,
@@ -219,12 +214,7 @@ test('group layers flatten into runtime data and depth-sorted props with inherit
                         visible: true,
                         width: 4,
                         height: 4,
-                        data: [
-                            2, 0, 0, 0,
-                            0, 0, 0, 0,
-                            0, 0, 0, 0,
-                            0, 0, 0, 0,
-                        ],
+                        data: [2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
                     },
                     {
                         id: 3,
@@ -378,12 +368,7 @@ test('empty perimeter tiles are sealed as collisions', () => {
                 visible: true,
                 width: 4,
                 height: 4,
-                data: [
-                    0, 0, 0, 0,
-                    0, 1, 1, 0,
-                    0, 1, 1, 0,
-                    0, 0, 0, 0,
-                ],
+                data: [0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0],
             },
         ],
     } as Parameters<typeof processMap>[0];

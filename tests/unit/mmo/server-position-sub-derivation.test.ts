@@ -6,7 +6,10 @@ import { SoaGridPosStore, SoaWorldPosStore } from '../../../server/ecs/component
 import type { DomainEvent } from '../../../server/ecs/events';
 import { createDeriveGridPositionFromWorldPosSystem } from '../../../server/ecs/position-systems';
 import { WorldState } from '../../../server/ecs/world-state';
-import { registerSpawnReplicationComponents, syncSpawnReplicationFromLegacyEntity } from '../../../server/replication/spawn-replication';
+import {
+    registerSpawnReplicationComponents,
+    syncSpawnReplicationFromLegacyEntity,
+} from '../../../server/replication/spawn-replication';
 import Types from '../../../shared/gametypes-browser';
 
 test('derive grid Position from PositionSub floors at tile boundaries', () => {
@@ -35,7 +38,12 @@ test('spawn replication initializes PositionSub at the center of the legacy tile
     const replication = registerSpawnReplicationComponents(state.world);
     const entity = state.world.createEntity();
 
-    syncSpawnReplicationFromLegacyEntity(state.world, replication, { id: entity, kind: Types.Entities.WARRIOR, x: 12, y: 34 });
+    syncSpawnReplicationFromLegacyEntity(state.world, replication, {
+        id: entity,
+        kind: Types.Entities.WARRIOR,
+        x: 12,
+        y: 34,
+    });
 
     expect(state.world.getComponent(entity, replication.Position)).toEqual(gridPos(12, 34));
     expect(state.world.getComponent(entity, replication.PositionSub)).toEqual(tileToWorldPosCenter(12, 34));

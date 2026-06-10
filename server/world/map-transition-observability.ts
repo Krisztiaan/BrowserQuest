@@ -32,6 +32,9 @@ export type MapTransitionEventSink = Readonly<{
     recordMapTransitionEvent?: (event: MapTransitionEvent) => void;
 }>;
 
-export function recordMapTransitionEvent(target: MapTransitionEventSink | null | undefined, event: MapTransitionEvent): void {
+export function recordMapTransitionEvent(
+    target: MapTransitionEventSink | null | undefined,
+    event: MapTransitionEvent
+): void {
     target?.recordMapTransitionEvent?.(event);
 }

@@ -185,7 +185,8 @@ function sanitizeProgressionState(candidate: unknown): PersistedProgressionState
         return fallback;
     }
     const raw = candidate;
-    const gold = typeof raw.gold === 'number' && Number.isFinite(raw.gold) ? Math.max(0, Math.trunc(raw.gold)) : fallback.gold;
+    const gold =
+        typeof raw.gold === 'number' && Number.isFinite(raw.gold) ? Math.max(0, Math.trunc(raw.gold)) : fallback.gold;
     const farmingLevel =
         typeof raw.farmingLevel === 'number' && Number.isFinite(raw.farmingLevel)
             ? Math.max(1, Math.trunc(raw.farmingLevel))
@@ -208,10 +209,7 @@ function sanitizeProgressionState(candidate: unknown): PersistedProgressionState
                       typeof entry.itemKind === 'string' || typeof entry.itemKind === 'number' ? entry.itemKind : null
                   );
                   const quantity = entry.quantity;
-                  if (
-                      itemKind === null || typeof quantity !== 'number'
-                      || !Number.isFinite(quantity)
-                  ) {
+                  if (itemKind === null || typeof quantity !== 'number' || !Number.isFinite(quantity)) {
                       return null;
                   }
                   const safeQuantity = Math.max(1, Math.trunc(quantity));
@@ -459,18 +457,14 @@ export class SqlitePlayerPersistence {
                 progression_json = excluded.progression_json,
                 updated_at = excluded.updated_at`
         );
-        this.#selectSessionByName = this.#db.prepare(
-            `SELECT connection_id FROM active_sessions WHERE name_key = ?1`
-        );
+        this.#selectSessionByName = this.#db.prepare(`SELECT connection_id FROM active_sessions WHERE name_key = ?1`);
         this.#selectSessionByConnection = this.#db.prepare(
             `SELECT name_key FROM active_sessions WHERE connection_id = ?1`
         );
         this.#insertSession = this.#db.prepare(
             `INSERT INTO active_sessions (name_key, connection_id, claimed_at) VALUES (?1, ?2, ?3)`
         );
-        this.#deleteSessionByConnection = this.#db.prepare(
-            `DELETE FROM active_sessions WHERE connection_id = ?1`
-        );
+        this.#deleteSessionByConnection = this.#db.prepare(`DELETE FROM active_sessions WHERE connection_id = ?1`);
         this.#clearSessions = this.#db.prepare(`DELETE FROM active_sessions`);
         this.#selectAchievementProgress = this.#db.prepare(
             `SELECT rat_count, skeleton_count, total_kills, total_dmg, total_revives
@@ -588,7 +582,9 @@ export class SqlitePlayerPersistence {
 
         // Profile create/update + session insert form one atomic claim: a crash
         // mid-way must not leave a profile without its session row (or vice versa).
-        return this.#db.transaction(() => this.#claimPlayerSessionInTransaction({ connectionId, requestedName, accountNameKey }))();
+        return this.#db.transaction(() =>
+            this.#claimPlayerSessionInTransaction({ connectionId, requestedName, accountNameKey })
+        )();
     }
 
     #claimPlayerSessionInTransaction({
@@ -689,13 +685,7 @@ export class SqlitePlayerPersistence {
         );
     }
 
-    persistCheckpoint({
-        playerName,
-        checkpointId,
-    }: {
-        playerName: string;
-        checkpointId: number;
-    }): void {
+    persistCheckpoint({ playerName, checkpointId }: { playerName: string; checkpointId: number }): void {
         const normalizedName = normalizeIdentityKey(playerName);
         if (!normalizedName || !Number.isFinite(checkpointId)) {
             return;
@@ -782,13 +772,7 @@ export class SqlitePlayerPersistence {
         return this.#getAchievementProgressByNameKey(normalizedName);
     }
 
-    persistAchievementUnlock({
-        playerName,
-        achievementId,
-    }: {
-        playerName: string;
-        achievementId: number;
-    }): void {
+    persistAchievementUnlock({ playerName, achievementId }: { playerName: string; achievementId: number }): void {
         const normalizedName = normalizeIdentityKey(playerName);
         if (!normalizedName || !Number.isSafeInteger(achievementId) || achievementId <= 0) {
             return;
@@ -971,7 +955,10 @@ export class SqlitePlayerPersistence {
             return { accepted: false, reason: 'Invalid passkey credential id.' };
         }
 
-        const hasAnyCredential = getRow<PasskeyCredentialByNameRow>(this.#selectAnyPasskeyCredentialByName, normalizedName);
+        const hasAnyCredential = getRow<PasskeyCredentialByNameRow>(
+            this.#selectAnyPasskeyCredentialByName,
+            normalizedName
+        );
         if (!hasAnyCredential) {
             return { accepted: false, reason: 'No passkey is registered for this account.' };
         }
@@ -987,7 +974,9 @@ export class SqlitePlayerPersistence {
 
         const now = Date.now();
         const currentCounter =
-            typeof credential.counter === 'number' && Number.isSafeInteger(credential.counter) && credential.counter >= 0
+            typeof credential.counter === 'number' &&
+            Number.isSafeInteger(credential.counter) &&
+            credential.counter >= 0
                 ? credential.counter
                 : 0;
         const normalizedCounter =

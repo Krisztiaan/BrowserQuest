@@ -201,7 +201,10 @@ class ByteReader {
         if (this.offset + 4 > this.bytes.length) {
             return null;
         }
-        const value = new DataView(this.bytes.buffer, this.bytes.byteOffset, this.bytes.byteLength).getInt32(this.offset, true);
+        const value = new DataView(this.bytes.buffer, this.bytes.byteOffset, this.bytes.byteLength).getInt32(
+            this.offset,
+            true
+        );
         this.offset += 4;
         return value;
     }
@@ -478,10 +481,10 @@ export function decodeClaimDeleteIntentPayload(payload: IntentPayloadBytes): Cla
 
 export function encodeMapTransitionOutcomePayload(payload: MapTransitionOutcomePayload): string | null {
     if (
-        !isI32(payload.x)
-        || !isI32(payload.y)
-        || !asNonEmptyString(payload.fromMapId)
-        || !asNonEmptyString(payload.toMapId)
+        !isI32(payload.x) ||
+        !isI32(payload.y) ||
+        !asNonEmptyString(payload.fromMapId) ||
+        !asNonEmptyString(payload.toMapId)
     ) {
         return null;
     }

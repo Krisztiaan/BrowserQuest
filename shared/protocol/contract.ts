@@ -6,12 +6,7 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 function isProtocolActionValue(value: unknown): value is ProtocolActionValue {
-    if (
-        typeof value === 'number' ||
-        typeof value === 'string' ||
-        typeof value === 'boolean' ||
-        value === null
-    ) {
+    if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean' || value === null) {
         return true;
     }
 

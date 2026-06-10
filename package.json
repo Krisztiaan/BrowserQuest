@@ -68,8 +68,8 @@
     "lint:modern": "eslint --max-warnings=0 \"client/**/*.{ts,js}\" \"server/**/*.{ts,js}\" \"shared/**/*.{ts,js}\" \"tools/**/*.ts\" \"tests/**/*.ts\"",
     "lint:authority": "eslint --max-warnings=0 \"client/runtime/connection.ts\" \"client/game.ts\" \"client/gameclient.ts\" \"client/app.ts\" \"client/map.ts\" \"client/map-source.ts\" \"client/pathfinder.ts\" \"client/game-startup-wait.ts\" \"client/auth.ts\" \"server/runtime.ts\" \"server/player-session.ts\" \"server/player-session-command-translation.ts\" \"server/map.ts\" \"server/auth-session.ts\" \"server/passkey-auth.ts\" \"server/profile-preview.ts\" \"server/world/player-lifecycle.ts\" \"server/world/ecs-command-pipeline.ts\" \"server/ws/runtime.ts\" \"server/ws/runtime-factory.ts\" \"server/ws/connection-id.ts\" \"shared/protocol/**/*.ts\" \"shared/connection-status.ts\" \"shared/maps/processmap.ts\" \"shared/auth/cookie-keys.ts\"",
     "lint:client-runtime": "eslint --max-warnings=0 \"client/runtime/connection.ts\" \"client/game.ts\" \"client/gameclient.ts\"",
-    "format": "prettier --write \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\"",
-    "format:check": "prettier --check \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\""
+    "format": "prettier --write \"client/**/*.ts\" \"server/**/*.ts\" \"shared/**/*.ts\" \"tools/**/*.ts\" \"tests/**/*.ts\"",
+    "format:check": "prettier --check \"client/**/*.ts\" \"server/**/*.ts\" \"shared/**/*.ts\" \"tools/**/*.ts\" \"tests/**/*.ts\""
   },
   "dependencies": {
     "@simplewebauthn/server": "^13.2.2",

@@ -26,11 +26,7 @@ function normalizeProfileId(value: string | null | undefined): MovementTuningPro
         return null;
     }
     const normalized = value.trim().toLowerCase().replaceAll('-', '_');
-    if (
-        normalized === 'farming_social'
-        || normalized === 'combat_proximity'
-        || normalized === 'minigame_critical'
-    ) {
+    if (normalized === 'farming_social' || normalized === 'combat_proximity' || normalized === 'minigame_critical') {
         return normalized;
     }
     return null;
@@ -64,15 +60,19 @@ function readGlobalRolloutFlags(): MovementRolloutFlags {
 
     return Object.freeze({
         localPresentationMotor:
-            normalizeFlagValue(override.localPresentationMotor) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.localPresentationMotor,
+            normalizeFlagValue(override.localPresentationMotor) ??
+            DEFAULT_MOVEMENT_ROLLOUT_FLAGS.localPresentationMotor,
         remoteSmoothingTimeline:
-            normalizeFlagValue(override.remoteSmoothingTimeline) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.remoteSmoothingTimeline,
+            normalizeFlagValue(override.remoteSmoothingTimeline) ??
+            DEFAULT_MOVEMENT_ROLLOUT_FLAGS.remoteSmoothingTimeline,
         serverMoveStepGrace:
             normalizeFlagValue(override.serverMoveStepGrace) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.serverMoveStepGrace,
         serverInteractionGrace:
-            normalizeFlagValue(override.serverInteractionGrace) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.serverInteractionGrace,
+            normalizeFlagValue(override.serverInteractionGrace) ??
+            DEFAULT_MOVEMENT_ROLLOUT_FLAGS.serverInteractionGrace,
         playerPathingIgnoresPlayers:
-            normalizeFlagValue(override.playerPathingIgnoresPlayers) ?? DEFAULT_MOVEMENT_ROLLOUT_FLAGS.playerPathingIgnoresPlayers,
+            normalizeFlagValue(override.playerPathingIgnoresPlayers) ??
+            DEFAULT_MOVEMENT_ROLLOUT_FLAGS.playerPathingIgnoresPlayers,
     });
 }
 
@@ -82,8 +82,8 @@ export function resolveClientMovementNetcodeConfig(): ClientMovementNetcodeConfi
     }
 
     const profileId =
-        normalizeProfileId((globalThis as MovementConfigGlobals).__BQ_MOVEMENT_PROFILE__)
-        ?? DEFAULT_CLIENT_MOVEMENT_TUNING_PROFILE;
+        normalizeProfileId((globalThis as MovementConfigGlobals).__BQ_MOVEMENT_PROFILE__) ??
+        DEFAULT_CLIENT_MOVEMENT_TUNING_PROFILE;
     const profile = MOVEMENT_TUNING_PROFILES[profileId];
     return Object.freeze({
         profileId,

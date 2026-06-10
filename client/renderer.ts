@@ -78,26 +78,24 @@ type RenderInfo = {
     strokeColor?: string;
 };
 type RendererGameLike = {
-    map:
-        | {
-              tilesets?: Array<HTMLImageElement | undefined>;
-              width: number;
-              tilesize: number;
-              isAnimatedTile(id: number): boolean;
-              isColliding(x: number, y: number): boolean;
-              isDoor(x: number, y: number): boolean;
-              isPlateau(x: number, y: number): boolean;
-              isCheckpoint(x: number, y: number): boolean;
-              renderProps?: Array<{
-                  depth: number;
-                  minTileX: number;
-                  minTileY: number;
-                  maxTileX: number;
-                  maxTileY: number;
-                  parts: Array<{ index: number; gid: number }>;
-              }>;
-          }
-        | null;
+    map: {
+        tilesets?: Array<HTMLImageElement | undefined>;
+        width: number;
+        tilesize: number;
+        isAnimatedTile(id: number): boolean;
+        isColliding(x: number, y: number): boolean;
+        isDoor(x: number, y: number): boolean;
+        isPlateau(x: number, y: number): boolean;
+        isCheckpoint(x: number, y: number): boolean;
+        renderProps?: Array<{
+            depth: number;
+            minTileX: number;
+            minTileY: number;
+            maxTileX: number;
+            maxTileY: number;
+            parts: Array<{ index: number; gid: number }>;
+        }>;
+    } | null;
     renderer?: Renderer;
     setSpriteScale(scale: number): void;
     getMouseGridPosition(): { x: number; y: number };
@@ -649,9 +647,9 @@ class Renderer {
                         const weaponAnimData = weapon.animationData[anim.name];
                         if (weaponAnimData) {
                             const index =
-                                frame.index < weaponAnimData.length
-                                    ? frame.index
-                                    : frame.index % weaponAnimData.length,
+                                    frame.index < weaponAnimData.length
+                                        ? frame.index
+                                        : frame.index % weaponAnimData.length,
                                 wx = weapon.width * index * os,
                                 wy = weapon.height * anim.row * os,
                                 ww = weapon.width * os,
@@ -701,9 +699,7 @@ class Renderer {
         });
     }
 
-    drawRenderProp(prop: {
-        parts: Array<{ index: number; gid: number }>;
-    }): void {
+    drawRenderProp(prop: { parts: Array<{ index: number; gid: number }> }): void {
         const map = this.game.map;
         const tileset = this.tileset;
         if (!map || !tileset) {

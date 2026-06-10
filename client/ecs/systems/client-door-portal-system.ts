@@ -54,27 +54,23 @@ export type ClientDoorPortalSystemHost = Readonly<{
         focusEntity(entity: object): void;
     };
     kernel: {
-        clientPendingDoorTraversal:
-            | null
-            | Readonly<{
-                  doorX: number;
-                  doorY: number;
-                  toX: number;
-                  toY: number;
-                  targetMapId?: string;
-                  orientation: number;
-                  portal: boolean;
-                  cameraX?: number;
-                  cameraY?: number;
-                  requestedAtMs: number;
-              }>;
-        clientDoorTraversalContact:
-            | null
-            | Readonly<{
-                  doorX: number;
-                  doorY: number;
-                  mapId: string | null;
-              }>;
+        clientPendingDoorTraversal: null | Readonly<{
+            doorX: number;
+            doorY: number;
+            toX: number;
+            toY: number;
+            targetMapId?: string;
+            orientation: number;
+            portal: boolean;
+            cameraX?: number;
+            cameraY?: number;
+            requestedAtMs: number;
+        }>;
+        clientDoorTraversalContact: null | Readonly<{
+            doorX: number;
+            doorY: number;
+            mapId: string | null;
+        }>;
         setClientPendingDoorTraversal(pending: {
             doorX: number;
             doorY: number;
@@ -119,10 +115,7 @@ export function runClientDoorPortalSystem(host: ClientDoorPortalSystemHost): voi
         } else if (
             host.player.gridX === pending.toX &&
             host.player.gridY === pending.toY &&
-            (
-                !pending.targetMapId ||
-                currentMapId === pending.targetMapId
-            )
+            (!pending.targetMapId || currentMapId === pending.targetMapId)
         ) {
             debugDoors('pending:complete', pending);
             // Door traversal completion is driven by server-issued TELEPORT; apply client-side camera/audio/UX once.
@@ -187,12 +180,14 @@ export function runClientDoorPortalSystem(host: ClientDoorPortalSystemHost): voi
         return;
     }
 
-    const contactMatchesCurrentDoor = host.kernel.clientDoorTraversalContact !== null &&
+    const contactMatchesCurrentDoor =
+        host.kernel.clientDoorTraversalContact !== null &&
         host.kernel.clientDoorTraversalContact.doorX === doorX &&
         host.kernel.clientDoorTraversalContact.doorY === doorY &&
         host.kernel.clientDoorTraversalContact.mapId === currentMapId;
 
-    const pendingMatchesCurrentDoor = pending !== null &&
+    const pendingMatchesCurrentDoor =
+        pending !== null &&
         pending.doorX === doorX &&
         pending.doorY === doorY &&
         pending.toX === destination.x &&

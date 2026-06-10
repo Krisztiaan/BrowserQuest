@@ -50,12 +50,12 @@ export class ChunkOverlay {
 
     #idx(localX: number, localY: number): number {
         if (
-            !Number.isInteger(localX)
-            || !Number.isInteger(localY)
-            || localX < 0
-            || localY < 0
-            || localX >= this.size
-            || localY >= this.size
+            !Number.isInteger(localX) ||
+            !Number.isInteger(localY) ||
+            localX < 0 ||
+            localY < 0 ||
+            localX >= this.size ||
+            localY >= this.size
         ) {
             throw new Error(`ChunkOverlay: local coords out of bounds: (${localX}, ${localY})`);
         }
@@ -117,7 +117,11 @@ export class ChunkOverlay {
         return this.#pendingDeltaIndices.length;
     }
 
-    drainPendingDelta(): { fromVersion: number; toVersion: number; changes: Array<[number, number, number | null]> } | null {
+    drainPendingDelta(): {
+        fromVersion: number;
+        toVersion: number;
+        changes: Array<[number, number, number | null]>;
+    } | null {
         if (this.#pendingDeltaBaseVersion === null || this.#pendingDeltaIndices.length === 0) {
             this.#pendingDeltaBaseVersion = null;
             return null;
@@ -263,7 +267,11 @@ export class ChunkOverlayStore {
         return out;
     }
 
-    drainPendingDeltaForChunk(chunkX: number, chunkY: number, mapId = 'world_01'): ReturnType<ChunkOverlay['drainPendingDelta']> {
+    drainPendingDeltaForChunk(
+        chunkX: number,
+        chunkY: number,
+        mapId = 'world_01'
+    ): ReturnType<ChunkOverlay['drainPendingDelta']> {
         const key = makeScopedChunkKey(this.#normalizeMapId(mapId), chunkX, chunkY);
         const chunk = this.#overlays.get(key);
         if (!chunk) {

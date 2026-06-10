@@ -50,8 +50,8 @@ export function runClientSpatialSyncSystem(host: ClientSpatialSyncSystemHost): v
     // Upsert records for all active entities.
     for (const entity of Object.values(host.entities)) {
         const id = entity.id;
-        const isInputMoving = entity instanceof Player && (kernel.clientMoveInputKeysMask >>> 0) !== 0;
-        const isMoving = entity instanceof Character ? (entity.isMoving() || isInputMoving) : false;
+        const isInputMoving = entity instanceof Player && kernel.clientMoveInputKeysMask >>> 0 !== 0;
+        const isMoving = entity instanceof Character ? entity.isMoving() || isInputMoving : false;
         const isDead = entity instanceof Character ? entity.isDead : false;
 
         let { nextGridX, nextGridY } = normalizeNextGrid(entity);

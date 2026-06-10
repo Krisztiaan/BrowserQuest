@@ -66,20 +66,23 @@ export function getWorldEntityById<TEntity>({
     return undefined;
 }
 
-type WorldMapCollisionCheck = {
-    isOutOfBounds(x: number, y: number): boolean;
-    isColliding(x: number, y: number): boolean;
-} | null | undefined;
+type WorldMapCollisionCheck =
+    | {
+          isOutOfBounds(x: number, y: number): boolean;
+          isColliding(x: number, y: number): boolean;
+      }
+    | null
+    | undefined;
 
 export function isWorldPositionValid(map: WorldMapCollisionCheck, x: LooseValue, y: LooseValue): boolean {
     return Boolean(
-        map
-            && typeof x === 'number'
-            && typeof y === 'number'
-            && Number.isFinite(x)
-            && Number.isFinite(y)
-            && !map.isOutOfBounds(x, y)
-            && !map.isColliding(x, y)
+        map &&
+        typeof x === 'number' &&
+        typeof y === 'number' &&
+        Number.isFinite(x) &&
+        Number.isFinite(y) &&
+        !map.isOutOfBounds(x, y) &&
+        !map.isColliding(x, y)
     );
 }
 

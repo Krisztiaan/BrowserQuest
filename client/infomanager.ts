@@ -23,7 +23,7 @@ class InfoManager {
         const time = this.game.currentTime;
         const id = time + '' + String(value) + '' + x + '' + y;
         const info = new DamageInfo(id, value, x, y, DamageInfo.DURATION, type);
-    
+
         info.onDestroy((destroyedId) => {
             this.destroyQueue.push(destroyedId);
         });
@@ -44,7 +44,7 @@ class InfoManager {
         this.forEachInfo((info) => {
             info.update(time);
         });
-    
+
         this.destroyQueue.forEach((id) => {
             delete this.infos[id];
         });
@@ -52,22 +52,20 @@ class InfoManager {
     }
 }
 
-
 const damageInfoColors: DamageInfoColors = {
-    "received": {
-        fill: "rgb(255, 50, 50)",
-        stroke: "rgb(255, 180, 180)"
+    received: {
+        fill: 'rgb(255, 50, 50)',
+        stroke: 'rgb(255, 180, 180)',
     },
-    "inflicted": {
-        fill: "white",
-        stroke: "#373737"
+    inflicted: {
+        fill: 'white',
+        stroke: '#373737',
     },
-    "healed": {
-        fill: "rgb(80, 255, 80)",
-        stroke: "rgb(50, 120, 50)"
-    }
+    healed: {
+        fill: 'rgb(80, 255, 80)',
+        stroke: 'rgb(50, 120, 50)',
+    },
 };
-
 
 type DamageInfoEvents = {
     destroy: [id: string];
@@ -101,7 +99,7 @@ class DamageInfo extends Evented<DamageInfoEvents> {
     }
 
     isTimeToAnimate(time: number): boolean {
-        return (time - this.lastTime) > this.speed;
+        return time - this.lastTime > this.speed;
     }
 
     update(time: number): void {

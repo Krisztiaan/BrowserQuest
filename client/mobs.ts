@@ -1,4 +1,3 @@
-
 import Mob from './mob';
 import Timer from './timer';
 import Types from '../shared/gametypes-browser';

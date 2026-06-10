@@ -5,4 +5,3 @@ export type ClientTimeSystemHost = {
 export function runClientTimeSystem(host: ClientTimeSystemHost): void {
     host.currentTime = Date.now();
 }
-

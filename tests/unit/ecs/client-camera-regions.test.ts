@@ -13,13 +13,7 @@ function dataFrom(rows: string[]): Array<number | number[]> {
 }
 
 test('computeCameraRegions separates disconnected painted areas with tight bounds', () => {
-    const rows = [
-        '###....',
-        '###....',
-        '.....##',
-        '.....##',
-        '.....##',
-    ];
+    const rows = ['###....', '###....', '.....##', '.....##', '.....##'];
     const regions = computeCameraRegions(dataFrom(rows), 7, 5);
     const a = regions.boundsAt(0, 0);
     const b = regions.boundsAt(5, 3);

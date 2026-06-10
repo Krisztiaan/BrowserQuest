@@ -248,8 +248,8 @@ export const hydrateLoadCharacterPreview = function (previewCanvas: HTMLCanvasEl
                 return null;
             }
             if (
-                previewCanvas.width !== loadedRuntime.armorSpec.width
-                || previewCanvas.height !== loadedRuntime.armorSpec.height
+                previewCanvas.width !== loadedRuntime.armorSpec.width ||
+                previewCanvas.height !== loadedRuntime.armorSpec.height
             ) {
                 previewCanvas.width = loadedRuntime.armorSpec.width;
                 previewCanvas.height = loadedRuntime.armorSpec.height;
@@ -320,9 +320,11 @@ export const hydrateLoadCharacterPreview = function (previewCanvas: HTMLCanvasEl
             return false;
         }
         const body = document.body;
-        return body.classList.contains('returning')
-            && parchment.classList.contains('loadcharacter')
-            && !body.classList.contains('game');
+        return (
+            body.classList.contains('returning') &&
+            parchment.classList.contains('loadcharacter') &&
+            !body.classList.contains('game')
+        );
     };
 
     const syncLifecycle = function (): void {

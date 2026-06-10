@@ -9,7 +9,9 @@ let runtimeSessionSecret: string | null = null;
 function resolveSessionSecretFilePath(): string {
     const override = process.env.BQ_AUTH_SESSION_SECRET_FILE;
     return path.resolve(
-        typeof override === 'string' && override.trim().length > 0 ? override.trim() : './server/.data/auth-session-secret'
+        typeof override === 'string' && override.trim().length > 0
+            ? override.trim()
+            : './server/.data/auth-session-secret'
     );
 }
 
@@ -54,13 +56,10 @@ function resolveSessionSecret(explicitSecret?: string): string {
     }
 
     if (runtimeSessionSecret === null) {
-        const fromEnv = typeof process.env.BQ_AUTH_SESSION_SECRET === 'string'
-            ? process.env.BQ_AUTH_SESSION_SECRET.trim()
-            : '';
+        const fromEnv =
+            typeof process.env.BQ_AUTH_SESSION_SECRET === 'string' ? process.env.BQ_AUTH_SESSION_SECRET.trim() : '';
         runtimeSessionSecret =
-            fromEnv.length > 0
-                ? fromEnv
-                : (loadOrCreatePersistedSecret() ?? randomBytes(32).toString('base64url'));
+            fromEnv.length > 0 ? fromEnv : (loadOrCreatePersistedSecret() ?? randomBytes(32).toString('base64url'));
     }
 
     return runtimeSessionSecret;

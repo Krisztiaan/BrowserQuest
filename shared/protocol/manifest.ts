@@ -18,13 +18,15 @@ export type ProtocolManifestEntry<TDirection extends ProtocolDirection = Protoco
     direction: TDirection;
 }>;
 
-export type ClientToServerProtocolManifestEntry = ProtocolManifestEntry<'client_to_server'> & Readonly<{
-    schema: ActionSchema<ClientToServerArg>;
-}>;
+export type ClientToServerProtocolManifestEntry = ProtocolManifestEntry<'client_to_server'> &
+    Readonly<{
+        schema: ActionSchema<ClientToServerArg>;
+    }>;
 
-export type ServerToClientProtocolManifestEntry = ProtocolManifestEntry<'server_to_client'> & Readonly<{
-    schema: ActionSchema<ServerToClientArg>;
-}>;
+export type ServerToClientProtocolManifestEntry = ProtocolManifestEntry<'server_to_client'> &
+    Readonly<{
+        schema: ActionSchema<ServerToClientArg>;
+    }>;
 
 export const CLIENT_TO_SERVER_PROTOCOL_MANIFEST = [
     {
@@ -33,19 +35,64 @@ export const CLIENT_TO_SERVER_PROTOCOL_MANIFEST = [
         direction: 'client_to_server',
         schema: { kind: 'oneOf', options: [{ args: ['s', 'n', 'n'] }, { args: ['s', 'n', 'n', 'n', 's'] }] },
     },
-    { key: 'LOOTMOVE', opcode: Types.Messages.LOOTMOVE, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 'n', 'n'] } },
-    { key: 'AGGRO', opcode: Types.Messages.AGGRO, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'ATTACK', opcode: Types.Messages.ATTACK, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
+    {
+        key: 'LOOTMOVE',
+        opcode: Types.Messages.LOOTMOVE,
+        direction: 'client_to_server',
+        schema: { kind: 'fixed', args: ['n', 'n', 'n'] },
+    },
+    {
+        key: 'AGGRO',
+        opcode: Types.Messages.AGGRO,
+        direction: 'client_to_server',
+        schema: { kind: 'fixed', args: ['n'] },
+    },
+    {
+        key: 'ATTACK',
+        opcode: Types.Messages.ATTACK,
+        direction: 'client_to_server',
+        schema: { kind: 'fixed', args: ['n'] },
+    },
     { key: 'CHAT', opcode: Types.Messages.CHAT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['s'] } },
     { key: 'LOOT', opcode: Types.Messages.LOOT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'WHO', opcode: Types.Messages.WHO, direction: 'client_to_server', schema: { kind: 'varargs', minArgs: 1, arg: 'n' } },
+    {
+        key: 'WHO',
+        opcode: Types.Messages.WHO,
+        direction: 'client_to_server',
+        schema: { kind: 'varargs', minArgs: 1, arg: 'n' },
+    },
     { key: 'ZONE', opcode: Types.Messages.ZONE, direction: 'client_to_server', schema: { kind: 'fixed', args: [] } },
     { key: 'OPEN', opcode: Types.Messages.OPEN, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'CHECK', opcode: Types.Messages.CHECK, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'ACHIEVEMENT', opcode: Types.Messages.ACHIEVEMENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'INTENT', opcode: Types.Messages.INTENT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 's', 'ba'] } },
-    { key: 'CHUNK_SUBSCRIBE', opcode: Types.Messages.CHUNK_SUBSCRIBE, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 'n', 'n'] } },
-    { key: 'CHUNK_UNSUBSCRIBE', opcode: Types.Messages.CHUNK_UNSUBSCRIBE, direction: 'client_to_server', schema: { kind: 'fixed', args: [] } },
+    {
+        key: 'CHECK',
+        opcode: Types.Messages.CHECK,
+        direction: 'client_to_server',
+        schema: { kind: 'fixed', args: ['n'] },
+    },
+    {
+        key: 'ACHIEVEMENT',
+        opcode: Types.Messages.ACHIEVEMENT,
+        direction: 'client_to_server',
+        schema: { kind: 'fixed', args: ['n'] },
+    },
+    {
+        key: 'INTENT',
+        opcode: Types.Messages.INTENT,
+        direction: 'client_to_server',
+        schema: { kind: 'fixed', args: ['n', 's', 'ba'] },
+    },
+    {
+        key: 'CHUNK_SUBSCRIBE',
+        opcode: Types.Messages.CHUNK_SUBSCRIBE,
+        direction: 'client_to_server',
+        schema: { kind: 'fixed', args: ['n', 'n', 'n'] },
+    },
+    {
+        key: 'CHUNK_UNSUBSCRIBE',
+        opcode: Types.Messages.CHUNK_UNSUBSCRIBE,
+        direction: 'client_to_server',
+        schema: { kind: 'fixed', args: [] },
+    },
 ] as const satisfies ReadonlyArray<ClientToServerProtocolManifestEntry>;
 
 export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
@@ -64,30 +111,115 @@ export const SERVER_TO_CLIENT_PROTOCOL_MANIFEST = [
         direction: 'server_to_client',
         schema: { kind: 'prefixRest', prefix: ['n', 'ns', 'n', 'n'], rest: 'pv' },
     },
-    { key: 'DESPAWN', opcode: Types.Messages.DESPAWN, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'MOVE', opcode: Types.Messages.MOVE, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 'n', 'n'] } },
-    { key: 'LOOTMOVE', opcode: Types.Messages.LOOTMOVE, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 'n'] } },
-    { key: 'ATTACK', opcode: Types.Messages.ATTACK, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 'n'] } },
-    { key: 'HEALTH', opcode: Types.Messages.HEALTH, direction: 'server_to_client', schema: { kind: 'oneOf', options: [{ args: ['n'] }, { args: ['n', 'lit1'] }] } },
-    { key: 'CHAT', opcode: Types.Messages.CHAT, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 's'] } },
-    { key: 'EQUIP', opcode: Types.Messages.EQUIP, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 'ns'] } },
-    { key: 'DROP', opcode: Types.Messages.DROP, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 'n', 'ns', 'na'] } },
-    { key: 'TELEPORT', opcode: Types.Messages.TELEPORT, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 'n', 'n', 's'] } },
-    { key: 'DAMAGE', opcode: Types.Messages.DAMAGE, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 'n'] } },
-    { key: 'POPULATION', opcode: Types.Messages.POPULATION, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 'n'] } },
-    { key: 'KILL', opcode: Types.Messages.KILL, direction: 'server_to_client', schema: { kind: 'fixed', args: ['ns'] } },
-    { key: 'LIST', opcode: Types.Messages.LIST, direction: 'server_to_client', schema: { kind: 'varargs', minArgs: 0, arg: 'n' } },
-    { key: 'DESTROY', opcode: Types.Messages.DESTROY, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n'] } },
+    {
+        key: 'DESPAWN',
+        opcode: Types.Messages.DESPAWN,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n'] },
+    },
+    {
+        key: 'MOVE',
+        opcode: Types.Messages.MOVE,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n', 'n'] },
+    },
+    {
+        key: 'LOOTMOVE',
+        opcode: Types.Messages.LOOTMOVE,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n'] },
+    },
+    {
+        key: 'ATTACK',
+        opcode: Types.Messages.ATTACK,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n'] },
+    },
+    {
+        key: 'HEALTH',
+        opcode: Types.Messages.HEALTH,
+        direction: 'server_to_client',
+        schema: { kind: 'oneOf', options: [{ args: ['n'] }, { args: ['n', 'lit1'] }] },
+    },
+    {
+        key: 'CHAT',
+        opcode: Types.Messages.CHAT,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 's'] },
+    },
+    {
+        key: 'EQUIP',
+        opcode: Types.Messages.EQUIP,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'ns'] },
+    },
+    {
+        key: 'DROP',
+        opcode: Types.Messages.DROP,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n', 'ns', 'na'] },
+    },
+    {
+        key: 'TELEPORT',
+        opcode: Types.Messages.TELEPORT,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n', 'n', 's'] },
+    },
+    {
+        key: 'DAMAGE',
+        opcode: Types.Messages.DAMAGE,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n'] },
+    },
+    {
+        key: 'POPULATION',
+        opcode: Types.Messages.POPULATION,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 'n'] },
+    },
+    {
+        key: 'KILL',
+        opcode: Types.Messages.KILL,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['ns'] },
+    },
+    {
+        key: 'LIST',
+        opcode: Types.Messages.LIST,
+        direction: 'server_to_client',
+        schema: { kind: 'varargs', minArgs: 0, arg: 'n' },
+    },
+    {
+        key: 'DESTROY',
+        opcode: Types.Messages.DESTROY,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n'] },
+    },
     { key: 'HP', opcode: Types.Messages.HP, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'BLINK', opcode: Types.Messages.BLINK, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n'] } },
+    {
+        key: 'BLINK',
+        opcode: Types.Messages.BLINK,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n'] },
+    },
     {
         key: 'ACHIEVEMENTS',
         opcode: Types.Messages.ACHIEVEMENTS,
         direction: 'server_to_client',
         schema: { kind: 'fixed', args: ['na', 'n', 'n', 'n', 'n', 'n'] },
     },
-    { key: 'OUTCOME', opcode: Types.Messages.OUTCOME, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 's', 's'] } },
-    { key: 'REJECT', opcode: Types.Messages.REJECT, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 's', 's'] } },
+    {
+        key: 'OUTCOME',
+        opcode: Types.Messages.OUTCOME,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 's', 's'] },
+    },
+    {
+        key: 'REJECT',
+        opcode: Types.Messages.REJECT,
+        direction: 'server_to_client',
+        schema: { kind: 'fixed', args: ['n', 's', 's'] },
+    },
     { key: 'ACK', opcode: Types.Messages.ACK, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n'] } },
     {
         key: 'CORRECTION',
@@ -132,11 +264,15 @@ export const PROTOCOL_MANIFEST = [
     ...SERVER_TO_CLIENT_PROTOCOL_MANIFEST,
 ] as const satisfies ReadonlyArray<ProtocolManifestEntry>;
 
-export function isClientToServerManifestEntry(entry: ProtocolManifestEntry): entry is ClientToServerProtocolManifestEntry {
+export function isClientToServerManifestEntry(
+    entry: ProtocolManifestEntry
+): entry is ClientToServerProtocolManifestEntry {
     return entry.direction === 'client_to_server';
 }
 
-export function isServerToClientManifestEntry(entry: ProtocolManifestEntry): entry is ServerToClientProtocolManifestEntry {
+export function isServerToClientManifestEntry(
+    entry: ProtocolManifestEntry
+): entry is ServerToClientProtocolManifestEntry {
     return entry.direction === 'server_to_client';
 }
 
@@ -146,18 +282,14 @@ type ManifestServerToClientOpcodes = (typeof SERVER_TO_CLIENT_PROTOCOL_MANIFEST)
 type ClientToServerOpcodes = ClientToServerProtocolAction[0];
 type ServerToClientOpcodes = ServerToClientProtocolAction[0];
 
-type _AssertManifestC2SIsSubset = Exclude<ManifestClientToServerOpcodes, ClientToServerOpcodes> extends never
-    ? true
-    : never;
-type _AssertManifestS2CIsSubset = Exclude<ManifestServerToClientOpcodes, ServerToClientOpcodes> extends never
-    ? true
-    : never;
-type _AssertC2SIsSubsetOfManifest = Exclude<ClientToServerOpcodes, ManifestClientToServerOpcodes> extends never
-    ? true
-    : never;
-type _AssertS2CIsSubsetOfManifest = Exclude<ServerToClientOpcodes, ManifestServerToClientOpcodes> extends never
-    ? true
-    : never;
+type _AssertManifestC2SIsSubset =
+    Exclude<ManifestClientToServerOpcodes, ClientToServerOpcodes> extends never ? true : never;
+type _AssertManifestS2CIsSubset =
+    Exclude<ManifestServerToClientOpcodes, ServerToClientOpcodes> extends never ? true : never;
+type _AssertC2SIsSubsetOfManifest =
+    Exclude<ClientToServerOpcodes, ManifestClientToServerOpcodes> extends never ? true : never;
+type _AssertS2CIsSubsetOfManifest =
+    Exclude<ServerToClientOpcodes, ManifestServerToClientOpcodes> extends never ? true : never;
 
 const _manifestCoverage: [
     _AssertManifestC2SIsSubset,

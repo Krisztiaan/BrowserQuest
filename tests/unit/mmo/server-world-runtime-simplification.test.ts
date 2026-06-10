@@ -54,7 +54,9 @@ test('WorldServer.removePlayer removes ecs entity exactly once', () => {
     world.addPlayer(player);
 
     let removeEntityCalls = 0;
-    const originalRemove = world.ecsPipeline.removeEntity.bind(world.ecsPipeline) as typeof world.ecsPipeline.removeEntity;
+    const originalRemove = world.ecsPipeline.removeEntity.bind(
+        world.ecsPipeline
+    ) as typeof world.ecsPipeline.removeEntity;
     world.ecsPipeline.removeEntity = ((...args: Parameters<typeof originalRemove>) => {
         removeEntityCalls += 1;
         originalRemove(...args);

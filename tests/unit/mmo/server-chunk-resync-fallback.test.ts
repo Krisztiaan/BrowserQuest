@@ -32,11 +32,15 @@ function collectActions(messages: readonly WorldMessage[]): ServerToClientProtoc
     return messages.map(toSerializedAction);
 }
 
-function isChunkSnapshotMessage(action: ServerToClientProtocolAction): action is [number, number, number, number, string] {
+function isChunkSnapshotMessage(
+    action: ServerToClientProtocolAction
+): action is [number, number, number, number, string] {
     return action[0] === Types.Messages.CHUNK_SNAPSHOT;
 }
 
-function isChunkDeltaMessage(action: ServerToClientProtocolAction): action is [number, number, number, number, number, string] {
+function isChunkDeltaMessage(
+    action: ServerToClientProtocolAction
+): action is [number, number, number, number, number, string] {
     return action[0] === Types.Messages.CHUNK_DELTA;
 }
 

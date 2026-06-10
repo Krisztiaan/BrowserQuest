@@ -48,4 +48,3 @@ test('flushAllNow flushes all dirty chunks regardless of cadence', () => {
 
     persistence.close();
 });
-

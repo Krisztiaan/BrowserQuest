@@ -110,7 +110,17 @@ test('mob area spawns mobs with allocator-provided ids', () => {
         },
     };
 
-    const area = new MobArea('m1', 3, 'rat', 10, 10, 2, 2, world, () => allocatedIds[nextIndex++] ?? entityIdFromWire(999));
+    const area = new MobArea(
+        'm1',
+        3,
+        'rat',
+        10,
+        10,
+        2,
+        2,
+        world,
+        () => allocatedIds[nextIndex++] ?? entityIdFromWire(999)
+    );
     area.spawnMobs();
 
     expect(spawnedMobIds).toEqual([901, 902, 903]);

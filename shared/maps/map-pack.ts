@@ -259,7 +259,9 @@ function extractDoorGraphEntries(mapId: string, tiled: unknown, tileSize: number
         }
         if (hasTargetMap && hasTargetDoor) {
             if (!resolvedDoorId.explicit) {
-                errors.push(`Invalid map "${mapId}" door "${resolvedDoorId.id}": graph-linked doors require explicit "door_id" property.`);
+                errors.push(
+                    `Invalid map "${mapId}" door "${resolvedDoorId.id}": graph-linked doors require explicit "door_id" property.`
+                );
             }
             edges.push({
                 from: { mapId, doorId: resolvedDoorId.id },
@@ -309,7 +311,9 @@ function findEdgesWithImplicitDoorIds(
                 continue;
             }
             missingRefs.add(key);
-            errors.push(`Invalid map pack graph: edge endpoint "${key}" must reference a door with explicit "door_id" property.`);
+            errors.push(
+                `Invalid map pack graph: edge endpoint "${key}" must reference a door with explicit "door_id" property.`
+            );
         }
     }
     return errors;
@@ -361,7 +365,9 @@ function tileIndex(x: number, y: number, width: number): number {
 }
 
 function asNumberArray(value: unknown): number[] {
-    return Array.isArray(value) ? (value.filter((entry) => typeof entry === 'number' && Number.isFinite(entry)) as number[]) : [];
+    return Array.isArray(value)
+        ? (value.filter((entry) => typeof entry === 'number' && Number.isFinite(entry)) as number[])
+        : [];
 }
 
 function ensureGraphDoorEgress({
@@ -498,14 +504,14 @@ export function compileMapPack(input: MapPackBuildInput): MapPack {
         }
         knownMapIds.add(mapId);
 
-        const client = processMap(source.tiled as Parameters<typeof processMap>[0], { mode: 'client', quiet: true }) as Record<
-            string,
-            unknown
-        >;
-        const server = processMap(source.tiled as Parameters<typeof processMap>[0], { mode: 'server', quiet: true }) as Record<
-            string,
-            unknown
-        >;
+        const client = processMap(source.tiled as Parameters<typeof processMap>[0], {
+            mode: 'client',
+            quiet: true,
+        }) as Record<string, unknown>;
+        const server = processMap(source.tiled as Parameters<typeof processMap>[0], {
+            mode: 'server',
+            quiet: true,
+        }) as Record<string, unknown>;
         const width = requirePositiveInteger(server.width, `processed map "${mapId}" width`);
         const height = requirePositiveInteger(server.height, `processed map "${mapId}" height`);
         const tileSize = requirePositiveInteger(server.tilesize, `processed map "${mapId}" tilesize`);

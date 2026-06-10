@@ -172,13 +172,13 @@ class Sprite {
             const fdata = finalData.data;
 
             const getIndex = function (x: number, y: number): number {
-                return ((width * (y - 1)) + x - 1) * 4;
+                return (width * (y - 1) + x - 1) * 4;
             };
 
             const getPosition = function (i: number): { x: number; y: number } {
-                const idx = (i / 4) + 1;
+                const idx = i / 4 + 1;
                 const x = idx % width;
-                const y = ((idx - x) / width) + 1;
+                const y = (idx - x) / width + 1;
                 return { x, y };
             };
 

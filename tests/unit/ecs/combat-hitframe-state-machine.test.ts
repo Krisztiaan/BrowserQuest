@@ -238,9 +238,9 @@ test('player ATTACK windup can start from recent authoritative proximity grace w
     pipeline.state.world.addComponent(mobId, pipeline.combat.ArmorLevel, 1);
     pipeline.state.world.addComponent(mobId, pipeline.combat.HitPoints, 1000);
 
-    pipeline.state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE).set(player.id, [
-        { pos: gridPos(1, 0), tick: 0 },
-    ]);
+    pipeline.state.resources
+        .require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE)
+        .set(player.id, [{ pos: gridPos(1, 0), tick: 0 }]);
 
     pipeline.enqueue({
         type: 'ATTACK',
@@ -268,9 +268,9 @@ test('player ATTACK windup started via grace survives until hit-frame, but hit-f
     pipeline.state.world.addComponent(mobId, pipeline.combat.ArmorLevel, 1);
     pipeline.state.world.addComponent(mobId, pipeline.combat.HitPoints, 1000);
 
-    pipeline.state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE).set(player.id, [
-        { pos: gridPos(1, 0), tick: 0 },
-    ]);
+    pipeline.state.resources
+        .require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE)
+        .set(player.id, [{ pos: gridPos(1, 0), tick: 0 }]);
 
     pipeline.enqueue({
         type: 'ATTACK',

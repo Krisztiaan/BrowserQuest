@@ -21,7 +21,9 @@ export interface MetricsStoreClient {
     getString(key: string): Promise<string | undefined>;
 }
 
-function resolveClientFactory(memjsModule: MemjsModuleShape | null | undefined): { create(servers: string, options?: object): MemjsClientLike } {
+function resolveClientFactory(memjsModule: MemjsModuleShape | null | undefined): {
+    create(servers: string, options?: object): MemjsClientLike;
+} {
     const factory = memjsModule?.Client ?? memjsModule?.default?.Client;
     if (!factory || typeof factory.create !== 'function') {
         throw new Error('Unsupported memjs client API');

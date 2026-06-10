@@ -1,7 +1,11 @@
 import { expect, test } from 'bun:test';
 import { createWorldMapRegistryFromMapPack } from '../../../server/world/map-registry';
 
-function buildServerMapPayload(width: number, height: number, doors: Array<{ x: number; y: number; tx: number; ty: number }> = []) {
+function buildServerMapPayload(
+    width: number,
+    height: number,
+    doors: Array<{ x: number; y: number; tx: number; ty: number }> = []
+) {
     return {
         width,
         height,

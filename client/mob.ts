@@ -1,4 +1,3 @@
-
 import Character from './character';
 import type { EntityKind } from '../shared/entity-kind-domain';
 
@@ -8,7 +7,7 @@ class Mob extends Character {
 
     constructor(id: string | number, kind: EntityKind) {
         super(id, kind);
-    
+
         this.aggroRange = 1;
         this.isAggressive = true;
     }

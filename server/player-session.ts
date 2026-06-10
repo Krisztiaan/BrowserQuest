@@ -82,10 +82,13 @@ export function attachWorldConnectionSession({
         if (disconnectTimeout) {
             clearTimeout(disconnectTimeout);
         }
-        disconnectTimeout = setTimeout(() => {
-            connection.sendUTF8(HANDSHAKE_CONTROL.TIMEOUT);
-            connection.close('Player was idle for too long');
-        }, 1000 * 60 * 15);
+        disconnectTimeout = setTimeout(
+            () => {
+                connection.sendUTF8(HANDSHAKE_CONTROL.TIMEOUT);
+                connection.close('Player was idle for too long');
+            },
+            1000 * 60 * 15
+        );
     };
 
     connection.listen((message: ClientToServerProtocolAction) => {

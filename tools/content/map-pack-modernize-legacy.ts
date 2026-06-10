@@ -347,7 +347,7 @@ async function convertLegacyEntitiesLayerToObjectSpawns({
         (layer) => asString(layer.type) === 'objectgroup' && asString(layer.name) === 'static_entities'
     );
     const existingEntitySpawnsLayer =
-        existingEntitySpawnsIndex >= 0 ? layers[existingEntitySpawnsIndex] ?? null : null;
+        existingEntitySpawnsIndex >= 0 ? (layers[existingEntitySpawnsIndex] ?? null) : null;
 
     const existingObjects = existingEntitySpawnsLayer
         ? asArray(existingEntitySpawnsLayer.objects)
@@ -443,9 +443,7 @@ async function convertLegacyEntitiesLayerToObjectSpawns({
 }
 
 function printUsage(): never {
-    console.log(
-        'Usage: bun tools/content/map-pack-modernize-legacy.ts [--config <path>] [--include-world] [--write]'
-    );
+    console.log('Usage: bun tools/content/map-pack-modernize-legacy.ts [--config <path>] [--include-world] [--write]');
     process.exit(0);
 }
 
@@ -549,7 +547,8 @@ async function main(): Promise<void> {
                     const removedForeground = removeProperty(properties, 'bq_foreground');
                     const removedSource = removeProperty(properties, 'bq_source_layer');
                     if (removedForeground.changed || removedSource.changed) {
-                        strippedLegacyForegroundLayerProps += (removedForeground.changed ? 1 : 0) + (removedSource.changed ? 1 : 0);
+                        strippedLegacyForegroundLayerProps +=
+                            (removedForeground.changed ? 1 : 0) + (removedSource.changed ? 1 : 0);
                     }
                     if (properties.length > 0) {
                         layer.properties = properties;
@@ -579,7 +578,9 @@ async function main(): Promise<void> {
                 const properties = propertyList(objectRecord);
 
                 if (layerName === 'doors') {
-                    const wasPortal = (asString(objectRecord.type) ?? '') === 'portal' || (asString(objectRecord.class) ?? '') === 'Portal';
+                    const wasPortal =
+                        (asString(objectRecord.type) ?? '') === 'portal' ||
+                        (asString(objectRecord.class) ?? '') === 'Portal';
                     const nextClass = wasPortal ? 'Portal' : 'Door';
                     if (asString(objectRecord.class) !== nextClass) {
                         objectRecord.class = nextClass;
@@ -605,7 +606,14 @@ async function main(): Promise<void> {
                         }
                     }
 
-                    for (const intName of ['target_tx', 'target_ty', 'camera_tx', 'camera_ty', 'local_tx', 'local_ty']) {
+                    for (const intName of [
+                        'target_tx',
+                        'target_ty',
+                        'camera_tx',
+                        'camera_ty',
+                        'local_tx',
+                        'local_ty',
+                    ]) {
                         const normalized = normalizeIntProperty(properties, intName);
                         if (normalized.changed) {
                             coercedIntProps += 1;

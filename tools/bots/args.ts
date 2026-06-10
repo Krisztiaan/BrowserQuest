@@ -52,7 +52,7 @@ function printUsageAndExit(code: number): never {
             '  --enable-chunks           send CHUNK_SUBSCRIBE and apply snapshots/deltas (default: false)',
             '  --chunk-radius N          subscription radius (default: 0)',
             '  --enable-tile-edits       send tile.edit intents (default: false)',
-            "  --tile-edit-mode MODE     leader|all|none (default: leader)",
+            '  --tile-edit-mode MODE     leader|all|none (default: leader)',
             '  --tile-edit-hz N          edits per second (default: 1)',
             '',
             'Budgets:',
@@ -105,7 +105,8 @@ export function parseSoakArgs(argv: string[]): SoakArgs {
     const moveHz = Math.max(0, Math.floor(parsed['move-hz'] as number));
     const enableChunks = Boolean(parsed['enable-chunks']);
     const chunkRadius = Math.max(0, Math.floor(parsed['chunk-radius'] as number));
-    const tileEditModeRaw = typeof parsed['tile-edit-mode'] === 'string' ? String(parsed['tile-edit-mode']).trim() : 'leader';
+    const tileEditModeRaw =
+        typeof parsed['tile-edit-mode'] === 'string' ? String(parsed['tile-edit-mode']).trim() : 'leader';
     const tileEditMode = tileEditModeRaw === 'all' || tileEditModeRaw === 'none' ? tileEditModeRaw : 'leader';
     const tileEditsEnabled = Boolean(parsed['enable-tile-edits']);
     const tileEditHz = Math.max(0, Math.floor(parsed['tile-edit-hz'] as number));
@@ -113,7 +114,8 @@ export function parseSoakArgs(argv: string[]): SoakArgs {
     const spawnServer = Boolean(parsed['spawn-server']);
     const host = String(parsed.host);
     const port = typeof parsed.port === 'number' ? Math.floor(parsed.port) : null;
-    const serverConfigPath = typeof parsed['server-config'] === 'string' ? String(parsed['server-config']).trim() : null;
+    const serverConfigPath =
+        typeof parsed['server-config'] === 'string' ? String(parsed['server-config']).trim() : null;
     const fixedSpawn = Object.freeze({
         enabled: Boolean(parsed['fixed-spawn']),
         areaIndex: Math.max(0, Math.floor(parsed['fixed-spawn-area-index'] as number)),

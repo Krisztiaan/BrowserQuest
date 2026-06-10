@@ -14,7 +14,7 @@ export function isCardinalStep(from: GridPos, to: GridPos): boolean {
 export function isAdjacentStep(from: GridPos, to: GridPos): boolean {
     const dx = Math.abs(from.x - to.x);
     const dy = Math.abs(from.y - to.y);
-    return dx <= 1 && dy <= 1 && (dx + dy) > 0;
+    return dx <= 1 && dy <= 1 && dx + dy > 0;
 }
 
 export function isDiagonalStep(from: GridPos, to: GridPos): boolean {

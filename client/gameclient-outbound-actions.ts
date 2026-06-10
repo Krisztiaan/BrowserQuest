@@ -14,7 +14,11 @@ export function toProtocolEntityId(id: EntityId): number {
     return entityIdToWire(id);
 }
 
-export function createHelloAction(name: string, armorKind: number, weaponKind: number): OutboundAction<typeof Types.Messages.HELLO> {
+export function createHelloAction(
+    name: string,
+    armorKind: number,
+    weaponKind: number
+): OutboundAction<typeof Types.Messages.HELLO> {
     const capabilitiesJson = encodeProtocolCapabilitiesJson({
         moduleIds: ['core.teleport', 'core.move', 'core.doors', 'core.tiles', 'core.claims'],
     });

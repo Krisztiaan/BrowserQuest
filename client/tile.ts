@@ -23,7 +23,7 @@ class AnimatedTile extends Tile {
     }
 
     tick(): void {
-        if ((this.id - this.startId) < this.length - 1) {
+        if (this.id - this.startId < this.length - 1) {
             this.id += 1;
         } else {
             this.id = this.startId;
@@ -31,7 +31,7 @@ class AnimatedTile extends Tile {
     }
 
     animate(time: number): boolean {
-        if ((time - this.lastTime) > this.speed) {
+        if (time - this.lastTime > this.speed) {
             this.tick();
             this.lastTime = time;
             return true;

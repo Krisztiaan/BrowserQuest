@@ -6,7 +6,10 @@ export type SystemContext = Readonly<{
     tick: number;
 }>;
 
-export type System<TCommand = never, TEvent = never> = (state: WorldState<TCommand, TEvent>, ctx: SystemContext) => void;
+export type System<TCommand = never, TEvent = never> = (
+    state: WorldState<TCommand, TEvent>,
+    ctx: SystemContext
+) => void;
 
 export type SchedulerHooks = Partial<{
     onSystemStart(stage: SchedulerStage, name: string): void;

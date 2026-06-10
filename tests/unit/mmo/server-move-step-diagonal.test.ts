@@ -23,11 +23,7 @@ function createTestPlayer(wireId: number): Player {
     return player;
 }
 
-function makeHost({
-    isValidPosition,
-}: {
-    isValidPosition: (x: number, y: number) => boolean;
-}): {
+function makeHost({ isValidPosition }: { isValidPosition: (x: number, y: number) => boolean }): {
     host: unknown;
     delivered: WorldMessage[];
     player: Player;
@@ -127,7 +123,9 @@ test('move.step accepts diagonal steps when corner tiles are walkable', () => {
     }
 
     expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 1)).toBe(true);
-    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);
+    expect(
+        delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)
+    ).toBe(true);
 });
 
 test('move.step allows diagonal corner cutting when destination is walkable (blocked orth neighbor)', () => {
@@ -161,7 +159,9 @@ test('move.step allows diagonal corner cutting when destination is walkable (blo
         pipeline.tick();
     }
 
-    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);
+    expect(
+        delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)
+    ).toBe(true);
 });
 
 test('diagonal steps can cut past occupied corner tiles (execution-time)', () => {
@@ -199,7 +199,9 @@ test('diagonal steps can cut past occupied corner tiles (execution-time)', () =>
     }
 
     // MOVE should be emitted; corner occupancy does not block destination-only diagonal steps.
-    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)).toBe(true);
+    expect(
+        delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 2)
+    ).toBe(true);
 });
 
 test('diagonal queued step does not ping-pong between two tiles when starting off-center', () => {

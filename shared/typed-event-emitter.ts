@@ -9,11 +9,17 @@ export type Unsubscribe = () => void;
 export type EventCallback<TArgs extends EventArgs> = (...args: TArgs) => void;
 
 export interface TypedEventSource<TEvents extends TypedEventMap> {
-    on<TEventName extends keyof TEvents>(eventName: TEventName, callback: EventCallback<TEvents[TEventName]>): Unsubscribe;
+    on<TEventName extends keyof TEvents>(
+        eventName: TEventName,
+        callback: EventCallback<TEvents[TEventName]>
+    ): Unsubscribe;
 }
 
 export interface TypedEventBus<TEvents extends TypedEventMap> {
-    on<TEventName extends keyof TEvents>(eventName: TEventName, callback: EventCallback<TEvents[TEventName]>): Unsubscribe;
+    on<TEventName extends keyof TEvents>(
+        eventName: TEventName,
+        callback: EventCallback<TEvents[TEventName]>
+    ): Unsubscribe;
     once<TEventName extends keyof TEvents>(
         eventName: TEventName,
         callback: EventCallback<TEvents[TEventName]>
@@ -25,7 +31,10 @@ export interface TypedEventBus<TEvents extends TypedEventMap> {
 export class TypedEventEmitter<TEvents extends TypedEventMap> implements TypedEventBus<TEvents> {
     private listeners = new Map<keyof TEvents, Set<EventCallback<TEvents[keyof TEvents]>>>();
 
-    on<TEventName extends keyof TEvents>(eventName: TEventName, callback: EventCallback<TEvents[TEventName]>): Unsubscribe {
+    on<TEventName extends keyof TEvents>(
+        eventName: TEventName,
+        callback: EventCallback<TEvents[TEventName]>
+    ): Unsubscribe {
         let callbacks = this.listeners.get(eventName);
         if (!callbacks) {
             callbacks = new Set<EventCallback<TEvents[TEventName]>>() as Set<EventCallback<TEvents[keyof TEvents]>>;

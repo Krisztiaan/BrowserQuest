@@ -76,26 +76,24 @@ type CharacterEventEnvelope = MergeEvents<CharacterEvents, TypedEventMap>;
 export type ClientCommandApplySystemHost = {
     kernel: ClientWorldKernel;
     started: boolean;
-    client:
-        | {
-              sendHello(player: Player): void;
-	      sendLoot(item: { id: EntityId }): void;
-	      sendMove(x: number, y: number): void;
-	      sendMoveTo(x: number, y: number, stopAdjacentToTarget: boolean): void;
-	      sendMoveInput(keysMask: number): void;
-	      sendChunkSubscribe(chunkX: number, chunkY: number, radius: number): void;
-	              sendChunkUnsubscribe(): void;
-              sendZone(): void;
-              sendChat(text: string): void;
-              sendAchievement(id: number): void;
-              sendAggro(mob: { id: EntityId }): void;
-              sendAttack(mob: { id: EntityId }): void;
-              sendLootMove(item: { id: EntityId }, x: number, y: number): void;
-              sendCheck(id: string | number): void;
-              sendOpen(chest: { id: EntityId }): void;
-              sendWho(ids: EntityId[]): void;
-          }
-        | null;
+    client: {
+        sendHello(player: Player): void;
+        sendLoot(item: { id: EntityId }): void;
+        sendMove(x: number, y: number): void;
+        sendMoveTo(x: number, y: number, stopAdjacentToTarget: boolean): void;
+        sendMoveInput(keysMask: number): void;
+        sendChunkSubscribe(chunkX: number, chunkY: number, radius: number): void;
+        sendChunkUnsubscribe(): void;
+        sendZone(): void;
+        sendChat(text: string): void;
+        sendAchievement(id: number): void;
+        sendAggro(mob: { id: EntityId }): void;
+        sendAttack(mob: { id: EntityId }): void;
+        sendLootMove(item: { id: EntityId }, x: number, y: number): void;
+        sendCheck(id: string | number): void;
+        sendOpen(chest: { id: EntityId }): void;
+        sendWho(ids: EntityId[]): void;
+    } | null;
     playerId: EntityId | null;
     player: Player;
     emit(eventName: 'notification', message: string): void;
@@ -108,7 +106,11 @@ export type ClientCommandApplySystemHost = {
     makePlayerGoTo(x: number, y: number): void;
     makePlayerGoToItem(item: Item | null): void;
     getEntityById(id: EntityId): GridIndexedEntity | undefined;
-    makeCharacterTeleportTo<TEvents extends CharacterEventEnvelope>(entity: Character<TEvents>, x: number, y: number): void;
+    makeCharacterTeleportTo<TEvents extends CharacterEventEnvelope>(
+        entity: Character<TEvents>,
+        x: number,
+        y: number
+    ): void;
     makeCharacterGoTo<TEvents extends CharacterEventEnvelope>(entity: Character<TEvents>, x: number, y: number): void;
     createAttackLink<TAttackerEvents extends CharacterEventEnvelope, TTargetEvents extends CharacterEventEnvelope>(
         attacker: Character<TAttackerEvents>,
@@ -124,7 +126,10 @@ export type ClientCommandApplySystemHost = {
     makeNpcTalk(npc: Npc): void;
 
     // Runtime/welcome side effects
-    renderer: { getEntityBoundingRect(entity: GridIndexedEntity): DirtyRect; getPlayerImage(cb: (img: string) => void): void } | null;
+    renderer: {
+        getEntityBoundingRect(entity: GridIndexedEntity): DirtyRect;
+        getPlayerImage(cb: (img: string) => void): void;
+    } | null;
     storage: {
         hasAlreadyPlayed(): boolean;
         initPlayer(name: string): void;
@@ -156,10 +161,16 @@ export type ClientCommandApplySystemHost = {
     tryUnlockingAchievement(key: string): void;
     audioManager: { playSound(key: AudioSoundKey): void; updateMusic?(): void } | null;
     createBubble(entityId: EntityId, text: string): void;
-    infoManager: { addDamageInfo(value: number | string, x: number, y: number, type: 'received' | 'inflicted' | 'healed'): void };
+    infoManager: {
+        addDamageInfo(value: number | string, x: number, y: number, type: 'received' | 'inflicted' | 'healed'): void;
+    };
     sprites: Record<string, Sprite>;
     entities: Record<string, GridIndexedEntity>;
-    map: { grid: number[][]; isOutOfBounds(x: number, y: number): boolean; isColliding?(x: number, y: number): boolean } | null;
+    map: {
+        grid: number[][];
+        isOutOfBounds(x: number, y: number): boolean;
+        isColliding?(x: number, y: number): boolean;
+    } | null;
     obsoleteEntities: GridIndexedEntity[] | null;
     removeObsoleteEntities(): void;
     connectionStartedCallback: (() => void) | null;
@@ -289,7 +300,10 @@ function countPlanPrefixOverlap(existingSteps: ReadonlyArray<GridPos>, nextSteps
     return overlap;
 }
 
-function countPlanSuffixPrefixOverlap(existingSteps: ReadonlyArray<GridPos>, nextSteps: ReadonlyArray<GridPos>): number {
+function countPlanSuffixPrefixOverlap(
+    existingSteps: ReadonlyArray<GridPos>,
+    nextSteps: ReadonlyArray<GridPos>
+): number {
     const maxOverlap = Math.min(existingSteps.length, nextSteps.length);
     for (let overlap = maxOverlap; overlap > 0; overlap -= 1) {
         let matches = true;
@@ -540,9 +554,14 @@ function setPathingCell(host: ClientCommandApplySystemHost, x: number, y: number
 const DEFAULT_CHUNK_SUBSCRIBE_RADIUS = 3;
 const DEFAULT_CHUNK_SIZE_HINT = 32;
 
-function resolveChunkCenterFromTile(host: ClientCommandApplySystemHost, x: number, y: number): { chunkX: number; chunkY: number } {
+function resolveChunkCenterFromTile(
+    host: ClientCommandApplySystemHost,
+    x: number,
+    y: number
+): { chunkX: number; chunkY: number } {
     const hintedChunkSize = host.kernel.clientChunkOverlayCache.chunkSize ?? DEFAULT_CHUNK_SIZE_HINT;
-    const chunkSize = Number.isSafeInteger(hintedChunkSize) && hintedChunkSize > 0 ? hintedChunkSize : DEFAULT_CHUNK_SIZE_HINT;
+    const chunkSize =
+        Number.isSafeInteger(hintedChunkSize) && hintedChunkSize > 0 ? hintedChunkSize : DEFAULT_CHUNK_SIZE_HINT;
     return {
         chunkX: Math.floor(x / chunkSize),
         chunkY: Math.floor(y / chunkSize),
@@ -636,7 +655,14 @@ function applySpatialAddRecord(host: ClientCommandApplySystemHost, entityId: Ent
     }
 }
 
-function applyWelcome(host: ClientCommandApplySystemHost, id: EntityId, name: string, x: number, y: number, maxHp: number): void {
+function applyWelcome(
+    host: ClientCommandApplySystemHost,
+    id: EntityId,
+    name: string,
+    x: number,
+    y: number,
+    maxHp: number
+): void {
     log.info('Received player ID from server : ' + id);
 
     host.setPlayerId(id);
@@ -741,894 +767,915 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
 
         for (const command of commands) {
             switch (command.type) {
-            case 'stopPlayerCombat': {
-                host.stopPlayerCombat();
-                break;
-            }
-            case 'characterClearTarget': {
-                const entity = getKnownEntity(command.entityId);
-                if (entity instanceof Character) {
-                    entity.stop();
-                    entity.path = null;
-                    entity.nextGridX = -1;
-                    entity.nextGridY = -1;
-                    entity.disengage();
-                    entity.previousTarget = null;
-                    entity.unconfirmedTarget = null;
-                    entity.idle();
-                }
-                break;
-            }
-            case 'clientSendHello': {
-                if (!host.started || !host.client) {
+                case 'stopPlayerCombat': {
+                    host.stopPlayerCombat();
                     break;
                 }
-                host.client.sendHello(host.player);
-                break;
-            }
-            case 'clientSendMove': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                host.client.sendMove(command.x, command.y);
-                host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
-                break;
-            }
-            case 'clientSendMoveTo': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                host.client.sendMoveTo(command.x, command.y, command.stopAdjacentToTarget);
-                host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
-                break;
-            }
-            case 'clientSendMoveInput': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                host.client.sendMoveInput(command.keysMask);
-                break;
-            }
-            case 'clientSendChunkSubscribe': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                host.client.sendChunkSubscribe(command.chunkX, command.chunkY, command.radius);
-                break;
-            }
-            case 'clientSendChunkUnsubscribe': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                host.client.sendChunkUnsubscribe();
-                break;
-            }
-            case 'clientSendZone': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                host.client.sendZone();
-                break;
-            }
-            case 'clientSendChat': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                host.client.sendChat(command.message);
-                break;
-            }
-            case 'clientSendAchievement': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                host.client.sendAchievement(command.achievementId);
-                break;
-            }
-            case 'clientSendAggro': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                const mob = getKnownEntity(command.mobId);
-                if (mob instanceof Mob) {
-                    host.client.sendAggro(mob);
-                }
-                break;
-            }
-            case 'clientSendAttack': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                const mob = getKnownEntity(command.mobId);
-                if (mob instanceof Mob) {
-                    host.client.sendAttack(mob);
-                }
-                break;
-            }
-            case 'clientSendLootMove': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                const item = getKnownEntity(command.itemId);
-                if (item instanceof Item) {
-                    host.client.sendLootMove(item, command.x, command.y);
-                }
-                break;
-            }
-            case 'enqueueZoningFrom': {
-                host.enqueueZoningFrom(command.x, command.y);
-                break;
-            }
-            case 'setPlayerIsOnPlateau': {
-                host.player.isOnPlateau = command.isOnPlateau;
-                break;
-            }
-            case 'setPlayerLastCheckpoint': {
-                if (command.checkpoint?.id === undefined) {
-                    host.player.lastCheckpoint = null;
-                    break;
-                }
-                host.player.lastCheckpoint = { id: command.checkpoint.id };
-                break;
-            }
-            case 'clientSendCheck': {
-                if (!host.started || !host.client) {
-                    break;
-                }
-                host.client.sendCheck(command.checkpointId);
-                break;
-            }
-            case 'audioUpdateMusic': {
-                host.audioManager?.updateMusic?.();
-                break;
-            }
-            case 'audioPlaySound': {
-                host.audioManager?.playSound(command.key);
-                break;
-            }
-            case 'setEntityNextGrid': {
-                const entity = host.entities[String(command.entityId)];
-                if (!entity) {
-                    break;
-                }
-                entity.nextGridX = command.nextGridX;
-                entity.nextGridY = command.nextGridY;
-                break;
-            }
-            case 'spatialRemoveRecord': {
-                applySpatialRemoveRecord(host, command.entityId, command.record);
-                break;
-            }
-            case 'spatialAddRecord': {
-                applySpatialAddRecord(host, command.entityId, command.record);
-                break;
-            }
-            case 'combatRelinkPreviousTarget': {
-                const attacker = getKnownEntity(command.attackerId);
-                if (!(attacker instanceof Mob) || attacker.isMoving() || !attacker.previousTarget) {
-                    break;
-                }
-                const previousTargetId = attacker.previousTarget.id;
-                if (typeof previousTargetId !== 'number') {
-                    attacker.previousTarget = null;
-                    break;
-                }
-                let targetId: EntityId;
-                try {
-                    targetId = entityIdFromWire(previousTargetId);
-                } catch {
-                    attacker.previousTarget = null;
-                    break;
-                }
-                const target = getKnownEntity(targetId);
-                if (!(target instanceof Character)) {
-                    attacker.previousTarget = null;
-                    break;
-                }
-                attacker.previousTarget = null;
-                host.createAttackLink(attacker, target);
-                break;
-            }
-            case 'combatRepositionAttacker': {
-                const attacker = getKnownEntity(command.attackerId);
-                const target = getKnownEntity(command.targetId);
-                if (!(attacker instanceof Character) || !(target instanceof Character)) {
-                    break;
-                }
-
-                attacker.previousTarget = target;
-                attacker.disengage();
-                attacker.idle();
-                host.makeCharacterGoTo(attacker, command.x, command.y);
-
-                target.adjacentTiles[String(command.orientation)] = true;
-                break;
-            }
-            case 'characterLookAtTarget': {
-                const entity = getKnownEntity(command.entityId);
-                if (entity instanceof Character && entity.hasTarget()) {
-                    entity.lookAtTarget();
-                }
-                break;
-            }
-            case 'characterHit': {
-                const entity = getKnownEntity(command.entityId);
-                if (entity instanceof Character) {
-                    entity.hit();
-                }
-                break;
-            }
-            case 'characterFollow': {
-                const entity = getKnownEntity(command.entityId);
-                const target = getKnownEntity(command.targetId);
-                if (entity instanceof Character && target instanceof Character) {
-                    // Movement is server-authoritative; only treat "follow" as a planning request for the local player.
-                    if (host.playerId !== null && command.entityId === host.playerId) {
-                        host.player.setTarget(target);
-                        planServerAuthoritativeMoveTo({
-                            host,
-                            toX: target.gridX,
-                            toY: target.gridY,
-                            stopAdjacentToTarget: true,
-                        });
+                case 'characterClearTarget': {
+                    const entity = getKnownEntity(command.entityId);
+                    if (entity instanceof Character) {
+                        entity.stop();
+                        entity.path = null;
+                        entity.nextGridX = -1;
+                        entity.nextGridY = -1;
+                        entity.disengage();
+                        entity.previousTarget = null;
+                        entity.unconfirmedTarget = null;
+                        entity.idle();
                     }
-                }
-                break;
-            }
-            case 'applyDamageToMob': {
-                const entity = getKnownEntity(command.mobId);
-                if (!(entity instanceof Character) || !Types.isMob(entity.kind)) {
                     break;
                 }
-
-                if (entity.maxHitPoints <= 0) {
-                    const prefab = getMobPrefab(entity.kind);
-                    if (prefab) {
-                        entity.setMaxHitPoints(prefab.combat.maxHitPoints);
+                case 'clientSendHello': {
+                    if (!host.started || !host.client) {
+                        break;
                     }
+                    host.client.sendHello(host.player);
+                    break;
                 }
+                case 'clientSendMove': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendMove(command.x, command.y);
+                    host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                    break;
+                }
+                case 'clientSendMoveTo': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendMoveTo(command.x, command.y, command.stopAdjacentToTarget);
+                    host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                    break;
+                }
+                case 'clientSendMoveInput': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendMoveInput(command.keysMask);
+                    break;
+                }
+                case 'clientSendChunkSubscribe': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendChunkSubscribe(command.chunkX, command.chunkY, command.radius);
+                    break;
+                }
+                case 'clientSendChunkUnsubscribe': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendChunkUnsubscribe();
+                    break;
+                }
+                case 'clientSendZone': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendZone();
+                    break;
+                }
+                case 'clientSendChat': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendChat(command.message);
+                    break;
+                }
+                case 'clientSendAchievement': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendAchievement(command.achievementId);
+                    break;
+                }
+                case 'clientSendAggro': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    const mob = getKnownEntity(command.mobId);
+                    if (mob instanceof Mob) {
+                        host.client.sendAggro(mob);
+                    }
+                    break;
+                }
+                case 'clientSendAttack': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    const mob = getKnownEntity(command.mobId);
+                    if (mob instanceof Mob) {
+                        host.client.sendAttack(mob);
+                    }
+                    break;
+                }
+                case 'clientSendLootMove': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    const item = getKnownEntity(command.itemId);
+                    if (item instanceof Item) {
+                        host.client.sendLootMove(item, command.x, command.y);
+                    }
+                    break;
+                }
+                case 'enqueueZoningFrom': {
+                    host.enqueueZoningFrom(command.x, command.y);
+                    break;
+                }
+                case 'setPlayerIsOnPlateau': {
+                    host.player.isOnPlateau = command.isOnPlateau;
+                    break;
+                }
+                case 'setPlayerLastCheckpoint': {
+                    if (command.checkpoint?.id === undefined) {
+                        host.player.lastCheckpoint = null;
+                        break;
+                    }
+                    host.player.lastCheckpoint = { id: command.checkpoint.id };
+                    break;
+                }
+                case 'clientSendCheck': {
+                    if (!host.started || !host.client) {
+                        break;
+                    }
+                    host.client.sendCheck(command.checkpointId);
+                    break;
+                }
+                case 'audioUpdateMusic': {
+                    host.audioManager?.updateMusic?.();
+                    break;
+                }
+                case 'audioPlaySound': {
+                    host.audioManager?.playSound(command.key);
+                    break;
+                }
+                case 'setEntityNextGrid': {
+                    const entity = host.entities[String(command.entityId)];
+                    if (!entity) {
+                        break;
+                    }
+                    entity.nextGridX = command.nextGridX;
+                    entity.nextGridY = command.nextGridY;
+                    break;
+                }
+                case 'spatialRemoveRecord': {
+                    applySpatialRemoveRecord(host, command.entityId, command.record);
+                    break;
+                }
+                case 'spatialAddRecord': {
+                    applySpatialAddRecord(host, command.entityId, command.record);
+                    break;
+                }
+                case 'combatRelinkPreviousTarget': {
+                    const attacker = getKnownEntity(command.attackerId);
+                    if (!(attacker instanceof Mob) || attacker.isMoving() || !attacker.previousTarget) {
+                        break;
+                    }
+                    const previousTargetId = attacker.previousTarget.id;
+                    if (typeof previousTargetId !== 'number') {
+                        attacker.previousTarget = null;
+                        break;
+                    }
+                    let targetId: EntityId;
+                    try {
+                        targetId = entityIdFromWire(previousTargetId);
+                    } catch {
+                        attacker.previousTarget = null;
+                        break;
+                    }
+                    const target = getKnownEntity(targetId);
+                    if (!(target instanceof Character)) {
+                        attacker.previousTarget = null;
+                        break;
+                    }
+                    attacker.previousTarget = null;
+                    host.createAttackLink(attacker, target);
+                    break;
+                }
+                case 'combatRepositionAttacker': {
+                    const attacker = getKnownEntity(command.attackerId);
+                    const target = getKnownEntity(command.targetId);
+                    if (!(attacker instanceof Character) || !(target instanceof Character)) {
+                        break;
+                    }
 
-                entity.hitPoints = Math.max(0, entity.hitPoints - command.points);
-                entity.hurt();
-                const x = entity.x;
-                const y = entity.y;
-                host.infoManager.addDamageInfo(command.points, x, y, 'inflicted');
-                break;
-            }
-            case 'playerGoTo': {
-                host.player.disengage();
-                planServerAuthoritativeMoveTo({
-                    host,
-                    toX: command.x,
-                    toY: command.y,
-                    stopAdjacentToTarget: false,
-                });
-                break;
-            }
-            case 'playerGoToItem': {
-                const entity = getKnownEntity(command.itemId);
-                if (entity instanceof Item) {
+                    attacker.previousTarget = target;
+                    attacker.disengage();
+                    attacker.idle();
+                    host.makeCharacterGoTo(attacker, command.x, command.y);
+
+                    target.adjacentTiles[String(command.orientation)] = true;
+                    break;
+                }
+                case 'characterLookAtTarget': {
+                    const entity = getKnownEntity(command.entityId);
+                    if (entity instanceof Character && entity.hasTarget()) {
+                        entity.lookAtTarget();
+                    }
+                    break;
+                }
+                case 'characterHit': {
+                    const entity = getKnownEntity(command.entityId);
+                    if (entity instanceof Character) {
+                        entity.hit();
+                    }
+                    break;
+                }
+                case 'characterFollow': {
+                    const entity = getKnownEntity(command.entityId);
+                    const target = getKnownEntity(command.targetId);
+                    if (entity instanceof Character && target instanceof Character) {
+                        // Movement is server-authoritative; only treat "follow" as a planning request for the local player.
+                        if (host.playerId !== null && command.entityId === host.playerId) {
+                            host.player.setTarget(target);
+                            planServerAuthoritativeMoveTo({
+                                host,
+                                toX: target.gridX,
+                                toY: target.gridY,
+                                stopAdjacentToTarget: true,
+                            });
+                        }
+                    }
+                    break;
+                }
+                case 'applyDamageToMob': {
+                    const entity = getKnownEntity(command.mobId);
+                    if (!(entity instanceof Character) || !Types.isMob(entity.kind)) {
+                        break;
+                    }
+
+                    if (entity.maxHitPoints <= 0) {
+                        const prefab = getMobPrefab(entity.kind);
+                        if (prefab) {
+                            entity.setMaxHitPoints(prefab.combat.maxHitPoints);
+                        }
+                    }
+
+                    entity.hitPoints = Math.max(0, entity.hitPoints - command.points);
+                    entity.hurt();
+                    const x = entity.x;
+                    const y = entity.y;
+                    host.infoManager.addDamageInfo(command.points, x, y, 'inflicted');
+                    break;
+                }
+                case 'playerGoTo': {
                     host.player.disengage();
                     planServerAuthoritativeMoveTo({
                         host,
-                        toX: entity.gridX,
-                        toY: entity.gridY,
+                        toX: command.x,
+                        toY: command.y,
                         stopAdjacentToTarget: false,
                     });
+                    break;
                 }
-                break;
-            }
-            case 'playerAttack': {
-                const entity = getKnownEntity(command.targetId);
-                if (entity instanceof Mob) {
-                    // Once in range, stop sending any queued steps; movement is server-authoritative.
+                case 'playerGoToItem': {
+                    const entity = getKnownEntity(command.itemId);
+                    if (entity instanceof Item) {
+                        host.player.disengage();
+                        planServerAuthoritativeMoveTo({
+                            host,
+                            toX: entity.gridX,
+                            toY: entity.gridY,
+                            stopAdjacentToTarget: false,
+                        });
+                    }
+                    break;
+                }
+                case 'playerAttack': {
+                    const entity = getKnownEntity(command.targetId);
+                    if (entity instanceof Mob) {
+                        // Once in range, stop sending any queued steps; movement is server-authoritative.
+                        host.kernel.clearClientMovePlan();
+                        host.kernel.clearClientPendingMoveAcks();
+                        host.kernel.clearClientPendingMoveSeqAcks();
+
+                        log.info({
+                            scope: 'client_command_apply',
+                            level: 'info',
+                            event: 'player_attack_send',
+                            targetId: command.targetId,
+                            targetGrid: { x: entity.gridX, y: entity.gridY },
+                            playerGrid: { x: host.player.gridX, y: host.player.gridY },
+                        });
+                        if (host.started && host.client) {
+                            host.client.sendAttack(entity);
+                        }
+                    } else {
+                        log.warn({
+                            scope: 'client_command_apply',
+                            level: 'warn',
+                            event: 'player_attack_missing_target',
+                            targetId: command.targetId,
+                        });
+                    }
+                    break;
+                }
+                case 'playerFollow': {
+                    const entity = getKnownEntity(command.targetId);
+                    if (entity) {
+                        log.info({
+                            scope: 'client_command_apply',
+                            level: 'info',
+                            event: 'player_follow_plan',
+                            targetId: command.targetId,
+                            targetGrid: { x: entity.gridX, y: entity.gridY },
+                            playerGrid: { x: host.player.gridX, y: host.player.gridY },
+                        });
+                        if (entity instanceof Character && host.player.target !== entity) {
+                            host.player.setTarget(entity);
+                        }
+                        planServerAuthoritativeMoveTo({
+                            host,
+                            toX: entity.gridX,
+                            toY: entity.gridY,
+                            stopAdjacentToTarget: true,
+                        });
+                    } else {
+                        log.warn({
+                            scope: 'client_command_apply',
+                            level: 'warn',
+                            event: 'player_follow_missing_target',
+                            targetId: command.targetId,
+                        });
+                    }
+                    break;
+                }
+                case 'playerTalkTo': {
+                    const entity = getKnownEntity(command.npcId);
+                    if (entity instanceof Npc) {
+                        if (host.player.target !== entity) {
+                            host.player.setTarget(entity);
+                        }
+                        planServerAuthoritativeMoveTo({
+                            host,
+                            toX: entity.gridX,
+                            toY: entity.gridY,
+                            stopAdjacentToTarget: true,
+                        });
+                    }
+                    break;
+                }
+                case 'npcTalk': {
+                    const entity = getKnownEntity(command.npcId);
+                    if (entity instanceof Npc) {
+                        host.makeNpcTalk(entity);
+                    }
+                    break;
+                }
+                case 'playerOpenChest': {
+                    const entity = getKnownEntity(command.chestId);
+                    if (entity instanceof Chest) {
+                        if (host.player.target !== entity) {
+                            host.player.setTarget(entity);
+                        }
+                        planServerAuthoritativeMoveTo({
+                            host,
+                            toX: entity.gridX,
+                            toY: entity.gridY,
+                            stopAdjacentToTarget: true,
+                        });
+                    }
+                    break;
+                }
+                case 'clientSendOpen': {
+                    const entity = getKnownEntity(command.chestId);
+                    if (host.started && host.client && entity instanceof Chest) {
+                        host.client.sendOpen(entity);
+                    }
+                    break;
+                }
+                case 'tryLoot': {
+                    if (!host.started || !host.client || !host.playerId) {
+                        break;
+                    }
+                    const intent = host.kernel.clientInteractionIntent;
+                    if (intent?.kind !== 'loot' || intent.targetId !== command.itemId) {
+                        break;
+                    }
+
+                    const entity = getKnownEntity(command.itemId);
+                    if (!(entity instanceof Item)) {
+                        host.kernel.clearClientLootAttempt();
+                        host.kernel.clearClientInteractionIntent();
+                        break;
+                    }
+
+                    try {
+                        host.player.loot({
+                            id: entity.id,
+                            kind: entity.kind,
+                            type: entity.type,
+                            onLoot: () => {},
+                        });
+                    } catch (err) {
+                        if (err instanceof Exceptions.LootException) {
+                            host.emit('notification', err.message);
+                            host.kernel.clearClientLootAttempt();
+                            if (
+                                host.kernel.clientInteractionIntent?.kind === 'loot' &&
+                                host.kernel.clientInteractionIntent.targetId === entity.id
+                            ) {
+                                host.kernel.clearClientInteractionIntent();
+                            }
+                            break;
+                        }
+                        throw err;
+                    }
+
+                    host.client.sendLoot(entity);
+                    host.kernel.clearClientLootAttempt();
+                    if (
+                        host.kernel.clientInteractionIntent?.kind === 'loot' &&
+                        host.kernel.clientInteractionIntent.targetId === entity.id
+                    ) {
+                        host.kernel.clearClientInteractionIntent();
+                    }
+                    break;
+                }
+                case 'playerStop': {
+                    host.player.stop();
                     host.kernel.clearClientMovePlan();
                     host.kernel.clearClientPendingMoveAcks();
                     host.kernel.clearClientPendingMoveSeqAcks();
-
-                    log.info({
-                        scope: 'client_command_apply',
-                        level: 'info',
-                        event: 'player_attack_send',
-                        targetId: command.targetId,
-                        targetGrid: { x: entity.gridX, y: entity.gridY },
-                        playerGrid: { x: host.player.gridX, y: host.player.gridY },
-                    });
-                    if (host.started && host.client) {
-                        host.client.sendAttack(entity);
-                    }
-                } else {
-                    log.warn({
-                        scope: 'client_command_apply',
-                        level: 'warn',
-                        event: 'player_attack_missing_target',
-                        targetId: command.targetId,
-                    });
-                }
-                break;
-            }
-            case 'playerFollow': {
-                const entity = getKnownEntity(command.targetId);
-                if (entity) {
-                    log.info({
-                        scope: 'client_command_apply',
-                        level: 'info',
-                        event: 'player_follow_plan',
-                        targetId: command.targetId,
-                        targetGrid: { x: entity.gridX, y: entity.gridY },
-                        playerGrid: { x: host.player.gridX, y: host.player.gridY },
-                    });
-                    if (entity instanceof Character && host.player.target !== entity) {
-                        host.player.setTarget(entity);
-                    }
-                    planServerAuthoritativeMoveTo({
-                        host,
-                        toX: entity.gridX,
-                        toY: entity.gridY,
-                        stopAdjacentToTarget: true,
-                    });
-                } else {
-                    log.warn({
-                        scope: 'client_command_apply',
-                        level: 'warn',
-                        event: 'player_follow_missing_target',
-                        targetId: command.targetId,
-                    });
-                }
-                break;
-            }
-            case 'playerTalkTo': {
-                const entity = getKnownEntity(command.npcId);
-                if (entity instanceof Npc) {
-                    if (host.player.target !== entity) {
-                        host.player.setTarget(entity);
-                    }
-                    planServerAuthoritativeMoveTo({
-                        host,
-                        toX: entity.gridX,
-                        toY: entity.gridY,
-                        stopAdjacentToTarget: true,
-                    });
-                }
-                break;
-            }
-            case 'npcTalk': {
-                const entity = getKnownEntity(command.npcId);
-                if (entity instanceof Npc) {
-                    host.makeNpcTalk(entity);
-                }
-                break;
-            }
-            case 'playerOpenChest': {
-                const entity = getKnownEntity(command.chestId);
-                if (entity instanceof Chest) {
-                    if (host.player.target !== entity) {
-                        host.player.setTarget(entity);
-                    }
-                    planServerAuthoritativeMoveTo({
-                        host,
-                        toX: entity.gridX,
-                        toY: entity.gridY,
-                        stopAdjacentToTarget: true,
-                    });
-                }
-                break;
-            }
-            case 'clientSendOpen': {
-                const entity = getKnownEntity(command.chestId);
-                if (host.started && host.client && entity instanceof Chest) {
-                    host.client.sendOpen(entity);
-                }
-                break;
-            }
-            case 'tryLoot': {
-                if (!host.started || !host.client || !host.playerId) {
                     break;
                 }
-                const intent = host.kernel.clientInteractionIntent;
-                if (intent?.kind !== 'loot' || intent.targetId !== command.itemId) {
+                case 'playerDisengage': {
+                    host.player.disengage();
                     break;
                 }
-
-                const entity = getKnownEntity(command.itemId);
-                if (!(entity instanceof Item)) {
-                    host.kernel.clearClientLootAttempt();
-                    host.kernel.clearClientInteractionIntent();
+                case 'playerIdle': {
+                    host.player.idle();
                     break;
                 }
-
-                try {
-                    host.player.loot({
-                        id: entity.id,
-                        kind: entity.kind,
-                        type: entity.type,
-                        onLoot: () => {},
-                    });
-                } catch (err) {
-                    if (err instanceof Exceptions.LootException) {
-                        host.emit('notification', err.message);
-                        host.kernel.clearClientLootAttempt();
-                        if (
-                            host.kernel.clientInteractionIntent?.kind === 'loot' &&
-                            host.kernel.clientInteractionIntent.targetId === entity.id
-                        ) {
-                            host.kernel.clearClientInteractionIntent();
-                        }
+                case 'emitNotification': {
+                    host.emit('notification', command.message);
+                    break;
+                }
+                case 'applyWelcome': {
+                    applyWelcome(host, command.id, command.name, command.x, command.y, command.maxHp);
+                    break;
+                }
+                case 'invokeConnectionStartedCallback': {
+                    host.connectionStartedCallback?.();
+                    host.connectionStartedCallback = null;
+                    break;
+                }
+                case 'beginMapTransition': {
+                    const previous = host.kernel.clientMapTransition;
+                    if (
+                        previous &&
+                        (command.seq < previous.seq ||
+                            (command.seq === previous.seq && command.toMapId === previous.toMapId))
+                    ) {
                         break;
                     }
-                    throw err;
-                }
 
-                host.client.sendLoot(entity);
-                host.kernel.clearClientLootAttempt();
-                if (
-                    host.kernel.clientInteractionIntent?.kind === 'loot' &&
-                    host.kernel.clientInteractionIntent.targetId === entity.id
-                ) {
-                    host.kernel.clearClientInteractionIntent();
-                }
-                break;
-            }
-            case 'playerStop': {
-                host.player.stop();
-                host.kernel.clearClientMovePlan();
-                host.kernel.clearClientPendingMoveAcks();
-                host.kernel.clearClientPendingMoveSeqAcks();
-                break;
-            }
-            case 'playerDisengage': {
-                host.player.disengage();
-                break;
-            }
-            case 'playerIdle': {
-                host.player.idle();
-                break;
-            }
-            case 'emitNotification': {
-                host.emit('notification', command.message);
-                break;
-            }
-            case 'applyWelcome': {
-                applyWelcome(host, command.id, command.name, command.x, command.y, command.maxHp);
-                break;
-            }
-            case 'invokeConnectionStartedCallback': {
-                host.connectionStartedCallback?.();
-                host.connectionStartedCallback = null;
-                break;
-            }
-            case 'beginMapTransition': {
-                const previous = host.kernel.clientMapTransition;
-                if (
-                    previous &&
-                    (command.seq < previous.seq || (command.seq === previous.seq && command.toMapId === previous.toMapId))
-                ) {
-                    break;
-                }
-
-                host.kernel.startClientMapTransition({
-                    seq: command.seq,
-                    fromMapId: command.fromMapId,
-                    toMapId: command.toMapId,
-                    x: command.x,
-                    y: command.y,
-                });
-                host.kernel.setActiveMapId(command.toMapId);
-                host.kernel.clientMovementSuppressed = true;
-                host.kernel.clearClientMovePlan();
-                host.kernel.clearClientPendingMoveAcks();
-                host.kernel.clearClientPendingMoveSeqAcks();
-                host.kernel.clearClientMoveInput();
-                host.kernel.clearClientPendingDoorTraversal();
-                host.kernel.clearClientDoorTraversalContact();
-
-                if (typeof host.loadMapById !== 'function') {
-                    host.kernel.enqueueClientCommand({
-                        type: 'mapTransitionMapActivated',
+                    host.kernel.startClientMapTransition({
                         seq: command.seq,
+                        fromMapId: command.fromMapId,
                         toMapId: command.toMapId,
+                        x: command.x,
+                        y: command.y,
                     });
-                    break;
-                }
+                    host.kernel.setActiveMapId(command.toMapId);
+                    host.kernel.clientMovementSuppressed = true;
+                    host.kernel.clearClientMovePlan();
+                    host.kernel.clearClientPendingMoveAcks();
+                    host.kernel.clearClientPendingMoveSeqAcks();
+                    host.kernel.clearClientMoveInput();
+                    host.kernel.clearClientPendingDoorTraversal();
+                    host.kernel.clearClientDoorTraversalContact();
 
-                void host.loadMapById(command.toMapId)
-                    .then(() => {
+                    if (typeof host.loadMapById !== 'function') {
                         host.kernel.enqueueClientCommand({
                             type: 'mapTransitionMapActivated',
                             seq: command.seq,
                             toMapId: command.toMapId,
                         });
-                    })
-                    .catch((error) => {
-                        const reason = error instanceof Error ? error.message : String(error);
-                        host.kernel.enqueueClientCommand({
-                            type: 'mapTransitionMapFailed',
-                            seq: command.seq,
-                            toMapId: command.toMapId,
-                            reason,
+                        break;
+                    }
+
+                    void host
+                        .loadMapById(command.toMapId)
+                        .then(() => {
+                            host.kernel.enqueueClientCommand({
+                                type: 'mapTransitionMapActivated',
+                                seq: command.seq,
+                                toMapId: command.toMapId,
+                            });
+                        })
+                        .catch((error) => {
+                            const reason = error instanceof Error ? error.message : String(error);
+                            host.kernel.enqueueClientCommand({
+                                type: 'mapTransitionMapFailed',
+                                seq: command.seq,
+                                toMapId: command.toMapId,
+                                reason,
+                            });
                         });
-                    });
-                break;
-            }
-            case 'commitMapTransition': {
-                host.kernel.markClientMapTransitionCommitted(command.seq, command.toMapId);
-                finalizeClientMapTransition(host, getKnownEntity);
-                break;
-            }
-            case 'mapTransitionMapActivated': {
-                host.kernel.markClientMapTransitionMapActivated(command.seq, command.toMapId);
-                finalizeClientMapTransition(host, getKnownEntity);
-                break;
-            }
-            case 'mapTransitionMapFailed': {
-                const transition = host.kernel.clientMapTransition;
-                if (transition?.seq === command.seq && transition.toMapId === command.toMapId) {
-                    host.kernel.clearClientMapTransition();
-                    host.kernel.clientMovementSuppressed = false;
-                    host.showNotification('Failed to load destination area. Please retry.');
-                    log.error(`Map transition failed for ${command.toMapId}: ${command.reason}`);
-                }
-                break;
-            }
-            case 'emitNbPlayersChange': {
-                host.emit('nbPlayersChange', command.worldPlayers, command.totalPlayers);
-                break;
-            }
-            case 'applyEntityList': {
-                if (!host.client || !host.playerId) {
                     break;
                 }
-                const entityIds = Object.values(host.entities).map(function (entity) {
-                    return entity.id;
-                });
-                const knownIds = entityIds.filter(function (id: EntityId) {
-                    return command.list.includes(id);
-                });
-                const newIds = command.list.filter(function (id: EntityId) {
-                    return !knownIds.includes(id);
-                });
-
-                host.obsoleteEntities = Object.values(host.entities).filter(function (entity) {
-                    return !knownIds.includes(entity.id) && entity.id !== host.playerId;
-                });
-                host.removeObsoleteEntities();
-
-                if (newIds.length > 0) {
-                    host.client.sendWho(newIds);
-                }
-                break;
-            }
-            case 'setEntityWorldPosition': {
-                const entity = getKnownEntity(command.entityId);
-                if (!entity) {
+                case 'commitMapTransition': {
+                    host.kernel.markClientMapTransitionCommitted(command.seq, command.toMapId);
+                    finalizeClientMapTransition(host, getKnownEntity);
                     break;
                 }
-                if (!entity.setWorldPositionSub && !(entity instanceof Character)) {
-                    throw new Error(`Entity ${String(command.entityId)} missing setWorldPositionSub`);
+                case 'mapTransitionMapActivated': {
+                    host.kernel.markClientMapTransitionMapActivated(command.seq, command.toMapId);
+                    finalizeClientMapTransition(host, getKnownEntity);
+                    break;
                 }
-                if (entity instanceof Character) {
-                    const isLocalPlayer = host.playerId !== null && command.entityId === host.playerId;
-                    if (entity.isMoving() && !isLocalPlayer) {
-                        hardStopCharacterMovement(entity);
-                    }
-                }
-                const renderedBefore = renderTopLeftPxToWorldSub(entity.x, entity.y);
-                host.kernel.setClientRenderedWorldPosition(command.entityId, renderedBefore.worldX, renderedBefore.worldY);
-                host.kernel.setClientPresentationTargetWorldPosition(command.entityId, command.worldX, command.worldY);
-                if (entity instanceof Character) {
-                    bridgeCharacterWorldUpdate(entity, {
-                        worldX: command.worldX,
-                        worldY: command.worldY,
-                        divergenceClass: command.visualDivergenceClass,
-                    });
-                    if (isSnapVisualDivergenceClass(command.visualDivergenceClass)) {
-                        host.kernel.setClientRenderedWorldPosition(command.entityId, command.worldX, command.worldY);
-                    }
-                } else {
-                    entity.setWorldPositionSub?.(
-                        command.worldX,
-                        command.worldY,
-                        isSnapVisualDivergenceClass(command.visualDivergenceClass) ? { snapRender: true } : undefined
-                    );
-                    if (isSnapVisualDivergenceClass(command.visualDivergenceClass)) {
-                        host.kernel.setClientRenderedWorldPosition(command.entityId, command.worldX, command.worldY);
-                    }
-                }
-                entity.setDirty();
-                break;
-            }
-            case 'teleportEntity': {
-                const entity = getKnownEntity(command.entityId);
-                const localPlayerTransition = command.entityId === host.playerId ? host.kernel.clientMapTransition : null;
-                if (localPlayerTransition) {
-                    host.kernel.setClientMapTransitionLocalTeleport(command.x, command.y, command.mapId);
-                }
-                const shouldDeferLocalTeleport = localPlayerTransition !== null;
-
-                if (entity && !shouldDeferLocalTeleport) {
-                    if (entity instanceof Character) {
-                        // Server teleports/corrections must cancel local pathing; otherwise the client continues an
-                        // obsolete predicted path and fights the authoritative position.
-                        entity.path = null;
-                        entity.step = 0;
-                        entity.newDestination = null;
-                        entity.destination = null;
-                        entity.interrupted = false;
-                        entity.nextGridX = -1;
-                        entity.nextGridY = -1;
-                        entity.movement.stop();
-                        entity.idle();
-                        // Use legacy immediate teleport effect when available.
-                        host.makeCharacterTeleportTo(entity, command.x, command.y);
-                    }
-                }
-                host.kernel.clientReplicationLastPos.set(command.entityId, gridPos(command.x, command.y));
-                if (typeof command.mapId === 'string') {
-                    host.kernel.setEntityMapId(command.entityId, command.mapId);
-                    if (command.entityId === host.playerId) {
-                        host.kernel.setActiveMapId(command.mapId);
-                    }
-                }
-                if (command.entityId === host.playerId) {
-                    host.kernel.clearClientMovePlan();
-                    host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
-                    host.kernel.clearClientPendingMoveAcks();
-                    host.kernel.clearClientPendingMoveSeqAcks();
-                    host.kernel.clearClientDoorTraversalContact();
-                    if (!localPlayerTransition) {
+                case 'mapTransitionMapFailed': {
+                    const transition = host.kernel.clientMapTransition;
+                    if (transition?.seq === command.seq && transition.toMapId === command.toMapId) {
+                        host.kernel.clearClientMapTransition();
                         host.kernel.clientMovementSuppressed = false;
-                    }
-                }
-
-                const teleportedWorldPos = tileToWorldPosCenter(command.x, command.y);
-                host.kernel.setClientPresentationTargetWorldPosition(
-                    command.entityId,
-                    teleportedWorldPos.x,
-                    teleportedWorldPos.y
-                );
-                host.kernel.setClientRenderedWorldPosition(
-                    command.entityId,
-                    teleportedWorldPos.x,
-                    teleportedWorldPos.y
-                );
-                break;
-            }
-            case 'playerMoveToItem': {
-                if (command.playerId !== host.playerId) {
-                    break;
-                }
-                const entity = host.getEntityById(command.itemId);
-                host.makePlayerGoToItem(entity instanceof Item ? entity : null);
-                break;
-            }
-            case 'setPlayerHealth': {
-                const previousPoints = host.player.hitPoints;
-                host.setPlayerHealth(command.points);
-                host.kernel.clientLocalPlayerDead = command.points <= 0;
-                host.updateBars();
-
-                if (!command.isRegen) {
-                    const damage = Math.max(0, previousPoints - command.points);
-                    const healed = Math.max(0, command.points - previousPoints);
-                    if (damage > 0) {
-                        host.infoManager.addDamageInfo(damage, host.player.x, host.player.y - 15, 'received');
-                        host.audioManager?.playSound('hurt');
-                        host.storage.addDamage(damage);
-                        host.tryUnlockingAchievement('MEATSHIELD');
-                    } else if (healed > 0) {
-                        host.infoManager.addDamageInfo('+' + healed, host.player.x, host.player.y - 15, 'healed');
-                    }
-                    host.emit('playerHurt');
-                }
-
-                if (command.points <= 0) {
-                    if (!host.player.isDead) {
-                        host.stopPlayerCombat();
-                        host.player.die();
-                        host.audioManager?.playSound('death');
-                        host.emit('playerDeath');
+                        host.showNotification('Failed to load destination area. Please retry.');
+                        log.error(`Map transition failed for ${command.toMapId}: ${command.reason}`);
                     }
                     break;
                 }
-                break;
-            }
-            case 'setPlayerMaxHitPoints': {
-                host.setPlayerMaxHitPoints(command.maxHp);
-                host.updateBars();
-                break;
-            }
-            case 'applyAchievementProgress': {
-                host.storage.applyAchievementProgressSnapshot({
-                    unlockedIds: command.unlockedIds,
-                    ratCount: command.ratCount,
-                    skeletonCount: command.skeletonCount,
-                    totalKills: command.totalKills,
-                    totalDmg: command.totalDmg,
-                    totalRevives: command.totalRevives,
-                });
-                host.app.initUnlockedAchievements(host.storage.data.achievements.unlocked);
-                break;
-            }
-            case 'applyKillToAchievements': {
-                const mobName = resolveKillNotificationMobName(command.mobKind);
-                if (command.mobKind === Types.Entities.BOSS) {
-                    host.showNotification('You killed the skeleton king');
-                } else if (mobName) {
-                    const firstLetter = (mobName[0] ?? '').toLowerCase();
-                    const article = ['a', 'e', 'i', 'o', 'u'].includes(firstLetter) ? 'an' : 'a';
-                    host.showNotification(`You killed ${article} ${mobName}`);
-                }
-
-                host.storage.incrementTotalKills();
-                host.tryUnlockingAchievement('HUNTER');
-
-                if (command.mobKind === Types.Entities.RAT) {
-                    host.storage.incrementRatCount();
-                    host.tryUnlockingAchievement('ANGRY_RATS');
-                }
-
-                if (command.mobKind === Types.Entities.SKELETON || command.mobKind === Types.Entities.SKELETON2) {
-                    host.storage.incrementSkeletonCount();
-                    host.tryUnlockingAchievement('SKULL_COLLECTOR');
-                }
-
-                if (command.mobKind === Types.Entities.BOSS) {
-                    host.tryUnlockingAchievement('HERO');
-                }
-                break;
-            }
-            case 'chatMessage': {
-                host.createBubble(command.entityId, command.text);
-                host.audioManager?.playSound('chat');
-                break;
-            }
-            case 'equipItem': {
-                const entity = getKnownEntity(command.entityId);
-                if (!entity) {
+                case 'emitNbPlayersChange': {
+                    host.emit('nbPlayersChange', command.worldPlayers, command.totalPlayers);
                     break;
                 }
-                if (Types.isArmor(command.itemKind)) {
-                    const kindName = Types.getKindAsString(command.itemKind);
-                    if (kindName) {
-                        entity.setSprite(host.sprites[kindName] ?? null);
-                        entity.setSpriteName?.(kindName);
+                case 'applyEntityList': {
+                    if (!host.client || !host.playerId) {
+                        break;
                     }
-                } else if (Types.isWeapon(command.itemKind)) {
-                    const kindName = Types.getKindAsString(command.itemKind);
-                    if (kindName) {
-                        entity.setWeaponName?.(kindName);
-                    }
-                }
-                if (command.entityId === host.playerId) {
-                    host.emit('playerEquipmentChange');
-                }
-                break;
-            }
-            case 'dropItem': {
-                const mob = getKnownEntity(command.mobId);
-                if (!mob) {
-                    break;
-                }
-                host.addItemFromUnknown(command.item, mob.gridX, mob.gridY);
-                break;
-            }
-            case 'itemBlink': {
-                const entity = getKnownEntity(command.entityId);
-                entity?.blink?.(150);
-                break;
-            }
-            case 'spawnEntityFromKernel': {
-                const id = command.entityId;
-                if (getKnownEntity(id)) {
-                    break;
-                }
+                    const entityIds = Object.values(host.entities).map(function (entity) {
+                        return entity.id;
+                    });
+                    const knownIds = entityIds.filter(function (id: EntityId) {
+                        return command.list.includes(id);
+                    });
+                    const newIds = command.list.filter(function (id: EntityId) {
+                        return !knownIds.includes(id);
+                    });
 
-                const view = host.kernel.getEntityView(id);
-                const adapted = adaptKernelEntityForRendering(host.kernel, id);
+                    host.obsoleteEntities = Object.values(host.entities).filter(function (entity) {
+                        return !knownIds.includes(entity.id) && entity.id !== host.playerId;
+                    });
+                    host.removeObsoleteEntities();
 
-                if (adapted.type === 'item') {
-                    host.addItemFromUnknown(adapted.entity, view.position.x, view.position.y);
-                    break;
-                }
-
-                if (adapted.type === 'chest') {
-                    const entity = adapted.entity;
-                    if (isGridIndexedEntity(entity)) {
-                        entity.setSprite(host.sprites[entity.getSpriteName()] ?? null);
-                        entity.setGridPosition(view.position.x, view.position.y);
-                        host.addEntity(entity);
+                    if (newIds.length > 0) {
+                        host.client.sendWho(newIds);
                     }
                     break;
                 }
-
-                const character = adapted.entity;
-                character.setSprite(host.sprites[character.getSpriteName()] ?? null);
-                character.setGridPosition(view.position.x, view.position.y);
-                if (typeof character.setOrientation === 'function') {
-                    character.setOrientation(safeOrientation(adapted.orientation));
-                }
-                character.idle();
-                if (isGridIndexedEntity(character)) {
-                    host.addEntity(character);
-                }
-
-                if (adapted.targetId !== undefined) {
-                    const target = getKnownEntity(adapted.targetId);
-                    if (target instanceof Character) {
-                        host.createAttackLink(character, target);
+                case 'setEntityWorldPosition': {
+                    const entity = getKnownEntity(command.entityId);
+                    if (!entity) {
+                        break;
                     }
-                }
-                break;
-            }
-            case 'removeEntityById': {
-                const entity = getKnownEntity(command.entityId);
-                if (!entity) {
+                    if (!entity.setWorldPositionSub && !(entity instanceof Character)) {
+                        throw new Error(`Entity ${String(command.entityId)} missing setWorldPositionSub`);
+                    }
+                    if (entity instanceof Character) {
+                        const isLocalPlayer = host.playerId !== null && command.entityId === host.playerId;
+                        if (entity.isMoving() && !isLocalPlayer) {
+                            hardStopCharacterMovement(entity);
+                        }
+                    }
+                    const renderedBefore = renderTopLeftPxToWorldSub(entity.x, entity.y);
+                    host.kernel.setClientRenderedWorldPosition(
+                        command.entityId,
+                        renderedBefore.worldX,
+                        renderedBefore.worldY
+                    );
+                    host.kernel.setClientPresentationTargetWorldPosition(
+                        command.entityId,
+                        command.worldX,
+                        command.worldY
+                    );
+                    if (entity instanceof Character) {
+                        bridgeCharacterWorldUpdate(entity, {
+                            worldX: command.worldX,
+                            worldY: command.worldY,
+                            divergenceClass: command.visualDivergenceClass,
+                        });
+                        if (isSnapVisualDivergenceClass(command.visualDivergenceClass)) {
+                            host.kernel.setClientRenderedWorldPosition(
+                                command.entityId,
+                                command.worldX,
+                                command.worldY
+                            );
+                        }
+                    } else {
+                        entity.setWorldPositionSub?.(
+                            command.worldX,
+                            command.worldY,
+                            isSnapVisualDivergenceClass(command.visualDivergenceClass)
+                                ? { snapRender: true }
+                                : undefined
+                        );
+                        if (isSnapVisualDivergenceClass(command.visualDivergenceClass)) {
+                            host.kernel.setClientRenderedWorldPosition(
+                                command.entityId,
+                                command.worldX,
+                                command.worldY
+                            );
+                        }
+                    }
+                    entity.setDirty();
                     break;
                 }
-                if (entity instanceof Item) {
-                    host.removeItem(entity);
-                } else {
-                    host.removeEntity(entity);
-                }
-                break;
-            }
-            case 'characterGoTo': {
-                const entity = getKnownEntity(command.entityId);
-                if (!host.map || host.map.isOutOfBounds(command.x, command.y)) {
+                case 'teleportEntity': {
+                    const entity = getKnownEntity(command.entityId);
+                    const localPlayerTransition =
+                        command.entityId === host.playerId ? host.kernel.clientMapTransition : null;
+                    if (localPlayerTransition) {
+                        host.kernel.setClientMapTransitionLocalTeleport(command.x, command.y, command.mapId);
+                    }
+                    const shouldDeferLocalTeleport = localPlayerTransition !== null;
+
+                    if (entity && !shouldDeferLocalTeleport) {
+                        if (entity instanceof Character) {
+                            // Server teleports/corrections must cancel local pathing; otherwise the client continues an
+                            // obsolete predicted path and fights the authoritative position.
+                            entity.path = null;
+                            entity.step = 0;
+                            entity.newDestination = null;
+                            entity.destination = null;
+                            entity.interrupted = false;
+                            entity.nextGridX = -1;
+                            entity.nextGridY = -1;
+                            entity.movement.stop();
+                            entity.idle();
+                            // Use legacy immediate teleport effect when available.
+                            host.makeCharacterTeleportTo(entity, command.x, command.y);
+                        }
+                    }
+                    host.kernel.clientReplicationLastPos.set(command.entityId, gridPos(command.x, command.y));
+                    if (typeof command.mapId === 'string') {
+                        host.kernel.setEntityMapId(command.entityId, command.mapId);
+                        if (command.entityId === host.playerId) {
+                            host.kernel.setActiveMapId(command.mapId);
+                        }
+                    }
+                    if (command.entityId === host.playerId) {
+                        host.kernel.clearClientMovePlan();
+                        host.kernel.clientLastSentMovePos = gridPos(command.x, command.y);
+                        host.kernel.clearClientPendingMoveAcks();
+                        host.kernel.clearClientPendingMoveSeqAcks();
+                        host.kernel.clearClientDoorTraversalContact();
+                        if (!localPlayerTransition) {
+                            host.kernel.clientMovementSuppressed = false;
+                        }
+                    }
+
+                    const teleportedWorldPos = tileToWorldPosCenter(command.x, command.y);
+                    host.kernel.setClientPresentationTargetWorldPosition(
+                        command.entityId,
+                        teleportedWorldPos.x,
+                        teleportedWorldPos.y
+                    );
+                    host.kernel.setClientRenderedWorldPosition(
+                        command.entityId,
+                        teleportedWorldPos.x,
+                        teleportedWorldPos.y
+                    );
                     break;
                 }
-                if (entity instanceof Character) {
-                    if (entity.isMoving()) {
-                        const path = entity.path;
-                        const tail = path && path.length > 0 ? path[path.length - 1] : undefined;
-                        if (tail?.[0] === command.x && tail[1] === command.y) {
+                case 'playerMoveToItem': {
+                    if (command.playerId !== host.playerId) {
+                        break;
+                    }
+                    const entity = host.getEntityById(command.itemId);
+                    host.makePlayerGoToItem(entity instanceof Item ? entity : null);
+                    break;
+                }
+                case 'setPlayerHealth': {
+                    const previousPoints = host.player.hitPoints;
+                    host.setPlayerHealth(command.points);
+                    host.kernel.clientLocalPlayerDead = command.points <= 0;
+                    host.updateBars();
+
+                    if (!command.isRegen) {
+                        const damage = Math.max(0, previousPoints - command.points);
+                        const healed = Math.max(0, command.points - previousPoints);
+                        if (damage > 0) {
+                            host.infoManager.addDamageInfo(damage, host.player.x, host.player.y - 15, 'received');
+                            host.audioManager?.playSound('hurt');
+                            host.storage.addDamage(damage);
+                            host.tryUnlockingAchievement('MEATSHIELD');
+                        } else if (healed > 0) {
+                            host.infoManager.addDamageInfo('+' + healed, host.player.x, host.player.y - 15, 'healed');
+                        }
+                        host.emit('playerHurt');
+                    }
+
+                    if (command.points <= 0) {
+                        if (!host.player.isDead) {
+                            host.stopPlayerCombat();
+                            host.player.die();
+                            host.audioManager?.playSound('death');
+                            host.emit('playerDeath');
+                        }
+                        break;
+                    }
+                    break;
+                }
+                case 'setPlayerMaxHitPoints': {
+                    host.setPlayerMaxHitPoints(command.maxHp);
+                    host.updateBars();
+                    break;
+                }
+                case 'applyAchievementProgress': {
+                    host.storage.applyAchievementProgressSnapshot({
+                        unlockedIds: command.unlockedIds,
+                        ratCount: command.ratCount,
+                        skeletonCount: command.skeletonCount,
+                        totalKills: command.totalKills,
+                        totalDmg: command.totalDmg,
+                        totalRevives: command.totalRevives,
+                    });
+                    host.app.initUnlockedAchievements(host.storage.data.achievements.unlocked);
+                    break;
+                }
+                case 'applyKillToAchievements': {
+                    const mobName = resolveKillNotificationMobName(command.mobKind);
+                    if (command.mobKind === Types.Entities.BOSS) {
+                        host.showNotification('You killed the skeleton king');
+                    } else if (mobName) {
+                        const firstLetter = (mobName[0] ?? '').toLowerCase();
+                        const article = ['a', 'e', 'i', 'o', 'u'].includes(firstLetter) ? 'an' : 'a';
+                        host.showNotification(`You killed ${article} ${mobName}`);
+                    }
+
+                    host.storage.incrementTotalKills();
+                    host.tryUnlockingAchievement('HUNTER');
+
+                    if (command.mobKind === Types.Entities.RAT) {
+                        host.storage.incrementRatCount();
+                        host.tryUnlockingAchievement('ANGRY_RATS');
+                    }
+
+                    if (command.mobKind === Types.Entities.SKELETON || command.mobKind === Types.Entities.SKELETON2) {
+                        host.storage.incrementSkeletonCount();
+                        host.tryUnlockingAchievement('SKULL_COLLECTOR');
+                    }
+
+                    if (command.mobKind === Types.Entities.BOSS) {
+                        host.tryUnlockingAchievement('HERO');
+                    }
+                    break;
+                }
+                case 'chatMessage': {
+                    host.createBubble(command.entityId, command.text);
+                    host.audioManager?.playSound('chat');
+                    break;
+                }
+                case 'equipItem': {
+                    const entity = getKnownEntity(command.entityId);
+                    if (!entity) {
+                        break;
+                    }
+                    if (Types.isArmor(command.itemKind)) {
+                        const kindName = Types.getKindAsString(command.itemKind);
+                        if (kindName) {
+                            entity.setSprite(host.sprites[kindName] ?? null);
+                            entity.setSpriteName?.(kindName);
+                        }
+                    } else if (Types.isWeapon(command.itemKind)) {
+                        const kindName = Types.getKindAsString(command.itemKind);
+                        if (kindName) {
+                            entity.setWeaponName?.(kindName);
+                        }
+                    }
+                    if (command.entityId === host.playerId) {
+                        host.emit('playerEquipmentChange');
+                    }
+                    break;
+                }
+                case 'dropItem': {
+                    const mob = getKnownEntity(command.mobId);
+                    if (!mob) {
+                        break;
+                    }
+                    host.addItemFromUnknown(command.item, mob.gridX, mob.gridY);
+                    break;
+                }
+                case 'itemBlink': {
+                    const entity = getKnownEntity(command.entityId);
+                    entity?.blink?.(150);
+                    break;
+                }
+                case 'spawnEntityFromKernel': {
+                    const id = command.entityId;
+                    if (getKnownEntity(id)) {
+                        break;
+                    }
+
+                    const view = host.kernel.getEntityView(id);
+                    const adapted = adaptKernelEntityForRendering(host.kernel, id);
+
+                    if (adapted.type === 'item') {
+                        host.addItemFromUnknown(adapted.entity, view.position.x, view.position.y);
+                        break;
+                    }
+
+                    if (adapted.type === 'chest') {
+                        const entity = adapted.entity;
+                        if (isGridIndexedEntity(entity)) {
+                            entity.setSprite(host.sprites[entity.getSpriteName()] ?? null);
+                            entity.setGridPosition(view.position.x, view.position.y);
+                            host.addEntity(entity);
+                        }
+                        break;
+                    }
+
+                    const character = adapted.entity;
+                    character.setSprite(host.sprites[character.getSpriteName()] ?? null);
+                    character.setGridPosition(view.position.x, view.position.y);
+                    if (typeof character.setOrientation === 'function') {
+                        character.setOrientation(safeOrientation(adapted.orientation));
+                    }
+                    character.idle();
+                    if (isGridIndexedEntity(character)) {
+                        host.addEntity(character);
+                    }
+
+                    if (adapted.targetId !== undefined) {
+                        const target = getKnownEntity(adapted.targetId);
+                        if (target instanceof Character) {
+                            host.createAttackLink(character, target);
+                        }
+                    }
+                    break;
+                }
+                case 'removeEntityById': {
+                    const entity = getKnownEntity(command.entityId);
+                    if (!entity) {
+                        break;
+                    }
+                    if (entity instanceof Item) {
+                        host.removeItem(entity);
+                    } else {
+                        host.removeEntity(entity);
+                    }
+                    break;
+                }
+                case 'characterGoTo': {
+                    const entity = getKnownEntity(command.entityId);
+                    if (!host.map || host.map.isOutOfBounds(command.x, command.y)) {
+                        break;
+                    }
+                    if (entity instanceof Character) {
+                        if (entity.isMoving()) {
+                            const path = entity.path;
+                            const tail = path && path.length > 0 ? path[path.length - 1] : undefined;
+                            if (tail?.[0] === command.x && tail[1] === command.y) {
+                                break;
+                            }
+                            if (appendAuthoritativeAdjacentStep(entity, command.x, command.y)) {
+                                break;
+                            }
+
+                            hardStopCharacterMovement(entity);
+                            if (host.playerId === command.entityId) {
+                                debugMoves('apply:teleport_fallback', {
+                                    entityId: command.entityId,
+                                    to: { x: command.x, y: command.y },
+                                    reason: 'append_failed',
+                                });
+                            }
+                            host.makeCharacterTeleportTo(entity, command.x, command.y);
                             break;
                         }
-                        if (appendAuthoritativeAdjacentStep(entity, command.x, command.y)) {
+
+                        if (entity.gridX === command.x && entity.gridY === command.y) {
                             break;
                         }
 
+                        if (startAuthoritativeAdjacentStep(entity, command.x, command.y)) {
+                            break;
+                        }
+
+                        // Non-local replication gaps (e.g. zoning/interest reacquire) should snap to authoritative position.
                         hardStopCharacterMovement(entity);
                         if (host.playerId === command.entityId) {
                             debugMoves('apply:teleport_fallback', {
                                 entityId: command.entityId,
                                 to: { x: command.x, y: command.y },
-                                reason: 'append_failed',
+                                reason: 'start_failed_or_non_adjacent',
                             });
                         }
                         host.makeCharacterTeleportTo(entity, command.x, command.y);
-                        break;
                     }
-
-                    if (entity.gridX === command.x && entity.gridY === command.y) {
-                        break;
-                    }
-
-                    if (startAuthoritativeAdjacentStep(entity, command.x, command.y)) {
-                        break;
-                    }
-
-                    // Non-local replication gaps (e.g. zoning/interest reacquire) should snap to authoritative position.
-                    hardStopCharacterMovement(entity);
-                    if (host.playerId === command.entityId) {
-                        debugMoves('apply:teleport_fallback', {
-                            entityId: command.entityId,
-                            to: { x: command.x, y: command.y },
-                            reason: 'start_failed_or_non_adjacent',
-                        });
-                    }
-                    host.makeCharacterTeleportTo(entity, command.x, command.y);
-                }
-                break;
-            }
-            case 'createAttackLink': {
-                const attacker = getKnownEntity(command.attackerId);
-                const target = getKnownEntity(command.targetId);
-                if (!(attacker instanceof Character) || !(target instanceof Character)) {
                     break;
                 }
-                host.createAttackLink(attacker, target);
-                break;
-            }
+                case 'createAttackLink': {
+                    const attacker = getKnownEntity(command.attackerId);
+                    const target = getKnownEntity(command.targetId);
+                    if (!(attacker instanceof Character) || !(target instanceof Character)) {
+                        break;
+                    }
+                    host.createAttackLink(attacker, target);
+                    break;
+                }
             }
         }
     }

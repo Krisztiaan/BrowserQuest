@@ -167,8 +167,8 @@ export function applyMoveToIntentCommand({
         return { ok: false, reason: 'Invalid move.to (out of bounds).' };
     }
     if (
-        typeof activeMap.isSameNavigationIsland === 'function'
-        && !activeMap.isSameNavigationIsland(currentPos.x, currentPos.y, to.x, to.y)
+        typeof activeMap.isSameNavigationIsland === 'function' &&
+        !activeMap.isSameNavigationIsland(currentPos.x, currentPos.y, to.x, to.y)
     ) {
         return { ok: false, reason: 'Invalid move.to (no path).' };
     }
@@ -204,14 +204,10 @@ export function applyMoveToIntentCommand({
                     : world.isValidPosition(candidate.x, candidate.y)
             ),
             findPathTo: (x, y) =>
-                pathfinder.findPath(
-                    grid,
-                    { gridX: currentPos.x, gridY: currentPos.y },
-                    x,
-                    y,
-                    false,
-                    { maxVisited: MOVE_TO_MAX_VISITED, variant: 'DiagonalFree' }
-                ),
+                pathfinder.findPath(grid, { gridX: currentPos.x, gridY: currentPos.y }, x, y, false, {
+                    maxVisited: MOVE_TO_MAX_VISITED,
+                    variant: 'DiagonalFree',
+                }),
         });
 
         if (!bestPath) {

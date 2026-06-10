@@ -40,9 +40,15 @@ test('dead mobs stop blocking dynamic pathing immediately on spatial record upda
 
     kernel.enqueueClientCommand({ type: 'spatialAddRecord', entityId: mobId, record: aliveRecord });
 
-    const host = { kernel, map, entities: {}, started: false, client: null, playerId: null, player: null } as Parameters<
-        typeof runClientCommandApplySystem
-    >[0];
+    const host = {
+        kernel,
+        map,
+        entities: {},
+        started: false,
+        client: null,
+        playerId: null,
+        player: null,
+    } as Parameters<typeof runClientCommandApplySystem>[0];
 
     runClientCommandApplySystem(host);
 

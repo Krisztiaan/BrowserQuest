@@ -98,7 +98,7 @@ type Domain = 'world' | 'indoor' | 'cave' | 'mase';
 
 const GLOBAL_TILE_ID_MASK = 0x1fffffff;
 function normalizeGid(value: unknown): number {
-    return typeof value === 'number' && Number.isFinite(value) ? (value & GLOBAL_TILE_ID_MASK) : 0;
+    return typeof value === 'number' && Number.isFinite(value) ? value & GLOBAL_TILE_ID_MASK : 0;
 }
 
 function fail(message: string): never {
@@ -145,7 +145,12 @@ function propMap(obj: { properties?: TiledProperty[] } | null | undefined): Reco
     return out;
 }
 
-function upsertProp(properties: TiledProperty[] | undefined, name: string, type: string, value: ScalarValue): TiledProperty[] {
+function upsertProp(
+    properties: TiledProperty[] | undefined,
+    name: string,
+    type: string,
+    value: ScalarValue
+): TiledProperty[] {
     const next = Array.isArray(properties) ? [...properties] : [];
     const idx = next.findIndex((p) => p.name === name);
     const entry: TiledProperty = { name, type, value };
@@ -163,7 +168,9 @@ async function readJson(filePath: string): Promise<unknown> {
 
 function requireTileLayerData(world: TiledMap, name: string): ReadonlyArray<number> {
     const layers = Array.isArray(world.layers) ? world.layers : [];
-    const layer = layers.find((l) => l.type === 'tilelayer' && l.name === name) as Extract<TiledLayer, { type: 'tilelayer' }> | undefined;
+    const layer = layers.find((l) => l.type === 'tilelayer' && l.name === name) as
+        | Extract<TiledLayer, { type: 'tilelayer' }>
+        | undefined;
     // Note: Tiled `visible=false` is an editor hint. Gameplay-critical layers like `entities` and `blocking`
     // are frequently authored as invisible; we must still preserve their data when regenerating maps.
     if (!layer || !Array.isArray(layer.data)) {
@@ -213,15 +220,10 @@ function makeMaskFromLayers({
     return out;
 }
 
-function labelComponents({
-    width,
-    height,
-    mask,
-}: {
-    width: number;
-    height: number;
-    mask: Uint8Array;
-}): { labels: Uint16Array; components: Component[] } {
+function labelComponents({ width, height, mask }: { width: number; height: number; mask: Uint8Array }): {
+    labels: Uint16Array;
+    components: Component[];
+} {
     const labels = new Uint16Array(width * height);
     const comps: Array<{ id: number; area: number; x0: number; y0: number; x1: number; y1: number }> = [];
     const q = new Int32Array(width * height);
@@ -272,7 +274,7 @@ function labelComponents({
     }
 
     const components: Component[] = comps
-        .sort((a, b) => (a.y0 - b.y0) || (a.x0 - b.x0) || (b.area - a.area) || (a.id - b.id))
+        .sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0 || b.area - a.area || a.id - b.id)
         .map((c, idx) => ({
             id: idx + 1,
             area: c.area,
@@ -486,7 +488,12 @@ async function run({
 }): Promise<void> {
     const rawWorld = await readJson(worldPath);
     const world = rawWorld as TiledMap;
-    if (!Number.isInteger(world.width) || !Number.isInteger(world.height) || !Number.isInteger(world.tilewidth) || !Number.isInteger(world.tileheight)) {
+    if (
+        !Number.isInteger(world.width) ||
+        !Number.isInteger(world.height) ||
+        !Number.isInteger(world.tilewidth) ||
+        !Number.isInteger(world.tileheight)
+    ) {
         fail(`Invalid world map "${worldPath}": missing width/height/tilewidth/tileheight`);
     }
     if (world.tilewidth !== 16 || world.tileheight !== 16) {
@@ -536,7 +543,9 @@ async function run({
         layers: maseNames.map((n) => allTileLayerDataByName[n] ?? []),
     });
 
-    const outdoorLayerNames = layerNames.filter((n) => !interiorNames.has(n) && n !== 'entities' && n !== 'blocking' && n !== 'plateau');
+    const outdoorLayerNames = layerNames.filter(
+        (n) => !interiorNames.has(n) && n !== 'entities' && n !== 'blocking' && n !== 'plateau'
+    );
     const worldMask = makeMaskFromLayers({
         width,
         height,
@@ -890,7 +899,11 @@ async function run({
                         if (cropMask[gi] !== 1) continue;
 
                         const authored = authoredDoorObjectByXY.get(`${gx},${gy}`) ?? null;
-                        const baseProps = authored ? (Array.isArray(authored.properties) ? [...authored.properties] : []) : [];
+                        const baseProps = authored
+                            ? Array.isArray(authored.properties)
+                                ? [...authored.properties]
+                                : []
+                            : [];
                         let nextProps = baseProps;
 
                         // Always ensure a stable door id exists.
@@ -907,8 +920,14 @@ async function run({
                             nextProps = upsertProp(nextProps, 'o', 'string', dp.to);
                             nextProps = upsertProp(nextProps, 'x', 'string', String(dest.localX));
                             nextProps = upsertProp(nextProps, 'y', 'string', String(dest.localY));
-                            const tcx = typeof legacy.tcx === 'number' && Number.isFinite(legacy.tcx) ? legacy.tcx : dest.localX;
-                            const tcy = typeof legacy.tcy === 'number' && Number.isFinite(legacy.tcy) ? legacy.tcy : dest.localY;
+                            const tcx =
+                                typeof legacy.tcx === 'number' && Number.isFinite(legacy.tcx)
+                                    ? legacy.tcx
+                                    : dest.localX;
+                            const tcy =
+                                typeof legacy.tcy === 'number' && Number.isFinite(legacy.tcy)
+                                    ? legacy.tcy
+                                    : dest.localY;
                             nextProps = upsertProp(nextProps, 'cx', 'string', String(tcx));
                             nextProps = upsertProp(nextProps, 'cy', 'string', String(tcy));
                         }
@@ -1003,7 +1022,9 @@ async function run({
 async function main(): Promise<void> {
     const command = process.argv[2];
     if (command !== 'report' && command !== 'generate') {
-        fail('Usage: bun tools/content/world-resplit.ts <report|generate> [--world <path>] [--legacy <path>] [--outDir <path>] [--writeConfig <0|1>]');
+        fail(
+            'Usage: bun tools/content/world-resplit.ts <report|generate> [--world <path>] [--legacy <path>] [--outDir <path>] [--writeConfig <0|1>]'
+        );
     }
 
     const parsed = parseCliArgs(process.argv.slice(3), [

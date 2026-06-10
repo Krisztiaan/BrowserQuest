@@ -103,7 +103,8 @@ test('music update does not spawn duplicate loop sources for the same area', () 
     });
 
     manager.addArea(0, 0, 20, 20, 'village');
-    (manager as unknown as { audioBuffers: Partial<Record<string, AudioBuffer>> }).audioBuffers.village = {} as AudioBuffer;
+    (manager as unknown as { audioBuffers: Partial<Record<string, AudioBuffer>> }).audioBuffers.village =
+        {} as AudioBuffer;
 
     manager.updateMusic();
     manager.updateMusic();

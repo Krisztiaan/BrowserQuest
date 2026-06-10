@@ -28,7 +28,10 @@ function makePlayerLike(id: EntityId, x: number, y: number): PlayerLike {
     function on(eventName: 'move', callback: (x: number, y: number) => void): void;
     function on(eventName: 'lootMove', callback: (x: number, y: number) => void): void;
     function on(eventName: 'exit', callback: () => void): void;
-    function on(_eventName: 'move' | 'lootMove' | 'exit', _callback: ((x: number, y: number) => void) | (() => void)): void {
+    function on(
+        _eventName: 'move' | 'lootMove' | 'exit',
+        _callback: ((x: number, y: number) => void) | (() => void)
+    ): void {
         // no-op for unit tests
     }
 
@@ -36,11 +39,7 @@ function makePlayerLike(id: EntityId, x: number, y: number): PlayerLike {
     function emit(eventName: 'zone'): void;
     function emit(eventName: 'move', x: number, y: number): void;
     function emit(eventName: 'lootMove', x: number, y: number): void;
-    function emit(
-        _eventName: 'exit' | 'zone' | 'move' | 'lootMove',
-        _x?: number,
-        _y?: number
-    ): void {
+    function emit(_eventName: 'exit' | 'zone' | 'move' | 'lootMove', _x?: number, _y?: number): void {
         // no-op for unit tests
     }
 

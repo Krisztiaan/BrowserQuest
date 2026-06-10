@@ -21,22 +21,13 @@ import {
     type MapChestAreaConfig,
     type MapMobAreaConfig,
 } from './world/map-config';
-import {
-    addWorldItemFromChest,
-    addWorldPlayer,
-    addWorldStaticItem,
-    removeWorldPlayer,
-} from './world/entity-mutations';
+import { addWorldItemFromChest, addWorldPlayer, addWorldStaticItem, removeWorldPlayer } from './world/entity-mutations';
 import {
     addMobToContainingChestAreas,
     handleEmptyChestAreaRefill,
     spawnStaticEntitiesForWorld,
 } from './world/chest-item-lifecycle';
-import {
-    isWorldPositionValid,
-    moveWorldEntity,
-    selectDroppedItemForMob,
-} from './world/entity';
+import { isWorldPositionValid, moveWorldEntity, selectDroppedItemForMob } from './world/entity';
 import { requireMobPrefab } from '../shared/content/prefabs';
 import { SERVER_PLUGIN_API_VERSION, type ServerPlugin, type ServerPluginEcsApi } from './plugins/contracts';
 import {
@@ -78,16 +69,10 @@ import type {
 } from './player-persistence';
 import { resolveIdentityKey } from './identity';
 import { isMapPack } from '../shared/maps/map-pack';
-import {
-    createWorldMapRegistryFromMapPack,
-    type WorldMapRegistry,
-} from './world/map-registry';
+import { createWorldMapRegistryFromMapPack, type WorldMapRegistry } from './world/map-registry';
 import { compileRuntimeMapPackFromPayload, loadRuntimeMapPackFromSource } from './runtime-map-pack-source';
 import { WORLD_EVENT_NAMES } from './server-event-names';
-import type {
-    MapTransitionEvent,
-    MapTransitionRejectReason,
-} from './world/map-transition-observability';
+import type { MapTransitionEvent, MapTransitionRejectReason } from './world/map-transition-observability';
 const log = Log.getLogger();
 const logWorldQueueError = (errorMessage: string): void => {
     log.error(errorMessage);
@@ -297,12 +282,18 @@ class World extends Evented<WorldEvents> {
         this.serverConfig = config;
         this.setUpdatesPerSecond(resolveWorldUpdatesPerSecond(config?.updates_per_second));
         const desiredChunkSize =
-            typeof config?.chunk_size === 'number' && Number.isInteger(config.chunk_size) && config.chunk_size > 0 && config.chunk_size <= 256
+            typeof config?.chunk_size === 'number' &&
+            Number.isInteger(config.chunk_size) &&
+            config.chunk_size > 0 &&
+            config.chunk_size <= 256
                 ? config.chunk_size
                 : 32;
 
         if (this.ecsPipeline.chunkOverlays.chunkSize !== desiredChunkSize) {
-            const hasPlayers = this.playerCount > 0 || Object.keys(this.players).length > 0 || Object.keys(this.pendingPlayers).length > 0;
+            const hasPlayers =
+                this.playerCount > 0 ||
+                Object.keys(this.players).length > 0 ||
+                Object.keys(this.pendingPlayers).length > 0;
             if (!hasPlayers) {
                 this.ecsPipeline = new WorldEcsCommandPipeline(this, { chunkSize: desiredChunkSize });
             } else {
@@ -354,7 +345,12 @@ class World extends Evented<WorldEvents> {
             return false;
         }
         try {
-            return this.chunkOverlayPersistence.loadChunkIntoStore(this.ecsPipeline.chunkOverlays, chunkX, chunkY, mapId).loaded;
+            return this.chunkOverlayPersistence.loadChunkIntoStore(
+                this.ecsPipeline.chunkOverlays,
+                chunkX,
+                chunkY,
+                mapId
+            ).loaded;
         } catch (err) {
             log.error(`ensureChunkOverlayLoaded failed for ${mapId} (${chunkX}, ${chunkY}): ${String(err)}`);
             return false;
@@ -550,8 +546,7 @@ class World extends Evented<WorldEvents> {
             playerName: identityKey,
             killsDelta: 1,
             ratDelta: mobKind === Types.Entities.RAT ? 1 : 0,
-            skeletonDelta:
-                mobKind === Types.Entities.SKELETON || mobKind === Types.Entities.SKELETON2 ? 1 : 0,
+            skeletonDelta: mobKind === Types.Entities.SKELETON || mobKind === Types.Entities.SKELETON2 ? 1 : 0,
         });
     }
 
@@ -705,9 +700,12 @@ class World extends Evented<WorldEvents> {
     }
 
     private async loadMapRuntime(mapSource: unknown): Promise<void> {
-        const pack = typeof mapSource === 'string'
-            ? await loadRuntimeMapPackFromSource(mapSource)
-            : await compileRuntimeMapPackFromPayload(mapSource as string | number | boolean | null | undefined | object);
+        const pack =
+            typeof mapSource === 'string'
+                ? await loadRuntimeMapPackFromSource(mapSource)
+                : await compileRuntimeMapPackFromPayload(
+                      mapSource as string | number | boolean | null | undefined | object
+                  );
         if (!isMapPack(pack)) {
             throw new Error('Invalid runtime map payload after compilation.');
         }
@@ -925,7 +923,11 @@ class World extends Evented<WorldEvents> {
     }
 
     addStaticItem(item: WorldItem): WorldItem {
-        this.ecsPipeline.state.world.addComponent(item.id, this.ecsPipeline.items.StaticSpawnPos, gridPos(item.x, item.y));
+        this.ecsPipeline.state.world.addComponent(
+            item.id,
+            this.ecsPipeline.items.StaticSpawnPos,
+            gridPos(item.x, item.y)
+        );
         return addWorldStaticItem({
             item,
             buildRespawnHandler: (staticItem) => () => {

@@ -156,10 +156,14 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
         },
     });
     const config = createValidConfig({ nb_worlds: 2, nb_players_per_world: 50, map_filepath: 'maps/world.json' });
-    const worlds = MainRuntime.createWorlds(config, new (class implements RuntimeServer {
-        on(_eventName: 'connect' | 'error', _callback: (...args: never[]) => void): void {}
-        onRequestStatus(_callback: () => string): void {}
-    })(), dependencies);
+    const worlds = MainRuntime.createWorlds(
+        config,
+        new (class implements RuntimeServer {
+            on(_eventName: 'connect' | 'error', _callback: (...args: never[]) => void): void {}
+            onRequestStatus(_callback: () => string): void {}
+        })(),
+        dependencies
+    );
 
     expect(worlds.length).toBe(2);
     expect(created.map((entry) => entry.name)).toEqual(['world1', 'world2']);

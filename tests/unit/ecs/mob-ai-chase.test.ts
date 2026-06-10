@@ -7,13 +7,16 @@ import MobEntity from '../../../server/world/mob-entity';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
 import type { WorldMessage } from '../../../server/world/contracts';
 
-type TestEntity = Readonly<{
-    id: number;
-    kind: number;
-    x: number;
-    y: number;
-    setPosition?: (nextX: number, nextY: number) => void;
-}> | Player | MobEntity;
+type TestEntity =
+    | Readonly<{
+          id: number;
+          kind: number;
+          x: number;
+          y: number;
+          setPosition?: (nextX: number, nextY: number) => void;
+      }>
+    | Player
+    | MobEntity;
 
 function createTestPlayer(wireId: number): Player {
     const connection = {

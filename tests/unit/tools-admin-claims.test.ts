@@ -90,7 +90,18 @@ test('admin:claims update can replace and clear delegated editors', () => {
         ]);
         expect(create.status).toBe(0);
 
-        const update = runClaimsCli(['update', '--db', dbPath, '--id', '1', '--owner', 'Builder', '--editors', 'dave', '--json']);
+        const update = runClaimsCli([
+            'update',
+            '--db',
+            dbPath,
+            '--id',
+            '1',
+            '--owner',
+            'Builder',
+            '--editors',
+            'dave',
+            '--json',
+        ]);
         expect(update.status).toBe(0);
         const updateBody = parseJsonStdout(update) as { claim?: { ownerName?: string; editorNameKeys?: string[] } };
         expect(updateBody.claim?.ownerName).toBe('builder');

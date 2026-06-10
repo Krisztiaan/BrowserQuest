@@ -15,4 +15,3 @@ export function registerChestComponents(world: EcsWorld): ChestComponents {
     const ChestLootTable = world.components.register('ChestLootTable', new SparseSetStore<ChestLootTable>());
     return { ChestLootTable };
 }
-

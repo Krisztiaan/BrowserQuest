@@ -65,4 +65,3 @@ test('WorldPos math helpers are deterministic', () => {
     expect(worldPosEquals(worldPos(1, 2), worldPos(1, 2))).toBe(true);
     expect(worldPosEquals(worldPos(1, 2), worldPos(2, 1))).toBe(false);
 });
-

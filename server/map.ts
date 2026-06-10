@@ -103,9 +103,7 @@ function isTiledMapSource(payload: LooseValue): payload is TiledMapSource {
     const candidate = payload as { width?: number; height?: number; tilewidth?: number; layers?: TiledLayerSource[] };
     const hasValidLayers =
         Array.isArray(candidate.layers) &&
-        candidate.layers.every(
-            (layer) => typeof layer.name === 'string' && typeof layer.type === 'string'
-        );
+        candidate.layers.every((layer) => typeof layer.name === 'string' && typeof layer.type === 'string');
     return (
         typeof candidate.width === 'number' &&
         typeof candidate.height === 'number' &&
@@ -551,7 +549,12 @@ class Map {
         }
 
         if (process.env.BQ_FIXED_START_CENTER === '1') {
-            if (Number.isFinite(area.x) && Number.isFinite(area.y) && Number.isFinite(area.width) && Number.isFinite(area.height)) {
+            if (
+                Number.isFinite(area.x) &&
+                Number.isFinite(area.y) &&
+                Number.isFinite(area.width) &&
+                Number.isFinite(area.height)
+            ) {
                 return {
                     x: Math.floor(area.x + area.width / 2),
                     y: Math.floor(area.y + area.height / 2),

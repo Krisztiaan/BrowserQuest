@@ -14,7 +14,12 @@ export type RectClaim = Readonly<{
     updatedAtMs: number;
 }>;
 
-function clampRectBounds(x1: number, y1: number, x2: number, y2: number): { x1: number; y1: number; x2: number; y2: number } {
+function clampRectBounds(
+    x1: number,
+    y1: number,
+    x2: number,
+    y2: number
+): { x1: number; y1: number; x2: number; y2: number } {
     const minX = Math.min(x1, x2);
     const maxX = Math.max(x1, x2);
     const minY = Math.min(y1, y2);
@@ -26,7 +31,10 @@ function resolveIndexChunkCoords(indexChunkSize: number, x: number, y: number): 
     return { chunkX: Math.floor(x / indexChunkSize), chunkY: Math.floor(y / indexChunkSize) };
 }
 
-function normalizeEditorNameKeys(ownerName: string, rawEditorNameKeys: ReadonlyArray<string> | null | undefined): string[] {
+function normalizeEditorNameKeys(
+    ownerName: string,
+    rawEditorNameKeys: ReadonlyArray<string> | null | undefined
+): string[] {
     return normalizeIdentityKeyList(rawEditorNameKeys, { exclude: ownerName });
 }
 
@@ -42,7 +50,10 @@ function mapScopedIndexKey(mapId: string, chunkX: number, chunkY: number): strin
     return `${mapId}:${makeChunkKey(chunkX, chunkY).toString()}`;
 }
 
-function intersectsRect(a: { x1: number; y1: number; x2: number; y2: number }, b: { x1: number; y1: number; x2: number; y2: number }): boolean {
+function intersectsRect(
+    a: { x1: number; y1: number; x2: number; y2: number },
+    b: { x1: number; y1: number; x2: number; y2: number }
+): boolean {
     return a.x1 <= b.x2 && a.x2 >= b.x1 && a.y1 <= b.y2 && a.y2 >= b.y1;
 }
 
@@ -54,7 +65,10 @@ export class ClaimsStore {
     readonly #index = new Map<string, number[]>();
     #nextId = 1;
 
-    constructor({ indexChunkSize = 32, maxIndexCellsPerClaim = 4096 }: { indexChunkSize?: number; maxIndexCellsPerClaim?: number } = {}) {
+    constructor({
+        indexChunkSize = 32,
+        maxIndexCellsPerClaim = 4096,
+    }: { indexChunkSize?: number; maxIndexCellsPerClaim?: number } = {}) {
         if (!Number.isInteger(indexChunkSize) || indexChunkSize <= 0 || indexChunkSize > 1024) {
             throw new Error(`ClaimsStore: invalid indexChunkSize: ${String(indexChunkSize)}`);
         }

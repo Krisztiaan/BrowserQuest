@@ -17,4 +17,3 @@ export function registerEffectsComponents(world: EcsWorld): EffectsComponents {
     const TempVisualEquip = world.components.register('TempVisualEquip', new SparseSetStore<TempVisualEquip>());
     return { TempVisualEquip };
 }
-

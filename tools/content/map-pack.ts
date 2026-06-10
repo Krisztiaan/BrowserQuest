@@ -156,7 +156,9 @@ function parseConfig(configPath: string, raw: unknown): MapPackConfig {
     const worldFilepathRaw = asNonEmptyString(root.world_filepath);
     const worldFilepath = worldFilepathRaw ? resolveAgainstConfig(configPath, worldFilepathRaw) : undefined;
     if (root.allow_missing_target_maps !== undefined) {
-        fail('Invalid map-pack config: "allow_missing_target_maps" was replaced by the explicit "pending_target_maps" list.');
+        fail(
+            'Invalid map-pack config: "allow_missing_target_maps" was replaced by the explicit "pending_target_maps" list.'
+        );
     }
     const pendingTargetMaps: string[] = [];
     for (const entry of asArray(root.pending_target_maps)) {
@@ -269,7 +271,9 @@ async function check(configPath: string): Promise<void> {
     const { json, outputPath } = await compilePackFromConfig(configPath);
     const existing = await fs.readFile(outputPath, 'utf8').catch(() => '');
     if (existing !== json) {
-        fail(`Map pack is out of date. Run \`bun run build:maps\` to refresh ${toPosixPath(path.relative(process.cwd(), outputPath))}.`);
+        fail(
+            `Map pack is out of date. Run \`bun run build:maps\` to refresh ${toPosixPath(path.relative(process.cwd(), outputPath))}.`
+        );
     }
     console.log(`Map pack is up to date: ${outputPath}`);
 }

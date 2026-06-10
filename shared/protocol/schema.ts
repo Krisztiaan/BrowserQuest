@@ -36,8 +36,8 @@ function isByteArray(value: ProtocolSchemaInput): value is number[] {
         return true;
     }
     return (
-        Array.isArray(value)
-        && value.every((entry) => typeof entry === 'number' && Number.isInteger(entry) && entry >= 0 && entry <= 0xff)
+        Array.isArray(value) &&
+        value.every((entry) => typeof entry === 'number' && Number.isInteger(entry) && entry >= 0 && entry <= 0xff)
     );
 }
 

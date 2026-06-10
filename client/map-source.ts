@@ -162,7 +162,10 @@ function normalizeRawRecordArray(value: unknown, label: string): RawMapRecord[] 
     });
 }
 
-function normalizeMusicAreas(value: unknown, label: string): Array<{ x: number; y: number; w: number; h: number; id: MusicKey }> {
+function normalizeMusicAreas(
+    value: unknown,
+    label: string
+): Array<{ x: number; y: number; w: number; h: number; id: MusicKey }> {
     if (!Array.isArray(value)) {
         throw new Error(`Invalid runtime map pack payload: ${label} must be an array.`);
     }
@@ -178,7 +181,9 @@ function normalizeMusicAreas(value: unknown, label: string): Array<{ x: number; 
         const h = asFiniteInteger(area.h);
         const id = asNonEmptyString(area.id);
         if (x === null || y === null || w === null || h === null || !id) {
-            throw new Error(`Invalid runtime map pack payload: ${label}[${i}] must include x/y/w/h integers and string id.`);
+            throw new Error(
+                `Invalid runtime map pack payload: ${label}[${i}] must include x/y/w/h integers and string id.`
+            );
         }
         out.push({ x, y, w, h, id: id as MusicKey });
     }
@@ -210,13 +215,7 @@ function normalizeRenderProps(
         const minTileY = asFiniteInteger(record.minTileY);
         const maxTileX = asFiniteInteger(record.maxTileX);
         const maxTileY = asFiniteInteger(record.maxTileY);
-        if (
-            depth === null ||
-            minTileX === null ||
-            minTileY === null ||
-            maxTileX === null ||
-            maxTileY === null
-        ) {
+        if (depth === null || minTileX === null || minTileY === null || maxTileX === null || maxTileY === null) {
             throw new Error(`Invalid runtime map pack payload: ${label}[${index}] has invalid bounds/depth.`);
         }
         const partsValue = record.parts;
@@ -226,12 +225,16 @@ function normalizeRenderProps(
         const parts = partsValue.map((part, partIndex) => {
             const partRecord = asRecord(part);
             if (!partRecord) {
-                throw new Error(`Invalid runtime map pack payload: ${label}[${index}].parts[${partIndex}] must be an object.`);
+                throw new Error(
+                    `Invalid runtime map pack payload: ${label}[${index}].parts[${partIndex}] must be an object.`
+                );
             }
             const partIndexValue = asFiniteInteger(partRecord.index);
             const gid = asFiniteInteger(partRecord.gid);
             if (partIndexValue === null || gid === null || gid <= 0) {
-                throw new Error(`Invalid runtime map pack payload: ${label}[${index}].parts[${partIndex}] has invalid index/gid.`);
+                throw new Error(
+                    `Invalid runtime map pack payload: ${label}[${index}].parts[${partIndex}] has invalid index/gid.`
+                );
             }
             return { index: partIndexValue, gid };
         });
@@ -245,14 +248,18 @@ function normalizeRenderProps(
             const layer = asNonEmptyString(metaRecord.layer);
             const layerPath = asNonEmptyString(metaRecord.layerPath);
             if (!layer || !layerPath) {
-                throw new Error(`Invalid runtime map pack payload: ${label}[${index}].meta requires layer and layerPath.`);
+                throw new Error(
+                    `Invalid runtime map pack payload: ${label}[${index}].meta requires layer and layerPath.`
+                );
             }
             const readStringArray = (value: unknown, field: string): string[] | undefined => {
                 if (value === undefined) {
                     return undefined;
                 }
                 if (!Array.isArray(value)) {
-                    throw new Error(`Invalid runtime map pack payload: ${label}[${index}].meta.${field} must be an array.`);
+                    throw new Error(
+                        `Invalid runtime map pack payload: ${label}[${index}].meta.${field} must be an array.`
+                    );
                 }
                 return value.map((entry, itemIndex) => {
                     const text = asNonEmptyString(entry);
@@ -264,10 +271,16 @@ function normalizeRenderProps(
                     return text;
                 });
             };
-            const depthOffset = metaRecord.depthOffset === undefined ? undefined : asFiniteInteger(metaRecord.depthOffset);
+            const depthOffset =
+                metaRecord.depthOffset === undefined ? undefined : asFiniteInteger(metaRecord.depthOffset);
             const depthRow = metaRecord.depthRow === undefined ? undefined : asFiniteInteger(metaRecord.depthRow);
-            if ((metaRecord.depthOffset !== undefined && depthOffset === null) || (metaRecord.depthRow !== undefined && depthRow === null)) {
-                throw new Error(`Invalid runtime map pack payload: ${label}[${index}].meta depth values must be integers.`);
+            if (
+                (metaRecord.depthOffset !== undefined && depthOffset === null) ||
+                (metaRecord.depthRow !== undefined && depthRow === null)
+            ) {
+                throw new Error(
+                    `Invalid runtime map pack payload: ${label}[${index}].meta depth values must be integers.`
+                );
             }
             meta = {
                 layer,
@@ -297,7 +310,9 @@ function normalizeClientRuntimeMap(value: unknown, mapId: string): ClientRuntime
     const height = asFiniteInteger(record.height);
     const tilesize = asFiniteInteger(record.tilesize);
     if (width === null || width <= 0 || height === null || height <= 0 || tilesize === null || tilesize <= 0) {
-        throw new Error(`Invalid runtime map pack payload: map "${mapId}" width/height/tilesize must be positive integers.`);
+        throw new Error(
+            `Invalid runtime map pack payload: map "${mapId}" width/height/tilesize must be positive integers.`
+        );
     }
     const navIslandCountRaw = asFiniteInteger(record.navIslandCount);
     const primaryNavIslandIdRaw = asFiniteInteger(record.primaryNavIslandId);

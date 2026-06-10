@@ -60,10 +60,15 @@ test('mobile door traversal uses cameraX/cameraY even when values are 0', () => 
             clearClientPendingDoorTraversal(this: { clientPendingDoorTraversal: null | { requestedAtMs: number } }) {
                 this.clientPendingDoorTraversal = null;
             },
-            setClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }, contact: { doorX: number; doorY: number; mapId: string | null }) {
+            setClientDoorTraversalContact(
+                this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null },
+                contact: { doorX: number; doorY: number; mapId: string | null }
+            ) {
                 this.clientDoorTraversalContact = contact;
             },
-            clearClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }) {
+            clearClientDoorTraversalContact(this: {
+                clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null;
+            }) {
                 this.clientDoorTraversalContact = null;
             },
         },
@@ -153,53 +158,57 @@ test('clicking a door tile while already standing on it triggers traversal', () 
             enqueueClientCommand() {},
             setClientInteractionIntent() {},
             clearClientLootAttempt() {},
-            setClientPendingDoorTraversal(this: {
-                clientPendingDoorTraversal:
-                    | null
-                    | {
-                          doorX: number;
-                          doorY: number;
-                          toX: number;
-                          toY: number;
-                          orientation: number;
-                          portal: boolean;
-                          cameraX?: number;
-                          cameraY?: number;
-                          requestedAtMs: number;
-                      };
-            }, pending: {
-                doorX: number;
-                doorY: number;
-                toX: number;
-                toY: number;
-                orientation: number;
-                portal: boolean;
-                cameraX?: number;
-                cameraY?: number;
-            }) {
+            setClientPendingDoorTraversal(
+                this: {
+                    clientPendingDoorTraversal: null | {
+                        doorX: number;
+                        doorY: number;
+                        toX: number;
+                        toY: number;
+                        orientation: number;
+                        portal: boolean;
+                        cameraX?: number;
+                        cameraY?: number;
+                        requestedAtMs: number;
+                    };
+                },
+                pending: {
+                    doorX: number;
+                    doorY: number;
+                    toX: number;
+                    toY: number;
+                    orientation: number;
+                    portal: boolean;
+                    cameraX?: number;
+                    cameraY?: number;
+                }
+            ) {
                 this.clientPendingDoorTraversal = { ...pending, requestedAtMs: Date.now() };
             },
             clearClientPendingDoorTraversal(this: {
-                clientPendingDoorTraversal:
-                    | null
-                    | {
-                          doorX: number;
-                          doorY: number;
-                          toX: number;
-                          toY: number;
-                          orientation: number;
-                          portal: boolean;
-                          cameraX?: number;
-                          cameraY?: number;
-                          requestedAtMs: number;
-                      };
+                clientPendingDoorTraversal: null | {
+                    doorX: number;
+                    doorY: number;
+                    toX: number;
+                    toY: number;
+                    orientation: number;
+                    portal: boolean;
+                    cameraX?: number;
+                    cameraY?: number;
+                    requestedAtMs: number;
+                };
             }) {
                 this.clientPendingDoorTraversal = null;
             },
-            setClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }, contact: { doorX: number; doorY: number; mapId: string | null }) {
+            setClientDoorTraversalContact(
+                this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null },
+                contact: { doorX: number; doorY: number; mapId: string | null }
+            ) {
                 this.clientDoorTraversalContact = contact;
             },
-            clearClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }) {
+            clearClientDoorTraversalContact(this: {
+                clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null;
+            }) {
                 this.clientDoorTraversalContact = null;
             },
             drainClientCommands() {
@@ -262,45 +271,49 @@ test('standing on a walkable door tile requests traversal without a separate arm
         kernel: {
             clientPendingDoorTraversal: null,
             clientDoorTraversalContact: null,
-            setClientPendingDoorTraversal(this: {
-                clientPendingDoorTraversal:
-                    | null
-                    | {
-                          doorX: number;
-                          doorY: number;
-                          toX: number;
-                          toY: number;
-                          orientation: number;
-                          portal: boolean;
-                          cameraX?: number;
-                          cameraY?: number;
-                          requestedAtMs: number;
-                      };
-            }, pending: {
-                doorX: number;
-                doorY: number;
-                toX: number;
-                toY: number;
-                orientation: number;
-                portal: boolean;
-                cameraX?: number;
-                cameraY?: number;
-            }) {
+            setClientPendingDoorTraversal(
+                this: {
+                    clientPendingDoorTraversal: null | {
+                        doorX: number;
+                        doorY: number;
+                        toX: number;
+                        toY: number;
+                        orientation: number;
+                        portal: boolean;
+                        cameraX?: number;
+                        cameraY?: number;
+                        requestedAtMs: number;
+                    };
+                },
+                pending: {
+                    doorX: number;
+                    doorY: number;
+                    toX: number;
+                    toY: number;
+                    orientation: number;
+                    portal: boolean;
+                    cameraX?: number;
+                    cameraY?: number;
+                }
+            ) {
                 this.clientPendingDoorTraversal = { ...pending, requestedAtMs: Date.now() };
             },
             clearClientPendingDoorTraversal(this: {
-                clientPendingDoorTraversal:
-                    | null
-                    | {
-                          requestedAtMs: number;
-                      };
+                clientPendingDoorTraversal: null | {
+                    requestedAtMs: number;
+                };
             }) {
                 this.clientPendingDoorTraversal = null;
             },
-            setClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }, contact: { doorX: number; doorY: number; mapId: string | null }) {
+            setClientDoorTraversalContact(
+                this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null },
+                contact: { doorX: number; doorY: number; mapId: string | null }
+            ) {
                 this.clientDoorTraversalContact = contact;
             },
-            clearClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }) {
+            clearClientDoorTraversalContact(this: {
+                clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null;
+            }) {
                 this.clientDoorTraversalContact = null;
             },
         },
@@ -370,45 +383,49 @@ test('arriving on a reciprocal destination door does not immediately teleport ba
         kernel: {
             clientPendingDoorTraversal: null,
             clientDoorTraversalContact: null,
-            setClientPendingDoorTraversal(this: {
-                clientPendingDoorTraversal:
-                    | null
-                    | {
-                          doorX: number;
-                          doorY: number;
-                          toX: number;
-                          toY: number;
-                          orientation: number;
-                          portal: boolean;
-                          cameraX?: number;
-                          cameraY?: number;
-                          requestedAtMs: number;
-                      };
-            }, pending: {
-                doorX: number;
-                doorY: number;
-                toX: number;
-                toY: number;
-                orientation: number;
-                portal: boolean;
-                cameraX?: number;
-                cameraY?: number;
-            }) {
+            setClientPendingDoorTraversal(
+                this: {
+                    clientPendingDoorTraversal: null | {
+                        doorX: number;
+                        doorY: number;
+                        toX: number;
+                        toY: number;
+                        orientation: number;
+                        portal: boolean;
+                        cameraX?: number;
+                        cameraY?: number;
+                        requestedAtMs: number;
+                    };
+                },
+                pending: {
+                    doorX: number;
+                    doorY: number;
+                    toX: number;
+                    toY: number;
+                    orientation: number;
+                    portal: boolean;
+                    cameraX?: number;
+                    cameraY?: number;
+                }
+            ) {
                 this.clientPendingDoorTraversal = { ...pending, requestedAtMs: Date.now() };
             },
             clearClientPendingDoorTraversal(this: {
-                clientPendingDoorTraversal:
-                    | null
-                    | {
-                          requestedAtMs: number;
-                      };
+                clientPendingDoorTraversal: null | {
+                    requestedAtMs: number;
+                };
             }) {
                 this.clientPendingDoorTraversal = null;
             },
-            setClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }, contact: { doorX: number; doorY: number; mapId: string | null }) {
+            setClientDoorTraversalContact(
+                this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null },
+                contact: { doorX: number; doorY: number; mapId: string | null }
+            ) {
                 this.clientDoorTraversalContact = contact;
             },
-            clearClientDoorTraversalContact(this: { clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null }) {
+            clearClientDoorTraversalContact(this: {
+                clientDoorTraversalContact: { doorX: number; doorY: number; mapId: string | null } | null;
+            }) {
                 this.clientDoorTraversalContact = null;
             },
             getEntityMapId() {

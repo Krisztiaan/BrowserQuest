@@ -42,10 +42,7 @@ test('main runtime wires passkey auth handler when websocket server exposes auth
         }
 
         on(_eventName: 'connect', _callback: (connection: RuntimeConnection) => void): void;
-        on(
-            _eventName: 'error',
-            _callback: (...args: Array<string | Error | object | null | undefined>) => void
-        ): void;
+        on(_eventName: 'error', _callback: (...args: Array<string | Error | object | null | undefined>) => void): void;
         on(
             _eventName: 'connect' | 'error',
             _callback:

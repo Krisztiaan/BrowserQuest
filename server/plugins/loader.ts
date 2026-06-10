@@ -27,12 +27,12 @@ function isNonEmptyString(value: string | null | undefined): value is string {
 
 function isPluginLooseValue(value: unknown): value is PluginLooseValue {
     return (
-        value === null
-        || value === undefined
-        || typeof value === 'string'
-        || typeof value === 'number'
-        || typeof value === 'boolean'
-        || typeof value === 'object'
+        value === null ||
+        value === undefined ||
+        typeof value === 'string' ||
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        typeof value === 'object'
     );
 }
 

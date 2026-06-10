@@ -53,11 +53,7 @@ async function main(): Promise<void> {
         server_config: 'dist/bundle/server/config.json',
     };
 
-    await fs.writeFile(
-        path.join(bundleRoot, 'VERSION.json'),
-        `${JSON.stringify(versionManifest, null, 2)}\n`,
-        'utf8',
-    );
+    await fs.writeFile(path.join(bundleRoot, 'VERSION.json'), `${JSON.stringify(versionManifest, null, 2)}\n`, 'utf8');
 
     console.log(`build:bundle complete -> ${bundleRoot}`);
 }

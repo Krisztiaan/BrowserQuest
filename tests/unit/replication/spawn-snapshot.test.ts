@@ -4,7 +4,16 @@ import type { ServerToClientSpawnAction } from '../../../shared/protocol/types';
 import { decodeSpawnAction, encodeSpawnSnapshot } from '../../../shared/replication/spawn-snapshot';
 
 test('spawn snapshot encoder/decoder round-trips wire-compatible SPAWN actions', () => {
-    const mobAction: ServerToClientSpawnAction = [Types.Messages.SPAWN, 123, Types.Entities.RAT, 10, 20, 3, 777, 'overworld'];
+    const mobAction: ServerToClientSpawnAction = [
+        Types.Messages.SPAWN,
+        123,
+        Types.Entities.RAT,
+        10,
+        20,
+        3,
+        777,
+        'overworld',
+    ];
     const mobSnapshot = decodeSpawnAction(mobAction);
     expect(mobSnapshot).toEqual({
         id: 123,

@@ -352,7 +352,9 @@ async function main(): Promise<void> {
     }
 
     console.log('\nTop duplicate paint pairs:');
-    for (const [pair, count] of [...groupedDuplicates.entries()].sort((left, right) => right[1] - left[1]).slice(0, 10)) {
+    for (const [pair, count] of [...groupedDuplicates.entries()]
+        .sort((left, right) => right[1] - left[1])
+        .slice(0, 10)) {
         console.log(`- ${pair}: ${count}`);
     }
 

@@ -19,4 +19,3 @@ export function createSpatialIndexRebuildSystem<TCommand = never, TEvent = never
         });
     };
 }
-

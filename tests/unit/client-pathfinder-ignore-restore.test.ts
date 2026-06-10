@@ -41,4 +41,3 @@ test('Pathfinder.clearIgnoreList restores blocked cells back to blocked', () => 
     expect(grid[2]?.[2]).toBe(0);
     expect(grid[4]?.[4]).toBe(1);
 });
-

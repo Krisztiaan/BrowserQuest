@@ -1,8 +1,5 @@
 import { afterEach, expect, test } from 'bun:test';
-import Storage, {
-    STORAGE_KEY,
-    readUsernameCookie,
-} from '../../client/storage';
+import Storage, { STORAGE_KEY, readUsernameCookie } from '../../client/storage';
 
 type LocalStorageLike = {
     getItem(key: string): string | null;

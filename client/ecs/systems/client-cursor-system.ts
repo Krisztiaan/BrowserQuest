@@ -40,4 +40,3 @@ export function runClientCursorSystem(host: ClientCursorSystemHost): void {
         host.targetCellVisible = true;
     }
 }
-

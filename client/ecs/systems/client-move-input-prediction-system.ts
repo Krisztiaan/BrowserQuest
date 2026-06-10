@@ -1,7 +1,10 @@
 import type { EntityId } from '../../../shared/domain/ids';
 import type { ClientWorldKernel } from '../world-kernel';
 import { SUBPIXELS, TILE_SUBPX, worldDelta, worldPos, type WorldPos } from '../../../shared/world/worldpos';
-import { clampWorldPosInsideMap, resolveSubTileMotionAgainstTiles } from '../../../shared/world/collision/tile-collision';
+import {
+    clampWorldPosInsideMap,
+    resolveSubTileMotionAgainstTiles,
+} from '../../../shared/world/collision/tile-collision';
 import log from '../../platform/log';
 import { resolveClientMovementNetcodeConfig } from '../../movement-netcode-config';
 import { bridgeCharacterWorldUpdate } from '../visual-movement-bridge';
@@ -13,38 +16,34 @@ export type ClientMoveInputPredictionSystemHost = Readonly<{
     currentTime: number;
     kernel: ClientWorldKernel;
     playerId: EntityId | null;
-    player:
-        | {
-              gridX: number;
-              gridY: number;
-              worldX: number;
-              worldY: number;
-              orientation: number;
-              isDead: boolean;
-              isOnPlateau: boolean;
-              isMoving(): boolean;
-              setVisualFacing(orientation: number): void;
-              walk(orientation?: number): void;
-              idle(orientation?: number): void;
-              setLogicalWorldPositionSub(worldX: number, worldY: number): void;
-              setVisualDivergenceClass(divergenceClass: VisualDivergenceClass): void;
-              setVisualRenderTarget(x: number, y: number, mode?: VisualMoveMode): void;
-              setVisualRenderPosition(
-                  x: number,
-                  y: number,
-                  options?: { velocityX?: number; velocityY?: number; mode?: VisualMoveMode }
-              ): void;
-          }
-        | null;
-    map:
-        | {
-              isOutOfBounds(x: number, y: number): boolean;
-              isColliding(x: number, y: number): boolean;
-              isPlateau(x: number, y: number): boolean;
-              width?: number;
-              height?: number;
-          }
-        | null;
+    player: {
+        gridX: number;
+        gridY: number;
+        worldX: number;
+        worldY: number;
+        orientation: number;
+        isDead: boolean;
+        isOnPlateau: boolean;
+        isMoving(): boolean;
+        setVisualFacing(orientation: number): void;
+        walk(orientation?: number): void;
+        idle(orientation?: number): void;
+        setLogicalWorldPositionSub(worldX: number, worldY: number): void;
+        setVisualDivergenceClass(divergenceClass: VisualDivergenceClass): void;
+        setVisualRenderTarget(x: number, y: number, mode?: VisualMoveMode): void;
+        setVisualRenderPosition(
+            x: number,
+            y: number,
+            options?: { velocityX?: number; velocityY?: number; mode?: VisualMoveMode }
+        ): void;
+    } | null;
+    map: {
+        isOutOfBounds(x: number, y: number): boolean;
+        isColliding(x: number, y: number): boolean;
+        isPlateau(x: number, y: number): boolean;
+        width?: number;
+        height?: number;
+    } | null;
     isZoning(): boolean;
     isZoningTile(x: number, y: number): boolean;
 }>;
@@ -88,12 +87,10 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
 
     const map = host.map;
     const fallbackGrid = host.kernel.clientPathingGrid;
-    const mapWidthTiles = Number.isInteger(map.width) && (map.width ?? 0) > 0
-        ? (map.width as number)
-        : (fallbackGrid?.[0]?.length ?? 0);
-    const mapHeightTiles = Number.isInteger(map.height) && (map.height ?? 0) > 0
-        ? (map.height as number)
-        : (fallbackGrid?.length ?? 0);
+    const mapWidthTiles =
+        Number.isInteger(map.width) && (map.width ?? 0) > 0 ? (map.width as number) : (fallbackGrid?.[0]?.length ?? 0);
+    const mapHeightTiles =
+        Number.isInteger(map.height) && (map.height ?? 0) > 0 ? (map.height as number) : (fallbackGrid?.length ?? 0);
     const keysMask = host.kernel.clientMoveInputKeysMask >>> 0;
     if (keysMask === 0) {
         host.kernel.clientPredictedWorldPos = null;
@@ -151,9 +148,9 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
     // Seed prediction from the local presentation target first so new input resumes from what the player
     // is already trying to do, not from a slightly older render/auth snapshot.
     const predicted: WorldPos =
-        host.kernel.getClientPresentationTargetWorldPosition(host.playerId)
-        ?? host.kernel.clientPredictedWorldPos
-        ?? worldPos(player.worldX, player.worldY);
+        host.kernel.getClientPresentationTargetWorldPosition(host.playerId) ??
+        host.kernel.clientPredictedWorldPos ??
+        worldPos(player.worldX, player.worldY);
 
     const baseMoveSubpx = Math.round((dtMs * TILE_SUBPX) / tuning.moveCooldownMs);
     if (baseMoveSubpx <= 0) {
@@ -200,22 +197,22 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
         mapHeightTiles,
     });
     if (auth && predictionError > tuning.hardReconcileErrSubpx) {
-            const divergenceClass = classifyPredictionDivergence({ suppressed: false, predictionError });
-            log.warn({
-                scope: 'movement_prediction',
-                level: 'warn',
-                event: 'prediction.hard_reconcile',
-                playerId: host.playerId,
-                profile: config.profileId,
-                authX: auth.x,
-                authY: auth.y,
-                predictedX: next.x,
-                predictedY: next.y,
-                reconciledX: reconciled.x,
-                reconciledY: reconciled.y,
-                divergence: predictionError,
-                divergenceClass,
-            });
+        const divergenceClass = classifyPredictionDivergence({ suppressed: false, predictionError });
+        log.warn({
+            scope: 'movement_prediction',
+            level: 'warn',
+            event: 'prediction.hard_reconcile',
+            playerId: host.playerId,
+            profile: config.profileId,
+            authX: auth.x,
+            authY: auth.y,
+            predictedX: next.x,
+            predictedY: next.y,
+            reconciledX: reconciled.x,
+            reconciledY: reconciled.y,
+            divergence: predictionError,
+            divergenceClass,
+        });
     }
 
     host.kernel.clientPredictedWorldPos = reconciled;

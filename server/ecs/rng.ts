@@ -6,7 +6,7 @@ export class XorShift32 {
             throw new Error('XorShift32: seed must be an integer');
         }
         // xorshift32 has a bad all-zero state; perturb it deterministically.
-        const s = (seed >>> 0) || 0x6d2b79f5;
+        const s = seed >>> 0 || 0x6d2b79f5;
         this.#state = s;
     }
 
@@ -27,4 +27,3 @@ export class XorShift32 {
         return this.nextU32() % maxExclusive;
     }
 }
-

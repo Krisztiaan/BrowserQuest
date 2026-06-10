@@ -20,7 +20,12 @@ export function clampWorldPosInsideMap({
     mapWidthTiles: number;
     mapHeightTiles: number;
 }): WorldPos {
-    if (!Number.isFinite(mapWidthTiles) || !Number.isFinite(mapHeightTiles) || mapWidthTiles <= 0 || mapHeightTiles <= 0) {
+    if (
+        !Number.isFinite(mapWidthTiles) ||
+        !Number.isFinite(mapHeightTiles) ||
+        mapWidthTiles <= 0 ||
+        mapHeightTiles <= 0
+    ) {
         return pos;
     }
 
@@ -31,10 +36,7 @@ export function clampWorldPosInsideMap({
     const maxX = Math.max(minX, widthSubpx - halfExtents.hx);
     const maxY = Math.max(minY, heightSubpx - halfExtents.hy);
 
-    return worldPos(
-        Math.min(maxX, Math.max(minX, pos.x)),
-        Math.min(maxY, Math.max(minY, pos.y))
-    );
+    return worldPos(Math.min(maxX, Math.max(minX, pos.x)), Math.min(maxY, Math.max(minY, pos.y)));
 }
 
 function floorDiv(n: number, d: number): number {

@@ -55,8 +55,15 @@ export function runClientCombatSystem(host: ClientCombatSystemHost): void {
 
         if (entity.canAttack(time)) {
             if (!entity.isMoving()) {
-                if (entity.hasTarget() && entity.target && entity.getOrientationTo(entity.target) !== entity.orientation) {
-                    host.kernel.enqueueClientCommand({ type: 'characterLookAtTarget', entityId: entity.id as EntityId });
+                if (
+                    entity.hasTarget() &&
+                    entity.target &&
+                    entity.getOrientationTo(entity.target) !== entity.orientation
+                ) {
+                    host.kernel.enqueueClientCommand({
+                        type: 'characterLookAtTarget',
+                        entityId: entity.id as EntityId,
+                    });
                 }
 
                 host.kernel.enqueueClientCommand({ type: 'characterHit', entityId: entity.id as EntityId });
@@ -69,25 +76,25 @@ export function runClientCombatSystem(host: ClientCombatSystemHost): void {
                 }
             }
         } else {
-                if (
-                    entity.hasTarget() &&
-                    entity.target &&
-                    entity.isDiagonallyAdjacent(entity.target) &&
-                    entity.target instanceof Player &&
-                    !entity.target.isMoving()
-                ) {
-                    // Only the local player should ever follow targets. Movement is server-authoritative, so this is
-                    // expressed as a server step plan, not immediate client-side pathing.
-                    if (entity.id === host.playerId) {
-                        const targetId = entity.target.id;
-                        if (typeof targetId === 'number') {
-                            host.kernel.enqueueClientCommand({
-                                type: 'playerFollow',
-                                targetId: targetId as EntityId,
-                            });
-                        }
+            if (
+                entity.hasTarget() &&
+                entity.target &&
+                entity.isDiagonallyAdjacent(entity.target) &&
+                entity.target instanceof Player &&
+                !entity.target.isMoving()
+            ) {
+                // Only the local player should ever follow targets. Movement is server-authoritative, so this is
+                // expressed as a server step plan, not immediate client-side pathing.
+                if (entity.id === host.playerId) {
+                    const targetId = entity.target.id;
+                    if (typeof targetId === 'number') {
+                        host.kernel.enqueueClientCommand({
+                            type: 'playerFollow',
+                            targetId: targetId as EntityId,
+                        });
                     }
                 }
             }
         }
+    }
 }

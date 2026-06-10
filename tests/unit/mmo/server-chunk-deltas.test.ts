@@ -26,13 +26,13 @@ function isChunkDeltaMessage(
     msg: WorldMessage
 ): msg is [number, number, number, number, number, ReadonlyArray<number> | Uint8Array] {
     return (
-        Array.isArray(msg)
-        && msg[0] === Types.Messages.CHUNK_DELTA
-        && typeof msg[1] === 'number'
-        && typeof msg[2] === 'number'
-        && typeof msg[3] === 'number'
-        && typeof msg[4] === 'number'
-        && (Array.isArray(msg[5]) || (msg[5] as unknown) instanceof Uint8Array)
+        Array.isArray(msg) &&
+        msg[0] === Types.Messages.CHUNK_DELTA &&
+        typeof msg[1] === 'number' &&
+        typeof msg[2] === 'number' &&
+        typeof msg[3] === 'number' &&
+        typeof msg[4] === 'number' &&
+        (Array.isArray(msg[5]) || (msg[5] as unknown) instanceof Uint8Array)
     );
 }
 

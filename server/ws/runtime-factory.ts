@@ -322,12 +322,7 @@ export function createWebSocketRuntimeClasses({
 
             this._wss.on('connection', (connection, req) => {
                 const remoteAddress = resolveRemoteAddress(req);
-                const wsConnection = new wsWebSocketConnection(
-                    this._createId(),
-                    connection,
-                    this,
-                    remoteAddress
-                );
+                const wsConnection = new wsWebSocketConnection(this._createId(), connection, this, remoteAddress);
                 const accountNameKey = resolveAccountNameKeyFromRequest(req);
                 if (accountNameKey) {
                     wsConnection.accountNameKey = accountNameKey;

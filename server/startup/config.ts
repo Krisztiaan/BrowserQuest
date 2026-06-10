@@ -15,7 +15,10 @@ function isConfigObject(value: JsonValue | object | null | undefined): value is 
     return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-export async function loadConfigFile(configPath: string, readFileFn: ReadFileFn = defaultReadFile): Promise<ConfigObject | null> {
+export async function loadConfigFile(
+    configPath: string,
+    readFileFn: ReadFileFn = defaultReadFile
+): Promise<ConfigObject | null> {
     const BunRuntime = 'Bun' in globalThis ? globalThis.Bun : undefined;
     if (readFileFn === defaultReadFile && BunRuntime && typeof BunRuntime.file === 'function') {
         try {
@@ -48,7 +51,11 @@ export async function resolveActiveConfig({
     defaultConfigPath: string;
     customConfigPath: string;
     loadConfigFileFn?: (path: string) => Promise<ConfigObject | null>;
-}): Promise<{ defaultConfig: ConfigObject | null; localConfig: ConfigObject | null; activeConfig: ConfigObject | null }> {
+}): Promise<{
+    defaultConfig: ConfigObject | null;
+    localConfig: ConfigObject | null;
+    activeConfig: ConfigObject | null;
+}> {
     const defaultConfig = await loadConfigFileFn(defaultConfigPath);
     const localConfig = await loadConfigFileFn(customConfigPath);
     const activeConfig = localConfig ?? defaultConfig;

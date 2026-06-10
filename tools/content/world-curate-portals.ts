@@ -90,10 +90,7 @@ function parseTargetCoordinate(raw: string | null, label: string, objectId: numb
     return parsed;
 }
 
-function nearestPortalTarget(
-    source: PortalEntry,
-    portals: ReadonlyArray<PortalEntry>
-): PortalEntry | null {
+function nearestPortalTarget(source: PortalEntry, portals: ReadonlyArray<PortalEntry>): PortalEntry | null {
     let best: PortalEntry | null = null;
     let bestDistance = Number.POSITIVE_INFINITY;
     for (const candidate of portals) {
@@ -264,7 +261,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-    const message = error instanceof Error ? error.stack ?? error.message : String(error);
+    const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
     console.error(message);
     process.exit(1);
 });

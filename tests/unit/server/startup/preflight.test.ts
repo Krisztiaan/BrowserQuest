@@ -1,5 +1,9 @@
 import { expect, test } from 'bun:test';
-import { ensureConfigPreflightValid, ensureConfigSourcePresent, ensureMapPreflightValid } from '../../../../server/startup/preflight';
+import {
+    ensureConfigPreflightValid,
+    ensureConfigSourcePresent,
+    ensureMapPreflightValid,
+} from '../../../../server/startup/preflight';
 
 test('preflight helper emits and fails when no active config is present', () => {
     const errors: string[] = [];

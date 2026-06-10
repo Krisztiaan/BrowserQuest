@@ -126,7 +126,11 @@ async function main(): Promise<void> {
             { key: 'tileset', kind: 'string', defaultValue: 'assets/maps/tiled/tilesheet.wang.tsj' },
             { key: 'source-set', kind: 'string', defaultValue: 'browserquest-terrain' },
             { key: 'world', kind: 'string', defaultValue: 'assets/maps/tiled/world.json' },
-            { key: 'out-candidates', kind: 'string', defaultValue: 'assets/maps/tiled/terrain-transition-candidates.json' },
+            {
+                key: 'out-candidates',
+                kind: 'string',
+                defaultValue: 'assets/maps/tiled/terrain-transition-candidates.json',
+            },
             { key: 'write', kind: 'boolean', defaultValue: false },
         ],
         { onHelp: printUsage }

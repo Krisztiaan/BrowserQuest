@@ -21,7 +21,12 @@ function withTempPlayerDb<T>(fn: (dbPath: string) => Promise<T> | T): Promise<T>
     return run();
 }
 
-function createJsonRequest(pathname: string, payload: JsonValue, method = 'POST', origin = 'http://localhost'): Request {
+function createJsonRequest(
+    pathname: string,
+    payload: JsonValue,
+    method = 'POST',
+    origin = 'http://localhost'
+): Request {
     return new Request(`${origin}${pathname}`, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -41,7 +46,10 @@ test('passkey auth register options endpoint returns options payload', async () 
             });
 
             expect(response.status).toBe(200);
-            const body = (await response.json()) as { ok: boolean; options?: { challenge?: string; user?: { name?: string } } };
+            const body = (await response.json()) as {
+                ok: boolean;
+                options?: { challenge?: string; user?: { name?: string } };
+            };
             expect(body.ok).toBe(true);
             expect(typeof body.options?.challenge).toBe('string');
             expect(body.options?.user?.name).toBe('alice');
@@ -62,12 +70,12 @@ test('passkey auth register verify endpoint validates challenge and sets auth co
                 persistence,
                 dependencies: {
                     generateRegistrationOptionsFn: () =>
-                        Promise.resolve(({
+                        Promise.resolve({
                             challenge: 'challenge-register',
                             rp: { name: 'BrowserQuest', id: 'localhost' },
                             user: { id: 'AQ', name: 'alice', displayName: 'Alice' },
                             pubKeyCredParams: [],
-                        }) as never),
+                        } as never),
                 },
             });
             expect(optionsResponse.status).toBe(200);
@@ -88,7 +96,7 @@ test('passkey auth register verify endpoint validates challenge and sets auth co
                 persistence,
                 dependencies: {
                     verifyRegistrationResponseFn: () =>
-                        Promise.resolve(({
+                        Promise.resolve({
                             verified: true,
                             registrationInfo: {
                                 credential: {
@@ -98,7 +106,7 @@ test('passkey auth register verify endpoint validates challenge and sets auth co
                                     transports: ['internal'],
                                 },
                             },
-                        }) as never),
+                        } as never),
                 },
             });
 
@@ -143,11 +151,11 @@ test('passkey auth login verify endpoint validates credential and sets auth cook
                 persistence,
                 dependencies: {
                     generateAuthenticationOptionsFn: () =>
-                        Promise.resolve(({
+                        Promise.resolve({
                             challenge: 'challenge-login',
                             rpId: 'localhost',
                             allowCredentials: [{ id: 'cred-login', type: 'public-key' }],
-                        }) as never),
+                        } as never),
                 },
             });
             expect(optionsResponse.status).toBe(200);
@@ -170,12 +178,12 @@ test('passkey auth login verify endpoint validates credential and sets auth cook
                 persistence,
                 dependencies: {
                     verifyAuthenticationResponseFn: () =>
-                        Promise.resolve(({
+                        Promise.resolve({
                             verified: true,
                             authenticationInfo: {
                                 newCounter: 11,
                             },
-                        }) as never),
+                        } as never),
                 },
             });
 
@@ -211,11 +219,11 @@ test('passkey auth login verify endpoint rejects mismatched credentials', async 
                 persistence,
                 dependencies: {
                     generateAuthenticationOptionsFn: () =>
-                        Promise.resolve(({
+                        Promise.resolve({
                             challenge: 'challenge-login',
                             rpId: 'localhost',
                             allowCredentials: [{ id: 'cred-ok', type: 'public-key' }],
-                        }) as never),
+                        } as never),
                 },
             });
             expect(optionsResponse.status).toBe(200);

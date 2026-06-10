@@ -304,7 +304,11 @@ try {
             fail('Use either --editors or --clear-editors, not both.');
         }
         const hasEditors = clearEditors || hasEditorsArg;
-        const editorNameKeys = hasEditorsArg ? parseEditorsList(parsed.editors as string) : clearEditors ? [] : undefined;
+        const editorNameKeys = hasEditorsArg
+            ? parseEditorsList(parsed.editors as string)
+            : clearEditors
+              ? []
+              : undefined;
 
         const hasX1 = typeof parsed.x1 === 'number';
         const hasY1 = typeof parsed.y1 === 'number';

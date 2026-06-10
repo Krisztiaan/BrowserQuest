@@ -1,4 +1,3 @@
-
 import Player from './player';
 import Types from '../shared/gametypes-browser';
 

@@ -5,16 +5,17 @@ export type ClientEnvironmentSystemHost = Readonly<{
     kernel: ClientWorldKernel;
     map: {
         isPlateau(x: number, y: number): boolean;
-        getCurrentCheckpoint(player: { gridX: number; gridY: number }): { id?: string | number | null } | null | undefined;
+        getCurrentCheckpoint(player: {
+            gridX: number;
+            gridY: number;
+        }): { id?: string | number | null } | null | undefined;
     } | null;
-    player:
-        | {
-              gridX: number;
-              gridY: number;
-              isOnPlateau: boolean;
-              lastCheckpoint: { id?: string | number | null } | null;
-          }
-        | null;
+    player: {
+        gridX: number;
+        gridY: number;
+        isOnPlateau: boolean;
+        lastCheckpoint: { id?: string | number | null } | null;
+    } | null;
 }>;
 
 export function runClientEnvironmentSystem(host: ClientEnvironmentSystemHost): void {

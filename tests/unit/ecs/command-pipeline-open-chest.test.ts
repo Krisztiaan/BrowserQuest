@@ -214,9 +214,9 @@ test('OPEN accepts recent authoritative proximity grace but rejects remote opens
     pipeline.tick();
     expect(spawned).toEqual([]);
 
-    pipeline.state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE).set(player.id, [
-        { pos: gridPos(5, 5), tick: pipeline.getTick() },
-    ]);
+    pipeline.state.resources
+        .require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE)
+        .set(player.id, [{ pos: gridPos(5, 5), tick: pipeline.getTick() }]);
     pipeline.enqueue({
         type: 'OPEN',
         source: { connectionId: String(player.id), playerId: player.id },

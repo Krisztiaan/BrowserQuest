@@ -587,11 +587,12 @@ class AudioManager {
     }
 
     private logSfxStatsIfNeeded(nowMs: number): void {
-        const droppedTotal = this.sfxStats.droppedDisabled
-            + this.sfxStats.droppedNoBuffer
-            + this.sfxStats.droppedDuplicate
-            + this.sfxStats.droppedCooldown
-            + this.sfxStats.droppedVoiceBudget;
+        const droppedTotal =
+            this.sfxStats.droppedDisabled +
+            this.sfxStats.droppedNoBuffer +
+            this.sfxStats.droppedDuplicate +
+            this.sfxStats.droppedCooldown +
+            this.sfxStats.droppedVoiceBudget;
         if (droppedTotal === 0) {
             return;
         }
@@ -601,14 +602,14 @@ class AudioManager {
 
         this.lastSfxStatsLogAtMs = nowMs;
         log.debug(
-            'audio.sfx'
-                + ` requested=${this.sfxStats.requested}`
-                + ` played=${this.sfxStats.played}`
-                + ` dropped.disabled=${this.sfxStats.droppedDisabled}`
-                + ` dropped.noBuffer=${this.sfxStats.droppedNoBuffer}`
-                + ` dropped.duplicate=${this.sfxStats.droppedDuplicate}`
-                + ` dropped.cooldown=${this.sfxStats.droppedCooldown}`
-                + ` dropped.voiceBudget=${this.sfxStats.droppedVoiceBudget}`
+            'audio.sfx' +
+                ` requested=${this.sfxStats.requested}` +
+                ` played=${this.sfxStats.played}` +
+                ` dropped.disabled=${this.sfxStats.droppedDisabled}` +
+                ` dropped.noBuffer=${this.sfxStats.droppedNoBuffer}` +
+                ` dropped.duplicate=${this.sfxStats.droppedDuplicate}` +
+                ` dropped.cooldown=${this.sfxStats.droppedCooldown}` +
+                ` dropped.voiceBudget=${this.sfxStats.droppedVoiceBudget}`
         );
     }
 }

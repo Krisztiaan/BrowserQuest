@@ -20,4 +20,3 @@ test('connection id generator throws when uint32 id space is exhausted', () => {
     expect(generator.nextId()).toBe('4294967295');
     expect(() => generator.nextId()).toThrow('ConnectionIdGenerator exhausted uint32 id space');
 });
-

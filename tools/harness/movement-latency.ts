@@ -1,7 +1,5 @@
 import Types from '../../shared/gametypes-browser';
-import {
-    encodeClientToServerProtocolActionBinary,
-} from '../../shared/protocol/registry';
+import { encodeClientToServerProtocolActionBinary } from '../../shared/protocol/registry';
 import {
     encodeMoveInputIntentPayload,
     encodeMoveToIntentPayload,
@@ -292,7 +290,11 @@ async function loginAndAttachPump(ws: JitterWebSocket): Promise<LoginResult> {
     }
 }
 
-async function runTrials(ws: JitterWebSocket, login: LoginResult, cfg: ScenarioConfig): Promise<{
+async function runTrials(
+    ws: JitterWebSocket,
+    login: LoginResult,
+    cfg: ScenarioConfig
+): Promise<{
     results: TrialResult[];
     linkStats: typeof ws.stats;
 }> {
@@ -336,7 +338,12 @@ async function runTrials(ws: JitterWebSocket, login: LoginResult, cfg: ScenarioC
                     const x = action[2];
                     const y = action[3];
                     const flags = action[5];
-                    if (typeof ackSeq !== 'number' || typeof x !== 'number' || typeof y !== 'number' || typeof flags !== 'number') {
+                    if (
+                        typeof ackSeq !== 'number' ||
+                        typeof x !== 'number' ||
+                        typeof y !== 'number' ||
+                        typeof flags !== 'number'
+                    ) {
                         return;
                     }
                     if (active && !active.gotFirstSignal && ackSeq >= active.seq) {
@@ -401,7 +408,14 @@ async function runTrials(ws: JitterWebSocket, login: LoginResult, cfg: ScenarioC
             const stopSeq = nextSeq++;
             const stopPayload = encodeMoveInputIntentPayload({ keysMask: 0 });
             if (stopPayload !== null) {
-                ws.send(encodeClientToServerProtocolActionBinary([Types.Messages.INTENT, stopSeq, INTENT_MOVE_INPUT, stopPayload]));
+                ws.send(
+                    encodeClientToServerProtocolActionBinary([
+                        Types.Messages.INTENT,
+                        stopSeq,
+                        INTENT_MOVE_INPUT,
+                        stopPayload,
+                    ])
+                );
             }
             if (active.gotFirstMove) {
                 chosenDirection = keysMask;
@@ -508,7 +522,12 @@ async function runTrials(ws: JitterWebSocket, login: LoginResult, cfg: ScenarioC
             const stopPayload = encodeMoveInputIntentPayload({ keysMask: 0 });
             if (stopPayload !== null) {
                 ws.send(
-                    encodeClientToServerProtocolActionBinary([Types.Messages.INTENT, stopSeq, INTENT_MOVE_INPUT, stopPayload])
+                    encodeClientToServerProtocolActionBinary([
+                        Types.Messages.INTENT,
+                        stopSeq,
+                        INTENT_MOVE_INPUT,
+                        stopPayload,
+                    ])
                 );
             }
         }
@@ -529,7 +548,12 @@ async function runTrials(ws: JitterWebSocket, login: LoginResult, cfg: ScenarioC
     return { results, linkStats: ws.stats };
 }
 
-function summarize(label: string, results: TrialResult[], stats: LinkConfig, link: { c2sSends: number; c2sBytes: number; s2cFrames: number; s2cBytes: number }) {
+function summarize(
+    label: string,
+    results: TrialResult[],
+    stats: LinkConfig,
+    link: { c2sSends: number; c2sBytes: number; s2cFrames: number; s2cBytes: number }
+) {
     const okSignal = results.filter((r) => r.okSignal && typeof r.signalLatencyMs === 'number') as Array<
         TrialResult & { signalLatencyMs: number }
     >;

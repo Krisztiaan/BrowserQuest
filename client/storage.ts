@@ -147,10 +147,10 @@ class Storage {
         this.data = {
             hasAlreadyPlayed: false,
             player: {
-                name: "",
-                weapon: "",
-                armor: "",
-                image: ""
+                name: '',
+                weapon: '',
+                armor: '',
+                image: '',
             },
             achievements: {
                 unlocked: [],
@@ -158,8 +158,8 @@ class Storage {
                 skeletonCount: 0,
                 totalKills: 0,
                 totalDmg: 0,
-                totalRevives: 0
-            }
+                totalRevives: 0,
+            },
         };
     }
 
@@ -201,7 +201,7 @@ class Storage {
     initPlayer(name: string): void {
         this.setPlayerName(name);
     }
-    
+
     setPlayerName(name: string): void {
         const trimmed = name.trim();
         this.data.player.name = trimmed;
@@ -284,7 +284,7 @@ class Storage {
             this.save();
         }
     }
-    
+
     // Skull Collector
     getSkeletonCount(): number {
         return this.data.achievements.skeletonCount;
@@ -308,7 +308,7 @@ class Storage {
             this.save();
         }
     }
-    
+
     // Hunter
     getTotalKills(): number {
         return this.data.achievements.totalKills;

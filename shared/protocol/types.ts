@@ -46,13 +46,15 @@ export type ServerToClientSpawnAction = [
     EntityKind,
     number,
     number,
-    ...ProtocolActionValue[]
+    ...ProtocolActionValue[],
 ];
 export type ServerToClientDespawnAction = [typeof Types.Messages.DESPAWN, number];
 export type ServerToClientMoveAction = [typeof Types.Messages.MOVE, number, number, number];
 export type ServerToClientLootMoveAction = [typeof Types.Messages.LOOTMOVE, number, number];
 export type ServerToClientAttackAction = [typeof Types.Messages.ATTACK, number, number];
-export type ServerToClientHealthAction = [typeof Types.Messages.HEALTH, number] | [typeof Types.Messages.HEALTH, number, 1];
+export type ServerToClientHealthAction =
+    | [typeof Types.Messages.HEALTH, number]
+    | [typeof Types.Messages.HEALTH, number, 1];
 export type ServerToClientChatAction = [typeof Types.Messages.CHAT, number, string];
 export type ServerToClientEquipAction = [typeof Types.Messages.EQUIP, number, EntityKind];
 export type ServerToClientDropAction = [typeof Types.Messages.DROP, number, number, EntityKind, number[]];

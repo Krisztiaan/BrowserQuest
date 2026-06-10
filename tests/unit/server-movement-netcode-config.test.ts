@@ -33,4 +33,3 @@ test('server movement netcode config honors env overrides', () => {
     expect(config.tuning.interactionGraceMaxAgeTicks).toBe(4);
     expect(config.tuning.interactionGraceHistoryLimit).toBe(3);
 });
-

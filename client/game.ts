@@ -492,7 +492,6 @@ class Game extends Evented<GameEvents> {
         initGameShadows(this);
     }
 
-
     initCursors(): void {
         initGameCursors(this);
     }
@@ -664,7 +663,6 @@ class Game extends Evented<GameEvents> {
         }, 1);
         //log.info("Initialized animated tiles.");
     }
-
 
     setServerOptions(wsUrl: string, username: string): void {
         this.wsUrl = wsUrl;
@@ -841,7 +839,11 @@ class Game extends Evented<GameEvents> {
     /**
      * Moves a character to a given location on the world grid.
      */
-    makeCharacterGoTo<TEvents extends CharacterEventEnvelope>(character: Character<TEvents>, x: number, y: number): void {
+    makeCharacterGoTo<TEvents extends CharacterEventEnvelope>(
+        character: Character<TEvents>,
+        x: number,
+        y: number
+    ): void {
         if (this.map && !this.map.isOutOfBounds(x, y)) {
             character.go(x, y);
         }
@@ -1136,7 +1138,9 @@ class Game extends Evented<GameEvents> {
                     });
                 }
 
-                path = pathfinder.findPath(this.kernel.clientPathingGrid, character, x, y, false, { variant: 'DiagonalFree' });
+                path = pathfinder.findPath(this.kernel.clientPathingGrid, character, x, y, false, {
+                    variant: 'DiagonalFree',
+                });
             } finally {
                 if (ignoreList) {
                     pathfinder.clearIgnoreList();
@@ -1277,8 +1281,8 @@ class Game extends Evented<GameEvents> {
             if (bounds) {
                 const viewportWorldWidth = this.renderer.getWidth() / this.renderer.scale;
                 const viewportWorldHeight = this.renderer.getHeight() / this.renderer.scale;
-                const desiredX = Math.round(this.player.x - (viewportWorldWidth / 2));
-                const desiredY = Math.round(this.player.y - (viewportWorldHeight / 2));
+                const desiredX = Math.round(this.player.x - viewportWorldWidth / 2);
+                const desiredY = Math.round(this.player.y - viewportWorldHeight / 2);
 
                 this.camera.setPosition(
                     Math.max(bounds.minX, Math.min(desiredX, bounds.maxX)),
@@ -1408,14 +1412,12 @@ class Game extends Evented<GameEvents> {
         this.resetZone();
     }
 
-    resolveCameraWorldBounds():
-        | {
-              minX: number;
-              maxX: number;
-              minY: number;
-              maxY: number;
-          }
-        | null {
+    resolveCameraWorldBounds(): {
+        minX: number;
+        maxX: number;
+        minY: number;
+        maxY: number;
+    } | null {
         const map = this.map;
         if (!map) {
             return null;
@@ -1454,7 +1456,11 @@ class Game extends Evented<GameEvents> {
         if (name in this.achievements) {
             achievement = this.achievements[name] ?? null;
 
-            if (achievement?.isCompleted?.() && isAchievementId(achievement.id) && this.storage.unlockAchievement(achievement.id)) {
+            if (
+                achievement?.isCompleted?.() &&
+                isAchievementId(achievement.id) &&
+                this.storage.unlockAchievement(achievement.id)
+            ) {
                 this.kernel.enqueueClientCommand({
                     type: 'clientSendAchievement',
                     achievementId: achievement.id,

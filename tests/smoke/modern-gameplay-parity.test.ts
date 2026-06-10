@@ -30,7 +30,14 @@ import {
     decodeServerToClientProtocolActionBatchBinary,
     encodeProtocolActionBinary,
 } from '../../shared/protocol/registry';
-import { encodeMoveInputIntentPayload, encodeMoveStepIntentPayload, MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_S, MOVE_INPUT_KEY_W } from '../../shared/protocol/intents';
+import {
+    encodeMoveInputIntentPayload,
+    encodeMoveStepIntentPayload,
+    MOVE_INPUT_KEY_A,
+    MOVE_INPUT_KEY_D,
+    MOVE_INPUT_KEY_S,
+    MOVE_INPUT_KEY_W,
+} from '../../shared/protocol/intents';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
@@ -73,12 +80,16 @@ function normalizePayloadToActions(payload: FramePayload): Action[] {
         return [];
     }
     if (payload instanceof ArrayBuffer) {
-        return decodeServerToClientProtocolActionBatchBinary(payload).filter((entry): entry is Action => isActionArray(entry));
+        return decodeServerToClientProtocolActionBatchBinary(payload).filter((entry): entry is Action =>
+            isActionArray(entry)
+        );
     }
     if (ArrayBuffer.isView(payload)) {
         const view = payload;
         const bytes = new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
-        return decodeServerToClientProtocolActionBatchBinary(bytes).filter((entry): entry is Action => isActionArray(entry));
+        return decodeServerToClientProtocolActionBatchBinary(bytes).filter((entry): entry is Action =>
+            isActionArray(entry)
+        );
     }
     void formatUnknown(payload);
     return [];
@@ -248,11 +259,11 @@ test(
                 const sync = await waitForNextAction(
                     stream,
                     (action) =>
-                        action[0] === MSG_MOVE_SYNC
-                        && isSafeInteger(action[1])
-                        && action[1] >= seqSent
-                        && typeof action[2] === 'number'
-                        && typeof action[3] === 'number',
+                        action[0] === MSG_MOVE_SYNC &&
+                        isSafeInteger(action[1]) &&
+                        action[1] >= seqSent &&
+                        typeof action[2] === 'number' &&
+                        typeof action[3] === 'number',
                     'MOVE_SYNC from move.input',
                     1500
                 );
@@ -309,7 +320,9 @@ test(
         const reconnect = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
         const reconnectStream = createActionStream(reconnect);
         await waitForGoHandshake(reconnect);
-        reconnect.send(encodeProtocolActionBinary([MSG_HELLO, 'modern-e2e-reconnect', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1]));
+        reconnect.send(
+            encodeProtocolActionBinary([MSG_HELLO, 'modern-e2e-reconnect', ENTITY_CLOTH_ARMOR, ENTITY_SWORD_1])
+        );
         await waitForNextAction(
             reconnectStream,
             (action) => action[0] === MSG_WELCOME,

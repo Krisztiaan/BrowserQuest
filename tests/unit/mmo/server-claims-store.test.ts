@@ -18,7 +18,15 @@ function withTempDbPath<T>(fn: (dbPath: string) => T): T {
 test('ClaimsStore resolves claim ownership for a tile and round-trips through sqlite', () => {
     withTempDbPath((dbPath) => {
         const store = new ClaimsStore({ indexChunkSize: 16 });
-        const claim = store.createClaim({ ownerName: 'alice', editorNameKeys: ['bob'], x1: 0, y1: 0, x2: 10, y2: 10, nowMs: 1000 });
+        const claim = store.createClaim({
+            ownerName: 'alice',
+            editorNameKeys: ['bob'],
+            x1: 0,
+            y1: 0,
+            x2: 10,
+            y2: 10,
+            nowMs: 1000,
+        });
         expect(store.getClaimAt(5, 5)?.ownerName).toBe('alice');
         expect(store.getClaimAt(5, 5)?.editorNameKeys).toEqual(['bob']);
         expect(store.getClaimAt(11, 5)).toBeNull();
@@ -51,7 +59,15 @@ test('ClaimsStore returns the oldest claim when multiple claims overlap', () => 
 
 test('ClaimsStore can update claims and detect overlaps with optional exclusion', () => {
     const store = new ClaimsStore({ indexChunkSize: 16 });
-    const claimA = store.createClaim({ ownerName: 'alice', editorNameKeys: ['bob'], x1: 0, y1: 0, x2: 4, y2: 4, nowMs: 1000 });
+    const claimA = store.createClaim({
+        ownerName: 'alice',
+        editorNameKeys: ['bob'],
+        x1: 0,
+        y1: 0,
+        x2: 4,
+        y2: 4,
+        nowMs: 1000,
+    });
     const claimB = store.createClaim({ ownerName: 'charlie', x1: 10, y1: 10, x2: 12, y2: 12, nowMs: 1000 });
 
     const updated = store.updateClaim({
@@ -70,7 +86,13 @@ test('ClaimsStore can update claims and detect overlaps with optional exclusion'
 
     const overlapWithoutExclude = store.findFirstOverlappingClaim({ x1: 1, y1: 1, x2: 5, y2: 5 });
     expect(overlapWithoutExclude?.id).toBe(claimA.id);
-    const overlapWithExclude = store.findFirstOverlappingClaim({ x1: 1, y1: 1, x2: 5, y2: 5, excludeClaimId: claimA.id });
+    const overlapWithExclude = store.findFirstOverlappingClaim({
+        x1: 1,
+        y1: 1,
+        x2: 5,
+        y2: 5,
+        excludeClaimId: claimA.id,
+    });
     expect(overlapWithExclude).toBeNull();
     const overlapWithOther = store.findFirstOverlappingClaim({ x1: 11, y1: 11, x2: 14, y2: 14 });
     expect(overlapWithOther?.id).toBe(claimB.id);
@@ -78,13 +100,31 @@ test('ClaimsStore can update claims and detect overlaps with optional exclusion'
 
 test('ClaimsStore isolates claims by map id for identical coordinates', () => {
     const store = new ClaimsStore({ indexChunkSize: 16 });
-    const worldClaim = store.createClaim({ mapId: 'world', ownerName: 'alice', x1: 2, y1: 2, x2: 4, y2: 4, nowMs: 1000 });
-    const dungeonClaim = store.createClaim({ mapId: 'dungeon_1', ownerName: 'bob', x1: 2, y1: 2, x2: 4, y2: 4, nowMs: 1001 });
+    const worldClaim = store.createClaim({
+        mapId: 'world',
+        ownerName: 'alice',
+        x1: 2,
+        y1: 2,
+        x2: 4,
+        y2: 4,
+        nowMs: 1000,
+    });
+    const dungeonClaim = store.createClaim({
+        mapId: 'dungeon_1',
+        ownerName: 'bob',
+        x1: 2,
+        y1: 2,
+        x2: 4,
+        y2: 4,
+        nowMs: 1001,
+    });
 
     expect(store.getClaimAt(3, 3, 'world')?.id).toBe(worldClaim.id);
     expect(store.getClaimAt(3, 3, 'dungeon_1')?.id).toBe(dungeonClaim.id);
     expect(store.getClaimAt(3, 3, 'unknown')).toBeNull();
 
     expect(store.findFirstOverlappingClaim({ mapId: 'world', x1: 2, y1: 2, x2: 4, y2: 4 })?.id).toBe(worldClaim.id);
-    expect(store.findFirstOverlappingClaim({ mapId: 'dungeon_1', x1: 2, y1: 2, x2: 4, y2: 4 })?.id).toBe(dungeonClaim.id);
+    expect(store.findFirstOverlappingClaim({ mapId: 'dungeon_1', x1: 2, y1: 2, x2: 4, y2: 4 })?.id).toBe(
+        dungeonClaim.id
+    );
 });

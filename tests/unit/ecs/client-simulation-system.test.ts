@@ -212,34 +212,36 @@ test('client simulation camera bounds prefer full map dimensions over the curren
     localPlayer.setVisualRenderPosition(400, 160, { velocityX: 0, velocityY: 0, mode: 'interpolate' });
     localPlayer.setVisualRenderTarget(400, 160, 'interpolate');
 
-    runClientSimulationSystem(createSimulationHost({
-        currentTime: 23_000,
-        player: localPlayer,
-        playerId: 9011,
-        entities: [localPlayer],
-        map: {
-            grid: Array.from({ length: 20 }, () => Array.from({ length: 20 }, () => 0)),
-            width: 100,
-            height: 100,
-        },
-        renderer: {
-            FPS: 60,
-            mobile: false,
-            tablet: false,
-            scale: 1,
-            getWidth() {
-                return 160;
+    runClientSimulationSystem(
+        createSimulationHost({
+            currentTime: 23_000,
+            player: localPlayer,
+            playerId: 9011,
+            entities: [localPlayer],
+            map: {
+                grid: Array.from({ length: 20 }, () => Array.from({ length: 20 }, () => 0)),
+                width: 100,
+                height: 100,
             },
-            getHeight() {
-                return 160;
+            renderer: {
+                FPS: 60,
+                mobile: false,
+                tablet: false,
+                scale: 1,
+                getWidth() {
+                    return 160;
+                },
+                getHeight() {
+                    return 160;
+                },
+                renderStaticCanvases() {},
+                getTileBoundingRect() {
+                    return { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 };
+                },
             },
-            renderStaticCanvases() {},
-            getTileBoundingRect() {
-                return { x: 0, y: 0, w: 0, h: 0, left: 0, right: 0, top: 0, bottom: 0 };
-            },
-        },
-        camera: testCamera,
-    }));
+            camera: testCamera,
+        })
+    );
 
     expect(cameraX).toBeGreaterThan(160);
     expect(cameraY).toBeGreaterThanOrEqual(80);

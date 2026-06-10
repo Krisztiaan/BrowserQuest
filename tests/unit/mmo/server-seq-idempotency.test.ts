@@ -184,11 +184,7 @@ test('server rejects stale seq and emits a correction', () => {
     expect(
         hasAction(
             delivered,
-            (action) =>
-                action[0] === Types.Messages.CORRECTION
-                && action[1] === 1
-                && action[2] === 1
-                && action[3] === 0
+            (action) => action[0] === Types.Messages.CORRECTION && action[1] === 1 && action[2] === 1 && action[3] === 0
         )
     ).toBe(true);
 });
@@ -212,11 +208,7 @@ test('server rejects invalid move.step (non-adjacent) and emits CORRECTION (no A
     expect(
         hasAction(
             delivered,
-            (action) =>
-                action[0] === Types.Messages.CORRECTION
-                && action[1] === 1
-                && action[2] === 0
-                && action[3] === 0
+            (action) => action[0] === Types.Messages.CORRECTION && action[1] === 1 && action[2] === 0 && action[3] === 0
         )
     ).toBe(true);
     expect(hasAction(delivered, (action) => action[0] === Types.Messages.ACK && action[1] === 1)).toBe(false);

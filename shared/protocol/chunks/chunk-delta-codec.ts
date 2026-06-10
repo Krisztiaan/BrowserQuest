@@ -22,7 +22,11 @@ function validateChunkSize(chunkSize: JsonLike | object | undefined): number | n
     return chunkSize;
 }
 
-function validateChanges(changes: JsonLike | object | undefined, chunkSize: number, maxChanges: number): ChunkDeltaChange[] | null {
+function validateChanges(
+    changes: JsonLike | object | undefined,
+    chunkSize: number,
+    maxChanges: number
+): ChunkDeltaChange[] | null {
     if (!Array.isArray(changes) || changes.length > maxChanges) {
         return null;
     }
@@ -36,14 +40,14 @@ function validateChanges(changes: JsonLike | object | undefined, chunkSize: numb
         const y: unknown = entry[1];
         const value: unknown = entry[2];
         if (
-            typeof x !== 'number'
-            || typeof y !== 'number'
-            || !Number.isSafeInteger(x)
-            || !Number.isSafeInteger(y)
-            || x < 0
-            || y < 0
-            || x >= chunkSize
-            || y >= chunkSize
+            typeof x !== 'number' ||
+            typeof y !== 'number' ||
+            !Number.isSafeInteger(x) ||
+            !Number.isSafeInteger(y) ||
+            x < 0 ||
+            y < 0 ||
+            x >= chunkSize ||
+            y >= chunkSize
         ) {
             return null;
         }
@@ -277,14 +281,7 @@ export function encodeChunkDeltaPayloadBinary({
         const x = entry[0];
         const y = entry[1];
         const value = entry[2];
-        if (
-            !Number.isInteger(x)
-            || !Number.isInteger(y)
-            || x < 0
-            || y < 0
-            || x >= chunkSize
-            || y >= chunkSize
-        ) {
+        if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= chunkSize || y >= chunkSize) {
             throw new Error('encodeChunkDeltaPayloadBinary: invalid change');
         }
         if (value !== null && (!Number.isInteger(value) || value < 0)) {

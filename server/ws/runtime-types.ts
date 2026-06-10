@@ -67,10 +67,7 @@ export type WsFrameData = string | Uint8Array | ArrayBuffer | Buffer;
 export type WsErrorLike = string | Error | number | boolean | bigint | null | undefined | object;
 
 export interface WsConnectionLike {
-    on(
-        event: string,
-        handler: (...args: Array<WsFrameData | WsErrorLike>) => void
-    ): void;
+    on(event: string, handler: (...args: Array<WsFrameData | WsErrorLike>) => void): void;
     send(data: string | Uint8Array | ArrayBuffer): void;
     close(code?: number, reason?: string): void;
 }

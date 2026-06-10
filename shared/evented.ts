@@ -1,9 +1,18 @@
-import { TypedEventEmitter, type EventCallback, type NoEvents, type TypedEventMap, type Unsubscribe } from './typed-event-emitter';
+import {
+    TypedEventEmitter,
+    type EventCallback,
+    type NoEvents,
+    type TypedEventMap,
+    type Unsubscribe,
+} from './typed-event-emitter';
 
 export class Evented<TEvents extends TypedEventMap = NoEvents> {
     readonly #events = new TypedEventEmitter<TEvents>();
 
-    on<TEventName extends keyof TEvents>(eventName: TEventName, callback: EventCallback<TEvents[TEventName]>): Unsubscribe {
+    on<TEventName extends keyof TEvents>(
+        eventName: TEventName,
+        callback: EventCallback<TEvents[TEventName]>
+    ): Unsubscribe {
         return this.#events.on(eventName, callback);
     }
 

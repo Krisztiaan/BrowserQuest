@@ -19,4 +19,3 @@ export function runClientPlayerMoveInputOutboxSystem(host: ClientPlayerMoveInput
 
     host.kernel.enqueueClientCommand({ type: 'clientSendMoveInput', keysMask });
 }
-

@@ -153,12 +153,11 @@ type JsonLike = JsonScalar | JsonLike[] | { [key: string]: JsonLike };
 
 export const CHUNK_OVERLAY_STORE_RESOURCE = createResourceKey<ChunkOverlayStore>('chunk_overlay_store');
 export const MOVE_SYNC_STATE_RESOURCE = createResourceKey<Map<EntityId, number>>('move_sync_state');
-export const PLAYER_RECENT_POSITION_HISTORY_RESOURCE = createResourceKey<Map<EntityId, Array<{ pos: GridPos; tick: number }>>>(
-    'player_recent_position_history'
-);
-export const ENTITY_STATE_BATCH_RESOURCE = createResourceKey<Map<string, Map<EntityId, { x: number; y: number; flags: number }>>>(
-    'entity_state_batch'
-);
+export const PLAYER_RECENT_POSITION_HISTORY_RESOURCE = createResourceKey<
+    Map<EntityId, Array<{ pos: GridPos; tick: number }>>
+>('player_recent_position_history');
+export const ENTITY_STATE_BATCH_RESOURCE =
+    createResourceKey<Map<string, Map<EntityId, { x: number; y: number; flags: number }>>>('entity_state_batch');
 
 const HEALING_ITEM_POINTS_BY_KIND: Partial<Record<EntityKind, number>> = {
     [Types.Entities.FLASK]: 40,
@@ -235,8 +234,20 @@ type WorldCommandHost = Readonly<{
     isValidPositionForMap?(mapId: string, x: number, y: number): boolean;
     getConnectionPlayerById(playerId: EntityId): PlayerLike | null;
     removeEntityFromAreas(entityId: EntityId): void;
-    scheduleMobRespawn(params: { mobId: EntityId; kind: EntityKind; spawn: GridPos; tickNow?: number; delaySeconds?: number }): void;
-    scheduleStaticItemRespawn(params: { itemId: EntityId; kind: EntityKind; spawn: GridPos; tickNow?: number; delaySeconds?: number }): void;
+    scheduleMobRespawn(params: {
+        mobId: EntityId;
+        kind: EntityKind;
+        spawn: GridPos;
+        tickNow?: number;
+        delaySeconds?: number;
+    }): void;
+    scheduleStaticItemRespawn(params: {
+        itemId: EntityId;
+        kind: EntityKind;
+        spawn: GridPos;
+        tickNow?: number;
+        delaySeconds?: number;
+    }): void;
     addPlayer(player: PlayerLike): void;
     emitPlayerEnter(player: PlayerLike): void;
     isPlayerActive(playerId: EntityId): boolean;
@@ -265,7 +276,9 @@ const MAX_CHUNK_SNAPSHOTS_PER_TICK_PER_PLAYER = 8;
 const MAX_CHUNK_DELTA_CHANGES_PER_MESSAGE = 256;
 const log = Log.getLogger();
 
-function resolvePlayerIdentityKey(player: { accountNameKey?: string; name?: string } | null | undefined): string | null {
+function resolvePlayerIdentityKey(
+    player: { accountNameKey?: string; name?: string } | null | undefined
+): string | null {
     return resolveIdentityKey(player);
 }
 
@@ -462,7 +475,6 @@ function chooseStepTowards({
 
     return null;
 }
-
 
 function chooseStepTowardsAdjacentViaBfs({
     from,
@@ -673,8 +685,7 @@ function applyHello({
         resolveIdentityKey({
             accountNameKey: cmd.profile?.accountNameKey ?? cmd.profile?.nameKey ?? cmd.name,
             name: resolvedName,
-        })
-        ?? normalizeIdentityKey(resolvedName);
+        }) ?? normalizeIdentityKey(resolvedName);
     const resolvedArmorKind = cmd.profile?.armorKind ?? cmd.armorKind;
     const resolvedWeaponKind = cmd.profile?.weaponKind ?? cmd.weaponKind;
     const emptyUnlockedIds: number[] = [];
@@ -735,10 +746,10 @@ function applyHello({
     );
     const serverCapabilitiesJson = shouldSendCapabilities
         ? encodeProtocolCapabilitiesJson({
-            moduleIds: [...modules.moduleOrder],
-            intentTypeIds: [...modules.intentHandlers.keys()],
-            outcomeTypeIds: protocolOutcomeTypeIds,
-        })
+              moduleIds: [...modules.moduleOrder],
+              intentTypeIds: [...modules.intentHandlers.keys()],
+              outcomeTypeIds: protocolOutcomeTypeIds,
+          })
         : undefined;
 
     world.pushToPlayerId(
@@ -758,14 +769,17 @@ function applyHello({
     if (wasDead) {
         world.recordPlayerRevive(resolvePlayerIdentityKey(player) ?? player.name);
     }
-    world.pushToPlayerId(player.id, buildAchievementsAction({
-        unlockedIds: baseAchievements.unlockedIds,
-        ratCount: baseAchievements.ratCount,
-        skeletonCount: baseAchievements.skeletonCount,
-        totalKills: baseAchievements.totalKills,
-        totalDmg: baseAchievements.totalDmg,
-        totalRevives: wasDead ? Math.min(5, baseAchievements.totalRevives + 1) : baseAchievements.totalRevives,
-    }));
+    world.pushToPlayerId(
+        player.id,
+        buildAchievementsAction({
+            unlockedIds: baseAchievements.unlockedIds,
+            ratCount: baseAchievements.ratCount,
+            skeletonCount: baseAchievements.skeletonCount,
+            totalKills: baseAchievements.totalKills,
+            totalDmg: baseAchievements.totalDmg,
+            totalRevives: wasDead ? Math.min(5, baseAchievements.totalRevives + 1) : baseAchievements.totalRevives,
+        })
+    );
     world.persistPlayerEquipment(player);
     world.emitPlayerEnter(player);
     player.hasEnteredGame = true;
@@ -1362,12 +1376,12 @@ function runServerAuthoritativeCombatSystem({
         const isVisible =
             isMobVsPlayer && attackerPos !== undefined && targetPos !== undefined
                 ? isEntityVisibleToPlayer({
-                    world,
-                    playerPos: targetPos,
-                    playerMapId: resolveEntityMapId({ MapId, entityId: engagement.targetId, world }),
-                    entityPos: attackerPos,
-                    entityMapId: resolveEntityMapId({ MapId, entityId: engagement.attackerId, world }),
-                })
+                      world,
+                      playerPos: targetPos,
+                      playerMapId: resolveEntityMapId({ MapId, entityId: engagement.targetId, world }),
+                      entityPos: attackerPos,
+                      entityMapId: resolveEntityMapId({ MapId, entityId: engagement.attackerId, world }),
+                  })
                 : true;
 
         const windup = AttackWindup.store.get(engagement.attackerId);
@@ -1381,7 +1395,11 @@ function runServerAuthoritativeCombatSystem({
                 continue;
             }
             if (isPlayerVsMob) {
-                state.events.push({ type: 'ENTITY_ATTACKED', attackerId: engagement.attackerId, targetId: engagement.targetId });
+                state.events.push({
+                    type: 'ENTITY_ATTACKED',
+                    attackerId: engagement.attackerId,
+                    targetId: engagement.targetId,
+                });
                 log.event('info', 'combat.player_windup_started', {
                     attackerId: engagement.attackerId,
                     targetId: engagement.targetId,
@@ -1518,12 +1536,11 @@ function runServerAuthoritativeCombatSystem({
                     world.recordPlayerMobKill(killerIdentity, targetKind);
                 }
                 const spawn =
-                    mobAi.MobSpawnPos.store.get(engagement.targetId)
-                    ?? state.world.getComponent(engagement.targetId, replication.Position)
-                    ?? gridPos(0, 0);
+                    mobAi.MobSpawnPos.store.get(engagement.targetId) ??
+                    state.world.getComponent(engagement.targetId, replication.Position) ??
+                    gridPos(0, 0);
                 const haters =
-                    mobAi.MobHate.store.get(engagement.targetId)?.entries.map((entry) => Number(entry.id)) ??
-                    [];
+                    mobAi.MobHate.store.get(engagement.targetId)?.entries.map((entry) => Number(entry.id)) ?? [];
                 handleMobDeath({
                     state,
                     replication,
@@ -1608,8 +1625,8 @@ function applyLootCommand({
         return;
     }
     const canLoot =
-        isWithinInteractionDistance(playerPos, itemPos, 1)
-        || isPlayerWithinInteractionGrace({
+        isWithinInteractionDistance(playerPos, itemPos, 1) ||
+        isPlayerWithinInteractionGrace({
             state,
             playerId: player.id,
             targetPos: itemPos,
@@ -1906,8 +1923,8 @@ function applyOpenCommand({
         return;
     }
     const canOpen =
-        isWithinInteractionDistance(playerPos, pos, 1)
-        || isPlayerWithinInteractionGrace({
+        isWithinInteractionDistance(playerPos, pos, 1) ||
+        isPlayerWithinInteractionGrace({
             state,
             playerId: player.id,
             targetPos: pos,
@@ -1960,7 +1977,11 @@ function applyCheckCommand({
     }
 }
 
-function applyChatCommand(state: WorldState<Command, DomainEvent>, playerId: EntityId, cmd: Extract<Command, { type: 'CHAT' }>): void {
+function applyChatCommand(
+    state: WorldState<Command, DomainEvent>,
+    playerId: EntityId,
+    cmd: Extract<Command, { type: 'CHAT' }>
+): void {
     if (cmd.message && cmd.message !== '') {
         const outbox = state.resources.require(OUTBOX_RESOURCE);
         outbox.push({ kind: 'broadcast_nearby', actorId: playerId, action: buildChatAction(playerId, cmd.message) });
@@ -1991,376 +2012,406 @@ function createApplyInboundCommandsSystem(
                 continue;
             }
             try {
+                if (cmd.type === 'HELLO') {
+                    const player = world.getConnectionPlayerById(cmd.source.playerId);
+                    if (!player) {
+                        continue;
+                    }
+                    applyHello({
+                        state,
+                        Position,
+                        MapId,
+                        PositionSub: replication.PositionSub,
+                        Kind: replication.Kind,
+                        Name: replication.Name,
+                        Orientation: replication.Orientation,
+                        Armor: replication.Armor,
+                        Weapon: replication.Weapon,
+                        Target,
+                        combat,
+                        world,
+                        modules,
+                        player,
+                        cmd,
+                    });
+                    state.world.removeComponent(player.id, movement.MoveQueue);
+                    state.world.removeComponent(player.id, movement.NextMoveTick);
+                    continue;
+                }
 
-            if (cmd.type === 'HELLO') {
                 const player = world.getConnectionPlayerById(cmd.source.playerId);
                 if (!player) {
                     continue;
                 }
-                applyHello({
+
+                const intentCtx: InboundIntentContext = {
+                    modules,
                     state,
+                    ctx,
+                    world,
+                    player,
                     Position,
                     MapId,
-                    PositionSub: replication.PositionSub,
-                    Kind: replication.Kind,
-                    Name: replication.Name,
-                    Orientation: replication.Orientation,
-                    Armor: replication.Armor,
-                    Weapon: replication.Weapon,
                     Target,
-                    combat,
-                    world,
-                    modules,
-                    player,
-                    cmd,
-                });
-                state.world.removeComponent(player.id, movement.MoveQueue);
-                state.world.removeComponent(player.id, movement.NextMoveTick);
-                continue;
-            }
+                    movement,
+                    mobAi,
+                    replication,
+                };
 
-            const player = world.getConnectionPlayerById(cmd.source.playerId);
-            if (!player) {
-                continue;
-            }
-
-                    const intentCtx: InboundIntentContext = {
-                        modules,
-                        state,
-                        ctx,
-                        world,
-                        player,
-                        Position,
-                        MapId,
-                        Target,
-                        movement,
-                        mobAi,
-                        replication,
-                    };
-
-            switch (cmd.type) {
-                case 'WHO':
-                    world.pushSpawnsToPlayerId(cmd.source.playerId, [...cmd.entityIds]);
-                    break;
-                case 'ZONE':
-                    player.emit('zone');
-                    break;
-                case 'CHAT':
-                    applyChatCommand(state, player.id, cmd);
-                    break;
-                case 'INTENT': {
-                    const lastAccepted = seqState.lastAcceptedByPlayerId.get(player.id) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
-                    const reject = (reason: string) => {
-                        world.pushToPlayerId(cmd.source.playerId, buildRejectAction(cmd.seq, cmd.intentTypeId, reason));
-                    };
-
-                    const correction = () => {
-                        const pos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
-                        const playerMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
-                        world.pushToPlayerId(cmd.source.playerId, buildCorrectionMoveAction(cmd.seq, pos.x, pos.y, playerMapId));
-                        // Corrections are authoritative; stop prediction until the next input.
-                        const sub = replication.PositionSub.store.get(player.id) ?? tileToWorldPosCenter(pos.x, pos.y);
-                        world.pushToPlayerId(
-                            cmd.source.playerId,
-                            buildMoveSyncAction(lastAccepted, sub.x, sub.y, ctx.tick, 1, playerMapId)
-                        );
-                        state.resources.require(MOVE_SYNC_STATE_RESOURCE).set(player.id, ctx.tick);
-                    };
-
-                    const seqDecision = classifyIntentSeq({
-                        seq: cmd.seq,
-                        lastAccepted,
-                        maxGap: INTENT_SEQ_DEFAULT_MAX_GAP,
-                    });
-                    if (seqDecision.kind === 'duplicate') {
-                        world.pushToPlayerId(cmd.source.playerId, buildAckAction(cmd.seq));
+                switch (cmd.type) {
+                    case 'WHO':
+                        world.pushSpawnsToPlayerId(cmd.source.playerId, [...cmd.entityIds]);
                         break;
-                    }
-
-                    const seqRejectReason = formatIntentSeqRejectReason(cmd.seq, seqDecision);
-                    if (seqRejectReason !== null) {
-                        reject(seqRejectReason);
-                        correction();
+                    case 'ZONE':
+                        player.emit('zone');
                         break;
-                    }
-
-                    const handler = modules.getIntentHandler(cmd.intentTypeId);
-                    if (!handler) {
-                        reject(`Unknown intentTypeId: ${cmd.intentTypeId}`);
-                        correction();
+                    case 'CHAT':
+                        applyChatCommand(state, player.id, cmd);
                         break;
-                    }
+                    case 'INTENT': {
+                        const lastAccepted =
+                            seqState.lastAcceptedByPlayerId.get(player.id) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
+                        const reject = (reason: string) => {
+                            world.pushToPlayerId(
+                                cmd.source.playerId,
+                                buildRejectAction(cmd.seq, cmd.intentTypeId, reason)
+                            );
+                        };
 
-                    let bridged: Command | null = null;
-                    if (cmd.intentTypeId === INTENT_MOVE_STEP) {
-                        const to = decodeMoveStepIntentPayload(cmd.payloadBytes);
-                        bridged = to
-                            ? ({ type: 'MOVE', source: cmd.source, to } satisfies Extract<Command, { type: 'MOVE' }>)
-                            : null;
-                    } else if (cmd.intentTypeId === INTENT_MOVE_TO) {
-                        const decoded = decodeMoveToIntentPayload(cmd.payloadBytes);
-                        bridged = decoded
-                            ? ({
-                                  type: 'MOVE_TO',
-                                  source: cmd.source,
-                                  to: gridPos(decoded.x, decoded.y),
-                                  stopAdjacentToTarget: decoded.stopAdjacentToTarget,
-                              } satisfies Extract<Command, { type: 'MOVE_TO' }>)
-                            : null;
-                    } else if (cmd.intentTypeId === INTENT_MOVE_INPUT) {
-                        const decoded = decodeMoveInputIntentPayload(cmd.payloadBytes);
-                        bridged = decoded
-                            ? ({
-                                  type: 'MOVE_INPUT',
-                                  source: cmd.source,
-                                  keysMask: decoded.keysMask,
-                              } satisfies Extract<Command, { type: 'MOVE_INPUT' }>)
-                            : null;
-                    } else if (cmd.intentTypeId === INTENT_ATTACK) {
-                        const decoded = decodeAttackIntentPayload(cmd.payloadBytes);
-                        bridged = decoded
-                            ? ({
-                                  type: 'ATTACK',
-                                  source: cmd.source,
-                                  targetId: entityIdFromWire(decoded.targetId),
-                              } satisfies Extract<Command, { type: 'ATTACK' }>)
-                            : null;
-                    } else if (cmd.intentTypeId === INTENT_DOOR_TELEPORT) {
-                        const to = decodeDoorTeleportIntentPayload(cmd.payloadBytes);
-                        bridged = to
-                            ? ({ type: 'TELEPORT', source: cmd.source, to } satisfies Extract<Command, { type: 'TELEPORT' }>)
-                            : null;
-                    } else if (cmd.intentTypeId === INTENT_TILE_EDIT) {
-                        const edit = decodeTileEditIntentPayload(cmd.payloadBytes);
-                        bridged = edit
-                            ? ({
-                                  type: 'TILE_EDIT',
-                                  source: cmd.source,
-                                  x: edit.x,
-                                  y: edit.y,
-                                  value: edit.value,
-                              } satisfies Extract<Command, { type: 'TILE_EDIT' }>)
-                            : null;
-                    } else if (cmd.intentTypeId === INTENT_CLAIM_CREATE) {
-                        const claim = decodeClaimCreateIntentPayload(cmd.payloadBytes);
-                        bridged = claim
-                            ? ({
-                                  type: 'CLAIM_CREATE',
-                                  source: cmd.source,
-                                  x1: claim.x1,
-                                  y1: claim.y1,
-                                  x2: claim.x2,
-                                  y2: claim.y2,
-                                  editorNameKeys: claim.editors,
-                              } satisfies Extract<Command, { type: 'CLAIM_CREATE' }>)
-                            : null;
-                    } else if (cmd.intentTypeId === INTENT_CLAIM_UPDATE) {
-                        const claim = decodeClaimUpdateIntentPayload(cmd.payloadBytes);
-                        bridged = claim
-                            ? ({
-                                  type: 'CLAIM_UPDATE',
-                                  source: cmd.source,
-                                  claimId: claim.id,
-                                  x1: claim.x1,
-                                  y1: claim.y1,
-                                  x2: claim.x2,
-                                  y2: claim.y2,
-                                  ...(claim.editors !== undefined ? { editorNameKeys: claim.editors } : {}),
-                              } satisfies Extract<Command, { type: 'CLAIM_UPDATE' }>)
-                            : null;
-                    } else if (cmd.intentTypeId === INTENT_CLAIM_DELETE) {
-                        const claim = decodeClaimDeleteIntentPayload(cmd.payloadBytes);
-                        bridged = claim
-                            ? ({
-                                  type: 'CLAIM_DELETE',
-                                  source: cmd.source,
-                                  claimId: claim.id,
-                              } satisfies Extract<Command, { type: 'CLAIM_DELETE' }>)
-                            : null;
-                    }
-
-                    if (!bridged) {
-                        reject(`Unsupported INTENT payload for: ${cmd.intentTypeId}`);
-                        correction();
-                        break;
-                    }
-
-                    const result = handler(intentCtx, bridged);
-                    if (result && typeof result === 'object' && 'ok' in result && result.ok === false) {
-                        reject(result.reason);
-                        if (cmd.intentTypeId === INTENT_MOVE_STEP) {
-                            correction();
-                        }
-                        break;
-                    }
-                    if (cmd.intentTypeId === INTENT_ATTACK && bridged.type === 'ATTACK') {
-                        applyAttackCommand({ state, ctx, mobAi, replication, Target, cmd: bridged });
-                    }
-                    seqState.lastAcceptedByPlayerId.set(player.id, cmd.seq);
-                    world.pushToPlayerId(cmd.source.playerId, buildAckAction(cmd.seq));
-
-                    if (cmd.intentTypeId === INTENT_MOVE_INPUT) {
-                        // Immediately provide an authoritative sync point for held-key movement.
-                        // This keeps clients/sniff tests from relying on a tile-boundary MOVE to observe progress.
-                        const pos = replication.PositionSub.store.get(player.id);
-                        if (pos) {
+                        const correction = () => {
+                            const pos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
                             const playerMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
                             world.pushToPlayerId(
                                 cmd.source.playerId,
-                                buildMoveSyncAction(cmd.seq, pos.x, pos.y, ctx.tick, 0, playerMapId)
+                                buildCorrectionMoveAction(cmd.seq, pos.x, pos.y, playerMapId)
+                            );
+                            // Corrections are authoritative; stop prediction until the next input.
+                            const sub =
+                                replication.PositionSub.store.get(player.id) ?? tileToWorldPosCenter(pos.x, pos.y);
+                            world.pushToPlayerId(
+                                cmd.source.playerId,
+                                buildMoveSyncAction(lastAccepted, sub.x, sub.y, ctx.tick, 1, playerMapId)
                             );
                             state.resources.require(MOVE_SYNC_STATE_RESOURCE).set(player.id, ctx.tick);
-                        }
-                    }
-                    break;
-                }
-                case 'MOVE':
-                    {
-                        const handler = modules.getIntentHandler(INTENT_MOVE_STEP);
-                        if (!handler) {
-                            throw new Error(`Missing intent handler: ${INTENT_MOVE_STEP}`);
-                        }
-                        const result = handler(intentCtx, cmd);
-                        if (result && typeof result === 'object' && 'ok' in result && result.ok === false) {
-                            const pos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
-                            const playerMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
-                            world.pushToPlayerId(cmd.source.playerId, buildTeleportAction(player.id, pos.x, pos.y, playerMapId));
-                        }
-                    }
-                    break;
-                case 'MOVE_TO':
-                    // MOVE_TO is only intended to exist as an internal bridged payload inside the INTENT handler.
-                    // If it ever lands in the inbound command queue, ignore it (do not crash the server).
-                    break;
-                case 'MOVE_INPUT':
-                    // MOVE_INPUT is only intended to exist as an internal bridged payload inside the INTENT handler.
-                    // If it ever lands in the inbound command queue, ignore it (do not crash the server).
-                    break;
-                case 'TILE_EDIT':
-                    {
-                        const handler = modules.getIntentHandler(INTENT_TILE_EDIT);
-                        if (!handler) {
-                            throw new Error(`Missing intent handler: ${INTENT_TILE_EDIT}`);
-                        }
-                        handler(intentCtx, cmd);
-                    }
-                    break;
-                case 'CLAIM_CREATE':
-                    {
-                        const handler = modules.getIntentHandler(INTENT_CLAIM_CREATE);
-                        if (!handler) {
-                            throw new Error(`Missing intent handler: ${INTENT_CLAIM_CREATE}`);
-                        }
-                        handler(intentCtx, cmd);
-                    }
-                    break;
-                case 'CLAIM_UPDATE':
-                    {
-                        const handler = modules.getIntentHandler(INTENT_CLAIM_UPDATE);
-                        if (!handler) {
-                            throw new Error(`Missing intent handler: ${INTENT_CLAIM_UPDATE}`);
-                        }
-                        handler(intentCtx, cmd);
-                    }
-                    break;
-                case 'CLAIM_DELETE':
-                    {
-                        const handler = modules.getIntentHandler(INTENT_CLAIM_DELETE);
-                        if (!handler) {
-                            throw new Error(`Missing intent handler: ${INTENT_CLAIM_DELETE}`);
-                        }
-                        handler(intentCtx, cmd);
-                    }
-                    break;
-                case 'LOOTMOVE':
-                    applyLootMoveCommand({ state, Kind: replication.Kind, Position, Target, player, cmd });
-                    break;
-                case 'AGGRO':
-                    addMobHate({ state, mobAi, replication, mobId: cmd.mobId, playerId: player.id, hatePoints: 5 });
-                    break;
-                case 'ATTACK':
-                    applyAttackCommand({ state, ctx, mobAi, replication, Target, cmd });
-                    break;
-                case 'LOOT':
-                    applyLootCommand({ state, ctx, combat, replication, effects, items, Position, world, player, cmd });
-                    break;
-                case 'TELEPORT':
-                    {
-                        const handler = modules.getIntentHandler(INTENT_DOOR_TELEPORT);
-                        if (!handler) {
-                            throw new Error(`Missing intent handler: ${INTENT_DOOR_TELEPORT}`);
-                        }
-                        handler(intentCtx, cmd);
-                    }
-                    break;
-                case 'OPEN':
-                    applyOpenCommand({
-                        state,
-                        ctx,
-                        Kind: replication.Kind,
-                        Position,
-                        ChestLootTable: chests.ChestLootTable,
-                        world,
-                        player,
-                        cmd,
-                    });
-                    break;
-                case 'CHECK':
-                    applyCheckCommand({
-                        world,
-                        MapId,
-                        player,
-                        cmd,
-                    });
-                    break;
-                case 'ACHIEVEMENT':
-                    world.persistPlayerAchievementUnlock(resolvePlayerIdentityKey(player) ?? player.name, cmd.achievementId);
-                    break;
-                case 'CHUNK_SUBSCRIBE': {
-                    const radius = Math.max(0, Math.min(8, cmd.radius));
-                    const center = {
-                        chunkX: cmd.chunkX,
-                        chunkY: cmd.chunkY,
-                    };
-                    const existing = chunkAoi.byPlayerId.get(player.id);
-                    const knownChunks = existing?.knownChunks ?? new Set<string>();
-                    knownChunks.clear();
-                    const knownChunkVersions = existing?.knownChunkVersions ?? new Map<string, number>();
-                    knownChunkVersions.clear();
-                    const pendingChunkKeys = existing?.pendingChunkKeys ?? new Set<string>();
-                    pendingChunkKeys.clear();
-                    const pendingPriorityChunks = existing?.pendingPriorityChunks ?? [];
-                    pendingPriorityChunks.length = 0;
-                    const inFlightSnapshotKeys = existing?.inFlightSnapshotKeys ?? new Set<string>();
-                    inFlightSnapshotKeys.clear();
+                        };
 
-                    const next: ChunkSubscription = {
-                        radius,
-                        lastMapId: null,
-                        lastCenterChunkX: center.chunkX,
-                        lastCenterChunkY: center.chunkY,
-                        pendingChunksHead: 0,
-                        pendingPriorityChunks,
-                        knownChunks,
-                        knownChunkVersions,
-                        pendingChunks: [],
-                        pendingChunkKeys,
-                        inFlightSnapshotKeys,
-                        pendingSnapshotPartsHead: 0,
-                        pendingSnapshotParts: [],
-                    };
-                    chunkAoi.byPlayerId.set(player.id, next);
-                    const mapId = resolveEntityMapId({ MapId, entityId: player.id, world });
-                    next.lastMapId = mapId;
-                    enqueueChunkAoiUpdates(next, mapId, center.chunkX, center.chunkY);
-                    break;
+                        const seqDecision = classifyIntentSeq({
+                            seq: cmd.seq,
+                            lastAccepted,
+                            maxGap: INTENT_SEQ_DEFAULT_MAX_GAP,
+                        });
+                        if (seqDecision.kind === 'duplicate') {
+                            world.pushToPlayerId(cmd.source.playerId, buildAckAction(cmd.seq));
+                            break;
+                        }
+
+                        const seqRejectReason = formatIntentSeqRejectReason(cmd.seq, seqDecision);
+                        if (seqRejectReason !== null) {
+                            reject(seqRejectReason);
+                            correction();
+                            break;
+                        }
+
+                        const handler = modules.getIntentHandler(cmd.intentTypeId);
+                        if (!handler) {
+                            reject(`Unknown intentTypeId: ${cmd.intentTypeId}`);
+                            correction();
+                            break;
+                        }
+
+                        let bridged: Command | null = null;
+                        if (cmd.intentTypeId === INTENT_MOVE_STEP) {
+                            const to = decodeMoveStepIntentPayload(cmd.payloadBytes);
+                            bridged = to
+                                ? ({ type: 'MOVE', source: cmd.source, to } satisfies Extract<
+                                      Command,
+                                      { type: 'MOVE' }
+                                  >)
+                                : null;
+                        } else if (cmd.intentTypeId === INTENT_MOVE_TO) {
+                            const decoded = decodeMoveToIntentPayload(cmd.payloadBytes);
+                            bridged = decoded
+                                ? ({
+                                      type: 'MOVE_TO',
+                                      source: cmd.source,
+                                      to: gridPos(decoded.x, decoded.y),
+                                      stopAdjacentToTarget: decoded.stopAdjacentToTarget,
+                                  } satisfies Extract<Command, { type: 'MOVE_TO' }>)
+                                : null;
+                        } else if (cmd.intentTypeId === INTENT_MOVE_INPUT) {
+                            const decoded = decodeMoveInputIntentPayload(cmd.payloadBytes);
+                            bridged = decoded
+                                ? ({
+                                      type: 'MOVE_INPUT',
+                                      source: cmd.source,
+                                      keysMask: decoded.keysMask,
+                                  } satisfies Extract<Command, { type: 'MOVE_INPUT' }>)
+                                : null;
+                        } else if (cmd.intentTypeId === INTENT_ATTACK) {
+                            const decoded = decodeAttackIntentPayload(cmd.payloadBytes);
+                            bridged = decoded
+                                ? ({
+                                      type: 'ATTACK',
+                                      source: cmd.source,
+                                      targetId: entityIdFromWire(decoded.targetId),
+                                  } satisfies Extract<Command, { type: 'ATTACK' }>)
+                                : null;
+                        } else if (cmd.intentTypeId === INTENT_DOOR_TELEPORT) {
+                            const to = decodeDoorTeleportIntentPayload(cmd.payloadBytes);
+                            bridged = to
+                                ? ({ type: 'TELEPORT', source: cmd.source, to } satisfies Extract<
+                                      Command,
+                                      { type: 'TELEPORT' }
+                                  >)
+                                : null;
+                        } else if (cmd.intentTypeId === INTENT_TILE_EDIT) {
+                            const edit = decodeTileEditIntentPayload(cmd.payloadBytes);
+                            bridged = edit
+                                ? ({
+                                      type: 'TILE_EDIT',
+                                      source: cmd.source,
+                                      x: edit.x,
+                                      y: edit.y,
+                                      value: edit.value,
+                                  } satisfies Extract<Command, { type: 'TILE_EDIT' }>)
+                                : null;
+                        } else if (cmd.intentTypeId === INTENT_CLAIM_CREATE) {
+                            const claim = decodeClaimCreateIntentPayload(cmd.payloadBytes);
+                            bridged = claim
+                                ? ({
+                                      type: 'CLAIM_CREATE',
+                                      source: cmd.source,
+                                      x1: claim.x1,
+                                      y1: claim.y1,
+                                      x2: claim.x2,
+                                      y2: claim.y2,
+                                      editorNameKeys: claim.editors,
+                                  } satisfies Extract<Command, { type: 'CLAIM_CREATE' }>)
+                                : null;
+                        } else if (cmd.intentTypeId === INTENT_CLAIM_UPDATE) {
+                            const claim = decodeClaimUpdateIntentPayload(cmd.payloadBytes);
+                            bridged = claim
+                                ? ({
+                                      type: 'CLAIM_UPDATE',
+                                      source: cmd.source,
+                                      claimId: claim.id,
+                                      x1: claim.x1,
+                                      y1: claim.y1,
+                                      x2: claim.x2,
+                                      y2: claim.y2,
+                                      ...(claim.editors !== undefined ? { editorNameKeys: claim.editors } : {}),
+                                  } satisfies Extract<Command, { type: 'CLAIM_UPDATE' }>)
+                                : null;
+                        } else if (cmd.intentTypeId === INTENT_CLAIM_DELETE) {
+                            const claim = decodeClaimDeleteIntentPayload(cmd.payloadBytes);
+                            bridged = claim
+                                ? ({
+                                      type: 'CLAIM_DELETE',
+                                      source: cmd.source,
+                                      claimId: claim.id,
+                                  } satisfies Extract<Command, { type: 'CLAIM_DELETE' }>)
+                                : null;
+                        }
+
+                        if (!bridged) {
+                            reject(`Unsupported INTENT payload for: ${cmd.intentTypeId}`);
+                            correction();
+                            break;
+                        }
+
+                        const result = handler(intentCtx, bridged);
+                        if (result && typeof result === 'object' && 'ok' in result && result.ok === false) {
+                            reject(result.reason);
+                            if (cmd.intentTypeId === INTENT_MOVE_STEP) {
+                                correction();
+                            }
+                            break;
+                        }
+                        if (cmd.intentTypeId === INTENT_ATTACK && bridged.type === 'ATTACK') {
+                            applyAttackCommand({ state, ctx, mobAi, replication, Target, cmd: bridged });
+                        }
+                        seqState.lastAcceptedByPlayerId.set(player.id, cmd.seq);
+                        world.pushToPlayerId(cmd.source.playerId, buildAckAction(cmd.seq));
+
+                        if (cmd.intentTypeId === INTENT_MOVE_INPUT) {
+                            // Immediately provide an authoritative sync point for held-key movement.
+                            // This keeps clients/sniff tests from relying on a tile-boundary MOVE to observe progress.
+                            const pos = replication.PositionSub.store.get(player.id);
+                            if (pos) {
+                                const playerMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
+                                world.pushToPlayerId(
+                                    cmd.source.playerId,
+                                    buildMoveSyncAction(cmd.seq, pos.x, pos.y, ctx.tick, 0, playerMapId)
+                                );
+                                state.resources.require(MOVE_SYNC_STATE_RESOURCE).set(player.id, ctx.tick);
+                            }
+                        }
+                        break;
+                    }
+                    case 'MOVE':
+                        {
+                            const handler = modules.getIntentHandler(INTENT_MOVE_STEP);
+                            if (!handler) {
+                                throw new Error(`Missing intent handler: ${INTENT_MOVE_STEP}`);
+                            }
+                            const result = handler(intentCtx, cmd);
+                            if (result && typeof result === 'object' && 'ok' in result && result.ok === false) {
+                                const pos = Position.store.get(player.id) ?? gridPos(player.x, player.y);
+                                const playerMapId = resolveEntityMapId({ MapId, entityId: player.id, world });
+                                world.pushToPlayerId(
+                                    cmd.source.playerId,
+                                    buildTeleportAction(player.id, pos.x, pos.y, playerMapId)
+                                );
+                            }
+                        }
+                        break;
+                    case 'MOVE_TO':
+                        // MOVE_TO is only intended to exist as an internal bridged payload inside the INTENT handler.
+                        // If it ever lands in the inbound command queue, ignore it (do not crash the server).
+                        break;
+                    case 'MOVE_INPUT':
+                        // MOVE_INPUT is only intended to exist as an internal bridged payload inside the INTENT handler.
+                        // If it ever lands in the inbound command queue, ignore it (do not crash the server).
+                        break;
+                    case 'TILE_EDIT':
+                        {
+                            const handler = modules.getIntentHandler(INTENT_TILE_EDIT);
+                            if (!handler) {
+                                throw new Error(`Missing intent handler: ${INTENT_TILE_EDIT}`);
+                            }
+                            handler(intentCtx, cmd);
+                        }
+                        break;
+                    case 'CLAIM_CREATE':
+                        {
+                            const handler = modules.getIntentHandler(INTENT_CLAIM_CREATE);
+                            if (!handler) {
+                                throw new Error(`Missing intent handler: ${INTENT_CLAIM_CREATE}`);
+                            }
+                            handler(intentCtx, cmd);
+                        }
+                        break;
+                    case 'CLAIM_UPDATE':
+                        {
+                            const handler = modules.getIntentHandler(INTENT_CLAIM_UPDATE);
+                            if (!handler) {
+                                throw new Error(`Missing intent handler: ${INTENT_CLAIM_UPDATE}`);
+                            }
+                            handler(intentCtx, cmd);
+                        }
+                        break;
+                    case 'CLAIM_DELETE':
+                        {
+                            const handler = modules.getIntentHandler(INTENT_CLAIM_DELETE);
+                            if (!handler) {
+                                throw new Error(`Missing intent handler: ${INTENT_CLAIM_DELETE}`);
+                            }
+                            handler(intentCtx, cmd);
+                        }
+                        break;
+                    case 'LOOTMOVE':
+                        applyLootMoveCommand({ state, Kind: replication.Kind, Position, Target, player, cmd });
+                        break;
+                    case 'AGGRO':
+                        addMobHate({ state, mobAi, replication, mobId: cmd.mobId, playerId: player.id, hatePoints: 5 });
+                        break;
+                    case 'ATTACK':
+                        applyAttackCommand({ state, ctx, mobAi, replication, Target, cmd });
+                        break;
+                    case 'LOOT':
+                        applyLootCommand({
+                            state,
+                            ctx,
+                            combat,
+                            replication,
+                            effects,
+                            items,
+                            Position,
+                            world,
+                            player,
+                            cmd,
+                        });
+                        break;
+                    case 'TELEPORT':
+                        {
+                            const handler = modules.getIntentHandler(INTENT_DOOR_TELEPORT);
+                            if (!handler) {
+                                throw new Error(`Missing intent handler: ${INTENT_DOOR_TELEPORT}`);
+                            }
+                            handler(intentCtx, cmd);
+                        }
+                        break;
+                    case 'OPEN':
+                        applyOpenCommand({
+                            state,
+                            ctx,
+                            Kind: replication.Kind,
+                            Position,
+                            ChestLootTable: chests.ChestLootTable,
+                            world,
+                            player,
+                            cmd,
+                        });
+                        break;
+                    case 'CHECK':
+                        applyCheckCommand({
+                            world,
+                            MapId,
+                            player,
+                            cmd,
+                        });
+                        break;
+                    case 'ACHIEVEMENT':
+                        world.persistPlayerAchievementUnlock(
+                            resolvePlayerIdentityKey(player) ?? player.name,
+                            cmd.achievementId
+                        );
+                        break;
+                    case 'CHUNK_SUBSCRIBE': {
+                        const radius = Math.max(0, Math.min(8, cmd.radius));
+                        const center = {
+                            chunkX: cmd.chunkX,
+                            chunkY: cmd.chunkY,
+                        };
+                        const existing = chunkAoi.byPlayerId.get(player.id);
+                        const knownChunks = existing?.knownChunks ?? new Set<string>();
+                        knownChunks.clear();
+                        const knownChunkVersions = existing?.knownChunkVersions ?? new Map<string, number>();
+                        knownChunkVersions.clear();
+                        const pendingChunkKeys = existing?.pendingChunkKeys ?? new Set<string>();
+                        pendingChunkKeys.clear();
+                        const pendingPriorityChunks = existing?.pendingPriorityChunks ?? [];
+                        pendingPriorityChunks.length = 0;
+                        const inFlightSnapshotKeys = existing?.inFlightSnapshotKeys ?? new Set<string>();
+                        inFlightSnapshotKeys.clear();
+
+                        const next: ChunkSubscription = {
+                            radius,
+                            lastMapId: null,
+                            lastCenterChunkX: center.chunkX,
+                            lastCenterChunkY: center.chunkY,
+                            pendingChunksHead: 0,
+                            pendingPriorityChunks,
+                            knownChunks,
+                            knownChunkVersions,
+                            pendingChunks: [],
+                            pendingChunkKeys,
+                            inFlightSnapshotKeys,
+                            pendingSnapshotPartsHead: 0,
+                            pendingSnapshotParts: [],
+                        };
+                        chunkAoi.byPlayerId.set(player.id, next);
+                        const mapId = resolveEntityMapId({ MapId, entityId: player.id, world });
+                        next.lastMapId = mapId;
+                        enqueueChunkAoiUpdates(next, mapId, center.chunkX, center.chunkY);
+                        break;
+                    }
+                    case 'CHUNK_UNSUBSCRIBE':
+                        chunkAoi.byPlayerId.delete(player.id);
+                        break;
+                    default:
+                        throw new Error('Unhandled inbound command type.');
                 }
-                case 'CHUNK_UNSUBSCRIBE':
-                    chunkAoi.byPlayerId.delete(player.id);
-                    break;
-                default:
-                    throw new Error('Unhandled inbound command type.');
-            }
             } catch (error) {
                 // Error boundary: one malformed or buggy command must not take
                 // the whole world down. Drop the command, log, keep ticking.
@@ -2408,7 +2459,10 @@ export class WorldEcsCommandPipeline {
         this.#maxInboundCommandQueue = resolveMaxInboundCommandQueueFromEnv();
         const chunkSizeRaw = chunkSize;
         const resolvedChunkSize =
-            typeof chunkSizeRaw === 'number' && Number.isInteger(chunkSizeRaw) && chunkSizeRaw > 0 && chunkSizeRaw <= 256
+            typeof chunkSizeRaw === 'number' &&
+            Number.isInteger(chunkSizeRaw) &&
+            chunkSizeRaw > 0 &&
+            chunkSizeRaw <= 256
                 ? chunkSizeRaw
                 : DEFAULT_CHUNK_SIZE;
         this.chunkOverlays = new ChunkOverlayStore({ chunkSize: resolvedChunkSize });
@@ -2552,8 +2606,7 @@ export class WorldEcsCommandPipeline {
                 if (!force && ctx.tick - lastSent < MOVE_SYNC_CADENCE_TICKS) {
                     return;
                 }
-                const ackSeq =
-                    seqState.lastAcceptedByPlayerId.get(playerId) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
+                const ackSeq = seqState.lastAcceptedByPlayerId.get(playerId) ?? INTENT_SEQ_INITIAL_LAST_ACCEPTED;
                 const playerMapId = resolveEntityMapId({ MapId, entityId: playerId, world: this.#world });
                 outbox.push({
                     kind: 'to_player',
@@ -2659,10 +2712,12 @@ export class WorldEcsCommandPipeline {
                     state.world.removeComponent(playerId, MoveSpeedRemainder);
                     continue;
                 }
-                const mapWidthTiles = resolvePositiveIntegerOrNull(mapForPlayer.width)
-                    ?? resolvePositiveIntegerOrNull(mapForPlayer.grid?.[0]?.length);
-                const mapHeightTiles = resolvePositiveIntegerOrNull(mapForPlayer.height)
-                    ?? resolvePositiveIntegerOrNull(mapForPlayer.grid?.length);
+                const mapWidthTiles =
+                    resolvePositiveIntegerOrNull(mapForPlayer.width) ??
+                    resolvePositiveIntegerOrNull(mapForPlayer.grid?.[0]?.length);
+                const mapHeightTiles =
+                    resolvePositiveIntegerOrNull(mapForPlayer.height) ??
+                    resolvePositiveIntegerOrNull(mapForPlayer.grid?.length);
                 const isBlockedTile = (x: number, y: number) =>
                     !isValidPositionInMap({ world: this.#world, mapId: currentMapId, x, y });
 
@@ -2821,12 +2876,14 @@ export class WorldEcsCommandPipeline {
                 }
 
                 // Safety invariant: never commit penetration into blocked geometry.
-                if (worldPosOverlapsBlockedTiles({
-                    pos: nextSub,
-                    halfExtents: PLAYER_HALF_EXTENTS,
-                    isBlockedTile,
-                    ignoreTiles: allowedBlockedOverlapTiles,
-                })) {
+                if (
+                    worldPosOverlapsBlockedTiles({
+                        pos: nextSub,
+                        halfExtents: PLAYER_HALF_EXTENTS,
+                        isBlockedTile,
+                        ignoreTiles: allowedBlockedOverlapTiles,
+                    })
+                ) {
                     pushMoveSync(playerId, posSub, 1, false);
                     continue;
                 }
@@ -2857,7 +2914,11 @@ export class WorldEcsCommandPipeline {
                     }
                     occupiedBy.set(positionKey(currentMapId, nextGrid.x, nextGrid.y), playerId);
 
-                    outbox.push({ kind: 'to_player', playerId, action: buildMoveAction(playerId, nextGrid.x, nextGrid.y) });
+                    outbox.push({
+                        kind: 'to_player',
+                        playerId,
+                        action: buildMoveAction(playerId, nextGrid.x, nextGrid.y),
+                    });
                     pushMoveSync(playerId, nextSub, 0, true);
                     enqueueEntityState(playerId, currentMapId, nextGrid);
 
@@ -3151,10 +3212,12 @@ export class WorldEcsCommandPipeline {
                 if (!mapForMob) {
                     continue;
                 }
-                const mapWidthTiles = resolvePositiveIntegerOrNull(mapForMob.width)
-                    ?? resolvePositiveIntegerOrNull(mapForMob.grid?.[0]?.length);
-                const mapHeightTiles = resolvePositiveIntegerOrNull(mapForMob.height)
-                    ?? resolvePositiveIntegerOrNull(mapForMob.grid?.length);
+                const mapWidthTiles =
+                    resolvePositiveIntegerOrNull(mapForMob.width) ??
+                    resolvePositiveIntegerOrNull(mapForMob.grid?.[0]?.length);
+                const mapHeightTiles =
+                    resolvePositiveIntegerOrNull(mapForMob.height) ??
+                    resolvePositiveIntegerOrNull(mapForMob.grid?.length);
                 const isBlockedTile = (x: number, y: number) =>
                     !isValidPositionInMap({ world: this.#world, mapId: mobMapId, x, y });
 
@@ -3187,7 +3250,8 @@ export class WorldEcsCommandPipeline {
                     }
 
                     const baseSpeed = getMoveSpeedSubpxPerTick(mobId, mobKind);
-                    const stepSpeed = dxTile !== 0 && dyTile !== 0 ? Math.floor((baseSpeed * DIAG_NUM) / DIAG_DEN) : baseSpeed;
+                    const stepSpeed =
+                        dxTile !== 0 && dyTile !== 0 ? Math.floor((baseSpeed * DIAG_NUM) / DIAG_DEN) : baseSpeed;
                     if (stepSpeed <= 0) {
                         return;
                     }
@@ -3202,7 +3266,10 @@ export class WorldEcsCommandPipeline {
                     subNow = resolved.pos;
 
                     // Snap to tile center when sufficiently close (prevents endless residual drift due to rounding).
-                    if (Math.abs(targetCenter.x - subNow.x) <= stepSpeed && Math.abs(targetCenter.y - subNow.y) <= stepSpeed) {
+                    if (
+                        Math.abs(targetCenter.x - subNow.x) <= stepSpeed &&
+                        Math.abs(targetCenter.y - subNow.y) <= stepSpeed
+                    ) {
                         subNow = targetCenter;
                         state.world.removeComponent(mobId, MobMoveGoal);
                         goal = undefined;
@@ -3229,7 +3296,10 @@ export class WorldEcsCommandPipeline {
                         occupiedBy.set(positionKey(mobMapId, nextGrid.x, nextGrid.y), mobId);
                     }
 
-                    const scopedGroupId = mapScopedGroupKey(mobMapId, mapForMob.getGroupIdFromPosition(nextGrid.x, nextGrid.y));
+                    const scopedGroupId = mapScopedGroupKey(
+                        mobMapId,
+                        mapForMob.getGroupIdFromPosition(nextGrid.x, nextGrid.y)
+                    );
                     const batches = state.resources.require(ENTITY_STATE_BATCH_RESOURCE);
                     const bucket = batches.get(scopedGroupId);
                     const entry = { x: nextGrid.x, y: nextGrid.y, flags: 0 };
@@ -3496,9 +3566,10 @@ export class WorldEcsCommandPipeline {
 
     syncSpawnReplicationEntity(entity: LegacySpawnReplicationEntity): void {
         syncSpawnReplicationFromLegacyEntity(this.state.world, this.replication, entity);
-        const mapId = typeof entity.mapId === 'string' && entity.mapId.trim().length > 0
-            ? entity.mapId
-            : resolveDefaultMapId(this.#world);
+        const mapId =
+            typeof entity.mapId === 'string' && entity.mapId.trim().length > 0
+                ? entity.mapId
+                : resolveDefaultMapId(this.#world);
         this.state.world.addComponent(entity.id, this.MapId, mapId);
     }
 
@@ -3542,7 +3613,11 @@ export class WorldEcsCommandPipeline {
         orientation?: number;
     }): void {
         this.seedItemFromSpawn({ id, kind, x, y, mapId });
-        this.state.world.addComponent(id, this.replication.Orientation, orientation ?? resolveDeterministicOrientation(id));
+        this.state.world.addComponent(
+            id,
+            this.replication.Orientation,
+            orientation ?? resolveDeterministicOrientation(id)
+        );
         this.state.world.addComponent(id, this.mobAi.MobSpawnPos, gridPos(spawnX, spawnY));
 
         const prefab = requireMobPrefab(kind);
@@ -3758,7 +3833,8 @@ export class WorldEcsCommandPipeline {
             overlays: this.state.resources.require(CHUNK_OVERLAY_STORE_RESOURCE),
             chunkAoi: this.state.resources.require(CHUNK_AOI_STATE_RESOURCE),
             getPlayerPosition: (playerId) => this.Position.store.get(playerId),
-            getPlayerMapId: (playerId) => resolveEntityMapId({ MapId: this.MapId, entityId: playerId, world: this.#world }),
+            getPlayerMapId: (playerId) =>
+                resolveEntityMapId({ MapId: this.MapId, entityId: playerId, world: this.#world }),
             maxChunkSnapshotPayloadUtf8Bytes: this.#maxChunkSnapshotPayloadUtf8Bytes,
             maxChunkSnapshotParts: this.#maxChunkSnapshotParts,
             maxSnapshotsPerTickPerPlayer: MAX_CHUNK_SNAPSHOTS_PER_TICK_PER_PLAYER,

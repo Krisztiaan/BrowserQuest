@@ -38,7 +38,9 @@ test('protocol schema accepts HELLO capability extension and new INTENT envelope
 
     const payloadBytes = encodeMoveStepIntentPayload(gridPos(1, 2));
     expect(payloadBytes).not.toBeNull();
-    expect(checkClientToServerProtocolAction([Types.Messages.INTENT, 5, 'move.step', payloadBytes as number[]])).toBe(true);
+    expect(checkClientToServerProtocolAction([Types.Messages.INTENT, 5, 'move.step', payloadBytes as number[]])).toBe(
+        true
+    );
 });
 
 test('protocol schema rejects legacy C2S HIT/HURT actions', () => {
@@ -52,7 +54,9 @@ test('protocol schema accepts WELCOME capability extension and new OUTCOME/REJEC
     expect(isServerToClientProtocolAction([Types.Messages.WELCOME, 1, 'name', 2, 3, 100, 2, capsJson])).toBe(true);
 
     expect(isServerToClientProtocolAction([Types.Messages.OUTCOME, 7, 'teleport.door', '{"x":10,"y":10}'])).toBe(true);
-    expect(isServerToClientProtocolAction([Types.Messages.REJECT, 7, 'future.intent', 'Unknown intentTypeId'])).toBe(true);
+    expect(isServerToClientProtocolAction([Types.Messages.REJECT, 7, 'future.intent', 'Unknown intentTypeId'])).toBe(
+        true
+    );
 });
 
 test('client stores server capabilities from extended WELCOME and ignores unrecognized OUTCOME (logs once)', () => {

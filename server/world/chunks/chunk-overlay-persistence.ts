@@ -61,7 +61,9 @@ export class SqliteChunkOverlayPersistence {
         this.#migrateLegacySchemaIfNeeded();
         this.#db.exec(`CREATE INDEX IF NOT EXISTS chunk_overlays_updated_at ON chunk_overlays(updated_at)`);
         this.#db.exec(`CREATE INDEX IF NOT EXISTS chunk_overlays_map_id ON chunk_overlays(map_id)`);
-        this.#db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS chunk_overlays_map_coords ON chunk_overlays(map_id, chunk_x, chunk_y)`);
+        this.#db.exec(
+            `CREATE UNIQUE INDEX IF NOT EXISTS chunk_overlays_map_coords ON chunk_overlays(map_id, chunk_x, chunk_y)`
+        );
 
         this.#upsertOverlay = this.#db.prepare(`
             INSERT INTO chunk_overlays
@@ -96,13 +98,20 @@ export class SqliteChunkOverlayPersistence {
     }
 
     #migrateLegacySchemaIfNeeded(): void {
-        const overlayColumns = this.#db.query("PRAGMA table_info('chunk_overlays')").all() as Array<{ name?: string; pk?: number }>;
+        const overlayColumns = this.#db.query("PRAGMA table_info('chunk_overlays')").all() as Array<{
+            name?: string;
+            pk?: number;
+        }>;
         const hasMapId = overlayColumns.some((column) => column.name === 'map_id');
         const pkColumns = overlayColumns
             .filter((column) => Number.isInteger(column.pk) && (column.pk ?? 0) > 0)
             .sort((a, b) => (a.pk ?? 0) - (b.pk ?? 0))
             .map((column) => column.name ?? '');
-        const hasDesiredPrimaryKey = pkColumns.length === 3 && pkColumns[0] === 'map_id' && pkColumns[1] === 'chunk_x' && pkColumns[2] === 'chunk_y';
+        const hasDesiredPrimaryKey =
+            pkColumns.length === 3 &&
+            pkColumns[0] === 'map_id' &&
+            pkColumns[1] === 'chunk_x' &&
+            pkColumns[2] === 'chunk_y';
         if (hasMapId && hasDesiredPrimaryKey) {
             return;
         }
@@ -222,7 +231,12 @@ export class SqliteChunkOverlayPersistence {
         return { loaded };
     }
 
-    loadChunkIntoStore(store: ChunkOverlayStore, chunkX: number, chunkY: number, mapId = 'world_01'): { loaded: boolean } {
+    loadChunkIntoStore(
+        store: ChunkOverlayStore,
+        chunkX: number,
+        chunkY: number,
+        mapId = 'world_01'
+    ): { loaded: boolean } {
         if (!Number.isSafeInteger(chunkX) || !Number.isSafeInteger(chunkY)) {
             throw new Error(`loadChunkIntoStore: invalid chunk coords: (${String(chunkX)}, ${String(chunkY)})`);
         }
@@ -255,7 +269,9 @@ export class SqliteChunkOverlayPersistence {
 
         const mapId = typeof row.map_id === 'string' && row.map_id.trim().length > 0 ? row.map_id : 'world_01';
         const chunk = store.getOrCreateChunk(row.chunk_x, row.chunk_y, mapId);
-        const valuesView = new Uint32Array(valuesBlob.buffer.slice(valuesBlob.byteOffset, valuesBlob.byteOffset + valuesBlob.byteLength));
+        const valuesView = new Uint32Array(
+            valuesBlob.buffer.slice(valuesBlob.byteOffset, valuesBlob.byteOffset + valuesBlob.byteLength)
+        );
         chunk.values.set(valuesView);
         chunk.present.set(presentBlob);
         chunk.version = row.version >>> 0;

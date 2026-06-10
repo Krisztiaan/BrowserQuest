@@ -5,7 +5,11 @@ import type { EntityId } from '../../../shared/domain/ids';
 import type { GridPos } from '../../../shared/domain/positions';
 import type { Queue } from '../../ecs/queues';
 import type { OutboxMessage } from '../../ecs/outbox';
-import { buildChunkDeltaAction, buildChunkSnapshotAction, buildChunkSnapshotPartAction } from '../../protocol/outbound-actions';
+import {
+    buildChunkDeltaAction,
+    buildChunkSnapshotAction,
+    buildChunkSnapshotPartAction,
+} from '../../protocol/outbound-actions';
 import { encodeChunkDeltaPayloadBinary } from '../../../shared/protocol/chunks/chunk-delta-codec';
 import {
     encodeChunkSnapshotPayloadBinary,
@@ -153,7 +157,12 @@ function iterPendingChunks(sub: ChunkSubscription, each: (entry: PendingChunkEnt
     }
 }
 
-function clearChunkSubscriptionState(sub: ChunkSubscription, mapId: string, centerChunkX: number | null, centerChunkY: number | null): void {
+function clearChunkSubscriptionState(
+    sub: ChunkSubscription,
+    mapId: string,
+    centerChunkX: number | null,
+    centerChunkY: number | null
+): void {
     sub.lastMapId = mapId;
     sub.lastCenterChunkX = centerChunkX;
     sub.lastCenterChunkY = centerChunkY;
@@ -191,11 +200,11 @@ function enforcePendingSnapshotStreamBounds(sub: ChunkSubscription): void {
         }
 
         if (
-            stream.mapId !== sub.lastMapId
-            || !isChunkInAoiWindow(stream.chunkX, stream.chunkY, sub.lastCenterChunkX, sub.lastCenterChunkY, sub.radius)
-            || keys.has(stream.key)
-            || kept.length >= MAX_PENDING_SNAPSHOT_STREAMS_PER_PLAYER
-            || totalParts + stream.parts.length > MAX_PENDING_SNAPSHOT_PARTS_PER_PLAYER
+            stream.mapId !== sub.lastMapId ||
+            !isChunkInAoiWindow(stream.chunkX, stream.chunkY, sub.lastCenterChunkX, sub.lastCenterChunkY, sub.radius) ||
+            keys.has(stream.key) ||
+            kept.length >= MAX_PENDING_SNAPSHOT_STREAMS_PER_PLAYER ||
+            totalParts + stream.parts.length > MAX_PENDING_SNAPSHOT_PARTS_PER_PLAYER
         ) {
             continue;
         }
@@ -224,7 +233,12 @@ export function enqueueSnapshotPartStream(
     return sub.inFlightSnapshotKeys.has(stream.key);
 }
 
-export function pruneChunkSubscriptionWindow(sub: ChunkSubscription, mapId: string, centerChunkX: number, centerChunkY: number): void {
+export function pruneChunkSubscriptionWindow(
+    sub: ChunkSubscription,
+    mapId: string,
+    centerChunkX: number,
+    centerChunkY: number
+): void {
     for (const key of sub.knownChunks) {
         if (!key.startsWith(`${mapId}:`)) {
             sub.knownChunks.delete(key);
@@ -306,7 +320,12 @@ export function enqueuePendingChunk(
     return sub.pendingChunkKeys.has(key);
 }
 
-export function enqueueChunkAoiUpdates(sub: ChunkSubscription, mapId: string, centerChunkX: number, centerChunkY: number): void {
+export function enqueueChunkAoiUpdates(
+    sub: ChunkSubscription,
+    mapId: string,
+    centerChunkX: number,
+    centerChunkY: number
+): void {
     const radius = sub.radius;
     for (let dy = -radius; dy <= radius; dy += 1) {
         for (let dx = -radius; dx <= radius; dx += 1) {
@@ -315,7 +334,11 @@ export function enqueueChunkAoiUpdates(sub: ChunkSubscription, mapId: string, ce
     }
 }
 
-export function extractOverrides(present: Uint8Array, values: Uint32Array, size: number): Array<[number, number, number]> {
+export function extractOverrides(
+    present: Uint8Array,
+    values: Uint32Array,
+    size: number
+): Array<[number, number, number]> {
     const overrides: Array<[number, number, number]> = [];
     const cellCount = size * size;
     for (let i = 0; i < cellCount; i += 1) {
@@ -646,7 +669,13 @@ export function replicateChunkDeltas({
             outbox.push({
                 kind: 'to_player',
                 playerId,
-                action: buildChunkDeltaAction(chunk.chunkX, chunk.chunkY, delta.fromVersion, delta.toVersion, payloadBytes),
+                action: buildChunkDeltaAction(
+                    chunk.chunkX,
+                    chunk.chunkY,
+                    delta.fromVersion,
+                    delta.toVersion,
+                    payloadBytes
+                ),
             });
             sub.knownChunkVersions.set(key, delta.toVersion);
         }

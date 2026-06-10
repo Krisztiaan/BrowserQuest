@@ -51,7 +51,9 @@ export function isDebugFlagEnabled(flag: DebugFlag): boolean {
         if (readGlobalDebugFlag('__BQ_DEBUG_CLICKS__')) {
             return true;
         }
-        return readQueryFlag('debugClicks') || readQueryFlag('bqDebugClicks') || readLocalStorageFlag('bq_debug_clicks');
+        return (
+            readQueryFlag('debugClicks') || readQueryFlag('bqDebugClicks') || readLocalStorageFlag('bq_debug_clicks')
+        );
     }
 
     if (flag === 'moves') {

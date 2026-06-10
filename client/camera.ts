@@ -70,16 +70,16 @@ class Camera {
 
     lookAt(entity: CameraEntity): void {
         const r = this.renderer;
-        const x = Math.round(entity.x - (Math.floor(this.gridW / 2) * r.tilesize));
-        const y = Math.round(entity.y - (Math.floor(this.gridH / 2) * r.tilesize));
+        const x = Math.round(entity.x - Math.floor(this.gridW / 2) * r.tilesize);
+        const y = Math.round(entity.y - Math.floor(this.gridH / 2) * r.tilesize);
 
         this.setPosition(x, y);
     }
 
     forEachVisiblePosition(callback: (x: number, y: number) => void, extra?: number): void {
         const extraRange = extra ?? 0;
-        for (let y = this.gridY - extraRange, maxY = this.gridY + this.gridH + (extraRange * 2); y < maxY; y += 1) {
-            for (let x = this.gridX - extraRange, maxX = this.gridX + this.gridW + (extraRange * 2); x < maxX; x += 1) {
+        for (let y = this.gridY - extraRange, maxY = this.gridY + this.gridH + extraRange * 2; y < maxY; y += 1) {
+            for (let x = this.gridX - extraRange, maxX = this.gridX + this.gridW + extraRange * 2; x < maxX; x += 1) {
                 callback(x, y);
             }
         }
@@ -90,12 +90,7 @@ class Camera {
     }
 
     isVisiblePosition(x: number, y: number): boolean {
-        if (
-            y >= this.gridY
-            && y < this.gridY + this.gridH
-            && x >= this.gridX
-            && x < this.gridX + this.gridW
-        ) {
+        if (y >= this.gridY && y < this.gridY + this.gridH && x >= this.gridX && x < this.gridX + this.gridW) {
             return true;
         }
         return false;

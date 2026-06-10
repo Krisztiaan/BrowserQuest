@@ -55,8 +55,7 @@ function parsePositiveIntegerLike(value: unknown, label: string): number {
 function collectTilesetTargets(root: UnknownRecord): TilesetTarget[] {
     const targets: TilesetTarget[] = [];
     const looksLikeTileset =
-        asArray(root.tilesets).length === 0
-        && (asInteger(root.tilecount) !== null || asArray(root.tiles).length > 0);
+        asArray(root.tilesets).length === 0 && (asInteger(root.tilecount) !== null || asArray(root.tiles).length > 0);
     if (looksLikeTileset) {
         targets.push({ scope: 'tileset-root', tileset: root });
         return targets;

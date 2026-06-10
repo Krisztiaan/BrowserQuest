@@ -96,14 +96,14 @@ export class ClientChunkOverlayCache {
             }
             const [localX, localY, value] = entry;
             if (
-                !Number.isInteger(localX)
-                || !Number.isInteger(localY)
-                || !Number.isInteger(value)
-                || localX < 0
-                || localY < 0
-                || localX >= chunkSize
-                || localY >= chunkSize
-                || value < 0
+                !Number.isInteger(localX) ||
+                !Number.isInteger(localY) ||
+                !Number.isInteger(value) ||
+                localX < 0 ||
+                localY < 0 ||
+                localX >= chunkSize ||
+                localY >= chunkSize ||
+                value < 0
             ) {
                 continue;
             }
@@ -131,15 +131,15 @@ export class ClientChunkOverlayCache {
         overrides: ClientChunkSnapshotOverride[];
     }): { applied: boolean } {
         if (
-            !Number.isInteger(chunkX)
-            || !Number.isInteger(chunkY)
-            || !Number.isInteger(version)
-            || version < 0
-            || !Number.isInteger(partIndex)
-            || !Number.isInteger(partCount)
-            || partIndex < 0
-            || partCount <= 0
-            || partIndex >= partCount
+            !Number.isInteger(chunkX) ||
+            !Number.isInteger(chunkY) ||
+            !Number.isInteger(version) ||
+            version < 0 ||
+            !Number.isInteger(partIndex) ||
+            !Number.isInteger(partCount) ||
+            partIndex < 0 ||
+            partCount <= 0 ||
+            partIndex >= partCount
         ) {
             return { applied: false };
         }
@@ -163,10 +163,10 @@ export class ClientChunkOverlayCache {
             return { applied: false };
         }
         if (
-            pending.version !== (version >>> 0)
-            || pending.partCount !== partCount
-            || pending.chunkSize !== chunkSize
-            || pending.nextPartIndex !== partIndex
+            pending.version !== version >>> 0 ||
+            pending.partCount !== partCount ||
+            pending.chunkSize !== chunkSize ||
+            pending.nextPartIndex !== partIndex
         ) {
             this.#pendingSnapshotParts.delete(key);
             return { applied: false };
@@ -203,12 +203,12 @@ export class ClientChunkOverlayCache {
         changes: ClientChunkDeltaChange[];
     }): boolean {
         if (
-            !Number.isInteger(chunkX)
-            || !Number.isInteger(chunkY)
-            || !Number.isInteger(fromVersion)
-            || !Number.isInteger(toVersion)
-            || fromVersion < 0
-            || toVersion < 0
+            !Number.isInteger(chunkX) ||
+            !Number.isInteger(chunkY) ||
+            !Number.isInteger(fromVersion) ||
+            !Number.isInteger(toVersion) ||
+            fromVersion < 0 ||
+            toVersion < 0
         ) {
             return false;
         }
@@ -220,7 +220,7 @@ export class ClientChunkOverlayCache {
         if (!chunk) {
             return false;
         }
-        if (chunk.version !== (fromVersion >>> 0)) {
+        if (chunk.version !== fromVersion >>> 0) {
             return false;
         }
 
@@ -231,12 +231,12 @@ export class ClientChunkOverlayCache {
             }
             const [localX, localY, value] = entry;
             if (
-                !Number.isInteger(localX)
-                || !Number.isInteger(localY)
-                || localX < 0
-                || localY < 0
-                || localX >= chunkSize
-                || localY >= chunkSize
+                !Number.isInteger(localX) ||
+                !Number.isInteger(localY) ||
+                localX < 0 ||
+                localY < 0 ||
+                localX >= chunkSize ||
+                localY >= chunkSize
             ) {
                 continue;
             }

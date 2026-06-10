@@ -1,10 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
 import { loginWithPasskey, logoutPasskeySession, registerWithPasskey } from '../../client/auth';
-import {
-    STORAGE_KEY,
-    readUsernameCookie,
-    writeUsernameCookie,
-} from '../../client/storage';
+import { STORAGE_KEY, readUsernameCookie, writeUsernameCookie } from '../../client/storage';
 
 type JsonPrimitive = string | number | boolean | null;
 type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
@@ -130,8 +126,7 @@ function installWebAuthnMocks({
     getResult?: Credential | null;
 }): void {
     const credentialClass = FakePublicKeyCredential as typeof PublicKeyCredential;
-    const win = (originalWindow as { PublicKeyCredential?: typeof PublicKeyCredential } | undefined) ?? {
-    };
+    const win = (originalWindow as { PublicKeyCredential?: typeof PublicKeyCredential } | undefined) ?? {};
     const windowWithCredential = win as {
         PublicKeyCredential?: typeof PublicKeyCredential;
     };

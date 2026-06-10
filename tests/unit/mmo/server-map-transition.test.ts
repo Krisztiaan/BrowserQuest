@@ -101,10 +101,7 @@ function seedPlayer({
     pipeline.state.world.addComponent(player.id, pipeline.combat.MaxHitPoints, 100);
 }
 
-function hasPlayerMessage(
-    messages: WorldMessage[],
-    predicate: (msg: WorldMessage) => boolean
-): boolean {
+function hasPlayerMessage(messages: WorldMessage[], predicate: (msg: WorldMessage) => boolean): boolean {
     return messages.some((msg) => predicate(msg));
 }
 
@@ -224,19 +221,19 @@ test('door transition moves player across maps and updates interest visibility',
     expect(
         transitionEvents.some(
             (event) =>
-                event.kind === 'begin'
-                && event.playerId === mover.id
-                && event.fromMapId === 'overworld'
-                && event.toMapId === 'house'
+                event.kind === 'begin' &&
+                event.playerId === mover.id &&
+                event.fromMapId === 'overworld' &&
+                event.toMapId === 'house'
         )
     ).toBe(true);
     expect(
         transitionEvents.some(
             (event) =>
-                event.kind === 'commit'
-                && event.playerId === mover.id
-                && event.fromMapId === 'overworld'
-                && event.toMapId === 'house'
+                event.kind === 'commit' &&
+                event.playerId === mover.id &&
+                event.fromMapId === 'overworld' &&
+                event.toMapId === 'house'
         )
     ).toBe(true);
 });
@@ -336,11 +333,11 @@ test('door transition rejects invalid destination maps/tiles', () => {
     expect(
         transitionEvents.some(
             (event) =>
-                event.kind === 'reject'
-                && event.reason === 'invalid_destination'
-                && event.playerId === mover.id
-                && event.fromMapId === 'overworld'
-                && event.toMapId === 'house'
+                event.kind === 'reject' &&
+                event.reason === 'invalid_destination' &&
+                event.playerId === mover.id &&
+                event.fromMapId === 'overworld' &&
+                event.toMapId === 'house'
         )
     ).toBe(true);
 });

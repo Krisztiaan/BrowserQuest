@@ -55,9 +55,11 @@ export function classifyInterpolationDivergence({
 }
 
 export function isSnapVisualDivergenceClass(divergenceClass: VisualDivergenceClass): boolean {
-    return divergenceClass === 'suppressed_resync'
-        || divergenceClass === 'remote_discontinuity'
-        || divergenceClass === 'teleport';
+    return (
+        divergenceClass === 'suppressed_resync' ||
+        divergenceClass === 'remote_discontinuity' ||
+        divergenceClass === 'teleport'
+    );
 }
 
 export function resolveVisualMoveModeForDivergenceClass(divergenceClass: VisualDivergenceClass): VisualMoveMode {

@@ -231,9 +231,13 @@ class Entity<TEvents extends MergeEvents<EntityEvents, TypedEventMap> = EntityEv
                     this.currentAnimation.reset();
                 }
                 this.currentAnimation.setSpeed(speed);
-                this.currentAnimation.setCount(count ?? 0, onEndCount ?? (() => {
-                    this.idle();
-                }));
+                this.currentAnimation.setCount(
+                    count ?? 0,
+                    onEndCount ??
+                        (() => {
+                            this.idle();
+                        })
+                );
             }
         } else {
             this.log_error('Not ready for animation');

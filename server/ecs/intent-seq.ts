@@ -10,4 +10,3 @@ export const INTENT_SEQ_STATE_RESOURCE = createResourceKey<IntentSeqState>('inte
 export function createIntentSeqState(): IntentSeqState {
     return { lastAcceptedByPlayerId: new Map() };
 }
-

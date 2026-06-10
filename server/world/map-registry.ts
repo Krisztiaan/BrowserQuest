@@ -141,13 +141,13 @@ export class WorldMapRegistry {
     isValidPosition(mapId: string, x: number, y: number): boolean {
         const map = this.getMapById(mapId);
         return Boolean(
-            map
-            && typeof x === 'number'
-            && typeof y === 'number'
-            && Number.isFinite(x)
-            && Number.isFinite(y)
-            && !map.isOutOfBounds(x, y)
-            && !map.isColliding(x, y)
+            map &&
+            typeof x === 'number' &&
+            typeof y === 'number' &&
+            Number.isFinite(x) &&
+            Number.isFinite(y) &&
+            !map.isOutOfBounds(x, y) &&
+            !map.isColliding(x, y)
         );
     }
 

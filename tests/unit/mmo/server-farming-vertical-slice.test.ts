@@ -146,7 +146,11 @@ function createHarness({ claimsDbPath, chunkDbPath }: { claimsDbPath: string; ch
         },
         ensureChunkOverlayLoadedForTile(x: number, y: number) {
             const chunkSize = pipeline.chunkOverlays.chunkSize;
-            return chunkPersistence.loadChunkIntoStore(pipeline.chunkOverlays, Math.floor(x / chunkSize), Math.floor(y / chunkSize)).loaded;
+            return chunkPersistence.loadChunkIntoStore(
+                pipeline.chunkOverlays,
+                Math.floor(x / chunkSize),
+                Math.floor(y / chunkSize)
+            ).loaded;
         },
     };
 
@@ -216,7 +220,9 @@ function hasAck(messages: WorldMessage[] | undefined, seq: number): boolean {
     if (!messages) {
         return false;
     }
-    return messages.some((message) => Array.isArray(message) && message[0] === Types.Messages.ACK && message[1] === seq);
+    return messages.some(
+        (message) => Array.isArray(message) && message[0] === Types.Messages.ACK && message[1] === seq
+    );
 }
 
 test('farming vertical slice: delegated claim edits persist and survive restart', () => {

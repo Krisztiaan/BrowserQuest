@@ -119,9 +119,10 @@ export async function ensureMapPreflightValid({
         }
         const mapValidation = await validateMapPayloadFn(entry.server);
         if (!mapValidation.ok) {
-            const reason = typeof mapValidation.reason === 'string' && mapValidation.reason.length > 0
-                ? mapValidation.reason
-                : 'invalid map payload';
+            const reason =
+                typeof mapValidation.reason === 'string' && mapValidation.reason.length > 0
+                    ? mapValidation.reason
+                    : 'invalid map payload';
             emitError(
                 `Startup preflight: map pack contains invalid server map payload: ${mapFilePath} (mapId=${entry.id}, ${reason})`
             );

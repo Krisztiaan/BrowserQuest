@@ -74,4 +74,3 @@ test('findBestPathToCandidates can choose a diagonal-adjacent stop tile when all
     expect(best).not.toBeNull();
     expect(best?.at(-1)).toEqual([1, 1]);
 });
-

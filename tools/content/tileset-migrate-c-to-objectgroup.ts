@@ -35,9 +35,7 @@ function parseCsv(value: string): string[] {
 }
 
 function printUsage(): never {
-    console.log(
-        'Usage: bun tools/content/tileset-migrate-c-to-objectgroup.ts [--files <csv>] [--write]'
-    );
+    console.log('Usage: bun tools/content/tileset-migrate-c-to-objectgroup.ts [--files <csv>] [--write]');
     process.exit(0);
 }
 
@@ -80,8 +78,7 @@ function collectTilesetTargets(root: UnknownRecord): TilesetTarget[] {
     const rootTileHeight = asInteger(root.tileheight) ?? 16;
 
     const looksLikeTileset =
-        asArray(root.tilesets).length === 0
-        && (asInteger(root.tilecount) !== null || asArray(root.tiles).length > 0);
+        asArray(root.tilesets).length === 0 && (asInteger(root.tilecount) !== null || asArray(root.tiles).length > 0);
 
     if (looksLikeTileset) {
         targets.push({
@@ -181,7 +178,9 @@ async function main(): Promise<void> {
 
                 if (hadLegacyC) {
                     fileTilesWithLegacyC += 1;
-                    const filteredProperties = properties.filter((propertyRecord) => asString(propertyRecord.name) !== 'c');
+                    const filteredProperties = properties.filter(
+                        (propertyRecord) => asString(propertyRecord.name) !== 'c'
+                    );
                     fileRemovedLegacyCProperties += properties.length - filteredProperties.length;
                     if (filteredProperties.length > 0) {
                         tileRecord.properties = filteredProperties;

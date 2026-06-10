@@ -293,7 +293,11 @@ export class ClientWorldKernel {
     }
 
     clearClientMoveInput(): void {
-        if (this.clientMoveInputKeysMask === 0 && this.clientMoveInputRecentKeys.length === 0 && !this.clientMoveInputDirty) {
+        if (
+            this.clientMoveInputKeysMask === 0 &&
+            this.clientMoveInputRecentKeys.length === 0 &&
+            !this.clientMoveInputDirty
+        ) {
             return;
         }
         this.clientMoveInputKeysMask = 0;
@@ -657,7 +661,13 @@ export class ClientWorldKernel {
         }
     }
 
-    pushClientRemoteStateSnapshot(id: EntityId, worldX: number, worldY: number, tick: number, receivedAtMs: number): void {
+    pushClientRemoteStateSnapshot(
+        id: EntityId,
+        worldX: number,
+        worldY: number,
+        tick: number,
+        receivedAtMs: number
+    ): void {
         if (!this.alive.has(id)) {
             return;
         }
@@ -694,7 +704,11 @@ export class ClientWorldKernel {
         }
     }
 
-    getClientRemoteInterpolatedWorldPosition(id: EntityId, nowMs: number, interpolationDelayMs: number): WorldPos | null {
+    getClientRemoteInterpolatedWorldPosition(
+        id: EntityId,
+        nowMs: number,
+        interpolationDelayMs: number
+    ): WorldPos | null {
         const tuning = resolveClientMovementNetcodeConfig().tuning;
         const history = this.clientRemoteStateSnapshots.get(id);
         if (!history || history.length === 0) {
@@ -814,7 +828,6 @@ export class ClientWorldKernel {
         if (this.clientInteractionIntent?.targetId === id) {
             this.clientInteractionIntent = null;
         }
-
     }
 
     resetWorldState(): void {

@@ -35,4 +35,3 @@ test('TimeWheel honors maxJobs without scanning future jobs', () => {
     const second = wheel.drainDue(1);
     expect(second).toHaveLength(1);
 });
-

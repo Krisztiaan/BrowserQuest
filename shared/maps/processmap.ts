@@ -1,7 +1,7 @@
 import { ENTITY_KIND_DOMAIN, type EntityKindName } from '../entity-kind-domain';
 import Types from '../gametypes-browser';
 
-type ExportMode = "client" | "server";
+type ExportMode = 'client' | 'server';
 type ScalarValue = string | number | boolean | null;
 type MapFieldValue = ScalarValue | Array<number | undefined> | undefined;
 type MapRecord = Record<string, MapFieldValue>;
@@ -59,17 +59,17 @@ type TiledLayerBase = {
 };
 
 type TiledTileLayer = TiledLayerBase & {
-    type: "tilelayer";
+    type: 'tilelayer';
     data?: number[];
 };
 
 type TiledObjectLayer = TiledLayerBase & {
-    type: "objectgroup";
+    type: 'objectgroup';
     objects?: TiledObject[];
 };
 
 type TiledGroupLayer = TiledLayerBase & {
-    type: "group";
+    type: 'group';
     layers?: TiledLayer[];
 };
 
@@ -208,14 +208,14 @@ function isEntityKindName(value: string): value is EntityKindName {
 }
 
 function normalizeGid(value: number | string | boolean | null | undefined): number {
-    if (typeof value !== "number" || !Number.isFinite(value)) {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
         return 0;
     }
     return value & GLOBAL_TILE_ID_MASK;
 }
 
 function normalizeScalar(value: ScalarValue): ScalarValue {
-    if (typeof value !== "string") {
+    if (typeof value !== 'string') {
         return value;
     }
 
@@ -263,11 +263,11 @@ function getObjectClassName(object: TiledObject): string | undefined {
 }
 
 function isTileLayer(layer: TiledLayer): layer is TiledTileLayer {
-    return layer.type === "tilelayer";
+    return layer.type === 'tilelayer';
 }
 
 function isObjectLayer(layer: TiledLayer): layer is TiledObjectLayer {
-    return layer.type === "objectgroup";
+    return layer.type === 'objectgroup';
 }
 
 function isGroupLayer(layer: TiledLayer): layer is TiledGroupLayer {
@@ -367,16 +367,24 @@ function flattenTiledLayers(
                         : [...parent.groupPath],
                 inheritedProperties: mergeProperties(parent.inheritedProperties, layer.properties),
                 offsetX:
-                    parent.offsetX
-                    + (typeof layer.offsetx === 'number' && Number.isFinite(layer.offsetx) ? layer.offsetx : 0),
+                    parent.offsetX +
+                    (typeof layer.offsetx === 'number' && Number.isFinite(layer.offsetx) ? layer.offsetx : 0),
                 offsetY:
-                    parent.offsetY
-                    + (typeof layer.offsety === 'number' && Number.isFinite(layer.offsety) ? layer.offsety : 0),
+                    parent.offsetY +
+                    (typeof layer.offsety === 'number' && Number.isFinite(layer.offsety) ? layer.offsety : 0),
                 opacity:
-                    parent.opacity
-                    * (typeof layer.opacity === 'number' && Number.isFinite(layer.opacity) ? layer.opacity : 1),
+                    parent.opacity *
+                    (typeof layer.opacity === 'number' && Number.isFinite(layer.opacity) ? layer.opacity : 1),
             };
-            flattened.push(...flattenTiledLayers(Array.isArray(layer.layers) ? layer.layers : [], width, height, tileSize, nextContext));
+            flattened.push(
+                ...flattenTiledLayers(
+                    Array.isArray(layer.layers) ? layer.layers : [],
+                    width,
+                    height,
+                    tileSize,
+                    nextContext
+                )
+            );
             continue;
         }
 
@@ -391,7 +399,8 @@ function flattenTiledLayers(
             offsetX: effectiveOffsetX,
             offsetY: effectiveOffsetY,
             opacity:
-                parent.opacity * (typeof layer.opacity === 'number' && Number.isFinite(layer.opacity) ? layer.opacity : 1),
+                parent.opacity *
+                (typeof layer.opacity === 'number' && Number.isFinite(layer.opacity) ? layer.opacity : 1),
         };
 
         if (isTileLayer(layer)) {
@@ -401,7 +410,15 @@ function flattenTiledLayers(
                 properties: meta.inheritedProperties,
                 offsetx: 0,
                 offsety: 0,
-                data: shiftTileLayerData(layer.data, width, height, effectiveOffsetX, effectiveOffsetY, tileSize, layer.name),
+                data: shiftTileLayerData(
+                    layer.data,
+                    width,
+                    height,
+                    effectiveOffsetX,
+                    effectiveOffsetY,
+                    tileSize,
+                    layer.name
+                ),
                 _bqMeta: meta,
             });
             continue;
@@ -470,7 +487,7 @@ function toLayerTileData(layer: TiledTileLayer): number[] {
 }
 
 function toMode(value: string | undefined): ExportMode {
-    return value === "client" ? "client" : "server";
+    return value === 'client' ? 'client' : 'server';
 }
 
 function uniqueValidIndices(indices: number[], limit: number): number[] {
@@ -583,7 +600,11 @@ function parseTagList(value: ScalarValue | undefined): string[] | undefined {
     return tags.length > 0 ? [...new Set(tags)] : undefined;
 }
 
-function deriveNavigationIslands(width: number, height: number, blockedIndices: ReadonlyArray<number>): {
+function deriveNavigationIslands(
+    width: number,
+    height: number,
+    blockedIndices: ReadonlyArray<number>
+): {
     islandByTile: number[];
     islandCount: number;
     primaryIslandId: number;
@@ -670,10 +691,7 @@ function deriveNavigationIslands(width: number, height: number, blockedIndices: 
     };
 }
 
-export default function processMap(
-    json: TiledMapJson,
-    options: { mode?: string; quiet?: boolean }
-): ExportedMap {
+export default function processMap(json: TiledMapJson, options: { mode?: string; quiet?: boolean }): ExportedMap {
     const mode = toMode(options.mode);
     const quiet = options.quiet === true;
     const log = {
@@ -716,7 +734,7 @@ export default function processMap(
 
     const tiledLayers = flattenTiledLayers(rawLayers, map.width, map.height, tileSize);
 
-    if (mode === "client") {
+    if (mode === 'client') {
         map.data = [];
         map.foreground = [];
         map.animated = {};
@@ -725,14 +743,14 @@ export default function processMap(
         map.musicAreas = [];
     }
 
-    if (mode === "server") {
+    if (mode === 'server') {
         map.roamingAreas = [];
         map.chestAreas = [];
         map.staticChests = [];
         map.staticEntities = {};
     }
 
-    log.info("Processing map info...");
+    log.info('Processing map info...');
 
     const sortedTilesets = [...tiledTilesets]
         .filter((tileset) => typeof tileset.firstgid === 'number' && Number.isFinite(tileset.firstgid))
@@ -754,16 +772,20 @@ export default function processMap(
             lastgid,
             name: tileset.name,
             tileWidth:
-                typeof tileset.tilewidth === 'number' && Number.isFinite(tileset.tilewidth) ? tileset.tilewidth : tileSize,
+                typeof tileset.tilewidth === 'number' && Number.isFinite(tileset.tilewidth)
+                    ? tileset.tilewidth
+                    : tileSize,
             tileHeight:
-                typeof tileset.tileheight === 'number' && Number.isFinite(tileset.tileheight) ? tileset.tileheight : tileSize,
+                typeof tileset.tileheight === 'number' && Number.isFinite(tileset.tileheight)
+                    ? tileset.tileheight
+                    : tileSize,
             objectAlignment: resolveTileObjectAlignment(tileset.objectalignment),
         });
     }
 
     for (const tileset of tiledTilesets) {
-        if (tileset.name === "tilesheet" || tileset.name === "tilesheet-wang") {
-            log.info("Processing terrain properties...");
+        if (tileset.name === 'tilesheet' || tileset.name === 'tilesheet-wang') {
+            log.info('Processing terrain properties...');
             const tilesetFirstgid =
                 typeof tileset.firstgid === 'number' && Number.isFinite(tileset.firstgid) ? tileset.firstgid : 1;
             for (const tile of Array.isArray(tileset.tiles) ? tileset.tiles : []) {
@@ -775,7 +797,7 @@ export default function processMap(
                 if (isTruthy(getPropertyValue(tile, 'passable'))) {
                     passableTiles[tilePropertyId] = true;
                 }
-                if (mode === "client" && Array.isArray(tile.animation) && tile.animation.length > 0) {
+                if (mode === 'client' && Array.isArray(tile.animation) && tile.animation.length > 0) {
                     const firstFrame = tile.animation[0];
                     if (!firstFrame || !Number.isInteger(firstFrame.tileid) || firstFrame.tileid < 0) {
                         throw new Error(`Invalid tile animation start frame at tile id ${tile.id}.`);
@@ -826,13 +848,14 @@ export default function processMap(
             continue;
         }
 
-        if (tileset.name === "Mobs" && mode === "server") {
-            log.info("Processing static entity properties...");
-            mobsFirstgid = typeof tileset.firstgid === 'number' && Number.isFinite(tileset.firstgid) ? tileset.firstgid : 0;
+        if (tileset.name === 'Mobs' && mode === 'server') {
+            log.info('Processing static entity properties...');
+            mobsFirstgid =
+                typeof tileset.firstgid === 'number' && Number.isFinite(tileset.firstgid) ? tileset.firstgid : 0;
             mobsObjectAlignment = typeof tileset.objectalignment === 'string' ? tileset.objectalignment : 'unspecified';
             for (const tile of Array.isArray(tileset.tiles) ? tileset.tiles : []) {
-                const entityType = getPropertyValue(tile, "type");
-                if (typeof entityType === "string" && entityType.length > 0 && isEntityKindName(entityType)) {
+                const entityType = getPropertyValue(tile, 'type');
+                if (typeof entityType === 'string' && entityType.length > 0 && isEntityKindName(entityType)) {
                     staticEntityKindsByTileId[tile.id + 1] = entityType;
                 }
             }
@@ -840,12 +863,12 @@ export default function processMap(
     }
 
     if (tiledTilesets.length === 0) {
-        log.error("A tileset is missing");
+        log.error('A tileset is missing');
     }
 
-    const doorsLayer = tiledLayers.filter(isObjectLayer).find((layer) => layer.name === "doors");
+    const doorsLayer = tiledLayers.filter(isObjectLayer).find((layer) => layer.name === 'doors');
     if (doorsLayer && Array.isArray(doorsLayer.objects)) {
-        log.info("Processing doors...");
+        log.info('Processing doors...');
         for (const door of doorsLayer.objects) {
             // The door_kind property is the only source of portal semantics;
             // Tiled class naming is intentionally ignored.
@@ -877,18 +900,17 @@ export default function processMap(
             }
         }
 
-        if (objectLayer.name === "roaming_areas" && mode === "server") {
-            log.info("Processing roaming areas...");
+        if (objectLayer.name === 'roaming_areas' && mode === 'server') {
+            log.info('Processing roaming areas...');
             const roamingAreas = (map.roamingAreas ??= []);
             for (const [i, area] of (objectLayer.objects ?? []).entries()) {
-                const count = getPropertyValue(area, "count");
-                const mobKind = getPropertyValue(area, "mob_kind");
-                const resolvedMobKindId =
-                    typeof mobKind === 'string' ? Types.getKindFromString(mobKind) : undefined;
+                const count = getPropertyValue(area, 'count');
+                const mobKind = getPropertyValue(area, 'mob_kind');
+                const resolvedMobKindId = typeof mobKind === 'string' ? Types.getKindFromString(mobKind) : undefined;
                 const resolvedMobKind =
-                    typeof mobKind === 'string'
-                    && typeof resolvedMobKindId === 'number'
-                    && Types.isMob(resolvedMobKindId as Parameters<typeof Types.isMob>[0])
+                    typeof mobKind === 'string' &&
+                    typeof resolvedMobKindId === 'number' &&
+                    Types.isMob(resolvedMobKindId as Parameters<typeof Types.isMob>[0])
                         ? mobKind
                         : null;
                 if (resolvedMobKind === null) {
@@ -907,8 +929,8 @@ export default function processMap(
             continue;
         }
 
-        if (objectLayer.name === "chest_areas" && mode === "server") {
-            log.info("Processing chest areas...");
+        if (objectLayer.name === 'chest_areas' && mode === 'server') {
+            log.info('Processing chest areas...');
             const chestAreas = (map.chestAreas ??= []);
             for (const area of objectLayer.objects ?? []) {
                 const chestArea: MapRecord = {
@@ -919,15 +941,15 @@ export default function processMap(
                 };
 
                 for (const property of getProperties(area)) {
-                    if (property.name === "items") {
+                    if (property.name === 'items') {
                         chestArea.i = String(property.value)
-                            .split(",")
+                            .split(',')
                             .map((name) => name.trim())
                             .filter(Boolean)
                             .map((name) => Types.getKindFromString(name));
-                    } else if (property.name === "spawn_tx") {
+                    } else if (property.name === 'spawn_tx') {
                         chestArea.tx = normalizeScalar(property.value);
-                    } else if (property.name === "spawn_ty") {
+                    } else if (property.name === 'spawn_ty') {
                         chestArea.ty = normalizeScalar(property.value);
                     } else {
                         chestArea[`t${property.name}`] = normalizeScalar(property.value);
@@ -939,25 +961,22 @@ export default function processMap(
             continue;
         }
 
-        if (objectLayer.name === "chest_spawns" && mode === "server") {
-            log.info("Processing static chests...");
+        if (objectLayer.name === 'chest_spawns' && mode === 'server') {
+            log.info('Processing static chests...');
             const staticChests = (map.staticChests ??= []);
             for (const chest of objectLayer.objects ?? []) {
-                const items = getPropertyValue(chest, "items") ?? "";
-                const itemsCsv =
-                    typeof items === "string" ? items : typeof items === "number" ? String(items) : "";
+                const items = getPropertyValue(chest, 'items') ?? '';
+                const itemsCsv = typeof items === 'string' ? items : typeof items === 'number' ? String(items) : '';
                 staticChests.push({
                     x: chest.x / map.tilesize,
                     y: chest.y / map.tilesize,
                     i: itemsCsv
-                        .split(",")
+                        .split(',')
                         .map((name) => name.trim())
                         .filter(Boolean)
                         .map((name) => Types.getKindFromString(name))
                         .filter(
-                            (
-                                kind
-                            ): kind is Exclude<ReturnType<typeof Types.getKindFromString>, undefined> =>
+                            (kind): kind is Exclude<ReturnType<typeof Types.getKindFromString>, undefined> =>
                                 kind !== undefined
                         ),
                 });
@@ -965,8 +984,8 @@ export default function processMap(
             continue;
         }
 
-        if (objectLayer.name === "static_entities" && mode === "server") {
-            log.info("Processing static entity spawns...");
+        if (objectLayer.name === 'static_entities' && mode === 'server') {
+            log.info('Processing static entity spawns...');
             const staticEntities = (map.staticEntities ??= {});
             for (const spawn of objectLayer.objects ?? []) {
                 const resolvedKind = resolveStaticEntityKind(spawn);
@@ -988,24 +1007,24 @@ export default function processMap(
                 const tileY = Math.floor(spawn.y / map.tilesize);
                 if (tileX < 0 || tileY < 0 || tileX >= map.width || tileY >= map.height) {
                     const objectId = Number.isInteger(spawn.id) ? String(spawn.id) : 'no-id';
-                    throw new Error(`Static entity object ${objectId} in layer "static_entities" is out of map bounds.`);
+                    throw new Error(
+                        `Static entity object ${objectId} in layer "static_entities" is out of map bounds.`
+                    );
                 }
                 const tileIndex = tileY * map.width + tileX;
                 if (staticEntities[tileIndex] !== undefined) {
-                    throw new Error(
-                        `Duplicate static entity at tile (${tileX}, ${tileY}) in layer "static_entities".`
-                    );
+                    throw new Error(`Duplicate static entity at tile (${tileX}, ${tileY}) in layer "static_entities".`);
                 }
                 staticEntities[tileIndex] = resolvedKind;
             }
             continue;
         }
 
-        if (objectLayer.name === "music_zones" && mode === "client") {
-            log.info("Processing music areas...");
+        if (objectLayer.name === 'music_zones' && mode === 'client') {
+            log.info('Processing music areas...');
             const musicAreas = (map.musicAreas ??= []);
             for (const music of objectLayer.objects ?? []) {
-                const musicId = getPropertyValue(music, "track_id");
+                const musicId = getPropertyValue(music, 'track_id');
                 musicAreas.push({
                     x: music.x / map.tilesize,
                     y: music.y / map.tilesize,
@@ -1017,8 +1036,8 @@ export default function processMap(
             continue;
         }
 
-        if (objectLayer.name === "checkpoints") {
-            log.info("Processing check points...");
+        if (objectLayer.name === 'checkpoints') {
+            log.info('Processing check points...');
             let count = 0;
             for (const checkpoint of objectLayer.objects ?? []) {
                 const cp: ExportedCheckpoint = {
@@ -1029,7 +1048,7 @@ export default function processMap(
                     h: checkpoint.height / map.tilesize,
                 };
 
-                if (mode === "server") {
+                if (mode === 'server') {
                     cp.s = isTruthy(getPropertyValue(checkpoint, 'spawn')) ? 1 : 0;
                 }
 
@@ -1052,7 +1071,7 @@ export default function processMap(
         }
     }
 
-    if (mode === "client") {
+    if (mode === 'client') {
         const data = (map.data ??= []);
         if (data.length < tileCount) {
             data.length = tileCount;
@@ -1083,11 +1102,8 @@ export default function processMap(
     map.collisions = normalizedCollisions.filter((index) => !collisionCarveIndices.has(index));
 
     let blockedForNavigation = map.collisions;
-    if (mode === "client") {
-        const normalizedBlocking = uniqueValidIndices(
-            [...(map.blocking ?? []), ...normalizedCollisions],
-            tileCount
-        );
+    if (mode === 'client') {
+        const normalizedBlocking = uniqueValidIndices([...(map.blocking ?? []), ...normalizedCollisions], tileCount);
         const carvedBlocking = normalizedBlocking.filter((index) => !collisionCarveIndices.has(index));
         map.blocking = carvedBlocking;
         blockedForNavigation = carvedBlocking;
@@ -1098,7 +1114,7 @@ export default function processMap(
     map.navIslandCount = navigation.islandCount;
     map.primaryNavIslandId = navigation.primaryIslandId;
 
-    if (mode === "client") {
+    if (mode === 'client') {
         const plateau = (map.plateau ??= []);
         plateau.length = 0;
         for (let i = 0; i < navigation.islandByTile.length; i += 1) {
@@ -1114,20 +1130,20 @@ export default function processMap(
     function processLayer(layer: TiledTileLayer): void {
         const tiles = toLayerTileData(layer);
 
-        if (mode === "server" && layer.name === "entities") {
+        if (mode === 'server' && layer.name === 'entities') {
             throw new Error('Legacy tilelayer "entities" is not supported; use object layer "static_entities".');
         }
 
-        if (layer.name === "blocking") {
-            log.info("Processing blocking tiles...");
+        if (layer.name === 'blocking') {
+            log.info('Processing blocking tiles...');
             for (let i = 0; i < tiles.length; i += 1) {
                 const gid = tiles[i] ?? 0;
                 if (gid > 0) {
-                    if (mode === "client") {
+                    if (mode === 'client') {
                         const blocking = (map.blocking ??= []);
                         blocking.push(i);
                     }
-                    if (mode === "server") {
+                    if (mode === 'server') {
                         map.collisions.push(i);
                     }
                 }
@@ -1135,17 +1151,17 @@ export default function processMap(
             return;
         }
 
-        if (!isLayerVisible(layer) || layer.name === "entities") {
+        if (!isLayerVisible(layer) || layer.name === 'entities') {
             return;
         }
 
-        log.info("Processing layer: " + layer.name);
-        const foregroundLayer = mode === "client" ? isForegroundLayer(layer) : false;
+        log.info('Processing layer: ' + layer.name);
+        const foregroundLayer = mode === 'client' ? isForegroundLayer(layer) : false;
 
         for (let i = 0; i < tiles.length; i += 1) {
             const gid = tiles[i] ?? 0;
 
-            if (mode === "client" && gid > 0) {
+            if (mode === 'client' && gid > 0) {
                 writeRenderableTile(i, gid, foregroundLayer);
             }
             if (gid > 0) {
@@ -1167,7 +1183,9 @@ export default function processMap(
             return;
         }
         const objects = Array.isArray(layer.objects) ? layer.objects : [];
-        const tileObjects = objects.filter((object): object is TiledObject => typeof object.gid === 'number' && object.gid > 0);
+        const tileObjects = objects.filter(
+            (object): object is TiledObject => typeof object.gid === 'number' && object.gid > 0
+        );
         if (tileObjects.length === 0) {
             return;
         }
@@ -1255,7 +1273,8 @@ export default function processMap(
 
             const collidableComponentEntries = componentEntries.filter((entry) => entry.gid in collidingTiles);
             const depthModeRaw = getMetadataValue(layer, componentEntries, 'depth_mode');
-            const depthMode = typeof depthModeRaw === 'string' && depthModeRaw.trim().length > 0 ? depthModeRaw.trim() : 'collision';
+            const depthMode =
+                typeof depthModeRaw === 'string' && depthModeRaw.trim().length > 0 ? depthModeRaw.trim() : 'collision';
             const explicitDepth = parseIntegerLike(getMetadataValue(layer, componentEntries, 'depth_row'));
             const depthOffset = parseIntegerLike(getMetadataValue(layer, componentEntries, 'depth_offset')) ?? 0;
             const depthSourceEntries =
@@ -1267,12 +1286,13 @@ export default function processMap(
                         ? collidableComponentEntries
                         : componentEntries;
             let depth =
-                explicitDepth
-                ?? (
-                    depthMode === 'top'
-                        ? depthSourceEntries.reduce((minDepth, entry) => Math.min(minDepth, entry.tileY), Number.POSITIVE_INFINITY)
-                        : depthSourceEntries.reduce((maxDepth, entry) => Math.max(maxDepth, entry.tileY), 0)
-                );
+                explicitDepth ??
+                (depthMode === 'top'
+                    ? depthSourceEntries.reduce(
+                          (minDepth, entry) => Math.min(minDepth, entry.tileY),
+                          Number.POSITIVE_INFINITY
+                      )
+                    : depthSourceEntries.reduce((maxDepth, entry) => Math.max(maxDepth, entry.tileY), 0));
             if (!Number.isFinite(depth)) {
                 depth = 0;
             }
@@ -1281,12 +1301,15 @@ export default function processMap(
             const familyValue = getMetadataValue(layer, componentEntries, 'prop_family');
             const kindValue = getMetadataValue(layer, componentEntries, 'prop_kind');
             const biomeValue = getMetadataValue(layer, componentEntries, 'biome');
-            const templateValue = componentEntries.find((entry) => typeof entry.template === 'string' && entry.template.length > 0)?.template;
+            const templateValue = componentEntries.find(
+                (entry) => typeof entry.template === 'string' && entry.template.length > 0
+            )?.template;
             const meta: ExportedRenderProp['meta'] = {
                 layer: layer.name,
                 layerPath: getLayerPath(layer as TiledObjectLayer & { _bqMeta?: FlattenedLayerMeta }),
                 depthMode,
-                family: typeof familyValue === 'string' && familyValue.trim().length > 0 ? familyValue.trim() : layer.name,
+                family:
+                    typeof familyValue === 'string' && familyValue.trim().length > 0 ? familyValue.trim() : layer.name,
             };
             const groupPath = (layer as TiledObjectLayer & { _bqMeta?: FlattenedLayerMeta })._bqMeta?.groupPath;
             if (Array.isArray(groupPath) && groupPath.length > 0) {
@@ -1304,7 +1327,8 @@ export default function processMap(
             if (tags && tags.length > 0) {
                 meta.tags = tags;
             }
-            const template = typeof templateValue === 'string' && templateValue.trim().length > 0 ? templateValue.trim() : null;
+            const template =
+                typeof templateValue === 'string' && templateValue.trim().length > 0 ? templateValue.trim() : null;
             if (template) {
                 meta.template = template;
             }
@@ -1347,7 +1371,10 @@ export default function processMap(
         }
     }
 
-    function resolveRenderableTileObject(layer: TiledObjectLayer, object: TiledObject): ResolvedRenderableTileObject | null {
+    function resolveRenderableTileObject(
+        layer: TiledObjectLayer,
+        object: TiledObject
+    ): ResolvedRenderableTileObject | null {
         const gid = normalizeGid(object.gid);
         if (gid <= 0) {
             return null;
@@ -1356,21 +1383,28 @@ export default function processMap(
         const tilesetRef = resolveTilesetRef(gid);
         if (!tilesetRef) {
             const objectId = Number.isInteger(object.id) ? String(object.id) : 'no-id';
-            throw new Error(`Renderable tile object ${objectId} in layer "${layer.name}" references an unknown gid ${gid}.`);
+            throw new Error(
+                `Renderable tile object ${objectId} in layer "${layer.name}" references an unknown gid ${gid}.`
+            );
         }
 
         const nativeWidth = tilesetRef.tileWidth;
         const nativeHeight = tilesetRef.tileHeight;
         const width = typeof object.width === 'number' && Number.isFinite(object.width) ? object.width : nativeWidth;
-        const height = typeof object.height === 'number' && Number.isFinite(object.height) ? object.height : nativeHeight;
+        const height =
+            typeof object.height === 'number' && Number.isFinite(object.height) ? object.height : nativeHeight;
         const rotation = typeof object.rotation === 'number' && Number.isFinite(object.rotation) ? object.rotation : 0;
         if (rotation !== 0) {
             const objectId = Number.isInteger(object.id) ? String(object.id) : 'no-id';
-            throw new Error(`Renderable tile object ${objectId} in layer "${layer.name}" uses rotation, which is not supported by the BrowserQuest map exporter.`);
+            throw new Error(
+                `Renderable tile object ${objectId} in layer "${layer.name}" uses rotation, which is not supported by the BrowserQuest map exporter.`
+            );
         }
         if (width !== nativeWidth || height !== nativeHeight) {
             const objectId = Number.isInteger(object.id) ? String(object.id) : 'no-id';
-            throw new Error(`Renderable tile object ${objectId} in layer "${layer.name}" is resized (${width}x${height}); BrowserQuest currently supports native-size tile objects only.`);
+            throw new Error(
+                `Renderable tile object ${objectId} in layer "${layer.name}" is resized (${width}x${height}); BrowserQuest currently supports native-size tile objects only.`
+            );
         }
 
         const alignment = tilesetRef.objectAlignment === 'unspecified' ? 'bottomleft' : tilesetRef.objectAlignment;
@@ -1384,7 +1418,9 @@ export default function processMap(
         const tileY = Math.round(pixelTop / map.tilesize);
         if (tileX < 0 || tileY < 0 || tileX >= map.width || tileY >= map.height) {
             const objectId = Number.isInteger(object.id) ? String(object.id) : 'no-id';
-            throw new Error(`Renderable tile object ${objectId} in layer "${layer.name}" resolves out of bounds at tile (${tileX}, ${tileY}).`);
+            throw new Error(
+                `Renderable tile object ${objectId} in layer "${layer.name}" resolves out of bounds at tile (${tileX}, ${tileY}).`
+            );
         }
 
         return {

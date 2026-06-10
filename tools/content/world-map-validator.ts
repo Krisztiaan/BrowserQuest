@@ -186,10 +186,7 @@ function pushDiagnostic(diags: Diagnostic[], level: DiagnosticLevel, code: strin
     diags.push({ level, code, message });
 }
 
-function matchesExpectedLayerType(
-    actualType: string,
-    expectedType: TargetLayerSpec['type']
-): boolean {
+function matchesExpectedLayerType(actualType: string, expectedType: TargetLayerSpec['type']): boolean {
     if (Array.isArray(expectedType)) {
         return expectedType.includes(actualType as 'tilelayer' | 'objectgroup');
     }
@@ -328,9 +325,9 @@ function buildLayerContexts(map: ParsedMap, diags: Diagnostic[]): LayerContext[]
             const typeRaw = asString(record.type);
             const visibleRaw = asBoolean(record.visible);
             const ownOffsetX =
-                typeof record.offsetx === 'number' && Number.isFinite(record.offsetx) ? (record.offsetx) : 0;
+                typeof record.offsetx === 'number' && Number.isFinite(record.offsetx) ? record.offsetx : 0;
             const ownOffsetY =
-                typeof record.offsety === 'number' && Number.isFinite(record.offsety) ? (record.offsety) : 0;
+                typeof record.offsety === 'number' && Number.isFinite(record.offsety) ? record.offsety : 0;
             const effectiveVisible = state.visible && (visibleRaw ?? true);
             const effectiveOffsetX = state.offsetX + ownOffsetX;
             const effectiveOffsetY = state.offsetY + ownOffsetY;
@@ -361,12 +358,8 @@ function buildLayerContexts(map: ParsedMap, diags: Diagnostic[]): LayerContext[]
                     .filter((entry): entry is UnknownRecord => entry !== null)
                     .map((objectRecord) => ({
                         ...objectRecord,
-                        x:
-                            (typeof objectRecord.x === 'number' ? objectRecord.x : 0)
-                            + effectiveOffsetX,
-                        y:
-                            (typeof objectRecord.y === 'number' ? objectRecord.y : 0)
-                            + effectiveOffsetY,
+                        x: (typeof objectRecord.x === 'number' ? objectRecord.x : 0) + effectiveOffsetX,
+                        y: (typeof objectRecord.y === 'number' ? objectRecord.y : 0) + effectiveOffsetY,
                     }));
             }
             if (typeRaw === 'tilelayer' && (effectiveOffsetX !== 0 || effectiveOffsetY !== 0)) {
@@ -542,7 +535,12 @@ function checkLayerNaming(profile: ValidationProfile, layers: ReadonlyArray<Laye
     }
 }
 
-function checkEmptyPropertyNames(profile: ValidationProfile, map: ParsedMap, layers: ReadonlyArray<LayerContext>, diags: Diagnostic[]): void {
+function checkEmptyPropertyNames(
+    profile: ValidationProfile,
+    map: ParsedMap,
+    layers: ReadonlyArray<LayerContext>,
+    diags: Diagnostic[]
+): void {
     const level = levelByProfile(profile);
 
     for (const layer of layers) {
@@ -550,7 +548,12 @@ function checkEmptyPropertyNames(profile: ValidationProfile, map: ParsedMap, lay
         for (const propertyRecord of layerProps) {
             const name = asString(propertyRecord.name);
             if (name !== null && name.trim().length === 0) {
-                pushDiagnostic(diags, level, 'EMPTY_PROPERTY_NAME', `${formatLayerRef(layer)} has empty layer property name.`);
+                pushDiagnostic(
+                    diags,
+                    level,
+                    'EMPTY_PROPERTY_NAME',
+                    `${formatLayerRef(layer)} has empty layer property name.`
+                );
             }
         }
 
@@ -645,7 +648,10 @@ function checkObjectBoundsAndDuplicates(
                     const key = asString(propertyRecord.name) ?? '<missing_name>';
                     const value: unknown = propertyRecord.value ?? '';
                     const valueText =
-                        typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint'
+                        typeof value === 'string' ||
+                        typeof value === 'number' ||
+                        typeof value === 'boolean' ||
+                        typeof value === 'bigint'
                             ? String(value)
                             : JSON.stringify(value);
                     return `${key}:${valueText}`;
@@ -654,8 +660,7 @@ function checkObjectBoundsAndDuplicates(
                 .join('|');
 
             const gid = asInteger(objectRecord.gid);
-            const renderableTileObjectKeyPart =
-                layer.visible === true && gid !== null && gid > 0 ? `;gid:${gid}` : '';
+            const renderableTileObjectKeyPart = layer.visible === true && gid !== null && gid > 0 ? `;gid:${gid}` : '';
             const duplicateKey = `${x};${y};${width};${height};${type};${name};${props}${renderableTileObjectKeyPart}`;
             const previous = seen.get(duplicateKey);
             if (previous !== undefined) {
@@ -715,7 +720,12 @@ function extractDoorPortalCoords(layer: LayerContext | undefined, tileWidth: num
     return coords;
 }
 
-function checkPortalAuthority(profile: ValidationProfile, map: ParsedMap, layers: ReadonlyArray<LayerContext>, diags: Diagnostic[]): void {
+function checkPortalAuthority(
+    profile: ValidationProfile,
+    map: ParsedMap,
+    layers: ReadonlyArray<LayerContext>,
+    diags: Diagnostic[]
+): void {
     const portalsLayer = layers.find((layer) => layer.name === 'portals');
     const doorsLayer = layers.find((layer) => layer.name === 'doors');
 
@@ -759,7 +769,12 @@ function checkPortalAuthority(profile: ValidationProfile, map: ParsedMap, layers
 function checkLegacyHints(layers: ReadonlyArray<LayerContext>, diags: Diagnostic[]): void {
     const sentinel = layers.find((layer) => layer.name === "don't remove this layer");
     if (sentinel) {
-        pushDiagnostic(diags, 'warn', 'LEGACY_SENTINEL_LAYER', "Sentinel layer `don't remove this layer` is still present.");
+        pushDiagnostic(
+            diags,
+            'warn',
+            'LEGACY_SENTINEL_LAYER',
+            "Sentinel layer `don't remove this layer` is still present."
+        );
     }
 
     const zonesLayer = layers.find((layer) => layer.name === 'zones' && layer.type === 'objectgroup');
@@ -768,7 +783,11 @@ function checkLegacyHints(layers: ReadonlyArray<LayerContext>, diags: Diagnostic
         const unlabeled = objects.filter((objectRecord) => {
             const name = asString(objectRecord.name) ?? '';
             const type = asString(objectRecord.type) ?? '';
-            return name.trim().length === 0 && type.trim().length === 0 && getPropertyEntries(objectRecord.properties).length === 0;
+            return (
+                name.trim().length === 0 &&
+                type.trim().length === 0 &&
+                getPropertyEntries(objectRecord.properties).length === 0
+            );
         }).length;
         if (unlabeled > 0) {
             pushDiagnostic(
@@ -786,7 +805,12 @@ function checkTargetLayerContract(layers: ReadonlyArray<LayerContext>, diags: Di
         const actual = layers[index];
         const expected = TARGET_BASE_TILE_LAYER_SPECS[index];
         if (!actual || !expected) {
-            pushDiagnostic(diags, 'error', 'TARGET_LAYER_MISSING', `Layer index ${index} expected ${expected?.name ?? 'unknown'}, found <missing>.`);
+            pushDiagnostic(
+                diags,
+                'error',
+                'TARGET_LAYER_MISSING',
+                `Layer index ${index} expected ${expected?.name ?? 'unknown'}, found <missing>.`
+            );
             continue;
         }
         if (actual.name !== expected.name) {
@@ -938,7 +962,12 @@ function requireProperty(
     code: string
 ): void {
     if (!props.has(propertyName)) {
-        pushDiagnostic(diags, 'error', code, `${formatLayerRef(layer)} object ${objectId ?? 'no-id'} is missing ${propertyName}.`);
+        pushDiagnostic(
+            diags,
+            'error',
+            code,
+            `${formatLayerRef(layer)} object ${objectId ?? 'no-id'} is missing ${propertyName}.`
+        );
     }
 }
 
@@ -1193,7 +1222,9 @@ function diagnosticsSummary(diags: ReadonlyArray<Diagnostic>): { errors: number;
 }
 
 function printUsage(): never {
-    console.log('Usage: bun tools/content/world-map-validator.ts [--map <path>] [--profile legacy|target] [--json] [--fail-on-warn]');
+    console.log(
+        'Usage: bun tools/content/world-map-validator.ts [--map <path>] [--profile legacy|target] [--json] [--fail-on-warn]'
+    );
     process.exit(0);
 }
 
@@ -1226,7 +1257,9 @@ export function validateReachability(input: ReachabilityInput): string[] {
             problems.push(`door at (${door.x},${door.y}) sits on a blocked or out-of-bounds tile`);
         }
         if (!walkable(door.tx, door.ty)) {
-            problems.push(`door at (${door.x},${door.y}) has blocked or out-of-bounds destination (${door.tx},${door.ty})`);
+            problems.push(
+                `door at (${door.x},${door.y}) has blocked or out-of-bounds destination (${door.tx},${door.ty})`
+            );
         }
     }
 
@@ -1241,7 +1274,9 @@ export function validateReachability(input: ReachabilityInput): string[] {
             }
         }
         if (!hasWalkable) {
-            problems.push(`checkpoint at (${checkpoint.x},${checkpoint.y}) ${checkpoint.w}x${checkpoint.h} has no walkable tile`);
+            problems.push(
+                `checkpoint at (${checkpoint.x},${checkpoint.y}) ${checkpoint.w}x${checkpoint.h} has no walkable tile`
+            );
         }
     }
 
@@ -1288,7 +1323,12 @@ async function checkRuntimeReachability(diags: Diagnostic[]): Promise<void> {
     try {
         pack = asRecord(JSON.parse(await fs.readFile(packPath, 'utf8')));
     } catch {
-        pushDiagnostic(diags, 'warn', 'REACHABILITY_PACK_MISSING', `Runtime pack ${packPath} unavailable; run build:maps first.`);
+        pushDiagnostic(
+            diags,
+            'warn',
+            'REACHABILITY_PACK_MISSING',
+            `Runtime pack ${packPath} unavailable; run build:maps first.`
+        );
         return;
     }
     for (const mapRaw of asArray(pack?.maps)) {
@@ -1316,13 +1356,15 @@ async function checkRuntimeReachability(diags: Diagnostic[]): Promise<void> {
         const roamingAreas = asArray(server.roamingAreas).flatMap((raw) => {
             const area = asRecord(raw);
             return area
-                ? [{
-                    x: num(area.x),
-                    y: num(area.y),
-                    width: num(area.width),
-                    height: num(area.height),
-                    ...(typeof area.mobKind === 'string' ? { mobKind: area.mobKind } : {}),
-                }]
+                ? [
+                      {
+                          x: num(area.x),
+                          y: num(area.y),
+                          width: num(area.width),
+                          height: num(area.height),
+                          ...(typeof area.mobKind === 'string' ? { mobKind: area.mobKind } : {}),
+                      },
+                  ]
                 : [];
         });
         const problems = validateReachability({
@@ -1423,7 +1465,7 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-    const message = error instanceof Error ? error.stack ?? error.message : String(error);
+    const message = error instanceof Error ? (error.stack ?? error.message) : String(error);
     console.error(message);
     process.exit(1);
 });

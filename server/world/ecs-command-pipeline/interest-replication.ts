@@ -33,10 +33,7 @@ function mapScopedGroupKey(mapId: string, groupId: string): string {
     return `${mapId}${MAP_GROUP_SCOPE_SEPARATOR}${groupId}`;
 }
 
-function parseScopedFallbackGroupId(
-    value: string,
-    defaultMapId: string
-): Readonly<{ mapId: string; groupId: string }> {
+function parseScopedFallbackGroupId(value: string, defaultMapId: string): Readonly<{ mapId: string; groupId: string }> {
     const splitIndex = value.indexOf(MAP_GROUP_SCOPE_SEPARATOR);
     if (splitIndex <= 0) {
         return { mapId: defaultMapId, groupId: value };
@@ -102,7 +99,10 @@ export function replicateInterestVisibility({
             }
             try {
                 const spawnMapId = MapId.store.get(id) ?? defaultMapId;
-                world.pushToPlayerId(observerId, buildSpawnActionFromReplicationState(state.world, replication, id, spawnMapId));
+                world.pushToPlayerId(
+                    observerId,
+                    buildSpawnActionFromReplicationState(state.world, replication, id, spawnMapId)
+                );
             } catch {
                 // Entity may have been destroyed during this tick or missing replication components.
             }
@@ -134,13 +134,14 @@ export function broadcastNearbyOutboxMessage({
     const defaultMapId = world.getDefaultMapId?.() ?? 'world_01';
     const pos = Position.store.get(msg.actorId);
     const actorMapId = MapId.store.get(msg.actorId) ?? defaultMapId;
-    const fallback = typeof msg.fallbackGroupId === 'string' ? parseScopedFallbackGroupId(msg.fallbackGroupId, defaultMapId) : null;
-    const mapId = pos !== undefined ? actorMapId : fallback?.mapId ?? null;
-    const map = mapId ? world.getMapById?.(mapId) ?? world.map : null;
+    const fallback =
+        typeof msg.fallbackGroupId === 'string' ? parseScopedFallbackGroupId(msg.fallbackGroupId, defaultMapId) : null;
+    const mapId = pos !== undefined ? actorMapId : (fallback?.mapId ?? null);
+    const map = mapId ? (world.getMapById?.(mapId) ?? world.map) : null;
     if (!map || !mapId) {
         return;
     }
-    const groupId = pos !== undefined ? map.getGroupIdFromPosition(pos.x, pos.y) : fallback?.groupId ?? null;
+    const groupId = pos !== undefined ? map.getGroupIdFromPosition(pos.x, pos.y) : (fallback?.groupId ?? null);
     if (!groupId) {
         return;
     }

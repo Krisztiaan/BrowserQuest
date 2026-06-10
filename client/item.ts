@@ -1,4 +1,3 @@
-
 import Entity from './entity';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
@@ -26,7 +25,7 @@ class Item extends Entity {
         this.itemKind = kindName;
         this.type = type;
         this.wasDropped = false;
-        this.lootMessage = "";
+        this.lootMessage = '';
     }
 
     override hasShadow(): boolean {
@@ -34,15 +33,15 @@ class Item extends Entity {
     }
 
     onLoot(player: LootPlayer): void {
-        if (this.type === "weapon") {
+        if (this.type === 'weapon') {
             player.switchWeapon(this.itemKind);
-        } else if (this.type === "armor") {
+        } else if (this.type === 'armor') {
             player.emitArmorLoot(this.itemKind);
         }
     }
 
     override getSpriteName(): string {
-        return "item-"+ this.itemKind;
+        return 'item-' + this.itemKind;
     }
 
     getLootMessage(): string {

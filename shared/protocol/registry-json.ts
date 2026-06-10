@@ -1,8 +1,4 @@
-import type {
-    ClientToServerProtocolAction,
-    ProtocolAction,
-    ServerToClientProtocolAction,
-} from './types';
+import type { ClientToServerProtocolAction, ProtocolAction, ServerToClientProtocolAction } from './types';
 
 type ProtocolDecodeInput = unknown;
 
@@ -31,10 +27,14 @@ export function encodeProtocolActionBatchJson(actions: ReadonlyArray<ProtocolAct
     return JSON.stringify(actions);
 }
 
-export function encodeClientToServerProtocolActionBatchJson(actions: ReadonlyArray<ClientToServerProtocolAction>): string {
+export function encodeClientToServerProtocolActionBatchJson(
+    actions: ReadonlyArray<ClientToServerProtocolAction>
+): string {
     return JSON.stringify(actions);
 }
 
-export function encodeServerToClientProtocolActionBatchJson(actions: ReadonlyArray<ServerToClientProtocolAction>): string {
+export function encodeServerToClientProtocolActionBatchJson(
+    actions: ReadonlyArray<ServerToClientProtocolAction>
+): string {
     return JSON.stringify(actions);
 }

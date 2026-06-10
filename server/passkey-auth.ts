@@ -277,18 +277,16 @@ async function parsePasskeyLoginVerifyPayload(request: Request): Promise<Passkey
     };
 }
 
-function isRegistrationResponseJson(
-    value: JsonValue | object | null | undefined
-): value is RegistrationResponseJSON {
+function isRegistrationResponseJson(value: JsonValue | object | null | undefined): value is RegistrationResponseJSON {
     if (!isJsonRecord(value)) {
         return false;
     }
     const response = value.response;
     return (
-        typeof value.id === 'string'
-        && typeof value.rawId === 'string'
-        && typeof value.type === 'string'
-        && isJsonRecord(response)
+        typeof value.id === 'string' &&
+        typeof value.rawId === 'string' &&
+        typeof value.type === 'string' &&
+        isJsonRecord(response)
     );
 }
 
@@ -300,10 +298,10 @@ function isAuthenticationResponseJson(
     }
     const response = value.response;
     return (
-        typeof value.id === 'string'
-        && typeof value.rawId === 'string'
-        && typeof value.type === 'string'
-        && isJsonRecord(response)
+        typeof value.id === 'string' &&
+        typeof value.rawId === 'string' &&
+        typeof value.type === 'string' &&
+        isJsonRecord(response)
     );
 }
 
@@ -376,7 +374,11 @@ function resolveVerifiedRegistrationCredential(
         return null;
     }
     const registrationInfoValue: unknown = Reflect.get(verification as Record<string, unknown>, 'registrationInfo');
-    if (typeof registrationInfoValue !== 'object' || registrationInfoValue === null || Array.isArray(registrationInfoValue)) {
+    if (
+        typeof registrationInfoValue !== 'object' ||
+        registrationInfoValue === null ||
+        Array.isArray(registrationInfoValue)
+    ) {
         return null;
     }
     const credentialValue: unknown = Reflect.get(registrationInfoValue as Record<string, unknown>, 'credential');
@@ -482,10 +484,10 @@ export async function createPasskeyAuthResponse({
     }
 
     if (
-        pathname !== '/auth/passkey/register/options'
-        && pathname !== '/auth/passkey/register/verify'
-        && pathname !== '/auth/passkey/login/options'
-        && pathname !== '/auth/passkey/login/verify'
+        pathname !== '/auth/passkey/register/options' &&
+        pathname !== '/auth/passkey/register/verify' &&
+        pathname !== '/auth/passkey/login/options' &&
+        pathname !== '/auth/passkey/login/verify'
     ) {
         return createJsonResponse({ status: 404, payload: { ok: false, reason: 'Not found.' } });
     }
@@ -731,6 +733,10 @@ export async function createPasskeyAuthResponse({
             accountNameKey: authenticated.accountNameKey,
             displayName: authenticated.profile.displayName,
         },
-        cookies: createAuthSuccessCookies(authenticated.accountNameKey, authenticated.profile.displayName, secureCookies),
+        cookies: createAuthSuccessCookies(
+            authenticated.accountNameKey,
+            authenticated.profile.displayName,
+            secureCookies
+        ),
     });
 }

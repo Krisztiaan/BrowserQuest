@@ -8,7 +8,11 @@ import {
     encodeBinaryActionBatchPayload,
     encodeServerToClientBinaryActionBatchPayload,
 } from '../../../shared/protocol/binary-action-codec';
-import { encodeAttackIntentPayload, encodeMoveInputIntentPayload, encodeMoveToIntentPayload } from '../../../shared/protocol/intents';
+import {
+    encodeAttackIntentPayload,
+    encodeMoveInputIntentPayload,
+    encodeMoveToIntentPayload,
+} from '../../../shared/protocol/intents';
 
 function normalizeBinaryValues(value: unknown): unknown {
     if (value instanceof Uint8Array) {
@@ -23,7 +27,12 @@ function normalizeBinaryValues(value: unknown): unknown {
 test('custom-efficient runtime action codec round-trips mixed payload batches', () => {
     const batch: unknown[] = [
         [Types.Messages.INTENT, 1, 'move.step', [155, 114]],
-        [Types.Messages.INTENT, 2, 'move.to', encodeMoveToIntentPayload({ x: 155, y: 114, stopAdjacentToTarget: false }) ?? []],
+        [
+            Types.Messages.INTENT,
+            2,
+            'move.to',
+            encodeMoveToIntentPayload({ x: 155, y: 114, stopAdjacentToTarget: false }) ?? [],
+        ],
         [Types.Messages.INTENT, 3, 'move.input', encodeMoveInputIntentPayload({ keysMask: 0 }) ?? []],
         [Types.Messages.INTENT, 4, 'attack.entity', encodeAttackIntentPayload({ targetId: 174 }) ?? []],
         [Types.Messages.CHAT, 'chat payload'],

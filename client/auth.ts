@@ -1,8 +1,4 @@
-import {
-    clearUsernameCookie,
-    STORAGE_KEY,
-    writeUsernameCookie,
-} from './storage';
+import { clearUsernameCookie, STORAGE_KEY, writeUsernameCookie } from './storage';
 
 export type PasskeyAuthSuccess = Readonly<{
     ok: true;

@@ -60,7 +60,14 @@ export function decodeSpawnAction(action: ServerToClientSpawnAction): SpawnSnaps
         const armor = isEntityKind(tail[2]) ? tail[2] : DEFAULT_ENTITY_KIND;
         const weapon = isEntityKind(tail[3]) ? tail[3] : DEFAULT_ENTITY_KIND;
         const targetId = typeof tail[4] === 'number' ? tail[4] : undefined;
-        return { id, kind, x, y, ...(mapId ? { mapId } : {}), extras: { type: 'player', name, orientation, armor, weapon, targetId } };
+        return {
+            id,
+            kind,
+            x,
+            y,
+            ...(mapId ? { mapId } : {}),
+            extras: { type: 'player', name, orientation, armor, weapon, targetId },
+        };
     }
 
     if (Types.isMob(kind)) {

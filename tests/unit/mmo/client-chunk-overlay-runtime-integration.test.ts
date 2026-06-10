@@ -42,9 +42,15 @@ test('chunk overlay cache keeps pathing cell blocked when dynamic occupancy is r
 
     kernel.enqueueClientCommand({ type: 'spatialAddRecord', entityId, record });
 
-    const host = { kernel, map, entities: {}, started: false, client: null, playerId: null, player: null } as Parameters<
-        typeof runClientCommandApplySystem
-    >[0];
+    const host = {
+        kernel,
+        map,
+        entities: {},
+        started: false,
+        client: null,
+        playerId: null,
+        player: null,
+    } as Parameters<typeof runClientCommandApplySystem>[0];
 
     runClientCommandApplySystem(host);
     expect(kernel.clientPathingGrid?.[6]?.[5]).toBe(1);

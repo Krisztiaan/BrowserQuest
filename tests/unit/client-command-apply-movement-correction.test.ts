@@ -335,7 +335,10 @@ test('repeating the same playerGoTo while it is already in flight preserves the 
     kernel.enqueueClientCommand({ type: 'playerGoTo', x: 12, y: 12 });
     runClientCommandApplySystem(host);
 
-    expect(pathRequests).toEqual([{ x: 12, y: 12 }, { x: 12, y: 12 }]);
+    expect(pathRequests).toEqual([
+        { x: 12, y: 12 },
+        { x: 12, y: 12 },
+    ]);
     expect(kernel.clientPendingMoveAcks).toEqual([gridPos(11, 11)]);
     expect(kernel.clientPendingMoveSeqAcks).toEqual([41]);
     expect(kernel.clientMovePlan).toEqual({ ...activePlan, sent: true });

@@ -51,7 +51,9 @@ export async function spawnLocalServer({
 } = {}): Promise<RunningServer> {
     const port = await getFreePort();
     const resolvedConfigPath = configPath?.trim()
-        ? (configPath.trim().startsWith('/') ? configPath.trim() : `${repoRoot}/${configPath.trim()}`)
+        ? configPath.trim().startsWith('/')
+            ? configPath.trim()
+            : `${repoRoot}/${configPath.trim()}`
         : `${repoRoot}/server/.tmp-config.bots-${port}.json`;
 
     if (!configPath?.trim()) {

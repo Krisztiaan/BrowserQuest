@@ -82,7 +82,11 @@ function buildTypeMaps(tilesetRoot: UnknownRecord): {
     return { typeByTileId, tileCountByType };
 }
 
-function collectPlacements(root: UnknownRecord, firstgid: number, typeByTileId: ReadonlyMap<number, string>): TypePlacement[] {
+function collectPlacements(
+    root: UnknownRecord,
+    firstgid: number,
+    typeByTileId: ReadonlyMap<number, string>
+): TypePlacement[] {
     const placements: TypePlacement[] = [];
 
     function walk(entries: unknown[], trail: string[]): void {
@@ -164,7 +168,10 @@ function collectPlacements(root: UnknownRecord, firstgid: number, typeByTileId: 
     return placements;
 }
 
-function buildComponents(placements: readonly TypePlacement[], tileCountByType: ReadonlyMap<string, number>): Map<string, TypeComponent[]> {
+function buildComponents(
+    placements: readonly TypePlacement[],
+    tileCountByType: ReadonlyMap<string, number>
+): Map<string, TypeComponent[]> {
     const byType = new Map<string, TypePlacement[]>();
     for (const placement of placements) {
         const list = byType.get(placement.typeName);

@@ -1,9 +1,4 @@
-import type {
-    OutgoingQueues,
-    QueuePlayer,
-    TransportErrorLogger,
-    WorldConnection,
-} from './contracts';
+import type { OutgoingQueues, QueuePlayer, TransportErrorLogger, WorldConnection } from './contracts';
 import type { ServerToClientProtocolAction } from '../../shared/protocol/types';
 
 export function pushSerializedToPlayerQueue(

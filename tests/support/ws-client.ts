@@ -24,10 +24,10 @@ class WsClient {
 
     static #isSupportedMessageData(value: unknown): value is string | Blob | ArrayBuffer | Uint8Array {
         return (
-            typeof value === 'string'
-            || value instanceof Blob
-            || value instanceof ArrayBuffer
-            || value instanceof Uint8Array
+            typeof value === 'string' ||
+            value instanceof Blob ||
+            value instanceof ArrayBuffer ||
+            value instanceof Uint8Array
         );
     }
 

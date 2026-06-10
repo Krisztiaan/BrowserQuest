@@ -166,9 +166,9 @@ test('LOOT accepts recent authoritative proximity grace but rejects remote looti
     expect(scheduled.items.length).toBe(0);
     expect(pipeline.state.world.entities.isAlive(itemId)).toBe(true);
 
-    pipeline.state.resources.require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE).set(player.id, [
-        { pos: gridPos(5, 4), tick: pipeline.getTick() },
-    ]);
+    pipeline.state.resources
+        .require(PLAYER_RECENT_POSITION_HISTORY_RESOURCE)
+        .set(player.id, [{ pos: gridPos(5, 4), tick: pipeline.getTick() }]);
     pipeline.enqueue({
         type: 'LOOT',
         source: { connectionId: 'conn', playerId: player.id },

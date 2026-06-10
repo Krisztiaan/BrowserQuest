@@ -43,7 +43,11 @@ function translateHello(
     if (message.length >= 6) {
         const candidateRevision = message[4];
         const candidateCaps = message[5];
-        if (typeof candidateRevision === 'number' && Number.isFinite(candidateRevision) && Number.isSafeInteger(candidateRevision)) {
+        if (
+            typeof candidateRevision === 'number' &&
+            Number.isFinite(candidateRevision) &&
+            Number.isSafeInteger(candidateRevision)
+        ) {
             protocolRevision = candidateRevision;
         }
         if (typeof candidateCaps === 'string') {
@@ -115,11 +119,11 @@ export function translateClientActionToCommand(
             const y = message[2];
             const itemId = message[3];
             if (
-                typeof x !== 'number'
-                || typeof y !== 'number'
-                || !Number.isInteger(x)
-                || !Number.isInteger(y)
-                || typeof itemId !== 'number'
+                typeof x !== 'number' ||
+                typeof y !== 'number' ||
+                !Number.isInteger(x) ||
+                !Number.isInteger(y) ||
+                typeof itemId !== 'number'
             ) {
                 closeInvalidPayload('Invalid LOOTMOVE payload.');
                 return null;
@@ -185,10 +189,10 @@ export function translateClientActionToCommand(
         case Types.Messages.ACHIEVEMENT: {
             const achievementId = message[1];
             if (
-                typeof achievementId !== 'number'
-                || !Number.isFinite(achievementId)
-                || !Number.isSafeInteger(achievementId)
-                || achievementId <= 0
+                typeof achievementId !== 'number' ||
+                !Number.isFinite(achievementId) ||
+                !Number.isSafeInteger(achievementId) ||
+                achievementId <= 0
             ) {
                 closeInvalidPayload('Invalid ACHIEVEMENT payload.');
                 return null;
@@ -201,14 +205,16 @@ export function translateClientActionToCommand(
             const payloadBytes = message[3];
 
             if (
-                typeof seq !== 'number'
-                || !isValidIntentSeq(seq)
-                || typeof intentTypeId !== 'string'
-                || !Utils.hasMaxUtf8Bytes(intentTypeId, INTENT_TYPE_ID_MAX_UTF8_BYTES)
-                || (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
-                || payloadBytes.length > INTENT_PAYLOAD_MAX_BYTES
-                || (Array.isArray(payloadBytes)
-                    && payloadBytes.some((value) => typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 255))
+                typeof seq !== 'number' ||
+                !isValidIntentSeq(seq) ||
+                typeof intentTypeId !== 'string' ||
+                !Utils.hasMaxUtf8Bytes(intentTypeId, INTENT_TYPE_ID_MAX_UTF8_BYTES) ||
+                (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array)) ||
+                payloadBytes.length > INTENT_PAYLOAD_MAX_BYTES ||
+                (Array.isArray(payloadBytes) &&
+                    payloadBytes.some(
+                        (value) => typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 255
+                    ))
             ) {
                 closeInvalidPayload('Invalid INTENT payload.');
                 return null;
@@ -228,16 +234,16 @@ export function translateClientActionToCommand(
             const radius = message[3];
 
             if (
-                typeof chunkX !== 'number'
-                || typeof chunkY !== 'number'
-                || typeof radius !== 'number'
-                || !Number.isSafeInteger(chunkX)
-                || !Number.isSafeInteger(chunkY)
-                || !Number.isSafeInteger(radius)
-                || Math.abs(chunkX) > CHUNK_COORD_ABS_MAX
-                || Math.abs(chunkY) > CHUNK_COORD_ABS_MAX
-                || radius < 0
-                || radius > CHUNK_RADIUS_MAX
+                typeof chunkX !== 'number' ||
+                typeof chunkY !== 'number' ||
+                typeof radius !== 'number' ||
+                !Number.isSafeInteger(chunkX) ||
+                !Number.isSafeInteger(chunkY) ||
+                !Number.isSafeInteger(radius) ||
+                Math.abs(chunkX) > CHUNK_COORD_ABS_MAX ||
+                Math.abs(chunkY) > CHUNK_COORD_ABS_MAX ||
+                radius < 0 ||
+                radius > CHUNK_RADIUS_MAX
             ) {
                 closeInvalidPayload('Invalid CHUNK_SUBSCRIBE payload.');
                 return null;

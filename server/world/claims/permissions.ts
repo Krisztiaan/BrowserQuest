@@ -7,13 +7,7 @@ export type PermissionDecision = Readonly<
     | { ok: false; code: 'claimed_not_owner'; reason: string }
 >;
 
-export function canEditClaim({
-    actorName,
-    claim,
-}: {
-    actorName: string;
-    claim: RectClaim | null;
-}): PermissionDecision {
+export function canEditClaim({ actorName, claim }: { actorName: string; claim: RectClaim | null }): PermissionDecision {
     if (!claim) {
         return { ok: true };
     }
@@ -30,13 +24,7 @@ export function canEditClaim({
     return { ok: false, code: 'claimed_no_access', reason: 'Tile is claimed and actor has no edit access.' };
 }
 
-export function canEditTile({
-    actorName,
-    claim,
-}: {
-    actorName: string;
-    claim: RectClaim | null;
-}): PermissionDecision {
+export function canEditTile({ actorName, claim }: { actorName: string; claim: RectClaim | null }): PermissionDecision {
     return canEditClaim({ actorName, claim });
 }
 

@@ -63,7 +63,8 @@ function createSessionFixture({
             return isActive;
         },
         enqueueCommand(command: Command): boolean {
-            const accepted = typeof enqueueCommandAccepted === 'function' ? enqueueCommandAccepted(command) : enqueueCommandAccepted;
+            const accepted =
+                typeof enqueueCommandAccepted === 'function' ? enqueueCommandAccepted(command) : enqueueCommandAccepted;
             if (accepted === false) {
                 return false;
             }
@@ -289,7 +290,9 @@ test('player session arms idle timeout immediately on attach', () => {
         scheduled.push({ delay: Number(delay) });
         return 1 as ReturnType<typeof setTimeout>;
     }) as typeof setTimeout;
-    (globalThis as typeof globalThis & { clearTimeout: typeof clearTimeout }).clearTimeout = ((_timer) => {}) as typeof clearTimeout;
+    (globalThis as typeof globalThis & { clearTimeout: typeof clearTimeout }).clearTimeout = ((
+        _timer
+    ) => {}) as typeof clearTimeout;
 
     try {
         createSessionFixture({ isActive: false, isDead: false });

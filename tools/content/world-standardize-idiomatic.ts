@@ -144,8 +144,14 @@ async function main(): Promise<void> {
     const removeEmptyObjectProps = !parsedArgs['no-remove-empty-object-props'];
     const write = Boolean(parsedArgs.write);
 
-    const tilesheetSourceAbs = path.resolve(process.cwd(), String(parsedArgs['tilesheet-source'] ?? 'assets/maps/tiled/tilesheet.wang.tsj'));
-    const mobsSourceAbs = path.resolve(process.cwd(), String(parsedArgs['mobs-source'] ?? 'assets/maps/tiled/mobs.tsj'));
+    const tilesheetSourceAbs = path.resolve(
+        process.cwd(),
+        String(parsedArgs['tilesheet-source'] ?? 'assets/maps/tiled/tilesheet.wang.tsj')
+    );
+    const mobsSourceAbs = path.resolve(
+        process.cwd(),
+        String(parsedArgs['mobs-source'] ?? 'assets/maps/tiled/mobs.tsj')
+    );
     const tilesheetSourceRel = toRelativePath(mapPath, tilesheetSourceAbs);
     const mobsSourceRel = toRelativePath(mapPath, mobsSourceAbs);
 
@@ -243,7 +249,8 @@ async function main(): Promise<void> {
                 setObjectTypeCount += 1;
             }
             if (setLayerClasses) {
-                const wantedClass = resolvedLayerName === 'doors' && wantedType === 'portal' ? 'Portal' : rule.className;
+                const wantedClass =
+                    resolvedLayerName === 'doors' && wantedType === 'portal' ? 'Portal' : rule.className;
                 if (asString(objectRecord.class) !== wantedClass) {
                     objectRecord.class = wantedClass;
                     setObjectClassCount += 1;
@@ -272,7 +279,8 @@ async function main(): Promise<void> {
 
             if (setObjectNames) {
                 const objectId = asInteger(objectRecord.id) ?? 0;
-                const intProp = (name: string): number | null => resolveIntegerLike(getObjectPropertyValue(objectRecord, name));
+                const intProp = (name: string): number | null =>
+                    resolveIntegerLike(getObjectPropertyValue(objectRecord, name));
                 const strProp = (name: string): string | null => {
                     const value = getObjectPropertyValue(objectRecord, name);
                     return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
@@ -295,7 +303,9 @@ async function main(): Promise<void> {
                         generatedName = doorId;
                     } else if (wantedType === 'portal') {
                         const targetDoor = strProp('target_door');
-                        generatedName = targetDoor ? `portal_to_${slugifySegment(targetDoor)}_${objectId}` : `portal_${objectId}`;
+                        generatedName = targetDoor
+                            ? `portal_to_${slugifySegment(targetDoor)}_${objectId}`
+                            : `portal_${objectId}`;
                     } else {
                         generatedName = `door_${objectId}`;
                     }

@@ -2,10 +2,7 @@ import EntityFactory from './entityfactory';
 import log from './platform/log';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
-import {
-    createGameClientInboundHandlers,
-    type GameClientInboundActionHandlerMap,
-} from './gameclient-inbound-handlers';
+import { createGameClientInboundHandlers, type GameClientInboundActionHandlerMap } from './gameclient-inbound-handlers';
 import {
     createAchievementAction,
     createAggroAction,
@@ -24,15 +21,9 @@ import {
 } from './gameclient-outbound-actions';
 import type { TypedEventSource } from '../shared/typed-event-emitter';
 import { Evented } from '../shared/evented';
-import {
-    encodeClientToServerProtocolActionBinary,
-} from '../shared/protocol/registry';
+import { encodeClientToServerProtocolActionBinary } from '../shared/protocol/registry';
 import { dispatchBinaryActionBatchPayload } from '../shared/protocol/binary-action-codec';
-import {
-    DISPATCHER_CONNECT_STATUS,
-    HANDSHAKE_CONTROL,
-    isDispatcherConnectStatus,
-} from '../shared/connection-status';
+import { DISPATCHER_CONNECT_STATUS, HANDSHAKE_CONTROL, isDispatcherConnectStatus } from '../shared/connection-status';
 import type {
     ClientInboundActionByOpcode,
     ClientInboundProtocolAction,
@@ -98,7 +89,12 @@ function formatProtocolValueForLog(value: unknown): string {
     if (value === null) {
         return 'null';
     }
-    if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint' || typeof value === 'undefined') {
+    if (
+        typeof value === 'number' ||
+        typeof value === 'boolean' ||
+        typeof value === 'bigint' ||
+        typeof value === 'undefined'
+    ) {
         return String(value);
     }
     if (value instanceof Uint8Array) {
@@ -624,10 +620,7 @@ class GameClient extends Evented<GameClientEvents> {
         if (typeof outcomeTypeId !== 'string') {
             return;
         }
-        if (
-            outcomeTypeId === OUTCOME_MAP_TRANSITION_BEGIN
-            || outcomeTypeId === OUTCOME_MAP_TRANSITION_COMMIT
-        ) {
+        if (outcomeTypeId === OUTCOME_MAP_TRANSITION_BEGIN || outcomeTypeId === OUTCOME_MAP_TRANSITION_COMMIT) {
             if (typeof seq !== 'number' || typeof payload !== 'string') {
                 return;
             }
@@ -636,9 +629,23 @@ class GameClient extends Evented<GameClientEvents> {
                 return;
             }
             if (outcomeTypeId === OUTCOME_MAP_TRANSITION_BEGIN) {
-                this.emit('mapTransitionBegin', seq, transition.fromMapId, transition.toMapId, transition.x, transition.y);
+                this.emit(
+                    'mapTransitionBegin',
+                    seq,
+                    transition.fromMapId,
+                    transition.toMapId,
+                    transition.x,
+                    transition.y
+                );
             } else {
-                this.emit('mapTransitionCommit', seq, transition.fromMapId, transition.toMapId, transition.x, transition.y);
+                this.emit(
+                    'mapTransitionCommit',
+                    seq,
+                    transition.fromMapId,
+                    transition.toMapId,
+                    transition.x,
+                    transition.y
+                );
             }
             return;
         }
@@ -698,7 +705,12 @@ class GameClient extends Evented<GameClientEvents> {
                     this.kernel.setEntityMapId(playerId, mapId);
                     this.kernel.setActiveMapId(mapId);
                 }
-                logProtocolWarn('movement.corrected', { seq, x: a, y: b, mapId: typeof mapId === 'string' ? mapId : null });
+                logProtocolWarn('movement.corrected', {
+                    seq,
+                    x: a,
+                    y: b,
+                    mapId: typeof mapId === 'string' ? mapId : null,
+                });
                 debugMoves('in:CORRECTION', { seq, x: a, y: b });
                 this.kernel.enqueueClientCommand({ type: 'teleportEntity', entityId: playerId, x: a, y: b });
             }
@@ -710,12 +722,12 @@ class GameClient extends Evented<GameClientEvents> {
     receiveMoveSync(data: ClientInboundActionByOpcode<typeof Types.Messages.MOVE_SYNC>): void {
         const [, ackSeq, worldX, worldY, tick, flags, mapId] = data;
         if (
-            typeof ackSeq !== 'number'
-            || typeof worldX !== 'number'
-            || typeof worldY !== 'number'
-            || typeof tick !== 'number'
-            || typeof flags !== 'number'
-            || typeof mapId !== 'string'
+            typeof ackSeq !== 'number' ||
+            typeof worldX !== 'number' ||
+            typeof worldY !== 'number' ||
+            typeof tick !== 'number' ||
+            typeof flags !== 'number' ||
+            typeof mapId !== 'string'
         ) {
             return;
         }
@@ -777,10 +789,10 @@ class GameClient extends Evented<GameClientEvents> {
     receiveChunkSnapshot(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT>): void {
         const [, chunkX, chunkY, version, payloadBytes] = data;
         if (
-            typeof chunkX !== 'number'
-            || typeof chunkY !== 'number'
-            || typeof version !== 'number'
-            || (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
+            typeof chunkX !== 'number' ||
+            typeof chunkY !== 'number' ||
+            typeof version !== 'number' ||
+            (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
         ) {
             return;
         }
@@ -800,12 +812,12 @@ class GameClient extends Evented<GameClientEvents> {
     receiveChunkSnapshotPart(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_SNAPSHOT_PART>): void {
         const [, chunkX, chunkY, version, partIndex, partCount, payloadBytes] = data;
         if (
-            typeof chunkX !== 'number'
-            || typeof chunkY !== 'number'
-            || typeof version !== 'number'
-            || typeof partIndex !== 'number'
-            || typeof partCount !== 'number'
-            || (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
+            typeof chunkX !== 'number' ||
+            typeof chunkY !== 'number' ||
+            typeof version !== 'number' ||
+            typeof partIndex !== 'number' ||
+            typeof partCount !== 'number' ||
+            (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
         ) {
             return;
         }
@@ -827,11 +839,11 @@ class GameClient extends Evented<GameClientEvents> {
     receiveChunkDelta(data: ClientInboundActionByOpcode<typeof Types.Messages.CHUNK_DELTA>): void {
         const [, chunkX, chunkY, fromVersion, toVersion, payloadBytes] = data;
         if (
-            typeof chunkX !== 'number'
-            || typeof chunkY !== 'number'
-            || typeof fromVersion !== 'number'
-            || typeof toVersion !== 'number'
-            || (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
+            typeof chunkX !== 'number' ||
+            typeof chunkY !== 'number' ||
+            typeof fromVersion !== 'number' ||
+            typeof toVersion !== 'number' ||
+            (!Array.isArray(payloadBytes) && !((payloadBytes as unknown) instanceof Uint8Array))
         ) {
             return;
         }

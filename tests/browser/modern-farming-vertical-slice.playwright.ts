@@ -6,13 +6,10 @@ type FarmingTestApi = {
     startSession?: (name: string) => void;
     isReady?: () => boolean;
     getPlayerPos?: () => { ok: boolean; x: number; y: number };
-    sendClaimCreateIntent?: (payload: {
-        x1: number;
-        y1: number;
-        x2: number;
-        y2: number;
-        editors: string[];
-    }) => { ok: boolean; seq: number | null };
+    sendClaimCreateIntent?: (payload: { x1: number; y1: number; x2: number; y2: number; editors: string[] }) => {
+        ok: boolean;
+        seq: number | null;
+    };
     sendTileEditIntent?: (x: number, y: number, value: number) => { ok: boolean; seq: number | null };
     getIntentStatus?: (seq: number) => FarmingIntentStatus;
     getOverlayTileValue?: (x: number, y: number) => number | null;
@@ -21,14 +18,11 @@ type FarmingTestApi = {
 async function bootstrapTestPage(page: Page): Promise<void> {
     const wsUrl = 'ws://127.0.0.1:8000/ws';
     await page.context().clearCookies();
-    await page.addInitScript(
-        (overrideWsUrl: string) => {
-            (window as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
-            (globalThis as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
-            window.localStorage.clear();
-        },
-        wsUrl
-    );
+    await page.addInitScript((overrideWsUrl: string) => {
+        (window as { __BQ_TEST_MODE__?: boolean }).__BQ_TEST_MODE__ = true;
+        (globalThis as { __BQ_WS_URL__?: string }).__BQ_WS_URL__ = overrideWsUrl;
+        window.localStorage.clear();
+    }, wsUrl);
     await page.goto('/', { waitUntil: 'domcontentloaded' });
     await expect
         .poll(
@@ -60,7 +54,10 @@ async function startSession(page: Page, name: string): Promise<void> {
         .toBe(true);
 }
 
-async function createClientContext(browserName: string, browser: { newContext: () => Promise<BrowserContext> }): Promise<{
+async function createClientContext(
+    browserName: string,
+    browser: { newContext: () => Promise<BrowserContext> }
+): Promise<{
     name: string;
     context: BrowserContext;
     page: Page;
@@ -70,7 +67,9 @@ async function createClientContext(browserName: string, browser: { newContext: (
     return { name: browserName, context, page };
 }
 
-test('modern farming vertical slice: delegated claim edits sync across clients and survive reconnect', async ({ browser }) => {
+test('modern farming vertical slice: delegated claim edits sync across clients and survive reconnect', async ({
+    browser,
+}) => {
     const alice = await createClientContext('alice', browser);
     const bob = await createClientContext('bob', browser);
     const eve = await createClientContext('eve', browser);
@@ -93,7 +92,12 @@ test('modern farming vertical slice: delegated claim edits sync across clients a
 
         const claimCreate = await alice.page.evaluate(({ x, y }) => {
             const api = (globalThis as { __BQ_TEST_API?: FarmingTestApi }).__BQ_TEST_API;
-            return api?.sendClaimCreateIntent?.({ x1: x, y1: y, x2: x + 1, y2: y + 1, editors: ['farm-bob'] }) ?? { ok: false, seq: null };
+            return (
+                api?.sendClaimCreateIntent?.({ x1: x, y1: y, x2: x + 1, y2: y + 1, editors: ['farm-bob'] }) ?? {
+                    ok: false,
+                    seq: null,
+                }
+            );
         }, target);
         expect(claimCreate.ok).toBe(true);
         expect(claimCreate.seq).not.toBeNull();

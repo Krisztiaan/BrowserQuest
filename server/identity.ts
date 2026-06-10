@@ -15,9 +15,7 @@ export function normalizeIdentityKeyOrNull(value: string | null | undefined): st
     return normalized.length > 0 ? normalized : null;
 }
 
-export function resolveIdentityKey(
-    value: string | IdentityLike | null | undefined
-): string | null {
+export function resolveIdentityKey(value: string | IdentityLike | null | undefined): string | null {
     if (typeof value === 'string') {
         return normalizeIdentityKeyOrNull(value);
     }

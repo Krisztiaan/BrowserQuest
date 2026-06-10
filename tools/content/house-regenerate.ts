@@ -113,7 +113,7 @@ function doorProps(obj: TiledObject): Record<string, unknown> {
 
 const GLOBAL_TILE_ID_MASK = 0x1fffffff;
 function normalizeGid(value: number | undefined): number {
-    return typeof value === 'number' && Number.isFinite(value) ? (value & GLOBAL_TILE_ID_MASK) : 0;
+    return typeof value === 'number' && Number.isFinite(value) ? value & GLOBAL_TILE_ID_MASK : 0;
 }
 
 function tileIndex(x: number, y: number, width: number): number {
@@ -204,7 +204,8 @@ function extractHouseComponentFromWorld({
     let tail = 0;
 
     const windowIndex = (x: number, y: number): number => (y - window.y0) * window.width + (x - window.x0);
-    const inWindow = (x: number, y: number): boolean => x >= window.x0 && y >= window.y0 && x <= window.x1 && y <= window.y1;
+    const inWindow = (x: number, y: number): boolean =>
+        x >= window.x0 && y >= window.y0 && x <= window.x1 && y <= window.y1;
 
     const hasAnyFeature = (i: number): boolean => {
         for (let j = 0; j < featureLayerNames.length; j += 1) {
@@ -571,12 +572,20 @@ function resolveWorldDoors(world: TiledMap): Array<{
         if (!targetMap || !targetDoor || !doorId) {
             continue;
         }
-        out.push({ x: Math.floor(px / world.tilewidth), y: Math.floor(py / world.tileheight), doorId, targetMap, targetDoor });
+        out.push({
+            x: Math.floor(px / world.tilewidth),
+            y: Math.floor(py / world.tileheight),
+            doorId,
+            targetMap,
+            targetDoor,
+        });
     }
     return out;
 }
 
-function resolveLegacyDoorSeeds(legacy: unknown): Map<string, Readonly<{ seedX: number; seedY: number; to: string | null }>> {
+function resolveLegacyDoorSeeds(
+    legacy: unknown
+): Map<string, Readonly<{ seedX: number; seedY: number; to: string | null }>> {
     const root = asRecord(legacy);
     if (!root) {
         fail('Invalid legacy world_server.json: expected object root');
@@ -599,13 +608,17 @@ function resolveLegacyDoorSeeds(legacy: unknown): Map<string, Readonly<{ seedX: 
 
 function requireTileLayer(world: TiledMap, name: string): ReadonlyArray<number> {
     const layers = Array.isArray(world.layers) ? world.layers : [];
-    const layer = layers.find((l) => l.type === 'tilelayer' && l.name === name) as Extract<TiledLayer, { type: 'tilelayer' }> | undefined;
+    const layer = layers.find((l) => l.type === 'tilelayer' && l.name === name) as
+        | Extract<TiledLayer, { type: 'tilelayer' }>
+        | undefined;
     if (!layer || !isVisibleLayer(layer) || !Array.isArray(layer.data)) {
         // Some layers are intentionally absent in certain regions; treat missing as all-zero.
         return new Array<number>(world.width * world.height).fill(0);
     }
     if (layer.data.length !== world.width * world.height) {
-        fail(`Invalid world layer "${name}": expected data length ${world.width * world.height}, got ${layer.data.length}`);
+        fail(
+            `Invalid world layer "${name}": expected data length ${world.width * world.height}, got ${layer.data.length}`
+        );
     }
     return layer.data;
 }
@@ -766,20 +779,20 @@ function buildHouseMap({
             infinite: false,
             layers,
             nextlayerid: nextLayerId,
-        nextobjectid: 2,
-        orientation: world.orientation ?? 'orthogonal',
-        renderorder: world.renderorder ?? 'right-down',
-        tiledversion: world.tiledversion ?? '1.11.2',
-        tileheight: world.tileheight,
-        tilesets: [
-            { firstgid: 1, source: 'tilesheet.wang.tsj' },
-            // Preserve any Mobs GIDs present in extracted layers by keeping the second tileset slot compatible.
-            { firstgid: 1961, source: 'mobs.tsj' },
-        ],
-        tilewidth: world.tilewidth,
-        type: 'map',
-        version: world.version ?? '1.11',
-        width: bbox.width,
+            nextobjectid: 2,
+            orientation: world.orientation ?? 'orthogonal',
+            renderorder: world.renderorder ?? 'right-down',
+            tiledversion: world.tiledversion ?? '1.11.2',
+            tileheight: world.tileheight,
+            tilesets: [
+                { firstgid: 1, source: 'tilesheet.wang.tsj' },
+                // Preserve any Mobs GIDs present in extracted layers by keeping the second tileset slot compatible.
+                { firstgid: 1961, source: 'mobs.tsj' },
+            ],
+            tilewidth: world.tilewidth,
+            type: 'map',
+            version: world.version ?? '1.11',
+            width: bbox.width,
         },
         meta: {
             houseId,
@@ -809,7 +822,19 @@ async function upsertMobsTilesetTsj({ worldPath, outPath }: { worldPath: string;
 
     const tsj: UnknownRecord = {};
     // TSJ should not include firstgid; it is provided per-map.
-    for (const key of ['name', 'tilewidth', 'tileheight', 'tilecount', 'columns', 'image', 'imagewidth', 'imageheight', 'tiles', 'margin', 'spacing']) {
+    for (const key of [
+        'name',
+        'tilewidth',
+        'tileheight',
+        'tilecount',
+        'columns',
+        'image',
+        'imagewidth',
+        'imageheight',
+        'tiles',
+        'margin',
+        'spacing',
+    ]) {
         if (key in mobs) {
             tsj[key] = mobs[key];
         }
@@ -838,7 +863,12 @@ async function runCheckOrGenerate({
 }): Promise<void> {
     const rawWorld = await readJsonFile(worldPath);
     const world = rawWorld as TiledMap;
-    if (!Number.isInteger(world.width) || !Number.isInteger(world.height) || !Number.isInteger(world.tilewidth) || !Number.isInteger(world.tileheight)) {
+    if (
+        !Number.isInteger(world.width) ||
+        !Number.isInteger(world.height) ||
+        !Number.isInteger(world.tilewidth) ||
+        !Number.isInteger(world.tileheight)
+    ) {
         fail(`Invalid world map "${worldPath}": missing width/height/tilewidth/tileheight`);
     }
     if (world.tilewidth !== 16 || world.tileheight !== 16) {
@@ -856,16 +886,23 @@ async function runCheckOrGenerate({
         fail(`No house doors found in world map "${worldPath}"`);
     }
 
-    const requiredLayers = ['cave', 'indoor', 'indoorwalls', 'indoor doors', 'carpets', 'entities', 'blocking', 'indoor objects'];
+    const requiredLayers = [
+        'cave',
+        'indoor',
+        'indoorwalls',
+        'indoor doors',
+        'carpets',
+        'entities',
+        'blocking',
+        'indoor objects',
+    ];
     const worldLayerData: Record<string, ReadonlyArray<number>> = {};
     for (const name of requiredLayers) {
         // "indoor objects" may be absent on some worlds; treat missing as zeros.
         worldLayerData[name] = requireTileLayer(world, name);
     }
 
-    const planned = worldDoors
-        .map((d) => ({ ...d }))
-        .sort((a, b) => a.targetMap.localeCompare(b.targetMap));
+    const planned = worldDoors.map((d) => ({ ...d })).sort((a, b) => a.targetMap.localeCompare(b.targetMap));
 
     let mismatches = 0;
     const mismatchedHouseIds: string[] = [];
@@ -937,7 +974,9 @@ async function runCheckOrGenerate({
 async function main(): Promise<void> {
     const command = process.argv[2];
     if (command !== 'check' && command !== 'generate' && command !== 'report') {
-        fail('Usage: bun tools/content/house-regenerate.ts <check|generate|report> [--world <path>] [--legacy <path>] [--outDir <path>] [--houses <csv>]');
+        fail(
+            'Usage: bun tools/content/house-regenerate.ts <check|generate|report> [--world <path>] [--legacy <path>] [--outDir <path>] [--houses <csv>]'
+        );
     }
 
     const parsed = parseCliArgs(process.argv.slice(3), [

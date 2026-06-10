@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { loadRuntimeMapPackFromSource } from '../../../server/runtime-map-pack-source';
 
 test('server collisions include client blocking tiles for authority parity', async () => {
-    const runtimeMapPack = await loadRuntimeMapPackFromSource('./assets/maps/tiled/world.json') as {
+    const runtimeMapPack = (await loadRuntimeMapPackFromSource('./assets/maps/tiled/world.json')) as {
         maps?: Array<{
             id?: string;
             client?: { blocking?: number[] };

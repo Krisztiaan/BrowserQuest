@@ -217,7 +217,11 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
         this.orientation = this.visualState.renderFacing;
     }
 
-    setVisualRenderPosition(x: number, y: number, options?: { velocityX?: number; velocityY?: number; mode?: VisualMoveMode }): void {
+    setVisualRenderPosition(
+        x: number,
+        y: number,
+        options?: { velocityX?: number; velocityY?: number; mode?: VisualMoveMode }
+    ): void {
         this.visualState.renderX = x;
         this.visualState.renderY = y;
         const renderWorld = pixelTopLeftToWorldCenter(x, y);
@@ -304,7 +308,9 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
             this.flipSpriteY = false;
 
             if (oriented.includes(animation)) {
-                animation += '_' + (orientation === Types.Orientations.LEFT ? 'right' : Types.getOrientationAsString(orientation));
+                animation +=
+                    '_' +
+                    (orientation === Types.Orientations.LEFT ? 'right' : Types.getOrientationAsString(orientation));
                 this.flipSpriteX = this.orientation === Types.Orientations.LEFT;
             }
 
@@ -696,7 +702,6 @@ class Character<TEvents extends MergeEvents<CharacterEvents, TypedEventMap> = Ch
     setAttackRate(rate: number): void {
         this.attackCooldown = new Timer(rate);
     }
-
 }
 
 export default Character;

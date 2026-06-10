@@ -219,7 +219,8 @@ class Map {
                 }
                 try {
                     const map = event.data;
-                    const payloadMapId = typeof map.mapId === 'string' && map.mapId.trim().length > 0 ? map.mapId : mapId;
+                    const payloadMapId =
+                        typeof map.mapId === 'string' && map.mapId.trim().length > 0 ? map.mapId : mapId;
                     self._initMap(map, payloadMapId);
                     if (map.grid && map.plateauGrid) {
                         self.grid = map.grid;
@@ -328,7 +329,9 @@ class Map {
         this.tilesize = map.tilesize;
         this.data = map.data;
         this.foreground = map.foreground;
-        this.renderProps = [...(map.renderProps ?? [])].sort((a, b) => a.depth - b.depth || a.minTileY - b.minTileY || a.minTileX - b.minTileX);
+        this.renderProps = [...(map.renderProps ?? [])].sort(
+            (a, b) => a.depth - b.depth || a.minTileY - b.minTileY || a.minTileX - b.minTileX
+        );
         this.blocking = map.blocking ?? [];
         this.plateau = map.plateau ?? [];
         this.plateauSet = new Set(this.plateau);
@@ -378,9 +381,10 @@ class Map {
                 return;
             }
             const to = typeof door.to === 'string' ? door.to : '';
-            const targetMapId = typeof door.ttarget_map === 'string' && door.ttarget_map.trim().length > 0
-                ? door.ttarget_map
-                : undefined;
+            const targetMapId =
+                typeof door.ttarget_map === 'string' && door.ttarget_map.trim().length > 0
+                    ? door.ttarget_map
+                    : undefined;
 
             switch (to) {
                 case 'u':

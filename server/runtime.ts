@@ -65,11 +65,11 @@ function createRuntimeDependencies(overrides?: MainRuntimeDependencyOverrides): 
 
 function isSessionConnection(connection: RuntimeConnection): connection is RuntimeConnection & SessionConnection {
     return (
-        typeof connection.id === 'string'
-        && typeof connection.listen === 'function'
-        && typeof connection.onClose === 'function'
-        && typeof connection.sendUTF8 === 'function'
-        && typeof connection.close === 'function'
+        typeof connection.id === 'string' &&
+        typeof connection.listen === 'function' &&
+        typeof connection.onClose === 'function' &&
+        typeof connection.sendUTF8 === 'function' &&
+        typeof connection.close === 'function'
     );
 }
 
@@ -80,9 +80,9 @@ function isSessionWorld(world: RuntimeWorld): world is RuntimeWorld & SessionWor
         getConnectionPlayerById?: unknown;
     };
     return (
-        typeof candidate.isPlayerActive === 'function'
-        && typeof candidate.enqueueCommand === 'function'
-        && typeof candidate.getConnectionPlayerById === 'function'
+        typeof candidate.isPlayerActive === 'function' &&
+        typeof candidate.enqueueCommand === 'function' &&
+        typeof candidate.getConnectionPlayerById === 'function'
     );
 }
 
@@ -262,7 +262,11 @@ function createFatalReporter(
         const safeJson = (value: unknown): string => {
             try {
                 const json = JSON.stringify(value);
-                return typeof json === 'string' ? json : value !== null && typeof value === 'object' ? resolveObjectTag(value) : String(value);
+                return typeof json === 'string'
+                    ? json
+                    : value !== null && typeof value === 'object'
+                      ? resolveObjectTag(value)
+                      : String(value);
             } catch {
                 return value !== null && typeof value === 'object' ? resolveObjectTag(value) : String(value);
             }
@@ -386,10 +390,13 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     const emitServerEvent = createServerEventEmitter(logger);
 
     if (!validationResult.isValid) {
-        const runtimeValidationErrors = validationResult.errors.map((error) => ({
-            field: error.field,
-            reason: error.reason,
-        }) satisfies Record<string, RuntimeEventFieldValue>);
+        const runtimeValidationErrors = validationResult.errors.map(
+            (error) =>
+                ({
+                    field: error.field,
+                    reason: error.reason,
+                }) satisfies Record<string, RuntimeEventFieldValue>
+        );
         emitServerEvent('error', SERVER_EVENT_NAMES.CONFIG_INVALID, {
             errors: runtimeValidationErrors,
         });
@@ -467,14 +474,19 @@ function main(config: ServerConfig, options?: MainRuntimeOptions): { cleanup: ()
     if (typeof server.onRequestRuntimeMapPack === 'function') {
         let pendingRuntimeMapPackJson: Promise<string> | null = null;
         server.onRequestRuntimeMapPack(function () {
-            pendingRuntimeMapPackJson ??= loadRuntimeMapPackFromSource(config.map_filepath).then((pack) => renderMapPackJson(pack));
-            return pendingRuntimeMapPackJson.then((json) => new Response(json, {
-                status: 200,
-                headers: {
-                    'content-type': 'application/json; charset=utf-8',
-                    'cache-control': 'no-store',
-                },
-            }));
+            pendingRuntimeMapPackJson ??= loadRuntimeMapPackFromSource(config.map_filepath).then((pack) =>
+                renderMapPackJson(pack)
+            );
+            return pendingRuntimeMapPackJson.then(
+                (json) =>
+                    new Response(json, {
+                        status: 200,
+                        headers: {
+                            'content-type': 'application/json; charset=utf-8',
+                            'cache-control': 'no-store',
+                        },
+                    })
+            );
         });
     }
 

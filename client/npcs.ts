@@ -1,4 +1,3 @@
-
 import Npc from './npc';
 import Types from '../shared/gametypes-browser';
 

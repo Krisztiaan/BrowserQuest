@@ -93,20 +93,24 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         let targetWorldPos = worldPos;
 
         if (!isLocalPlayer && config.rollout.remoteSmoothingTimeline) {
-            const interpolated = kernel.getClientRemoteInterpolatedWorldPosition(id, nowMs, tuning.remoteInterpolationDelayMs);
+            const interpolated = kernel.getClientRemoteInterpolatedWorldPosition(
+                id,
+                nowMs,
+                tuning.remoteInterpolationDelayMs
+            );
             if (interpolated) {
                 targetWorldPos = interpolated;
             }
         }
 
         const hasPredictiveLocalMovement =
-            kernel.clientMovementNetcodeMode === 'predictive'
-            && isLocalPlayer
-            && (kernel.clientMovePlan !== null || kernel.clientMoveInputKeysMask !== 0);
+            kernel.clientMovementNetcodeMode === 'predictive' &&
+            isLocalPlayer &&
+            (kernel.clientMovePlan !== null || kernel.clientMoveInputKeysMask !== 0);
         const hasRealtimeInputPrediction = hasPredictiveLocalMovement && kernel.clientMoveInputKeysMask !== 0;
         const lastHandledWorldPos = hasPredictiveLocalMovement
             ? kernel.clientReplicationLastWorldPos.get(id)
-            : kernel.getClientPresentationTargetWorldPosition(id) ?? undefined;
+            : (kernel.getClientPresentationTargetWorldPosition(id) ?? undefined);
         if (isSameWorldPos(lastHandledWorldPos, targetWorldPos)) {
             continue;
         }
@@ -186,7 +190,10 @@ export function runClientKernelReplicationSyncSystem(host: ClientKernelReplicati
         if (targetIsLocalPlayer && localPlayerIsDead) {
             continue;
         }
-        if (!kernel.clientReplicationKnownAlive.has(attackerId) || (!targetIsLocalPlayer && !kernel.clientReplicationKnownAlive.has(targetId))) {
+        if (
+            !kernel.clientReplicationKnownAlive.has(attackerId) ||
+            (!targetIsLocalPlayer && !kernel.clientReplicationKnownAlive.has(targetId))
+        ) {
             continue;
         }
         const lastTargetId = kernel.clientReplicationLastTarget.get(attackerId);

@@ -16,8 +16,9 @@ test('remote replication divergence keeps ordinary updates separate from discont
 });
 
 test('prediction divergence distinguishes hard reconcile from suppressed resync', () => {
-    expect(classifyPredictionDivergence({ suppressed: false, predictionError: tuning.hardReconcileErrSubpx + 1 }))
-        .toBe('prediction_hard_reconcile');
+    expect(classifyPredictionDivergence({ suppressed: false, predictionError: tuning.hardReconcileErrSubpx + 1 })).toBe(
+        'prediction_hard_reconcile'
+    );
     expect(classifyPredictionDivergence({ suppressed: true, predictionError: 0 })).toBe('suppressed_resync');
     expect(classifyPredictionDivergence({ suppressed: false, predictionError: 0 })).toBe('ordinary');
 });

@@ -169,7 +169,8 @@ async function main(): Promise<void> {
             if (spec.name === 'doors') {
                 const isPortalClass = currentClass === 'Portal';
                 const isPortalType = asString(objectRecord.type) === 'portal';
-                const hasTargetLink = hasNonEmptyProperty(objectRecord, 'target_map') || hasNonEmptyProperty(objectRecord, 'target_door');
+                const hasTargetLink =
+                    hasNonEmptyProperty(objectRecord, 'target_map') || hasNonEmptyProperty(objectRecord, 'target_door');
                 expectedClass = isPortalClass || isPortalType || hasTargetLink ? 'Portal' : 'Door';
             }
             if (currentClass !== expectedClass) {

@@ -29,10 +29,10 @@ async function writeDevIndexHtml(): Promise<void> {
     const outputPath = path.join(outputRoot, 'index.html');
     const source = await fs.readFile(sourcePath, 'utf8');
 
-    const workerBootstrap = '<script>window.__BQ_MAP_WORKER_URL__ = \'/client/mapworker.js\';</script>';
+    const workerBootstrap = "<script>window.__BQ_MAP_WORKER_URL__ = '/client/mapworker.js';</script>";
     const withWorkerOverride = source.replace(
         '<script type="module" src="/client/preflight.ts"></script>',
-        `${workerBootstrap}\n        <script type="module" src="/client/preflight.ts"></script>`,
+        `${workerBootstrap}\n        <script type="module" src="/client/preflight.ts"></script>`
     );
 
     const builtEntryHtml = withWorkerOverride

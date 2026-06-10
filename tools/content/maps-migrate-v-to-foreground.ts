@@ -125,7 +125,10 @@ function collectHighLocalTileIds(tilesetRoot: UnknownRecord): Set<number> {
     return ids;
 }
 
-function stripVPropertiesOnTilesetRecord(tilesetRoot: UnknownRecord): { removedProperties: number; touchedTiles: number } {
+function stripVPropertiesOnTilesetRecord(tilesetRoot: UnknownRecord): {
+    removedProperties: number;
+    touchedTiles: number;
+} {
     let removedProperties = 0;
     let touchedTiles = 0;
     const tiles = asArray(tilesetRoot.tiles)
@@ -190,9 +193,7 @@ function printUsage(): never {
 async function resolveMapPaths(dirPath: string, filesCsv: string): Promise<string[]> {
     const explicit = parseCsv(filesCsv);
     if (explicit.length > 0) {
-        return explicit
-            .map((entry) => path.resolve(process.cwd(), entry))
-            .sort((a, b) => a.localeCompare(b));
+        return explicit.map((entry) => path.resolve(process.cwd(), entry)).sort((a, b) => a.localeCompare(b));
     }
 
     const dirEntries = await fs.readdir(dirPath, { withFileTypes: true });

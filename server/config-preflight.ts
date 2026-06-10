@@ -120,13 +120,19 @@ function validateConfig(config: CandidateConfig | object | null | undefined): Va
             reason: 'must_be_non_empty_string',
         });
     }
-    if (candidate.chunk_overlay_flush_interval_ms !== undefined && !isPositiveInteger(candidate.chunk_overlay_flush_interval_ms)) {
+    if (
+        candidate.chunk_overlay_flush_interval_ms !== undefined &&
+        !isPositiveInteger(candidate.chunk_overlay_flush_interval_ms)
+    ) {
         errors.push({
             field: 'chunk_overlay_flush_interval_ms',
             reason: 'must_be_positive_integer',
         });
     }
-    if (candidate.chunk_overlay_flush_max_chunks !== undefined && !isPositiveInteger(candidate.chunk_overlay_flush_max_chunks)) {
+    if (
+        candidate.chunk_overlay_flush_max_chunks !== undefined &&
+        !isPositiveInteger(candidate.chunk_overlay_flush_max_chunks)
+    ) {
         errors.push({
             field: 'chunk_overlay_flush_max_chunks',
             reason: 'must_be_positive_integer',

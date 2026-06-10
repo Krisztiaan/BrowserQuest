@@ -124,7 +124,9 @@ test('move.input intent acks and produces an authoritative MOVE step', () => {
     }
 
     expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.ACK && msg[1] === 1)).toBe(true);
-    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 1)).toBe(true);
+    expect(
+        delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 1)
+    ).toBe(true);
 });
 
 test('move.input overrides any existing MoveQueue (cancels click-to-move on server)', () => {
@@ -222,7 +224,9 @@ test('move.input overrides any existing MoveQueue (cancels click-to-move on serv
         pipeline.tick();
     }
 
-    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 4 && msg[3] === 5)).toBe(true);
+    expect(
+        delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 4 && msg[3] === 5)
+    ).toBe(true);
 });
 
 test('move.input supports diagonal combos (W+D)', () => {
@@ -317,7 +321,9 @@ test('move.input supports diagonal combos (W+D)', () => {
         pipeline.tick();
     }
 
-    expect(delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 0)).toBe(true);
+    expect(
+        delivered.some((msg) => Array.isArray(msg) && msg[0] === Types.Messages.MOVE && msg[2] === 2 && msg[3] === 0)
+    ).toBe(true);
 });
 
 test('move.input never leaves map extents even if host isValidPosition is permissive', () => {
@@ -419,7 +425,7 @@ test('move.input diagonal near dense world collisions never commits blocked tile
     const player = createTestPlayer(24905);
     player.setPosition(158, 117);
 
-    const pack = await loadRuntimeMapPackFromSource('./assets/maps/tiled/world.json') as {
+    const pack = (await loadRuntimeMapPackFromSource('./assets/maps/tiled/world.json')) as {
         maps?: Array<{ id?: string; server?: unknown }>;
     };
     const worldRecord = pack.maps?.find((entry) => entry.id === 'world_01')?.server;

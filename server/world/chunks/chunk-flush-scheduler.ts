@@ -12,7 +12,11 @@ export class ChunkFlushScheduler {
     readonly #config: ChunkFlushSchedulerConfig;
     #lastFlushAtMs = -Infinity;
 
-    constructor(params: { store: ChunkOverlayStore; persistence: SqliteChunkOverlayPersistence; config: ChunkFlushSchedulerConfig }) {
+    constructor(params: {
+        store: ChunkOverlayStore;
+        persistence: SqliteChunkOverlayPersistence;
+        config: ChunkFlushSchedulerConfig;
+    }) {
         const { store, persistence, config } = params;
         if (!Number.isFinite(config.flushIntervalMs) || config.flushIntervalMs <= 0) {
             throw new Error(`ChunkFlushScheduler: invalid flushIntervalMs: ${String(config.flushIntervalMs)}`);

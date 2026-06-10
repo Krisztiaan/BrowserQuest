@@ -38,9 +38,7 @@ function isMemjsModuleShape(value: unknown): value is MemjsModuleShape {
         return false;
     }
     const candidate = value as { Client?: { create?: unknown }; default?: { Client?: { create?: unknown } } };
-    return (
-        typeof candidate.Client?.create === 'function' || typeof candidate.default?.Client?.create === 'function'
-    );
+    return typeof candidate.Client?.create === 'function' || typeof candidate.default?.Client?.create === 'function';
 }
 
 function createDefaultMetricsStore(config: MetricsConfig): MetricsStoreClient {
@@ -101,9 +99,10 @@ class Metrics extends Evented<MetricsEvents> {
     private reportUnavailable(reason: string, fields: RuntimeEventFields = {}): void {
         const signal: UnavailableSignal = {
             reason,
-            operation: fields.operation === 'read' || fields.operation === 'write' || fields.operation === 'connect'
-                ? fields.operation
-                : undefined,
+            operation:
+                fields.operation === 'read' || fields.operation === 'write' || fields.operation === 'connect'
+                    ? fields.operation
+                    : undefined,
             key: typeof fields.key === 'string' ? fields.key : undefined,
         };
         const dedupeKey = this.signalKey(signal);
@@ -208,7 +207,10 @@ class Metrics extends Evented<MetricsEvents> {
         }
 
         const localPlayerCount = worlds.reduce((sum, world) => sum + world.playerCount, 0);
-        const localWriteOk = await this.setMetricString(this.playerCountKey(this.config.server_name), String(localPlayerCount));
+        const localWriteOk = await this.setMetricString(
+            this.playerCountKey(this.config.server_name),
+            String(localPlayerCount)
+        );
         if (!localWriteOk) {
             return;
         }

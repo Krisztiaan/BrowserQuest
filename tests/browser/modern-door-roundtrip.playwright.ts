@@ -6,7 +6,10 @@ type DoorTestApi = {
     isReady?: () => boolean;
     getPlayerPos?: () => PlayerPos;
     clickTile?: (x: number, y: number) => { ok: boolean; reason?: string };
-    getDoorDestination?: (x: number, y: number) => {
+    getDoorDestination?: (
+        x: number,
+        y: number
+    ) => {
         ok: boolean;
         reason?: string;
         destination: { x: number; y: number } | null;
@@ -106,14 +109,18 @@ async function waitForArrivalDoorThatReturnsToOrigin({
     for (;;) {
         const pos = await getPlayerPos(page);
         if (
-            pos.ok
-            && pos.x !== null
-            && pos.y !== null
-            && !(pos.x === initialPos.x && pos.y === initialPos.y)
-            && !(pos.x === originDoor.x && pos.y === originDoor.y)
+            pos.ok &&
+            pos.x !== null &&
+            pos.y !== null &&
+            !(pos.x === initialPos.x && pos.y === initialPos.y) &&
+            !(pos.x === originDoor.x && pos.y === originDoor.y)
         ) {
             const returnInfo = await getDoorDestination(page, pos.x, pos.y);
-            if (returnInfo.ok && returnInfo.destination?.x === originDoor.x && returnInfo.destination.y === originDoor.y) {
+            if (
+                returnInfo.ok &&
+                returnInfo.destination?.x === originDoor.x &&
+                returnInfo.destination.y === originDoor.y
+            ) {
                 return { x: pos.x, y: pos.y };
             }
         }

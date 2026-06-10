@@ -59,9 +59,14 @@ async function startModernSession(page: Page, name: string, options?: { testMode
             .poll(
                 () =>
                     page.evaluate(() => {
-                        const api = (globalThis as {
-                            __BQ_TEST_API?: { isBootstrapped?: () => boolean; startSession?: (name: string) => void };
-                        }).__BQ_TEST_API;
+                        const api = (
+                            globalThis as {
+                                __BQ_TEST_API?: {
+                                    isBootstrapped?: () => boolean;
+                                    startSession?: (name: string) => void;
+                                };
+                            }
+                        ).__BQ_TEST_API;
                         return (
                             typeof api?.isBootstrapped === 'function' &&
                             typeof api.startSession === 'function' &&

@@ -67,7 +67,12 @@ export function buildOutcomeAction(seq: number, outcomeTypeId: string, payload: 
     return [Types.Messages.OUTCOME, seq, outcomeTypeId, payload];
 }
 
-export function buildCorrectionMoveAction(seq: number, x: number, y: number, mapId: string): ServerToClientCorrectionAction {
+export function buildCorrectionMoveAction(
+    seq: number,
+    x: number,
+    y: number,
+    mapId: string
+): ServerToClientCorrectionAction {
     return [Types.Messages.CORRECTION, seq, x, y, mapId];
 }
 
@@ -215,15 +220,7 @@ export function buildAchievementsAction({
     totalDmg: number;
     totalRevives: number;
 }): ServerToClientAchievementsAction {
-    return [
-        Types.Messages.ACHIEVEMENTS,
-        unlockedIds,
-        ratCount,
-        skeletonCount,
-        totalKills,
-        totalDmg,
-        totalRevives,
-    ];
+    return [Types.Messages.ACHIEVEMENTS, unlockedIds, ratCount, skeletonCount, totalKills, totalDmg, totalRevives];
 }
 
 export function asServerToClientProtocolAction(action: ServerToClientProtocolAction): ServerToClientProtocolAction {

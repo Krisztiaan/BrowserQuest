@@ -54,10 +54,10 @@ function isLikelyTiledMapPayload(value: unknown): boolean {
         return false;
     }
     return (
-        typeof record.width === 'number'
-        && typeof record.height === 'number'
-        && typeof record.tilewidth === 'number'
-        && Array.isArray(record.layers)
+        typeof record.width === 'number' &&
+        typeof record.height === 'number' &&
+        typeof record.tilewidth === 'number' &&
+        Array.isArray(record.layers)
     );
 }
 
@@ -192,7 +192,12 @@ function collectUnknownDoorTargetMaps(tiled: unknown, knownMapId: string): strin
     const unknown = new Set<string>();
     const walk = (layers: unknown[]): void => {
         for (const layerRaw of layers) {
-            const layer = layerRaw as { type?: unknown; name?: unknown; layers?: unknown[]; objects?: unknown[] } | null;
+            const layer = layerRaw as {
+                type?: unknown;
+                name?: unknown;
+                layers?: unknown[];
+                objects?: unknown[];
+            } | null;
             if (!layer || typeof layer !== 'object') {
                 continue;
             }
@@ -237,18 +242,20 @@ export async function compileRuntimeMapPackFromPayload(payload: LooseValue, sour
         const resolvedSourcePath = sourcePath ? path.resolve(sourcePath) : null;
         const tiled = resolvedSourcePath
             ? await inlineTilesetSources({
-                tiled: payload,
-                mapFilepath: resolvedSourcePath,
-                tilesetCache: new Map<string, unknown>(),
-            })
+                  tiled: payload,
+                  mapFilepath: resolvedSourcePath,
+                  tilesetCache: new Map<string, unknown>(),
+              })
             : payload;
         const singleMapId = normalizeSingleTiledMapId(sourcePath);
         return compileMapPack({
-            maps: [{
-                id: singleMapId,
-                tiled,
-                ...(sourcePath ? { sourcePath: sourcePath.replace(/\\/g, '/') } : {}),
-            }],
+            maps: [
+                {
+                    id: singleMapId,
+                    tiled,
+                    ...(sourcePath ? { sourcePath: sourcePath.replace(/\\/g, '/') } : {}),
+                },
+            ],
             edges: [],
             pendingTargetMaps: collectUnknownDoorTargetMaps(tiled, singleMapId),
         });

@@ -98,15 +98,19 @@ test('worldPosOverlapsBlockedTiles detects overlaps for a sub-tile AABB', () => 
     const isBlocked = makeBlocked([{ x: 1, y: 1 }]);
     const halfExtents = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
 
-    expect(worldPosOverlapsBlockedTiles({
-        pos: tileToWorldPosCenter(1, 1),
-        halfExtents,
-        isBlockedTile: isBlocked,
-    })).toBe(true);
+    expect(
+        worldPosOverlapsBlockedTiles({
+            pos: tileToWorldPosCenter(1, 1),
+            halfExtents,
+            isBlockedTile: isBlocked,
+        })
+    ).toBe(true);
 
-    expect(worldPosOverlapsBlockedTiles({
-        pos: tileToWorldPosCenter(0, 0),
-        halfExtents,
-        isBlockedTile: isBlocked,
-    })).toBe(false);
+    expect(
+        worldPosOverlapsBlockedTiles({
+            pos: tileToWorldPosCenter(0, 0),
+            halfExtents,
+            isBlockedTile: isBlocked,
+        })
+    ).toBe(false);
 });
