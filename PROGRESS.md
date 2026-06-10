@@ -214,3 +214,27 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk git diff --check`: passed.
 - Next action:
   - Proceed to Ticket 0A.5 clean base state gate.
+
+### 2026-06-10 12:24 - Ticket 0A.5 Add Clean Base State Gate
+
+- Status: done
+- Scope:
+  - Add an independent `check:clean-base-state` gate for docs/index/archive/script hygiene.
+  - Document the gate as the pre-work hygiene check.
+  - Keep the gate independent from `verify:modern`.
+- Key actions:
+  - Added `tools/maintenance/check-clean-base-state.ts`.
+  - Added `tests/unit/clean-base-state.test.ts` test-first and confirmed it failed before the checker existed.
+  - Added `check:clean-base-state` to `package.json` and documented it in `README.md`.
+  - Updated stale project-surface inventory test expectations to the renamed `legacy:fix:world-portals` script.
+  - Regenerated `artifacts/project-surface-inventory.json`.
+- Evidence:
+  - `rtk bun test tests/unit/clean-base-state.test.ts --timeout 20000`: first failed on missing checker, then passed.
+  - `rtk bun test tests/unit/clean-base-state.test.ts tests/unit/project-surface-inventory.test.ts --timeout 20000`: passed 5 pass / 0 fail.
+  - `rtk bun run check:clean-base-state`: passed with `Clean base state check passed.`
+  - `rtk bun run audit:project-surface`: passed, 96 entries.
+  - `rtk bun run typecheck:tools`: passed.
+  - `rtk bun run lint`: passed.
+  - `rtk git diff --check`: passed.
+- Next action:
+  - Proceed to Phase 1 runtime map-pack source-of-truth work.

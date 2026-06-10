@@ -1516,7 +1516,7 @@ rtk git commit -m "chore: quarantine superseded content tools"
 
 **Dependencies/blockers:** Tickets 0A.1 through 0A.4.
 
-- [ ] **Step 1: Create clean base checker**
+- [x] **Step 1: Create clean base checker**
 
 Create `tools/maintenance/check-clean-base-state.ts`:
 
@@ -1566,7 +1566,7 @@ if (failures.length > 0) {
 console.log('Clean base state check passed.');
 ```
 
-- [ ] **Step 2: Add clean base tests**
+- [x] **Step 2: Add clean base tests**
 
 Create `tests/unit/clean-base-state.test.ts`:
 
@@ -1585,7 +1585,7 @@ test('clean base checker source guards active scripts from legacy tools', async 
 });
 ```
 
-- [ ] **Step 3: Add script**
+- [x] **Step 3: Add script**
 
 In `package.json`, add:
 
@@ -1593,7 +1593,7 @@ In `package.json`, add:
 "check:clean-base-state": "bun tools/maintenance/check-clean-base-state.ts"
 ```
 
-- [ ] **Step 4: Update README**
+- [x] **Step 4: Update README**
 
 In `README.md`, add:
 
@@ -1601,7 +1601,7 @@ In `README.md`, add:
 Before starting a new implementation slice, run `bun run check:clean-base-state` after the Phase 0A cleanup lands. It verifies that active scripts, docs, archived audits, external audit evidence, and generated artifact policy are in a known state.
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -1618,7 +1618,7 @@ Expected:
 Clean base state check passed.
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

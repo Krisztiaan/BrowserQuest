@@ -19,6 +19,8 @@ Quickstart
 
 Documentation starts at `docs/README.md`. Historical audits are archived under `docs/archive/` and should be treated as evidence, not current implementation instructions.
 
+Before starting a new implementation slice, run `bun run check:clean-base-state` after the Phase 0A cleanup lands. It verifies that active scripts, docs, archived audits, external audit evidence, and generated artifact policy are in a known state.
+
 Active Scripts
 --------------
 
@@ -32,6 +34,7 @@ Active Scripts
 - `bun run build:bundle`: deployable bundle artifact to `dist/bundle`
 - `bun run typecheck`: TypeScript solution build (`tsc -b tsconfig.json`)
 - `bun run typecheck:tools`: Type-check tooling scripts (`tools/**/*.ts`)
+- `bun run check:clean-base-state`: pre-work hygiene gate for active scripts, docs, archived audits, external audit evidence, and generated artifact policy
 - `bun run verify:modern`: canonical modern verify lane
 - `bun run content:prefabs:generate`: regenerate prefab artifact from canonical content
 - `bun run check:content:prefabs`: verify generated prefab artifact is up to date
