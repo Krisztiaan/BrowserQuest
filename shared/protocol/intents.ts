@@ -4,6 +4,7 @@ import { safeParseJsonValue, type JsonValue } from '../json/safe-json';
 export const INTENT_MOVE_STEP = 'move.step' as const;
 export const INTENT_MOVE_TO = 'move.to' as const;
 export const INTENT_MOVE_INPUT = 'move.input' as const;
+export const INTENT_MOVE_POS = 'move.pos' as const;
 export const INTENT_ATTACK = 'attack.entity' as const;
 export const INTENT_DOOR_TELEPORT = 'door.teleport' as const;
 export const INTENT_TILE_EDIT = 'tile.edit' as const;
@@ -31,6 +32,7 @@ export type CoreIntentTypeId =
     | typeof INTENT_MOVE_STEP
     | typeof INTENT_MOVE_TO
     | typeof INTENT_MOVE_INPUT
+    | typeof INTENT_MOVE_POS
     | typeof INTENT_ATTACK
     | typeof INTENT_DOOR_TELEPORT
     | typeof INTENT_TILE_EDIT
@@ -43,6 +45,8 @@ export type IntentPayloadBytes = ReadonlyArray<number> | Uint8Array;
 export type MoveStepIntentPayload = GridPos;
 export type MoveToIntentPayload = Readonly<{ x: number; y: number; stopAdjacentToTarget: boolean }>;
 export type MoveInputIntentPayload = Readonly<{ keysMask: number }>;
+/** Client-owned movement: authoritative client sub-tile position + animation facts. */
+export type MovePosIntentPayload = Readonly<{ x: number; y: number; facing: number; moving: boolean }>;
 export type AttackIntentPayload = Readonly<{ targetId: number }>;
 export type DoorTeleportIntentPayload = GridPos;
 export type TileEditIntentPayload = Readonly<{ x: number; y: number; value: number | null }>;
@@ -249,6 +253,48 @@ function encodeGridPosPayload(payload: Readonly<{ x: number; y: number }>): numb
 
 export function encodeMoveStepIntentPayload(payload: MoveStepIntentPayload): number[] | null {
     return encodeGridPosPayload(payload);
+}
+
+const MOVE_POS_FACING_MIN = 1;
+const MOVE_POS_FACING_MAX = 4;
+const MOVE_POS_FLAG_MOVING = 1 << 0;
+
+export function encodeMovePosIntentPayload(payload: MovePosIntentPayload): number[] | null {
+    if (!isI32(payload.x) || !isI32(payload.y)) {
+        return null;
+    }
+    if (
+        !Number.isInteger(payload.facing) ||
+        payload.facing < MOVE_POS_FACING_MIN ||
+        payload.facing > MOVE_POS_FACING_MAX
+    ) {
+        return null;
+    }
+    const bytes: number[] = [];
+    pushI32(bytes, payload.x);
+    pushI32(bytes, payload.y);
+    bytes.push(payload.facing & 0xff);
+    bytes.push(payload.moving ? MOVE_POS_FLAG_MOVING : 0);
+    return bytes;
+}
+
+export function decodeMovePosIntentPayload(payload: IntentPayloadBytes): MovePosIntentPayload | null {
+    const bytes = toByteArray(payload);
+    if (bytes?.length !== 10) {
+        return null;
+    }
+    const reader = new ByteReader(bytes);
+    const x = reader.readI32();
+    const y = reader.readI32();
+    const facing = reader.readU8();
+    const flags = reader.readU8();
+    if (x === null || y === null || facing === null || flags === null || !reader.isDone()) {
+        return null;
+    }
+    if (facing < MOVE_POS_FACING_MIN || facing > MOVE_POS_FACING_MAX) {
+        return null;
+    }
+    return { x, y, facing, moving: (flags & MOVE_POS_FLAG_MOVING) !== 0 };
 }
 
 export function decodeMoveStepIntentPayload(payload: IntentPayloadBytes): MoveStepIntentPayload | null {

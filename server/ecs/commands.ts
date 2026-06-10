@@ -77,6 +77,14 @@ export type MoveInputCommand = Readonly<{
     keysMask: number;
 }>;
 
+export type MovePosCommand = Readonly<{
+    type: 'MOVE_POS';
+    source: CommandSource;
+    pos: Readonly<{ x: number; y: number }>;
+    facing: number;
+    moving: boolean;
+}>;
+
 export type LootMoveCommand = Readonly<{
     type: 'LOOTMOVE';
     source: CommandSource;
@@ -183,6 +191,7 @@ export type Command =
     | MoveCommand
     | MoveToCommand
     | MoveInputCommand
+    | MovePosCommand
     | LootMoveCommand
     | AggroCommand
     | AttackCommand

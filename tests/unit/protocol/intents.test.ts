@@ -168,3 +168,22 @@ test('map transition outcome payload codec round-trips valid payloads', () => {
     });
     expect(decodeMapTransitionOutcomePayload('{"fromMapId":"","toMapId":"house_01","x":10,"y":11}')).toBeNull();
 });
+
+test('move.pos payload round-trips sub-tile position, facing and moving flag', async () => {
+    const { encodeMovePosIntentPayload, decodeMovePosIntentPayload } = await import('../../../shared/protocol/intents');
+    const payload = { x: 123_456, y: -7_890, facing: 3, moving: true };
+    const bytes = encodeMovePosIntentPayload(payload);
+    expect(bytes).not.toBeNull();
+    const decoded = decodeMovePosIntentPayload(bytes ?? []);
+    expect(decoded).toEqual(payload);
+
+    const idle = { x: 0, y: 0, facing: 1, moving: false };
+    expect(decodeMovePosIntentPayload(encodeMovePosIntentPayload(idle) ?? [])).toEqual(idle);
+});
+
+test('move.pos payload rejects invalid facing and truncated bytes', async () => {
+    const { encodeMovePosIntentPayload, decodeMovePosIntentPayload } = await import('../../../shared/protocol/intents');
+    expect(encodeMovePosIntentPayload({ x: 0, y: 0, facing: 99, moving: false })).toBeNull();
+    const bytes = encodeMovePosIntentPayload({ x: 5, y: 6, facing: 2, moving: true }) ?? [];
+    expect(decodeMovePosIntentPayload(bytes.slice(0, bytes.length - 1))).toBeNull();
+});

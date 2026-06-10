@@ -8,6 +8,7 @@ import {
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
+    INTENT_MOVE_POS,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
@@ -20,6 +21,7 @@ export {
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
+    INTENT_MOVE_POS,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
@@ -129,6 +131,11 @@ type ApplyMoveInputIntentCommand = (params: {
     cmd: Extract<Command, { type: 'MOVE_INPUT' }>;
 }) => { ok: false; reason: string } | void;
 
+type ApplyMovePosIntentCommand = (params: {
+    ctx: InboundIntentContext;
+    cmd: Extract<Command, { type: 'MOVE_POS' }>;
+}) => { ok: false; reason: string } | void;
+
 type ApplyTeleportOutcome = (params: {
     state: WorldState<Command, DomainEvent>;
     ctx: SystemContext;
@@ -151,6 +158,7 @@ type CoreModuleRegistryOptions = Readonly<{
     applyMoveIntentCommand: ApplyMoveIntentCommand;
     applyMoveToIntentCommand: ApplyMoveToIntentCommand;
     applyMoveInputIntentCommand: ApplyMoveInputIntentCommand;
+    applyMovePosIntentCommand: ApplyMovePosIntentCommand;
     applyTeleportOutcome: ApplyTeleportOutcome;
 }>;
 
@@ -302,6 +310,15 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                         movement: ctx.movement,
                         cmd,
                     });
+                });
+
+                registry.registerIntentHandler(INTENT_MOVE_POS, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'MOVE_POS');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    return options.applyMovePosIntentCommand({ ctx, cmd });
                 });
 
                 registry.registerIntentHandler(INTENT_ATTACK, () => {

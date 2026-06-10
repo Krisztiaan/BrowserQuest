@@ -83,6 +83,7 @@ import {
     decodeAttackIntentPayload,
     decodeDoorTeleportIntentPayload,
     decodeMoveInputIntentPayload,
+    decodeMovePosIntentPayload,
     decodeMoveToIntentPayload,
     decodeMoveStepIntentPayload,
     decodeTileEditIntentPayload,
@@ -118,6 +119,7 @@ import {
     INTENT_CLAIM_UPDATE,
     INTENT_DOOR_TELEPORT,
     INTENT_MOVE_INPUT,
+    INTENT_MOVE_POS,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_TILE_EDIT,
@@ -126,6 +128,7 @@ import {
     type IntentWorldHost,
 } from './ecs-command-pipeline/core-module-registry';
 import { resolveServerMovementNetcodeConfig } from '../movement-netcode-config';
+import { MOVEMENT_TUNING_PROFILES } from '../../shared/netcode/movement-tuning';
 import { applyMoveToIntentCommand as applyMoveToIntentCommandImpl } from './intents/move-to-intent';
 import type { MapTransitionEvent } from './map-transition-observability';
 import {
@@ -913,6 +916,80 @@ function applyMoveInputIntentCommand({
     state.world.addComponent(player.id, MoveInput, { keysMask: nextMask, recentKeys: nextRecent });
 }
 
+const MOVE_POS_HALF_EXTENTS = { hx: 6 * SUBPIXELS, hy: 6 * SUBPIXELS };
+const MOVE_POS_ENVELOPE_SLACK = 1.5;
+const MOVE_POS_FIRST_UPDATE_ALLOWANCE_MS = 250;
+export const MOVE_POS_LAST_ACCEPT_RESOURCE = createResourceKey<Map<EntityId, number>>('move_pos_last_accept_tick');
+
+function applyMovePosIntentCommand({
+    intentCtx,
+    cmd,
+    worldHost,
+    ups,
+}: {
+    intentCtx: {
+        state: WorldState<Command, DomainEvent>;
+        ctx: SystemContext;
+        player: PlayerLike;
+        movement: ReturnType<typeof registerMovementComponents>;
+        replication: ReturnType<typeof registerSpawnReplicationComponents>;
+        MapId: ComponentType<string>;
+        Position: ComponentType<GridPos>;
+    };
+    cmd: Extract<Command, { type: 'MOVE_POS' }>;
+    worldHost: WorldCommandHost;
+    ups: number;
+}): { ok: false; reason: string } | void {
+    const { state, ctx, player, movement, replication, MapId, Position } = intentCtx;
+    const playerId = player.id;
+
+    const currentGrid = Position.store.get(playerId);
+    if (!currentGrid) {
+        return { ok: false, reason: 'move.pos requires a positioned player' };
+    }
+    const posSub = replication.PositionSub.store.get(playerId) ?? tileToWorldPosCenter(currentGrid.x, currentGrid.y);
+
+    // Speed envelope: clients own their position, but displacement is bounded by
+    // profile speed (1 tile per moveCooldownMs) over the elapsed time, with slack
+    // for jitter. Anything beyond is a teleport and gets rejected + corrected.
+    const lastAccept = state.resources.require(MOVE_POS_LAST_ACCEPT_RESOURCE);
+    const tickMs = 1000 / ups;
+    const lastTick = lastAccept.get(playerId);
+    const elapsedMs =
+        lastTick === undefined ? MOVE_POS_FIRST_UPDATE_ALLOWANCE_MS : Math.max(tickMs, (ctx.tick - lastTick) * tickMs);
+    const profile = MOVEMENT_TUNING_PROFILES[resolveServerMovementNetcodeConfig().profileId];
+    const speedSubpxPerMs = TILE_SUBPX / profile.client.moveCooldownMs;
+    const maxDistSubpx = speedSubpxPerMs * elapsedMs * MOVE_POS_ENVELOPE_SLACK + SUBPIXELS;
+    const dist = Math.max(Math.abs(cmd.pos.x - posSub.x), Math.abs(cmd.pos.y - posSub.y));
+    if (dist > maxDistSubpx) {
+        return { ok: false, reason: 'move.pos exceeds the speed envelope' };
+    }
+
+    const mapId = resolveEntityMapId({ MapId, entityId: playerId, world: worldHost });
+    const isBlockedTile = (x: number, y: number) => !isValidPositionInMap({ world: worldHost, mapId, x, y });
+    if (
+        worldPosOverlapsBlockedTiles({
+            pos: cmd.pos,
+            halfExtents: MOVE_POS_HALF_EXTENTS,
+            isBlockedTile,
+        })
+    ) {
+        return { ok: false, reason: 'move.pos overlaps blocked geometry' };
+    }
+
+    // Stage the validated position; the movement system commits it with the
+    // shared occupancy/door/replication bookkeeping on this tick.
+    state.world.addComponent(playerId, movement.ClientOwnedMoveTarget, {
+        pos: { x: cmd.pos.x, y: cmd.pos.y },
+        facing: cmd.facing,
+        moving: cmd.moving,
+    });
+    state.world.removeComponent(playerId, movement.MoveQueue);
+    state.world.removeComponent(playerId, movement.MoveInput);
+    state.world.addComponent(playerId, replication.Orientation, cmd.facing);
+    lastAccept.set(playerId, ctx.tick);
+}
+
 function applyLootMoveCommand({
     state,
     Kind,
@@ -1650,6 +1727,17 @@ function createApplyInboundCommandsSystem(
                                       keysMask: decoded.keysMask,
                                   } satisfies Extract<Command, { type: 'MOVE_INPUT' }>)
                                 : null;
+                        } else if (cmd.intentTypeId === INTENT_MOVE_POS) {
+                            const decoded = decodeMovePosIntentPayload(cmd.payloadBytes);
+                            bridged = decoded
+                                ? ({
+                                      type: 'MOVE_POS',
+                                      source: cmd.source,
+                                      pos: { x: decoded.x, y: decoded.y },
+                                      facing: decoded.facing,
+                                      moving: decoded.moving,
+                                  } satisfies Extract<Command, { type: 'MOVE_POS' }>)
+                                : null;
                         } else if (cmd.intentTypeId === INTENT_ATTACK) {
                             const decoded = decodeAttackIntentPayload(cmd.payloadBytes);
                             bridged = decoded
@@ -1976,6 +2064,7 @@ export class WorldEcsCommandPipeline {
         this.state.resources.set(MOVE_SYNC_STATE_RESOURCE, new Map());
         this.state.resources.set(PLAYER_RECENT_POSITION_HISTORY_RESOURCE, new Map());
         this.state.resources.set(ENTITY_STATE_BATCH_RESOURCE, new Map());
+        this.state.resources.set(MOVE_POS_LAST_ACCEPT_RESOURCE, new Map());
         this.state.resources.set(CHUNK_AOI_STATE_RESOURCE, createChunkAoiState());
         this.state.resources.set(CHUNK_OVERLAY_STORE_RESOURCE, this.chunkOverlays);
         this.state.resources.set(CLAIMS_STORE_RESOURCE, new ClaimsStore());
@@ -2015,6 +2104,13 @@ export class WorldEcsCommandPipeline {
                     cmd,
                 });
             },
+            applyMovePosIntentCommand: ({ ctx, cmd }) =>
+                applyMovePosIntentCommand({
+                    intentCtx: ctx,
+                    cmd,
+                    worldHost: this.#world,
+                    ups: Math.max(1, this.#world.ups),
+                }),
             applyTeleportOutcome: ({
                 state,
                 ctx,
@@ -2079,7 +2175,7 @@ export class WorldEcsCommandPipeline {
             const MapId = this.MapId;
             const PositionSub = this.PositionSub;
             const Target = this.replication.Target;
-            const { MoveQueue, MoveInput, MoveSpeedRemainder } = this.movement;
+            const { MoveQueue, MoveInput, MoveSpeedRemainder, ClientOwnedMoveTarget } = this.movement;
             const { HitPoints } = this.combat;
             const outbox = state.resources.require(OUTBOX_RESOURCE);
             const seqState = state.resources.require(INTENT_SEQ_STATE_RESOURCE);
@@ -2182,6 +2278,7 @@ export class WorldEcsCommandPipeline {
             const movingIds = new Set<EntityId>();
             MoveInput.store.forEach((id) => movingIds.add(id));
             MoveQueue.store.forEach((id) => movingIds.add(id));
+            ClientOwnedMoveTarget.store.forEach((id) => movingIds.add(id));
 
             for (const playerId of movingIds) {
                 const kind = Kind.store.get(playerId);
@@ -2229,6 +2326,13 @@ export class WorldEcsCommandPipeline {
                     // Held-key movement is authoritative; cancel click-to-move paths.
                     state.world.removeComponent(playerId, MoveQueue);
                 }
+                // Client-owned movement: the staged target was envelope-validated at
+                // intent time; it bypasses server-side integration and commits through
+                // the shared safety/occupancy/door path below.
+                const ownedTarget = ClientOwnedMoveTarget.store.get(playerId);
+                if (ownedTarget) {
+                    state.world.removeComponent(playerId, ClientOwnedMoveTarget);
+                }
 
                 const speed = getMoveSpeedSubpxPerTick(playerId, kind);
                 let posSub = PositionSub.store.get(playerId);
@@ -2241,7 +2345,9 @@ export class WorldEcsCommandPipeline {
                 let dy: -1 | 0 | 1 = 0;
                 let movingToTile: GridPos | null = null;
 
-                if (input) {
+                if (ownedTarget) {
+                    // dx/dy stay 0; nextSub is overridden after integration.
+                } else if (input) {
                     const mask = input.keysMask >>> 0;
                     const recentKeys = input.recentKeys;
                     dx = resolveAxisDelta({ mask, recentKeys, negBit: MOVE_INPUT_KEY_A, posBit: MOVE_INPUT_KEY_D });
@@ -2287,7 +2393,7 @@ export class WorldEcsCommandPipeline {
                     }
                 }
 
-                if (dx === 0 && dy === 0) {
+                if (dx === 0 && dy === 0 && !ownedTarget) {
                     // No motion requested (possible when opposite keys are held with ambiguous ordering).
                     continue;
                 }
@@ -2345,6 +2451,10 @@ export class WorldEcsCommandPipeline {
 
                 let nextSub = resolved.pos;
                 let nextGrid = worldPosToTile(nextSub);
+                if (ownedTarget) {
+                    nextSub = { x: ownedTarget.pos.x, y: ownedTarget.pos.y };
+                    nextGrid = worldPosToTile(nextSub);
+                }
 
                 // If click-to-move is close enough to the target center, snap to it and consume the waypoint.
                 if (!input && movingToTile) {

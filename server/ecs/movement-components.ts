@@ -13,11 +13,19 @@ export type MoveInputState = Readonly<{
     recentKeys: number[];
 }>;
 
+/** Client-owned movement: envelope-validated position staged by move.pos, committed by the movement system. */
+export type ClientOwnedMoveTargetState = Readonly<{
+    pos: Readonly<{ x: number; y: number }>;
+    facing: number;
+    moving: boolean;
+}>;
+
 export type MovementComponents = Readonly<{
     MoveQueue: ComponentType<MoveQueueState>;
     NextMoveTick: ComponentType<number>;
     MoveInput: ComponentType<MoveInputState>;
     MoveSpeedRemainder: ComponentType<number>;
+    ClientOwnedMoveTarget: ComponentType<ClientOwnedMoveTargetState>;
 }>;
 
 export function registerMovementComponents(world: EcsWorld): MovementComponents {
@@ -25,5 +33,9 @@ export function registerMovementComponents(world: EcsWorld): MovementComponents 
     const NextMoveTick = world.components.register('NextMoveTick', new SparseSetStore<number>());
     const MoveInput = world.components.register('MoveInput', new SparseSetStore<MoveInputState>());
     const MoveSpeedRemainder = world.components.register('MoveSpeedRemainder', new SparseSetStore<number>());
-    return { MoveQueue, NextMoveTick, MoveInput, MoveSpeedRemainder };
+    const ClientOwnedMoveTarget = world.components.register(
+        'ClientOwnedMoveTarget',
+        new SparseSetStore<ClientOwnedMoveTargetState>()
+    );
+    return { MoveQueue, NextMoveTick, MoveInput, MoveSpeedRemainder, ClientOwnedMoveTarget };
 }
