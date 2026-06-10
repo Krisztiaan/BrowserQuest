@@ -41,6 +41,8 @@ Active Scripts
 - `bun run content:prefabs:generate`: regenerate prefab artifact from canonical content
 - `bun run check:content:prefabs`: verify generated prefab artifact is up to date
 
+Client build tooling intentionally stays on the current Bun-based pipeline for now. See `docs/client-build-decision.md`.
+
 Script Lanes
 ------------
 

@@ -9,6 +9,7 @@
 - `server-logging-taxonomy.md`: Logging taxonomy.
 - `css-modernization-progress.md`: Client CSS modernization progress.
 - `project-surface-inventory.md`: Script, tool, doc, plan, and audit surface classification.
+- `client-build-decision.md`: Current Bun client build decision and Vite deferral rationale.
 
 ## Active Map Authoring Documentation
 

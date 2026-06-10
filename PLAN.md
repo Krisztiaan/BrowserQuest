@@ -4886,7 +4886,7 @@ rtk git commit -m "feat: add npc dialogue and shops"
 
 **Dependencies/blockers:** Tickets 1.5, 3.2, 5.2.
 
-- [ ] **Step 1: Create mine map**
+- [x] **Step 1: Create mine map**
 
 Create `assets/maps/tiled/maps/mine_floor_001.json` using the same minimal map shape as the stub house interiors, with:
 
@@ -4896,7 +4896,7 @@ Create `assets/maps/tiled/maps/mine_floor_001.json` using the same minimal map s
 - `roaming_areas` objectgroup
 - `resource_nodes` objectgroup
 
-- [ ] **Step 2: Add pack entry**
+- [x] **Step 2: Add pack entry**
 
 Add:
 
@@ -4906,7 +4906,7 @@ Add:
 
 to `assets/maps/tiled/map-pack.config.json`.
 
-- [ ] **Step 3: Add browser smoke**
+- [x] **Step 3: Add browser smoke**
 
 Create `tests/browser/mines-loop.playwright.ts` that:
 
@@ -4917,7 +4917,7 @@ Create `tests/browser/mines-loop.playwright.ts` that:
 5. Harvests one node through test control.
 6. Asserts inventory contains expected item.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -4936,7 +4936,7 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -4970,7 +4970,7 @@ rtk git commit -m "feat: add simple mines gameplay loop"
 
 **Dependencies/blockers:** Phase 0.
 
-- [ ] **Step 1: Create decision doc**
+- [x] **Step 1: Create decision doc**
 
 Create `docs/client-build-decision.md`:
 
@@ -4984,7 +4984,7 @@ Vite remains a candidate for browser development ergonomics, HMR, and asset pipe
 Revisit Vite after `rtk bun run verify:modern` is stable and the MVP loop has browser coverage.
 ```
 
-- [ ] **Step 2: Verify current build**
+- [x] **Step 2: Verify current build**
 
 Run:
 
@@ -4999,7 +4999,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Run:
 

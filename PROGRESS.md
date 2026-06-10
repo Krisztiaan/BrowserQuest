@@ -1018,7 +1018,7 @@ This is the live execution notebook for `PLAN.md`.
 
 ### 2026-06-10 14:40 UTC - Ticket 5.4 Add Simple Mines Loop
 
-- Status: in_progress
+- Status: done
 - Scope:
   - Add a basic mine/cave map flow with a graph-linked door, one mob spawn area, one ore/resource node, and server-side loot persistence.
   - Add browser coverage for entering the mine and harvesting through test controls.
@@ -1050,3 +1050,24 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `feat: add simple mines gameplay loop`.
   - Next action: Continue Phase 5 with the next friend-server RPG gameplay ticket.
+
+### 2026-06-10 15:10 UTC - Ticket 6.1 Document Bun Build as Intentional
+
+- Status: done
+- Scope:
+  - Record the current client build decision without migrating build tooling.
+  - Keep existing build scripts unchanged unless verification exposes a concrete issue.
+- TODO:
+  - done: Inspect README and docs index for the right documentation location.
+  - done: Add `docs/client-build-decision.md` and README/docs index pointers.
+  - done: Run `bun run build:client` and `bun run verify:modern`.
+  - done: Commit Ticket 6.1.
+- Key actions:
+  - 2026-06-10 15:10 UTC: Ticket started from clean branch `modern/cx...origin/modern/cx` ahead 26.
+  - Added `docs/client-build-decision.md`, documenting that Bun-based client build remains intentional while map-pack, passability, persistence, and MVP gameplay coverage are still the higher-risk priorities.
+  - Linked the decision from `README.md` active scripts and `docs/README.md`.
+- Evidence:
+  - `bun run build:client` passed.
+  - `bun run verify:modern` passed: 688 pass, 1 skip, 0 fail; client and server builds completed.
+  - Commit: `docs: record client build decision`.
+  - Next action: Continue Phase 6 with Ticket 6.2 renderer boundary.
