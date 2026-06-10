@@ -1,7 +1,7 @@
 {
     "port": 8000,
     "debug_level": "info",
-    "nb_players_per_world": 2000,
+    "nb_players_per_world": 64,
     "nb_worlds": 1,
     "map_filepath": "./assets/maps/tiled/map-pack.config.json",
     "metrics_enabled": false,

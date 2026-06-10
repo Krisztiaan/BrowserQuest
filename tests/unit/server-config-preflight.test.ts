@@ -5,7 +5,7 @@ function createValidConfig() {
     return {
         port: 8000,
         debug_level: 'info',
-        nb_players_per_world: 200,
+        nb_players_per_world: 64,
         nb_worlds: 5,
         map_filepath: './assets/maps/tiled/map-pack.config.json',
         metrics_enabled: false,
@@ -14,6 +14,16 @@ function createValidConfig() {
 
 test('config preflight accepts default-safe valid config', () => {
     const result = ConfigPreflight.validateConfig(createValidConfig());
+    expect(result.isValid).toBe(true);
+    expect(result.errors).toEqual([]);
+});
+
+test('config preflight accepts larger explicit world capacity for load experiments', () => {
+    const result = ConfigPreflight.validateConfig({
+        ...createValidConfig(),
+        nb_players_per_world: 200,
+    });
+
     expect(result.isValid).toBe(true);
     expect(result.errors).toEqual([]);
 });

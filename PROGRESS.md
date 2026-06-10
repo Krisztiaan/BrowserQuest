@@ -853,3 +853,26 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `fix: make client combat cleanup idempotent`.
   - Next action: Continue Phase 4 with Ticket 4.1 friend-server product target.
+
+### 2026-06-10 13:36 UTC - Ticket 4.1 Lower Product Target From MMO Shard to Friend Server
+
+- Status: done
+- Scope:
+  - Lower default per-world player capacity to the 16-64 friend-server target.
+  - Document the product target and keep larger explicit config values valid for load experiments.
+- TODO:
+  - done: Update config defaults and product target docs.
+  - done: Add validation regression for larger explicit values.
+  - done: Run config verification and modern verify lane.
+  - done: Commit Ticket 4.1.
+- Key actions:
+  - 2026-06-10 13:36 UTC: Ticket started.
+  - Lowered `server/config.json` and `server/config_local.json-dist` default `nb_players_per_world` from 2000 to 64.
+  - Added `docs/product-target.md` and README/server README notes for the 16-64 friend-server target.
+  - Added a config preflight regression proving larger explicit world capacity remains valid for load experiments.
+- Evidence:
+  - `bun test tests/unit/server-config-preflight.test.ts --timeout 20000` passed: 7 pass, 0 fail.
+  - `bun run verify:modern` passed: 663 pass, 1 skip, 0 fail; client and server builds completed.
+  - `git diff --check` passed.
+  - Commit: `docs: align defaults with friend-server target`.
+  - Next action: Continue Phase 4 with Ticket 4.2 persistence schema versioning and backup CLI.

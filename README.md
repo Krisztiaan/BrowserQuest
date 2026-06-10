@@ -3,6 +3,8 @@ BrowserQuest
 
 BrowserQuest is a modernized HTML5 multiplayer game runtime on Bun.
 
+The current product target is a casual co-op friend-server RPG for 16-64 concurrent players per world, not a 2000-player MMO shard. See `docs/product-target.md`.
+
 Runtime Requirements
 --------------------
 
@@ -123,6 +125,7 @@ Server Config Knobs (Local/VPS)
 
 `server/config_local.json-dist` includes the common knobs; runtime config is loaded from `server/config.json` (default) and overridden by `server/config_local.json` (or a custom path passed to `bun server/entry.ts <configPath>`).
 
+- `nb_players_per_world` (default `64`): practical friend-server world capacity target. Larger explicit values remain valid for load experiments.
 - `chunk_size` (default `32`): tile chunk size used for overlay persistence + chunk AOI streaming.
 - Chunk overlays persistence:
   - `chunk_overlay_db_path` (default `./server/.data/chunk-overlays.{worldId}.sqlite`)

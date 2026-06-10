@@ -16,6 +16,7 @@ The server settings (number of worlds, number of players per world, etc.) can be
 Copy `config_local.json-dist` to a new `config_local.json` file, then edit it. The server will override default settings with this file.
 The distributed template already includes metrics-related keys so toggling `metrics_enabled` does not require guessing field names.
 Startup runs config preflight validation; invalid configs fail fast with structured event `server.config.invalid`.
+The default capacity target is a casual friend server: 16-64 concurrent players per world. Larger explicit `nb_players_per_world` values remain valid for load experiments, but the default project target is not a 2000-player MMO shard.
 
 Pre-release compatibility note: runtime persistence expects current schema only. Legacy DB schema migration is intentionally not performed in-process. For incompatible pre-release updates, start with fresh DB files.
 
@@ -39,7 +40,7 @@ Example (metrics disabled, default-safe):
 {
   "port": 8000,
   "debug_level": "info",
-  "nb_players_per_world": 2000,
+  "nb_players_per_world": 64,
   "nb_worlds": 1,
   "map_filepath": "./assets/maps/tiled/map-pack.config.json",
   "metrics_enabled": false
@@ -52,7 +53,7 @@ Example (metrics enabled):
 {
   "port": 8000,
   "debug_level": "info",
-  "nb_players_per_world": 2000,
+  "nb_players_per_world": 64,
   "nb_worlds": 1,
   "map_filepath": "./assets/maps/tiled/map-pack.config.json",
   "metrics_enabled": true,

@@ -4154,7 +4154,7 @@ rtk git commit -m "fix: make client combat cleanup idempotent"
 
 **Dependencies/blockers:** Phase 0.
 
-- [ ] **Step 1: Update defaults**
+- [x] **Step 1: Update defaults**
 
 Change:
 
@@ -4170,7 +4170,7 @@ to:
 
 in `server/config.json` and `server/config_local.json-dist`.
 
-- [ ] **Step 2: Add product target doc**
+- [x] **Step 2: Add product target doc**
 
 Create `docs/product-target.md`:
 
@@ -4182,7 +4182,7 @@ BrowserQuest targets a casual co-op friend-server RPG: stable persistence, share
 The project does not currently target 2000-player MMO shards. High-scale sharding, cross-shard migration, complex anti-cheat, and distributed world simulation are deferred until the friend-server loop is stable and measured.
 ```
 
-- [ ] **Step 3: Verify config**
+- [x] **Step 3: Verify config**
 
 Run:
 
@@ -4197,7 +4197,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
