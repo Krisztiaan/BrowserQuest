@@ -5031,7 +5031,7 @@ rtk git commit -m "docs: record client build decision"
 
 **Dependencies/blockers:** Ticket 2.4.
 
-- [ ] **Step 1: Create renderer contract**
+- [x] **Step 1: Create renderer contract**
 
 Create `client/rendering/renderer-contract.ts`:
 
@@ -5046,7 +5046,7 @@ export interface GameRenderer {
 }
 ```
 
-- [ ] **Step 2: Adapt current renderer**
+- [x] **Step 2: Adapt current renderer**
 
 In `client/map.ts` or nearest renderer owner, expose an adapter class:
 
@@ -5067,7 +5067,7 @@ export class CanvasGameRenderer implements GameRenderer {
 
 Use actual local render function names.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run:
 
@@ -5082,7 +5082,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 

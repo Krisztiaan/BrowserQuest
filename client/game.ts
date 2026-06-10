@@ -77,6 +77,7 @@ import { runClientSimulationSystem } from './ecs/systems/client-simulation-syste
 import Timer from './timer';
 import { resolveStartupWaitOutcome } from './game-startup-wait';
 import { resolveClientMovementNetcodeMode } from './netcode-mode';
+import type { GameRenderer } from './rendering/renderer-contract';
 
 type GridPosition = { x: number; y: number };
 type GridIndexedEntity = {
@@ -196,7 +197,8 @@ class Game extends Evented<GameEvents> {
     ready: boolean;
     started: boolean;
     hasNeverStarted: boolean;
-    renderer: Renderer;
+    renderer!: Renderer;
+    gameRenderer!: GameRenderer;
     pathfinder: Pathfinder | null;
     chatinput: HTMLInputElement | null;
     bubbleManager: BubbleManager | null;
@@ -363,7 +365,7 @@ class Game extends Evented<GameEvents> {
         this.reviveWelcomeTimeout = null;
 
         this.setBubbleManager(new BubbleManager(bubbleContainer));
-        this.renderer = new Renderer(this, canvas, background, foreground);
+        this.setRenderer(new Renderer(this, canvas, background, foreground));
         this.setChatInput(input);
     }
 
@@ -385,6 +387,7 @@ class Game extends Evented<GameEvents> {
 
     setRenderer(renderer: Renderer): void {
         this.renderer = renderer;
+        this.gameRenderer = renderer;
     }
 
     setPathfinder(pathfinder: Pathfinder): void {
@@ -1161,9 +1164,7 @@ class Game extends Evented<GameEvents> {
     }
 
     setMapDebugOverlayMode(mode: MapDebugOverlayMode): void {
-        this.mapDebugOverlayMode = mode;
-        document.body.classList.toggle('map-debug-passability', mode === 'passability');
-        this.renderer.renderFrame();
+        this.gameRenderer.setDebugOverlayMode(mode);
     }
 
     /**

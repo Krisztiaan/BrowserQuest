@@ -7,6 +7,7 @@ import Detect from './platform/detect';
 import Types from '../shared/gametypes-browser';
 import log from './platform/log';
 import { disableCanvasImageSmoothing, type PixelArtCanvasContext } from './canvas-smoothing';
+import type { DebugOverlayMode, GameRenderer, RenderFrameContext } from './rendering/renderer-contract';
 
 type RendererContext2D = PixelArtCanvasContext;
 type DrawScaledImageArg = number | RendererContext2D | CanvasImageSource;
@@ -161,7 +162,7 @@ export function resolveViewportSize(viewport: ViewportLike): Readonly<{ width: n
     });
 }
 
-class Renderer {
+class Renderer implements GameRenderer {
     game: RendererGameLike;
     context: RendererContext2D;
     background: RendererContext2D;
@@ -1154,12 +1155,20 @@ class Renderer {
         }
     }
 
-    renderFrame(): void {
+    renderFrame(ctx?: RenderFrameContext): void {
+        void ctx;
+
         if (this.mobile || this.tablet) {
             this.renderFrameMobile();
         } else {
             this.renderFrameDesktop();
         }
+    }
+
+    setDebugOverlayMode(mode: DebugOverlayMode): void {
+        this.game.mapDebugOverlayMode = mode;
+        document.body.classList.toggle('map-debug-passability', mode === 'passability');
+        this.renderFrame({ nowMs: Date.now() });
     }
 
     renderFrameDesktop(): void {

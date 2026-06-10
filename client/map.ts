@@ -5,6 +5,7 @@ import log from './platform/log';
 import { resolveImageAssetPath } from './image-assets';
 import { fetchClientRuntimeMap } from './map-source';
 import { isOutOfBoundsGridPosition } from '../shared/world/coordinate-contract';
+import type { DebugOverlayMode } from './rendering/renderer-contract';
 
 type MapGameLike = {
     renderer: {
@@ -76,7 +77,7 @@ type RuntimeMapPayload = {
 };
 type CheckpointArea = Area;
 
-export type MapDebugOverlayMode = 'none' | 'passability';
+export type MapDebugOverlayMode = DebugOverlayMode;
 
 function resolveMapWorkerModuleUrl(): string | URL {
     const override = (globalThis as MapGlobals).__BQ_MAP_WORKER_URL__;

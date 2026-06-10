@@ -1071,3 +1071,30 @@ This is the live execution notebook for `PLAN.md`.
   - `bun run verify:modern` passed: 688 pass, 1 skip, 0 fail; client and server builds completed.
   - Commit: `docs: record client build decision`.
   - Next action: Continue Phase 6 with Ticket 6.2 renderer boundary.
+
+### 2026-06-10 15:14 UTC - Ticket 6.2 Introduce Renderer Boundary Without Rewriting Renderer
+
+- Status: done
+- Scope:
+  - Add a named renderer contract around the existing Canvas frame render and debug-overlay command path.
+  - Keep the concrete Canvas renderer and existing visuals unchanged.
+- TODO:
+  - done: Inspect current render loop, map debug overlay ownership, and browser smoke availability.
+  - done: Add renderer contract and adapt the current Canvas renderer through it.
+  - done: Add focused renderer-boundary unit coverage.
+  - done: Run Ticket 6.2 verification.
+  - done: Commit Ticket 6.2.
+- Key actions:
+  - 2026-06-10 15:14 UTC: Ticket started from clean branch after `docs: record client build decision`.
+  - Confirmed `tests/browser/modern-ui-smoke.playwright.ts` exists, so the plan's browser verification command is available.
+  - Current game systems still need the concrete renderer for camera, scale, dirty rects, and mobile/tablet state; the Ticket 6.2 boundary will cover frame rendering and debug-overlay commands first.
+  - Added `GameRenderer` and `RenderFrameContext`, implemented the contract on the current Canvas `Renderer`, and routed `runClientRenderSystem` through `game.gameRenderer`.
+  - Updated `setMapDebugOverlayMode` to command the renderer boundary, while keeping `mapDebugOverlayMode` as the render-state value consumed by the Canvas overlay drawing.
+- Evidence:
+  - `git status --short` was clean before Ticket 6.2 edits.
+  - `bun test tests/unit/renderer-terrain.test.ts --timeout 20000` passed: 3 pass, 0 fail.
+  - `npx playwright test --config=playwright.config.ts tests/browser/modern-ui-smoke.playwright.ts` passed: 2 pass, 0 fail.
+  - `bun run verify:modern` passed: 689 pass, 1 skip, 0 fail; client and server builds completed.
+  - `git diff --check` passed.
+  - Commit: `refactor: add canvas renderer boundary`.
+  - Next action: Continue Phase 7 with Ticket 7.1 handoff archive hygiene.
