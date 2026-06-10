@@ -5,10 +5,12 @@ import {
     MSG_CHAT,
     MSG_HEALTH,
     MSG_HELLO,
+    MSG_INTENT,
     MSG_LOOTMOVE,
     MSG_AGGRO,
     MSG_WELCOME,
 } from '../support/protocol/contract';
+import { INTENT_ATTACK } from '../../shared/protocol/intents';
 
 type ZoneMoveResult = {
     ok: boolean;
@@ -194,7 +196,10 @@ test('modern browser emits ATTACK/LOOTMOVE via deterministic combat-loot test co
         )
         .toBe(true);
 
-    const beforeAttack = sentTypes.filter((type) => type === MSG_ATTACK).length;
+    // Attacks ride the intent envelope on the modern wire; loot-move is still a plain action.
+    const countAttackIntentsSent = () =>
+        observer.sentActions.filter((action) => action[0] === MSG_INTENT && action[2] === INTENT_ATTACK).length;
+    const beforeAttack = countAttackIntentsSent();
     const beforeLootMove = sentTypes.filter((type) => type === MSG_LOOTMOVE).length;
 
     const result = await page.evaluate(() => {
@@ -216,9 +221,7 @@ test('modern browser emits ATTACK/LOOTMOVE via deterministic combat-loot test co
     expect(result.mobId).toBeDefined();
     expect(result.itemId).toBeDefined();
 
-    await expect
-        .poll(() => sentTypes.filter((type) => type === MSG_ATTACK).length, { timeout: 20_000 })
-        .toBeGreaterThan(beforeAttack);
+    await expect.poll(countAttackIntentsSent, { timeout: 20_000 }).toBeGreaterThan(beforeAttack);
     await expect
         .poll(() => sentTypes.filter((type) => type === MSG_LOOTMOVE).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeLootMove);

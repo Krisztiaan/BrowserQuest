@@ -1,5 +1,9 @@
 import type { Page } from '@playwright/test';
 import { MSG_CHAT, parseProtocolActionBatch, type ProtocolParsedAction } from '../support/protocol/contract';
+import {
+    decodeClientToServerProtocolActionBatchBinary,
+    decodeServerToClientProtocolActionBatchBinary,
+} from '../../shared/protocol/registry';
 
 type ProtocolObserverOptions = {
     wsUrlSubstring?: string;
@@ -35,9 +39,24 @@ export function attachProtocolObserver(page: Page, options?: ProtocolObserverOpt
         }
         socketCount += 1;
 
+        // The live wire is the FixedBin binary protocol; legacy JSON text frames
+        // are still parsed as a fallback so replay fixtures keep working.
+        const parseFrame = (
+            payload: string | Buffer,
+            decodeBinary: (bytes: Uint8Array) => ReadonlyArray<unknown>
+        ): ProtocolParsedAction[] => {
+            if (typeof payload === 'string') {
+                return parseProtocolActionBatch(payload);
+            }
+            try {
+                return decodeBinary(new Uint8Array(payload)) as ProtocolParsedAction[];
+            } catch (_) {
+                return [];
+            }
+        };
+
         ws.on('framesent', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseProtocolActionBatch(text);
+            const actions = parseFrame(payload, decodeClientToServerProtocolActionBatchBinary);
             actions.forEach((action) => {
                 sentTypes.push(action[0]);
                 sentActions.push(action);
@@ -45,13 +64,12 @@ export function attachProtocolObserver(page: Page, options?: ProtocolObserverOpt
         });
 
         ws.on('framereceived', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            if (text === 'go') {
+            if (payload === 'go') {
                 goCount += 1;
                 return;
             }
 
-            const actions = parseProtocolActionBatch(text);
+            const actions = parseFrame(payload, decodeServerToClientProtocolActionBatchBinary);
             actions.forEach((action) => {
                 receivedTypes.push(action[0]);
                 receivedActions.push(action);

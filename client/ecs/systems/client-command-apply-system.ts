@@ -1359,6 +1359,10 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                         command.worldY
                     );
                     if (entity instanceof Character) {
+                        // The bridge only drives visuals; the logical grid position must
+                        // still track authority or adjacency-derived gameplay (combat
+                        // links, attack facing, spatial queries) reads stale tiles.
+                        entity.setLogicalWorldPositionSub(command.worldX, command.worldY);
                         bridgeCharacterWorldUpdate(entity, {
                             worldX: command.worldX,
                             worldY: command.worldY,

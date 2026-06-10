@@ -1,5 +1,22 @@
 import { expect, test, type Page } from '@playwright/test';
-import { MSG_CHAT, MSG_HELLO, MSG_MOVE, MSG_WELCOME, MSG_ZONE } from '../support/protocol/contract';
+import WebSocket from 'ws';
+import fs from 'node:fs';
+import path from 'node:path';
+import { MSG_CHAT, MSG_HELLO, MSG_WELCOME, MSG_ZONE } from '../support/protocol/contract';
+import SharedProtocol from '../../shared/protocol/contract';
+import Types from '../../shared/gametypes-browser';
+import {
+    createChatAction,
+    createHelloAction,
+    createIntentAction,
+    createZoneAction,
+} from '../../client/gameclient-outbound-actions';
+import { encodeClientToServerBinaryActionBatchPayload } from '../../shared/protocol/binary-action-codec';
+import { decodeServerToClientProtocolActionBatchBinary } from '../../shared/protocol/registry';
+import { encodeMoveStepIntentPayload, INTENT_MOVE_STEP } from '../../shared/protocol/intents';
+import { gridPos } from '../../shared/domain/positions';
+
+const MSG_REJECT = SharedProtocol.MSG_REJECT;
 
 type ReplayMode = 'positive' | 'invalid_move';
 
@@ -9,11 +26,10 @@ type ReplayTranscript = {
     goCount: number;
     welcomeCount: number;
     echoedChatCount: number;
-    moveCount: number;
-    zoneCount: number;
+    rejectCount: number;
     stayedOpenAfterMoveZone: boolean;
     sentInvalidMove: boolean;
-    closedAfterInvalidMove: boolean;
+    stayedOpenAfterInvalidMove: boolean;
     errors: string[];
 };
 
@@ -23,198 +39,205 @@ type ReplayResult = {
     transcript: ReplayTranscript;
 };
 
-type ReplayActionValue = number | string | boolean | null;
-type ReplayAction = [number, ...ReplayActionValue[]];
+type MapCollisions = { width: number; blocked: Set<number> };
 
-async function replaySequence(page: Page, entryPath: '/', suffix: string, mode: ReplayMode) {
-    await page.addInitScript(() => {
-        window.localStorage.clear();
-    });
-    await page.goto(entryPath, { waitUntil: 'domcontentloaded' });
+let cachedCollisions: MapCollisions | null = null;
 
-    const result = await page.evaluate(
-        async ({ wsUrl, helloName, chatMessage, mode, types }) => {
-            const transcript: ReplayTranscript = {
-                sent: [],
-                received: [],
-                goCount: 0,
-                welcomeCount: 0,
-                echoedChatCount: 0,
-                moveCount: 0,
-                zoneCount: 0,
-                stayedOpenAfterMoveZone: false,
-                sentInvalidMove: false,
-                closedAfterInvalidMove: false,
-                errors: [],
-            };
+function loadWorldCollisions(): MapCollisions {
+    if (cachedCollisions) {
+        return cachedCollisions;
+    }
+    const packPath = path.resolve(process.cwd(), 'assets/maps/runtime/map-pack.json');
+    const pack = JSON.parse(fs.readFileSync(packPath, 'utf8')) as {
+        maps: Array<{ server: { width: number; collisions: number[] } }>;
+    };
+    const server = pack.maps[0]?.server;
+    if (!server) {
+        throw new Error('map-pack.json has no maps');
+    }
+    cachedCollisions = { width: server.width, blocked: new Set(server.collisions) };
+    return cachedCollisions;
+}
 
-            const parseActions = (raw: string): ReplayAction[] => {
-                type JsonPrimitive = string | number | boolean | null;
-                type JsonValue = JsonPrimitive | JsonValue[] | { [key: string]: JsonValue };
-                try {
-                    const parsed = JSON.parse(raw) as JsonValue;
-                    if (!Array.isArray(parsed)) return [];
-                    if (parsed.length > 0 && Array.isArray(parsed[0])) {
-                        return parsed.filter(
-                            (entry): entry is ReplayAction => Array.isArray(entry) && typeof entry[0] === 'number'
-                        );
-                    }
-                    if (typeof parsed[0] === 'number') {
-                        return [parsed as ReplayAction];
-                    }
-                    return [];
-                } catch (_) {
-                    return [];
-                }
-            };
-
-            return new Promise<ReplayResult>((resolve) => {
-                let sentHello = false;
-                let sentChat = false;
-                let sentMove = false;
-                let sentZone = false;
-                let stage: 'await_go' | 'await_welcome' | 'await_chat_echo' | 'await_invalid_close' = 'await_go';
-                let done = false;
-                const ws = new WebSocket(wsUrl);
-
-                const finalize = (payload: ReplayResult) => {
-                    if (done) return;
-                    done = true;
-                    clearTimeout(timeout);
-                    try {
-                        ws.close();
-                    } catch (_) {
-                        // ignore
-                    }
-                    resolve(payload);
-                };
-
-                const timeout = window.setTimeout(() => {
-                    transcript.errors.push(
-                        `timeout:${stage}:go=${transcript.goCount}:welcome=${transcript.welcomeCount}:sent=${transcript.sent.join(',')}:received=${transcript.received
-                            .slice(-5)
-                            .join(',')}`
-                    );
-                    finalize({ ok: false, reason: `timeout:${stage}`, transcript });
-                }, 15000);
-
-                ws.onmessage = (event) => {
-                    const text = typeof event.data === 'string' ? event.data : String(event.data);
-
-                    if (text === 'go') {
-                        transcript.received.push('go');
-                        transcript.goCount += 1;
-                        stage = 'await_welcome';
-                        if (!sentHello) {
-                            ws.send(JSON.stringify([types.MSG_HELLO, helloName, 1, 1]));
-                            transcript.sent.push(types.MSG_HELLO);
-                            sentHello = true;
-                        }
-                        return;
-                    }
-
-                    const actions = parseActions(text);
-                    actions.forEach((action) => {
-                        const type = Number(action[0]);
-                        transcript.received.push(type);
-
-                        if (type !== types.MSG_WELCOME) {
-                            if (mode === 'positive' && type === types.MSG_CHAT && action[2] === chatMessage) {
-                                transcript.echoedChatCount += 1;
-                                window.setTimeout(() => {
-                                    transcript.stayedOpenAfterMoveZone = ws.readyState === WebSocket.OPEN;
-                                    finalize({ ok: transcript.stayedOpenAfterMoveZone, transcript });
-                                }, 120);
-                            }
-                            return;
-                        }
-
-                        transcript.welcomeCount += 1;
-
-                        if (mode === 'positive') {
-                            const welcomeX = Number(action[3]);
-                            const welcomeY = Number(action[4]);
-
-                            if (!sentChat) {
-                                ws.send(JSON.stringify([types.MSG_CHAT, chatMessage]));
-                                transcript.sent.push(types.MSG_CHAT);
-                                sentChat = true;
-                                stage = 'await_chat_echo';
-                            }
-                            if (!sentMove && Number.isFinite(welcomeX) && Number.isFinite(welcomeY)) {
-                                ws.send(JSON.stringify([types.MSG_MOVE, welcomeX, welcomeY]));
-                                transcript.sent.push(types.MSG_MOVE);
-                                transcript.moveCount += 1;
-                                sentMove = true;
-                            }
-                            if (sentMove && !sentZone) {
-                                ws.send(JSON.stringify([types.MSG_ZONE]));
-                                transcript.sent.push(types.MSG_ZONE);
-                                transcript.zoneCount += 1;
-                                sentZone = true;
-                            }
-                            return;
-                        }
-
-                        if (!transcript.sentInvalidMove) {
-                            ws.send(JSON.stringify([types.MSG_MOVE, 10.5, 7]));
-                            transcript.sent.push(types.MSG_MOVE);
-                            transcript.sentInvalidMove = true;
-                            stage = 'await_invalid_close';
-                        }
-                    });
-                };
-
-                ws.onclose = () => {
-                    if (mode === 'positive') {
-                        finalize({ ok: false, reason: `unexpected_close:${stage}`, transcript });
-                        return;
-                    }
-                    transcript.closedAfterInvalidMove = transcript.sentInvalidMove;
-                    finalize({
-                        ok: transcript.goCount > 0 && transcript.welcomeCount > 0 && transcript.closedAfterInvalidMove,
-                        transcript,
-                    });
-                };
-
-                ws.onerror = () => {
-                    transcript.errors.push('ws_error');
-                    if (mode === 'invalid_move' && transcript.closedAfterInvalidMove) {
-                        return;
-                    }
-                    finalize({ ok: false, reason: `ws_error:${stage}`, transcript });
-                };
-            });
-        },
-        {
-            wsUrl: 'ws://127.0.0.1:8000/ws',
-            helloName: `pi-${mode}-${suffix}`,
-            chatMessage: `pi-chat-${suffix}`,
-            mode,
-            types: {
-                MSG_HELLO,
-                MSG_WELCOME,
-                MSG_CHAT,
-                MSG_MOVE,
-                MSG_ZONE,
-            },
+function pickFreeAdjacentTile(x: number, y: number): { x: number; y: number } | null {
+    const { width, blocked } = loadWorldCollisions();
+    const candidates = [
+        { x: x + 1, y },
+        { x: x - 1, y },
+        { x, y: y + 1 },
+        { x, y: y - 1 },
+    ];
+    for (const tile of candidates) {
+        if (tile.x >= 0 && tile.y >= 0 && !blocked.has(tile.y * width + tile.x)) {
+            return tile;
         }
-    );
+    }
+    return null;
+}
 
-    return result;
+/**
+ * Replays the canonical session bootstrap over the live binary wire:
+ * go -> HELLO -> WELCOME -> CHAT/move.step/ZONE -> chat echo, asserting the
+ * socket survives. The invalid_move mode streams a teleport-sized move.step,
+ * which the modern protocol answers with REJECT while keeping the session
+ * open (legacy servers dropped the connection; the resilient-session
+ * behavior is the invariant now).
+ */
+async function replaySequence(page: Page, entryPath: '/', suffix: string, mode: ReplayMode): Promise<ReplayResult> {
+    // Entry path must serve the modern client shell before the wire replay.
+    await page.goto(entryPath, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#nameinput')).toBeVisible();
+
+    const helloName = `pi-${mode}-${suffix}`;
+    const chatMessage = `pi-chat-${suffix}`;
+
+    return new Promise<ReplayResult>((resolve) => {
+        const transcript: ReplayTranscript = {
+            sent: [],
+            received: [],
+            goCount: 0,
+            welcomeCount: 0,
+            echoedChatCount: 0,
+            rejectCount: 0,
+            stayedOpenAfterMoveZone: false,
+            sentInvalidMove: false,
+            stayedOpenAfterInvalidMove: false,
+            errors: [],
+        };
+
+        let sentHello = false;
+        let sentChat = false;
+        let stage: 'await_go' | 'await_welcome' | 'await_chat_echo' | 'await_invalid_reject' = 'await_go';
+        let done = false;
+        const ws = new WebSocket('ws://127.0.0.1:8000/ws');
+
+        const finalize = (payload: ReplayResult) => {
+            if (done) return;
+            done = true;
+            clearTimeout(timeout);
+            try {
+                ws.close();
+            } catch (_) {
+                // ignore
+            }
+            resolve(payload);
+        };
+
+        const timeout = setTimeout(() => {
+            transcript.errors.push(
+                `timeout:${stage}:go=${transcript.goCount}:welcome=${transcript.welcomeCount}:sent=${transcript.sent.join(',')}:received=${transcript.received
+                    .slice(-5)
+                    .join(',')}`
+            );
+            finalize({ ok: false, reason: `timeout:${stage}`, transcript });
+        }, 15_000);
+
+        const send = (action: unknown[], opcode: number) => {
+            ws.send(encodeClientToServerBinaryActionBatchPayload([action]));
+            transcript.sent.push(opcode);
+        };
+
+        ws.on('message', (data: Buffer | string, isBinary: boolean) => {
+            if (!isBinary && String(data) === 'go') {
+                transcript.received.push('go');
+                transcript.goCount += 1;
+                stage = 'await_welcome';
+                if (!sentHello) {
+                    send(createHelloAction(helloName, Types.Entities.CLOTHARMOR, Types.Entities.SWORD1), MSG_HELLO);
+                    sentHello = true;
+                }
+                return;
+            }
+            if (!isBinary) {
+                return;
+            }
+
+            const bytes = new Uint8Array(data as Buffer);
+            for (const action of decodeServerToClientProtocolActionBatchBinary(bytes)) {
+                const type = Number(action[0]);
+                transcript.received.push(type);
+
+                if (type === MSG_REJECT) {
+                    transcript.rejectCount += 1;
+                    if (mode === 'invalid_move' && transcript.sentInvalidMove) {
+                        // Modern invariant: protocol violations are answered with
+                        // REJECT, not a dropped session.
+                        setTimeout(() => {
+                            transcript.stayedOpenAfterInvalidMove = ws.readyState === WebSocket.OPEN;
+                            finalize({ ok: transcript.stayedOpenAfterInvalidMove, transcript });
+                        }, 120);
+                    }
+                    continue;
+                }
+
+                if (mode === 'positive' && type === MSG_CHAT && action[2] === chatMessage) {
+                    transcript.echoedChatCount += 1;
+                    setTimeout(() => {
+                        transcript.stayedOpenAfterMoveZone = ws.readyState === WebSocket.OPEN;
+                        finalize({ ok: transcript.stayedOpenAfterMoveZone, transcript });
+                    }, 120);
+                    continue;
+                }
+
+                if (type !== MSG_WELCOME) {
+                    continue;
+                }
+                transcript.welcomeCount += 1;
+                const welcomeX = Number(action[3]);
+                const welcomeY = Number(action[4]);
+
+                if (mode === 'positive') {
+                    if (!sentChat) {
+                        send(createChatAction(chatMessage), MSG_CHAT);
+                        sentChat = true;
+                        stage = 'await_chat_echo';
+                    }
+                    const step = pickFreeAdjacentTile(welcomeX, welcomeY);
+                    const payload = step ? encodeMoveStepIntentPayload(gridPos(step.x, step.y)) : null;
+                    if (payload) {
+                        send(createIntentAction(1, INTENT_MOVE_STEP, payload), SharedProtocol.MSG_INTENT);
+                    }
+                    send(createZoneAction(), MSG_ZONE);
+                    continue;
+                }
+
+                if (!transcript.sentInvalidMove) {
+                    // Teleport-sized step: 10 tiles in one move.step.
+                    const payload = encodeMoveStepIntentPayload(gridPos(welcomeX + 10, welcomeY));
+                    if (!payload) {
+                        transcript.errors.push('invalid_move_encode_failed');
+                        finalize({ ok: false, reason: 'invalid_move_encode_failed', transcript });
+                        return;
+                    }
+                    send(createIntentAction(1, INTENT_MOVE_STEP, payload), SharedProtocol.MSG_INTENT);
+                    transcript.sentInvalidMove = true;
+                    stage = 'await_invalid_reject';
+                }
+            }
+        });
+
+        ws.on('close', () => {
+            finalize({ ok: false, reason: `unexpected_close:${stage}`, transcript });
+        });
+
+        ws.on('error', () => {
+            transcript.errors.push('ws_error');
+            finalize({ ok: false, reason: `ws_error:${stage}`, transcript });
+        });
+    });
 }
 
 test('protocol replay invariants hold on modern entry path', async ({ page }) => {
     const modern = await replaySequence(page, '/', `modern-${Date.now()}`, 'positive');
     const modernInvalid = await replaySequence(page, '/', `modern-${Date.now()}`, 'invalid_move');
 
-    expect(modern.ok).toBe(true);
-    expect(modernInvalid.ok).toBe(true);
+    expect(modern.ok, modern.reason ?? '').toBe(true);
+    expect(modernInvalid.ok, modernInvalid.reason ?? '').toBe(true);
 
     const modernInvariant = {
         sentHello: modern.transcript.sent.includes(MSG_HELLO),
         sentChat: modern.transcript.sent.includes(MSG_CHAT),
-        sentMove: modern.transcript.sent.includes(MSG_MOVE),
+        sentMoveIntent: modern.transcript.sent.includes(SharedProtocol.MSG_INTENT),
         sentZone: modern.transcript.sent.includes(MSG_ZONE),
         sawGo: modern.transcript.goCount > 0,
         sawWelcome: modern.transcript.welcomeCount > 0,
@@ -225,7 +248,7 @@ test('protocol replay invariants hold on modern entry path', async ({ page }) =>
     expect(modernInvariant).toEqual({
         sentHello: true,
         sentChat: true,
-        sentMove: true,
+        sentMoveIntent: true,
         sentZone: true,
         sawGo: true,
         sawWelcome: true,
@@ -239,7 +262,8 @@ test('protocol replay invariants hold on modern entry path', async ({ page }) =>
         sentInvalidMove: modernInvalid.transcript.sentInvalidMove,
         sawGo: modernInvalid.transcript.goCount > 0,
         sawWelcome: modernInvalid.transcript.welcomeCount > 0,
-        closedAfterInvalidMove: modernInvalid.transcript.closedAfterInvalidMove,
+        sawReject: modernInvalid.transcript.rejectCount > 0,
+        stayedOpenAfterInvalidMove: modernInvalid.transcript.stayedOpenAfterInvalidMove,
         sawErrors: modernInvalid.transcript.errors.length > 0,
     };
     expect(modernInvalidInvariant).toEqual({
@@ -247,7 +271,8 @@ test('protocol replay invariants hold on modern entry path', async ({ page }) =>
         sentInvalidMove: true,
         sawGo: true,
         sawWelcome: true,
-        closedAfterInvalidMove: true,
+        sawReject: true,
+        stayedOpenAfterInvalidMove: true,
         sawErrors: false,
     });
 });
