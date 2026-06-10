@@ -13,7 +13,15 @@ Status values:
 
 Current known replacement candidates:
 
-- `fix:world-portals` -> Phase 2A `world-authoring-repair`.
-- `fix:tileset-wang:scaffold` -> `terrain-authoring.json` plus `terrain-grammar-validator`.
+- `legacy:fix:world-portals` -> Phase 2A `world-authoring-repair`.
+- `legacy:fix:tileset-wang:scaffold` -> `terrain-authoring.json` plus `terrain-grammar-validator`.
 - `check:world-standardize:dry` -> `terrain-authoring-audit`.
-- `fix:world-standardize` -> dry-run-first `world-authoring-repair`.
+- `legacy:fix:world-standardize` -> dry-run-first `world-authoring-repair`.
+
+## Script Cleanup Decisions
+
+- `fix:world-portals` was moved to `legacy:fix:world-portals` because it is non-recursive and writes `target_map=world`; current portal work belongs in Phase 2 and Phase 2A repair tooling.
+- `fix:world-standardize` was moved to `legacy:fix:world-standardize` because broad authoring writes must go through dry-run-first repair plans.
+- `fix:tileset-wang:scaffold` was moved to `legacy:fix:tileset-wang:scaffold` because the scaffold Wang sets are audit evidence, not the final terrain grammar.
+- `fix:tileset-modernize` was moved to `legacy:fix:tileset-modernize` because final tileset metadata should come from the terrain grammar and generated authoring contract.
+- `fix:foreground-layers` was moved to `legacy:fix:foreground-layers` because foreground migration must be validated by the layer contract and region visual audit.

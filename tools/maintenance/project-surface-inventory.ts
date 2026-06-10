@@ -36,11 +36,11 @@ const knownReplaceScripts: Readonly<Record<string, string>> = {
     'check:foreground-layers:dry': 'Phase 2 layer contract replaces broad foreground migration dry-run as the first review surface.',
     'check:tileset-modernize:dry': 'Phase 2A terrain authoring audit replaces broad tileset modernization dry-run as the first review surface.',
     'check:world-standardize:dry': 'Phase 2A terrain authoring audit replaces broad standardize dry-run as the first review surface.',
-    'fix:foreground-layers': 'Phase 2 layer contract and Phase 2A authoring repair replace broad foreground migration writes.',
-    'fix:tileset-modernize': 'Phase 2A terrain grammar replaces broad tileset metadata modernization writes.',
-    'fix:tileset-wang:scaffold': 'Phase 2A terrain grammar replaces scaffold-as-authority flow.',
-    'fix:world-portals': 'Phase 2A world-authoring-repair replaces stale portal curation.',
-    'fix:world-standardize': 'Phase 2A safe repair replaces broad standardize writes.',
+    'legacy:fix:foreground-layers': 'Phase 2 layer contract and Phase 2A authoring repair replace broad foreground migration writes.',
+    'legacy:fix:tileset-modernize': 'Phase 2A terrain grammar replaces broad tileset metadata modernization writes.',
+    'legacy:fix:tileset-wang:scaffold': 'Phase 2A terrain grammar replaces scaffold-as-authority flow.',
+    'legacy:fix:world-portals': 'Phase 2A world-authoring-repair replaces stale portal curation.',
+    'legacy:fix:world-standardize': 'Phase 2A safe repair replaces broad standardize writes.',
 };
 
 const replacementContentTools: Readonly<Record<string, string>> = {

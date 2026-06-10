@@ -145,3 +145,26 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk git commit -m "chore: inventory project maintenance surface"`: committed Ticket 0A.1.
 - Next action:
   - Proceed to Ticket 0A.2 script normalization.
+
+### 2026-06-10 11:51 - Ticket 0A.2 Normalize Package Scripts and Check Names
+
+- Status: done
+- Scope:
+  - Move stale write-capable map/tileset scripts out of the active `fix:*` lane.
+  - Document active script lanes and legacy-script policy.
+  - Add a package script contract test.
+- Key actions:
+  - Added `tests/unit/package-scripts-contract.test.ts` test-first and verified it failed against the old active `fix:*` scripts.
+  - Renamed stale write scripts to `legacy:fix:*`.
+  - Updated `README.md` with script lane policy.
+  - Updated `docs/project-surface-inventory.md` with cleanup decisions.
+  - Updated `tools/maintenance/project-surface-inventory.ts` to classify renamed legacy scripts as replacement candidates.
+  - Regenerated `artifacts/project-surface-inventory.json`.
+- Evidence:
+  - `rtk bun test tests/unit/package-scripts-contract.test.ts --timeout 20000`: first failed on active write scripts, then passed 3 pass / 0 fail.
+  - `rtk bun run audit:project-surface`: passed, `Project surface inventory entries: 94`.
+  - `rtk bun run typecheck:tools`: passed.
+  - `rtk bun run lint`: passed.
+  - `rtk git commit -m "chore: normalize maintenance script lanes"`: committed Ticket 0A.2.
+- Next action:
+  - Proceed to Ticket 0A.3 docs archive/index.

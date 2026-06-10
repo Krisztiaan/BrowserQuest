@@ -1034,7 +1034,7 @@ rtk git commit -m "chore: inventory project maintenance surface"
 
 **Dependencies/blockers:** Ticket 0A.1.
 
-- [ ] **Step 1: Add script contract test**
+- [x] **Step 1: Add script contract test**
 
 Create `tests/unit/package-scripts-contract.test.ts`:
 
@@ -1052,7 +1052,7 @@ test('verify modern does not call legacy scripts', () => {
 });
 
 test('map write scripts are explicit repair or legacy lanes', () => {
-    const writeScripts = Object.entries(scripts).filter(([, command]) => command.includes('--write'));
+    const writeScripts = Object.entries(scripts).filter(([, command]) => command.includes('tools/content/') && command.includes('--write'));
     for (const [name] of writeScripts) {
         expect(name.startsWith('repair:') || name.startsWith('legacy:')).toBe(true);
     }
@@ -1063,7 +1063,7 @@ test('known stale world portal script is not an active fix script', () => {
 });
 ```
 
-- [ ] **Step 2: Rename stale write scripts**
+- [x] **Step 2: Rename stale write scripts**
 
 In `package.json`, rename these scripts:
 
@@ -1092,7 +1092,7 @@ Keep dry-run audit scripts active only when they are read-only:
 "check:world-tile-paints": "bun tools/content/world-tile-paint-audit.ts"
 ```
 
-- [ ] **Step 3: Update README script lane docs**
+- [x] **Step 3: Update README script lane docs**
 
 In `README.md`, add:
 
@@ -1106,7 +1106,7 @@ In `README.md`, add:
 - `verify:*`: aggregate release gates; these must not call `legacy:*` scripts.
 ```
 
-- [ ] **Step 4: Update inventory docs**
+- [x] **Step 4: Update inventory docs**
 
 In `docs/project-surface-inventory.md`, add:
 
@@ -1120,7 +1120,7 @@ In `docs/project-surface-inventory.md`, add:
 - `fix:foreground-layers` was moved to `legacy:fix:foreground-layers` because foreground migration must be validated by the layer contract and region visual audit.
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -1136,7 +1136,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

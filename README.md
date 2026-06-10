@@ -33,6 +33,15 @@ Active Scripts
 - `bun run verify:modern`: canonical modern verify lane
 - `bun run content:prefabs:generate`: regenerate prefab artifact from canonical content
 - `bun run check:content:prefabs`: verify generated prefab artifact is up to date
+
+Script Lanes
+------------
+
+- `check:*`: read-only content or project checks.
+- `audit:*`: read-only inventory and review reports that usually write artifacts under `artifacts/`.
+- `repair:*`: write-capable maintenance scripts. Prefer dry-run variants when available.
+- `legacy:*`: preserved migration or historical scripts. Do not use for new work unless the current plan explicitly says to.
+- `verify:*`: aggregate release gates; these must not call `legacy:*` scripts.
 Verification
 ------------
 
