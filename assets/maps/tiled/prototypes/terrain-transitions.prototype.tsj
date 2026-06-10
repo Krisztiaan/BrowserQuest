@@ -1,0 +1,842 @@
+{
+  "columns": 5,
+  "image": "terrain-transitions.prototype.png",
+  "imageheight": 48,
+  "imagewidth": 80,
+  "margin": 0,
+  "name": "terrain-transitions-prototype",
+  "spacing": 0,
+  "tilecount": 15,
+  "tiledversion": "1.11.2",
+  "tileheight": 16,
+  "tiles": [
+    {
+      "id": 0,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "edge_n"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "edge_n.mask"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "edge_s"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "edge_s.mask"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "edge_e"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "edge_e.mask"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "edge_w"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "edge_w.mask"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "outer_ne"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "outer_ne.mask"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "outer_nw"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "outer_nw.mask"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "outer_se"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "outer_se.mask"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "outer_sw"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "outer_sw.mask"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "inner_ne"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "inner_ne.mask"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "inner_nw"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "inner_nw.mask"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "inner_se"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "inner_se.mask"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "inner_sw"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "inner_sw.mask"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "island"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "island.mask"
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "channel_h"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "channel_h.mask"
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "properties": [
+        {
+          "name": "prototype",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "terrain_pair",
+          "type": "string",
+          "value": "shoreline"
+        },
+        {
+          "name": "transition_shape",
+          "type": "string",
+          "value": "channel_v"
+        },
+        {
+          "name": "source_base_family",
+          "type": "string",
+          "value": "sand"
+        },
+        {
+          "name": "source_base_gid",
+          "type": "int",
+          "value": 140
+        },
+        {
+          "name": "source_base_tile_id",
+          "type": "int",
+          "value": 139
+        },
+        {
+          "name": "source_overlay_family",
+          "type": "string",
+          "value": "water"
+        },
+        {
+          "name": "source_overlay_gid",
+          "type": "int",
+          "value": 405
+        },
+        {
+          "name": "source_overlay_tile_id",
+          "type": "int",
+          "value": 404
+        },
+        {
+          "name": "mask",
+          "type": "string",
+          "value": "channel_v.mask"
+        }
+      ]
+    }
+  ],
+  "tilewidth": 16,
+  "type": "tileset",
+  "version": "1.10"
+}

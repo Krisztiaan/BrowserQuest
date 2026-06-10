@@ -3811,6 +3811,66 @@ rtk git add assets/maps/tiled assets/maps/runtime/map-pack.json client/public/im
 rtk git commit -m "feat: complete world terrain authoring pass"
 ```
 
+### Ticket 2A.7: Generate First Deterministic Transition Prototype
+
+**Scope:** Create a non-runtime deterministic prototype sheet for the shoreline transition pair so the blocked asset-generation path has concrete output to review.
+
+**Out of scope:** Do not reference prototype files from `world.json`, `map-pack.config.json`, runtime map packs, or `client/public/img/1/tilesheet.webp`.
+
+**Files:**
+- Create: `tools/content/terrain-transition-prototype.ts`
+- Test: `tests/unit/terrain-transition-prototype.test.ts`
+- Create: `assets/maps/tiled/prototypes/terrain-transitions.prototype.png`
+- Create: `assets/maps/tiled/prototypes/terrain-transitions.prototype.tsj`
+- Create: `assets/maps/tiled/prototypes/terrain-transitions.prototype.manifest.json`
+- Modify: `package.json`
+
+**Acceptance criteria:**
+- Prototype generation is deterministic.
+- Prototype manifest records every transition pair, shape, source tile id, source gid, and mask used.
+- Prototype sheet covers the current shoreline required shapes from `assets/maps/tiled/terrain-authoring.json`.
+- Prototype files are not referenced by runtime map sources.
+
+**Verification plan:**
+- `rtk bun test tests/unit/terrain-transition-prototype.test.ts --timeout 20000`
+- `rtk bun run build:terrain-transition-prototype`
+- `rtk identify -format '%f %wx%h\n' assets/maps/tiled/prototypes/terrain-transitions.prototype.png`
+- `rtk rg -n "terrain-transitions\\.prototype" assets/maps/tiled/world.json assets/maps/tiled/map-pack.config.json assets/maps/runtime/map-pack.json` returns no matches.
+- `rtk bun run typecheck:tools`
+- `rtk bun run lint`
+- `rtk git diff --check`
+
+**Dependencies/blockers:** Tickets 2A.3 through 2A.6.
+
+- [x] **Step 1: Add prototype generator**
+
+Create a deterministic generator that uses ImageMagick, the current BrowserQuest tilesheet, shoreline source tiles, and named masks.
+
+- [x] **Step 2: Add metadata and tests**
+
+Export pure helpers for required shape selection and tile metadata, and test them.
+
+- [x] **Step 3: Generate prototype artifacts**
+
+Write the PNG sheet, TSJ metadata, and manifest under `assets/maps/tiled/prototypes/`.
+
+- [x] **Step 4: Verify runtime isolation**
+
+Confirm no runtime map source references `terrain-transitions.prototype`.
+
+Verified with no matches; `rg` exited 1 as expected for an empty result set.
+
+- [x] **Step 5: Commit**
+
+Run:
+
+```bash
+rtk git add tools/content/terrain-transition-prototype.ts tests/unit/terrain-transition-prototype.test.ts package.json assets/maps/tiled/prototypes PLAN.md PROGRESS.md
+rtk git commit -m "feat: generate shoreline transition prototype"
+```
+
+Commit: `feat: generate shoreline transition prototype`.
+
 ---
 
 ## Phase 3 - Protocol and Server Authority Cleanup

@@ -693,7 +693,7 @@ This is the live execution notebook for `PLAN.md`.
 
 ### 2026-06-10 12:25 UTC - Ticket 2A.6 Complete Manual Visual Review and Richness Pass
 
-- Status: in_progress
+- Status: done
 - Scope:
   - Create the map authoring review log and region checklist.
   - Inventory high/error audit findings before any map repainting.
@@ -740,3 +740,33 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed after the repair batch.
   - Scoped batch commit: `fix: repair duplicate covered world paint`.
   - Next action: Decide whether to start transition asset generation or pause on the asset blocker before continuing Ticket 2A.6.
+
+### 2026-06-10 12:38 UTC - Ticket 2A.7 Generate First Deterministic Transition Prototype
+
+- Status: in_progress
+- Scope:
+  - Generate a non-runtime shoreline transition prototype sheet.
+  - Record source tile IDs, GIDs, shapes, and masks in deterministic metadata.
+  - Verify prototype files are not referenced by runtime map sources.
+- TODO:
+  - done: Add prototype generator.
+  - done: Add metadata helper tests.
+  - done: Generate prototype PNG/TSJ/manifest artifacts.
+  - done: Verify runtime isolation, typecheck, lint, and diff checks.
+  - done: Update live docs and commit Ticket 2A.7.
+- Key actions:
+  - 2026-06-10 12:38 UTC: Ticket started.
+  - Added `tools/content/terrain-transition-prototype.ts` with deterministic shoreline entries, mask definitions, TSJ/manifest generation, and ImageMagick rendering.
+  - Added `build:terrain-transition-prototype` package script.
+  - Added focused unit tests for shape ordering, mask definitions, and source provenance metadata.
+  - Generated non-runtime prototype artifacts under `assets/maps/tiled/prototypes/`.
+- Evidence:
+  - `bun test tests/unit/terrain-transition-prototype.test.ts --timeout 20000` passed with 3 pass, 0 fail.
+  - `bun run build:terrain-transition-prototype` passed and generated 15 shoreline prototype transitions.
+  - `identify -format '%f %wx%h\n' assets/maps/tiled/prototypes/terrain-transitions.prototype.png` reported `terrain-transitions.prototype.png 80x48`.
+  - `rg -n "terrain-transitions\\.prototype" assets/maps/tiled/world.json assets/maps/tiled/map-pack.config.json assets/maps/runtime/map-pack.json` returned no matches; exit code 1 is expected for an empty result set.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+  - Commit: `feat: generate shoreline transition prototype`.
+  - Next action: Continue Ticket 2A.6 by reviewing the shoreline prototype and deciding whether to promote generated transition assets beyond prototypes.

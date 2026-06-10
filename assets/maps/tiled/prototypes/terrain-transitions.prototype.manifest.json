@@ -1,0 +1,265 @@
+{
+  "generatedBy": "tools/content/terrain-transition-prototype.ts",
+  "pair": "shoreline",
+  "image": "terrain-transitions.prototype.png",
+  "tileWidth": 16,
+  "tileHeight": 16,
+  "columns": 5,
+  "entries": [
+    {
+      "pair": "shoreline",
+      "shape": "edge_n",
+      "outputTileId": 0,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "edge_n.mask",
+      "maskDraw": "rectangle 0,0 15,7"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "edge_s",
+      "outputTileId": 1,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "edge_s.mask",
+      "maskDraw": "rectangle 0,8 15,15"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "edge_e",
+      "outputTileId": 2,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "edge_e.mask",
+      "maskDraw": "rectangle 8,0 15,15"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "edge_w",
+      "outputTileId": 3,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "edge_w.mask",
+      "maskDraw": "rectangle 0,0 7,15"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "outer_ne",
+      "outputTileId": 4,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "outer_ne.mask",
+      "maskDraw": "polygon 8,0 15,0 15,7"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "outer_nw",
+      "outputTileId": 5,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "outer_nw.mask",
+      "maskDraw": "polygon 0,0 7,0 0,7"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "outer_se",
+      "outputTileId": 6,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "outer_se.mask",
+      "maskDraw": "polygon 15,8 15,15 8,15"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "outer_sw",
+      "outputTileId": 7,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "outer_sw.mask",
+      "maskDraw": "polygon 0,8 7,15 0,15"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "inner_ne",
+      "outputTileId": 8,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "inner_ne.mask",
+      "maskDraw": "rectangle 0,0 15,7 rectangle 8,0 15,15"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "inner_nw",
+      "outputTileId": 9,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "inner_nw.mask",
+      "maskDraw": "rectangle 0,0 15,7 rectangle 0,0 7,15"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "inner_se",
+      "outputTileId": 10,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "inner_se.mask",
+      "maskDraw": "rectangle 0,8 15,15 rectangle 8,0 15,15"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "inner_sw",
+      "outputTileId": 11,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "inner_sw.mask",
+      "maskDraw": "rectangle 0,8 15,15 rectangle 0,0 7,15"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "island",
+      "outputTileId": 12,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "island.mask",
+      "maskDraw": "ellipse 7.5,7.5 4,4 0,360"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "channel_h",
+      "outputTileId": 13,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "channel_h.mask",
+      "maskDraw": "rectangle 0,6 15,9"
+    },
+    {
+      "pair": "shoreline",
+      "shape": "channel_v",
+      "outputTileId": 14,
+      "base": {
+        "family": "sand",
+        "gid": 140,
+        "tileId": 139
+      },
+      "overlay": {
+        "family": "water",
+        "gid": 405,
+        "tileId": 404
+      },
+      "mask": "channel_v.mask",
+      "maskDraw": "rectangle 6,0 9,15"
+    }
+  ]
+}

@@ -30,6 +30,7 @@
     "check:world-typed-objects:json": "bun tools/content/world-typed-object-audit.ts --json",
     "check:terrain-authoring": "bun tools/content/terrain-authoring-audit.ts",
     "build:terrain-visuals": "bun tools/content/terrain-visual-artifacts.ts",
+    "build:terrain-transition-prototype": "bun tools/content/terrain-transition-prototype.ts",
     "audit:terrain-grammar": "bun tools/content/terrain-grammar-validator.ts",
     "repair:world-authoring:dry": "bun tools/content/world-authoring-repair.ts",
     "repair:world-authoring": "bun tools/content/world-authoring-repair.ts --write",
