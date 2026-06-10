@@ -24,7 +24,7 @@ function getPort() {
 
 function hasMemcacheDependency() {
   try {
-    Bun.resolveSync('memcache', process.cwd());
+    Bun.resolveSync('memjs', process.cwd());
     return true;
   } catch (_) {
     return false;
@@ -58,7 +58,7 @@ async function main() {
 
   if (!hasMemcacheDependency()) {
     throw new Error(
-      'Missing runtime dependency "memcache". Run `bun install --frozen-lockfile` before `bun run test:metrics:healthy`.'
+      'Missing runtime dependency "memjs". Run `bun install --frozen-lockfile` before `bun run test:metrics:healthy`.'
     );
   }
 
@@ -72,7 +72,7 @@ async function main() {
   }
 
   console.log(
-    `metrics-healthy-prereqs: ok (memcache dependency installed, memcached reachable at ${host}:${port})`
+    `metrics-healthy-prereqs: ok (memjs dependency installed, memcached reachable at ${host}:${port})`
   );
 }
 

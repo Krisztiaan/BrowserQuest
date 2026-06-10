@@ -1,5 +1,5 @@
-import * as memcacheModule from 'memcache';
-import MetricsClient, { type MemcacheModuleShape, type MetricsStoreClient } from './metrics-client';
+import * as memjsModule from 'memjs';
+import MetricsClient, { type MemjsModuleShape, type MetricsStoreClient } from './metrics-client';
 import Log from './log';
 import { Evented } from '../shared/evented';
 import type { RuntimeEventFields } from './runtime-types';
@@ -33,19 +33,21 @@ type UnavailableSignal = Readonly<{
     key?: string;
 }>;
 
-function isMemcacheModuleShape(value: unknown): value is MemcacheModuleShape {
+function isMemjsModuleShape(value: unknown): value is MemjsModuleShape {
     if (typeof value !== 'object' || value === null) {
         return false;
     }
-    const candidate = value as { Memcache?: unknown; default?: unknown };
-    return typeof candidate.Memcache === 'function' || typeof candidate.default === 'function';
+    const candidate = value as { Client?: { create?: unknown }; default?: { Client?: { create?: unknown } } };
+    return (
+        typeof candidate.Client?.create === 'function' || typeof candidate.default?.Client?.create === 'function'
+    );
 }
 
 function createDefaultMetricsStore(config: MetricsConfig): MetricsStoreClient {
-    if (!isMemcacheModuleShape(memcacheModule)) {
-        throw new Error('Unsupported memcache module shape');
+    if (!isMemjsModuleShape(memjsModule)) {
+        throw new Error('Unsupported memjs module shape');
     }
-    return MetricsClient.createMetricsClient(memcacheModule, config);
+    return MetricsClient.createMetricsClient(memjsModule, config);
 }
 
 function toMetricInteger(value: string | undefined): number {

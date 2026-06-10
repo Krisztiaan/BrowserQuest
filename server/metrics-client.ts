@@ -3,17 +3,15 @@ interface MetricsConfig {
     memcached_host: string;
 }
 
-interface MemcacheClientLike {
-    connect(): Promise<void> | void;
-    set(key: string, value: string): Promise<boolean> | boolean;
-    get(key: string): Promise<string | undefined> | string | undefined;
+/** memjs Client.create-style API: get returns { value: Buffer | null }, set returns boolean. */
+interface MemjsClientLike {
+    set(key: string, value: string, options?: object): Promise<boolean>;
+    get(key: string): Promise<{ value: Buffer | Uint8Array | null }>;
 }
 
-type MemcacheClientCtor = new (endpoint: string) => MemcacheClientLike;
-
-export interface MemcacheModuleShape {
-    Memcache?: MemcacheClientCtor;
-    default?: MemcacheClientCtor;
+export interface MemjsModuleShape {
+    Client?: { create(servers: string, options?: object): MemjsClientLike };
+    default?: { Client?: { create(servers: string, options?: object): MemjsClientLike } };
 }
 
 export interface MetricsStoreClient {
@@ -23,12 +21,12 @@ export interface MetricsStoreClient {
     getString(key: string): Promise<string | undefined>;
 }
 
-function resolveClientCtor(memcacheModule: MemcacheModuleShape | null | undefined): MemcacheClientCtor {
-    const clientCtor = memcacheModule?.Memcache ?? memcacheModule?.default;
-    if (typeof clientCtor !== 'function') {
-        throw new Error('Unsupported memcache client API');
+function resolveClientFactory(memjsModule: MemjsModuleShape | null | undefined): { create(servers: string, options?: object): MemjsClientLike } {
+    const factory = memjsModule?.Client ?? memjsModule?.default?.Client;
+    if (!factory || typeof factory.create !== 'function') {
+        throw new Error('Unsupported memjs client API');
     }
-    return clientCtor;
+    return factory;
 }
 
 function normalizeEndpoint(config: MetricsConfig): string {
@@ -40,41 +38,34 @@ function normalizeEndpoint(config: MetricsConfig): string {
     return `${host}:${portText}`;
 }
 
-function assertBooleanResult(value: unknown, operation: 'set'): boolean {
-    if (typeof value !== 'boolean') {
-        throw new Error(`Memcache ${operation} returned non-boolean result`);
-    }
-    return value;
-}
-
-function assertStringOrUndefinedResult(value: unknown, operation: 'get'): string | undefined {
-    if (value === undefined) {
-        return undefined;
-    }
-    if (typeof value !== 'string') {
-        throw new Error(`Memcache ${operation} returned non-string result`);
-    }
-    return value;
-}
-
 function createMetricsClient(
-    memcacheModule: MemcacheModuleShape | null | undefined,
+    memjsModule: MemjsModuleShape | null | undefined,
     config: MetricsConfig
 ): MetricsStoreClient {
-    const ClientCtor = resolveClientCtor(memcacheModule);
+    const factory = resolveClientFactory(memjsModule);
     const endpoint = normalizeEndpoint(config);
-    const client = new ClientCtor(endpoint);
+    const client = factory.create(endpoint, { retries: 1, timeout: 1 });
 
     return {
         endpoint,
-        connect(): Promise<void> {
-            return Promise.resolve(client.connect()).then(() => {});
+        async connect(): Promise<void> {
+            // memjs connects lazily; a get against a sentinel key forces the
+            // socket open so connection failures surface here, not mid-write.
+            await client.get('bq:metrics:connect-probe');
         },
         async setString(key: string, value: string): Promise<boolean> {
-            return assertBooleanResult(await client.set(key, value), 'set');
+            const result = await client.set(key, value, {});
+            if (typeof result !== 'boolean') {
+                throw new Error('Memcache set returned non-boolean result');
+            }
+            return result;
         },
         async getString(key: string): Promise<string | undefined> {
-            return assertStringOrUndefinedResult(await client.get(key), 'get');
+            const { value } = await client.get(key);
+            if (value === null) {
+                return undefined;
+            }
+            return Buffer.from(value).toString('utf8');
         },
     };
 }
