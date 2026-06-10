@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import type { RectClaim } from './claims-store';
 import { normalizeIdentityKeyOrNull } from '../../identity';
 import { openSqliteDatabase } from '../../sqlite-schema-meta';

@@ -1333,3 +1333,352 @@ This is the live execution notebook for `PLAN.md`.
   - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
 - Next action:
   - Use `render:map-region` for the next manual doorway/interior slice; do not reintroduce generated house mutation scripts.
+
+### 2026-06-10 22:18 UTC - Manual Tiled Authoring Renderer Alignment Correction
+
+- Status: done
+- Scope:
+  - Correct `render:map-region` tile-object placement so visual evidence matches the map compiler.
+  - Keep the tool read-only and do not mutate authored maps.
+  - Clean the repo-wide lint gate only for mechanical type-only import failures encountered during verification.
+- Ticket:
+  - done: tile-object `objectalignment` support in the map-region renderer.
+- Key actions:
+  - Carried external tileset `objectalignment` through `tools/content/render-map-region.ts`.
+  - Applied the same bottom-left default and alignment offsets used by `shared/maps/processmap.ts`.
+  - Rendered tile objects at their aligned pixel bounds and kept layer tiles at map tile size.
+  - Regenerated and inspected the `world_house_01_entry`, `house_01_after`, and `house_01` carpet-only crops.
+  - Converted five `bun:sqlite` `Database` imports to `import type` after repo-wide lint surfaced type-only import errors outside the renderer change.
+- Evidence:
+  - `bun run render:map-region -- --map assets/maps/tiled/world.json --x 23 --y 205 --w 10 --h 10 --markers doors --out .data/map-authoring-crops/world_house_01_entry_tool_check.png` passed; visual inspection shows the intended village house facade and door marker.
+  - `bun run render:map-region -- --map assets/maps/tiled/maps/house_01.json --x 0 --y 0 --w 14 --h 10 --markers all --out .data/map-authoring-crops/house_01_after_tool_check.png` passed; visual inspection shows the authored room, carpet, and threshold.
+  - `bun run render:map-region -- --map assets/maps/tiled/maps/house_01.json --x 0 --y 0 --w 14 --h 10 --layers base/carpet --markers none --out .data/map-authoring-crops/house_01_carpet_layer_tool_check.png` passed; visual inspection shows only the carpet layer.
+  - `bun run typecheck:tools` passed.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Proceed to the next manual doorway/interior slice with `render:map-region` as the evidence loop before editing map structures.
+
+### 2026-06-10 22:32 UTC - Manual Tiled Authoring Slice 3
+
+- Status: done
+- Scope:
+  - Replace the next true placeholder interior, `house_03`, with a hand-authored semantic map.
+  - Use visual crops before editing and after editing.
+  - Update only the corresponding `world_house_03_entry` doorway metadata in `world.json`.
+  - Do not batch-convert other house placeholders.
+- Ticket:
+  - done: `world_house_03_entry` -> `house_03_entry` graveyard hut authoring slice.
+- Key actions:
+  - Scanned house maps and confirmed only `house_01` and `house_02` were already enriched; `house_03` was the first remaining placeholder.
+  - Rendered `.data/map-authoring-crops/world_house_03_entry_before.png` and `.data/map-authoring-crops/house_03_before.png`.
+  - Rebuilt `assets/maps/tiled/maps/house_03.json` as a 14x10 `BQMap` graveyard hut interior with semantic layer groups, a `Room` object, and a template-backed linked door.
+  - Updated `world_house_03_entry` destination coordinates to `(6, 7)` and added explicit walk-transition metadata.
+  - Corrected an intermediate patch miss that had matched `world_house_11_entry`; verified `world_house_11_entry` is back at its prior placeholder target `(3, 3)`.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_03_entry_before.png`
+    - `.data/map-authoring-crops/house_03_before.png`
+    - `.data/map-authoring-crops/house_03_after.png`
+    - `.data/map-authoring-crops/house_03_after_nomarkers.png`
+    - `.data/map-authoring-crops/house_03_rug_after.png`
+  - Source door check confirms `world_house_03_entry` has `target_tx=6`, `target_ty=7`, `transition_kind=walk`, `one_way=false`, `enabled=true`, and `locked_by=""`; `world_house_11_entry` remains at `target_tx=3`, `target_ty=3` without added transition metadata.
+  - Runtime export confirms `world_01:world_house_03_entry` targets `house_03:house_03_entry` at `(6, 7)` and the reverse door targets `(18, 113)`.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue one placeholder at a time; use visual evidence first and leave untouched house maps as explicit remaining debt.
+
+### 2026-06-10 22:36 UTC - Manual Tiled Authoring Slice 4
+
+- Status: done
+- Scope:
+  - Replace the next true placeholder interior, `house_04`, with a hand-authored semantic cave map.
+  - Use visual crops before editing and after editing.
+  - Update only the corresponding `world_house_04_entry` doorway metadata in `world.json`.
+  - Do not batch-convert other house placeholders.
+- Ticket:
+  - done: `world_house_04_entry` -> `house_04_entry` badlands cliff cave authoring slice.
+- Key actions:
+  - Confirmed `house_04` was the next remaining placeholder after `house_03`.
+  - Rendered `.data/map-authoring-crops/world_house_04_entry_before.png` and `.data/map-authoring-crops/house_04_before.png`.
+  - Observed the world entrance as a sandy badlands/deadlands cave mouth, not a house facade.
+  - Rebuilt `assets/maps/tiled/maps/house_04.json` as a 14x10 `BQMap` cave chamber with semantic layer groups, a `Room` object, and a template-backed linked door.
+  - Updated `world_house_04_entry` destination coordinates to `(6, 7)` and added explicit cave-transition metadata.
+  - Corrected the cave wall opening after `bun run build:maps` reported `house_04_entry` was colliding.
+  - Verified `world_house_11_entry` was restored to its untouched placeholder target after an intermediate context miss.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_04_entry_before.png`
+    - `.data/map-authoring-crops/house_04_before.png`
+    - `.data/map-authoring-crops/house_04_after.png`
+    - `.data/map-authoring-crops/house_04_after_nomarkers.png`
+  - Source door check confirms `world_house_04_entry` has `target_tx=6`, `target_ty=7`, `transition_kind=cave`, `one_way=false`, `enabled=true`, and `locked_by=""`; `world_house_11_entry` remains at `target_tx=3`, `target_ty=3` without added transition metadata.
+  - Runtime export confirms `world_01:world_house_04_entry` targets `house_04:house_04_entry` at `(6, 7)` and the reverse door targets `(70, 80)`.
+  - `bun run build:maps` first failed on a colliding `house_04_entry` tile, then passed after opening the cave wall at the door coordinate.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue one placeholder at a time, with extra care around repeated `world.json` door blocks when applying targeted metadata patches.
+
+### 2026-06-10 22:41 UTC - Manual Tiled Authoring Slice 5
+
+- Status: done
+- Scope:
+  - Replace the next true placeholder interior, `house_05`, with a hand-authored semantic cave map.
+  - Use visual crops before editing and after editing.
+  - Update only the corresponding `world_house_05_entry` doorway metadata in `world.json`.
+  - Do not batch-convert other house placeholders.
+- Ticket:
+  - done: `world_house_05_entry` -> `house_05_entry` dry badlands cave authoring slice.
+- Key actions:
+  - Confirmed `house_05` was the next remaining placeholder after `house_04`.
+  - Rendered `.data/map-authoring-crops/world_house_05_entry_before.png` and `.data/map-authoring-crops/house_05_before.png`.
+  - Re-rendered the correct world crop after the first crop used the wrong origin; the source door is at world tile `(79, 45)`.
+  - Observed the world entrance as a dry badlands/deadlands cave doorway.
+  - Rebuilt `assets/maps/tiled/maps/house_05.json` as a 14x10 `BQMap` cave chamber with semantic layer groups, a `Room` object, and a template-backed linked door.
+  - Updated `world_house_05_entry` destination coordinates to `(6, 7)` and added explicit cave-transition metadata.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_05_entry_before.png`
+    - `.data/map-authoring-crops/house_05_before.png`
+    - `.data/map-authoring-crops/house_05_after.png`
+    - `.data/map-authoring-crops/house_05_after_nomarkers.png`
+  - Source door check confirms `world_house_05_entry` has `target_tx=6`, `target_ty=7`, `transition_kind=cave`, `one_way=false`, `enabled=true`, and `locked_by=""`; neighboring enriched/placeholder doors stayed in their expected states.
+  - Runtime export confirms `world_01:world_house_05_entry` targets `house_05:house_05_entry` at `(6, 7)` and the reverse door targets `(79, 45)`.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue one placeholder at a time, starting with `house_06`, and inspect the exterior context before choosing house/cave/other map semantics.
+
+### 2026-06-10 22:45 UTC - Manual Tiled Authoring Slice 6
+
+- Status: done
+- Scope:
+  - Replace the next true placeholder interior, `house_06`, with a hand-authored semantic cave map.
+  - Use visual crops before editing and after editing.
+  - Update only the corresponding `world_house_06_entry` doorway metadata in `world.json`.
+  - Do not batch-convert other house placeholders.
+- Ticket:
+  - done: `world_house_06_entry` -> `house_06_entry` badlands switchback cave authoring slice.
+- Key actions:
+  - Confirmed `house_06` was the next remaining placeholder after `house_05`.
+  - Rendered `.data/map-authoring-crops/world_house_06_entry_before.png` and `.data/map-authoring-crops/house_06_before.png`.
+  - Observed the world entrance as a deadlands/badlands cave doorway in the same switchback cluster as `world_house_05_entry`.
+  - Rebuilt `assets/maps/tiled/maps/house_06.json` as a 14x10 `BQMap` cave chamber with semantic layer groups, a `Room` object, and a template-backed linked door.
+  - Updated `world_house_06_entry` destination coordinates to `(6, 7)` and added explicit cave-transition metadata.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_06_entry_before.png`
+    - `.data/map-authoring-crops/house_06_before.png`
+    - `.data/map-authoring-crops/house_06_after.png`
+    - `.data/map-authoring-crops/house_06_after_nomarkers.png`
+  - Source door check confirms `world_house_06_entry` has `target_tx=6`, `target_ty=7`, `transition_kind=cave`, `one_way=false`, `enabled=true`, and `locked_by=""`; `world_house_07_entry` and `world_house_11_entry` remain untouched placeholders.
+  - Runtime export confirms `world_01:world_house_06_entry` targets `house_06:house_06_entry` at `(6, 7)` and the reverse door targets `(78, 40)`.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue one placeholder at a time, starting with `house_07`, and inspect the exterior context before choosing house/cave/other map semantics.
+
+### 2026-06-10 22:50 UTC - Manual Tiled Authoring Slice 7
+
+- Status: done
+- Scope:
+  - Replace the next true placeholder interior, `house_07`, with a hand-authored semantic cave map.
+  - Use visual crops before editing and after editing.
+  - Update only the corresponding `world_house_07_entry` doorway metadata in `world.json`.
+  - Do not batch-convert other house placeholders.
+- Ticket:
+  - done: `world_house_07_entry` -> `house_07_entry` badlands canyon pocket authoring slice.
+- Key actions:
+  - Confirmed `house_07` was the next remaining placeholder after `house_06`.
+  - Rendered `.data/map-authoring-crops/world_house_07_entry_before.png` and `.data/map-authoring-crops/house_07_before.png`.
+  - Observed the world entrance as a round badlands/deadlands canyon cave pocket, distinct from the switchback corridor entries.
+  - Rebuilt `assets/maps/tiled/maps/house_07.json` as a 14x10 `BQMap` cave chamber with semantic layer groups, a `Room` object, and a template-backed linked door.
+  - Updated `world_house_07_entry` destination coordinates to `(6, 7)` and added explicit cave-transition metadata.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_07_entry_before.png`
+    - `.data/map-authoring-crops/house_07_before.png`
+    - `.data/map-authoring-crops/house_07_after.png`
+    - `.data/map-authoring-crops/house_07_after_nomarkers.png`
+  - Source door check confirms `world_house_07_entry` has `target_tx=6`, `target_ty=7`, `transition_kind=cave`, `one_way=false`, `enabled=true`, and `locked_by=""`; `world_house_08_entry` and `world_house_11_entry` remain untouched placeholders.
+  - Runtime export confirms `world_01:world_house_07_entry` targets `house_07:house_07_entry` at `(6, 7)` and the reverse door targets `(91, 29)`.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue one placeholder at a time, starting with `house_08`, and inspect the exterior context before choosing house/cave/other map semantics.
+
+### 2026-06-10 22:54 UTC - Manual Tiled Authoring Slice 8
+
+- Status: done
+- Scope:
+  - Replace the next true placeholder interior, `house_08`, with a hand-authored semantic cave map.
+  - Use visual crops before editing and after editing.
+  - Update only the corresponding `world_house_08_entry` doorway metadata in `world.json`.
+  - Do not batch-convert other house placeholders.
+- Ticket:
+  - done: `world_house_08_entry` -> `house_08_entry` badlands lava-canyon authoring slice.
+- Key actions:
+  - Confirmed `house_08` was the next remaining placeholder after `house_07`.
+  - Rendered `.data/map-authoring-crops/world_house_08_entry_before.png` and `.data/map-authoring-crops/house_08_before.png`.
+  - Observed the world entrance as a badlands/lava-canyon doorway with nearby lava/canyon layers.
+  - Rebuilt `assets/maps/tiled/maps/house_08.json` as a 14x10 `BQMap` cave chamber with semantic layer groups, a `Room` object, and a template-backed linked door.
+  - Updated `world_house_08_entry` destination coordinates to `(6, 7)` and added explicit cave-transition metadata.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_08_entry_before.png`
+    - `.data/map-authoring-crops/house_08_before.png`
+    - `.data/map-authoring-crops/house_08_after.png`
+    - `.data/map-authoring-crops/house_08_after_nomarkers.png`
+  - Source door check confirms `world_house_08_entry` has `target_tx=6`, `target_ty=7`, `transition_kind=cave`, `one_way=false`, `enabled=true`, and `locked_by=""`; `world_house_09_entry` and `world_house_11_entry` remain untouched placeholders.
+  - Runtime export confirms `world_01:world_house_08_entry` targets `house_08:house_08_entry` at `(6, 7)` and the reverse door targets `(6, 10)`.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue one placeholder at a time, starting with `house_09`, and inspect the exterior context before choosing house/cave/other map semantics.
+
+### 2026-06-10 22:58 UTC - Manual Tiled Authoring Slice 9
+
+- Status: done
+- Scope:
+  - Replace the next true placeholder interior, `house_09`, with a hand-authored semantic cave map.
+  - Use visual crops before editing and after editing.
+  - Update only the corresponding `world_house_09_entry` doorway metadata in `world.json`.
+  - Do not batch-convert other house placeholders.
+- Ticket:
+  - done: `world_house_09_entry` -> `house_09_entry` badlands crater pocket authoring slice.
+- Key actions:
+  - Confirmed `house_09` was the next remaining placeholder after `house_08`.
+  - Rendered `.data/map-authoring-crops/world_house_09_entry_before.png` and `.data/map-authoring-crops/house_09_before.png`.
+  - Observed the world entrance as a round badlands/deadlands crater cave pocket with nearby lava/lava-boundary layers.
+  - Rebuilt `assets/maps/tiled/maps/house_09.json` as a 14x10 `BQMap` cave chamber with semantic layer groups, a `Room` object, and a template-backed linked door.
+  - Updated `world_house_09_entry` destination coordinates to `(6, 7)` and added explicit cave-transition metadata.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_09_entry_before.png`
+    - `.data/map-authoring-crops/house_09_before.png`
+    - `.data/map-authoring-crops/house_09_after.png`
+    - `.data/map-authoring-crops/house_09_after_nomarkers.png`
+  - Source door check confirms `world_house_09_entry` has `target_tx=6`, `target_ty=7`, `transition_kind=cave`, `one_way=false`, `enabled=true`, and `locked_by=""`; `world_house_10_entry` and `world_house_11_entry` remain untouched placeholders.
+  - Runtime export confirms `world_01:world_house_09_entry` targets `house_09:house_09_entry` at `(6, 7)` and the reverse door targets `(9, 17)`.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue one placeholder at a time, starting with `house_10`, and inspect the exterior context before choosing house/cave/other map semantics.
+
+### 2026-06-10 23:03 UTC - Manual Tiled Authoring Slice 10
+
+- Status: done
+- Scope:
+  - Replace the next true placeholder interior, `house_10`, with a hand-authored semantic cave map.
+  - Use visual crops before editing and after editing.
+  - Update only the corresponding `world_house_10_entry` doorway metadata in `world.json`.
+  - Do not batch-convert other house placeholders.
+- Ticket:
+  - done: `world_house_10_entry` -> `house_10_entry` badlands lava-rim authoring slice.
+- Key actions:
+  - Confirmed `house_10` was the next remaining placeholder after `house_09`.
+  - Rendered `.data/map-authoring-crops/world_house_10_entry_before.png` and `.data/map-authoring-crops/house_10_before.png`.
+  - Observed the world entrance as a lava-edge badlands cave doorway.
+  - Rebuilt `assets/maps/tiled/maps/house_10.json` as a 14x10 `BQMap` cave chamber with semantic layer groups, a `Room` object, and a template-backed linked door.
+  - Updated `world_house_10_entry` destination coordinates to `(6, 7)` and added explicit cave-transition metadata.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_10_entry_before.png`
+    - `.data/map-authoring-crops/house_10_before.png`
+    - `.data/map-authoring-crops/house_10_after.png`
+    - `.data/map-authoring-crops/house_10_after_nomarkers.png`
+  - Source door check confirms `world_house_10_entry` has `target_tx=6`, `target_ty=7`, `transition_kind=cave`, `one_way=false`, `enabled=true`, and `locked_by=""`; `world_house_11_entry` and `world_house_12_entry` remain untouched placeholders.
+  - Runtime export confirms `world_01:world_house_10_entry` targets `house_10:house_10_entry` at `(6, 7)` and the reverse door targets `(104, 7)`.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue one placeholder at a time, starting with `house_11`, and inspect the exterior context before choosing house/cave/other map semantics.
+
+### 2026-06-10 23:07 UTC - Manual Tiled Authoring Slice 11
+
+- Status: done
+- Scope:
+  - Replace the next true placeholder interior, `house_11`, with a hand-authored semantic cave map.
+  - Use visual crops before editing and after editing.
+  - Update only the corresponding `world_house_11_entry` doorway metadata in `world.json`.
+  - Do not batch-convert other house placeholders.
+- Ticket:
+  - done: `world_house_11_entry` -> `house_11_entry` forest-riverbank cave authoring slice.
+- Key actions:
+  - Confirmed `house_11` was the next remaining placeholder after `house_10`.
+  - Rendered `.data/map-authoring-crops/world_house_11_entry_before.png` and `.data/map-authoring-crops/house_11_before.png`.
+  - Observed the world entrance as a forest-riverbank cliff doorway bordered by water, grass, forest, and cliff-boundary layers.
+  - Rebuilt `assets/maps/tiled/maps/house_11.json` as a 14x10 `BQMap` cave chamber with semantic layer groups, a `Room` object, and a template-backed linked door.
+  - Updated `world_house_11_entry` destination coordinates to `(6, 7)` and added explicit cave-transition metadata.
+- Evidence:
+  - Visual crops:
+    - `.data/map-authoring-crops/world_house_11_entry_before.png`
+    - `.data/map-authoring-crops/house_11_before.png`
+    - `.data/map-authoring-crops/house_11_after.png`
+    - `.data/map-authoring-crops/house_11_after_nomarkers.png`
+  - Source door check confirms `world_house_11_entry` has `target_tx=6`, `target_ty=7`, `transition_kind=cave`, `one_way=false`, `enabled=true`, and `locked_by=""`; `world_house_12_entry` remains an untouched placeholder.
+  - Runtime export confirms `world_01:world_house_11_entry` targets `house_11:house_11_entry` at `(6, 7)` and the reverse door targets `(20, 145)`.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed: 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue one placeholder at a time, starting with `house_12`, and inspect the exterior context before choosing house/cave/other map semantics.

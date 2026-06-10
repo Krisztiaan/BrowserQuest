@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import Types from '../shared/gametypes-browser';
 import type { EntityKind } from '../shared/entity-kind-domain';
 import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';

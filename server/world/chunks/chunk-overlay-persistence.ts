@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import type { ChunkOverlayStore } from './chunk-overlay-store';
 import { openSqliteDatabase } from '../../sqlite-schema-meta';
 

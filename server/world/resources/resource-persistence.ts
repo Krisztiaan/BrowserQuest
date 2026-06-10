@@ -1,4 +1,4 @@
-import { Database } from 'bun:sqlite';
+import type { Database } from 'bun:sqlite';
 import { openSqliteDatabase } from '../../sqlite-schema-meta';
 import type { ResourceDefinitions, ResourceDrop, ResourceNodeState, ResourceTool } from './resource-state';
 

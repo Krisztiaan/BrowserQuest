@@ -371,8 +371,6 @@ Runtime link after export:
 - `world_01:world_house_01_entry` exports to `house_01:house_01_entry` at `(6, 7)`.
 - `house_01:house_01_entry` exports back to `world_01:world_house_01_entry` at `(27, 209)`.
 
----
-
 ## Execution slice 2 — first-class visual review command
 
 Status: map-region visual review tool applied.
@@ -384,6 +382,9 @@ Applied tooling changes:
 - The tool renders a rectangular crop from any finite Tiled JSON map to PNG or SVG.
 - It resolves external `.tsj` tilesets, masks Tiled flip bits, embeds exact cropped tile
   images, and overlays optional object markers.
+- It applies tileset `objectalignment` to tile objects the same way the map compiler does, so
+  overworld props/buildings render at their authored anchor points instead of raw object
+  coordinates.
 - It accepts `--layers all` by default, or a comma-separated list of flattened layer paths or
   layer names for semantic layer review.
 
@@ -411,3 +412,462 @@ Validation evidence:
 - `bun run check:maps`
 - `bun run check:world-map:target`
 - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+
+---
+
+## Execution slice 3 — `world_house_03_entry` to `house_03_entry`
+
+Status: second manual interior slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_03_entry_before.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_03_before.png`
+
+Observed facts:
+
+- `world_house_03_entry` is a small graveyard hut at world tile `(18, 113)`.
+- The linked `house_03` map was still a generated 12x10 placeholder: one repeated floor tile,
+  a blocking ring, and an inline non-template door.
+
+Applied authoring changes:
+
+- Rebuilt `house_03.json` as a 14x10 authored graveyard hut interior:
+  - `class: BQMap`
+  - map-level identity/properties for `graveyard` / `deadlands`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `graveyard_hut_03_main_room`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_03_entry` with destination coordinates `(6, 7)` and explicit
+  walk-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_03_after.png`
+- `.data/map-authoring-crops/house_03_after_nomarkers.png`
+- `.data/map-authoring-crops/house_03_rug_after.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_03_entry` exports to `house_03:house_03_entry` at `(6, 7)`.
+- `house_03:house_03_entry` exports back to `world_01:world_house_03_entry` at `(18, 113)`.
+
+---
+
+## Execution slice 4 — `world_house_04_entry` to `house_04_entry`
+
+Status: third manual interior slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_04_entry_before.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_04_before.png`
+
+Observed facts:
+
+- `world_house_04_entry` is a sandy badlands/deadlands cliff cave entrance at world tile
+  `(70, 80)`, not a house facade.
+- The linked `house_04` map was still a generated 12x10 placeholder: one repeated floor tile,
+  a blocking ring, and an inline non-template door.
+
+Applied authoring changes:
+
+- Rebuilt `house_04.json` as a 14x10 authored cave chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `badlands_cliff` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `badlands_cliff_cave_04_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_04_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+- Corrected the cave wall doorway after `build:maps` caught a colliding door tile.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_04_after.png`
+- `.data/map-authoring-crops/house_04_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_04_entry` exports to `house_04:house_04_entry` at `(6, 7)`.
+- `house_04:house_04_entry` exports back to `world_01:world_house_04_entry` at `(70, 80)`.
+
+---
+
+## Execution slice 5 — `world_house_05_entry` to `house_05_entry`
+
+Status: fourth manual interior slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_05_entry_before.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_05_before.png`
+
+Observed facts:
+
+- `world_house_05_entry` is a dry badlands/deadlands cave doorway at world tile `(79, 45)`.
+- The linked `house_05` map was still a generated 12x10 placeholder: one repeated floor tile,
+  a blocking ring, and an inline non-template door.
+
+Applied authoring changes:
+
+- Rebuilt `house_05.json` as a 14x10 authored cave chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `badlands_dry_cliff` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `badlands_dry_cave_05_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_05_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_05_after.png`
+- `.data/map-authoring-crops/house_05_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_05_entry` exports to `house_05:house_05_entry` at `(6, 7)`.
+- `house_05:house_05_entry` exports back to `world_01:world_house_05_entry` at `(79, 45)`.
+
+---
+
+## Execution slice 6 — `world_house_06_entry` to `house_06_entry`
+
+Status: fifth manual interior slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_06_entry_before.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_06_before.png`
+
+Observed facts:
+
+- `world_house_06_entry` is a cave doorway in the same deadlands/badlands switchback cluster
+  as `world_house_05_entry`, at world tile `(78, 40)`.
+- The linked `house_06` map was still a generated 12x10 placeholder: one repeated floor tile,
+  a blocking ring, and an inline non-template door.
+
+Applied authoring changes:
+
+- Rebuilt `house_06.json` as a 14x10 authored cave chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `badlands_switchback_cliff` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `badlands_switchback_cave_06_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_06_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_06_after.png`
+- `.data/map-authoring-crops/house_06_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_06_entry` exports to `house_06:house_06_entry` at `(6, 7)`.
+- `house_06:house_06_entry` exports back to `world_01:world_house_06_entry` at `(78, 40)`.
+
+---
+
+## Execution slice 7 — `world_house_07_entry` to `house_07_entry`
+
+Status: sixth manual interior slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_07_entry_before.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_07_before.png`
+
+Observed facts:
+
+- `world_house_07_entry` is a round badlands/deadlands canyon cave pocket at world tile
+  `(91, 29)`, visually distinct from the switchback corridor entries.
+- The linked `house_07` map was still a generated 12x10 placeholder: one repeated floor tile,
+  a blocking ring, and an inline non-template door.
+
+Applied authoring changes:
+
+- Rebuilt `house_07.json` as a 14x10 authored cave chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `badlands_canyon_pocket` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `badlands_canyon_cave_07_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_07_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_07_after.png`
+- `.data/map-authoring-crops/house_07_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_07_entry` exports to `house_07:house_07_entry` at `(6, 7)`.
+- `house_07:house_07_entry` exports back to `world_01:world_house_07_entry` at `(91, 29)`.
+
+---
+
+## Execution slice 8 — `world_house_08_entry` to `house_08_entry`
+
+Status: seventh manual interior slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_08_entry_before.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_08_before.png`
+
+Observed facts:
+
+- `world_house_08_entry` is a badlands/lava-canyon doorway at world tile `(6, 10)`, with
+  nearby lava and canyon layers in the rendered world source.
+- The linked `house_08` map was still a generated 12x10 placeholder: one repeated floor tile,
+  a blocking ring, and an inline non-template door.
+
+Applied authoring changes:
+
+- Rebuilt `house_08.json` as a 14x10 authored cave chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `badlands_lava_canyon` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `badlands_lava_cave_08_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_08_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_08_after.png`
+- `.data/map-authoring-crops/house_08_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_08_entry` exports to `house_08:house_08_entry` at `(6, 7)`.
+- `house_08:house_08_entry` exports back to `world_01:world_house_08_entry` at `(6, 10)`.
+
+---
+
+## Execution slice 9 — `world_house_09_entry` to `house_09_entry`
+
+Status: eighth manual interior slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_09_entry_before.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_09_before.png`
+
+Observed facts:
+
+- `world_house_09_entry` is a round badlands/deadlands crater cave pocket at world tile
+  `(9, 17)`, with lava and lava-boundary layers nearby in the world source.
+- The linked `house_09` map was still a generated 12x10 placeholder: one repeated floor tile,
+  a blocking ring, and an inline non-template door.
+
+Applied authoring changes:
+
+- Rebuilt `house_09.json` as a 14x10 authored cave chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `badlands_crater_pocket` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `badlands_crater_cave_09_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_09_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_09_after.png`
+- `.data/map-authoring-crops/house_09_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_09_entry` exports to `house_09:house_09_entry` at `(6, 7)`.
+- `house_09:house_09_entry` exports back to `world_01:world_house_09_entry` at `(9, 17)`.
+
+---
+
+## Execution slice 10 — `world_house_10_entry` to `house_10_entry`
+
+Status: ninth manual interior slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_10_entry_before.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_10_before.png`
+
+Observed facts:
+
+- `world_house_10_entry` is a lava-edge badlands cave doorway at world tile `(104, 7)`,
+  adjacent to lava and canyon terrain.
+- The linked `house_10` map was still a generated 12x10 placeholder: one repeated floor tile,
+  a blocking ring, and an inline non-template door.
+
+Applied authoring changes:
+
+- Rebuilt `house_10.json` as a 14x10 authored cave chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `badlands_lava_rim` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `badlands_lava_rim_cave_10_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_10_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_10_after.png`
+- `.data/map-authoring-crops/house_10_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_10_entry` exports to `house_10:house_10_entry` at `(6, 7)`.
+- `house_10:house_10_entry` exports back to `world_01:world_house_10_entry` at `(104, 7)`.
+
+---
+
+## Execution slice 11 — `world_house_11_entry` to `house_11_entry`
+
+Status: tenth manual interior slice applied.
+
+Evidence gathered before editing:
+
+- World-side visual crop: `.data/map-authoring-crops/world_house_11_entry_before.png`
+- Placeholder destination crop: `.data/map-authoring-crops/house_11_before.png`
+
+Observed facts:
+
+- `world_house_11_entry` is a forest-riverbank cliff doorway at world tile `(20, 145)`,
+  bordered by water, grass, forest, and cliff-boundary layers.
+- The linked `house_11` map was still a generated 12x10 placeholder: one repeated floor tile,
+  a blocking ring, and an inline non-template door.
+
+Applied authoring changes:
+
+- Rebuilt `house_11.json` as a 14x10 authored cave chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `forest_riverbank` / `subterranean_forest`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `forest_riverbank_cave_11_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_11_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_11_after.png`
+- `.data/map-authoring-crops/house_11_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_11_entry` exports to `house_11:house_11_entry` at `(6, 7)`.
+- `house_11:house_11_entry` exports back to `world_01:world_house_11_entry` at `(20, 145)`.

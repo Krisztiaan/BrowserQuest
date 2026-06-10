@@ -20,6 +20,7 @@ type TiledTileset = Readonly<{
     tilewidth?: unknown;
     tileheight?: unknown;
     columns?: unknown;
+    objectalignment?: unknown;
 }>;
 
 type TiledLayer = UnknownRecord & {
@@ -49,6 +50,7 @@ type ResolvedTileset = Readonly<{
     tileWidth: number;
     tileHeight: number;
     columns: number;
+    objectAlignment: string;
 }>;
 
 type FlattenedLayer = TiledLayer & {
@@ -200,6 +202,7 @@ async function resolveTilesets(mapPath: string, map: TiledMap): Promise<Resolved
             tileWidth,
             tileHeight,
             columns,
+            objectAlignment: asString(tileset.objectalignment) ?? 'unspecified',
         });
     }
 
@@ -225,6 +228,37 @@ function tilesetForGid(gid: number, tilesets: ReadonlyArray<ResolvedTileset>): R
 
 function tileImageCacheKey(tileset: ResolvedTileset, localId: number): string {
     return `${tileset.imagePath}:${localId}`;
+}
+
+function alignmentOffsetX(alignment: string, width: number): number {
+    switch (alignment) {
+        case 'top':
+        case 'center':
+        case 'bottom':
+            return width / 2;
+        case 'topright':
+        case 'right':
+        case 'bottomright':
+            return width;
+        default:
+            return 0;
+    }
+}
+
+function alignmentOffsetY(alignment: string, height: number): number {
+    switch (alignment) {
+        case 'left':
+        case 'center':
+        case 'right':
+            return height / 2;
+        case 'bottomleft':
+        case 'bottom':
+        case 'bottomright':
+        case 'unspecified':
+            return height;
+        default:
+            return 0;
+    }
 }
 
 async function buildTileImageCache(gids: ReadonlySet<number>, tilesets: ReadonlyArray<ResolvedTileset>): Promise<Map<string, string>> {
@@ -284,14 +318,16 @@ function renderTileUse({
     gid,
     destX,
     destY,
-    tileSize,
+    destWidth,
+    destHeight,
     tilesets,
     tileImageCache,
 }: {
     gid: number;
     destX: number;
     destY: number;
-    tileSize: number;
+    destWidth: number;
+    destHeight: number;
     tilesets: ReadonlyArray<ResolvedTileset>;
     tileImageCache: ReadonlyMap<string, string>;
 }): string {
@@ -308,7 +344,7 @@ function renderTileUse({
     if (!dataUri) {
         return '';
     }
-    return `<image href="${escapeXml(dataUri)}" x="${destX}" y="${destY}" width="${tileSize}" height="${tileSize}"/>`;
+    return `<image href="${escapeXml(dataUri)}" x="${destX}" y="${destY}" width="${destWidth}" height="${destHeight}"/>`;
 }
 
 function getObjectProperties(object: UnknownRecord): Record<string, unknown> {
@@ -469,9 +505,16 @@ async function renderSvg({
                 if (objectX === null || objectY === null) {
                     continue;
                 }
-                const px = objectX - crop.x * tileWidth;
-                const py = objectY - crop.y * tileHeight;
-                if (px <= -tileWidth || py <= -tileHeight || px >= crop.w * tileWidth || py >= crop.h * tileHeight) {
+                const tileset = tilesetForGid(gid, tilesets);
+                if (!tileset) {
+                    continue;
+                }
+                const objectWidth = asFiniteNumber(object.width) ?? tileset.tileWidth;
+                const objectHeight = asFiniteNumber(object.height) ?? tileset.tileHeight;
+                const alignment = tileset.objectAlignment === 'unspecified' ? 'bottomleft' : tileset.objectAlignment;
+                const px = objectX - alignmentOffsetX(alignment, objectWidth) - crop.x * tileWidth;
+                const py = objectY - alignmentOffsetY(alignment, objectHeight) - crop.y * tileHeight;
+                if (px + objectWidth <= 0 || py + objectHeight <= 0 || px >= crop.w * tileWidth || py >= crop.h * tileHeight) {
                     continue;
                 }
                 uniqueGids.add(gid);
@@ -500,7 +543,8 @@ async function renderSvg({
                             gid,
                             destX: (x - crop.x) * tileWidth,
                             destY: (y - crop.y) * tileHeight,
-                            tileSize: tileWidth,
+                            destWidth: tileWidth,
+                            destHeight: tileHeight,
                             tilesets,
                             tileImageCache,
                         })
@@ -524,22 +568,30 @@ async function renderSvg({
                 if (objectX === null || objectY === null) {
                     continue;
                 }
-                const px = objectX - crop.x * tileWidth;
-                const py = objectY - crop.y * tileHeight;
-                if (px <= -tileWidth || py <= -tileHeight || px >= crop.w * tileWidth || py >= crop.h * tileHeight) {
+                const tileset = tilesetForGid(gid, tilesets);
+                if (!tileset) {
+                    continue;
+                }
+                const objectWidth = asFiniteNumber(object.width) ?? tileset.tileWidth;
+                const objectHeight = asFiniteNumber(object.height) ?? tileset.tileHeight;
+                const alignment = tileset.objectAlignment === 'unspecified' ? 'bottomleft' : tileset.objectAlignment;
+                const px = objectX - alignmentOffsetX(alignment, objectWidth) - crop.x * tileWidth;
+                const py = objectY - alignmentOffsetY(alignment, objectHeight) - crop.y * tileHeight;
+                if (px + objectWidth <= 0 || py + objectHeight <= 0 || px >= crop.w * tileWidth || py >= crop.h * tileHeight) {
                     continue;
                 }
                 body.push(
-                        renderTileUse({
-                            gid,
-                            destX: Math.round(px),
-                            destY: Math.round(py),
-                            tileSize: tileWidth,
-                            tilesets,
-                            tileImageCache,
-                        })
-                    );
-                }
+                    renderTileUse({
+                        gid,
+                        destX: Math.round(px),
+                        destY: Math.round(py),
+                        destWidth: objectWidth,
+                        destHeight: objectHeight,
+                        tilesets,
+                        tileImageCache,
+                    })
+                );
+            }
         }
     }
     body.push(renderMarkers({ markers: markerObjects({ map, crop, markerMode, layerFilter }), crop, tileSize: tileWidth }));
