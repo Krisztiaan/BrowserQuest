@@ -2004,7 +2004,7 @@ rtk git commit -m "fix: canonicalize authored map ids"
 
 **Dependencies/blockers:** Ticket 1.3.
 
-- [ ] **Step 1: Extract current house targets**
+- [x] **Step 1: Extract current house targets**
 
 Run:
 
@@ -2031,7 +2031,7 @@ console.log([...targets].sort().join("\\n"));
 
 Expected: `house_01` through `house_40`.
 
-- [ ] **Step 2: Write generator output contract test**
+- [x] **Step 2: Write generator output contract test**
 
 Add a test to `tests/unit/map-pack.test.ts` that compiles a tiny world plus tiny house and verifies the edge:
 
@@ -2086,7 +2086,7 @@ test('compileMapPack accepts a world-to-house door with reverse house link', () 
 });
 ```
 
-- [ ] **Step 3: Generate minimal house maps**
+- [x] **Step 3: Generate minimal house maps**
 
 Update `tools/content/house-regenerate.ts` so it can write deterministic minimal house maps for every current `house_*` target.
 
@@ -2125,7 +2125,7 @@ Each generated map must include:
 
 Fill `floor.data` with a valid walkable floor gid used in the current tileset. Add one `Door` object at a walkable tile with properties `door_id`, `target_map`, `target_door`, and `orientation`.
 
-- [ ] **Step 4: Add maps to pack config**
+- [x] **Step 4: Add maps to pack config**
 
 Change `assets/maps/tiled/map-pack.config.json` to:
 
@@ -2142,7 +2142,7 @@ Change `assets/maps/tiled/map-pack.config.json` to:
 
 Then add entries for every generated house map, keeping ids sorted ascending.
 
-- [ ] **Step 5: Verify house graph**
+- [x] **Step 5: Verify house graph**
 
 Run:
 
@@ -2159,7 +2159,7 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

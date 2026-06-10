@@ -171,18 +171,19 @@ function extractDoorObjects(tiled: unknown): ReadonlyArray<TiledDoorObject> {
     if (!root) {
         return [];
     }
+    const out: TiledDoorObject[] = [];
     const layers = flattenLayersForExtraction(asArray(root.layers));
     for (let i = 0; i < layers.length; i += 1) {
         const layer = asRecord(layers[i]);
         if (!layer) {
             continue;
         }
-        if (layer.visible === false || layer.type !== 'objectgroup' || layer.name !== 'doors') {
+        if (layer.type !== 'objectgroup' || layer.name !== 'doors') {
             continue;
         }
-        return asArray(layer.objects) as TiledDoorObject[];
+        out.push(...(asArray(layer.objects) as TiledDoorObject[]));
     }
-    return [];
+    return out;
 }
 
 function doorPropertyMap(object: TiledDoorObject): Readonly<Record<string, unknown>> {
@@ -493,6 +494,10 @@ export function compileMapPack(input: MapPackBuildInput): MapPack {
         }
         knownMapIds.add(mapId);
 
+        const sourceRoot = asRecord(source.tiled);
+        const sourceTileSize = requirePositiveInteger(sourceRoot?.tilewidth, `source map "${mapId}" tilewidth`);
+        const graphDoorExtraction = extractDoorGraphEntries(mapId, source.tiled, sourceTileSize);
+
         const client = processMap(source.tiled as Parameters<typeof processMap>[0], { mode: 'client', quiet: true }) as Record<
             string,
             unknown
@@ -503,9 +508,7 @@ export function compileMapPack(input: MapPackBuildInput): MapPack {
         >;
         const width = requirePositiveInteger(server.width, `processed map "${mapId}" width`);
         const height = requirePositiveInteger(server.height, `processed map "${mapId}" height`);
-        const tileSize = requirePositiveInteger(server.tilesize, `processed map "${mapId}" tilesize`);
-
-        const graphDoorExtraction = extractDoorGraphEntries(mapId, source.tiled, tileSize);
+        requirePositiveInteger(server.tilesize, `processed map "${mapId}" tilesize`);
         authoringErrors.push(...graphDoorExtraction.errors);
         const explicitDoorIds = [...graphDoorExtraction.explicitDoorIds];
         for (let doorIndex = 0; doorIndex < explicitDoorIds.length; doorIndex += 1) {

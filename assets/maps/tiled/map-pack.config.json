@@ -3,6 +3,166 @@
     {
       "id": "world_01",
       "filepath": "./world.json"
+    },
+    {
+      "id": "house_01",
+      "filepath": "./maps/house_01.json"
+    },
+    {
+      "id": "house_02",
+      "filepath": "./maps/house_02.json"
+    },
+    {
+      "id": "house_03",
+      "filepath": "./maps/house_03.json"
+    },
+    {
+      "id": "house_04",
+      "filepath": "./maps/house_04.json"
+    },
+    {
+      "id": "house_05",
+      "filepath": "./maps/house_05.json"
+    },
+    {
+      "id": "house_06",
+      "filepath": "./maps/house_06.json"
+    },
+    {
+      "id": "house_07",
+      "filepath": "./maps/house_07.json"
+    },
+    {
+      "id": "house_08",
+      "filepath": "./maps/house_08.json"
+    },
+    {
+      "id": "house_09",
+      "filepath": "./maps/house_09.json"
+    },
+    {
+      "id": "house_10",
+      "filepath": "./maps/house_10.json"
+    },
+    {
+      "id": "house_11",
+      "filepath": "./maps/house_11.json"
+    },
+    {
+      "id": "house_12",
+      "filepath": "./maps/house_12.json"
+    },
+    {
+      "id": "house_13",
+      "filepath": "./maps/house_13.json"
+    },
+    {
+      "id": "house_14",
+      "filepath": "./maps/house_14.json"
+    },
+    {
+      "id": "house_15",
+      "filepath": "./maps/house_15.json"
+    },
+    {
+      "id": "house_16",
+      "filepath": "./maps/house_16.json"
+    },
+    {
+      "id": "house_17",
+      "filepath": "./maps/house_17.json"
+    },
+    {
+      "id": "house_18",
+      "filepath": "./maps/house_18.json"
+    },
+    {
+      "id": "house_19",
+      "filepath": "./maps/house_19.json"
+    },
+    {
+      "id": "house_20",
+      "filepath": "./maps/house_20.json"
+    },
+    {
+      "id": "house_21",
+      "filepath": "./maps/house_21.json"
+    },
+    {
+      "id": "house_22",
+      "filepath": "./maps/house_22.json"
+    },
+    {
+      "id": "house_23",
+      "filepath": "./maps/house_23.json"
+    },
+    {
+      "id": "house_24",
+      "filepath": "./maps/house_24.json"
+    },
+    {
+      "id": "house_25",
+      "filepath": "./maps/house_25.json"
+    },
+    {
+      "id": "house_26",
+      "filepath": "./maps/house_26.json"
+    },
+    {
+      "id": "house_27",
+      "filepath": "./maps/house_27.json"
+    },
+    {
+      "id": "house_28",
+      "filepath": "./maps/house_28.json"
+    },
+    {
+      "id": "house_29",
+      "filepath": "./maps/house_29.json"
+    },
+    {
+      "id": "house_30",
+      "filepath": "./maps/house_30.json"
+    },
+    {
+      "id": "house_31",
+      "filepath": "./maps/house_31.json"
+    },
+    {
+      "id": "house_32",
+      "filepath": "./maps/house_32.json"
+    },
+    {
+      "id": "house_33",
+      "filepath": "./maps/house_33.json"
+    },
+    {
+      "id": "house_34",
+      "filepath": "./maps/house_34.json"
+    },
+    {
+      "id": "house_35",
+      "filepath": "./maps/house_35.json"
+    },
+    {
+      "id": "house_36",
+      "filepath": "./maps/house_36.json"
+    },
+    {
+      "id": "house_37",
+      "filepath": "./maps/house_37.json"
+    },
+    {
+      "id": "house_38",
+      "filepath": "./maps/house_38.json"
+    },
+    {
+      "id": "house_39",
+      "filepath": "./maps/house_39.json"
+    },
+    {
+      "id": "house_40",
+      "filepath": "./maps/house_40.json"
     }
   ],
   "edges": [],

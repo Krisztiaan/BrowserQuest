@@ -156,6 +156,127 @@ test('compileMapPack derives edges from door target_map/target_door properties',
     ]);
 });
 
+test('compileMapPack accepts a world-to-house door with reverse house link', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'world_01',
+                tiled: createTiledMap({
+                    doors: [
+                        {
+                            id: 1,
+                            x: 16,
+                            y: 16,
+                            properties: [
+                                { name: 'door_id', value: 'world_house_01_entry' },
+                                { name: 'target_map', value: 'house_01' },
+                                { name: 'target_door', value: 'house_01_entry' },
+                            ],
+                        },
+                    ],
+                }),
+            },
+            {
+                id: 'house_01',
+                tiled: createTiledMap({
+                    doors: [
+                        {
+                            id: 2,
+                            x: 32,
+                            y: 48,
+                            properties: [
+                                { name: 'door_id', value: 'house_01_entry' },
+                                { name: 'target_map', value: 'world_01' },
+                                { name: 'target_door', value: 'world_house_01_entry' },
+                            ],
+                        },
+                    ],
+                }),
+            },
+        ],
+        edges: [],
+        allowMissingTargetMaps: false,
+    });
+
+    expect(pack.graph.edges).toContainEqual({
+        from: { mapId: 'world_01', doorId: 'world_house_01_entry' },
+        to: { mapId: 'house_01', doorId: 'house_01_entry' },
+    });
+    expect(pack.graph.edges).toContainEqual({
+        from: { mapId: 'house_01', doorId: 'house_01_entry' },
+        to: { mapId: 'world_01', doorId: 'world_house_01_entry' },
+    });
+});
+
+test('compileMapPack extracts graph doors from multiple recursive doors layers', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'world_01',
+                tiled: {
+                    width: 8,
+                    height: 8,
+                    tilewidth: 16,
+                    tileheight: 16,
+                    tilesets: [{ name: 'tilesheet', firstgid: 1, tiles: [] }],
+                    layers: [
+                        {
+                            name: 'background',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(64).fill(1),
+                        },
+                        {
+                            name: 'doors',
+                            type: 'objectgroup',
+                            visible: true,
+                            objects: [
+                                {
+                                    id: 1,
+                                    x: 16,
+                                    y: 16,
+                                    width: 16,
+                                    height: 16,
+                                    class: 'Door',
+                                    properties: [{ name: 'door_id', value: 'first' }],
+                                },
+                            ],
+                        },
+                        {
+                            name: 'interiors',
+                            type: 'group',
+                            visible: true,
+                            layers: [
+                                {
+                                    name: 'doors',
+                                    type: 'objectgroup',
+                                    visible: false,
+                                    objects: [
+                                        {
+                                            id: 2,
+                                            x: 32,
+                                            y: 16,
+                                            width: 16,
+                                            height: 16,
+                                            class: 'Door',
+                                            properties: [{ name: 'door_id', value: 'second' }],
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
+    });
+
+    expect(pack.graph.maps.find((map) => map.id === 'world_01')?.doors).toEqual([
+        { id: 'first', x: 1, y: 1 },
+        { id: 'second', x: 2, y: 1 },
+    ]);
+});
+
 test('compileMapPack normalizes graph-linked door tx/ty to destination door coordinates', () => {
     const pack = compileMapPack({
         maps: [

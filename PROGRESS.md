@@ -310,3 +310,50 @@ This is the live execution notebook for `PLAN.md`.
   - `git commit -m "fix: canonicalize authored map ids"`: committed and amended with final live-doc metadata.
 - Next action:
   - Proceed to Ticket 1.4 explicit interior maps.
+
+### 2026-06-10 10:56 UTC - Ticket 1.4 Create Stub Interior Maps for Existing House Links
+
+- Status: done
+- Scope:
+  - Create deterministic functional stub maps for `house_01` through `house_40`.
+  - Add every generated house map to `assets/maps/tiled/map-pack.config.json`.
+  - Ensure every world-to-house door has a matching house entry door and reverse link.
+  - Keep `allow_missing_target_maps: true`; strict missing-map enforcement is Ticket 1.5.
+  - Do not design final interiors or alter world door coordinates.
+- TODO:
+  - done: Extract current house targets and world door contracts.
+  - done: Add graph contract test for world-to-house plus reverse house link.
+  - done: Replace `tools/content/house-regenerate.ts` with deterministic stub map generation/check/report behavior.
+  - done: Generate `assets/maps/tiled/maps/house_01.json` through `house_40.json`.
+  - done: Update `assets/maps/tiled/map-pack.config.json` with sorted house entries.
+  - done: Regenerate `assets/maps/runtime/map-pack.json`.
+  - done: Run map-pack tests, bootstrap tests, map checks, and static gates.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 1.4.
+- Key actions:
+  - Confirmed clean branch state before Ticket 1.4 edits.
+  - Extracted 40 authored house targets from `world.json`.
+  - Replaced the legacy house crop extraction tool with a deterministic stub map generator/checker.
+  - Generated 40 stub house maps under `assets/maps/tiled/maps/`.
+  - Added 40 sorted house map entries to `assets/maps/tiled/map-pack.config.json`.
+  - Updated map-pack graph extraction to read authored door graph data before `processMap` mutates map objects.
+  - Updated map-pack graph extraction to include hidden `doors` objectgroups, matching the authored `gameplay_markup/doors` layer.
+  - Regenerated `assets/maps/runtime/map-pack.json`.
+  - Committed Ticket 1.4 with message `feat: add stub interior map pack entries`.
+- Evidence:
+  - `git status --short --branch`: `## modern/cx...origin/modern/cx [ahead 2]`.
+  - Extracted targets are `house_01` through `house_40`.
+  - World door contract shape is `world_house_##_entry -> house_##:house_##_entry`.
+  - `find assets/maps/tiled/maps -maxdepth 1 -type f -name 'house_*.json' | sort | wc -l`: `40`.
+  - `bun tools/content/house-regenerate.ts check`: pass, 40 maps up to date.
+  - `bun run build:maps`: pass, regenerated runtime map pack.
+  - `bun run check:maps`: pass, map pack is up to date.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/server-world-map-pack-bootstrap.test.ts --timeout 20000`: pass, 23 pass / 0 fail.
+  - Direct contract check: 40 targets, 41 config maps, no missing config maps, no missing pack maps, no missing reverse edges.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `bun run format:check`: pass.
+  - `git diff --check`: pass.
+  - `git commit -m "feat: add stub interior map pack entries"`: committed and amended with final live-doc metadata.
+- Next action:
+  - Proceed to Ticket 1.5 strict missing-target validation.
