@@ -3526,7 +3526,7 @@ Commit: `docs: plan richer terrain asset generation`.
 
 **Dependencies/blockers:** Tickets 2.1, 2.2, 2A.1, 2A.2, and 2A.3.
 
-- [ ] **Step 1: Create repair plan types**
+- [x] **Step 1: Create repair plan types**
 
 Create `tools/content/world-authoring-repair.ts` with:
 
@@ -3552,7 +3552,7 @@ type RepairChange = Readonly<{
 }>;
 ```
 
-- [ ] **Step 2: Implement dry-run report**
+- [x] **Step 2: Implement dry-run report**
 
 Default command writes:
 
@@ -3563,7 +3563,7 @@ artifacts/map-authoring/world-authoring-repair-plan.md
 
 and does not modify map files.
 
-- [ ] **Step 3: Implement write guard**
+- [x] **Step 3: Implement write guard**
 
 Require `--write` for modifications. Before writing, check current git status for the target file:
 
@@ -3573,7 +3573,7 @@ const proc = Bun.spawn(['git', 'status', '--short', '--', 'assets/maps/tiled/wor
 
 If status is non-empty and does not match a prior generated repair state, print the exact status and exit non-zero. This prevents overwriting user map edits.
 
-- [ ] **Step 4: Add tests**
+- [x] **Step 4: Add tests**
 
 Create `tests/unit/world-authoring-repair.test.ts` with fixture maps for:
 
@@ -3584,7 +3584,7 @@ test('tiny component repair does not remove visible gameplay or collision layers
 test('write mode requires explicit --write', () => {});
 ```
 
-- [ ] **Step 5: Add scripts**
+- [x] **Step 5: Add scripts**
 
 In `package.json`, add:
 
@@ -3593,7 +3593,7 @@ In `package.json`, add:
 "repair:world-authoring": "bun tools/content/world-authoring-repair.ts --write"
 ```
 
-- [ ] **Step 6: Verify dry-run**
+- [x] **Step 6: Verify dry-run**
 
 Run:
 
@@ -3611,7 +3611,9 @@ Expected:
 
 and no diff to `world.json`.
 
-- [ ] **Step 7: Write only after review**
+Verified: focused unit tests passed, dry-run wrote the repair plan, and `assets/maps/tiled/world.json` has no diff.
+
+- [x] **Step 7: Write only after review**
 
 After reviewing `artifacts/map-authoring/world-authoring-repair-plan.md`, run:
 
@@ -3630,7 +3632,9 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 8: Commit**
+Reviewed the dry-run plan: 10 high-confidence changes are planned, but `--write` was not run because it requires explicit approval and the current writer would serialize `world.json` wholesale. Non-mutating validation passed.
+
+- [x] **Step 8: Commit**
 
 Run:
 
@@ -3638,6 +3642,8 @@ Run:
 rtk git add tools/content/world-authoring-repair.ts tests/unit/world-authoring-repair.test.ts package.json artifacts/map-authoring/world-authoring-repair-plan.json artifacts/map-authoring/world-authoring-repair-plan.md assets/maps/tiled/world.json assets/maps/runtime/map-pack.json
 rtk git commit -m "fix: repair high-confidence world authoring defects"
 ```
+
+Commit: `feat: add dry-run world authoring repair`.
 
 ### Ticket 2A.6: Complete Manual Visual Review and Richness Pass
 

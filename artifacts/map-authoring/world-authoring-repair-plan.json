@@ -1,0 +1,118 @@
+{
+  "generatedAt": "2026-06-10T12:19:07.564Z",
+  "world": "assets/maps/tiled/world.json",
+  "write": false,
+  "changes": [
+    {
+      "kind": "add_map_property",
+      "confidence": "high",
+      "before": null,
+      "after": {
+        "name": "map_id",
+        "type": "string",
+        "value": "world"
+      },
+      "reason": "Add required terrain-authoring map property \"map_id\" with conservative value."
+    },
+    {
+      "kind": "add_map_property",
+      "confidence": "high",
+      "before": null,
+      "after": {
+        "name": "authoring_version",
+        "type": "int",
+        "value": 1
+      },
+      "reason": "Add required terrain-authoring map property \"authoring_version\" with conservative value."
+    },
+    {
+      "kind": "add_map_property",
+      "confidence": "high",
+      "before": null,
+      "after": {
+        "name": "default_music",
+        "type": "string",
+        "value": "world"
+      },
+      "reason": "Add required terrain-authoring map property \"default_music\" with conservative value."
+    },
+    {
+      "kind": "add_map_property",
+      "confidence": "high",
+      "before": null,
+      "after": {
+        "name": "default_biome",
+        "type": "string",
+        "value": "mixed"
+      },
+      "reason": "Add required terrain-authoring map property \"default_biome\" with conservative value."
+    },
+    {
+      "kind": "remove_duplicate_covered_paint",
+      "confidence": "high",
+      "layerPath": "render_world/village_biome/ground",
+      "x": 43,
+      "y": 194,
+      "before": 551,
+      "after": 0,
+      "reason": "Clear duplicate lower paint because render_world/village_biome/mud paints the same gid later at this cell."
+    },
+    {
+      "kind": "remove_duplicate_covered_paint",
+      "confidence": "high",
+      "layerPath": "render_world/village_biome/ground",
+      "x": 44,
+      "y": 194,
+      "before": 552,
+      "after": 0,
+      "reason": "Clear duplicate lower paint because render_world/village_biome/mud paints the same gid later at this cell."
+    },
+    {
+      "kind": "remove_duplicate_covered_paint",
+      "confidence": "high",
+      "layerPath": "render_world/village_biome/ground",
+      "x": 45,
+      "y": 194,
+      "before": 553,
+      "after": 0,
+      "reason": "Clear duplicate lower paint because render_world/village_biome/mud paints the same gid later at this cell."
+    },
+    {
+      "kind": "remove_duplicate_covered_paint",
+      "confidence": "high",
+      "layerPath": "render_world/village_biome/ground",
+      "x": 4,
+      "y": 218,
+      "before": 406,
+      "after": 0,
+      "reason": "Clear duplicate lower paint because render_world/village_biome/lakes paints the same gid later at this cell."
+    },
+    {
+      "kind": "remove_duplicate_covered_paint",
+      "confidence": "high",
+      "layerPath": "render_world/village_biome/ground",
+      "x": 4,
+      "y": 220,
+      "before": 406,
+      "after": 0,
+      "reason": "Clear duplicate lower paint because render_world/village_biome/lakes paints the same gid later at this cell."
+    },
+    {
+      "kind": "remove_duplicate_covered_paint",
+      "confidence": "high",
+      "layerPath": "render_world/deadlands_biome/dry_ground",
+      "x": 80,
+      "y": 72,
+      "before": 892,
+      "after": 0,
+      "reason": "Clear duplicate lower paint because render_world/deadlands_biome/dry_ground_2 paints the same gid later at this cell."
+    }
+  ],
+  "summary": {
+    "remove_duplicate_covered_paint": 6,
+    "remove_accidental_tiny_component": 0,
+    "normalize_door_portal_semantics": 0,
+    "normalize_target_map": 0,
+    "add_map_property": 4
+  }
+}

@@ -655,3 +655,38 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `docs: plan richer terrain asset generation`.
   - Next action: Proceed to Ticket 2A.5 dry-run safe map authoring repair.
+
+### 2026-06-10 12:16 UTC - Ticket 2A.5 Add Dry-Run Safe Map Authoring Repair
+
+- Status: done
+- Scope:
+  - Add a deterministic dry-run-first repair tool for high-confidence map authoring defects.
+  - Write JSON and Markdown repair plans without mutating `world.json` by default.
+  - Require `--write` plus a clean target file before modifying `assets/maps/tiled/world.json`.
+- TODO:
+  - done: Inspect existing map/audit structures and define repair plan types.
+  - done: Implement dry-run reports, write mode, write guard, and package scripts.
+  - done: Add unit tests for dry-run and repair behavior.
+  - done: Run verification and decide whether write mode is safe to execute.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 2A.5.
+- Key actions:
+  - 2026-06-10 12:16 UTC: Ticket started.
+  - Added `tools/content/world-authoring-repair.ts` with dry-run planning, Markdown/JSON reports, explicit `--write`, and a clean-target write guard for `world.json`.
+  - Added `repair:world-authoring:dry` and `repair:world-authoring` package scripts.
+  - Added unit tests for dry-run purity, duplicate covered paint repair, tiny component conservatism, and CLI dry-run behavior.
+  - Tightened repair rules after review so cross-biome overlaps and checkerboard-style base paint are not classified as high-confidence repairs.
+  - Reviewed the final dry-run plan and did not run `--write`; the plan has 10 high-confidence changes, but write mode needs explicit approval because the current writer would serialize `world.json` wholesale.
+- Evidence:
+  - `bun test tests/unit/world-authoring-repair.test.ts --timeout 20000` passed with 4 pass, 0 fail.
+  - `bun run repair:world-authoring:dry` passed and wrote `artifacts/map-authoring/world-authoring-repair-plan.json` plus `.md`.
+  - Final dry-run summary: 6 `remove_duplicate_covered_paint`, 0 `remove_accidental_tiny_component`, 4 `add_map_property`.
+  - `git diff -- assets/maps/tiled/world.json` returned no diff.
+  - `bun run check:world-map:target` passed with 0 errors and 0 warnings.
+  - `bun run check:terrain-authoring` passed.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed; map pack is up to date.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+  - Commit: `feat: add dry-run world authoring repair`.
+  - Next action: Proceed to Ticket 2A.6 manual visual review and richness pass.

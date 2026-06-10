@@ -31,6 +31,8 @@
     "check:terrain-authoring": "bun tools/content/terrain-authoring-audit.ts",
     "build:terrain-visuals": "bun tools/content/terrain-visual-artifacts.ts",
     "audit:terrain-grammar": "bun tools/content/terrain-grammar-validator.ts",
+    "repair:world-authoring:dry": "bun tools/content/world-authoring-repair.ts",
+    "repair:world-authoring": "bun tools/content/world-authoring-repair.ts --write",
     "legacy:fix:tileset-wang:scaffold": "bun tools/content/legacy/tileset-wang-scaffold.ts --write",
     "legacy:check:tileset-modernize:dry": "bun tools/content/legacy/tileset-modernize-metadata.ts",
     "legacy:fix:tileset-modernize": "bun tools/content/legacy/tileset-modernize-metadata.ts --write",
