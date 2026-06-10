@@ -1098,3 +1098,31 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `refactor: add canvas renderer boundary`.
   - Next action: Continue Phase 7 with Ticket 7.1 handoff archive hygiene.
+
+### 2026-06-10 15:18 UTC - Ticket 7.1 Add Handoff Archive Hygiene Check
+
+- Status: done
+- Scope:
+  - Add a release/archive hygiene checker that rejects local/generated artifacts from handoff directories.
+  - Add a package script and temp-directory unit coverage.
+  - Do not delete ignored local files from the working tree.
+- TODO:
+  - done: Inspect package script layout, existing tool folders, and CLI test conventions.
+  - done: Add the handoff hygiene checker and package script.
+  - done: Add unit coverage for clean and violating handoff fixtures.
+  - done: Run Ticket 7.1 verification.
+  - done: Commit Ticket 7.1.
+- Key actions:
+  - 2026-06-10 15:18 UTC: Ticket started from clean branch after `refactor: add canvas renderer boundary`.
+  - Existing CLI tests spawn `process.execPath` with package scripts from the repo root; release hygiene tests will use the same pattern.
+  - Added `tools/release/check-handoff-hygiene.ts`, `check:handoff-hygiene`, and temp-directory tests for clean and violating archive candidates.
+  - The checker also rejects `.sqlite` files in addition to `.sqlite-wal` and `.sqlite-shm`, matching the overall completion definition for local SQLite archive hygiene.
+- Evidence:
+  - `git status --short` was clean before Ticket 7.1 edits.
+  - Initial `bun test tests/unit/release-hygiene.test.ts --timeout 20000` failed because the success test expected empty stderr, while `bun run` echoes the invoked package command to stderr.
+  - `bun test tests/unit/release-hygiene.test.ts --timeout 20000` passed after adjusting the assertion: 2 pass, 0 fail.
+  - `bun run check:handoff-hygiene -- .tmp/clean-handoff-fixture` passed with `Handoff hygiene check passed.`
+  - `bun run verify:modern` passed: 691 pass, 1 skip, 0 fail; client and server builds completed.
+  - `git diff --check` passed.
+  - Commit: `chore: add handoff hygiene gate`.
+  - Next action: Continue Phase 7 with Ticket 7.2 final verification and release checklist.

@@ -5117,7 +5117,7 @@ rtk git commit -m "refactor: add canvas renderer boundary"
 
 **Dependencies/blockers:** Phase 0.
 
-- [ ] **Step 1: Create checker**
+- [x] **Step 1: Create checker**
 
 Create `tools/release/check-handoff-hygiene.ts`:
 
@@ -5155,7 +5155,7 @@ if (violations.length > 0) {
 console.log('Handoff hygiene check passed.');
 ```
 
-- [ ] **Step 2: Add script**
+- [x] **Step 2: Add script**
 
 In `package.json`, add:
 
@@ -5163,11 +5163,11 @@ In `package.json`, add:
 "check:handoff-hygiene": "bun tools/release/check-handoff-hygiene.ts"
 ```
 
-- [ ] **Step 3: Add tests**
+- [x] **Step 3: Add tests**
 
 Create `tests/unit/release-hygiene.test.ts` using temp directories. Assert that `.DS_Store` fails and a clean directory passes.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -5185,7 +5185,7 @@ Handoff hygiene check passed.
 
 Do not run the checker against repo root as a release gate until ignored local files are cleaned or a clean archive directory exists.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 

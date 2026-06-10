@@ -69,6 +69,7 @@
     "admin:backup-sqlite": "bun tools/admin/backup-sqlite.ts",
     "audit:project-surface": "bun tools/maintenance/project-surface-inventory.ts",
     "check:clean-base-state": "bun tools/maintenance/check-clean-base-state.ts",
+    "check:handoff-hygiene": "bun tools/release/check-handoff-hygiene.ts",
     "verify": "bun run verify:modern",
     "verify:modern": "bun run check:content:prefabs && bun run check:maps && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:client && bun run build:server",
     "test": "bun test --timeout 20000",
