@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/badlands_biome/lava_boundaries",
+  "x": 71,
+  "y": 2,
+  "gid": 1728,
+  "tileId": 1727,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

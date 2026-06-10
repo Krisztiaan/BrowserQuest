@@ -568,3 +568,39 @@ This is the live execution notebook for `PLAN.md`.
   - 2026-06-10 11:45 UTC: Verification complete.
   - Commit: `feat: add terrain authoring audit`.
   - Next action: Proceed to Ticket 2A.2 visual map authoring artifacts.
+
+### 2026-06-10 11:59 UTC - Ticket 2A.2 Generate Tile Atlas and Suspicious Region Visuals
+
+- Status: done
+- Scope:
+  - Add tile math helpers and a visual artifact generator.
+  - Generate BrowserQuest tilesheet atlas labels, suspicious gid crops, suspicious region contact sheets, and optional reference contact sheets.
+  - Add package script, tests, and generated visual artifacts.
+- TODO:
+  - done: Inspect ImageMagick and source image availability.
+  - done: Implement `terrain-visual-artifacts.ts` with tile math helpers and ImageMagick runner.
+  - done: Add unit tests and package script.
+  - done: Generate visual artifacts.
+  - done: Run visual verification and static gates.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 2A.2.
+- Key actions:
+  - Confirmed `/usr/bin/file` exists.
+  - Installed ImageMagick after approval; available commands are ImageMagick 6 `convert`, `identify`, and `montage`, not the ImageMagick 7 `magick` wrapper.
+  - Exact `/Users/krisztiaan/...` Stardew reference paths are absent, but equivalent files exist under `/root/dev/StardewXnbHack/Content (unpacked-ts)/Maps/`.
+  - Added tile math helpers, atlas label generation, ImageMagick command resolution, suspicious gid crops, suspicious region tile contact sheets, and reference contact sheets.
+  - Added `build:terrain-visuals` package script and unit tests.
+  - Appended visual reference notes to the generated terrain authoring audit Markdown.
+- Evidence:
+  - `identify -version`: ImageMagick 6.9.12-98.
+  - `bun test tests/unit/terrain-visual-artifacts.test.ts --timeout 20000` passed with 2 pass, 0 fail.
+  - `bun run check:terrain-authoring` passed and refreshed audit artifacts.
+  - `bun run build:terrain-visuals` passed and wrote `artifacts/map-authoring/visual/browserquest-tilesheet-atlas.png`.
+  - `file artifacts/map-authoring/visual/browserquest-tilesheet-atlas.png`: PNG image data, 320 x 1568, 8-bit/color RGBA.
+  - `identify -format '%f %wx%h\n' artifacts/map-authoring/visual/browserquest-tilesheet-atlas.png`: `browserquest-tilesheet-atlas.png 320x1568`.
+  - Generated 590 visual artifact files.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+  - 2026-06-10 11:59 UTC: Verification complete.
+  - Commit: `feat: generate terrain authoring visual artifacts`.
+  - Next action: Proceed to Ticket 2A.3 terrain and overlay grammar.

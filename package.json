@@ -29,6 +29,7 @@
     "check:world-typed-objects": "bun tools/content/world-typed-object-audit.ts",
     "check:world-typed-objects:json": "bun tools/content/world-typed-object-audit.ts --json",
     "check:terrain-authoring": "bun tools/content/terrain-authoring-audit.ts",
+    "build:terrain-visuals": "bun tools/content/terrain-visual-artifacts.ts",
     "legacy:fix:tileset-wang:scaffold": "bun tools/content/legacy/tileset-wang-scaffold.ts --write",
     "legacy:check:tileset-modernize:dry": "bun tools/content/legacy/tileset-modernize-metadata.ts",
     "legacy:fix:tileset-modernize": "bun tools/content/legacy/tileset-modernize-metadata.ts --write",

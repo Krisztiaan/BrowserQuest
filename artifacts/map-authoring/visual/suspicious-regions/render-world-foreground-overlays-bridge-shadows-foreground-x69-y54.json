@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/foreground_overlays/bridge_shadows_foreground",
+  "x": 69,
+  "y": 54,
+  "gid": 62,
+  "tileId": 61,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/subterranean_region/cave_walls",
+  "x": 143,
+  "y": 26,
+  "gid": 1829,
+  "tileId": 1828,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

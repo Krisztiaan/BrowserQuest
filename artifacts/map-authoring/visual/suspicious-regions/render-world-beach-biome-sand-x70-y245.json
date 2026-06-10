@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/beach_biome/sand",
+  "x": 70,
+  "y": 245,
+  "gid": 300,
+  "tileId": 299,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

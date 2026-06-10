@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/badlands_biome/canyon",
+  "x": 0,
+  "y": 0,
+  "gid": 1378,
+  "tileId": 1377,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

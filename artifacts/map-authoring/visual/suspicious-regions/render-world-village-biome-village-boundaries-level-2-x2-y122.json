@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/village_biome/village_boundaries_level_2",
+  "x": 2,
+  "y": 122,
+  "gid": 711,
+  "tileId": 710,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

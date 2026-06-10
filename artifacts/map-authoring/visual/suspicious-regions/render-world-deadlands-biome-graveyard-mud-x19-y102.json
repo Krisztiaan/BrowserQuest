@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/deadlands_biome/graveyard_mud",
+  "x": 19,
+  "y": 102,
+  "gid": 553,
+  "tileId": 552,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

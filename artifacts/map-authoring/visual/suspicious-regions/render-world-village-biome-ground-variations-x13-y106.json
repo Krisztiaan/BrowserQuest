@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/village_biome/ground_variations",
+  "x": 13,
+  "y": 106,
+  "gid": 14,
+  "tileId": 13,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

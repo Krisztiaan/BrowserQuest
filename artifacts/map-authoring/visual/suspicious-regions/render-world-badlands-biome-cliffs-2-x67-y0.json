@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/badlands_biome/cliffs_2",
+  "x": 67,
+  "y": 0,
+  "gid": 1322,
+  "tileId": 1321,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/foreground_overlays/indoor_doors_foreground",
+  "x": 126,
+  "y": 143,
+  "gid": 1627,
+  "tileId": 1626,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

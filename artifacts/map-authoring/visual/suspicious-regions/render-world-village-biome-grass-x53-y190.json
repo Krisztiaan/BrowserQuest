@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/village_biome/grass",
+  "x": 53,
+  "y": 190,
+  "gid": 114,
+  "tileId": 113,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/subterranean_region/carpets",
+  "x": 124,
+  "y": 135,
+  "gid": 825,
+  "tileId": 824,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

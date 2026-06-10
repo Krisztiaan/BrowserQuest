@@ -2992,7 +2992,7 @@ rtk git commit -m "feat: add terrain authoring audit"
 
 **Dependencies/blockers:** Ticket 2A.1.
 
-- [ ] **Step 1: Add pure tile math helpers**
+- [x] **Step 1: Add pure tile math helpers**
 
 Create `tools/content/terrain-visual-artifacts.ts` with exported helpers:
 
@@ -3020,7 +3020,7 @@ export function gidToTileId(gid: number, firstGid: number): number {
 }
 ```
 
-- [ ] **Step 2: Add tests for tile math**
+- [x] **Step 2: Add tests for tile math**
 
 Create `tests/unit/terrain-visual-artifacts.test.ts`:
 
@@ -3042,7 +3042,7 @@ test('gid maps to local tile id', () => {
 });
 ```
 
-- [ ] **Step 3: Implement ImageMagick command runner**
+- [x] **Step 3: Implement ImageMagick command runner**
 
 In `terrain-visual-artifacts.ts`, add:
 
@@ -3066,7 +3066,7 @@ Before the first image operation, run:
 await runMagick(['-version']);
 ```
 
-- [ ] **Step 4: Generate BrowserQuest atlas**
+- [x] **Step 4: Generate BrowserQuest atlas**
 
 Read `assets/maps/tiled/tilesheet.wang.tsj`, resolve its `image` path, and write:
 
@@ -3088,7 +3088,7 @@ type AtlasLabel = Readonly<{
 }>;
 ```
 
-- [ ] **Step 5: Generate suspicious GID and region crops**
+- [x] **Step 5: Generate suspicious GID and region crops**
 
 Read `artifacts/map-authoring/terrain-authoring-audit.json`. For findings with `gid` or `tileId`, export a 16 x 16 tile crop scaled to 128 x 128 under:
 
@@ -3104,7 +3104,7 @@ artifacts/map-authoring/visual/suspicious-regions/<layer-slug>-x<X>-y<Y>.png
 
 If full rendered map-region cropping is not available yet, write a contact sheet containing the involved tile crop and a JSON sidecar with the layer coordinate. Do not claim it is a rendered map crop until actual map rendering exists.
 
-- [ ] **Step 6: Generate reference contact sheets**
+- [x] **Step 6: Generate reference contact sheets**
 
 If these files exist:
 
@@ -3122,7 +3122,7 @@ artifacts/map-authoring/visual/reference/stardew-paths-contact.png
 
 Record in `terrain-authoring-audit.md` that these are visual organization references only, not source assets for copying.
 
-- [ ] **Step 7: Add script**
+- [x] **Step 7: Add script**
 
 In `package.json`, add:
 
@@ -3130,7 +3130,7 @@ In `package.json`, add:
 "build:terrain-visuals": "bun tools/content/terrain-visual-artifacts.ts"
 ```
 
-- [ ] **Step 8: Verify**
+- [x] **Step 8: Verify**
 
 Run:
 
@@ -3149,7 +3149,7 @@ Expected:
 PNG image data
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Run:
 

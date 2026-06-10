@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/forest_region/bridge",
+  "x": 137,
+  "y": 224,
+  "gid": 1440,
+  "tileId": 1439,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

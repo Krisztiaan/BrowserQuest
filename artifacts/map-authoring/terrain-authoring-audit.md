@@ -1,6 +1,6 @@
 # Terrain Authoring Audit
 
-Generated: 2026-06-10T11:51:35.156Z
+Generated: 2026-06-10T12:01:38.674Z
 World: assets/maps/tiled/world.json
 Tileset: assets/maps/tiled/tilesheet.wang.tsj
 
@@ -4388,3 +4388,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Location: `{"map":"assets/maps/tiled/world.json"}`
 - Evidence: blocking_layer=missing
 
+## Visual Reference Notes
+
+- Generated stardew-spring-outdoors-contact.png from /root/dev/StardewXnbHack/Content (unpacked-ts)/Maps/spring_outdoorsTileSheet.png; visual organization reference only, not a source asset for copying.
+- Generated stardew-paths-contact.png from /root/dev/StardewXnbHack/Content (unpacked-ts)/Maps/paths.png; visual organization reference only, not a source asset for copying.

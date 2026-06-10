@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/village_biome/mud",
+  "x": 42,
+  "y": 194,
+  "gid": 569,
+  "tileId": 568,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

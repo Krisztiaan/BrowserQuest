@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/village_biome/stone",
+  "x": 36,
+  "y": 195,
+  "gid": 374,
+  "tileId": 373,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

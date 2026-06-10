@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/village_biome/river",
+  "x": 0,
+  "y": 191,
+  "gid": 409,
+  "tileId": 408,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

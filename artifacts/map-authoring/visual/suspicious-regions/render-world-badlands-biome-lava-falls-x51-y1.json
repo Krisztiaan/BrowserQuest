@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/badlands_biome/lava_falls",
+  "x": 51,
+  "y": 1,
+  "gid": 1436,
+  "tileId": 1435,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

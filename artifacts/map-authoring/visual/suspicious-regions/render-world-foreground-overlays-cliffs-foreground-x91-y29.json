@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/foreground_overlays/cliffs_foreground",
+  "x": 91,
+  "y": 29,
+  "gid": 1105,
+  "tileId": 1104,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

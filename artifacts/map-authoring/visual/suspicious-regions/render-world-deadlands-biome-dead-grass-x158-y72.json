@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/deadlands_biome/dead_grass",
+  "x": 158,
+  "y": 72,
+  "gid": 567,
+  "tileId": 566,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

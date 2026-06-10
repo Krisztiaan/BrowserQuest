@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/forest_region/maze_walls",
+  "x": 154,
+  "y": 85,
+  "gid": 1704,
+  "tileId": 1703,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

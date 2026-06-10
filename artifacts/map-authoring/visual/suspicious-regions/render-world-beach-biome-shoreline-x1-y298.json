@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/beach_biome/shoreline",
+  "x": 1,
+  "y": 298,
+  "gid": 1781,
+  "tileId": 1780,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/deadlands_biome/dry_ground_2",
+  "x": 106,
+  "y": 4,
+  "gid": 1716,
+  "tileId": 1715,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/forest_region/forest",
+  "x": 41,
+  "y": 137,
+  "gid": 116,
+  "tileId": 115,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

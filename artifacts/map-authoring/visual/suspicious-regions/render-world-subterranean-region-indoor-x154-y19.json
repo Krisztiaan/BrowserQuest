@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/subterranean_region/indoor",
+  "x": 154,
+  "y": 19,
+  "gid": 1507,
+  "tileId": 1506,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

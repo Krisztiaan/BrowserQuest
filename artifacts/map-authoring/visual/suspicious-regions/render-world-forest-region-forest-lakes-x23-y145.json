@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/forest_region/forest_lakes",
+  "x": 23,
+  "y": 145,
+  "gid": 670,
+  "tileId": 669,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}

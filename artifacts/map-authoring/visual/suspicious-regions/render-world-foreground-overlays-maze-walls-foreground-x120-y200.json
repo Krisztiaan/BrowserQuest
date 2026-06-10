@@ -1,0 +1,8 @@
+{
+  "layerPath": "render_world/foreground_overlays/maze_walls_foreground",
+  "x": 120,
+  "y": 200,
+  "gid": 1184,
+  "tileId": 1183,
+  "note": "Tile contact sheet crop; not a rendered map-region crop."
+}
