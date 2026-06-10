@@ -1381,6 +1381,9 @@ function runServerAuthoritativeCombatSystem({
                 continue;
             }
             if (isPlayerVsMob) {
+                if (!attackerPos || !targetPos) {
+                    continue;
+                }
                 state.events.push({ type: 'ENTITY_ATTACKED', attackerId: engagement.attackerId, targetId: engagement.targetId });
                 log.event('info', 'combat.player_windup_started', {
                     attackerId: engagement.attackerId,

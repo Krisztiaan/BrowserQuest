@@ -35,3 +35,22 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk git diff --check`: pass.
 - Next action:
   - Commit Ticket 0.1 and start Ticket 0.2 typecheck baseline.
+
+### 2026-06-10 11:10 - Ticket 0.2 Restore TypeScript Baseline
+
+- Status: done
+- Scope:
+  - Fix current `bun run typecheck` failures without feature refactors or map-pack behavior changes.
+- Key actions:
+  - Ticket 0.1 committed as execution baseline.
+  - Fixed combat windup logging position narrowing in `server/world/ecs-command-pipeline.ts`.
+  - Preserved branded `GridPos` through `resolvePlanOrigin` in `client-command-apply-system.ts`.
+  - Extended the movement prediction host player contract to match `VisualBridgeCharacterLike`.
+  - Replaced fragile non-character interpolation narrowing with an explicit adapter/predicate pair.
+  - Updated `tests/unit/mmo/server-door-traversal.test.ts` to use the current `world_01` map id contract.
+- Evidence:
+  - `rtk bun run typecheck`: failed before fixes with TS18048, TS2345, VisualBridgeCharacterLike, and `never` narrowing errors.
+  - `rtk bun run typecheck`: pass after fixes.
+  - `rtk bun test tests/unit/ecs/client-attack-intent-follow.test.ts tests/unit/ecs/client-auto-aggro-system.test.ts tests/unit/mmo/server-door-traversal.test.ts --timeout 20000`: pass, 17 pass / 0 fail.
+- Next action:
+  - Commit Ticket 0.2 and start Ticket 0.3 lint baseline.

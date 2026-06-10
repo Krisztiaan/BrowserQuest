@@ -191,7 +191,7 @@ rtk git commit -m "chore: restore configured formatting baseline"
 
 **Dependencies/blockers:** Ticket 0.1 can run independently.
 
-- [ ] **Step 1: Capture current errors**
+- [x] **Step 1: Capture current errors**
 
 Run:
 
@@ -208,7 +208,7 @@ client/ecs/systems/client-move-input-prediction-system.ts(123,40): missing Visua
 client/ecs/systems/client-simulation-system.ts(139,16): error TS2339: Property 'id' does not exist on type 'never'.
 ```
 
-- [ ] **Step 2: Fix `attackerPos` narrowing**
+- [x] **Step 2: Fix `attackerPos` narrowing**
 
 In `server/world/ecs-command-pipeline.ts`, find the block around the reported `attackerPos` line. Use an early guard that proves `attackerPos` exists before reading `.x` or `.y`.
 
@@ -226,7 +226,7 @@ const distance = Math.abs(attackerPos.x - targetPos.x) + Math.abs(attackerPos.y 
 
 If the surrounding function currently uses `return` instead of `continue`, preserve the local control-flow style.
 
-- [ ] **Step 3: Fix raw grid object construction**
+- [x] **Step 3: Fix raw grid object construction**
 
 In `client/ecs/systems/client-command-apply-system.ts`, import and use the domain helper:
 
@@ -242,7 +242,7 @@ gridPos(x, y)
 
 Use the actual in-scope coordinate names from the file.
 
-- [ ] **Step 4: Fix `VisualBridgeCharacterLike` test doubles or adapter shape**
+- [x] **Step 4: Fix `VisualBridgeCharacterLike` test doubles or adapter shape**
 
 In `client/ecs/systems/client-move-input-prediction-system.ts`, inspect the failing call sites. If the object is a local test/helper adapter, add the missing members with no-op behavior that preserves runtime semantics:
 
@@ -255,7 +255,7 @@ idle(_orientation?: number): void {},
 
 If the object is production data, prefer narrowing to the existing full character object instead of inventing a fake bridge.
 
-- [ ] **Step 5: Fix `never` narrowing in client simulation**
+- [x] **Step 5: Fix `never` narrowing in client simulation**
 
 In `client/ecs/systems/client-simulation-system.ts`, inspect the branch around lines 139-141. Replace a too-narrow inferred variable with an explicit structural type that matches the later reads.
 
@@ -277,7 +277,7 @@ const candidates: AggroCandidate[] = [];
 
 Then preserve existing filtering logic.
 
-- [ ] **Step 6: Verify typecheck and focused behavior**
+- [x] **Step 6: Verify typecheck and focused behavior**
 
 Run:
 
@@ -294,7 +294,7 @@ Expected:
 
 for the focused tests unless Ticket 1.4 door traversal is still pending. If door traversal still fails, record that as the known remaining functional failure and do not mark Ticket 1.4 done.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 

@@ -260,7 +260,7 @@ function renderTopLeftPxToWorldSub(x: number, y: number): { worldX: number; worl
     };
 }
 
-function resolvePlanOrigin(host: ClientCommandApplySystemHost): { x: number; y: number } {
+function resolvePlanOrigin(host: ClientCommandApplySystemHost): GridPos {
     return resolveAuthoritativeLocalPlayerPos(host);
 }
 

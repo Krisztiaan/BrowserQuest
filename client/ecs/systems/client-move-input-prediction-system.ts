@@ -19,9 +19,13 @@ export type ClientMoveInputPredictionSystemHost = Readonly<{
               gridY: number;
               worldX: number;
               worldY: number;
+              orientation: number;
               isDead: boolean;
               isOnPlateau: boolean;
               isMoving(): boolean;
+              setVisualFacing(orientation: number): void;
+              walk(orientation?: number): void;
+              idle(orientation?: number): void;
               setLogicalWorldPositionSub(worldX: number, worldY: number): void;
               setVisualDivergenceClass(divergenceClass: VisualDivergenceClass): void;
               setVisualRenderTarget(x: number, y: number, mode?: VisualMoveMode): void;
@@ -84,12 +88,10 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
 
     const map = host.map;
     const fallbackGrid = host.kernel.clientPathingGrid;
-    const mapWidthTiles = Number.isInteger(map.width) && (map.width ?? 0) > 0
-        ? (map.width as number)
-        : (fallbackGrid?.[0]?.length ?? 0);
-    const mapHeightTiles = Number.isInteger(map.height) && (map.height ?? 0) > 0
-        ? (map.height as number)
-        : (fallbackGrid?.length ?? 0);
+    const mapWidthTiles =
+        Number.isInteger(map.width) && (map.width ?? 0) > 0 ? (map.width as number) : (fallbackGrid?.[0]?.length ?? 0);
+    const mapHeightTiles =
+        Number.isInteger(map.height) && (map.height ?? 0) > 0 ? (map.height as number) : (fallbackGrid?.length ?? 0);
     const keysMask = host.kernel.clientMoveInputKeysMask >>> 0;
     if (keysMask === 0) {
         host.kernel.clientPredictedWorldPos = null;
@@ -196,22 +198,22 @@ export function runClientMoveInputPredictionSystem(host: ClientMoveInputPredicti
         mapHeightTiles,
     });
     if (auth && predictionError > tuning.hardReconcileErrSubpx) {
-            const divergenceClass = classifyPredictionDivergence({ suppressed: false, predictionError });
-            log.warn({
-                scope: 'movement_prediction',
-                level: 'warn',
-                event: 'prediction.hard_reconcile',
-                playerId: host.playerId,
-                profile: config.profileId,
-                authX: auth.x,
-                authY: auth.y,
-                predictedX: next.x,
-                predictedY: next.y,
-                reconciledX: reconciled.x,
-                reconciledY: reconciled.y,
-                divergence: predictionError,
-                divergenceClass,
-            });
+        const divergenceClass = classifyPredictionDivergence({ suppressed: false, predictionError });
+        log.warn({
+            scope: 'movement_prediction',
+            level: 'warn',
+            event: 'prediction.hard_reconcile',
+            playerId: host.playerId,
+            profile: config.profileId,
+            authX: auth.x,
+            authY: auth.y,
+            predictedX: next.x,
+            predictedY: next.y,
+            reconciledX: reconciled.x,
+            reconciledY: reconciled.y,
+            divergence: predictionError,
+            divergenceClass,
+        });
     }
 
     host.kernel.clientPredictedWorldPos = reconciled;

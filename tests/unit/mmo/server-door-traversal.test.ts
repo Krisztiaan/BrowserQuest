@@ -50,6 +50,12 @@ function createDoorTraversalHost({
                 cb('g');
             },
         },
+        getDefaultMapId() {
+            return 'world_01';
+        },
+        getMapById(mapId: string) {
+            return mapId === 'world_01' ? this.map : null;
+        },
         getConnectionPlayerById(id: number) {
             return id === player.id ? player : null;
         },
@@ -67,6 +73,9 @@ function createDoorTraversalHost({
         pushSpawnsToPlayerId() {},
         isValidPosition() {
             return true;
+        },
+        isValidPositionForMap(mapId: string, x: number, y: number) {
+            return mapId === 'world_01' && Number.isInteger(x) && Number.isInteger(y);
         },
         getDroppedItem() {
             return null;
@@ -94,10 +103,10 @@ function createDoorTraversalHost({
 
     if (includeResolveDoorTeleport) {
         host.resolveDoorTeleport = (mapId: string, x: number, y: number) => {
-            if (mapId !== 'world') {
+            if (mapId !== 'world_01') {
                 return null;
             }
-            return x === 5 && y === 5 ? { toMapId: 'world', to: { x: 10, y: 10 } } : null;
+            return x === 5 && y === 5 ? { toMapId: 'world_01', to: gridPos(10, 10) } : null;
         };
     }
 

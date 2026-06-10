@@ -96,6 +96,7 @@ export type ClientSimulationSystemHost = Readonly<{
 }>;
 
 type InterpolatedEntity = {
+    id: EntityId;
     x: number;
     y: number;
     targetX: number;
@@ -103,15 +104,23 @@ type InterpolatedEntity = {
     setDirty(): void;
 };
 
-function isInterpolatedEntity(entity: SimulationEntity): entity is SimulationEntity & InterpolatedEntity {
+function asInterpolatedEntity(entity: SimulationEntity): InterpolatedEntity | null {
     const candidate = entity as unknown as Partial<InterpolatedEntity>;
-    return (
+    if (
+        typeof candidate.id === 'number' &&
         typeof candidate.x === 'number' &&
         typeof candidate.y === 'number' &&
         typeof candidate.targetX === 'number' &&
         typeof candidate.targetY === 'number' &&
         typeof candidate.setDirty === 'function'
-    );
+    ) {
+        return candidate as InterpolatedEntity;
+    }
+    return null;
+}
+
+function isInterpolatedEntity(entity: SimulationEntity): entity is InterpolatedEntity {
+    return asInterpolatedEntity(entity) !== null;
 }
 
 function lerpAlpha(dtMs: number, tauMs: number): number {
@@ -132,13 +141,14 @@ function syncRenderedWorldPosition(host: ClientSimulationSystemHost, entity: Sim
         );
         return;
     }
-    if (!isInterpolatedEntity(entity)) {
+    const interpolated = asInterpolatedEntity(entity);
+    if (!interpolated) {
         return;
     }
     host.kernel.setClientRenderedWorldPosition?.(
-        entity.id as EntityId,
-        (entity.x + TILE_PX / 2) * SUBPIXELS,
-        (entity.y + TILE_PX / 2) * SUBPIXELS
+        interpolated.id,
+        (interpolated.x + TILE_PX / 2) * SUBPIXELS,
+        (interpolated.y + TILE_PX / 2) * SUBPIXELS
     );
 }
 
