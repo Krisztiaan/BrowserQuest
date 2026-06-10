@@ -3686,7 +3686,7 @@ Commit: `feat: add dry-run world authoring repair`.
 
 **Dependencies/blockers:** Tickets 2A.1 through 2A.5.
 
-- [ ] **Step 1: Create review log**
+- [x] **Step 1: Create review log**
 
 Create `docs/map-authoring-review-log.md`:
 
@@ -3713,7 +3713,7 @@ Create `docs/map-authoring-review-log.md`:
 
 The bounds above come from non-zero tile cells and object extents in each current `render_world` group. They are intentionally broad because multiple region groups overlap on the full overworld canvas.
 
-- [ ] **Step 2: Review high-confidence findings first**
+- [x] **Step 2: Review high-confidence findings first**
 
 For each `error` or `high` finding in `terrain-authoring-audit.json`:
 
@@ -3727,6 +3727,13 @@ For each `error` or `high` finding in `terrain-authoring-audit.json`:
 - Decision:
 - Verification:
 ```
+
+Initial high-confidence review completed:
+
+- `MAP_PROPERTIES_EMPTY` fixed by adding required map-level authoring properties to `world.json`.
+- 8 `WANG_PAIR_HAS_NO_MIXED_TRANSITIONS` findings classified as blocked asset/metadata work and recorded in `docs/map-authoring-review-log.md`.
+- Current high/error audit count is 8, all from blocked Wang transition asset gaps.
+- Scoped batch commit: `feat: start world authoring review pass`.
 
 - [ ] **Step 3: Apply region fixes in small batches**
 

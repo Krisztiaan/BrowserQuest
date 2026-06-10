@@ -1,6 +1,27 @@
 { "compressionlevel":-1,
  "height":314,
  "infinite":false,
+ "properties":[
+        {
+         "name":"map_id",
+         "type":"string",
+         "value":"world"
+        },
+        {
+         "name":"authoring_version",
+         "type":"int",
+         "value":1
+        },
+        {
+         "name":"default_music",
+         "type":"string",
+         "value":"world"
+        },
+        {
+         "name":"default_biome",
+         "type":"string",
+         "value":"mixed"
+        }],
  "layers":[
         {
          "id":97,

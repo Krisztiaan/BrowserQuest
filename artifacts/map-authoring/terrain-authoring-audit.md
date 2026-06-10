@@ -1,12 +1,12 @@
 # Terrain Authoring Audit
 
-Generated: 2026-06-10T12:01:38.674Z
+Generated: 2026-06-10T12:24:50.667Z
 World: assets/maps/tiled/world.json
 Tileset: assets/maps/tiled/tilesheet.wang.tsj
 
 ## Summary
 
-- map_properties: 1
+- map_properties: 0
 - wang_tileset: 19
 - terrain_paint: 161
 - overlay_layering: 6
@@ -19,14 +19,6 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - asset_reference: 1
 
 ## Findings
-
-### MAP_PROPERTIES_EMPTY: Map has no authoring properties
-
-- Severity: high
-- Category: map_properties
-- Detail: The world map should declare authoring metadata such as biome taxonomy, review status, and content ownership.
-- Location: `{"map":"assets/maps/tiled/world.json"}`
-- Evidence: properties array is missing or empty
 
 ### TILESET_IMAGE_REFERENCE: Tileset image reference
 

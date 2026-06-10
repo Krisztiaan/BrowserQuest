@@ -690,3 +690,36 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `feat: add dry-run world authoring repair`.
   - Next action: Proceed to Ticket 2A.6 manual visual review and richness pass.
+
+### 2026-06-10 12:25 UTC - Ticket 2A.6 Complete Manual Visual Review and Richness Pass
+
+- Status: in_progress
+- Scope:
+  - Create the map authoring review log and region checklist.
+  - Inventory high/error audit findings before any map repainting.
+  - Record blocked asset-work decisions where the current sheet/grammar cannot satisfy visual completeness.
+- TODO:
+  - done: Create `docs/map-authoring-review-log.md` scaffold.
+  - done: Inventory high/error audit findings with fix/keep/block decisions.
+  - done: Run non-mutating validation/artifact refresh commands.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit a scoped review-log batch.
+  - todo: Decide whether transition asset generation is the next approved step for Ticket 2A.6.
+- Key actions:
+  - 2026-06-10 12:25 UTC: Ticket started.
+  - Added `docs/map-authoring-review-log.md` with region checklist, high-finding decisions, gameplay review checklist, and collision/passability review status.
+  - Fixed `MAP_PROPERTIES_EMPTY` by adding required map-level authoring properties to `assets/maps/tiled/world.json`.
+  - Reclassified the remaining 8 high findings as blocked Wang transition asset/metadata work.
+  - Refreshed terrain audit, grammar report, repair plan, visual artifacts, and runtime map pack after the metadata fix.
+- Evidence:
+  - `bun run check:world-map:target` passed with 0 errors and 0 warnings.
+  - `bun run check:terrain-authoring` passed and regenerated audit artifacts.
+  - `bun run audit:terrain-grammar` passed and regenerated `terrain-grammar-report.json`.
+  - `bun run repair:world-authoring:dry` passed; plan now has 6 duplicate-paint repairs and 0 map-property additions.
+  - `bun run build:terrain-visuals` passed.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed; map pack is up to date.
+  - `bun test tests/unit/mmo/server-client-collision-parity.test.ts --timeout 20000` passed with 1 pass, 0 fail.
+  - Current high/error audit count: 8, all `WANG_PAIR_HAS_NO_MIXED_TRANSITIONS` blocked by transition asset gaps.
+  - Browser passability overlay review remains open.
+  - Scoped batch commit: `feat: start world authoring review pass`.
+  - Next action: Decide whether to start transition asset generation or pause on the asset blocker before continuing Ticket 2A.6.

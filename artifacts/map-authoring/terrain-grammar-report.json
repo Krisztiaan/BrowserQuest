@@ -1,10 +1,5 @@
 {
-  "missingMapProperties": [
-    "map_id",
-    "authoring_version",
-    "default_music",
-    "default_biome"
-  ],
+  "missingMapProperties": [],
   "missingFamiliesUsedByMap": [],
   "missingTransitionShapes": [
     {
