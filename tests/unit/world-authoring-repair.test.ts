@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { expect, test } from 'bun:test';
-import { applyRepairPlan, createRepairPlan, main } from '../../tools/content/world-authoring-repair';
+import { applyRepairPlan, applyRepairPlanToWorldText, createRepairPlan, main } from '../../tools/content/world-authoring-repair';
 
 function tileLayer(name: string, data: number[], width = 3): Record<string, unknown> {
     return {
@@ -54,6 +54,21 @@ test('duplicate covered paint repair clears only the lower layer cell', () => {
 
     expect(lower.data).toEqual([0, 2, 0]);
     expect(higher.data).toEqual([7, 0, 0]);
+});
+
+test('text-preserving repair clears tile data without reserializing world json', () => {
+    const worldText = [
+        '{"layers":[{"name":"render_world","type":"group","layers":[',
+        '{"name":"ground","type":"tilelayer","width":3,"height":1,"opacity":1,"data":[7, 2, 0]},',
+        '{"name":"overlay","type":"tilelayer","width":3,"height":1,"opacity":1,"data":[7, 0, 0]}',
+        ']}]}',
+    ].join('');
+    const world = JSON.parse(worldText) as Record<string, unknown>;
+    const plan = createRepairPlan({ world, grammar: { mapPropertiesRequired: [] }, generatedAt: '2026-06-10T00:00:00.000Z' });
+
+    const repaired = applyRepairPlanToWorldText(worldText, world, plan);
+
+    expect(repaired).toBe(worldText.replace('"data":[7, 2, 0]', '"data":[0, 2, 0]'));
 });
 
 test('tiny component repair does not remove visible gameplay or collision layers', () => {

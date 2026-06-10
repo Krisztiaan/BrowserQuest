@@ -703,6 +703,7 @@ This is the live execution notebook for `PLAN.md`.
   - done: Inventory high/error audit findings with fix/keep/block decisions.
   - done: Run non-mutating validation/artifact refresh commands.
   - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit a scoped review-log batch.
+  - done: Apply first high-confidence duplicate-paint repair batch.
   - todo: Decide whether transition asset generation is the next approved step for Ticket 2A.6.
 - Key actions:
   - 2026-06-10 12:25 UTC: Ticket started.
@@ -710,6 +711,9 @@ This is the live execution notebook for `PLAN.md`.
   - Fixed `MAP_PROPERTIES_EMPTY` by adding required map-level authoring properties to `assets/maps/tiled/world.json`.
   - Reclassified the remaining 8 high findings as blocked Wang transition asset/metadata work.
   - Refreshed terrain audit, grammar report, repair plan, visual artifacts, and runtime map pack after the metadata fix.
+  - Updated `tools/content/world-authoring-repair.ts` so `--write` uses text-preserving tile-data token replacement instead of serializing the whole map.
+  - Ran `bun run repair:world-authoring` and applied 6 high-confidence duplicate covered paint repairs.
+  - Regenerated the dry-run repair plan after the write; it now reports 0 planned high-confidence repairs.
 - Evidence:
   - `bun run check:world-map:target` passed with 0 errors and 0 warnings.
   - `bun run check:terrain-authoring` passed and regenerated audit artifacts.
@@ -722,4 +726,17 @@ This is the live execution notebook for `PLAN.md`.
   - Current high/error audit count: 8, all `WANG_PAIR_HAS_NO_MIXED_TRANSITIONS` blocked by transition asset gaps.
   - Browser passability overlay review remains open.
   - Scoped batch commit: `feat: start world authoring review pass`.
+  - `bun test tests/unit/world-authoring-repair.test.ts --timeout 20000` passed with 5 pass, 0 fail.
+  - `bun run repair:world-authoring` passed and wrote `assets/maps/tiled/world.json` with targeted token replacements.
+  - `bun run repair:world-authoring:dry` passed after the write with 0 planned repairs.
+  - `bun run check:world-map:target` passed with 0 errors and 0 warnings after the repair batch.
+  - `bun run check:terrain-authoring` passed after the repair batch.
+  - `bun run audit:terrain-grammar` passed after the repair batch.
+  - `bun run build:terrain-visuals` passed after the repair batch.
+  - `bun run build:maps` and `bun run check:maps` passed after the repair batch.
+  - `bun test tests/unit/mmo/server-client-collision-parity.test.ts --timeout 20000` passed after the repair batch.
+  - `bun run typecheck:tools` passed after the repair batch.
+  - `bun run lint` passed after the repair batch.
+  - `git diff --check` passed after the repair batch.
+  - Scoped batch commit: `fix: repair duplicate covered world paint`.
   - Next action: Decide whether to start transition asset generation or pause on the asset blocker before continuing Ticket 2A.6.

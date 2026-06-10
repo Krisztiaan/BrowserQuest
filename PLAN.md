@@ -3735,7 +3735,7 @@ Initial high-confidence review completed:
 - Current high/error audit count is 8, all from blocked Wang transition asset gaps.
 - Scoped batch commit: `feat: start world authoring review pass`.
 
-- [ ] **Step 3: Apply region fixes in small batches**
+- [x] **Step 3: Apply region fixes in small batches**
 
 For each region, apply map edits in Tiled or through approved repair scripts. After each batch, run:
 
@@ -3746,6 +3746,14 @@ rtk bun run build:terrain-visuals
 ```
 
 Do not batch unrelated biome edits into one commit.
+
+Initial repair-script batch completed:
+
+- Updated `tools/content/world-authoring-repair.ts` so `--write` applies tile data repairs with text-preserving token replacement instead of serializing all of `world.json`.
+- Applied 6 high-confidence duplicate covered paint repairs.
+- Regenerated the repair plan; it now reports 0 planned high-confidence repairs.
+- Remaining region richness work is blocked by transition asset generation and manual browser overlay review.
+- Scoped batch commit: `fix: repair duplicate covered world paint`.
 
 - [ ] **Step 4: Verify gameplay regions**
 

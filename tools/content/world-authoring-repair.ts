@@ -44,6 +44,14 @@ type TileLayerRef = Readonly<{
     renderOrder: number;
 }>;
 
+type TileLayerTextSpan = Readonly<{
+    path: string;
+    objectStart: number;
+    objectEnd: number;
+    dataStart: number;
+    dataEnd: number;
+}>;
+
 export const defaultWorld = 'assets/maps/tiled/world.json';
 export const defaultGrammar = 'assets/maps/tiled/terrain-authoring.json';
 export const defaultOutDir = 'artifacts/map-authoring';
@@ -126,6 +134,130 @@ function flattenTileLayers(root: UnknownRecord): TileLayerRef[] {
 
     walk(asArray(root.layers), []);
     return tileLayers;
+}
+
+function findMatchingBrace(text: string, openIndex: number): number {
+    let depth = 0;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = openIndex; i < text.length; i += 1) {
+        const char = text[i];
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+            } else if (char === '\\') {
+                escaped = true;
+            } else if (char === '"') {
+                inString = false;
+            }
+            continue;
+        }
+        if (char === '"') {
+            inString = true;
+            continue;
+        }
+        if (char === '{') {
+            depth += 1;
+            continue;
+        }
+        if (char === '}') {
+            depth -= 1;
+            if (depth === 0) {
+                return i;
+            }
+        }
+    }
+
+    throw new Error(`No matching brace for object at byte ${openIndex}`);
+}
+
+function findDataArraySpan(objectText: string, objectStart: number): { dataStart: number; dataEnd: number } {
+    const dataMatch = /"data"\s*:\s*\[/.exec(objectText);
+    if (!dataMatch) {
+        throw new Error(`Tile layer object at byte ${objectStart} has no data array.`);
+    }
+    const dataStart = objectStart + dataMatch.index + dataMatch[0].length;
+    let depth = 1;
+    let inString = false;
+    let escaped = false;
+
+    for (let i = dataStart; i < objectStart + objectText.length; i += 1) {
+        const char = objectText[i - objectStart];
+        if (inString) {
+            if (escaped) {
+                escaped = false;
+            } else if (char === '\\') {
+                escaped = true;
+            } else if (char === '"') {
+                inString = false;
+            }
+            continue;
+        }
+        if (char === '"') {
+            inString = true;
+            continue;
+        }
+        if (char === '[') {
+            depth += 1;
+            continue;
+        }
+        if (char === ']') {
+            depth -= 1;
+            if (depth === 0) {
+                return { dataStart, dataEnd: i };
+            }
+        }
+    }
+
+    throw new Error(`Tile layer object at byte ${objectStart} has an unterminated data array.`);
+}
+
+function findTileLayerTextSpans(worldText: string, worldRoot: UnknownRecord): Map<string, TileLayerTextSpan> {
+    const parsedLayers = flattenTileLayers(worldRoot);
+    const spans = new Map<string, TileLayerTextSpan>();
+    const tileTypePattern = /"type"\s*:\s*"tilelayer"/g;
+    let match: RegExpExecArray | null;
+    let parsedIndex = 0;
+
+    while ((match = tileTypePattern.exec(worldText)) !== null) {
+        let objectStart = worldText.lastIndexOf('{', match.index);
+        while (objectStart >= 0) {
+            const objectEnd = findMatchingBrace(worldText, objectStart);
+            if (objectEnd >= match.index) {
+                const objectText = worldText.slice(objectStart, objectEnd + 1);
+                const object = JSON.parse(objectText) as unknown;
+                const record = asRecord(object);
+                if (record && asString(record.type) === 'tilelayer' && Array.isArray(record.data)) {
+                    const parsedLayer = parsedLayers[parsedIndex];
+                    if (!parsedLayer) {
+                        throw new Error('World text has more tile layers than parsed world.');
+                    }
+                    const { dataStart, dataEnd } = findDataArraySpan(objectText, objectStart);
+                    spans.set(parsedLayer.path, {
+                        path: parsedLayer.path,
+                        objectStart,
+                        objectEnd,
+                        dataStart,
+                        dataEnd,
+                    });
+                    parsedIndex += 1;
+                    tileTypePattern.lastIndex = objectEnd + 1;
+                    break;
+                }
+            }
+            objectStart = worldText.lastIndexOf('{', objectStart - 1);
+        }
+        if (objectStart < 0) {
+            throw new Error(`Could not locate tile layer object around byte ${match.index}.`);
+        }
+    }
+
+    if (parsedIndex !== parsedLayers.length) {
+        throw new Error(`World text tile layer count ${parsedIndex} did not match parsed count ${parsedLayers.length}.`);
+    }
+
+    return spans;
 }
 
 function isRepairableRenderLayer(layer: TileLayerRef): boolean {
@@ -414,6 +546,103 @@ export function applyRepairPlan(worldRoot: UnknownRecord, plan: RepairPlan): voi
     }
 }
 
+function replacementForTileChange(change: RepairChange, layer: UnknownRecord): { index: number; before: number; after: number }[] {
+    if (change.kind === 'remove_duplicate_covered_paint') {
+        const x = change.x;
+        const y = change.y;
+        const width = asInteger(layer.width) ?? 0;
+        const before = asInteger(change.before);
+        const after = asInteger(change.after);
+        if (x === undefined || y === undefined || width <= 0 || before === null || after === null) {
+            throw new Error(`Invalid duplicate paint change for ${change.layerPath ?? '<unknown layer>'}`);
+        }
+        return [{ index: y * width + x, before, after }];
+    }
+
+    const before = Array.isArray(change.before) ? change.before : [];
+    const after = Array.isArray(change.after) ? change.after : [];
+    return before.map((entry, entryIndex) => {
+        const beforeCell = asRecord(entry);
+        const afterCell = asRecord(after[entryIndex]);
+        const index = beforeCell ? asInteger(beforeCell.index) : null;
+        const beforeGid = beforeCell ? asInteger(beforeCell.gid) : null;
+        const afterGid = afterCell ? asInteger(afterCell.gid) : null;
+        if (index === null || beforeGid === null || afterGid === null) {
+            throw new Error(`Invalid tiny component change for ${change.layerPath ?? '<unknown layer>'}`);
+        }
+        return { index, before: beforeGid, after: afterGid };
+    });
+}
+
+function findNumberToken(dataText: string, index: number): { start: number; end: number; value: number } {
+    const tokenPattern = /-?\d+/g;
+    let tokenIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = tokenPattern.exec(dataText)) !== null) {
+        if (tokenIndex === index) {
+            return {
+                start: match.index,
+                end: match.index + match[0].length,
+                value: Number(match[0]),
+            };
+        }
+        tokenIndex += 1;
+    }
+    throw new Error(`Could not find data token index ${index}.`);
+}
+
+export function applyRepairPlanToWorldText(worldText: string, worldRoot: UnknownRecord, plan: RepairPlan): string {
+    const spans = findTileLayerTextSpans(worldText, worldRoot);
+    const replacements: Array<{ start: number; end: number; value: string }> = [];
+
+    for (const change of plan.changes) {
+        if (change.kind === 'add_map_property') {
+            throw new Error('Text-preserving write mode does not add map properties; add required map properties before write.');
+        }
+        if (change.kind !== 'remove_duplicate_covered_paint' && change.kind !== 'remove_accidental_tiny_component') {
+            continue;
+        }
+        const layerPath = change.layerPath;
+        if (!layerPath) {
+            continue;
+        }
+        const layer = findTileLayerByPath(worldRoot, layerPath);
+        const span = spans.get(layerPath);
+        if (!layer || !span) {
+            throw new Error(`Could not locate tile layer for text-preserving repair: ${layerPath}`);
+        }
+        const dataText = worldText.slice(span.dataStart, span.dataEnd);
+        for (const replacement of replacementForTileChange(change, layer)) {
+            const token = findNumberToken(dataText, replacement.index);
+            if (token.value !== replacement.before) {
+                throw new Error(
+                    `Refusing repair for ${layerPath} cell ${replacement.index}: expected ${replacement.before}, found ${token.value}.`
+                );
+            }
+            replacements.push({
+                start: span.dataStart + token.start,
+                end: span.dataStart + token.end,
+                value: String(replacement.after),
+            });
+        }
+    }
+
+    const seen = new Set<string>();
+    for (const replacement of replacements) {
+        const key = `${replacement.start}:${replacement.end}`;
+        if (seen.has(key)) {
+            throw new Error(`Duplicate text replacement for byte range ${key}.`);
+        }
+        seen.add(key);
+    }
+
+    let nextText = worldText;
+    for (const replacement of replacements.sort((a, b) => b.start - a.start)) {
+        nextText = `${nextText.slice(0, replacement.start)}${replacement.value}${nextText.slice(replacement.end)}`;
+    }
+    return nextText;
+}
+
 export function renderRepairPlanMarkdown(plan: RepairPlan): string {
     const lines = [
         '# World Authoring Repair Plan',
@@ -505,7 +734,8 @@ export async function main(argv = Bun.argv.slice(2)): Promise<void> {
     const grammarPath = String(args.grammar);
     const outDir = String(args['out-dir']);
     const write = args.write === true;
-    const worldRoot = await readJsonFile(worldPath);
+    const worldText = await readFile(worldPath, 'utf8');
+    const worldRoot = JSON.parse(worldText) as UnknownRecord;
     const grammarRoot = await readJsonFile(grammarPath);
     const plan = createRepairPlan({ world: worldRoot, grammar: grammarRoot, worldPath, write });
 
@@ -520,8 +750,7 @@ export async function main(argv = Bun.argv.slice(2)): Promise<void> {
     }
 
     await assertCleanTargetForWrite(worldPath);
-    applyRepairPlan(worldRoot, plan);
-    await writeFile(worldPath, `${JSON.stringify(worldRoot, null, 2)}\n`);
+    await writeFile(worldPath, applyRepairPlanToWorldText(worldText, worldRoot, plan));
     console.log(`Wrote ${worldPath}`);
 }
 

@@ -1,6 +1,6 @@
 # Terrain Authoring Audit
 
-Generated: 2026-06-10T12:24:50.667Z
+Generated: 2026-06-10T12:32:38.103Z
 World: assets/maps/tiled/world.json
 Tileset: assets/maps/tiled/tilesheet.wang.tsj
 
@@ -186,7 +186,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Category: terrain_paint
 - Detail: Counts painted base terrain tiles across current terrain-like layers.
 - Location: `{"map":"assets/maps/tiled/world.json"}`
-- Evidence: layers=24; painted_tiles=37827
+- Evidence: layers=24; painted_tiles=37821
 
 ### TRANSPARENT_OVERLAY_LAYER: Transparent or foreground overlay layer
 

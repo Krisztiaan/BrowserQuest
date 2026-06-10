@@ -114,6 +114,19 @@
 | music_zones | open | Needs region boundary review against authored biomes. |
 | checkpoints | open | Needs spawn safety and collision review. |
 
+## Region Fix Batches
+
+### Duplicate covered paint batch
+
+- Status: fixed
+- Coordinates:
+  - `render_world/village_biome/ground` at `(43,194)`, `(44,194)`, `(45,194)`, `(4,218)`, `(4,220)`
+  - `render_world/deadlands_biome/dry_ground` at `(80,72)`
+- Before image: `artifacts/map-authoring/visual/`
+- After image: `artifacts/map-authoring/visual/`
+- Decision: Cleared only lower-layer cells where a later sibling render layer painted the same gid at the same coordinate.
+- Verification: `bun run repair:world-authoring:dry` now reports 0 planned high-confidence repairs.
+
 ## Collision And Passability Review
 
 - Status: open

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-10T12:24:50.667Z",
+  "generatedAt": "2026-06-10T12:32:38.103Z",
   "world": "assets/maps/tiled/world.json",
   "tileset": "assets/maps/tiled/tilesheet.wang.tsj",
   "findings": [
@@ -314,7 +314,7 @@
       },
       "evidence": [
         "layers=24",
-        "painted_tiles=37827"
+        "painted_tiles=37821"
       ]
     },
     {
