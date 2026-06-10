@@ -33,9 +33,9 @@ const activeScriptPrefixes = [
 ] as const;
 
 const knownReplaceScripts: Readonly<Record<string, string>> = {
-    'check:foreground-layers:dry': 'Phase 2 layer contract replaces broad foreground migration dry-run as the first review surface.',
-    'check:tileset-modernize:dry': 'Phase 2A terrain authoring audit replaces broad tileset modernization dry-run as the first review surface.',
-    'check:world-standardize:dry': 'Phase 2A terrain authoring audit replaces broad standardize dry-run as the first review surface.',
+    'legacy:check:foreground-layers:dry': 'Phase 2 layer contract replaces broad foreground migration dry-run as the first review surface.',
+    'legacy:check:tileset-modernize:dry': 'Phase 2A terrain authoring audit replaces broad tileset modernization dry-run as the first review surface.',
+    'legacy:check:world-standardize:dry': 'Phase 2A terrain authoring audit replaces broad standardize dry-run as the first review surface.',
     'legacy:fix:foreground-layers': 'Phase 2 layer contract and Phase 2A authoring repair replace broad foreground migration writes.',
     'legacy:fix:tileset-modernize': 'Phase 2A terrain grammar replaces broad tileset metadata modernization writes.',
     'legacy:fix:tileset-wang:scaffold': 'Phase 2A terrain grammar replaces scaffold-as-authority flow.',
@@ -92,7 +92,7 @@ function classifyContentTool(file: string): SurfaceEntry {
             path: file,
             kind: 'content_tool',
             name: basename,
-            status: 'replace',
+            status: file.includes('/legacy/') ? 'legacy' : 'replace',
             reason: 'Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.',
             replacement,
         };

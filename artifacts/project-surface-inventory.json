@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-10T09:51:25.028Z",
+  "generatedAt": "2026-06-10T10:01:12.812Z",
   "entries": [
     {
       "path": "package.json",
@@ -67,14 +67,6 @@
     {
       "path": "package.json",
       "kind": "package_script",
-      "name": "check:foreground-layers:dry",
-      "status": "replace",
-      "reason": "Phase 2 layer contract replaces broad foreground migration dry-run as the first review surface.",
-      "replacement": "Phase 2 layer contract replaces broad foreground migration dry-run as the first review surface."
-    },
-    {
-      "path": "package.json",
-      "kind": "package_script",
       "name": "check:maps",
       "status": "active",
       "reason": "Script is in the active check lane: bun tools/content/map-pack.ts check"
@@ -85,14 +77,6 @@
       "name": "check:metrics:healthy-prereqs",
       "status": "active",
       "reason": "Script is in the active check lane: bun tools/metrics/check-healthy-prereqs.ts"
-    },
-    {
-      "path": "package.json",
-      "kind": "package_script",
-      "name": "check:tileset-modernize:dry",
-      "status": "replace",
-      "reason": "Phase 2A terrain authoring audit replaces broad tileset modernization dry-run as the first review surface.",
-      "replacement": "Phase 2A terrain authoring audit replaces broad tileset modernization dry-run as the first review surface."
     },
     {
       "path": "package.json",
@@ -135,14 +119,6 @@
       "name": "check:world-render-clusters:json",
       "status": "active",
       "reason": "Script is in the active check lane: bun tools/content/world-render-cluster-audit.ts --json"
-    },
-    {
-      "path": "package.json",
-      "kind": "package_script",
-      "name": "check:world-standardize:dry",
-      "status": "replace",
-      "reason": "Phase 2A terrain authoring audit replaces broad standardize dry-run as the first review surface.",
-      "replacement": "Phase 2A terrain authoring audit replaces broad standardize dry-run as the first review surface."
     },
     {
       "path": "package.json",
@@ -227,6 +203,30 @@
       "name": "format:check",
       "status": "active",
       "reason": "Script is in the active format lane: prettier --check \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\""
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "legacy:check:foreground-layers:dry",
+      "status": "replace",
+      "reason": "Phase 2 layer contract replaces broad foreground migration dry-run as the first review surface.",
+      "replacement": "Phase 2 layer contract replaces broad foreground migration dry-run as the first review surface."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "legacy:check:tileset-modernize:dry",
+      "status": "replace",
+      "reason": "Phase 2A terrain authoring audit replaces broad tileset modernization dry-run as the first review surface.",
+      "replacement": "Phase 2A terrain authoring audit replaces broad tileset modernization dry-run as the first review surface."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "legacy:check:world-standardize:dry",
+      "status": "replace",
+      "reason": "Phase 2A terrain authoring audit replaces broad standardize dry-run as the first review surface.",
+      "replacement": "Phase 2A terrain authoring audit replaces broad standardize dry-run as the first review surface."
     },
     {
       "path": "package.json",
@@ -451,6 +451,54 @@
       "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
     },
     {
+      "path": "tools/content/legacy/maps-migrate-v-to-foreground.ts",
+      "kind": "content_tool",
+      "name": "maps-migrate-v-to-foreground.ts",
+      "status": "legacy",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "shared/maps/layer-contract.ts plus tools/content/world-authoring-repair.ts"
+    },
+    {
+      "path": "tools/content/legacy/tileset-modernize-metadata.ts",
+      "kind": "content_tool",
+      "name": "tileset-modernize-metadata.ts",
+      "status": "legacy",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "assets/maps/tiled/terrain-authoring.json plus tools/content/terrain-grammar-validator.ts"
+    },
+    {
+      "path": "tools/content/legacy/tileset-wang-scaffold.ts",
+      "kind": "content_tool",
+      "name": "tileset-wang-scaffold.ts",
+      "status": "legacy",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "assets/maps/tiled/terrain-authoring.json plus tools/content/terrain-grammar-validator.ts"
+    },
+    {
+      "path": "tools/content/legacy/world-curate-portals.ts",
+      "kind": "content_tool",
+      "name": "world-curate-portals.ts",
+      "status": "legacy",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "tools/content/world-authoring-repair.ts"
+    },
+    {
+      "path": "tools/content/legacy/world-standardize-idiomatic.ts",
+      "kind": "content_tool",
+      "name": "world-standardize-idiomatic.ts",
+      "status": "legacy",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "tools/content/world-authoring-repair.ts"
+    },
+    {
+      "path": "tools/content/legacy/world-standardize-pipeline.ts",
+      "kind": "content_tool",
+      "name": "world-standardize-pipeline.ts",
+      "status": "legacy",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "tools/content/world-authoring-repair.ts"
+    },
+    {
       "path": "tools/content/map-pack-modernize-legacy.ts",
       "kind": "content_tool",
       "name": "map-pack-modernize-legacy.ts",
@@ -463,14 +511,6 @@
       "name": "map-pack.ts",
       "status": "active",
       "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
-    },
-    {
-      "path": "tools/content/maps-migrate-v-to-foreground.ts",
-      "kind": "content_tool",
-      "name": "maps-migrate-v-to-foreground.ts",
-      "status": "replace",
-      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
-      "replacement": "shared/maps/layer-contract.ts plus tools/content/world-authoring-repair.ts"
     },
     {
       "path": "tools/content/prefabs.ts",
@@ -487,35 +527,11 @@
       "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
     },
     {
-      "path": "tools/content/tileset-modernize-metadata.ts",
-      "kind": "content_tool",
-      "name": "tileset-modernize-metadata.ts",
-      "status": "replace",
-      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
-      "replacement": "assets/maps/tiled/terrain-authoring.json plus tools/content/terrain-grammar-validator.ts"
-    },
-    {
       "path": "tools/content/tileset-wang-audit.ts",
       "kind": "content_tool",
       "name": "tileset-wang-audit.ts",
       "status": "active",
       "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
-    },
-    {
-      "path": "tools/content/tileset-wang-scaffold.ts",
-      "kind": "content_tool",
-      "name": "tileset-wang-scaffold.ts",
-      "status": "replace",
-      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
-      "replacement": "assets/maps/tiled/terrain-authoring.json plus tools/content/terrain-grammar-validator.ts"
-    },
-    {
-      "path": "tools/content/world-curate-portals.ts",
-      "kind": "content_tool",
-      "name": "world-curate-portals.ts",
-      "status": "replace",
-      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
-      "replacement": "tools/content/world-authoring-repair.ts"
     },
     {
       "path": "tools/content/world-map-validator.ts",
@@ -560,22 +576,6 @@
       "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
     },
     {
-      "path": "tools/content/world-standardize-idiomatic.ts",
-      "kind": "content_tool",
-      "name": "world-standardize-idiomatic.ts",
-      "status": "replace",
-      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
-      "replacement": "tools/content/world-authoring-repair.ts"
-    },
-    {
-      "path": "tools/content/world-standardize-pipeline.ts",
-      "kind": "content_tool",
-      "name": "world-standardize-pipeline.ts",
-      "status": "replace",
-      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
-      "replacement": "tools/content/world-authoring-repair.ts"
-    },
-    {
       "path": "tools/content/world-tile-paint-audit.ts",
       "kind": "content_tool",
       "name": "world-tile-paint-audit.ts",
@@ -590,7 +590,14 @@
       "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
     },
     {
-      "path": "docs/audit-legacy-parity-combat-ai-2026-02-13.md",
+      "path": "docs/README.md",
+      "kind": "doc",
+      "name": "README.md",
+      "status": "active",
+      "reason": "Current documentation candidate; verify through docs index in Ticket 0A.3."
+    },
+    {
+      "path": "docs/archive/2026-02/audit-legacy-parity-combat-ai-2026-02-13.md",
       "kind": "doc",
       "name": "audit-legacy-parity-combat-ai-2026-02-13.md",
       "status": "historical",
@@ -598,7 +605,7 @@
       "preserveReason": "Contains dated evidence and decisions useful for regression analysis."
     },
     {
-      "path": "docs/audit-typing-rules-streamlining-2026-02-12-followup.md",
+      "path": "docs/archive/2026-02/audit-typing-rules-streamlining-2026-02-12-followup.md",
       "kind": "doc",
       "name": "audit-typing-rules-streamlining-2026-02-12-followup.md",
       "status": "historical",
@@ -606,12 +613,19 @@
       "preserveReason": "Contains dated evidence and decisions useful for regression analysis."
     },
     {
-      "path": "docs/audit-typing-rules-streamlining-2026-02-12.md",
+      "path": "docs/archive/2026-02/audit-typing-rules-streamlining-2026-02-12.md",
       "kind": "doc",
       "name": "audit-typing-rules-streamlining-2026-02-12.md",
       "status": "historical",
       "reason": "Historical audit evidence; preserve but move behind docs archive/index if no longer active guidance.",
       "preserveReason": "Contains dated evidence and decisions useful for regression analysis."
+    },
+    {
+      "path": "docs/audits/external-audit-2026-06-10.md",
+      "kind": "doc",
+      "name": "external-audit-2026-06-10.md",
+      "status": "active",
+      "reason": "Current documentation candidate; verify through docs index in Ticket 0A.3."
     },
     {
       "path": "docs/css-modernization-progress.md",
@@ -661,14 +675,6 @@
       "name": "PLAN.md",
       "status": "active",
       "reason": "Current implementation plan requested by the user."
-    },
-    {
-      "path": "EXTERNAL-AUDIT.md",
-      "kind": "external_audit",
-      "name": "EXTERNAL-AUDIT.md",
-      "status": "archive",
-      "reason": "External audit evidence should be imported into docs/audits/ or referenced from PLAN.md, not left as an untracked root file.",
-      "preserveReason": "Contains external review findings that may drive implementation tickets."
     },
     {
       "path": "artifacts/",

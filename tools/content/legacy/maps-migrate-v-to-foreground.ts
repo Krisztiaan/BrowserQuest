@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { parseCliArgs } from '../shared/cli-args';
+import { parseCliArgs } from '../../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -182,7 +182,7 @@ async function loadTilesetCacheEntry(
 
 function printUsage(): never {
     console.log(
-        'Usage: bun tools/content/maps-migrate-v-to-foreground.ts [--dir <path>] [--files <csv>] [--foreground-property <name>] [--foreground-suffix <suffix>] [--source-layer-property <name>] [--strip-v] [--write]'
+        'Usage: bun tools/content/legacy/maps-migrate-v-to-foreground.ts [--dir <path>] [--files <csv>] [--foreground-property <name>] [--foreground-suffix <suffix>] [--source-layer-property <name>] [--strip-v] [--write]'
     );
     process.exit(0);
 }

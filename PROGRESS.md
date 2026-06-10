@@ -190,3 +190,27 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk git diff --check`: passed.
 - Next action:
   - Proceed to Ticket 0A.4 content tool quarantine.
+
+### 2026-06-10 12:07 - Ticket 0A.4 Quarantine Superseded Content Tools
+
+- Status: done
+- Scope:
+  - Move superseded content tools under `tools/content/legacy/`.
+  - Rename remaining dry-run package scripts into the `legacy:` lane.
+  - Update docs, Tiled project commands, and project-surface inventory output so old write tools cannot be mistaken for current map authoring workflow.
+- Key actions:
+  - Added `tests/unit/content-tool-surface.test.ts` test-first and confirmed it failed on the missing legacy README and old package script paths.
+  - Moved six superseded tools into `tools/content/legacy/`.
+  - Added `tools/content/legacy/README.md` with replacement guidance for every moved tool.
+  - Updated `package.json` legacy scripts and renamed dry-run checks to `legacy:check:*`.
+  - Disabled legacy Tiled write commands and updated scaffold documentation to point at Phase 2A replacement workflow.
+  - Updated `tools/maintenance/project-surface-inventory.ts` and regenerated `artifacts/project-surface-inventory.json`.
+- Evidence:
+  - `rtk bun test tests/unit/content-tool-surface.test.ts --timeout 20000`: first failed as expected, then passed 3 pass / 0 fail.
+  - `rtk bun run audit:project-surface`: passed, 95 entries.
+  - `rtk rg -n "tools/content/(world-curate-portals|tileset-wang-scaffold|tileset-modernize-metadata|maps-migrate-v-to-foreground|world-standardize-pipeline|world-standardize-idiomatic)\\.ts" package.json docs README.md PLAN.md assets/maps/tiled`: remaining old-path references are only historical source paths in `PLAN.md`; active package/docs/Tiled references use `tools/content/legacy/` or replacement guidance.
+  - `rtk bun run typecheck:tools`: first caught stale moved relative imports, then passed after fixing them.
+  - `rtk bun run lint`: first caught the same unresolved moved imports as unsafe typed values, then passed.
+  - `rtk git diff --check`: passed.
+- Next action:
+  - Proceed to Ticket 0A.5 clean base state gate.

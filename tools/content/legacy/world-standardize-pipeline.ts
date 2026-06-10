@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { parseCliArgs } from '../shared/cli-args';
+import { parseCliArgs } from '../../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -81,7 +81,7 @@ function timestampSlug(now: Date): string {
 
 function printUsage(): never {
     console.log(
-        'Usage: bun tools/content/world-standardize-pipeline.ts [--map <path>] [--write] [--no-backup] [--skip-void-cull] [--skip-collision-migration] [--skip-idiomatic] [--skip-validate] [--void-tile-id <int>] [--void-also-tile-ids <csv>] [--void-occlusion-depth <int>] [--disable-transparent-soft] [--void-soft-border-min-ratio <float>] [--void-alpha-threshold <int>] [--drop-plateau-mask] [--drop-blocking-mask] [--rename-plateau-mask] [--rename-blocking-mask] [--tilesheet-source <path>] [--mobs-source <path>] [--validate-profiles <csv>]'
+        'Usage: bun tools/content/legacy/world-standardize-pipeline.ts [--map <path>] [--write] [--no-backup] [--skip-void-cull] [--skip-collision-migration] [--skip-idiomatic] [--skip-validate] [--void-tile-id <int>] [--void-also-tile-ids <csv>] [--void-occlusion-depth <int>] [--disable-transparent-soft] [--void-soft-border-min-ratio <float>] [--void-alpha-threshold <int>] [--drop-plateau-mask] [--drop-blocking-mask] [--rename-plateau-mask] [--rename-blocking-mask] [--tilesheet-source <path>] [--mobs-source <path>] [--validate-profiles <csv>]'
     );
     process.exit(0);
 }
@@ -202,7 +202,7 @@ async function main(): Promise<void> {
 
     if (!skipIdiomatic) {
         const command = [
-            'tools/content/world-standardize-idiomatic.ts',
+            'tools/content/legacy/world-standardize-idiomatic.ts',
             '--map',
             mapPathInput,
             '--tilesheet-source',

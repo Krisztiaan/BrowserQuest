@@ -1,5 +1,7 @@
 # Terrain Scaffold Guide (Tiled)
 
+This guide is historical scaffold documentation. It is useful for understanding how the current incomplete Wang metadata was produced, but current terrain work should use `assets/maps/tiled/terrain-authoring.json`, `tools/content/terrain-grammar-validator.ts`, and the Phase 2A visual audit workflow.
+
 This repo now treats the authored Tiled assets as the source of truth:
 
 - `assets/maps/tiled/world.json`
@@ -41,9 +43,9 @@ These are diagnostics and authoring aids around the current legacy tilesheet, no
 
 ## Refresh Script
 
-Rebuild scaffolds + candidates after significant tileset/map edits:
+The historical scaffold writer is preserved under `tools/content/legacy/` and should not be used as the current terrain authoring workflow:
 
-`bun tools/content/tileset-wang-scaffold.ts --write`
+`bun tools/content/legacy/tileset-wang-scaffold.ts --write`
 
 ## Audit Script
 
@@ -60,12 +62,12 @@ This reports:
 
 ## Tiled Project Commands
 
-`assets/maps/tiled/browserquest.tiled-project` exposes project commands for:
+`assets/maps/tiled/browserquest.tiled-project` exposes active project commands for:
 
-- rebuilding terrain scaffolds
 - auditing Wang coverage
-- standardizing the authored world
 - validating `world.json`
 - checking the derived runtime map pack
+
+Historical scaffold rebuild and world standardization commands are disabled in the Tiled project until Phase 2A replaces them with dry-run-first repair tooling.
 
 That keeps the authoring loop inside Tiled instead of relying on shell history.

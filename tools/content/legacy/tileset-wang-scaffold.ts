@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { parseCliArgs } from '../shared/cli-args';
+import { parseCliArgs } from '../../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -114,7 +114,7 @@ function parsePairSpecs(): PairSpec[] {
 
 function printUsage(): never {
     console.log(
-        'Usage: bun tools/content/tileset-wang-scaffold.ts [--tileset <path>] [--source-set <name>] [--world <path>] [--out-candidates <path>] [--write]'
+        'Usage: bun tools/content/legacy/tileset-wang-scaffold.ts [--tileset <path>] [--source-set <name>] [--world <path>] [--out-candidates <path>] [--write]'
     );
     process.exit(0);
 }

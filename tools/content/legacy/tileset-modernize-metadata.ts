@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { parseCliArgs } from '../shared/cli-args';
+import { parseCliArgs } from '../../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -79,7 +79,7 @@ function collectTilesetTargets(root: UnknownRecord): TilesetTarget[] {
 
 function printUsage(): never {
     console.log(
-        'Usage: bun tools/content/tileset-modernize-metadata.ts [--files <csv>] [--default-delay <ms>] [--write]'
+        'Usage: bun tools/content/legacy/tileset-modernize-metadata.ts [--files <csv>] [--default-delay <ms>] [--write]'
     );
     process.exit(0);
 }

@@ -321,13 +321,13 @@ rtk git commit -m "fix: restore TypeScript baseline"
   - `tests/unit/world/move-to-planning.test.ts`
   - `tools/content/house-regenerate.ts`
   - `tools/content/map-pack-modernize-legacy.ts`
-  - `tools/content/tileset-wang-scaffold.ts`
+  - `tools/content/legacy/tileset-wang-scaffold.ts`
   - `tools/content/world-map-validator.ts`
   - `tools/content/world-null-outside-void.ts`
   - `tools/content/world-render-cluster-audit.ts`
   - `tools/content/world-resplit.ts`
-  - `tools/content/world-standardize-idiomatic.ts`
-  - `tools/content/world-standardize-pipeline.ts`
+  - `tools/content/legacy/world-standardize-idiomatic.ts`
+  - `tools/content/legacy/world-standardize-pipeline.ts`
   - `tools/content/world-tile-paint-audit.ts`
 - Reference: `eslint.config.mjs`
 
@@ -1078,11 +1078,11 @@ In `package.json`, rename these scripts:
 to:
 
 ```json
-"legacy:fix:tileset-wang:scaffold": "bun tools/content/tileset-wang-scaffold.ts --write",
-"legacy:fix:tileset-modernize": "bun tools/content/tileset-modernize-metadata.ts --write",
-"legacy:fix:foreground-layers": "bun tools/content/maps-migrate-v-to-foreground.ts --strip-v --write",
-"legacy:fix:world-standardize": "bun tools/content/world-standardize-pipeline.ts --write --drop-plateau-mask --drop-blocking-mask",
-"legacy:fix:world-portals": "bun tools/content/world-curate-portals.ts --write"
+"legacy:fix:tileset-wang:scaffold": "bun tools/content/legacy/tileset-wang-scaffold.ts --write",
+"legacy:fix:tileset-modernize": "bun tools/content/legacy/tileset-modernize-metadata.ts --write",
+"legacy:fix:foreground-layers": "bun tools/content/legacy/maps-migrate-v-to-foreground.ts --strip-v --write",
+"legacy:fix:world-standardize": "bun tools/content/legacy/world-standardize-pipeline.ts --write --drop-plateau-mask --drop-blocking-mask",
+"legacy:fix:world-portals": "bun tools/content/legacy/world-curate-portals.ts --write"
 ```
 
 Keep dry-run audit scripts active only when they are read-only:
@@ -1321,6 +1321,10 @@ rtk git commit -m "docs: archive historical audits and add docs index"
 - Move after reference audit: `tools/content/world-standardize-idiomatic.ts` -> `tools/content/legacy/world-standardize-idiomatic.ts`
 - Modify: `package.json`
 - Modify: `docs/project-surface-inventory.md`
+- Modify: `assets/maps/tiled/browserquest.tiled-project`
+- Modify: `assets/maps/tiled/terrain-scaffold-guide.md`
+- Modify: `tools/maintenance/project-surface-inventory.ts`
+- Regenerate: `artifacts/project-surface-inventory.json`
 - Test: `tests/unit/content-tool-surface.test.ts`
 
 **Acceptance criteria:**
@@ -1336,7 +1340,7 @@ rtk git commit -m "docs: archive historical audits and add docs index"
 
 **Dependencies/blockers:** Tickets 0A.1 and 0A.2.
 
-- [ ] **Step 1: Add content tool surface test**
+- [x] **Step 1: Add content tool surface test**
 
 Create `tests/unit/content-tool-surface.test.ts`:
 
@@ -1376,7 +1380,7 @@ test('legacy scripts point at legacy content tool paths', () => {
 });
 ```
 
-- [ ] **Step 2: Create legacy README**
+- [x] **Step 2: Create legacy README**
 
 Create `tools/content/legacy/README.md`:
 
@@ -1407,7 +1411,7 @@ These tools are preserved as historical migration evidence. They are not current
   - Reason: Broad normalization should be decomposed into explicit, reviewed repair rules.
 ```
 
-- [ ] **Step 3: Move superseded tools**
+- [x] **Step 3: Move superseded tools**
 
 Run:
 
@@ -1421,7 +1425,7 @@ rtk git mv tools/content/world-standardize-pipeline.ts tools/content/legacy/worl
 rtk git mv tools/content/world-standardize-idiomatic.ts tools/content/legacy/world-standardize-idiomatic.ts
 ```
 
-- [ ] **Step 4: Update legacy package scripts**
+- [x] **Step 4: Update legacy package scripts**
 
 In `package.json`, update legacy scripts to point to moved paths:
 
@@ -1446,9 +1450,9 @@ If `check:tileset-modernize:dry` or `check:foreground-layers:dry` remain, rename
 "legacy:check:foreground-layers:dry": "bun tools/content/legacy/maps-migrate-v-to-foreground.ts"
 ```
 
-- [ ] **Step 5: Update docs references**
+- [x] **Step 5: Update docs references**
 
-Replace active references to the moved tools in `docs/project-surface-inventory.md`, `docs/README.md`, `README.md`, and `assets/maps/tiled/terrain-scaffold-guide.md` so they either point at `tools/content/legacy/` as historical evidence or at the Phase 2A replacement.
+Replace active references to the moved tools in `docs/project-surface-inventory.md`, `docs/README.md`, `README.md`, `assets/maps/tiled/terrain-scaffold-guide.md`, and `assets/maps/tiled/browserquest.tiled-project` so they either point at `tools/content/legacy/` as historical evidence or at the Phase 2A replacement.
 
 Use this wording in `assets/maps/tiled/terrain-scaffold-guide.md`:
 
@@ -1456,7 +1460,7 @@ Use this wording in `assets/maps/tiled/terrain-scaffold-guide.md`:
 This guide is historical scaffold documentation. It is useful for understanding how the current incomplete Wang metadata was produced, but current terrain work should use `assets/maps/tiled/terrain-authoring.json`, `tools/content/terrain-grammar-validator.ts`, and the Phase 2A visual audit workflow.
 ```
 
-- [ ] **Step 6: Verify**
+- [x] **Step 6: Verify**
 
 Run:
 
@@ -1474,12 +1478,12 @@ Expected:
 
 and every reference is either under `tools/content/legacy/` or describes the historical location.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
 ```bash
-rtk git add tools/content/legacy package.json docs README.md assets/maps/tiled/terrain-scaffold-guide.md tests/unit/content-tool-surface.test.ts artifacts/project-surface-inventory.json
+rtk git add tools/content/legacy package.json docs README.md assets/maps/tiled/browserquest.tiled-project assets/maps/tiled/terrain-scaffold-guide.md tools/maintenance/project-surface-inventory.ts tests/unit/content-tool-surface.test.ts artifacts/project-surface-inventory.json
 rtk git commit -m "chore: quarantine superseded content tools"
 ```
 

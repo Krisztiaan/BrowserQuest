@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { parseCliArgs } from '../shared/cli-args';
+import { parseCliArgs } from '../../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -55,7 +55,7 @@ function getObjectPropertyValue(objectRecord: UnknownRecord, propertyName: strin
 
 function printUsage(): never {
     console.log(
-        'Usage: bun tools/content/world-standardize-idiomatic.ts [--map <path>] [--tilesheet-source <path>] [--mobs-source <path>] [--drop-plateau-mask] [--drop-blocking-mask] [--rename-plateau-mask] [--rename-blocking-mask] [--no-externalize-tilesets] [--no-set-object-types] [--no-set-layer-classes] [--no-set-object-names] [--no-coerce-int-props] [--no-remove-empty-object-props] [--write]'
+        'Usage: bun tools/content/legacy/world-standardize-idiomatic.ts [--map <path>] [--tilesheet-source <path>] [--mobs-source <path>] [--drop-plateau-mask] [--drop-blocking-mask] [--rename-plateau-mask] [--rename-blocking-mask] [--no-externalize-tilesets] [--no-set-object-types] [--no-set-layer-classes] [--no-set-object-names] [--no-coerce-int-props] [--no-remove-empty-object-props] [--write]'
     );
     process.exit(0);
 }

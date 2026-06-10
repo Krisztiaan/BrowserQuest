@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { parseCliArgs } from '../shared/cli-args';
+import { parseCliArgs } from '../../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -118,7 +118,7 @@ function nearestPortalTarget(
 }
 
 function printUsage(): never {
-    console.log('Usage: bun tools/content/world-curate-portals.ts [--map <path>] [--write]');
+    console.log('Usage: bun tools/content/legacy/world-curate-portals.ts [--map <path>] [--write]');
     process.exit(0);
 }
 

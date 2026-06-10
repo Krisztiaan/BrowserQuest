@@ -1,10 +1,10 @@
 {
   "commands": [
     {
-      "arguments": "tools/content/tileset-wang-scaffold.ts --write",
+      "arguments": "tools/content/legacy/tileset-wang-scaffold.ts --write",
       "command": "bun",
-      "enabled": true,
-      "name": "Rebuild Terrain Scaffolds",
+      "enabled": false,
+      "name": "Legacy: Rebuild Terrain Scaffolds",
       "saveBeforeExecute": true,
       "showOutput": true,
       "workingDirectory": "../../.."
@@ -28,10 +28,10 @@
       "workingDirectory": "../../.."
     },
     {
-      "arguments": "tools/content/world-standardize-pipeline.ts --write --drop-plateau-mask --drop-blocking-mask",
+      "arguments": "tools/content/legacy/world-standardize-pipeline.ts --write --drop-plateau-mask --drop-blocking-mask",
       "command": "bun",
-      "enabled": true,
-      "name": "Standardize Authored World",
+      "enabled": false,
+      "name": "Legacy: Standardize Authored World",
       "saveBeforeExecute": true,
       "showOutput": true,
       "workingDirectory": "../../.."
