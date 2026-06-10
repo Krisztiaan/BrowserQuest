@@ -4635,8 +4635,11 @@ rtk git commit -m "feat: add persistent crop tile loop"
 - Create: `assets/content/resources.json`
 - Create: `server/world/resources/resource-state.ts`
 - Create: `server/world/resources/resource-persistence.ts`
+- Modify: `server/ecs/commands.ts`
+- Modify: `server/world/ecs-command-pipeline.ts`
 - Modify: `server/world/ecs-command-pipeline/core-module-registry.ts`
 - Modify: `shared/protocol/intents.ts`
+- Modify: `shared/protocol/binary-action-codec.ts`
 - Test: `tests/unit/mmo/server-resource-harvesting.test.ts`
 
 **Acceptance criteria:**
@@ -4651,7 +4654,7 @@ rtk git commit -m "feat: add persistent crop tile loop"
 
 **Dependencies/blockers:** Ticket 5.1.
 
-- [ ] **Step 1: Add resource definitions**
+- [x] **Step 1: Add resource definitions**
 
 Create `assets/content/resources.json`:
 
@@ -4670,7 +4673,7 @@ Create `assets/content/resources.json`:
 }
 ```
 
-- [ ] **Step 2: Add resource tests**
+- [x] **Step 2: Add resource tests**
 
 Create tests asserting:
 
@@ -4685,7 +4688,7 @@ and after day advancement:
 expect(fixture.getResourceNode('oak_1')?.depleted).toBe(false);
 ```
 
-- [ ] **Step 3: Implement persistence table**
+- [x] **Step 3: Implement persistence table**
 
 Use:
 
@@ -4702,7 +4705,7 @@ CREATE TABLE IF NOT EXISTS resource_nodes (
 );
 ```
 
-- [ ] **Step 4: Wire harvest intent**
+- [x] **Step 4: Wire harvest intent**
 
 Add:
 
@@ -4716,7 +4719,7 @@ Payload:
 { nodeId: string, tool: 'axe' | 'pickaxe' | 'scythe' }
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -4731,7 +4734,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

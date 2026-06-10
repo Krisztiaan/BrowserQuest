@@ -90,6 +90,7 @@ import {
     decodeMoveInputIntentPayload,
     decodeMoveToIntentPayload,
     decodeMoveStepIntentPayload,
+    decodeResourceHarvestIntentPayload,
     decodeTileEditIntentPayload,
     decodeToolUseIntentPayload,
     encodeMapTransitionOutcomePayload,
@@ -130,6 +131,7 @@ import {
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
+    INTENT_RESOURCE_HARVEST,
     INTENT_TILE_EDIT,
     INTENT_TOOL_USE,
     OUTCOME_DOOR_TELEPORT,
@@ -271,6 +273,14 @@ type WorldCommandHost = Readonly<{
     waterCropTile?(args: { mapId: string; x: number; y: number; playerIdentity: string }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
     plantCropTile?(args: { mapId: string; x: number; y: number; cropId: string; seedItemId: string; playerIdentity: string }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
     harvestCropTile?(args: { mapId: string; x: number; y: number; playerIdentity: string }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    harvestResourceNode?(args: {
+        nodeId: string;
+        tool: 'axe' | 'pickaxe' | 'scythe';
+        playerIdentity: string;
+        playerMapId: string;
+        playerX: number;
+        playerY: number;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
     recordPlayerMobKill(playerName: string, mobKind: EntityKind): void;
     recordPlayerDamageTaken(playerName: string, damage: number): void;
     recordPlayerRevive(playerName: string): void;
@@ -2251,6 +2261,16 @@ function createApplyInboundCommandsSystem(
                                   y: cropHarvest.y,
                               } satisfies Extract<Command, { type: 'CROP_HARVEST' }>)
                             : null;
+                    } else if (cmd.intentTypeId === INTENT_RESOURCE_HARVEST) {
+                        const resourceHarvest = decodeResourceHarvestIntentPayload(cmd.payloadBytes);
+                        bridged = resourceHarvest
+                            ? ({
+                                  type: 'RESOURCE_HARVEST',
+                                  source: cmd.source,
+                                  nodeId: resourceHarvest.nodeId,
+                                  tool: resourceHarvest.tool,
+                              } satisfies Extract<Command, { type: 'RESOURCE_HARVEST' }>)
+                            : null;
                     }
 
                     if (!bridged) {
@@ -2323,7 +2343,8 @@ function createApplyInboundCommandsSystem(
                 case 'TOOL_USE':
                 case 'CROP_PLANT':
                 case 'CROP_HARVEST':
-                    // Farming commands are only intended to exist as internal bridged payloads inside INTENT handlers.
+                case 'RESOURCE_HARVEST':
+                    // Farming/resource commands are only intended to exist as internal bridged payloads inside INTENT handlers.
                     // If they ever land in the inbound command queue, ignore them (do not crash the server).
                     break;
                 case 'TILE_EDIT':

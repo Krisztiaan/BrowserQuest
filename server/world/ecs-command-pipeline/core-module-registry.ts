@@ -14,6 +14,7 @@ import {
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
+    INTENT_RESOURCE_HARVEST,
     INTENT_TILE_EDIT,
     INTENT_TOOL_USE,
     OUTCOME_DOOR_TELEPORT,
@@ -30,6 +31,7 @@ export {
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
+    INTENT_RESOURCE_HARVEST,
     INTENT_TILE_EDIT,
     INTENT_TOOL_USE,
     OUTCOME_DOOR_TELEPORT,
@@ -127,6 +129,14 @@ export type IntentWorldHost = Readonly<{
         x: number;
         y: number;
         playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    harvestResourceNode?(args: {
+        nodeId: string;
+        tool: 'axe' | 'pickaxe' | 'scythe';
+        playerIdentity: string;
+        playerMapId: string;
+        playerX: number;
+        playerY: number;
     }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
 }>;
 
@@ -658,6 +668,28 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                         x: cmd.x,
                         y: cmd.y,
                         playerIdentity: authorized.playerIdentity,
+                    });
+                    return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
+                });
+
+                registry.registerIntentHandler(INTENT_RESOURCE_HARVEST, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'RESOURCE_HARVEST');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    if (!ctx.world.harvestResourceNode) {
+                        return { ok: false, reason: 'resources_unavailable' };
+                    }
+                    const playerPos = ctx.Position.store.get(ctx.player.id) ?? gridPos(ctx.player.x, ctx.player.y);
+                    const actorMapId = ctx.MapId.store.get(ctx.player.id) ?? ctx.world.getDefaultMapId?.() ?? 'world_01';
+                    const result = ctx.world.harvestResourceNode({
+                        nodeId: cmd.nodeId,
+                        tool: cmd.tool,
+                        playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
+                        playerMapId: actorMapId,
+                        playerX: playerPos.x,
+                        playerY: playerPos.y,
                     });
                     return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
                 });

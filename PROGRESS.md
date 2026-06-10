@@ -961,3 +961,29 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `feat: add persistent crop tile loop`.
   - Next action: Continue Phase 5 with Ticket 5.2 resource node harvesting.
+
+### 2026-06-10 14:20 UTC - Ticket 5.2 Add Resource Node Harvesting
+
+- Status: done
+- Scope:
+  - Add persistent resource node state for trees, rocks, ore, and forage-style nodes with depletion and respawn days.
+  - Add resource harvest definitions and shared harvest intent id/codec.
+- TODO:
+  - done: Add resource definitions, state type, and persistence/service.
+  - done: Wire resource harvest intent through protocol and the ECS command pipeline.
+  - done: Add unit coverage for harvest drops, depletion persistence, respawn, tool validation, range validation, and handler registration.
+  - done: Run Ticket 5.2 full verification and commit.
+- Key actions:
+  - 2026-06-10 14:20 UTC: Ticket started.
+  - Resource nodes are a new persistence domain under `server/world/resources`, parallel to crop persistence but keyed by stable node id.
+  - Added persistent `resource_nodes` SQLite storage with schema metadata, stable node upsert, harvest depletion, and day-based respawn.
+  - Added `resource.harvest` intent constants/codecs plus binary intent id and bridged server command.
+  - Registered the resource harvest handler in `core.farming`, delegating tool/range/depletion checks to the resource service.
+- Evidence:
+  - `bun test tests/unit/mmo/server-resource-harvesting.test.ts --timeout 20000` passed: 4 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `bun run verify:modern` passed: 680 pass, 1 skip, 0 fail; client and server builds completed.
+  - `git diff --check` passed.
+  - Commit: `feat: add persistent resource harvesting`.
+  - Next action: Continue Phase 5 with Ticket 5.3 NPC dialogue and shops.

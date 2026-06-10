@@ -14,6 +14,7 @@ export const INTENT_CHEST_TRANSFER = 'chest.transfer' as const;
 export const INTENT_TOOL_USE = 'tool.use' as const;
 export const INTENT_CROP_PLANT = 'crop.plant' as const;
 export const INTENT_CROP_HARVEST = 'crop.harvest' as const;
+export const INTENT_RESOURCE_HARVEST = 'resource.harvest' as const;
 
 export const OUTCOME_DOOR_TELEPORT = 'teleport.door' as const;
 export const OUTCOME_MAP_TRANSITION_BEGIN = 'map.transition.begin' as const;
@@ -46,7 +47,8 @@ export type CoreIntentTypeId =
     | typeof INTENT_CHEST_TRANSFER
     | typeof INTENT_TOOL_USE
     | typeof INTENT_CROP_PLANT
-    | typeof INTENT_CROP_HARVEST;
+    | typeof INTENT_CROP_HARVEST
+    | typeof INTENT_RESOURCE_HARVEST;
 
 export type IntentPayloadBytes = ReadonlyArray<number> | Uint8Array;
 
@@ -82,6 +84,7 @@ export type ChestTransferIntentPayload = Readonly<{
 export type ToolUseIntentPayload = Readonly<{ tool: 'hoe' | 'watering_can'; x: number; y: number }>;
 export type CropPlantIntentPayload = Readonly<{ cropId: string; seedItemId: string; x: number; y: number }>;
 export type CropHarvestIntentPayload = Readonly<{ x: number; y: number }>;
+export type ResourceHarvestIntentPayload = Readonly<{ nodeId: string; tool: 'axe' | 'pickaxe' | 'scythe' }>;
 
 const TEXT_ENCODER = new TextEncoder();
 const TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
@@ -628,6 +631,24 @@ export function decodeCropHarvestIntentPayload(payload: IntentPayloadBytes): Cro
         return null;
     }
     return { x, y };
+}
+
+export function encodeResourceHarvestIntentPayload(payload: ResourceHarvestIntentPayload): number[] | null {
+    const nodeId = asNonEmptyString(payload.nodeId);
+    if (!nodeId) {
+        return null;
+    }
+    return encodeJsonIntentPayload({ nodeId, tool: payload.tool });
+}
+
+export function decodeResourceHarvestIntentPayload(payload: IntentPayloadBytes): ResourceHarvestIntentPayload | null {
+    const parsed = decodeJsonIntentPayload(payload);
+    const nodeId = asNonEmptyString(parsed?.nodeId);
+    const tool = parsed?.tool;
+    if (!nodeId || (tool !== 'axe' && tool !== 'pickaxe' && tool !== 'scythe')) {
+        return null;
+    }
+    return { nodeId, tool };
 }
 
 export function encodeMapTransitionOutcomePayload(payload: MapTransitionOutcomePayload): string | null {

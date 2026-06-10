@@ -207,6 +207,13 @@ export type CropHarvestCommand = Readonly<{
     y: number;
 }>;
 
+export type ResourceHarvestCommand = Readonly<{
+    type: 'RESOURCE_HARVEST';
+    source: CommandSource;
+    nodeId: string;
+    tool: 'axe' | 'pickaxe' | 'scythe';
+}>;
+
 export type Command =
     | HelloCommand
     | IntentCommand
@@ -233,4 +240,5 @@ export type Command =
     | ChestTransferCommand
     | ToolUseCommand
     | CropPlantCommand
-    | CropHarvestCommand;
+    | CropHarvestCommand
+    | ResourceHarvestCommand;

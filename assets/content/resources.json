@@ -1,0 +1,12 @@
+{
+  "tree_oak_small": {
+    "tool": "axe",
+    "drops": [{ "item": "wood", "quantity": 3 }],
+    "respawnDays": 3
+  },
+  "rock_small": {
+    "tool": "pickaxe",
+    "drops": [{ "item": "stone", "quantity": 2 }],
+    "respawnDays": 2
+  }
+}
