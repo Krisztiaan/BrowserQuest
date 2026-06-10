@@ -124,3 +124,24 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk git commit -m "chore: refresh dependency audit and map-pack baselines"`: committed Ticket 0.5 and the early Ticket 1.2 generated map-pack artifact.
 - Next action:
   - Proceed to Phase 0A project-surface cleanup inventory.
+
+### 2026-06-10 11:48 - Ticket 0A.1 Inventory and Classify Scripts, Tools, Docs, Plans, and Audits
+
+- Status: done
+- Scope:
+  - Add read-only project surface inventory tooling, tests, generated JSON, and a human-readable summary doc.
+  - Classify package scripts, content tools, docs, `PLAN.md`, `EXTERNAL-AUDIT.md`, and generated artifact policy.
+- Key actions:
+  - Added `tools/maintenance/project-surface-inventory.ts`.
+  - Added `tests/unit/project-surface-inventory.test.ts` test-first; verified the initial missing-module failure before implementation.
+  - Added `audit:project-surface` package script.
+  - Added `docs/project-surface-inventory.md`.
+  - Generated `artifacts/project-surface-inventory.json` with 94 entries.
+- Evidence:
+  - `rtk bun test tests/unit/project-surface-inventory.test.ts --timeout 20000`: first failed because the module was missing, then passed 3 pass / 0 fail.
+  - `rtk bun run audit:project-surface`: passed, `Project surface inventory entries: 94`.
+  - `rtk bun run typecheck:tools`: passed.
+  - `rtk bun run lint`: passed.
+  - `rtk git commit -m "chore: inventory project maintenance surface"`: committed Ticket 0A.1.
+- Next action:
+  - Proceed to Ticket 0A.2 script normalization.

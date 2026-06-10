@@ -1,0 +1,681 @@
+{
+  "generatedAt": "2026-06-10T09:48:14.486Z",
+  "entries": [
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "admin:claims",
+      "status": "active",
+      "reason": "Script is in the active admin lane: bun tools/admin/claims.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "audit:project-surface",
+      "status": "active",
+      "reason": "Script is in the active audit lane: bun tools/maintenance/project-surface-inventory.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "bench:ecs",
+      "status": "active",
+      "reason": "Script is in the active bench lane: bun tools/bench/ecs.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "bots:soak",
+      "status": "active",
+      "reason": "Script is in the active bots lane: bun tools/bots/soak.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "build:bundle",
+      "status": "active",
+      "reason": "Script is in the active build lane: bun run build:client && bun run build:server && bun tools/build/bundle.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "build:client",
+      "status": "active",
+      "reason": "Script is in the active build lane: bun tools/build/client.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "build:maps",
+      "status": "active",
+      "reason": "Script is in the active build lane: bun tools/content/map-pack.ts generate"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "build:server",
+      "status": "active",
+      "reason": "Script is in the active build lane: bun tools/build/server.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:content:prefabs",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/prefabs.ts check"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:foreground-layers:dry",
+      "status": "replace",
+      "reason": "Phase 2 layer contract replaces broad foreground migration dry-run as the first review surface.",
+      "replacement": "Phase 2 layer contract replaces broad foreground migration dry-run as the first review surface."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:maps",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/map-pack.ts check"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:metrics:healthy-prereqs",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/metrics/check-healthy-prereqs.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:tileset-modernize:dry",
+      "status": "replace",
+      "reason": "Phase 2A terrain authoring audit replaces broad tileset modernization dry-run as the first review surface.",
+      "replacement": "Phase 2A terrain authoring audit replaces broad tileset modernization dry-run as the first review surface."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:tileset-wang:audit",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/tileset-wang-audit.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:tileset-wang:audit:json",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/tileset-wang-audit.ts --json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:world-map:legacy",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/world-map-validator.ts --profile legacy"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:world-map:target",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/world-map-validator.ts --profile target"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:world-render-clusters",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/world-render-cluster-audit.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:world-render-clusters:json",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/world-render-cluster-audit.ts --json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:world-standardize:dry",
+      "status": "replace",
+      "reason": "Phase 2A terrain authoring audit replaces broad standardize dry-run as the first review surface.",
+      "replacement": "Phase 2A terrain authoring audit replaces broad standardize dry-run as the first review surface."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:world-tile-paints",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/world-tile-paint-audit.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:world-tile-paints:json",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/world-tile-paint-audit.ts --json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:world-typed-objects",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/world-typed-object-audit.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "check:world-typed-objects:json",
+      "status": "active",
+      "reason": "Script is in the active check lane: bun tools/content/world-typed-object-audit.ts --json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "content:prefabs:generate",
+      "status": "legacy",
+      "reason": "Script is outside the active script prefix set: bun tools/content/prefabs.ts generate"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "dev",
+      "status": "active",
+      "reason": "Script is in the active dev lane: bun run dev:bun:full"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "dev:bun:build-client",
+      "status": "active",
+      "reason": "Script is in the active dev lane: bun tools/dev/build-client-for-bun.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "dev:bun:build-playwright-config",
+      "status": "active",
+      "reason": "Script is in the active dev lane: bun tools/dev/build-playwright-server-config.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "dev:bun:full",
+      "status": "active",
+      "reason": "Script is in the active dev lane: bun run dev:bun:build-client && BQ_STATIC_ROOT=.tmp/dev-client bun --watch server/entry.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "dev:server",
+      "status": "active",
+      "reason": "Script is in the active dev lane: bun run start:server"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "fix:foreground-layers",
+      "status": "replace",
+      "reason": "Phase 2 layer contract and Phase 2A authoring repair replace broad foreground migration writes.",
+      "replacement": "Phase 2 layer contract and Phase 2A authoring repair replace broad foreground migration writes."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "fix:tileset-modernize",
+      "status": "replace",
+      "reason": "Phase 2A terrain grammar replaces broad tileset metadata modernization writes.",
+      "replacement": "Phase 2A terrain grammar replaces broad tileset metadata modernization writes."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "fix:tileset-wang:scaffold",
+      "status": "replace",
+      "reason": "Phase 2A terrain grammar replaces scaffold-as-authority flow.",
+      "replacement": "Phase 2A terrain grammar replaces scaffold-as-authority flow."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "fix:world-portals",
+      "status": "replace",
+      "reason": "Phase 2A world-authoring-repair replaces stale portal curation.",
+      "replacement": "Phase 2A world-authoring-repair replaces stale portal curation."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "fix:world-standardize",
+      "status": "replace",
+      "reason": "Phase 2A safe repair replaces broad standardize writes.",
+      "replacement": "Phase 2A safe repair replaces broad standardize writes."
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "format",
+      "status": "active",
+      "reason": "Script is in the active format lane: prettier --write \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\""
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "format:check",
+      "status": "active",
+      "reason": "Script is in the active format lane: prettier --check \"server/{log.ts,utils.ts,format.ts}\" \"client/platform/*.ts\" \"client/preflight.ts\" \"shared/gametypes-browser.ts\""
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "lint",
+      "status": "active",
+      "reason": "Script is in the active lint lane: bun run lint:modern"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "lint:authority",
+      "status": "active",
+      "reason": "Script is in the active lint lane: eslint --max-warnings=0 \"client/runtime/connection.ts\" \"client/game.ts\" \"client/gameclient.ts\" \"client/app.ts\" \"client/map.ts\" \"client/map-source.ts\" \"client/pathfinder.ts\" \"client/game-startup-wait.ts\" \"client/auth.ts\" \"server/runtime.ts\" \"server/player-session.ts\" \"server/player-session-command-translation.ts\" \"server/map.ts\" \"server/auth-session.ts\" \"server/passkey-auth.ts\" \"server/profile-preview.ts\" \"server/world/player-lifecycle.ts\" \"server/world/ecs-command-pipeline.ts\" \"server/ws/runtime.ts\" \"server/ws/runtime-factory.ts\" \"server/ws/connection-id.ts\" \"shared/protocol/**/*.ts\" \"shared/connection-status.ts\" \"shared/maps/processmap.ts\" \"shared/auth/cookie-keys.ts\""
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "lint:client-runtime",
+      "status": "active",
+      "reason": "Script is in the active lint lane: eslint --max-warnings=0 \"client/runtime/connection.ts\" \"client/game.ts\" \"client/gameclient.ts\""
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "lint:modern",
+      "status": "active",
+      "reason": "Script is in the active lint lane: eslint --max-warnings=0 \"client/**/*.{ts,js}\" \"server/**/*.{ts,js}\" \"shared/**/*.{ts,js}\" \"tools/**/*.ts\" \"tests/**/*.ts\""
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "start:server",
+      "status": "legacy",
+      "reason": "Script is outside the active script prefix set: bun server/entry.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test",
+      "status": "active",
+      "reason": "Script is in the active test lane: bun test --timeout 20000"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:browser:modern",
+      "status": "active",
+      "reason": "Script is in the active test lane: playwright test --config=playwright.config.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:browser:protocol",
+      "status": "active",
+      "reason": "Script is in the active test lane: playwright test --config=playwright.config.ts tests/browser/modern-protocol-actions.playwright.ts tests/browser/protocol-invariant.playwright.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:browser:protocol-invariant",
+      "status": "active",
+      "reason": "Script is in the active test lane: playwright test --config=playwright.config.ts tests/browser/protocol-invariant.playwright.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:browser:protocol:ci",
+      "status": "active",
+      "reason": "Script is in the active test lane: PLAYWRIGHT_JUNIT_OUTPUT_NAME=protocol-invariant-junit.xml playwright test --config=playwright.config.ts tests/browser/modern-protocol-actions.playwright.ts tests/browser/protocol-invariant.playwright.ts --reporter=line,junit"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:metrics:healthy",
+      "status": "active",
+      "reason": "Script is in the active test lane: bun run check:metrics:healthy-prereqs && BQ_TEST_METRICS_HEALTH=1 bun test --timeout 30000 tests/smoke/server-metrics-healthy.optional.test.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:modern-parity",
+      "status": "active",
+      "reason": "Script is in the active test lane: bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:server:probes",
+      "status": "active",
+      "reason": "Script is in the active test lane: bun test tests/smoke/server-health-version.test.ts --timeout 30000"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:server:shutdown",
+      "status": "active",
+      "reason": "Script is in the active test lane: bun test tests/smoke/server-shutdown-signals.test.ts --timeout 30000"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:ws:runtime:decision",
+      "status": "active",
+      "reason": "Script is in the active test lane: bun test tests/unit/ws/runtime-boundary-decision.test.ts tests/unit/ws/runtime-parity.test.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "test:ws:runtime:parity",
+      "status": "active",
+      "reason": "Script is in the active test lane: bun test tests/unit/ws/runtime-parity.test.ts tests/unit/ws/runtime-factory.test.ts tests/unit/ws/server-runtime.test.ts"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "typecheck",
+      "status": "active",
+      "reason": "Script is in the active typecheck lane: bun x tsc -b tsconfig.json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "typecheck:client",
+      "status": "active",
+      "reason": "Script is in the active typecheck lane: bun x tsc -p tsconfig.browser.json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "typecheck:full",
+      "status": "active",
+      "reason": "Script is in the active typecheck lane: bun run typecheck:full:server && bun run typecheck:full:client"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "typecheck:full:client",
+      "status": "active",
+      "reason": "Script is in the active typecheck lane: bun x tsc -p tsconfig.full.client.json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "typecheck:full:server",
+      "status": "active",
+      "reason": "Script is in the active typecheck lane: bun x tsc -p tsconfig.full.server.json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "typecheck:server",
+      "status": "active",
+      "reason": "Script is in the active typecheck lane: bun x tsc -p tsconfig.node.json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "typecheck:tools",
+      "status": "active",
+      "reason": "Script is in the active typecheck lane: bun x tsc -p tsconfig.tools.json"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "verify",
+      "status": "active",
+      "reason": "Script is in the active verify lane: bun run verify:modern"
+    },
+    {
+      "path": "package.json",
+      "kind": "package_script",
+      "name": "verify:modern",
+      "status": "active",
+      "reason": "Script is in the active verify lane: bun run check:content:prefabs && bun run check:maps && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:client && bun run build:server"
+    },
+    {
+      "path": "tools/content/house-regenerate.ts",
+      "kind": "content_tool",
+      "name": "house-regenerate.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/map-pack-modernize-legacy.ts",
+      "kind": "content_tool",
+      "name": "map-pack-modernize-legacy.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/map-pack.ts",
+      "kind": "content_tool",
+      "name": "map-pack.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/maps-migrate-v-to-foreground.ts",
+      "kind": "content_tool",
+      "name": "maps-migrate-v-to-foreground.ts",
+      "status": "replace",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "shared/maps/layer-contract.ts plus tools/content/world-authoring-repair.ts"
+    },
+    {
+      "path": "tools/content/prefabs.ts",
+      "kind": "content_tool",
+      "name": "prefabs.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/tileset-migrate-c-to-objectgroup.ts",
+      "kind": "content_tool",
+      "name": "tileset-migrate-c-to-objectgroup.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/tileset-modernize-metadata.ts",
+      "kind": "content_tool",
+      "name": "tileset-modernize-metadata.ts",
+      "status": "replace",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "assets/maps/tiled/terrain-authoring.json plus tools/content/terrain-grammar-validator.ts"
+    },
+    {
+      "path": "tools/content/tileset-wang-audit.ts",
+      "kind": "content_tool",
+      "name": "tileset-wang-audit.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/tileset-wang-scaffold.ts",
+      "kind": "content_tool",
+      "name": "tileset-wang-scaffold.ts",
+      "status": "replace",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "assets/maps/tiled/terrain-authoring.json plus tools/content/terrain-grammar-validator.ts"
+    },
+    {
+      "path": "tools/content/world-curate-portals.ts",
+      "kind": "content_tool",
+      "name": "world-curate-portals.ts",
+      "status": "replace",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "tools/content/world-authoring-repair.ts"
+    },
+    {
+      "path": "tools/content/world-map-validator.ts",
+      "kind": "content_tool",
+      "name": "world-map-validator.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/world-migrate-entity-spawn-kinds.ts",
+      "kind": "content_tool",
+      "name": "world-migrate-entity-spawn-kinds.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/world-null-outside-void.ts",
+      "kind": "content_tool",
+      "name": "world-null-outside-void.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/world-prefill-authoring.ts",
+      "kind": "content_tool",
+      "name": "world-prefill-authoring.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/world-render-cluster-audit.ts",
+      "kind": "content_tool",
+      "name": "world-render-cluster-audit.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/world-resplit.ts",
+      "kind": "content_tool",
+      "name": "world-resplit.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/world-standardize-idiomatic.ts",
+      "kind": "content_tool",
+      "name": "world-standardize-idiomatic.ts",
+      "status": "replace",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "tools/content/world-authoring-repair.ts"
+    },
+    {
+      "path": "tools/content/world-standardize-pipeline.ts",
+      "kind": "content_tool",
+      "name": "world-standardize-pipeline.ts",
+      "status": "replace",
+      "reason": "Tool is a broad or stale map-authoring migration surface and must not be treated as the current source of truth.",
+      "replacement": "tools/content/world-authoring-repair.ts"
+    },
+    {
+      "path": "tools/content/world-tile-paint-audit.ts",
+      "kind": "content_tool",
+      "name": "world-tile-paint-audit.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "tools/content/world-typed-object-audit.ts",
+      "kind": "content_tool",
+      "name": "world-typed-object-audit.ts",
+      "status": "active",
+      "reason": "No stale classification rule matched; keep until dependency/reference audit proves otherwise."
+    },
+    {
+      "path": "docs/audit-legacy-parity-combat-ai-2026-02-13.md",
+      "kind": "doc",
+      "name": "audit-legacy-parity-combat-ai-2026-02-13.md",
+      "status": "historical",
+      "reason": "Historical audit evidence; preserve but move behind docs archive/index if no longer active guidance.",
+      "preserveReason": "Contains dated evidence and decisions useful for regression analysis."
+    },
+    {
+      "path": "docs/audit-typing-rules-streamlining-2026-02-12-followup.md",
+      "kind": "doc",
+      "name": "audit-typing-rules-streamlining-2026-02-12-followup.md",
+      "status": "historical",
+      "reason": "Historical audit evidence; preserve but move behind docs archive/index if no longer active guidance.",
+      "preserveReason": "Contains dated evidence and decisions useful for regression analysis."
+    },
+    {
+      "path": "docs/audit-typing-rules-streamlining-2026-02-12.md",
+      "kind": "doc",
+      "name": "audit-typing-rules-streamlining-2026-02-12.md",
+      "status": "historical",
+      "reason": "Historical audit evidence; preserve but move behind docs archive/index if no longer active guidance.",
+      "preserveReason": "Contains dated evidence and decisions useful for regression analysis."
+    },
+    {
+      "path": "docs/css-modernization-progress.md",
+      "kind": "doc",
+      "name": "css-modernization-progress.md",
+      "status": "active",
+      "reason": "Current documentation candidate; verify through docs index in Ticket 0A.3."
+    },
+    {
+      "path": "docs/map-transition-rollout.md",
+      "kind": "doc",
+      "name": "map-transition-rollout.md",
+      "status": "active",
+      "reason": "Current documentation candidate; verify through docs index in Ticket 0A.3."
+    },
+    {
+      "path": "docs/project-surface-inventory.md",
+      "kind": "doc",
+      "name": "project-surface-inventory.md",
+      "status": "active",
+      "reason": "Current documentation candidate; verify through docs index in Ticket 0A.3."
+    },
+    {
+      "path": "docs/protocol-fixedbin.md",
+      "kind": "doc",
+      "name": "protocol-fixedbin.md",
+      "status": "active",
+      "reason": "Current documentation candidate; verify through docs index in Ticket 0A.3."
+    },
+    {
+      "path": "docs/protocol-wire.md",
+      "kind": "doc",
+      "name": "protocol-wire.md",
+      "status": "active",
+      "reason": "Current documentation candidate; verify through docs index in Ticket 0A.3."
+    },
+    {
+      "path": "docs/server-logging-taxonomy.md",
+      "kind": "doc",
+      "name": "server-logging-taxonomy.md",
+      "status": "active",
+      "reason": "Current documentation candidate; verify through docs index in Ticket 0A.3."
+    },
+    {
+      "path": "PLAN.md",
+      "kind": "plan",
+      "name": "PLAN.md",
+      "status": "active",
+      "reason": "Current implementation plan requested by the user."
+    },
+    {
+      "path": "EXTERNAL-AUDIT.md",
+      "kind": "external_audit",
+      "name": "EXTERNAL-AUDIT.md",
+      "status": "archive",
+      "reason": "External audit evidence should be imported into docs/audits/ or referenced from PLAN.md, not left as an untracked root file.",
+      "preserveReason": "Contains external review findings that may drive implementation tickets."
+    },
+    {
+      "path": "artifacts/",
+      "kind": "generated_policy",
+      "name": "artifacts",
+      "status": "active",
+      "reason": "Generated review artifacts are allowed when deterministic and named by the producing tool."
+    }
+  ]
+}

@@ -60,6 +60,7 @@
     "bench:ecs": "bun tools/bench/ecs.ts",
     "bots:soak": "bun tools/bots/soak.ts",
     "admin:claims": "bun tools/admin/claims.ts",
+    "audit:project-surface": "bun tools/maintenance/project-surface-inventory.ts",
     "verify": "bun run verify:modern",
     "verify:modern": "bun run check:content:prefabs && bun run check:maps && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:client && bun run build:server",
     "test": "bun test --timeout 20000",

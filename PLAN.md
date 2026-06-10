@@ -735,7 +735,7 @@ This phase makes the repo easier to work in before deep map, terrain, protocol, 
 
 **Dependencies/blockers:** Phase 0. Run after the current red baseline is documented so cleanup does not hide original failures.
 
-- [ ] **Step 1: Create inventory types and classifier**
+- [x] **Step 1: Create inventory types and classifier**
 
 Create `tools/maintenance/project-surface-inventory.ts`:
 
@@ -918,7 +918,7 @@ if (import.meta.main) {
 }
 ```
 
-- [ ] **Step 2: Add inventory tests**
+- [x] **Step 2: Add inventory tests**
 
 Create `tests/unit/project-surface-inventory.test.ts`:
 
@@ -946,7 +946,7 @@ test('project surface inventory preserves historical audits instead of deleting 
 });
 ```
 
-- [ ] **Step 3: Add package script**
+- [x] **Step 3: Add package script**
 
 In `package.json`, add:
 
@@ -954,7 +954,7 @@ In `package.json`, add:
 "audit:project-surface": "bun tools/maintenance/project-surface-inventory.ts"
 ```
 
-- [ ] **Step 4: Create human-readable inventory doc**
+- [x] **Step 4: Create human-readable inventory doc**
 
 Create `docs/project-surface-inventory.md`:
 
@@ -980,7 +980,7 @@ Current known replacement candidates:
 - `fix:world-standardize` -> dry-run-first `world-authoring-repair`.
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -997,7 +997,7 @@ Expected:
 Project surface inventory entries:
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
