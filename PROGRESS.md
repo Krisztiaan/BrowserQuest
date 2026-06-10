@@ -496,3 +496,40 @@ This is the live execution notebook for `PLAN.md`.
   - 2026-06-10 11:26 UTC: Verification complete.
   - Commit: `feat: add map layer contract`.
   - Next action: Proceed to Ticket 2.4 passability debug and parity checks.
+
+### 2026-06-10 11:32 UTC - Ticket 2.4 Add Passability Debug and Parity Checks
+
+- Status: done
+- Scope:
+  - Add a browser-toggleable passability debug overlay.
+  - Render stable tile classification colors for walkable, blocked, water, damage, doors/portals, and interactables.
+  - Add a browser pixel check for the overlay.
+  - Preserve existing server/client collision parity.
+- TODO:
+  - done: Inspect client map/game render path and existing browser test setup.
+  - done: Add overlay mode state and public setter.
+  - done: Render the passability overlay in the map draw flow.
+  - done: Add Playwright overlay pixel test.
+  - done: Run collision parity, browser test, and static gates.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 2.4.
+- Key actions:
+  - 2026-06-10 11:32 UTC: Ticket started.
+  - Confirmed rendering is centralized in `client/renderer.ts` with separate static terrain, entity, and foreground canvases.
+  - Added client debug passability arrays from authored layer/object semantics in the runtime map payload.
+  - Added `Game.setMapDebugOverlayMode('none' | 'passability')` and exposed it through the existing Playwright test API.
+  - Added translucent overlay drawing before depth-sorted entities and foreground tiles.
+  - Added a browser alpha-band pixel check for the passability overlay.
+- Evidence:
+  - `bun run build:maps` regenerated `assets/maps/runtime/map-pack.json` with debug passability classes.
+  - `bun test tests/unit/mmo/server-client-collision-parity.test.ts --timeout 20000` passed with 1 pass, 0 fail.
+  - `bun run check:maps` passed with map pack up to date.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` initially failed on an unreachable test API invalid-mode branch type; after widening the test API argument to `string`, it passed.
+  - `git diff --check` passed.
+  - `bun x playwright test --config=playwright.config.ts tests/browser/map-debug-overlays.playwright.ts` initially failed because port 8000 was occupied.
+  - `PW_REUSE_SERVERS=1 bun x playwright test --config=playwright.config.ts tests/browser/map-debug-overlays.playwright.ts` initially hit a stale reused client bundle missing the new API.
+  - After `bun run dev:bun:build-client` refreshed `.tmp/dev-client`, `PW_REUSE_SERVERS=1 bun x playwright test --config=playwright.config.ts tests/browser/map-debug-overlays.playwright.ts` passed with 1 passed.
+  - 2026-06-10 11:32 UTC: Verification complete.
+  - Commit: `feat: add passability debug overlay`.
+  - Next action: Proceed to Ticket 2.5 map-pack runtime transition support.

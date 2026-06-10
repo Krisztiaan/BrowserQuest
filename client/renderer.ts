@@ -81,8 +81,14 @@ type RendererGameLike = {
         | {
               tilesets?: Array<HTMLImageElement | undefined>;
               width: number;
+              height: number;
               tilesize: number;
               isAnimatedTile(id: number): boolean;
+              isColliding(x: number, y: number): boolean;
+              isDoor(x: number, y: number): boolean;
+              isDebugWaterTile(x: number, y: number): boolean;
+              isDebugDamageTile(x: number, y: number): boolean;
+              isDebugInteractableTile(x: number, y: number): boolean;
               renderProps?: Array<{
                   depth: number;
                   minTileX: number;
@@ -98,6 +104,7 @@ type RendererGameLike = {
     getMouseGridPosition(): { x: number; y: number };
     kernel: { clientPathingGrid: number[][] | null };
     debugPathing: boolean;
+    mapDebugOverlayMode: 'none' | 'passability';
     camera: Camera;
     cursors: Record<string, RenderSprite>;
     targetAnimation: RenderAnimation | null;
@@ -123,6 +130,15 @@ type RendererGameLike = {
     currentTime: number;
     targetCellVisible: boolean;
 };
+
+const PASSABILITY_COLORS = {
+    walkable: 'rgba(0, 180, 80, 0.28)',
+    blocked: 'rgba(220, 40, 40, 0.34)',
+    water: 'rgba(40, 120, 230, 0.32)',
+    damage: 'rgba(255, 140, 0, 0.34)',
+    door: 'rgba(145, 70, 255, 0.38)',
+    interactable: 'rgba(240, 210, 40, 0.38)',
+} as const;
 
 type ViewportLike = Readonly<{
     innerWidth: number;
@@ -406,6 +422,46 @@ class Renderer {
                 }
             }
         }
+    }
+
+    drawPassabilityOverlay(): void {
+        if (this.game.mapDebugOverlayMode !== 'passability') {
+            return;
+        }
+        const map = this.game.map;
+        if (!map) {
+            return;
+        }
+        const minX = Math.max(0, this.camera.gridX - 1);
+        const minY = Math.max(0, this.camera.gridY - 1);
+        const maxX = Math.min(map.width, this.camera.gridX + this.camera.gridW + 2);
+        const maxY = Math.min(map.height, this.camera.gridY + this.camera.gridH + 2);
+        const size = map.tilesize * this.scale;
+
+        this.context.save();
+        for (let y = minY; y < maxY; y += 1) {
+            for (let x = minX; x < maxX; x += 1) {
+                let color: string = PASSABILITY_COLORS.walkable;
+                if (map.isColliding(x, y)) {
+                    color = PASSABILITY_COLORS.blocked;
+                }
+                if (map.isDebugWaterTile(x, y)) {
+                    color = PASSABILITY_COLORS.water;
+                }
+                if (map.isDebugDamageTile(x, y)) {
+                    color = PASSABILITY_COLORS.damage;
+                }
+                if (map.isDebugInteractableTile(x, y)) {
+                    color = PASSABILITY_COLORS.interactable;
+                }
+                if (map.isDoor(x, y)) {
+                    color = PASSABILITY_COLORS.door;
+                }
+                this.context.fillStyle = color;
+                this.context.fillRect(x * size, y * size, size, size);
+            }
+        }
+        this.context.restore();
     }
 
     drawSelectedCell(): void {
@@ -1121,6 +1177,7 @@ class Renderer {
 
         //this.drawOccupiedCells();
         this.drawPathingCells();
+        this.drawPassabilityOverlay();
         this.drawDepthSortedEntitiesAndProps();
         this.drawCombatInfo();
         this.drawForegroundTiles(this.context);
@@ -1141,6 +1198,7 @@ class Renderer {
 
         this.drawDirtyAnimatedTiles();
         this.drawSelectedCell();
+        this.drawPassabilityOverlay();
         this.drawDepthSortedEntitiesAndProps();
         this.context.restore();
     }

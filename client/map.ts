@@ -61,6 +61,11 @@ type RuntimeMapPayload = {
     navIslandByTile?: number[];
     navIslandCount?: number;
     primaryNavIslandId?: number;
+    debugPassability?: {
+        water?: number[];
+        damage?: number[];
+        interactable?: number[];
+    };
     musicAreas?: MusicArea[];
     collisions: number[];
     animated: AnimatedTileConfig;
@@ -70,6 +75,8 @@ type RuntimeMapPayload = {
     plateauGrid?: number[][];
 };
 type CheckpointArea = Area;
+
+export type MapDebugOverlayMode = 'none' | 'passability';
 
 function resolveMapWorkerModuleUrl(): string | URL {
     const override = (globalThis as MapGlobals).__BQ_MAP_WORKER_URL__;
@@ -119,6 +126,9 @@ class Map {
     navIslandByTile: number[];
     navIslandCount: number;
     primaryNavIslandId: number;
+    debugWaterTiles: Set<number>;
+    debugDamageTiles: Set<number>;
+    debugInteractableTiles: Set<number>;
     musicAreas: MusicArea[];
     collisions: number[];
     foregroundTileIdSet: Set<number>;
@@ -152,6 +162,9 @@ class Map {
         this.navIslandByTile = [];
         this.navIslandCount = 0;
         this.primaryNavIslandId = 0;
+        this.debugWaterTiles = new Set();
+        this.debugDamageTiles = new Set();
+        this.debugInteractableTiles = new Set();
         this.musicAreas = [];
         this.collisions = [];
         this.foregroundTileIdSet = new Set();
@@ -333,6 +346,9 @@ class Map {
         this.navIslandByTile = map.navIslandByTile ?? [];
         this.navIslandCount = map.navIslandCount ?? 0;
         this.primaryNavIslandId = map.primaryNavIslandId ?? 0;
+        this.debugWaterTiles = new Set(map.debugPassability?.water ?? []);
+        this.debugDamageTiles = new Set(map.debugPassability?.damage ?? []);
+        this.debugInteractableTiles = new Set(map.debugPassability?.interactable ?? []);
         this.musicAreas = map.musicAreas ?? [];
         this.collisions = map.collisions;
         this.foregroundTileIdSet = new Set();
@@ -606,6 +622,18 @@ class Map {
 
     isDoor(x: number, y: number): boolean {
         return this.doors[this.GridPositionToTileIndex(x, y)] !== undefined;
+    }
+
+    isDebugWaterTile(x: number, y: number): boolean {
+        return this.debugWaterTiles.has(this.GridPositionToTileIndex(x, y) - 1);
+    }
+
+    isDebugDamageTile(x: number, y: number): boolean {
+        return this.debugDamageTiles.has(this.GridPositionToTileIndex(x, y) - 1);
+    }
+
+    isDebugInteractableTile(x: number, y: number): boolean {
+        return this.debugInteractableTiles.has(this.GridPositionToTileIndex(x, y) - 1);
     }
 
     getDoorDestination(x: number, y: number): DoorDestination | undefined {

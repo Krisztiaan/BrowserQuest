@@ -163,6 +163,11 @@ type ExportedMap = {
     navIslandByTile?: number[];
     navIslandCount?: number;
     primaryNavIslandId?: number;
+    debugPassability?: {
+        water: number[];
+        damage: number[];
+        interactable: number[];
+    };
     musicAreas?: Array<{ x: number; y: number; w: number; h: number; id: ScalarValue | undefined }>;
     roamingAreas?: Array<MapRecord>;
     chestAreas?: Array<MapRecord>;
@@ -189,6 +194,23 @@ const STRICT_OBJECT_CLASS_LAYERS = new Set([
     'music_zones',
     'checkpoints',
     'mobile_zones',
+]);
+const DEBUG_WATER_LAYER_NAMES = new Set([
+    'sea',
+    'shoreline',
+    'lakes',
+    'river',
+    'cave_river',
+    'forest_lakes',
+]);
+const DEBUG_DAMAGE_LAYER_NAMES = new Set([
+    'lava',
+    'lava_falls',
+]);
+const DEBUG_INTERACTABLE_OBJECT_LAYERS = new Set([
+    'resource_nodes',
+    'static_entities',
+    'chest_spawns',
 ]);
 const RENDERABLE_TILE_OBJECT_ALIGNMENT = new Set([
     'unspecified',
@@ -718,6 +740,9 @@ export default function processMap(
     const tileCount = map.width * map.height;
     const renderableOccupancy = new Uint8Array(tileCount);
     const collisionCarveIndices = new Set<number>();
+    const debugWaterTiles = new Set<number>();
+    const debugDamageTiles = new Set<number>();
+    const debugInteractableTiles = new Set<number>();
 
     const tiledLayers = flattenTiledLayers(rawLayers, map.width, map.height, tileSize);
 
@@ -1051,6 +1076,7 @@ export default function processMap(
             continue;
         }
         if (isObjectLayer(layer)) {
+            processDebugInteractableObjectLayer(layer);
             processRenderableObjectLayer(layer);
         }
     }
@@ -1111,12 +1137,18 @@ export default function processMap(
                 plateau.push(i);
             }
         }
+        map.debugPassability = {
+            water: [...debugWaterTiles].sort((a, b) => a - b),
+            damage: [...debugDamageTiles].sort((a, b) => a - b),
+            interactable: [...debugInteractableTiles].sort((a, b) => a - b),
+        };
     }
 
     return map;
 
     function processLayer(layer: TiledTileLayer): void {
         const tiles = toLayerTileData(layer);
+        const debugClass = getDebugPassabilityClass(layer);
 
         if (mode === "server" && layer.name === "entities") {
             throw new Error('Legacy tilelayer "entities" is not supported; use object layer "static_entities".');
@@ -1151,6 +1183,11 @@ export default function processMap(
 
             if (mode === "client" && gid > 0) {
                 writeRenderableTile(i, gid, foregroundLayer);
+                if (debugClass === 'water') {
+                    debugWaterTiles.add(i);
+                } else if (debugClass === 'damage') {
+                    debugDamageTiles.add(i);
+                }
             }
             if (gid > 0) {
                 renderableOccupancy[i] = 1;
@@ -1184,6 +1221,18 @@ export default function processMap(
         const foregroundLayer = isForegroundObjectLayer(layer);
         for (const object of tileObjects) {
             processRenderableTileObject(layer, object, foregroundLayer);
+        }
+    }
+
+    function processDebugInteractableObjectLayer(layer: TiledObjectLayer): void {
+        if (mode !== 'client' || !DEBUG_INTERACTABLE_OBJECT_LAYERS.has(layer.name)) {
+            return;
+        }
+        for (const object of layer.objects ?? []) {
+            const tileIndex = resolveObjectTileIndex(object);
+            if (tileIndex !== null) {
+                debugInteractableTiles.add(tileIndex);
+            }
         }
     }
 
@@ -1400,6 +1449,30 @@ export default function processMap(
             template: typeof object.template === 'string' ? object.template : undefined,
             properties: getProperties(object),
         };
+    }
+
+    function getDebugPassabilityClass(layer: TiledTileLayer): 'water' | 'damage' | null {
+        const layerName = layer.name.trim().toLowerCase();
+        if (DEBUG_DAMAGE_LAYER_NAMES.has(layerName)) {
+            return 'damage';
+        }
+        if (DEBUG_WATER_LAYER_NAMES.has(layerName)) {
+            return 'water';
+        }
+        const layerPath = getLayerPath(layer).toLowerCase();
+        if (layerPath.includes('/water/') || layerPath.endsWith('/water')) {
+            return 'water';
+        }
+        return null;
+    }
+
+    function resolveObjectTileIndex(object: TiledObject): number | null {
+        const tileX = Math.floor(object.x / map.tilesize);
+        const tileY = Math.floor(object.y / map.tilesize);
+        if (tileX < 0 || tileY < 0 || tileX >= map.width || tileY >= map.height) {
+            return null;
+        }
+        return tileY * map.width + tileX;
     }
 
     function resolveTilesetRef(gid: number): ResolvedTilesetRef | undefined {

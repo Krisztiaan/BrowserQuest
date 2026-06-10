@@ -40,6 +40,11 @@ type ClientRuntimeMap = {
     navIslandByTile: number[];
     navIslandCount: number;
     primaryNavIslandId: number;
+    debugPassability: {
+        water: number[];
+        damage: number[];
+        interactable: number[];
+    };
     musicAreas: Array<{ x: number; y: number; w: number; h: number; id: MusicKey }>;
     collisions: number[];
     animated: Record<number, { l?: number; d?: number }>;
@@ -301,6 +306,7 @@ function normalizeClientRuntimeMap(value: unknown, mapId: string): ClientRuntime
     }
     const navIslandCountRaw = asFiniteInteger(record.navIslandCount);
     const primaryNavIslandIdRaw = asFiniteInteger(record.primaryNavIslandId);
+    const debugPassabilityRecord = asRecord(record.debugPassability);
 
     return {
         width,
@@ -314,6 +320,14 @@ function normalizeClientRuntimeMap(value: unknown, mapId: string): ClientRuntime
         navIslandByTile: normalizeNumberArray(record.navIslandByTile ?? [], `map "${mapId}" client.navIslandByTile`),
         navIslandCount: navIslandCountRaw ?? 0,
         primaryNavIslandId: primaryNavIslandIdRaw ?? 0,
+        debugPassability: {
+            water: normalizeNumberArray(debugPassabilityRecord?.water ?? [], `map "${mapId}" client.debugPassability.water`),
+            damage: normalizeNumberArray(debugPassabilityRecord?.damage ?? [], `map "${mapId}" client.debugPassability.damage`),
+            interactable: normalizeNumberArray(
+                debugPassabilityRecord?.interactable ?? [],
+                `map "${mapId}" client.debugPassability.interactable`
+            ),
+        },
         musicAreas: normalizeMusicAreas(record.musicAreas ?? [], `map "${mapId}" client.musicAreas`),
         collisions: normalizeNumberArray(record.collisions, `map "${mapId}" client.collisions`),
         animated: normalizeAnimatedConfig(record.animated ?? {}, `map "${mapId}" client.animated`),

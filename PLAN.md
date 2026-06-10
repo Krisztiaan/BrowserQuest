@@ -2581,7 +2581,7 @@ rtk git commit -m "feat: add map layer contract"
 
 **Dependencies/blockers:** Ticket 2.3.
 
-- [ ] **Step 1: Add overlay state**
+- [x] **Step 1: Add overlay state**
 
 In the client map/game state, add:
 
@@ -2597,7 +2597,7 @@ setMapDebugOverlayMode(mode: MapDebugOverlayMode): void {
 }
 ```
 
-- [ ] **Step 2: Render overlay**
+- [x] **Step 2: Render overlay**
 
 In `client/map.ts`, add a rendering pass after base map render and before entity render:
 
@@ -2620,7 +2620,7 @@ const PASSABILITY_COLORS = {
 } as const;
 ```
 
-- [ ] **Step 3: Add browser test**
+- [x] **Step 3: Add browser test**
 
 Create `tests/browser/map-debug-overlays.playwright.ts`:
 
@@ -2651,7 +2651,7 @@ test('passability debug overlay renders visible classified tiles', async ({ page
 
 Adapt the global handle if this project exposes game state under a different debug/test hook.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -2666,7 +2666,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 

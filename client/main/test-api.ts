@@ -28,6 +28,7 @@ type TestApi = {
     startSession: (name: string) => void;
     isReady: () => boolean;
     getPlayerPos: () => { ok: boolean; reason?: string; x: number | null; y: number | null };
+    setMapDebugOverlayMode: (mode: string) => { ok: boolean; reason?: string };
     getOverlayTileValue: (x: number, y: number) => number | null;
     getIntentStatus: (seq: number) => { status: 'invalid' | 'pending' | 'acked' | 'rejected'; intentTypeId?: string; reason?: string };
     sendClaimCreateIntent: (payload: {
@@ -211,6 +212,14 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
                 return { ok: false, reason: 'not_ready', x: null, y: null };
             }
             return { ok: true, x: game.player.gridX, y: game.player.gridY };
+        },
+
+        setMapDebugOverlayMode: function (mode: string) {
+            if (mode !== 'none' && mode !== 'passability') {
+                return { ok: false, reason: 'invalid_mode' };
+            }
+            game.setMapDebugOverlayMode(mode);
+            return { ok: true };
         },
 
         getOverlayTileValue: function (x: number, y: number) {

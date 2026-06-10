@@ -2,6 +2,7 @@ import InfoManager from './infomanager';
 import BubbleManager from './bubble';
 import Renderer from './renderer';
 import GameMap from './map';
+import type { MapDebugOverlayMode } from './map';
 import type Animation from './animation';
 import type Sprite from './sprite';
 import { initializeGameConnection } from './runtime/connection';
@@ -227,6 +228,7 @@ class Game extends Evented<GameEvents> {
     sprites: Record<string, Sprite>;
     animatedTiles: DirtyAnimatedTile[] | null;
     debugPathing: boolean;
+    mapDebugOverlayMode: MapDebugOverlayMode;
     spriteNames: SpriteKey[];
     storage!: Storage;
     map: GameMap | null;
@@ -313,6 +315,7 @@ class Game extends Evented<GameEvents> {
 
         // debug
         this.debugPathing = false;
+        this.mapDebugOverlayMode = 'none';
 
         // sprites
         this.spriteNames = [...SPRITE_KEYS];
@@ -1155,6 +1158,12 @@ class Game extends Evented<GameEvents> {
      */
     togglePathingGrid(): void {
         this.debugPathing = !this.debugPathing;
+    }
+
+    setMapDebugOverlayMode(mode: MapDebugOverlayMode): void {
+        this.mapDebugOverlayMode = mode;
+        document.body.classList.toggle('map-debug-passability', mode === 'passability');
+        this.renderer.renderFrame();
     }
 
     /**
