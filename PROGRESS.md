@@ -1015,3 +1015,38 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `feat: add npc dialogue and shops`.
   - Next action: Continue Phase 5 with Ticket 5.4 simple mines loop.
+
+### 2026-06-10 14:40 UTC - Ticket 5.4 Add Simple Mines Loop
+
+- Status: in_progress
+- Scope:
+  - Add a basic mine/cave map flow with a graph-linked door, one mob spawn area, one ore/resource node, and server-side loot persistence.
+  - Add browser coverage for entering the mine and harvesting through test controls.
+- TODO:
+  - done: Inspect map-pack authoring, generated runtime-map expectations, and browser test setup.
+  - done: Add mine map, map-pack entry, and ore resource definition.
+  - done: Add any required server/client test hooks to prove mine resource harvest updates inventory.
+  - done: Add smoke/browser coverage and run Ticket 5.4 verification.
+  - done: Commit Ticket 5.4.
+- Key actions:
+  - 2026-06-10 14:40 UTC: Ticket started.
+  - Added `mine_floor_001` as a small graph-linked mine map with one `bat` roaming area and one `ore_copper_small` resource node.
+  - Added overworld mine entrances at the deterministic browser start tiles, with the secondary entrance marked one-way so the mine exit has a single return target.
+  - Exported server `resourceNodes` from map compilation and threaded them through server map runtime models.
+  - Seeded resource persistence for every registered map, not only the default map, so off-overworld resources exist before players enter.
+  - Added `grantInventoryItems` to player persistence and wired `resource.harvest` world handling to grant drops server-side after depletion succeeds.
+  - Added client/test API helpers for door teleport, resource harvest, shop sell, and test-only map presentation loading.
+  - Added `tests/browser/mines-loop.playwright.ts` to enter the mine through authored graph doors, harvest ore, sell harvested stone before and after returning, and prove inventory survives the map roundtrip.
+- Evidence:
+  - `bun test tests/unit/map-pack.test.ts --timeout 30000` passed: 25 pass, 0 fail.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-resource-harvesting.test.ts --timeout 30000` passed: 29 pass, 0 fail.
+  - `bun test tests/smoke/modern-gameplay-parity.test.ts --timeout 30000` passed: 1 pass, 0 fail.
+  - `bun run build:maps` passed and regenerated `assets/maps/runtime/map-pack.json`.
+  - `bun run check:maps` passed.
+  - `bun run typecheck` passed.
+  - `npx playwright test --config=playwright.config.ts tests/browser/mines-loop.playwright.ts` passed: 1 pass, 0 fail.
+  - `bun test tests/unit/server/startup/preflight.test.ts --timeout 30000` passed after updating the runtime map fixture for `resourceNodes`: 10 pass, 0 fail.
+  - `bun run verify:modern` passed: 688 pass, 1 skip, 0 fail; client and server builds completed.
+  - `git diff --check` passed.
+  - Commit: `feat: add simple mines gameplay loop`.
+  - Next action: Continue Phase 5 with the next friend-server RPG gameplay ticket.

@@ -36,6 +36,7 @@ interface CheckpointContract {
 }
 
 type MapArea = Readonly<Record<string, string | number | number[] | undefined>>;
+type MapResourceNode = Readonly<Record<string, string | number | undefined>>;
 type StaticChest = Readonly<{ x: number; y: number; i: number[] }>;
 
 interface MapDefinition {
@@ -46,6 +47,7 @@ interface MapDefinition {
     navIslandCount?: number;
     primaryNavIslandId?: number;
     roamingAreas: MapArea[];
+    resourceNodes: MapResourceNode[];
     chestAreas: MapArea[];
     staticChests: StaticChest[];
     staticEntities: Record<string, EntityKindName>;
@@ -123,6 +125,7 @@ function isMapDefinition(payload: LooseValue): payload is MapDefinition {
         height?: number;
         collisions?: number[];
         roamingAreas?: MapArea[];
+        resourceNodes?: MapResourceNode[];
         chestAreas?: MapArea[];
         staticChests?: StaticChest[];
         staticEntities?: Record<string, EntityKindName>;
@@ -132,6 +135,7 @@ function isMapDefinition(payload: LooseValue): payload is MapDefinition {
         typeof candidate.height === 'number' &&
         Array.isArray(candidate.collisions) &&
         Array.isArray(candidate.roamingAreas) &&
+        Array.isArray(candidate.resourceNodes) &&
         Array.isArray(candidate.chestAreas) &&
         Array.isArray(candidate.staticChests) &&
         typeof candidate.staticEntities === 'object' &&
@@ -224,6 +228,7 @@ class Map {
     navIslandCount: number;
     primaryNavIslandId: number;
     mobAreas: MapArea[];
+    resourceNodes: MapResourceNode[];
     chestAreas: MapArea[];
     staticChests: StaticChest[];
     staticEntities: Record<string, EntityKindName>;
@@ -248,6 +253,7 @@ class Map {
         this.navIslandCount = 0;
         this.primaryNavIslandId = 0;
         this.mobAreas = [];
+        this.resourceNodes = [];
         this.chestAreas = [];
         this.staticChests = [];
         this.staticEntities = {};
@@ -292,6 +298,7 @@ class Map {
                 ? (map.primaryNavIslandId as number)
                 : 0;
         this.mobAreas = map.roamingAreas;
+        this.resourceNodes = map.resourceNodes;
         this.chestAreas = map.chestAreas;
         this.staticChests = map.staticChests;
         this.staticEntities = map.staticEntities;

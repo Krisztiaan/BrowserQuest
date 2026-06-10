@@ -12,6 +12,7 @@ const DEFAULT_PLAYER_DB_PATH = './server/.data/player-profiles.sqlite';
 const SHOP_INVENTORY_STACK_CAP = 16;
 type SqliteValue = string | number | bigint | Uint8Array | null;
 type SqliteStatement = ReturnType<Database['prepare']>;
+type InventoryGrant = Readonly<{ item: string | number; quantity: number }>;
 
 type ProfileRow = {
     name_key: string;
@@ -1051,6 +1052,67 @@ export class SqlitePlayerPersistence {
                 row.weapon_kind,
                 row.checkpoint_id,
                 encodeProgressionState(nextProgression),
+                now,
+                now
+            );
+            return { accepted: true };
+        });
+
+        return tx();
+    }
+
+    grantInventoryItems({
+        accountNameKey,
+        items,
+    }: {
+        accountNameKey: string;
+        items: ReadonlyArray<InventoryGrant>;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> {
+        const normalizedName = normalizeIdentityKey(accountNameKey);
+        if (!normalizedName) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        if (items.length === 0) {
+            return { accepted: false, reason: 'invalid_items' };
+        }
+        const normalizedItems = items.map((entry) => {
+            const itemKind = normalizeEntityKind(entry.item);
+            const quantity = Math.trunc(entry.quantity);
+            if (itemKind === null || !Types.isItem(itemKind) || !Number.isSafeInteger(quantity) || quantity <= 0) {
+                return null;
+            }
+            return { itemKind, quantity };
+        });
+        if (normalizedItems.some((entry) => entry === null)) {
+            return { accepted: false, reason: 'invalid_items' };
+        }
+
+        const tx = this.#db.transaction((): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> => {
+            const row = getRow<ProfileRow>(this.#selectProfile, normalizedName);
+            if (!row) {
+                return { accepted: false, reason: 'missing_profile' };
+            }
+            const progression = decodeProgressionState(row.progression_json);
+            let nextInventory = progression.inventory;
+            for (const entry of normalizedItems) {
+                if (entry === null) {
+                    return { accepted: false, reason: 'invalid_items' };
+                }
+                const currentQuantity = getInventoryQuantity(nextInventory, entry.itemKind);
+                const stackCount = nextInventory.filter((candidate) => candidate.quantity > 0).length;
+                if (currentQuantity === 0 && stackCount >= SHOP_INVENTORY_STACK_CAP) {
+                    return { accepted: false, reason: 'inventory_full' };
+                }
+                nextInventory = setInventoryQuantity(nextInventory, entry.itemKind, currentQuantity + entry.quantity);
+            }
+            const now = Date.now();
+            this.#upsertProgression.run(
+                normalizedName,
+                row.display_name,
+                row.armor_kind,
+                row.weapon_kind,
+                row.checkpoint_id,
+                encodeProgressionState({ ...progression, inventory: nextInventory }),
                 now,
                 now
             );

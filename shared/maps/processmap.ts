@@ -170,6 +170,7 @@ type ExportedMap = {
     };
     musicAreas?: Array<{ x: number; y: number; w: number; h: number; id: ScalarValue | undefined }>;
     roamingAreas?: Array<MapRecord>;
+    resourceNodes?: Array<MapRecord>;
     chestAreas?: Array<MapRecord>;
     staticChests?: Array<{ x: number; y: number; i: number[] }>;
     staticEntities?: Record<number, EntityKindName>;
@@ -757,6 +758,7 @@ export default function processMap(
 
     if (mode === "server") {
         map.roamingAreas = [];
+        map.resourceNodes = [];
         map.chestAreas = [];
         map.staticChests = [];
         map.staticEntities = {};
@@ -931,6 +933,35 @@ export default function processMap(
                     mobKind: resolvedMobKind,
                     count,
                 };
+            }
+            continue;
+        }
+
+        if (objectLayer.name === "resource_nodes" && mode === "server") {
+            log.info("Processing resource nodes...");
+            const resourceNodes = (map.resourceNodes ??= []);
+            for (const [i, node] of (objectLayer.objects ?? []).entries()) {
+                const nodeId = getPropertyValue(node, 'node_id');
+                const resourceKind = getPropertyValue(node, 'resource_kind');
+                if (typeof resourceKind !== 'string' || resourceKind.trim().length === 0) {
+                    continue;
+                }
+                const nodeName = (node as { name?: unknown }).name;
+                const resourceNode: MapRecord = {
+                    id: typeof nodeId === 'string' && nodeId.trim().length > 0
+                        ? nodeId.trim()
+                        : typeof nodeName === 'string' && nodeName.trim().length > 0
+                            ? nodeName.trim()
+                            : i,
+                    x: node.x / map.tilesize,
+                    y: node.y / map.tilesize,
+                    kind: resourceKind.trim(),
+                };
+                const resourceGid = getPropertyValue(node, 'resource_gid');
+                if (typeof resourceGid === 'number' && Number.isFinite(resourceGid)) {
+                    resourceNode.gid = resourceGid;
+                }
+                resourceNodes.push(resourceNode);
             }
             continue;
         }

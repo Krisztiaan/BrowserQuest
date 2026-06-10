@@ -18,8 +18,10 @@ import {
     isMapChestAreaConfig,
     isMapChestConfig,
     isMapMobAreaConfig,
+    isMapResourceNodeConfig,
     type MapChestAreaConfig,
     type MapMobAreaConfig,
+    type MapResourceNodeConfig,
 } from './world/map-config';
 import {
     addWorldItemFromChest,
@@ -77,6 +79,8 @@ import type {
     PersistedPlayerProfile,
     SqlitePlayerPersistence,
 } from './player-persistence';
+import { SqliteResourcePersistence } from './world/resources/resource-persistence';
+import type { ResourceDefinitions, ResourceTool } from './world/resources/resource-state';
 import { resolveIdentityKey } from './identity';
 import { isMapPack } from '../shared/maps/map-pack';
 import {
@@ -86,6 +90,7 @@ import {
 import { compileRuntimeMapPackFromPayload, loadRuntimeMapPackFromSource } from './runtime-map-pack-source';
 import { WORLD_EVENT_NAMES } from './server-event-names';
 import npcDefinitionsJson from '../assets/content/npcs.json';
+import resourceDefinitionsJson from '../assets/content/resources.json';
 import shopDefinitionsJson from '../assets/content/shops.json';
 import type { NpcDefinitions, ShopDefinitions } from './world/shops/shop-state';
 import { resolveNpcDialogue } from './world/shops/shop-service';
@@ -131,6 +136,7 @@ type WorldMapLike = {
     forEachAdjacentGroup(groupId: string, callback: (id: string) => void): void;
     staticEntities?: Record<string, EntityKindName>;
     mobAreas?: object[];
+    resourceNodes?: object[];
     chestAreas?: object[];
     staticChests?: object[];
 };
@@ -195,6 +201,7 @@ type PlayerPersistence = Pick<
     | 'transferChestItem'
     | 'buyShopItem'
     | 'sellShopItem'
+    | 'grantInventoryItems'
     | 'incrementAchievementCounters'
     | 'getAchievementProgressByName'
 >;
@@ -209,7 +216,9 @@ type WorldEvents = {
 };
 
 const NPC_DEFINITIONS = npcDefinitionsJson as NpcDefinitions;
+const RESOURCE_DEFINITIONS = resourceDefinitionsJson as ResourceDefinitions;
 const SHOP_DEFINITIONS = shopDefinitionsJson as ShopDefinitions;
+const MILLIS_PER_DAY = 86_400_000;
 
 class World extends Evented<WorldEvents> {
     id: string;
@@ -238,6 +247,7 @@ class World extends Evented<WorldEvents> {
     chunkFlushScheduler: ChunkFlushScheduler | null;
     chunkFlushTickErrorLatched: boolean;
     claimsPersistence: SqliteClaimsPersistence | null;
+    resourcePersistence: SqliteResourcePersistence | null;
     updateLoopHandle: ReturnType<typeof startWorldUpdateLoop> | null;
     mapTransitionCounters: MapTransitionCounters;
 
@@ -269,6 +279,7 @@ class World extends Evented<WorldEvents> {
         this.chunkFlushScheduler = null;
         this.chunkFlushTickErrorLatched = false;
         this.claimsPersistence = null;
+        this.resourcePersistence = null;
         this.updateLoopHandle = null;
         this.mapTransitionCounters = {
             attempts: 0,
@@ -357,6 +368,16 @@ class World extends Evented<WorldEvents> {
         this.chunkFlushScheduler = null;
         this.chunkFlushTickErrorLatched = false;
         this.claimsPersistence = null;
+        try {
+            this.resourcePersistence?.close();
+        } catch (error) {
+            log.event('error', 'world.persistence.close_failed', {
+                worldId: this.id,
+                target: 'resources',
+                error: String(error),
+            });
+        }
+        this.resourcePersistence = null;
     }
 
     ensureChunkOverlayLoaded(mapId: string, chunkX: number, chunkY: number): boolean {
@@ -647,6 +668,68 @@ class World extends Evented<WorldEvents> {
         });
     }
 
+    upsertResourceNode(config: MapResourceNodeConfig, mapId = this.getDefaultMapId()): void {
+        const persistence = this.resourcePersistence;
+        if (!persistence) {
+            return;
+        }
+        const result = persistence.upsertResourceNode({
+            id: String(config.id),
+            mapId,
+            x: Math.trunc(config.x),
+            y: Math.trunc(config.y),
+            kind: config.kind,
+        });
+        if (!result.accepted) {
+            log.event('warn', 'world.resources.seed_rejected', {
+                worldId: this.id,
+                mapId,
+                nodeId: String(config.id),
+                reason: result.reason,
+            });
+        }
+    }
+
+    harvestResourceNode({
+        playerIdentity,
+        nodeId,
+        tool,
+        playerMapId,
+        playerX,
+        playerY,
+    }: {
+        playerIdentity: string;
+        nodeId: string;
+        tool: ResourceTool;
+        playerMapId: string;
+        playerX: number;
+        playerY: number;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> {
+        if (!this.playerPersistence || !this.resourcePersistence) {
+            return { accepted: false, reason: 'persistence_unavailable' };
+        }
+        const identityKey = resolveIdentityKey(playerIdentity);
+        if (!identityKey) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        const harvest = this.resourcePersistence.harvestResourceNode({
+            nodeId,
+            tool,
+            playerMapId,
+            playerX,
+            playerY,
+            currentDay: Math.floor(Date.now() / MILLIS_PER_DAY),
+        });
+        if (!harvest.accepted) {
+            return harvest;
+        }
+        const grant = this.playerPersistence.grantInventoryItems({
+            accountNameKey: identityKey,
+            items: harvest.drops,
+        });
+        return grant.accepted ? { accepted: true } : grant;
+    }
+
     recordPlayerMobKill(playerIdentity: string, mobKind: EntityKind): void {
         if (!this.playerPersistence) {
             return;
@@ -773,12 +856,22 @@ class World extends Evented<WorldEvents> {
         self.chunkOverlayPersistence = persistence.chunkOverlayPersistence;
         self.chunkFlushScheduler = persistence.chunkFlushScheduler;
         self.claimsPersistence = persistence.claimsPersistence;
+        self.resourcePersistence = new SqliteResourcePersistence(
+            process.env.BQ_RESOURCE_DB_PATH ?? `./server/.data/${self.id}-resources.sqlite`,
+            RESOURCE_DEFINITIONS
+        );
+        self.mapRegistry?.forEachMap((mapId, map) => {
+            map.resourceNodes.filter(isMapResourceNodeConfig).forEach((config) => {
+                self.upsertResourceNode(config, mapId);
+            });
+        });
 
         bootstrapWorldMapRuntime({
             world: self,
             mobAreaConfigs: (self.map.mobAreas ?? []).filter(isMapMobAreaConfig),
             chestAreaConfigs: (self.map.chestAreas ?? []).filter(isMapChestAreaConfig),
             staticChestConfigs: (self.map.staticChests ?? []).filter(isMapChestConfig),
+            resourceNodeConfigs: (self.map.resourceNodes ?? []).filter(isMapResourceNodeConfig),
             createMobArea(config: MapMobAreaConfig) {
                 return new MobArea(
                     config.id,
@@ -804,6 +897,9 @@ class World extends Evented<WorldEvents> {
                     config.i,
                     self
                 );
+            },
+            upsertResourceNode(config: MapResourceNodeConfig) {
+                self.upsertResourceNode(config);
             },
         });
 

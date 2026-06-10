@@ -537,6 +537,75 @@ test('compileMapPack exports roaming areas with valid mob kinds', () => {
     ]);
 });
 
+test('compileMapPack exports resource nodes with stable ids and resource kinds', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'mine_floor_001',
+                tiled: {
+                    width: 8,
+                    height: 8,
+                    tilewidth: 16,
+                    tilesets: [{ name: 'tilesheet', firstgid: 1, tiles: [] }],
+                    layers: [
+                        {
+                            name: 'background',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(64).fill(1),
+                        },
+                        {
+                            name: 'blocking',
+                            type: 'tilelayer',
+                            visible: true,
+                            data: new Array(64).fill(0),
+                        },
+                        {
+                            name: 'resource_nodes',
+                            type: 'objectgroup',
+                            objects: [
+                                {
+                                    id: 1,
+                                    class: 'ResourceNode',
+                                    name: 'mine_ore_001',
+                                    x: 96,
+                                    y: 32,
+                                    width: 16,
+                                    height: 16,
+                                    properties: [
+                                        { name: 'resource_kind', value: 'ore_copper_small' },
+                                        { name: 'resource_gid', value: 1886 },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ],
+    });
+
+    const mineServer = pack.maps[0]?.server as {
+        resourceNodes?: Array<{
+            id: string;
+            x: number;
+            y: number;
+            kind: string;
+            gid: number;
+        }>;
+    };
+
+    expect(mineServer.resourceNodes).toEqual([
+        {
+            id: 'mine_ore_001',
+            x: 6,
+            y: 2,
+            kind: 'ore_copper_small',
+            gid: 1886,
+        },
+    ]);
+});
+
 test('compileMapPack carves authored blocking to prevent trapped door soft-locks', () => {
     const width = 8;
     const height = 8;

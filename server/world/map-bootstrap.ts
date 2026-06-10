@@ -1,4 +1,4 @@
-import type { MapChestAreaConfig, MapChestConfig, MapMobAreaConfig } from './map-config';
+import type { MapChestAreaConfig, MapChestConfig, MapMobAreaConfig, MapResourceNodeConfig } from './map-config';
 
 type ChestItemSeed = string | number;
 type StaticItemLike = { id?: number | string } & object;
@@ -37,8 +37,10 @@ type MapBootstrapInput = {
     mobAreaConfigs: MapMobAreaConfig[];
     chestAreaConfigs: MapChestAreaConfig[];
     staticChestConfigs: MapChestConfig[];
+    resourceNodeConfigs: MapResourceNodeConfig[];
     createMobArea: (this: void, config: MapMobAreaConfig) => RuntimeMobArea;
     createChestArea: (this: void, config: MapChestAreaConfig) => RuntimeChestArea;
+    upsertResourceNode: (this: void, config: MapResourceNodeConfig) => void;
 };
 
 export function bootstrapWorldMapRuntime({
@@ -46,8 +48,10 @@ export function bootstrapWorldMapRuntime({
     mobAreaConfigs,
     chestAreaConfigs,
     staticChestConfigs,
+    resourceNodeConfigs,
     createMobArea,
     createChestArea,
+    upsertResourceNode,
 }: MapBootstrapInput): void {
     world.map.generateCollisionGrid();
 
@@ -71,6 +75,10 @@ export function bootstrapWorldMapRuntime({
     staticChestConfigs.forEach(function (chest) {
         const staticChest = world.createChest(chest.x, chest.y, chest.i);
         world.addStaticItem(staticChest);
+    });
+
+    resourceNodeConfigs.forEach(function (config) {
+        upsertResourceNode(config);
     });
 
     world.spawnStaticEntities();

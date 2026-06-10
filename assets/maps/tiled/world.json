@@ -74396,7 +74396,7 @@
                          "visible":true,
                          "width":16,
                          "x":288,
-                         "y":3344
+                         "y":3360
                         },
                         {
                          "gid":2041,
@@ -78967,6 +78967,79 @@
                         {
                          "gid":2203,
                          "height":16,
+                         "id":624,
+                         "name":"world_mine_001_entry",
+                         "properties":[
+                                {
+                                 "name":"door_id",
+                                 "type":"string",
+                                 "value":"world_mine_001_entry"
+                                },
+                                {
+                                 "name":"orientation",
+                                 "type":"string",
+                                 "value":"u"
+                                },
+                                {
+                                 "name":"target_door",
+                                 "type":"string",
+                                 "value":"mine_exit"
+                                },
+                                {
+                                 "name":"target_map",
+                                 "type":"string",
+                                 "value":"mine_floor_001"
+                                }],
+                         "rotation":0,
+                         "template":"templates\/door_linked.tx",
+                         "type":"Door",
+                         "visible":true,
+                         "width":16,
+                         "x":288,
+                         "y":3376
+                        },
+                        {
+                         "gid":2203,
+                         "height":16,
+                         "id":625,
+                         "name":"world_mine_001_test_entry",
+                         "properties":[
+                                {
+                                 "name":"door_id",
+                                 "type":"string",
+                                 "value":"world_mine_001_test_entry"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
+                                {
+                                 "name":"orientation",
+                                 "type":"string",
+                                 "value":"u"
+                                },
+                                {
+                                 "name":"target_door",
+                                 "type":"string",
+                                 "value":"mine_exit"
+                                },
+                                {
+                                 "name":"target_map",
+                                 "type":"string",
+                                 "value":"mine_floor_001"
+                                }],
+                         "rotation":0,
+                         "template":"templates\/door_linked.tx",
+                         "type":"Door",
+                         "visible":true,
+                         "width":16,
+                         "x":80,
+                         "y":128
+                        },
+                        {
+                         "gid":2203,
+                         "height":16,
                          "id":93,
                          "name":"door_93",
                          "properties":[
@@ -80952,7 +81025,7 @@
          "y":0
         }],
  "nextlayerid":106,
- "nextobjectid":624,
+ "nextobjectid":626,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

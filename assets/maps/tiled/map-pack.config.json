@@ -5,6 +5,10 @@
       "filepath": "./world.json"
     },
     {
+      "id": "mine_floor_001",
+      "filepath": "./maps/mine_floor_001.json"
+    },
+    {
       "id": "house_01",
       "filepath": "./maps/house_01.json"
     },

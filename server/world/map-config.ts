@@ -27,6 +27,13 @@ export type MapChestConfig = {
     i: Array<string | number>;
 };
 
+export type MapResourceNodeConfig = {
+    id: string | number;
+    x: number;
+    y: number;
+    kind: string;
+};
+
 type MapConfigValue = string | number | boolean | null | undefined | object;
 
 export const isMapMobAreaConfig = (value: MapConfigValue): value is MapMobAreaConfig => {
@@ -73,5 +80,19 @@ export const isMapChestConfig = (value: MapConfigValue): value is MapChestConfig
         && typeof entry.y === 'number'
         && Array.isArray(entry.i)
         && entry.i.every((item) => typeof item === 'string' || typeof item === 'number')
+    );
+};
+
+export const isMapResourceNodeConfig = (value: MapConfigValue): value is MapResourceNodeConfig => {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+    const entry = value as Partial<MapResourceNodeConfig>;
+    return (
+        (typeof entry.id === 'string' || typeof entry.id === 'number')
+        && typeof entry.x === 'number'
+        && typeof entry.y === 'number'
+        && typeof entry.kind === 'string'
+        && entry.kind.trim().length > 0
     );
 };

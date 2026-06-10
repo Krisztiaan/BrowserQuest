@@ -16,7 +16,17 @@ export function toProtocolEntityId(id: EntityId): number {
 
 export function createHelloAction(name: string, armorKind: number, weaponKind: number): OutboundAction<typeof Types.Messages.HELLO> {
     const capabilitiesJson = encodeProtocolCapabilitiesJson({
-        moduleIds: ['core.teleport', 'core.move', 'core.doors', 'core.tiles', 'core.claims'],
+        moduleIds: [
+            'core.teleport',
+            'core.move',
+            'core.doors',
+            'core.tiles',
+            'core.claims',
+            'core.inventory',
+            'core.farming',
+            'core.resources',
+            'core.npc_shop',
+        ],
     });
     return [Types.Messages.HELLO, name, armorKind, weaponKind, PROTOCOL_REVISION, capabilitiesJson];
 }

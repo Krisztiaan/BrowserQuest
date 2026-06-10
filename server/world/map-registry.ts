@@ -138,6 +138,12 @@ export class WorldMapRegistry {
         return this.#mapsById.get(mapId) ?? null;
     }
 
+    forEachMap(callback: (mapId: string, map: ServerMap) => void): void {
+        for (const [mapId, map] of this.#mapsById.entries()) {
+            callback(mapId, map);
+        }
+    }
+
     isValidPosition(mapId: string, x: number, y: number): boolean {
         const map = this.getMapById(mapId);
         return Boolean(

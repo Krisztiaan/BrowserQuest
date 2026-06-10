@@ -27,6 +27,8 @@ type TestApi = {
     isBootstrapped: () => boolean;
     startSession: (name: string) => void;
     isReady: () => boolean;
+    getActiveMapId: () => string | null;
+    loadMapById: (mapId: string) => Promise<{ ok: boolean; reason?: string }>;
     getPlayerPos: () => { ok: boolean; reason?: string; x: number | null; y: number | null };
     setMapDebugOverlayMode: (mode: string) => { ok: boolean; reason?: string };
     getOverlayTileValue: (x: number, y: number) => number | null;
@@ -39,6 +41,9 @@ type TestApi = {
         editors?: string[];
     }) => { ok: boolean; reason?: string; seq: number | null };
     sendTileEditIntent: (x: number, y: number, value: number | null) => { ok: boolean; reason?: string; seq: number | null };
+    sendDoorTeleportIntent: (x: number, y: number) => { ok: boolean; reason?: string; seq: number | null };
+    sendResourceHarvestIntent: (nodeId: string, tool: 'axe' | 'pickaxe' | 'scythe') => { ok: boolean; reason?: string; seq: number | null };
+    sendShopSellIntent: (shopId: string, item: string, quantity: number) => { ok: boolean; reason?: string; seq: number | null };
     clickTile: (x: number, y: number) => { ok: boolean; reason?: string };
     getDoorDestination: (x: number, y: number) => { ok: boolean; reason?: string; destination: DoorDestination | null };
     moveToDifferentZone: () => { ok: boolean; reason?: string; from?: ZoneTarget; to?: ZoneTarget };
@@ -207,6 +212,23 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
             return Boolean(game.started && game.client && (game.map as NonNullable<Game['map']>).isLoaded && game.player);
         },
 
+        getActiveMapId: function () {
+            return game.kernel.activeMapId ?? (game.map as NonNullable<Game['map']>).mapId;
+        },
+
+        loadMapById: async function (mapId: string) {
+            if (typeof mapId !== 'string' || mapId.trim().length === 0) {
+                return { ok: false, reason: 'invalid_map' };
+            }
+            try {
+                await game.loadMapById(mapId);
+                game.kernel.setActiveMapId(mapId);
+                return { ok: true };
+            } catch (error) {
+                return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+            }
+        },
+
         getPlayerPos: function () {
             if (!(game.map as NonNullable<Game['map']>).isLoaded) {
                 return { ok: false, reason: 'not_ready', x: null, y: null };
@@ -267,6 +289,45 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
             }
             bindIntentListeners();
             const seq = game.client.sendTileEdit(x, y, value);
+            if (seq === null) {
+                return { ok: false, reason: 'unsupported_or_invalid', seq: null };
+            }
+            intentResults.set(seq, { status: 'pending' });
+            return { ok: true, seq };
+        },
+
+        sendDoorTeleportIntent: function (x: number, y: number) {
+            if (!game.client || !(game.map as NonNullable<Game['map']>).isLoaded) {
+                return { ok: false, reason: 'not_ready', seq: null };
+            }
+            bindIntentListeners();
+            const seq = game.client.sendDoorTeleport(x, y);
+            if (seq === null) {
+                return { ok: false, reason: 'unsupported_or_invalid', seq: null };
+            }
+            intentResults.set(seq, { status: 'pending' });
+            return { ok: true, seq };
+        },
+
+        sendResourceHarvestIntent: function (nodeId: string, tool: 'axe' | 'pickaxe' | 'scythe') {
+            if (!game.client || !(game.map as NonNullable<Game['map']>).isLoaded) {
+                return { ok: false, reason: 'not_ready', seq: null };
+            }
+            bindIntentListeners();
+            const seq = game.client.sendResourceHarvest({ nodeId, tool });
+            if (seq === null) {
+                return { ok: false, reason: 'unsupported_or_invalid', seq: null };
+            }
+            intentResults.set(seq, { status: 'pending' });
+            return { ok: true, seq };
+        },
+
+        sendShopSellIntent: function (shopId: string, item: string, quantity: number) {
+            if (!game.client || !(game.map as NonNullable<Game['map']>).isLoaded) {
+                return { ok: false, reason: 'not_ready', seq: null };
+            }
+            bindIntentListeners();
+            const seq = game.client.sendShopSell({ shopId, item, quantity });
             if (seq === null) {
                 return { ok: false, reason: 'unsupported_or_invalid', seq: null };
             }

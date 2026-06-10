@@ -8,5 +8,10 @@
     "tool": "pickaxe",
     "drops": [{ "item": "stone", "quantity": 2 }],
     "respawnDays": 2
+  },
+  "ore_copper_small": {
+    "tool": "pickaxe",
+    "drops": [{ "item": "stone", "quantity": 2 }],
+    "respawnDays": 3
   }
 }

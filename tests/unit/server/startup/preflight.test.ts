@@ -111,6 +111,7 @@ test('map preflight helper accepts readable valid map-pack JSON files', async ()
                                 height: 1,
                                 collisions: [],
                                 roamingAreas: [],
+                                resourceNodes: [],
                                 chestAreas: [],
                                 staticChests: [],
                                 staticEntities: {},

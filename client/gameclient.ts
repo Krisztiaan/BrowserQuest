@@ -61,6 +61,7 @@ import {
     encodeMoveToIntentPayload,
     encodeMoveStepIntentPayload,
     encodeNpcTalkIntentPayload,
+    encodeResourceHarvestIntentPayload,
     encodeShopBuyIntentPayload,
     encodeShopSellIntentPayload,
     encodeTileEditIntentPayload,
@@ -74,6 +75,7 @@ import {
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
     INTENT_NPC_TALK,
+    INTENT_RESOURCE_HARVEST,
     INTENT_SHOP_BUY,
     INTENT_SHOP_SELL,
     INTENT_TILE_EDIT,
@@ -962,6 +964,14 @@ class GameClient extends Evented<GameClientEvents> {
         return this.sendIntent(INTENT_TILE_EDIT, payloadBytes);
     }
 
+    sendDoorTeleport(x: number, y: number): number | null {
+        const payloadBytes = encodeDoorTeleportIntentPayload(gridPos(x, y));
+        if (payloadBytes === null) {
+            return null;
+        }
+        return this.sendIntent(INTENT_DOOR_TELEPORT, payloadBytes);
+    }
+
     sendClaimCreate({
         x1,
         y1,
@@ -1059,6 +1069,14 @@ class GameClient extends Evented<GameClientEvents> {
             return null;
         }
         return this.sendIntent(INTENT_SHOP_SELL, payloadBytes);
+    }
+
+    sendResourceHarvest({ nodeId, tool }: { nodeId: string; tool: 'axe' | 'pickaxe' | 'scythe' }): number | null {
+        const payloadBytes = encodeResourceHarvestIntentPayload({ nodeId, tool });
+        if (payloadBytes === null) {
+            return null;
+        }
+        return this.sendIntent(INTENT_RESOURCE_HARVEST, payloadBytes);
     }
 
     sendLootMove(item: IdCarrier, x: number, y: number): void {

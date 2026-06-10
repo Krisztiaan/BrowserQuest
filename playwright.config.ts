@@ -30,7 +30,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "bun run dev:bun:build-client && bun run dev:bun:build-playwright-config && BQ_STATIC_ROOT=.tmp/dev-client BQ_FIXED_START_AREA_INDEX=0 BQ_FIXED_START_CENTER=1 bun server/entry.ts server/.tmp-config.playwright.json",
+      "bun run dev:bun:build-client && bun run dev:bun:build-playwright-config && BQ_RESOURCE_DB_PATH=:memory: BQ_STATIC_ROOT=.tmp/dev-client BQ_FIXED_START_AREA_INDEX=0 BQ_FIXED_START_CENTER=1 bun server/entry.ts server/.tmp-config.playwright.json",
     url: "http://127.0.0.1:8000/status",
     timeout: 120_000,
     reuseExistingServer,
