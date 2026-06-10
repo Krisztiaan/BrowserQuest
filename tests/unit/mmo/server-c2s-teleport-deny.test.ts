@@ -126,7 +126,7 @@ test('server allowlists C2S TELEPORT only for door destinations (transitional)',
         isDoor: (x, y) => x === 5 && y === 5,
         getDoorDestination: (x, y) => (x === 5 && y === 5 ? { x: 10, y: 10 } : null),
         resolveDoorTeleport: (mapId, x, y) =>
-            mapId === 'world' && x === 5 && y === 5 ? { toMapId: 'world', to: { x: 10, y: 10 } } : null,
+            mapId === 'world_01' && x === 5 && y === 5 ? { toMapId: 'world_01', to: { x: 10, y: 10 } } : null,
     });
 
     pipeline.state.world.addComponent(player.id, pipeline.Position, gridPos(5, 5));

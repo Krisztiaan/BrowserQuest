@@ -473,7 +473,7 @@ If some paths did not change, `git add` simply leaves them untouched.
 
 **Dependencies/blockers:** Tickets 0.1-0.3.
 
-- [ ] **Step 1: Re-run the focused failures**
+- [x] **Step 1: Re-run the focused failures**
 
 Run:
 
@@ -492,7 +492,7 @@ delta version gaps are healed by snapshot resync fallback
 
 fail.
 
-- [ ] **Step 2: Stabilize invalid map payload wording**
+- [x] **Step 2: Stabilize invalid map payload wording**
 
 Choose the newer runtime source wording if keeping `compileRuntimeMapPackFromPayload` as the canonical validator:
 
@@ -508,7 +508,7 @@ Invalid runtime map source: expected map-pack, map-pack config, or Tiled map pay
 
 Do not make the tests accept both old and new strings.
 
-- [ ] **Step 3: Fix door traversal default map id mismatch**
+- [x] **Step 3: Fix door traversal default map id mismatch**
 
 In `tests/unit/mmo/server-door-traversal.test.ts`, the fixture currently resolves only `mapId === 'world'`. Production defaults are now `world_01`. Update the fixture to implement:
 
@@ -529,7 +529,7 @@ isValidPositionForMap(mapId: string, x: number, y: number) {
 
 If production code still fails with that fixture, inspect `server/world/ecs-command-pipeline.ts:2853-2909` and `server/world/ecs-command-pipeline/core-module-registry.ts:321-367` for mismatched raw `{ x, y }` vs `GridPos` and missing `MapId` state updates.
 
-- [ ] **Step 4: Fix chunk resync version-gap behavior**
+- [x] **Step 4: Fix chunk resync version-gap behavior**
 
 Inspect `server/world/ecs-command-pipeline/chunk-aoi-streaming.ts:536-653`. Preserve this invariant:
 
@@ -549,7 +549,9 @@ if (known !== delta.fromVersion) {
 
 If the current failure remains, inspect `ChunkOverlayStore.drainPendingDeltaForChunk` and test fixture map id. The test currently uses `makeScopedChunkKey('world', 0, 0)` while many defaults are `world_01`. Make the test and fixture use one explicit map id consistently.
 
-- [ ] **Step 5: Verify focused tests**
+Result: root cause was stale `world` fixture state. `tests/unit/mmo/server-chunk-resync-fallback.test.ts` now mutates the actual `world_01` scoped chunk key.
+
+- [x] **Step 5: Verify focused tests**
 
 Run:
 
@@ -563,7 +565,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 6: Verify full tests**
+- [x] **Step 6: Verify full tests**
 
 Run:
 
@@ -577,7 +579,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 

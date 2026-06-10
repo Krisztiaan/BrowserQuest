@@ -77,3 +77,25 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk git commit -m "fix: restore lint baseline"`: committed Ticket 0.3.
 - Next action:
   - Proceed to Ticket 0.4 test baseline.
+
+### 2026-06-10 11:32 - Ticket 0.4 Restore Current Unit and Smoke Test Baseline
+
+- Status: done
+- Scope:
+  - Refresh and fix the focused smoke/unit failures listed in `PLAN.md`.
+  - Preserve the intended startup-preflight, door teleport, and chunk resync semantics.
+- Key actions:
+  - Ticket 0.3 committed as `22916e8 fix: restore lint baseline`.
+  - Updated smoke tests to assert the canonical runtime map source error and reason.
+  - Confirmed door traversal focused tests already pass under the current `world_01` fixture from Ticket 0.2.
+  - Fixed stale `world` scoped fixtures in chunk resync, chunk AOI pruning, and transitional C2S teleport allowlist tests.
+- Evidence:
+  - `rtk bun test tests/smoke/server/config-preflight.test.ts tests/smoke/server/config-preflight-entry.test.ts tests/unit/mmo/server-door-traversal.test.ts tests/unit/mmo/server-chunk-resync-fallback.test.ts --timeout 20000`: initially failed 3 tests, then passed 10 pass / 0 fail after smoke wording and chunk scoped-key fixes.
+  - `rtk bun test --timeout 20000`: initially failed 2 additional stale `world` fixture tests, then passed 619 pass / 1 skip / 0 fail across 620 tests.
+  - `rtk bun test ./tests/unit/mmo/server-chunk-aoi-snapshots.test.ts ./tests/unit/mmo/server-c2s-teleport-deny.test.ts --timeout 20000`: passed 4 pass / 0 fail after stale map-id fixture fixes.
+  - `rtk bun run lint`: passed.
+  - `rtk bun run typecheck`: passed.
+  - `rtk bun run format:check`: passed.
+  - `rtk git commit -m "fix: restore test baseline"`: committed Ticket 0.4.
+- Next action:
+  - Proceed to Ticket 0.5 dependency audit baseline.
