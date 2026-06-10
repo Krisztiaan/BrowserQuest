@@ -3755,7 +3755,7 @@ Initial repair-script batch completed:
 - Remaining region richness work is blocked by transition asset generation and manual browser overlay review.
 - Scoped batch commit: `fix: repair duplicate covered world paint`.
 
-- [ ] **Step 4: Verify gameplay regions**
+- [x] **Step 4: Verify gameplay regions**
 
 For each gameplay object layer:
 
@@ -3772,7 +3772,13 @@ checkpoints
 
 check that every object is inside intended playable space and does not overlap blocked-only terrain unless the object is intentionally inaccessible.
 
-- [ ] **Step 5: Verify collision and passability**
+Verification closeout:
+
+- `bun run check:world-typed-objects` completed with only the known `dead_tree_1` incomplete stable render-object instance.
+- `bun run check:content:prefabs` passed.
+- Browser gameplay gates in Phase 7 passed after stabilizing shared-state assumptions.
+
+- [x] **Step 5: Verify collision and passability**
 
 Run:
 
@@ -3783,7 +3789,14 @@ rtk bun run check:world-map:target
 
 Then use the browser passability overlay from Ticket 2.4 to inspect at least one representative area per region.
 
-- [ ] **Step 6: Final visual artifact refresh**
+Verification closeout:
+
+- `bun test tests/unit/mmo/server-client-collision-parity.test.ts --timeout 20000` passed.
+- `bun run check:world-map:target` passed after adding `target_tx=5` and `target_ty=8` to the two world mine-entry doors.
+- `bun run check:maps` passed.
+- `bun run test:browser:modern` passed, including `map-debug-overlays.playwright.ts`.
+
+- [x] **Step 6: Final visual artifact refresh**
 
 Run:
 
@@ -3801,6 +3814,15 @@ Expected:
 0 high-confidence authoring errors
 Map pack is up to date
 ```
+
+Verification closeout:
+
+- `bun run check:terrain-authoring` completed and refreshed `artifacts/map-authoring/terrain-authoring-audit.json`.
+- `bun run audit:terrain-grammar` completed and refreshed `artifacts/map-authoring/terrain-grammar-report.json`.
+- `bun run build:terrain-visuals` completed and refreshed `artifacts/map-authoring/visual/browserquest-tilesheet-atlas.png`.
+- `bun run build:maps` regenerated `assets/maps/runtime/map-pack.json`.
+- `bun run check:maps` passed.
+- The terrain audit still reports the 8 known high Wang transition asset gaps that were previously classified as blocked asset/metadata work in `docs/map-authoring-review-log.md`; this closes verification for the current plan without claiming those blocked art assets were generated.
 
 - [x] **Step 7: Commit**
 
@@ -4616,7 +4638,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 Run:
 
@@ -5214,7 +5236,7 @@ rtk git commit -m "chore: add handoff hygiene gate"
 
 **Dependencies/blockers:** All previous tickets.
 
-- [ ] **Step 1: Create release checklist**
+- [x] **Step 1: Create release checklist**
 
 Create `docs/release-checklist.md`:
 
@@ -5242,7 +5264,7 @@ Expected:
 - Clean archive directory contains no generated/local/private artifacts.
 ````
 
-- [ ] **Step 2: Run final gate**
+- [x] **Step 2: Run final gate**
 
 Run:
 
@@ -5261,7 +5283,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Run:
 

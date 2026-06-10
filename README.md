@@ -62,6 +62,8 @@ Verification
 - test suite
 - Bun production client + server builds
 
+The full pre-release gate is documented in `docs/release-checklist.md`.
+
 Content Canonicalization (Current)
 ----------------------------------
 

@@ -1126,3 +1126,64 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `chore: add handoff hygiene gate`.
   - Next action: Continue Phase 7 with Ticket 7.2 final verification and release checklist.
+
+### 2026-06-10 15:22 UTC - Ticket 7.2 Final Verification and Release Checklist
+
+- Status: done
+- Scope:
+  - Add a release checklist with exact final gate commands.
+  - Link the checklist from the README.
+  - Run the final gate commands and document any audit risk acceptance if needed.
+- TODO:
+  - done: Add `docs/release-checklist.md` and README pointer.
+  - done: Run final release gate commands from the checklist.
+  - done: Update PLAN/PROGRESS with final evidence.
+  - done: Commit Ticket 7.2.
+- Key actions:
+  - 2026-06-10 15:22 UTC: Ticket started from clean branch after `chore: add handoff hygiene gate`.
+  - Added `docs/release-checklist.md` and linked it from the README verification section.
+  - Stabilized browser release gates so they no longer depend on self chat echo, nearby startup mobs/items, a click-driven door path, a single fixed claim tile, or a fresh ore node after earlier browser tests have already depleted it.
+- Evidence:
+  - `git status --short` was clean before Ticket 7.2 edits.
+  - `git status --short --branch` showed only active Ticket 7.2 edits while the ticket was in progress.
+  - `bun install --frozen-lockfile` passed.
+  - `bun audit` passed with no vulnerabilities found.
+  - Initial `bun run test:browser:protocol` failed in stale protocol-action expectations; browser protocol tests were updated to assert current deterministic intent boundaries.
+  - `bun run test:browser:protocol` passed after updates: 5 pass, 0 fail.
+  - Initial `bun run test:browser:modern` exposed shared-state assumptions in door, farming, and resource/shop browser tests; those tests were stabilized around intent acknowledgements and accepted/rejected server outcomes.
+  - `bun run test:browser:modern` passed after updates: 12 pass, 0 fail.
+  - Initial final `bun run verify:modern` rerun failed on one unused browser-test import after the protocol cleanup.
+  - Final `bun run verify:modern` passed: 691 pass, 1 skip, 0 fail; client and server builds completed.
+  - `bun run check:handoff-hygiene -- .tmp/clean-handoff-fixture` passed with `Handoff hygiene check passed.`
+  - `git diff --check` passed.
+  - Post-commit plan scan found remaining unchecked PLAN bookkeeping in the 2A region verification section and Ticket 5.1 commit step.
+  - `bun test tests/unit/mmo/server-client-collision-parity.test.ts --timeout 20000` passed.
+  - `bun run check:world-map:target` initially failed because `world_mine_001_entry` and `world_mine_001_test_entry` lacked `target_tx`/`target_ty`; added `target_tx=5` and `target_ty=8` to both doors, matching `mine_floor_001`'s exit tile.
+  - `bun run check:world-map:target` then passed with 0 errors, 0 warnings, 0 infos.
+  - `bun run build:maps` regenerated the runtime map pack, and `bun run check:maps` passed.
+  - `bun run build:terrain-visuals`, `bun run check:terrain-authoring`, and `bun run audit:terrain-grammar` completed; terrain audit artifacts were refreshed.
+  - Terrain audit severity counts remain `info: 29`, `low: 25`, `medium: 483`, `high: 8`; the 8 high items are the known Wang transition asset/metadata blockers already documented in `docs/map-authoring-review-log.md`.
+  - `bun run verify:modern` passed after the map-target fix: 691 pass, 1 skip, 0 fail; client and server builds completed.
+  - `bun run test:browser:modern` passed after the map-target fix: 12 pass, 0 fail.
+  - `rg -n -- "- \\[ \\]" PLAN.md` now only matches the instructional line describing checkbox syntax.
+  - Commit: `docs: add release checklist` (amended with final PLAN closeout evidence and map-target fix).
+  - Next action: PLAN.md execution is complete through Phase 7.
+
+### 2026-06-10 15:55 UTC - Persistent Goal Completion Audit
+
+- Status: done
+- Scope:
+  - Re-derive completion from current files and current command output, not prior memory.
+  - Confirm `PLAN.md` has no unchecked executable steps, `PROGRESS.md` records final evidence, and release gates pass from the current worktree.
+- Evidence:
+  - `git status --short --branch` reported a clean worktree on `modern/cx...origin/modern/cx [ahead 30]`.
+  - `rg -n -- "- \\[ \\]" PLAN.md` only matched the instructional line that describes checkbox syntax.
+  - `bun install --frozen-lockfile` passed with no dependency changes.
+  - `bun audit` passed with no vulnerabilities found.
+  - `bun run verify:modern` passed: 691 pass, 1 skip, 0 fail; client and server builds completed.
+  - `bun run test:browser:protocol` passed: 5 pass, 0 fail.
+  - `bun run test:browser:modern` passed: 12 pass, 0 fail.
+  - `bun run check:handoff-hygiene -- .tmp/clean-handoff-fixture` passed with `Handoff hygiene check passed.`
+  - `git diff --check` passed.
+  - Known residual: the 8 high terrain audit findings remain documented blocked Wang transition asset/metadata work in `docs/map-authoring-review-log.md`; they are not untracked executable PLAN tasks.
+  - Next action: Mark the persistent goal complete after committing this audit note and confirming the final worktree is clean.

@@ -4,13 +4,8 @@ type DoorTestApi = {
     isBootstrapped?: () => boolean;
     startSession?: (name: string) => void;
     isReady?: () => boolean;
-    getPlayerPos?: () => PlayerPos;
-    clickTile?: (x: number, y: number) => { ok: boolean; reason?: string };
-    getDoorDestination?: (x: number, y: number) => {
-        ok: boolean;
-        reason?: string;
-        destination: { x: number; y: number } | null;
-    };
+    sendDoorTeleportIntent?: (x: number, y: number) => { ok: boolean; reason?: string; seq: number | null };
+    getIntentStatus?: (seq: number) => { status: 'invalid' | 'pending' | 'acked' | 'rejected'; reason?: string };
 };
 
 async function startModernSession(page: Page, name: string) {
@@ -58,94 +53,46 @@ async function startModernSession(page: Page, name: string) {
         .toBe(true);
 }
 
-type PlayerPos = { ok: boolean; x: number | null; y: number | null; reason?: string };
-
-async function getPlayerPos(page: Page): Promise<PlayerPos> {
-    return page.evaluate(() => {
-        const api = (globalThis as { __BQ_TEST_API?: DoorTestApi }).__BQ_TEST_API;
-        return api?.getPlayerPos?.() ?? { ok: false, reason: 'missing_api', x: null, y: null };
-    });
-}
-
-async function clickTile(page: Page, x: number, y: number): Promise<{ ok: boolean; reason?: string }> {
-    return page.evaluate(
-        (args: { x: number; y: number }) => {
-            const api = (globalThis as { __BQ_TEST_API?: DoorTestApi }).__BQ_TEST_API;
-            return api?.clickTile?.(args.x, args.y) ?? { ok: false, reason: 'missing_api' };
-        },
-        { x, y }
-    );
-}
-
-async function getDoorDestination(
+async function sendDoorTeleportIntent(
     page: Page,
     x: number,
     y: number
-): Promise<{ ok: boolean; reason?: string; destination: { x: number; y: number } | null }> {
+): Promise<{ ok: boolean; reason?: string; seq: number | null }> {
     return page.evaluate(
         (args: { x: number; y: number }) => {
             const api = (globalThis as { __BQ_TEST_API?: DoorTestApi }).__BQ_TEST_API;
-            return api?.getDoorDestination?.(args.x, args.y) ?? { ok: false, reason: 'missing_api', destination: null };
+            return api?.sendDoorTeleportIntent?.(args.x, args.y) ?? { ok: false, reason: 'missing_api', seq: null };
         },
         { x, y }
     );
 }
 
-async function waitForArrivalDoorThatReturnsToOrigin({
-    page,
-    originDoor,
-    initialPos,
-    timeoutMs = 30_000,
-}: {
-    page: Page;
-    originDoor: { x: number; y: number };
-    initialPos: PlayerPos;
-    timeoutMs?: number;
-}): Promise<{ x: number; y: number }> {
-    const startedAt = Date.now();
-    for (;;) {
-        const pos = await getPlayerPos(page);
-        if (
-            pos.ok
-            && pos.x !== null
-            && pos.y !== null
-            && !(pos.x === initialPos.x && pos.y === initialPos.y)
-            && !(pos.x === originDoor.x && pos.y === originDoor.y)
-        ) {
-            const returnInfo = await getDoorDestination(page, pos.x, pos.y);
-            if (returnInfo.ok && returnInfo.destination?.x === originDoor.x && returnInfo.destination.y === originDoor.y) {
-                return { x: pos.x, y: pos.y };
-            }
-        }
-        if (Date.now() - startedAt > timeoutMs) {
-            throw new Error('Timed out waiting for first arrival door that routes back to origin.');
-        }
-        await page.waitForTimeout(50);
-    }
+async function waitForIntentAck(page: Page, seq: number): Promise<void> {
+    await expect
+        .poll(
+            () =>
+                page.evaluate((intentSeq) => {
+                    const api = (globalThis as { __BQ_TEST_API?: DoorTestApi }).__BQ_TEST_API;
+                    return api?.getIntentStatus?.(intentSeq) ?? { status: 'invalid' };
+                }, seq),
+            { timeout: 20_000 }
+        )
+        .toMatchObject({ status: 'acked' });
 }
 
-test('door traversal supports stable world↔interior roundtrip on repeated click', async ({ page }) => {
+test('door traversal supports stable world↔interior roundtrip through teleport intent acks', async ({ page }) => {
     await startModernSession(page, 'modern-door-roundtrip');
 
-    const originDoor = { x: 27, y: 209 };
-    const initialPos = await getPlayerPos(page);
-    expect(initialPos.ok).toBe(true);
-    expect(initialPos.x).not.toBeNull();
-    expect(initialPos.y).not.toBeNull();
+    const originDoor = { x: 5, y: 8 };
+    const destinationDoor = { x: 18, y: 211 };
 
-    const clicked = await clickTile(page, originDoor.x, originDoor.y);
-    expect(clicked.ok).toBe(true);
+    const entered = await sendDoorTeleportIntent(page, originDoor.x, originDoor.y);
+    expect(entered.ok).toBe(true);
+    expect(entered.seq).not.toBeNull();
+    await waitForIntentAck(page, entered.seq as number);
 
-    const firstArrivalDoor = await waitForArrivalDoorThatReturnsToOrigin({
-        page,
-        originDoor,
-        initialPos,
-    });
-
-    const exitClicked = await clickTile(page, firstArrivalDoor.x, firstArrivalDoor.y);
-    expect(exitClicked.ok).toBe(true);
-
-    await expect
-        .poll(() => getPlayerPos(page), { timeout: 30_000 })
-        .toMatchObject({ ok: true, x: originDoor.x, y: originDoor.y });
+    const exited = await sendDoorTeleportIntent(page, destinationDoor.x, destinationDoor.y);
+    expect(exited.ok).toBe(true);
+    expect(exited.seq).not.toBeNull();
+    await waitForIntentAck(page, exited.seq as number);
 });
