@@ -2,6 +2,10 @@ import { expect, test } from 'bun:test';
 import Types from '../../../shared/gametypes-browser';
 import { checkClientToServerProtocolAction, isServerToClientProtocolAction } from '../../../shared/protocol/schema';
 import { encodeProtocolCapabilitiesJson } from '../../../shared/protocol/capabilities';
+import {
+    decodeClientToServerProtocolActionBatchBinary,
+    encodeServerToClientProtocolActionBatchBinary,
+} from '../../../shared/protocol/registry';
 import GameClient from '../../../client/gameclient';
 import Player from '../../../server/player';
 import { WorldEcsCommandPipeline } from '../../../server/world/ecs-command-pipeline';
@@ -44,6 +48,18 @@ test('protocol schema accepts HELLO capability extension and new INTENT envelope
 test('protocol schema rejects legacy C2S HIT/HURT actions', () => {
     expect(checkClientToServerProtocolAction([Types.Messages.HIT, 101])).toBe(false);
     expect(checkClientToServerProtocolAction([Types.Messages.HURT, 101])).toBe(false);
+});
+
+test('protocol schema rejects legacy C2S ATTACK actions', () => {
+    expect(checkClientToServerProtocolAction([Types.Messages.ATTACK, 101])).toBe(false);
+});
+
+test('binary client-to-server decoder rejects legacy ATTACK opcode', () => {
+    const frame = encodeServerToClientProtocolActionBatchBinary([[Types.Messages.ATTACK, 1, 2]]);
+    const c2sAttackFrame = frame.slice();
+    c2sAttackFrame[8] = 0;
+
+    expect(decodeClientToServerProtocolActionBatchBinary(c2sAttackFrame)).toEqual([]);
 });
 
 test('protocol schema accepts WELCOME capability extension and new OUTCOME/REJECT envelopes', () => {

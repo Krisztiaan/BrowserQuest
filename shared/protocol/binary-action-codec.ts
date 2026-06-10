@@ -443,7 +443,6 @@ function encodeClientToServerAction(writer: ByteWriter, action: WireAction): voi
             return;
         }
         case Types.Messages.AGGRO:
-        case Types.Messages.ATTACK:
         case Types.Messages.LOOT:
         case Types.Messages.OPEN:
         case Types.Messages.CHECK:
@@ -892,7 +891,6 @@ function decodeClientToServerActionFromOpcode(opcode: number, reader: ByteReader
             return [opcode, pos.x, pos.y, targetId];
         }
         case Types.Messages.AGGRO:
-        case Types.Messages.ATTACK:
         case Types.Messages.LOOT:
         case Types.Messages.OPEN:
         case Types.Messages.CHECK:
@@ -1148,7 +1146,6 @@ function skipClientToServerActionFromOpcode(opcode: number, reader: ByteReader):
             return;
         }
         case Types.Messages.AGGRO:
-        case Types.Messages.ATTACK:
         case Types.Messages.LOOT:
         case Types.Messages.OPEN:
         case Types.Messages.CHECK:

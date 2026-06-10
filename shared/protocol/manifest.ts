@@ -35,7 +35,6 @@ export const CLIENT_TO_SERVER_PROTOCOL_MANIFEST = [
     },
     { key: 'LOOTMOVE', opcode: Types.Messages.LOOTMOVE, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n', 'n', 'n'] } },
     { key: 'AGGRO', opcode: Types.Messages.AGGRO, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
-    { key: 'ATTACK', opcode: Types.Messages.ATTACK, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'CHAT', opcode: Types.Messages.CHAT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['s'] } },
     { key: 'LOOT', opcode: Types.Messages.LOOT, direction: 'client_to_server', schema: { kind: 'fixed', args: ['n'] } },
     { key: 'WHO', opcode: Types.Messages.WHO, direction: 'client_to_server', schema: { kind: 'varargs', minArgs: 1, arg: 'n' } },

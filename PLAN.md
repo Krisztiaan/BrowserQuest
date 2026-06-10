@@ -3901,7 +3901,7 @@ Commit: `feat: generate shoreline transition prototype`.
 
 **Dependencies/blockers:** Phase 0.
 
-- [ ] **Step 1: Add failing schema assertion**
+- [x] **Step 1: Add failing schema assertion**
 
 In `tests/unit/mmo/protocol-capabilities.test.ts`, add:
 
@@ -3911,7 +3911,7 @@ test('protocol schema rejects legacy C2S ATTACK actions', () => {
 });
 ```
 
-- [ ] **Step 2: Remove manifest entry**
+- [x] **Step 2: Remove manifest entry**
 
 In `shared/protocol/manifest.ts`, remove this line from `CLIENT_TO_SERVER_PROTOCOL_MANIFEST`:
 
@@ -3925,17 +3925,17 @@ Keep the server-to-client entry:
 { key: 'ATTACK', opcode: Types.Messages.ATTACK, direction: 'server_to_client', schema: { kind: 'fixed', args: ['n', 'n'] } },
 ```
 
-- [ ] **Step 3: Update binary codec direction tables**
+- [x] **Step 3: Update binary codec direction tables**
 
 In `shared/protocol/binary-action-codec.ts`, remove `Types.Messages.ATTACK` from the client-to-server fixed single-number action cases. Keep it in server-to-client cases.
 
-- [ ] **Step 4: Update tests**
+- [x] **Step 4: Update tests**
 
 In `tests/browser/modern-protocol-actions.playwright.ts`, replace assertions that count sent C2S `MSG_ATTACK` with assertions that the sent action is `MSG_INTENT` and the intent type decodes to `attack.entity`.
 
 Use the existing intent codec helpers if present. If not, decode the intent payload using `shared/protocol/intents.ts` utilities rather than hard-coded bytes.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -3950,7 +3950,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

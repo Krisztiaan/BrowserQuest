@@ -41,10 +41,6 @@ export function createAggroAction(mobId: number): OutboundAction<typeof Types.Me
     return [Types.Messages.AGGRO, mobId];
 }
 
-export function createAttackAction(mobId: number): OutboundAction<typeof Types.Messages.ATTACK> {
-    return [Types.Messages.ATTACK, mobId];
-}
-
 export function createChatAction(text: string): OutboundAction<typeof Types.Messages.CHAT> {
     return [Types.Messages.CHAT, text];
 }

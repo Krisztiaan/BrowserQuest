@@ -11,6 +11,7 @@ generated
 .tmp
 *.tsbuildinfo
 server/.tmp-config.payload-*.json
+server/.tmp-config.playwright.json
 server/.data
 .worktrees
 

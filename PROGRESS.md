@@ -743,7 +743,7 @@ This is the live execution notebook for `PLAN.md`.
 
 ### 2026-06-10 12:38 UTC - Ticket 2A.7 Generate First Deterministic Transition Prototype
 
-- Status: in_progress
+- Status: done
 - Scope:
   - Generate a non-runtime shoreline transition prototype sheet.
   - Record source tile IDs, GIDs, shapes, and masks in deterministic metadata.
@@ -770,3 +770,36 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `feat: generate shoreline transition prototype`.
   - Next action: Continue Ticket 2A.6 by reviewing the shoreline prototype and deciding whether to promote generated transition assets beyond prototypes.
+
+### 2026-06-10 12:42 UTC - Ticket 3.1 Remove Client-to-Server Legacy `ATTACK` From Schema
+
+- Status: in_progress
+- Scope:
+  - Remove legacy client-to-server `ATTACK` from protocol schema and binary C2S decoding.
+  - Keep server-to-client `ATTACK` broadcasts intact.
+  - Update tests to expect `INTENT attack.entity` for client combat.
+- TODO:
+  - done: Inspect protocol manifest, codec, and existing tests.
+  - done: Remove C2S `ATTACK` schema/codec support.
+  - done: Update unit, browser, and smoke protocol tests.
+  - done: Commit Ticket 3.1.
+- Key actions:
+  - 2026-06-10 12:42 UTC: Ticket started.
+  - Removed client-to-server `ATTACK` from `CLIENT_TO_SERVER_PROTOCOL_MANIFEST`, C2S protocol action types, binary C2S encode/decode/skip paths, and player-session dispatch opcode coverage.
+  - Removed dead client `createAttackAction`; client combat remains `INTENT attack.entity`.
+  - Kept server-to-client `ATTACK` schema, codec, and browser assertions for received attack broadcasts.
+  - Updated browser protocol observer and replay invariant to decode/send FixedBin frames instead of JSON gameplay frames.
+  - Updated modern gameplay parity smoke to send `INTENT attack.entity`.
+  - Added `.gitignore` coverage for generated `server/.tmp-config.playwright.json`.
+  - Resolved verification environment issue: stale repo-local Bun server on port 8000 was stopped with approval; generated Playwright traces filled disk during debugging and generated `dist` artifacts were removed.
+- Evidence:
+  - `bun test tests/unit/mmo/protocol-capabilities.test.ts tests/unit/player-session.test.ts tests/unit/protocol/registry.test.ts --timeout 20000` passed: 28 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `bun run test:browser:protocol -- --grep "modern browser receives HEALTH"` passed: 1 pass, 0 fail.
+  - `bun run test:browser:protocol` passed: 6 pass, 0 fail.
+  - `bun run test:modern-parity` passed: 1 pass, 0 fail.
+  - `git diff --check` passed.
+  - Commit: `fix: remove legacy client attack opcode`.
+  - Next action: Continue Phase 3 with Ticket 3.2 server-authoritative combat contract.

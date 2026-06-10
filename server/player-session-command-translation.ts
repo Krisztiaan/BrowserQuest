@@ -144,10 +144,6 @@ export function translateClientActionToCommand(
                 return null;
             }
         }
-        case Types.Messages.ATTACK: {
-            closeInvalidPayload('Legacy ATTACK opcode is unsupported. Use INTENT attack.entity.');
-            return null;
-        }
         case Types.Messages.LOOT: {
             const droppedItemId = message[1];
             if (typeof droppedItemId !== 'number') {

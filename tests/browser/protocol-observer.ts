@@ -1,5 +1,9 @@
 import type { Page } from '@playwright/test';
 import { MSG_CHAT, parseProtocolActionBatch, type ProtocolParsedAction } from '../support/protocol/contract';
+import {
+    decodeClientToServerProtocolActionBatchBinary,
+    decodeServerToClientProtocolActionBatchBinary,
+} from '../../shared/protocol/registry';
 
 type ProtocolObserverOptions = {
     wsUrlSubstring?: string;
@@ -15,6 +19,10 @@ export type ProtocolObserver = {
     getGoCount: () => number;
     getSocketCount: () => number;
 };
+
+function toBinaryPayload(payload: string | Buffer): Uint8Array | null {
+    return typeof payload === 'string' ? null : new Uint8Array(payload);
+}
 
 export function attachProtocolObserver(page: Page, options?: ProtocolObserverOptions): ProtocolObserver {
     // Default to matching the canonical `/ws` endpoint. Playwright now runs against
@@ -36,8 +44,11 @@ export function attachProtocolObserver(page: Page, options?: ProtocolObserverOpt
         socketCount += 1;
 
         ws.on('framesent', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            const actions = parseProtocolActionBatch(text);
+            const binary = toBinaryPayload(payload);
+            const actions =
+                binary === null
+                    ? parseProtocolActionBatch(payload)
+                    : decodeClientToServerProtocolActionBatchBinary(binary);
             actions.forEach((action) => {
                 sentTypes.push(action[0]);
                 sentActions.push(action);
@@ -45,13 +56,25 @@ export function attachProtocolObserver(page: Page, options?: ProtocolObserverOpt
         });
 
         ws.on('framereceived', ({ payload }) => {
-            const text = typeof payload === 'string' ? payload : payload.toString();
-            if (text === 'go') {
-                goCount += 1;
+            const binary = toBinaryPayload(payload);
+            if (binary === null) {
+                if (payload === 'go') {
+                    goCount += 1;
+                    return;
+                }
+
+                const actions = parseProtocolActionBatch(payload);
+                actions.forEach((action) => {
+                    receivedTypes.push(action[0]);
+                    receivedActions.push(action);
+                    if (trackChats && action[0] === MSG_CHAT && typeof action[2] === 'string') {
+                        receivedChats.push(action[2]);
+                    }
+                });
                 return;
             }
 
-            const actions = parseProtocolActionBatch(text);
+            const actions = decodeServerToClientProtocolActionBatchBinary(binary);
             actions.forEach((action) => {
                 receivedTypes.push(action[0]);
                 receivedActions.push(action);

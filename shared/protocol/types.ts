@@ -9,7 +9,6 @@ export type ClientToServerHelloAction =
     | [typeof Types.Messages.HELLO, string, number, number, number, string];
 export type ClientToServerLootMoveAction = [typeof Types.Messages.LOOTMOVE, number, number, number];
 export type ClientToServerAggroAction = [typeof Types.Messages.AGGRO, number];
-export type ClientToServerAttackAction = [typeof Types.Messages.ATTACK, number];
 export type ClientToServerChatAction = [typeof Types.Messages.CHAT, string];
 export type ClientToServerLootAction = [typeof Types.Messages.LOOT, number];
 export type ClientToServerWhoAction = [typeof Types.Messages.WHO, ...number[]];
@@ -25,7 +24,6 @@ export type ClientToServerProtocolAction =
     | ClientToServerHelloAction
     | ClientToServerLootMoveAction
     | ClientToServerAggroAction
-    | ClientToServerAttackAction
     | ClientToServerChatAction
     | ClientToServerLootAction
     | ClientToServerWhoAction

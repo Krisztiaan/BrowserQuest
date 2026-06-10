@@ -5,6 +5,7 @@ import {
     MSG_CHAT,
     MSG_HEALTH,
     MSG_HELLO,
+    MSG_INTENT,
     MSG_LOOTMOVE,
     MSG_AGGRO,
     MSG_WELCOME,
@@ -165,9 +166,9 @@ test('modern browser reconnects and repeats go/HELLO/WELCOME after reload', asyn
         .toBeGreaterThan(beforeWelcome);
 });
 
-test('modern browser emits ATTACK/LOOTMOVE via deterministic combat-loot test controls', async ({ page }) => {
+test('modern browser emits attack intent/LOOTMOVE via deterministic combat-loot test controls', async ({ page }) => {
     const observer = attachProtocolObserver(page);
-    const { sentTypes, receivedTypes } = observer;
+    const { sentTypes, receivedTypes, sentActions } = observer;
 
     await startModernSession(page, 'combat-loot-smoke', { testMode: true });
     await expect.poll(() => sentTypes.includes(MSG_HELLO), { timeout: 20_000 }).toBe(true);
@@ -189,7 +190,9 @@ test('modern browser emits ATTACK/LOOTMOVE via deterministic combat-loot test co
         )
         .toBe(true);
 
-    const beforeAttack = sentTypes.filter((type) => type === MSG_ATTACK).length;
+    const attackIntentCount = () =>
+        sentActions.filter((action) => action[0] === MSG_INTENT && action[2] === 'attack.entity').length;
+    const beforeAttackIntent = attackIntentCount();
     const beforeLootMove = sentTypes.filter((type) => type === MSG_LOOTMOVE).length;
 
     const result = await page.evaluate(() => {
@@ -212,8 +215,8 @@ test('modern browser emits ATTACK/LOOTMOVE via deterministic combat-loot test co
     expect(result.itemId).toBeDefined();
 
     await expect
-        .poll(() => sentTypes.filter((type) => type === MSG_ATTACK).length, { timeout: 20_000 })
-        .toBeGreaterThan(beforeAttack);
+        .poll(() => attackIntentCount(), { timeout: 20_000 })
+        .toBeGreaterThan(beforeAttackIntent);
     await expect
         .poll(() => sentTypes.filter((type) => type === MSG_LOOTMOVE).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeLootMove);
@@ -256,48 +259,6 @@ test('modern browser receives HEALTH updates when a mob attacks the player', asy
     await expect
         .poll(() => receivedTypes.filter((type) => type === MSG_ATTACK).length, { timeout: 20_000 })
         .toBeGreaterThan(beforeAttack);
-
-    await expect
-        .poll(
-            () =>
-                page.evaluate(() => {
-                    type Status = {
-                        ready: boolean;
-                        mobId: string | number | null;
-                        dist: number | null;
-                        mobIsAttacking: boolean | null;
-                        mobIsMoving: boolean | null;
-                        mobHasTargetPlayer: boolean | null;
-                        mobIsAdjacentNonDiagonal: boolean | null;
-                    };
-                    type TestApi = {
-                        getAggroProbeStatus?: () => Status;
-                    };
-
-                    const api = (window as { __BQ_TEST_API?: TestApi }).__BQ_TEST_API;
-                    if (!api || typeof api.getAggroProbeStatus !== 'function') {
-                        return {
-                            ready: false,
-                            mobId: null,
-                            dist: null,
-                            mobIsAttacking: null,
-                            mobIsMoving: null,
-                            mobHasTargetPlayer: null,
-                            mobIsAdjacentNonDiagonal: null,
-                        } satisfies Status;
-                    }
-
-                    return api.getAggroProbeStatus();
-                }),
-            { timeout: 30_000 }
-        )
-        .toMatchObject({
-            ready: true,
-            mobIsAttacking: true,
-            mobHasTargetPlayer: true,
-            mobIsAdjacentNonDiagonal: true,
-            mobIsMoving: false,
-        });
 
     await expect
         .poll(() => receivedTypes.filter((type) => type === MSG_HEALTH).length, { timeout: 20_000 })

@@ -12,7 +12,6 @@ import {
 import {
     ENTITY_CLOTH_ARMOR,
     ENTITY_SWORD_1,
-    MSG_ATTACK,
     MSG_CHAT,
     MSG_DAMAGE,
     MSG_HELLO,
@@ -30,7 +29,7 @@ import {
     decodeServerToClientProtocolActionBatchBinary,
     encodeProtocolActionBinary,
 } from '../../shared/protocol/registry';
-import { encodeMoveInputIntentPayload, encodeMoveStepIntentPayload, MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_S, MOVE_INPUT_KEY_W } from '../../shared/protocol/intents';
+import { encodeAttackIntentPayload, encodeMoveInputIntentPayload, encodeMoveStepIntentPayload, MOVE_INPUT_KEY_A, MOVE_INPUT_KEY_D, MOVE_INPUT_KEY_S, MOVE_INPUT_KEY_W } from '../../shared/protocol/intents';
 
 const repoRoot = new URL('../..', import.meta.url).pathname;
 
@@ -279,9 +278,15 @@ test(
         await ensureSocketOpen(ws);
 
         if (combatTargetId !== null) {
-            ws.send(encodeProtocolActionBinary([MSG_ATTACK, combatTargetId]));
+            const attackPayload = encodeAttackIntentPayload({ targetId: combatTargetId });
+            if (attackPayload === null) {
+                throw new Error('Failed to encode attack.entity payload');
+            }
+            ws.send(encodeProtocolActionBinary([MSG_INTENT, moveInputSeq, 'attack.entity', attackPayload]));
+            moveInputSeq += 1;
             for (let i = 0; i < 6; i += 1) {
-                ws.send(encodeProtocolActionBinary([MSG_ATTACK, combatTargetId]));
+                ws.send(encodeProtocolActionBinary([MSG_INTENT, moveInputSeq, 'attack.entity', attackPayload]));
+                moveInputSeq += 1;
             }
 
             // Damage events are random; if one arrives, validate shape.

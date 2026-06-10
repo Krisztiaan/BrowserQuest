@@ -160,15 +160,6 @@ test('player session translates ACHIEVEMENT messages into ECS commands for activ
     }
 });
 
-test('player session rejects legacy ATTACK opcode and does not enqueue command', () => {
-    const fixture = createSessionFixture({ isActive: true, isDead: false });
-
-    fixture.send([Types.Messages.ATTACK, 13]);
-
-    expect(fixture.commands).toEqual([]);
-    expect(fixture.invalidReasons).toContain('Legacy ATTACK opcode is unsupported. Use INTENT attack.entity.');
-});
-
 test('player session closes invalid payload when world backpressure rejects enqueue', () => {
     const fixture = createSessionFixture({ isActive: true, isDead: false, enqueueCommandAccepted: false });
 

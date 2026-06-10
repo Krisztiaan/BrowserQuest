@@ -9,7 +9,6 @@ export const PLAYER_SESSION_DISPATCH_OPCODES = [
     Types.Messages.CHAT,
     Types.Messages.LOOTMOVE,
     Types.Messages.AGGRO,
-    Types.Messages.ATTACK,
     Types.Messages.LOOT,
     Types.Messages.OPEN,
     Types.Messages.CHECK,
