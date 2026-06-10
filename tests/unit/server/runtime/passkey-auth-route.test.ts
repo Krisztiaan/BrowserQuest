@@ -10,7 +10,7 @@ function createValidConfig() {
         debug_level: 'info' as const,
         nb_players_per_world: 200,
         nb_worlds: 1,
-        map_filepath: './assets/maps/tiled/world.json',
+        map_filepath: './assets/maps/tiled/map-pack.config.json',
         metrics_enabled: false,
         player_db_path: ':memory:',
     };

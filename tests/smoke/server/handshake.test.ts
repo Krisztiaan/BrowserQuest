@@ -52,7 +52,7 @@ test("server sends initial 'go' handshake", async () => {
         debug_level: 'error',
         nb_players_per_world: 5,
         nb_worlds: 1,
-        map_filepath: './assets/maps/tiled/world.json',
+        map_filepath: './assets/maps/tiled/map-pack.config.json',
         metrics_enabled: false,
     });
 });
@@ -65,7 +65,7 @@ test('server keeps handshake path when metrics are enabled but adapter is unavai
         debug_level: 'error',
         nb_players_per_world: 5,
         nb_worlds: 1,
-        map_filepath: './assets/maps/tiled/world.json',
+        map_filepath: './assets/maps/tiled/map-pack.config.json',
         metrics_enabled: true,
         memcached_host: '127.0.0.1',
         memcached_port: 11211,
@@ -82,7 +82,7 @@ test('server keeps handshake path when metrics are enabled with invalid metrics 
         debug_level: 'error',
         nb_players_per_world: 5,
         nb_worlds: 1,
-        map_filepath: './assets/maps/tiled/world.json',
+        map_filepath: './assets/maps/tiled/map-pack.config.json',
         metrics_enabled: true,
     });
 });

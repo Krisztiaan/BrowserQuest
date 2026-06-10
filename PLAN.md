@@ -1655,7 +1655,7 @@ rtk git commit -m "chore: add clean base state gate"
 
 **Dependencies/blockers:** Phase 0.
 
-- [ ] **Step 1: Write config-focused tests**
+- [x] **Step 1: Write config-focused tests**
 
 Add or update a test in `tests/unit/server/runtime/factories.test.ts` asserting the configured map path is passed through unchanged:
 
@@ -1684,7 +1684,7 @@ test('main runtime createWorlds passes configured map-pack config path to worlds
 
 Adapt helper names to the actual exports in `tests/unit/server/runtime/factories.test.ts`.
 
-- [ ] **Step 2: Update config files**
+- [x] **Step 2: Update config files**
 
 Change:
 
@@ -1700,7 +1700,7 @@ to:
 
 in both `server/config.json` and `server/config_local.json-dist`.
 
-- [ ] **Step 3: Update docs**
+- [x] **Step 3: Update docs**
 
 In `README.md`, update the server config section to state:
 
@@ -1708,7 +1708,7 @@ In `README.md`, update the server config section to state:
 Runtime map loading uses `assets/maps/tiled/map-pack.config.json` as the default source. The pack config lists authored Tiled maps and compiles them into the client/server runtime map-pack payload. `assets/maps/tiled/world.json` remains an authoring input, not the configured production source.
 ```
 
-- [ ] **Step 4: Update tests that represent production config**
+- [x] **Step 4: Update tests that represent production config**
 
 Search:
 
@@ -1724,7 +1724,7 @@ map_filepath: './assets/maps/tiled/map-pack.config.json'
 
 For tests that intentionally verify raw Tiled bootstrap, keep `world.json` and rename the test to include `raw Tiled map compatibility`.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -1740,7 +1740,7 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

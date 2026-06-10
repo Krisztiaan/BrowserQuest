@@ -94,7 +94,7 @@ test('map preflight helper accepts readable valid map-pack JSON files', async ()
     let failCode: number | null = null;
 
     const isValid = await ensureMapPreflightValid({
-        activeConfig: { map_filepath: './assets/maps/tiled/world.json' },
+        activeConfig: { map_filepath: './assets/maps/tiled/map-pack.config.json' },
         emitError: (message) => errors.push(message),
         fail: (code) => {
             failCode = code;
@@ -137,7 +137,7 @@ test('map preflight helper accepts valid map-pack payloads and validates nested 
     const validations: unknown[] = [];
 
     const isValid = await ensureMapPreflightValid({
-        activeConfig: { map_filepath: './assets/maps/tiled/world.json' },
+        activeConfig: { map_filepath: './assets/maps/tiled/map-pack.config.json' },
         emitError: (message) => errors.push(message),
         fail: (code) => {
             failCode = code;
@@ -184,7 +184,7 @@ test('map preflight helper fails fast for invalid runtime map source payloads', 
     let failCode: number | null = null;
 
     const isValid = await ensureMapPreflightValid({
-        activeConfig: { map_filepath: './assets/maps/tiled/world.json' },
+        activeConfig: { map_filepath: './assets/maps/tiled/map-pack.config.json' },
         emitError: (message) => errors.push(message),
         fail: (code) => {
             failCode = code;
@@ -202,7 +202,7 @@ test('map preflight helper fails fast for invalid runtime map source payloads', 
     expect(isValid).toBe(false);
     expect(failCode).toBe(1);
     expect(errors).toEqual([
-        'Startup preflight: runtime map source is invalid: ./assets/maps/tiled/world.json (Invalid runtime map config: no maps declared.)',
+        'Startup preflight: runtime map source is invalid: ./assets/maps/tiled/map-pack.config.json (Invalid runtime map config: no maps declared.)',
     ]);
 });
 

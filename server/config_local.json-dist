@@ -4,7 +4,7 @@
     "nb_players_per_world": 2000,
     "nb_worlds": 1,
     "updates_per_second": 30,
-    "map_filepath": "./assets/maps/tiled/world.json",
+    "map_filepath": "./assets/maps/tiled/map-pack.config.json",
     "metrics_enabled": false,
     "chunk_size": 32,
     "chunk_overlay_db_path": "./server/.data/chunk-overlays.{worldId}.sqlite",

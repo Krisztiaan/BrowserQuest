@@ -62,7 +62,7 @@ export async function spawnLocalServer({
                 debug_level: 'error',
                 nb_players_per_world: 200,
                 nb_worlds: 1,
-                map_filepath: './assets/maps/tiled/world.json',
+                map_filepath: './assets/maps/tiled/map-pack.config.json',
                 metrics_enabled: false,
                 player_db_path: ':memory:',
                 chunk_overlay_db_path: ':memory:',

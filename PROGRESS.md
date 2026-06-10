@@ -13,8 +13,8 @@ This is the live execution notebook for `PLAN.md`.
 
 ## Current Working Tree Snapshot
 
-- `PLAN.md` is untracked plan work from the planning phase.
-- `EXTERNAL-AUDIT.md` is untracked external evidence from the audit phase.
+- 2026-06-10 10:44 UTC: `git status --short --branch` shows clean branch `modern/cx...origin/modern/cx`.
+- `rtk` is not available in this shell (`zsh:1: command not found: rtk`), so verification commands in this session use the underlying `bun`/`git` commands directly and record that substitution.
 
 ## Ticket Log
 
@@ -238,3 +238,39 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk git diff --check`: passed.
 - Next action:
   - Proceed to Phase 1 runtime map-pack source-of-truth work.
+
+### 2026-06-10 10:44 UTC - Ticket 1.1 Runtime Config Loads `map-pack.config.json`
+
+- Status: done
+- Scope:
+  - Change default runtime config, tests, and docs so the server loads `assets/maps/tiled/map-pack.config.json`.
+  - Keep raw Tiled `world.json` support only where tests/tooling explicitly validate compatibility.
+  - Do not split interiors or disable `allow_missing_target_maps` in this ticket.
+- TODO:
+  - done: Update config-focused tests and runtime route wording for the map-pack config source.
+  - done: Update `server/config.json` and `server/config_local.json-dist`.
+  - done: Update README/server docs that still describe `world.json` as the runtime source.
+  - done: Update production-shaped server test/harness configs to use `map-pack.config.json`.
+  - done: Run focused tests plus `bun run check:maps`.
+  - done: Update `PLAN.md` checkboxes and final progress evidence.
+- Key actions:
+  - Confirmed clean branch state with `git status --short --branch`.
+  - Confirmed local command wrapper blocker: `rtk` is absent in this shell.
+  - Read Ticket 1.1 requirements and current runtime config/tests/docs.
+  - Changed default server configs to `./assets/maps/tiled/map-pack.config.json`.
+  - Updated runtime route/preflight/factory/health tests for the map-pack config runtime source.
+  - Updated server docs and production-shaped server smoke/harness config fixtures.
+  - Committed Ticket 1.1 with message `feat: use map-pack config as runtime map source`.
+- Evidence:
+  - `git status --short --branch`: `## modern/cx...origin/modern/cx`.
+  - `server/config.json` and `server/config_local.json-dist` use `./assets/maps/tiled/map-pack.config.json`.
+  - `tests/unit/server/runtime/runtime-map-pack-route.test.ts` describes the runtime route as a map-pack config source.
+  - `bun test tests/unit/server/runtime/runtime-map-pack-route.test.ts tests/unit/server/startup/preflight.test.ts tests/unit/server/runtime/factories.test.ts tests/smoke/server-health-version.test.ts --timeout 20000`: pass, 15 pass / 0 fail.
+  - `bun run check:maps`: pass, map pack is up to date.
+  - `bun run typecheck`: pass.
+  - `bun run lint`: pass.
+  - `bun run format:check`: pass.
+  - `git diff --check`: pass.
+  - `git commit -m "feat: use map-pack config as runtime map source"`: committed and amended with final live-doc metadata.
+- Next action:
+  - Proceed to Ticket 1.3 canonical map id work.

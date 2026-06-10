@@ -170,3 +170,50 @@ test('main runtime createWorlds assembles worlds and runs configured map path', 
     expect(onPlayerAddedCount).toBe(0);
     expect(onPlayerRemovedCount).toBe(0);
 });
+
+test('main runtime createWorlds passes configured map-pack config path to worlds', () => {
+    const created: Array<{ runPath?: string }> = [];
+
+    class FakeWorldServer implements RuntimeWorld {
+        playerCount = 0;
+
+        constructor(_name: string, _capacity: number, _server: RuntimeServer) {
+            created.push(this);
+        }
+
+        on(_eventName: 'ready' | 'playerAdded' | 'playerRemoved', _callback: () => void): void {
+            // no-op
+        }
+
+        emit(_eventName: 'playerConnect', _player: FakePlayer): void {
+            // no-op
+        }
+
+        run(path: string): void {
+            this.runPath = path;
+        }
+
+        updatePopulation(_totalPlayers?: number): void {
+            // no-op
+        }
+    }
+
+    const dependencies = MainRuntime.createRuntimeDependencies({
+        WorldServer: FakeWorldServer,
+        Player: FakePlayer,
+        metricsRuntime: {
+            createMetrics() {
+                return createDisabledMetrics();
+            },
+        },
+    });
+    const config = createValidConfig({ map_filepath: './assets/maps/tiled/map-pack.config.json' });
+    const server = new (class implements RuntimeServer {
+        on(_eventName: 'connect' | 'error', _callback: (...args: never[]) => void): void {}
+        onRequestStatus(_callback: () => string): void {}
+    })();
+
+    MainRuntime.createWorlds(config, server, dependencies);
+
+    expect(created[0]?.runPath).toBe('./assets/maps/tiled/map-pack.config.json');
+});
