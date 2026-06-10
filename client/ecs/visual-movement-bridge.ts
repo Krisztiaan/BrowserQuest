@@ -17,6 +17,12 @@ type VisualBridgeCharacterLike = {
     ): void;
 };
 
+type VisualBridgeEntityLike = {
+    x: number;
+    y: number;
+    setDirty(): void;
+};
+
 /**
  * Ticket 768:
  * This module is the first dedicated gameplay -> visual bridge surface.
@@ -25,7 +31,6 @@ type VisualBridgeCharacterLike = {
  * Remaining post-cycle residue:
  * - ordinary movement-facing/locomotion ownership now enters through the bridge, but combat/interaction explicit
  *   turns still bypass ordinary movement ownership intentionally.
- * - non-character entities still use legacy render mutation paths.
  * - teleports/discontinuities still enter through explicit discontinuity classes or `teleportEntity`.
  */
 
@@ -81,6 +86,16 @@ function resolveStickyMovementFacing(
     }
 
     return combinedDx < 0 ? Types.Orientations.LEFT : Types.Orientations.RIGHT;
+}
+
+/**
+ * Single entry point for non-character (item/chest/projectile-like) render position writes.
+ * Deliberately thin: the value is that ALL render-position writes flow through this module.
+ */
+export function bridgeEntityRenderPosition(entity: VisualBridgeEntityLike, { x, y }: { x: number; y: number }): void {
+    entity.x = x;
+    entity.y = y;
+    entity.setDirty();
 }
 
 export function bridgeCharacterRenderTarget(

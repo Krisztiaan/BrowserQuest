@@ -10,6 +10,7 @@ import {
     bridgeCharacterInterpolatedLocomotion,
     bridgeCharacterRenderPosition,
     bridgeCharacterRenderTarget,
+    bridgeEntityRenderPosition,
 } from '../visual-movement-bridge';
 import { classifyInterpolationDivergence, isSnapVisualDivergenceClass } from '../visual-movement-divergence';
 
@@ -356,8 +357,7 @@ function updateEntityInterpolation(host: ClientSimulationSystemHost, entity: Sim
                 mode: 'snap',
             });
         } else {
-            entity.x = targetX;
-            entity.y = targetY;
+            bridgeEntityRenderPosition(entity, { x: targetX, y: targetY });
         }
     } else {
         let blend = lerpAlpha(dtMs, tuning.remotePresentationTauMs);
@@ -386,8 +386,7 @@ function updateEntityInterpolation(host: ClientSimulationSystemHost, entity: Sim
                 mode: 'interpolate',
             });
         } else {
-            entity.x = nextRenderX;
-            entity.y = nextRenderY;
+            bridgeEntityRenderPosition(entity, { x: nextRenderX, y: nextRenderY });
         }
     }
 
@@ -398,9 +397,8 @@ function updateEntityInterpolation(host: ClientSimulationSystemHost, entity: Sim
             bridgeCharacterInterpolatedLocomotion(entity, { movedX, movedY, movingThresholdPx: 0.05 });
         }
         entity.hasMoved();
-    } else {
-        entity.setDirty();
     }
+    // Non-character entities are marked dirty inside bridgeEntityRenderPosition.
 }
 
 function updateZoning(host: ClientSimulationSystemHost): void {

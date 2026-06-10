@@ -8,6 +8,7 @@ import Types from '../shared/gametypes-browser';
 import log from './platform/log';
 import { disableCanvasImageSmoothing, type PixelArtCanvasContext } from './canvas-smoothing';
 import { classifyTileForOverlay, isDebugOverlayEnabled, OVERLAY_COLORS } from './debug-overlay';
+import type { RendererContract } from './render/renderer-contract';
 
 type RendererContext2D = PixelArtCanvasContext;
 type DrawScaledImageArg = number | RendererContext2D | CanvasImageSource;
@@ -148,7 +149,7 @@ export function resolveViewportSize(viewport: ViewportLike): Readonly<{ width: n
     });
 }
 
-class Renderer {
+class Renderer implements RendererContract {
     game: RendererGameLike;
     context: RendererContext2D;
     background: RendererContext2D;
