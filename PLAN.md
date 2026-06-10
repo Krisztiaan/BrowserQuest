@@ -605,6 +605,9 @@ The submodule pattern already exists (`chunk-aoi-streaming.ts`, `core-module-reg
 
 ## Phase 6 — Real interiors (multi-map)
 
+> **Progress note (2026-06-10):** Phases 1–5 are COMPLETE on `modern/rework` (see commits 6eb9a4b, cd865d3, 2880c15, 586de01/5426e4e, a5225e6). Phase 6 was attempted and is blocked on tooling: `tools/content/house-regenerate.ts` was written against the legacy world structure — it expects flat layers named `indoorwalls`/`indoor doors`/`entities`/`blocking` (modern world uses grouped `indoor_walls`/`indoor_doors`, `static_entities` objectgroup, tileset-driven collision) and inlined tilesets (modern world uses external `.tsj` references). Modernize the generator first (group flattening, modern layer names, external-tileset inlining, collision from the runtime pack), then resume at step 2 of the spec below. The strict pending_target_maps machinery from Phase 1 is ready to shrink as each house lands.
+
+
 > Expand into its own plan (superpowers:writing-plans) when Phase 5 completes. The specification below is binding.
 
 **Exit criteria:** at least `house_01` is a real map in the pack; its doors round-trip (enter/exit) under a Playwright test; `pending_target_maps` shrinks monotonically; a Tiled `.world` file exists for multi-map editing.
