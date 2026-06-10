@@ -428,6 +428,66 @@ test('compileMapPack exports roaming areas with valid mob kinds', () => {
     ]);
 });
 
+function createLinkedDoorMap(targetMap: string) {
+    return createTiledMap({
+        doorsLayerVisible: false,
+        doors: [
+            {
+                id: 10,
+                x: 32,
+                y: 16,
+                properties: [
+                    { name: 'door_id', value: 'enter' },
+                    { name: 'target_map', value: targetMap },
+                    { name: 'target_door', value: 'exit' },
+                ],
+            },
+        ],
+    });
+}
+
+test('compileMapPack drops and reports edges to pending target maps', () => {
+    const pack = compileMapPack({
+        maps: [{ id: 'world_01', tiled: createLinkedDoorMap('house_01') }],
+        pendingTargetMaps: ['house_01'],
+    });
+    expect(pack.graph.edges).toEqual([]);
+    expect(pack.droppedEdges).toEqual([
+        {
+            from: { mapId: 'world_01', doorId: 'enter' },
+            to: { mapId: 'house_01', doorId: 'exit' },
+        },
+    ]);
+});
+
+test('compileMapPack fails on edges to unknown maps that are not pending', () => {
+    expect(() =>
+        compileMapPack({
+            maps: [{ id: 'world_01', tiled: createLinkedDoorMap('house_99') }],
+            pendingTargetMaps: ['house_01'],
+        })
+    ).toThrow(/house_99/);
+});
+
+test('compileMapPack reports no dropped edges when all targets resolve', () => {
+    const pack = compileMapPack({
+        maps: [
+            { id: 'world_01', tiled: createLinkedDoorMap('house_01') },
+            {
+                id: 'house_01',
+                tiled: createTiledMap({
+                    width: 12,
+                    height: 12,
+                    doorsLayerVisible: false,
+                    doors: [{ id: 20, x: 16, y: 16, properties: [{ name: 'door_id', value: 'exit' }] }],
+                }),
+            },
+        ],
+    });
+    expect(pack.droppedEdges).toEqual([]);
+    expect(pack.graph.edges).toHaveLength(1);
+});
+
 test('compileMapPack derives the portal flag solely from the door_kind property', () => {
     const pack = compileMapPack({
         maps: [

@@ -379766,5 +379766,407 @@
         }
       }
     ]
-  }
+  },
+  "droppedEdges": [
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_01_entry"
+      },
+      "to": {
+        "mapId": "house_01",
+        "doorId": "house_01_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_02_entry"
+      },
+      "to": {
+        "mapId": "house_02",
+        "doorId": "house_02_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_03_entry"
+      },
+      "to": {
+        "mapId": "house_03",
+        "doorId": "house_03_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_04_entry"
+      },
+      "to": {
+        "mapId": "house_04",
+        "doorId": "house_04_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_05_entry"
+      },
+      "to": {
+        "mapId": "house_05",
+        "doorId": "house_05_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_06_entry"
+      },
+      "to": {
+        "mapId": "house_06",
+        "doorId": "house_06_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_07_entry"
+      },
+      "to": {
+        "mapId": "house_07",
+        "doorId": "house_07_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_08_entry"
+      },
+      "to": {
+        "mapId": "house_08",
+        "doorId": "house_08_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_09_entry"
+      },
+      "to": {
+        "mapId": "house_09",
+        "doorId": "house_09_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_10_entry"
+      },
+      "to": {
+        "mapId": "house_10",
+        "doorId": "house_10_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_11_entry"
+      },
+      "to": {
+        "mapId": "house_11",
+        "doorId": "house_11_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_12_entry"
+      },
+      "to": {
+        "mapId": "house_12",
+        "doorId": "house_12_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_13_entry"
+      },
+      "to": {
+        "mapId": "house_13",
+        "doorId": "house_13_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_14_entry"
+      },
+      "to": {
+        "mapId": "house_14",
+        "doorId": "house_14_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_15_entry"
+      },
+      "to": {
+        "mapId": "house_15",
+        "doorId": "house_15_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_16_entry"
+      },
+      "to": {
+        "mapId": "house_16",
+        "doorId": "house_16_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_17_entry"
+      },
+      "to": {
+        "mapId": "house_17",
+        "doorId": "house_17_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_18_entry"
+      },
+      "to": {
+        "mapId": "house_18",
+        "doorId": "house_18_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_19_entry"
+      },
+      "to": {
+        "mapId": "house_19",
+        "doorId": "house_19_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_20_entry"
+      },
+      "to": {
+        "mapId": "house_20",
+        "doorId": "house_20_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_21_entry"
+      },
+      "to": {
+        "mapId": "house_21",
+        "doorId": "house_21_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_22_entry"
+      },
+      "to": {
+        "mapId": "house_22",
+        "doorId": "house_22_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_23_entry"
+      },
+      "to": {
+        "mapId": "house_23",
+        "doorId": "house_23_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_24_entry"
+      },
+      "to": {
+        "mapId": "house_24",
+        "doorId": "house_24_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_25_entry"
+      },
+      "to": {
+        "mapId": "house_25",
+        "doorId": "house_25_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_26_entry"
+      },
+      "to": {
+        "mapId": "house_26",
+        "doorId": "house_26_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_27_entry"
+      },
+      "to": {
+        "mapId": "house_27",
+        "doorId": "house_27_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_28_entry"
+      },
+      "to": {
+        "mapId": "house_28",
+        "doorId": "house_28_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_29_entry"
+      },
+      "to": {
+        "mapId": "house_29",
+        "doorId": "house_29_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_30_entry"
+      },
+      "to": {
+        "mapId": "house_30",
+        "doorId": "house_30_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_31_entry"
+      },
+      "to": {
+        "mapId": "house_31",
+        "doorId": "house_31_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_32_entry"
+      },
+      "to": {
+        "mapId": "house_32",
+        "doorId": "house_32_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_33_entry"
+      },
+      "to": {
+        "mapId": "house_33",
+        "doorId": "house_33_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_34_entry"
+      },
+      "to": {
+        "mapId": "house_34",
+        "doorId": "house_34_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_35_entry"
+      },
+      "to": {
+        "mapId": "house_35",
+        "doorId": "house_35_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_36_entry"
+      },
+      "to": {
+        "mapId": "house_36",
+        "doorId": "house_36_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_37_entry"
+      },
+      "to": {
+        "mapId": "house_37",
+        "doorId": "house_37_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_38_entry"
+      },
+      "to": {
+        "mapId": "house_38",
+        "doorId": "house_38_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_39_entry"
+      },
+      "to": {
+        "mapId": "house_39",
+        "doorId": "house_39_entry"
+      }
+    },
+    {
+      "from": {
+        "mapId": "world_01",
+        "doorId": "world_house_40_entry"
+      },
+      "to": {
+        "mapId": "house_40",
+        "doorId": "house_40_entry"
+      }
+    }
+  ]
 }

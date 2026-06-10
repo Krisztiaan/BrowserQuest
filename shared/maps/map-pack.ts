@@ -39,7 +39,13 @@ export type MapPackBuildMapInput = Readonly<{
 export type MapPackBuildInput = Readonly<{
     maps: ReadonlyArray<MapPackBuildMapInput>;
     edges?: ReadonlyArray<MapGraphEdge>;
-    allowMissingTargetMaps?: boolean;
+    /**
+     * Map ids that are authored as door targets but intentionally not in the
+     * pack yet (e.g. interiors awaiting their own maps). Edges to these are
+     * dropped and reported via MapPack.droppedEdges; edges to any other
+     * unknown map fail the compile.
+     */
+    pendingTargetMaps?: ReadonlyArray<string>;
 }>;
 
 export type MapPackCompiledMap = Readonly<{
@@ -53,6 +59,8 @@ export type MapPack = Readonly<{
     schemaVersion: 2;
     maps: ReadonlyArray<MapPackCompiledMap>;
     graph: MapGraph;
+    /** Door edges dropped because their target map is pending (see pendingTargetMaps). */
+    droppedEdges: ReadonlyArray<MapGraphEdge>;
 }>;
 
 function asRecord(value: unknown): UnknownRecord | null {
@@ -532,13 +540,22 @@ export function compileMapPack(input: MapPackBuildInput): MapPack {
     }
 
     const edges = sortEdgesStable([...(input.edges ?? []), ...derivedEdges]);
-    const allowMissingTargetMaps = input.allowMissingTargetMaps === true;
-    const filteredEdges = allowMissingTargetMaps
-        ? edges.filter((edge) => knownMapIds.has(edge.from.mapId) && knownMapIds.has(edge.to.mapId))
-        : edges;
+    const pendingTargetMaps = new Set(input.pendingTargetMaps ?? []);
+    const keptEdges: MapGraphEdge[] = [];
+    const droppedEdges: MapGraphEdge[] = [];
+    for (const edge of edges) {
+        const endpointPending =
+            (!knownMapIds.has(edge.to.mapId) && pendingTargetMaps.has(edge.to.mapId)) ||
+            (!knownMapIds.has(edge.from.mapId) && pendingTargetMaps.has(edge.from.mapId));
+        if (endpointPending) {
+            droppedEdges.push(edge);
+            continue;
+        }
+        keptEdges.push(edge);
+    }
     const graph: MapGraph = {
         maps: graphMaps.sort((a, b) => compareStrings(a.id, b.id)),
-        edges: filteredEdges,
+        edges: keptEdges,
     };
     const validation = validateMapGraph(graph);
     if (!validation.ok) {
@@ -663,6 +680,7 @@ export function compileMapPack(input: MapPackBuildInput): MapPack {
         schemaVersion: 2,
         maps: compiledMaps,
         graph,
+        droppedEdges: sortEdgesStable(droppedEdges),
     };
 }
 

@@ -10,7 +10,7 @@ type MapPackConfig = Readonly<{
     maps: ReadonlyArray<Readonly<{ id: string; filepath: string }>>;
     edges: ReadonlyArray<MapGraphEdge>;
     worldFilepath?: string;
-    allowMissingTargetMaps?: boolean;
+    pendingTargetMaps: ReadonlyArray<string>;
 }>;
 
 function fail(message: string): never {
@@ -33,10 +33,6 @@ function asNonEmptyString(value: unknown): string | null {
         return null;
     }
     return value;
-}
-
-function asBoolean(value: unknown): boolean | null {
-    return typeof value === 'boolean' ? value : null;
 }
 
 function toPosixPath(value: string): string {
@@ -159,13 +155,23 @@ function parseConfig(configPath: string, raw: unknown): MapPackConfig {
 
     const worldFilepathRaw = asNonEmptyString(root.world_filepath);
     const worldFilepath = worldFilepathRaw ? resolveAgainstConfig(configPath, worldFilepathRaw) : undefined;
-    const allowMissingTargetMaps = asBoolean(root.allow_missing_target_maps) ?? false;
+    if (root.allow_missing_target_maps !== undefined) {
+        fail('Invalid map-pack config: "allow_missing_target_maps" was replaced by the explicit "pending_target_maps" list.');
+    }
+    const pendingTargetMaps: string[] = [];
+    for (const entry of asArray(root.pending_target_maps)) {
+        const mapId = asNonEmptyString(entry);
+        if (!mapId) {
+            fail('Invalid map-pack config: pending_target_maps entries must be non-empty strings.');
+        }
+        pendingTargetMaps.push(mapId);
+    }
 
     return {
         maps: explicitMaps,
         edges,
         worldFilepath,
-        allowMissingTargetMaps,
+        pendingTargetMaps,
     };
 }
 
@@ -237,8 +243,13 @@ async function compilePackFromConfig(configPath: string): Promise<{ json: string
     const pack = compileMapPack({
         maps: inputs,
         edges: parsed.edges,
-        allowMissingTargetMaps: parsed.allowMissingTargetMaps,
+        pendingTargetMaps: parsed.pendingTargetMaps,
     });
+    for (const edge of pack.droppedEdges) {
+        console.warn(
+            `map-pack: dropped edge ${edge.from.mapId}/${edge.from.doorId} -> ${edge.to.mapId}/${edge.to.doorId} (target map pending)`
+        );
+    }
 
     const outputPath = path.resolve(path.dirname(configPath), '../runtime/map-pack.json');
     return {

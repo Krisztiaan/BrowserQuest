@@ -15,6 +15,7 @@ type RawMapPackConfig = Readonly<{
     maps?: unknown;
     edges?: unknown;
     allow_missing_target_maps?: unknown;
+    pending_target_maps?: unknown;
 }>;
 type TiledMapLike = Readonly<{
     tilesets?: unknown;
@@ -165,11 +166,59 @@ async function compileMapPackFromConfig(configPath: string, config: RawMapPackCo
         throw new Error('Invalid runtime map config: no maps declared.');
     }
 
+    if (config.allow_missing_target_maps !== undefined) {
+        throw new Error(
+            'Invalid runtime map config: "allow_missing_target_maps" was replaced by the explicit "pending_target_maps" list.'
+        );
+    }
+    const pendingTargetMaps: string[] = [];
+    for (const entry of Array.isArray(config.pending_target_maps) ? config.pending_target_maps : []) {
+        if (typeof entry !== 'string' || entry.trim().length === 0) {
+            throw new Error('Invalid runtime map config: pending_target_maps entries must be non-empty strings.');
+        }
+        pendingTargetMaps.push(entry);
+    }
     return compileMapPack({
         maps: mapInputs,
         edges: Array.isArray(config.edges) ? (config.edges as MapPackBuildInput['edges']) : [],
-        allowMissingTargetMaps: config.allow_missing_target_maps === true,
+        pendingTargetMaps,
     });
+}
+
+function collectUnknownDoorTargetMaps(tiled: unknown, knownMapId: string): string[] {
+    // Raw single-Tiled-map boot path: targets to other maps cannot resolve by
+    // definition, so treat every foreign target as pending (lenient but
+    // reported via MapPack.droppedEdges) instead of failing the boot.
+    const unknown = new Set<string>();
+    const walk = (layers: unknown[]): void => {
+        for (const layerRaw of layers) {
+            const layer = layerRaw as { type?: unknown; name?: unknown; layers?: unknown[]; objects?: unknown[] } | null;
+            if (!layer || typeof layer !== 'object') {
+                continue;
+            }
+            if (layer.type === 'group' && Array.isArray(layer.layers)) {
+                walk(layer.layers);
+                continue;
+            }
+            if (layer.type !== 'objectgroup' || layer.name !== 'doors' || !Array.isArray(layer.objects)) {
+                continue;
+            }
+            for (const objectRaw of layer.objects) {
+                const object = objectRaw as { properties?: unknown[] } | null;
+                for (const propRaw of Array.isArray(object?.properties) ? object.properties : []) {
+                    const prop = propRaw as { name?: unknown; value?: unknown } | null;
+                    if (prop?.name === 'target_map' && typeof prop.value === 'string' && prop.value !== knownMapId) {
+                        unknown.add(prop.value);
+                    }
+                }
+            }
+        }
+    };
+    const root = tiled as { layers?: unknown[] } | null;
+    if (root && Array.isArray(root.layers)) {
+        walk(root.layers);
+    }
+    return [...unknown].sort();
 }
 
 export async function compileRuntimeMapPackFromPayload(payload: LooseValue, sourcePath?: string): Promise<MapPack> {
@@ -193,14 +242,15 @@ export async function compileRuntimeMapPackFromPayload(payload: LooseValue, sour
                 tilesetCache: new Map<string, unknown>(),
             })
             : payload;
+        const singleMapId = normalizeSingleTiledMapId(sourcePath);
         return compileMapPack({
             maps: [{
-                id: normalizeSingleTiledMapId(sourcePath),
+                id: singleMapId,
                 tiled,
                 ...(sourcePath ? { sourcePath: sourcePath.replace(/\\/g, '/') } : {}),
             }],
             edges: [],
-            allowMissingTargetMaps: true,
+            pendingTargetMaps: collectUnknownDoorTargetMaps(tiled, singleMapId),
         });
     }
 
