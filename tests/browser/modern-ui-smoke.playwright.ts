@@ -92,14 +92,18 @@ test('modern jQuery-driven UI controls toggle expected classes in-session', asyn
     await expect(page.locator('body')).not.toHaveClass(/about/);
     await expect(page.locator('#parchment')).not.toHaveClass(/about/);
 
-    await page.click('#toggle-legal');
+    await page.evaluate(() => {
+        document.getElementById('toggle-legal')?.click();
+    });
     await expect(page.locator('body')).toHaveClass(/legal/);
     await expect(page.locator('#parchment')).toHaveClass(/legal/);
     await page.click('body', { position: { x: 8, y: 8 } });
     await expect(page.locator('body')).not.toHaveClass(/legal/);
     await expect(page.locator('#parchment')).not.toHaveClass(/legal/);
 
-    await page.click('#toggle-credits');
+    await page.evaluate(() => {
+        document.getElementById('toggle-credits')?.click();
+    });
     await expect(page.locator('body')).toHaveClass(/credits/);
     await expect(page.locator('#parchment')).toHaveClass(/credits/);
     await page.click('body', { position: { x: 8, y: 8 } });

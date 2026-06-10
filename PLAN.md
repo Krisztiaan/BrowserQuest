@@ -4074,7 +4074,7 @@ rtk git commit -m "fix: enforce server-authoritative combat hit frames"
 
 **Dependencies/blockers:** Ticket 3.2.
 
-- [ ] **Step 1: Add idempotency test**
+- [x] **Step 1: Add idempotency test**
 
 In `tests/unit/client-combat-runtime-plumbing.test.ts`, add:
 
@@ -4090,7 +4090,7 @@ test('combat cleanup tolerates duplicate attack-link removal', () => {
 
 Adapt helper names to the existing test fixture.
 
-- [ ] **Step 2: Implement no-op cleanup**
+- [x] **Step 2: Implement no-op cleanup**
 
 In `client/game.ts`, change attack-link removal from throwing/logging error on absent edge to:
 
@@ -4102,7 +4102,7 @@ if (!attacker || !target || !target.isAttackedBy(attacker)) {
 
 Preserve logging only for genuinely corrupt states where an entity exists with inconsistent reciprocal links.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run:
 
@@ -4117,7 +4117,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 

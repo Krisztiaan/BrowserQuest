@@ -4,6 +4,8 @@ import { entityIdFromWire } from '../../shared/domain/ids';
 import { ClientWorldKernel } from '../../client/ecs/world-kernel';
 import { runClientRuntimeEventSystem } from '../../client/ecs/systems/client-runtime-event-system';
 import { adaptKernelEntityForRendering } from '../../client/ecs/kernel-entity-adapter';
+import Warrior from '../../client/warrior';
+import Mob from '../../client/mob';
 
 test('Client runtime events forward DAMAGE into a client command', () => {
     const kernel = new ClientWorldKernel();
@@ -37,6 +39,30 @@ test('Kernel entity adapter initializes mob HP from prefabs', () => {
     expect(typeof entity.maxHitPoints).toBe('number');
     expect((entity.maxHitPoints ?? 0) > 0).toBe(true);
     expect(entity.hitPoints).toBe(entity.maxHitPoints);
+});
+
+test('combat cleanup tolerates duplicate attack-link removal', () => {
+    const playerId = entityIdFromWire(100);
+    const mobId = entityIdFromWire(200);
+    const player = new Warrior('player', 'K');
+    const mob = new Mob(mobId, Types.Entities.RAT);
+
+    player.id = playerId;
+    player.kind = Types.Entities.WARRIOR;
+    player.setGridPosition(10, 10);
+    mob.setGridPosition(11, 10);
+
+    player.engage(mob);
+    mob.addAttacker(player);
+
+    expect(player.target).toBe(mob);
+    expect(mob.isAttackedBy(player)).toBe(true);
+
+    player.removeTarget();
+    expect(player.target).toBeNull();
+    expect(mob.isAttackedBy(player)).toBe(false);
+    expect(() => player.removeTarget()).not.toThrow();
+    expect(() => mob.removeAttacker(player)).not.toThrow();
 });
 
 test('Client runtime transition events enqueue transition commands', () => {

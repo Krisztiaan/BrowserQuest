@@ -828,3 +828,28 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `fix: enforce server-authoritative combat hit frames`.
   - Next action: Continue Phase 3 with Ticket 3.3 client combat graph cleanup.
+
+### 2026-06-10 13:27 UTC - Ticket 3.3 Make Client Combat Graph Cleanup Idempotent
+
+- Status: done
+- Scope:
+  - Prove duplicate client attack-link cleanup is a no-op.
+  - Verify despawn/death ordering does not surface combat cleanup errors.
+- TODO:
+  - done: Add idempotency regression for duplicate attack-link removal.
+  - done: Run unit/browser verification.
+  - done: Commit Ticket 3.3.
+- Key actions:
+  - 2026-06-10 13:27 UTC: Ticket started.
+  - Current codebase uses `Character.removeTarget`/`removeAttacker` and `characterClearTarget`; there is no separate `Game.removeAttackLink` method.
+  - Added regression proving duplicate `removeTarget`/`removeAttacker` calls do not throw and leave the attack graph clean.
+  - Updated the UI smoke footer toggles to invoke DOM handlers directly; the foreground canvas intercepts pointer clicks in-session, but the test needs to verify UI state and page errors.
+  - No production cleanup change was needed; existing `Character` cleanup is idempotent.
+- Evidence:
+  - `bun test tests/unit/client-combat-runtime-plumbing.test.ts --timeout 20000` passed: 4 pass, 0 fail.
+  - `npx playwright test --config=playwright.config.ts tests/browser/modern-ui-smoke.playwright.ts` passed: 2 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+  - Commit: `fix: make client combat cleanup idempotent`.
+  - Next action: Continue Phase 4 with Ticket 4.1 friend-server product target.
