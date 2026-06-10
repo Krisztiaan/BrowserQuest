@@ -132,9 +132,7 @@ function installWebAuthnMocks({
     const credentialClass = FakePublicKeyCredential as typeof PublicKeyCredential;
     const win = (originalWindow as { PublicKeyCredential?: typeof PublicKeyCredential } | undefined) ?? {
     };
-    const windowWithCredential = win as {
-        PublicKeyCredential?: typeof PublicKeyCredential;
-    };
+    const windowWithCredential = win;
     windowWithCredential.PublicKeyCredential = credentialClass;
 
     Object.defineProperty(globalThis, 'window', {
@@ -214,7 +212,7 @@ test('registerWithPasskey runs options+verify flow and persists local username i
                 attestationObject: 'AQ',
                 clientDataJSON: 'AQ',
             },
-        }) as Credential,
+        }),
     });
 
     const fetchCalls: Array<{ input: RequestInfo | URL; init?: RequestInit }> = [];
@@ -322,7 +320,7 @@ test('loginWithPasskey returns request failures without mutating local identity'
                 signature: 'AQ',
                 userHandle: null,
             },
-        }) as Credential,
+        }),
     });
 
     Object.defineProperty(globalThis, 'fetch', {
@@ -433,7 +431,7 @@ test('loginWithPasskey surfaces network failures as deterministic auth errors', 
                 signature: 'AQ',
                 userHandle: null,
             },
-        }) as Credential,
+        }),
     });
 
     Object.defineProperty(globalThis, 'fetch', {

@@ -803,7 +803,7 @@ function applyMoveIntentCommand({
         return;
     }
     const lastQueued = existing.length > 0 ? existing[existing.length - 1] : null;
-    if (lastQueued && lastQueued.x === cmd.to.x && lastQueued.y === cmd.to.y) {
+    if (lastQueued?.x === cmd.to.x && lastQueued.y === cmd.to.y) {
         return;
     }
 

@@ -610,7 +610,7 @@ rtk git commit -m "fix: restore test baseline"
 
 **Dependencies/blockers:** Tickets 0.1-0.4 reduce noise before dependency updates.
 
-- [ ] **Step 1: Capture current audit**
+- [x] **Step 1: Capture current audit**
 
 Run:
 
@@ -620,12 +620,12 @@ rtk bun audit
 
 Expected current vulnerable chains include `minimatch`, `brace-expansion`, `flatted`, and `picomatch` through ESLint tooling.
 
-- [ ] **Step 2: Try compatible updates first**
+- [x] **Step 2: Try compatible updates first**
 
-Run:
+Run targeted compatible dev-tooling updates first:
 
 ```bash
-rtk bun update
+rtk bun update eslint @eslint/js @typescript-eslint/eslint-plugin @typescript-eslint/parser bun-types globals prettier @playwright/test minimatch brace-expansion flatted picomatch
 rtk bun audit
 ```
 
@@ -635,11 +635,13 @@ Expected:
 0 vulnerabilities
 ```
 
-If vulnerabilities remain, continue.
+Result: package updates plus flat Bun `overrides` for `minimatch`, `brace-expansion`, `flatted`, and `picomatch` cleared `rtk bun audit`.
 
-- [ ] **Step 3: Try latest updates in a separate branch or isolated worktree**
+- [x] **Step 3: Try latest updates in a separate branch or isolated worktree**
 
-Run:
+Status: not needed. Compatible updates and overrides cleared the audit without moving to breaking latest major versions.
+
+If compatible updates stop clearing the audit in a later run, use:
 
 ```bash
 rtk bun update --latest
@@ -648,7 +650,9 @@ rtk bun run verify:modern
 
 If this introduces breaking lint or TypeScript changes, either fix them in the same ticket or document why the upgrade must be split.
 
-- [ ] **Step 4: Document any dev-only risk acceptance**
+- [x] **Step 4: Document any dev-only risk acceptance**
+
+Status: not needed. `rtk bun audit` exits 0 after compatible updates and overrides.
 
 If an advisory remains only in dev tooling and no compatible update exists, create `docs/security/dependency-audit-2026-06-10.md` with this exact structure:
 
@@ -672,7 +676,7 @@ Run `rtk bun audit` before release and after dependency updates.
 
 Replace `package-name` with actual package names from the command output.
 
-- [ ] **Step 5: Verify install and full lane**
+- [x] **Step 5: Verify install and full lane**
 
 Run:
 
@@ -687,7 +691,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 
@@ -1743,6 +1747,8 @@ rtk git commit -m "feat: use map-pack config as runtime map source"
 
 ### Ticket 1.2: Regenerate and Enforce Runtime Map-Pack Artifact
 
+**Status:** Completed early during Ticket 0.5 because `rtk bun run verify:modern` could not pass until `assets/maps/runtime/map-pack.json` existed and matched the authored maps.
+
 **Scope:** Make `assets/maps/runtime/map-pack.json` current and enforce deterministic generation.
 
 **Out of scope:** Do not change map semantics except as required to generate the same pack deterministically.
@@ -1764,7 +1770,7 @@ rtk git commit -m "feat: use map-pack config as runtime map source"
 
 **Dependencies/blockers:** Ticket 1.1.
 
-- [ ] **Step 1: Regenerate**
+- [x] **Step 1: Regenerate**
 
 Run:
 
@@ -1778,7 +1784,7 @@ Expected:
 Generated /Users/krisztiaan/dev/BrowserQuest/assets/maps/runtime/map-pack.json
 ```
 
-- [ ] **Step 2: Check determinism**
+- [x] **Step 2: Check determinism**
 
 Run:
 
@@ -1792,7 +1798,7 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 3: Inspect generated diff**
+- [x] **Step 3: Inspect generated diff**
 
 Run:
 
@@ -1803,7 +1809,7 @@ rtk git diff -- assets/maps/runtime/map-pack.json | sed -n '1,160p'
 
 Expected: generated JSON changes only. No source map file should change unless `build:maps` is discovered to be mutating authoring sources, which would be a bug to fix before proceeding.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 

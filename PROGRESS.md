@@ -99,3 +99,28 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk git commit -m "fix: restore test baseline"`: committed Ticket 0.4.
 - Next action:
   - Proceed to Ticket 0.5 dependency audit baseline.
+
+### 2026-06-10 11:37 - Ticket 0.5 Restore Dependency Audit Baseline
+
+- Status: done
+- Scope:
+  - Capture current dependency audit output.
+  - Resolve or explicitly document remaining dependency risk per `PLAN.md`.
+- Key actions:
+  - Ticket 0.4 committed as `4d6dd17 fix: restore test baseline`.
+  - Captured audit failures in ESLint tooling transitive dependencies: `minimatch`, `brace-expansion`, `flatted`, and `picomatch`.
+  - Applied compatible dev-tooling updates for ESLint, TypeScript ESLint, Playwright, Bun types, globals, and Prettier.
+  - Added flat Bun overrides for `minimatch`, `brace-expansion`, `flatted`, and `picomatch`; no runtime dependency was added.
+  - Ran ESLint autofix for new lint behavior from the updated TypeScript ESLint stack, then restored explicit type-safe narrowing where autofix was too aggressive.
+  - Completed Ticket 1.2 early by generating `assets/maps/runtime/map-pack.json`, because `verify:modern` could not pass with the missing/outdated runtime map-pack artifact.
+- Evidence:
+  - `rtk bun audit`: initially failed with 12 vulnerabilities, then passed with `No vulnerabilities found`.
+  - `rtk bun install --frozen-lockfile`: passed.
+  - `rtk bun run build:maps`: generated `assets/maps/runtime/map-pack.json`.
+  - `rtk bun run check:maps`: passed, map pack is up to date.
+  - `rtk bun run lint`: passed after ESLint autofix and narrow manual type fixes.
+  - `rtk bun run typecheck`: passed.
+  - `rtk bun run verify:modern`: passed, including 619 pass / 1 skip / 0 fail tests plus client/server builds.
+  - `rtk git commit -m "chore: refresh dependency audit and map-pack baselines"`: committed Ticket 0.5 and the early Ticket 1.2 generated map-pack artifact.
+- Next action:
+  - Proceed to Phase 0A project-surface cleanup inventory.

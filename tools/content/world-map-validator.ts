@@ -191,7 +191,7 @@ function matchesExpectedLayerType(
     expectedType: TargetLayerSpec['type']
 ): boolean {
     if (Array.isArray(expectedType)) {
-        return expectedType.includes(actualType as 'tilelayer' | 'objectgroup');
+        return expectedType.includes(actualType);
     }
     return actualType === expectedType;
 }

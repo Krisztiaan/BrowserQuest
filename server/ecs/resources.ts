@@ -6,7 +6,7 @@ export type ResourceKey<T> = Readonly<{
 }>;
 
 export function createResourceKey<T>(name: string): ResourceKey<T> {
-    return Object.freeze({ name, id: Symbol(name) }) as ResourceKey<T>;
+    return Object.freeze({ name, id: Symbol(name) });
 }
 
 type ResourceValue = string | number | boolean | bigint | symbol | object | null | undefined;
@@ -27,7 +27,7 @@ export class WorldResources {
         if (value === undefined) {
             throw new Error(`WorldResources.require: missing resource: ${key.name}`);
         }
-        return value as T;
+        return value;
     }
 
     has<T>(key: ResourceKey<T>): boolean {

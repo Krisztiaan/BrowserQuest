@@ -89,9 +89,9 @@ export function createWebSocketRuntimeClasses({
             return null;
         }
         if (message.length > 0 && Array.isArray(message[0])) {
-            return encodeServerToClientBinaryActionBatchPayload(message as ReadonlyArray<unknown>);
+            return encodeServerToClientBinaryActionBatchPayload(message);
         }
-        return encodeServerToClientBinaryActionBatchPayload([message as ReadonlyArray<unknown>]);
+        return encodeServerToClientBinaryActionBatchPayload([message]);
     }
 
     class Server extends Evented<WebSocketRuntimeServerEvents> {

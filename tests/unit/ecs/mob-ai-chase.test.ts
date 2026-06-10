@@ -24,7 +24,7 @@ function createTestPlayer(wireId: number): Player {
         sendUTF8() {},
         close() {},
     };
-    const player = new Player(connection as never, null);
+    const player = new Player(connection, null);
     player.resetHitPoints(100);
     player.isDead = false;
     player.setPosition(0, 0);
@@ -539,7 +539,7 @@ test('server queues adjacent MOVE intents and applies them at move cadence', () 
     for (let i = 0; i < 24; i += 1) {
         pipeline.tick();
         const pos = pipeline.Position.store.get(player.id);
-        if (pos && pos.x === 6 && pos.y === 5) {
+        if (pos?.x === 6 && pos.y === 5) {
             break;
         }
     }
@@ -558,7 +558,7 @@ test('server queues adjacent MOVE intents and applies them at move cadence', () 
     for (let i = 0; i < 48; i += 1) {
         pipeline.tick();
         const pos = pipeline.Position.store.get(player.id);
-        if (pos && pos.x === 7 && pos.y === 5) {
+        if (pos?.x === 7 && pos.y === 5) {
             break;
         }
     }

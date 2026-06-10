@@ -541,7 +541,7 @@ export const installTestApi = function ({ app, game }: { app: App; game: Game })
             }
 
             const dist = Math.abs(mob.gridX - player.gridX) + Math.abs(mob.gridY - player.gridY);
-            const hasTargetPlayer = Boolean(mob.target && mob.target.id === player.id);
+            const hasTargetPlayer = Boolean(mob.target?.id === player.id);
 
             return {
                 ready: true,

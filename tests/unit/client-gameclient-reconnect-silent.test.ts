@@ -37,7 +37,7 @@ test('GameClient.reconnectSilently does not emit disconnected for the intentiona
     Object.defineProperty(globalThis, 'WebSocket', {
         configurable: true,
         writable: true,
-        value: MockWebSocket as typeof WebSocket,
+        value: MockWebSocket,
     });
     Object.defineProperty(globalThis, 'document', {
         configurable: true,
@@ -46,7 +46,7 @@ test('GameClient.reconnectSilently does not emit disconnected for the intentiona
             getElementById() {
                 return null;
             },
-        } as Document,
+        },
     });
 
     try {

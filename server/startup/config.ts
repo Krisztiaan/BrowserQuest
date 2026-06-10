@@ -9,7 +9,7 @@ type ReadFileFn = (
 ) => Promise<string | Buffer>;
 
 const defaultReadFile: ReadFileFn = (path, options) =>
-    fs.readFile(path, options as BufferEncoding | { encoding?: BufferEncoding | null }) as Promise<string | Buffer>;
+    fs.readFile(path, options as BufferEncoding | { encoding?: BufferEncoding | null });
 
 function isConfigObject(value: JsonValue | object | null | undefined): value is ConfigObject {
     return typeof value === 'object' && value !== null && !Array.isArray(value);

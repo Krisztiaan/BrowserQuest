@@ -20,7 +20,7 @@ test('startup runtime options always inject runtime websocket runtime through de
         },
         importWsRuntime: () => Promise.resolve({ default: wsDefault }),
         createRuntimeDependencies: (overrides) => {
-            receivedOverrides = overrides as RuntimeOverrides;
+            receivedOverrides = overrides;
             return runtimeDependencies;
         },
         fail: (code) => {

@@ -57,7 +57,7 @@ class FakeServer implements RuntimeServer {
         callback: ((connection: RuntimeConnection) => void) | ((...args: RuntimeErrorArg[]) => void)
     ): void {
         if (eventName === 'connect') {
-            this.#onConnect(callback as (connection: RuntimeConnection) => void);
+            this.#onConnect(callback);
         }
     }
 
@@ -296,7 +296,7 @@ test('main runtime rejects connects until world ready, then accepts new sessions
         sendUTF8(payload: string) {
             handshakeFrames.push(payload);
         },
-    } as RuntimeConnection);
+    });
 
     expect(connectedPlayers.length).toBe(1);
     expect(handshakeFrames).toEqual(['go']);

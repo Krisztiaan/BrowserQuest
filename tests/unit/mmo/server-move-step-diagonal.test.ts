@@ -16,7 +16,7 @@ function createTestPlayer(wireId: number): Player {
         sendUTF8() {},
         close() {},
     };
-    const player = new Player(connection as never, null);
+    const player = new Player(connection, null);
     player.resetHitPoints(100);
     player.isDead = false;
     player.setPosition(0, 0);

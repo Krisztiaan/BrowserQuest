@@ -42,7 +42,7 @@ export function entityIdFromWireString(value: string): EntityId {
 }
 
 export function entityIdToWire(id: EntityId): number {
-    return id as number;
+    return id;
 }
 
 export function makeEntityId(index: number, generation: number): EntityId {

@@ -8,7 +8,7 @@ import { translateClientActionToCommand } from './player-session-command-transla
 import type { Command } from './ecs/commands';
 import type { PersistedPlayerProfile } from './player-persistence';
 
-const check = FormatModule.check as (payload: ClientToServerProtocolAction) => boolean;
+const check = FormatModule.check;
 const log = Log.getLogger();
 
 type SessionConnection = {

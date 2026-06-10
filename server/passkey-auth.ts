@@ -375,7 +375,7 @@ function resolveVerifiedRegistrationCredential(
     if (!verification.verified) {
         return null;
     }
-    const registrationInfoValue: unknown = Reflect.get(verification as Record<string, unknown>, 'registrationInfo');
+    const registrationInfoValue: unknown = Reflect.get(verification, 'registrationInfo');
     if (typeof registrationInfoValue !== 'object' || registrationInfoValue === null || Array.isArray(registrationInfoValue)) {
         return null;
     }

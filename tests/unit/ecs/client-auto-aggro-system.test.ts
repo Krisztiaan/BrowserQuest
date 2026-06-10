@@ -30,7 +30,7 @@ function createHost({
         playerId: typeof player.id === 'number' ? entityIdFromWire(player.id) : null,
         kernel: {
             enqueueClientCommand(command) {
-                enqueue(command as { type: 'clientSendAggro'; mobId: number });
+                enqueue(command);
             },
         },
         renderer: null,

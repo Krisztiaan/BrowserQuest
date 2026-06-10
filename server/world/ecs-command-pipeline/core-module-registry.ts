@@ -215,11 +215,11 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
             id: 'core.teleport',
             register(registry) {
                 registry.registerOutcomeHandler(OUTCOME_DOOR_TELEPORT, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
-                    if (!ctx || !isRecord(rawPayload as LooseValue)) {
+                    const ctx = decodeInboundIntentContext(rawCtx);
+                    if (!ctx || !isRecord(rawPayload)) {
                         return;
                     }
-                    const payload = rawPayload as JsonRecord;
+                    const payload = rawPayload;
                     const playerIdCandidate = payload.playerId;
                     const to = payload.to;
                     if (
@@ -232,8 +232,8 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                         return;
                     }
                     const playerId = entityIdFromWire(playerIdCandidate);
-                    const toMapId = asNonEmptyString(payload.toMapId as LooseValue);
-                    const fromMapId = asNonEmptyString(payload.fromMapId as LooseValue);
+                    const toMapId = asNonEmptyString(payload.toMapId);
+                    const fromMapId = asNonEmptyString(payload.fromMapId);
                     if (!toMapId || !fromMapId) {
                         return;
                     }
@@ -260,7 +260,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
             deps: ['core.teleport'],
             register(registry) {
                 registry.registerIntentHandler(INTENT_MOVE_STEP, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const ctx = decodeInboundIntentContext(rawCtx);
                     const cmd = decodeCommandByType(rawPayload as LooseValue, 'MOVE');
                     if (!ctx || !cmd) {
                         return;
@@ -277,7 +277,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                 });
 
                 registry.registerIntentHandler(INTENT_MOVE_TO, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const ctx = decodeInboundIntentContext(rawCtx);
                     const cmd = decodeCommandByType(rawPayload as LooseValue, 'MOVE_TO');
                     if (!ctx || !cmd) {
                         return;
@@ -295,7 +295,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                 });
 
                 registry.registerIntentHandler(INTENT_MOVE_INPUT, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const ctx = decodeInboundIntentContext(rawCtx);
                     const cmd = decodeCommandByType(rawPayload as LooseValue, 'MOVE_INPUT');
                     if (!ctx || !cmd) {
                         return;
@@ -319,7 +319,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
             deps: ['core.teleport'],
             register(registry) {
                 registry.registerIntentHandler(INTENT_DOOR_TELEPORT, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const ctx = decodeInboundIntentContext(rawCtx);
                     const cmd = decodeCommandByType(rawPayload as LooseValue, 'TELEPORT');
                     if (!ctx || !cmd) {
                         return;
@@ -371,7 +371,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
             id: 'core.tiles',
             register(registry) {
                 registry.registerIntentHandler(INTENT_TILE_EDIT, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const ctx = decodeInboundIntentContext(rawCtx);
                     const cmd = decodeCommandByType(rawPayload as LooseValue, 'TILE_EDIT');
                     if (!ctx || !cmd) {
                         return;
@@ -409,7 +409,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
             id: 'core.claims',
             register(registry) {
                 registry.registerIntentHandler(INTENT_CLAIM_CREATE, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const ctx = decodeInboundIntentContext(rawCtx);
                     const cmd = decodeCommandByType(rawPayload as LooseValue, 'CLAIM_CREATE');
                     if (!ctx || !cmd) {
                         return;
@@ -425,7 +425,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     });
                 });
                 registry.registerIntentHandler(INTENT_CLAIM_UPDATE, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const ctx = decodeInboundIntentContext(rawCtx);
                     const cmd = decodeCommandByType(rawPayload as LooseValue, 'CLAIM_UPDATE');
                     if (!ctx || !cmd) {
                         return;
@@ -441,7 +441,7 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                     });
                 });
                 registry.registerIntentHandler(INTENT_CLAIM_DELETE, (rawCtx, rawPayload) => {
-                    const ctx = decodeInboundIntentContext(rawCtx as LooseValue);
+                    const ctx = decodeInboundIntentContext(rawCtx);
                     const cmd = decodeCommandByType(rawPayload as LooseValue, 'CLAIM_DELETE');
                     if (!ctx || !cmd) {
                         return;

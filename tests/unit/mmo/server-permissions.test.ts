@@ -26,7 +26,7 @@ function createTestPlayer(wireId: number, name: string): Player {
         sendUTF8() {},
         close() {},
     };
-    const player = new Player(connection as never, null);
+    const player = new Player(connection, null);
     player.resetHitPoints(100);
     player.isDead = false;
     player.setPosition(0, 0);
@@ -194,7 +194,7 @@ function enqueueIntent({
 }
 
 function findRejectMessage(delivered: WorldMessage[]): [number, number, string, string] | undefined {
-    return delivered.find((msg) => Array.isArray(msg) && msg[0] === Types.Messages.REJECT) as [number, number, string, string] | undefined;
+    return delivered.find((msg) => Array.isArray(msg) && msg[0] === Types.Messages.REJECT);
 }
 
 test('unauthorized tile edit intent is rejected with a clear reason code', () => {

@@ -473,7 +473,7 @@ class Game extends Evented<GameEvents> {
             clearClientInteractionIntentWithSideEffects(this);
         }
 
-        if (this.player.hasTarget() && this.player.target && this.player.target.id === removedId) {
+        if (this.player.hasTarget() && this.player.target?.id === removedId) {
             this.stopPlayerCombat();
         }
 
@@ -481,7 +481,7 @@ class Game extends Evented<GameEvents> {
             if (!(entity instanceof Character)) {
                 return;
             }
-            if (entity.hasTarget() && entity.target && entity.target.id === removedId) {
+            if (entity.hasTarget() && entity.target?.id === removedId) {
                 entity.disengage();
                 entity.idle();
             }

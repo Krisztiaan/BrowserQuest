@@ -629,8 +629,8 @@ class World extends Evented<WorldEvents> {
             ecs: Object.freeze({
                 registerSystem: ((stage: SchedulerStage, name: string, run) => {
                     this.ecsPipeline.registerSystem(stage, name, run);
-                }) as ServerPluginEcsApi['registerSystem'],
-            }),
+                }),
+            }) satisfies ServerPluginEcsApi,
         });
 
         for (let i = 0; i < this.plugins.length; i += 1) {

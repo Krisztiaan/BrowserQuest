@@ -44,7 +44,7 @@ function createRuntimeDependencies(overrides?: MainRuntimeDependencyOverrides): 
         Player: injected.Player ?? Player,
         metricsRuntime: injected.metricsRuntime ?? MetricsRuntime,
         logger: injected.logger ?? log,
-        processObject: injected.processObject ?? (process as RuntimeProcessLike),
+        processObject: injected.processObject ?? (process),
         setIntervalFn:
             injected.setIntervalFn ??
             function (handler, timeoutMs) {

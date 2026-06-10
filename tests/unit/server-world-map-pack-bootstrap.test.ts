@@ -31,7 +31,7 @@ function createWorld(): WorldServer {
             return undefined;
         },
     };
-    return new WorldServer('map-pack-bootstrap-test', 2000, server as never);
+    return new WorldServer('map-pack-bootstrap-test', 2000, server);
 }
 
 function createPlayer(connectionId: string): Player {
@@ -43,7 +43,7 @@ function createPlayer(connectionId: string): Player {
         sendUTF8() {},
         close() {},
     };
-    return new Player(connection as never, null);
+    return new Player(connection, null);
 }
 
 function createScopedPersistenceEnv(): { restore(): void } {
@@ -201,7 +201,7 @@ test('player entering beside a real authored chest receives chest and nearby mob
         world.pushToPlayerId = ((playerId, message) => {
             messages.push(message);
             originalPushToPlayerId(playerId, message);
-        }) as typeof world.pushToPlayerId;
+        });
 
         world.ecsPipeline.enqueue({
             type: 'HELLO',

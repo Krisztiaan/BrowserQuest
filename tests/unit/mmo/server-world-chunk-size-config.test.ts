@@ -6,9 +6,9 @@ test('WorldServer applies ServerConfig.chunk_size before players join', () => {
         getConnection(_id: string) {
             return undefined;
         },
-    } as { getConnection: (id: string) => undefined };
+    };
 
-    const world = new WorldServer('world1', 2000, server as never);
+    const world = new WorldServer('world1', 2000, server);
     expect(world.ecsPipeline.chunkOverlays.chunkSize).toBe(32);
 
     world.setServerConfig({

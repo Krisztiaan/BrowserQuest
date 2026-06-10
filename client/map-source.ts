@@ -70,7 +70,7 @@ function asNonEmptyString(value: unknown): string | null {
 }
 
 function asFiniteInteger(value: unknown): number | null {
-    if (!Number.isInteger(value) || !Number.isFinite(value as number)) {
+    if (!Number.isInteger(value) || !Number.isFinite(value)) {
         return null;
     }
     return value as number;
@@ -417,7 +417,10 @@ export async function fetchClientRuntimeMap(mapId?: string): Promise<ClientRunti
     const mapPayloadsById = cachedClientRuntimeMapPayloadById as Map<string, unknown>;
     const mapsById = cachedClientRuntimeMapsById as Map<string, ClientRuntimeMap>;
     const requested = normalizeRequestedMapId(mapId);
-    const resolvedMapId = requested ?? (cachedDefaultMapId as string);
+    const resolvedMapId = requested ?? cachedDefaultMapId;
+    if (resolvedMapId === null) {
+        throw new Error('Runtime map pack did not define a default map id.');
+    }
     let runtimeMap = mapsById.get(resolvedMapId);
     if (!runtimeMap) {
         const rawPayload = mapPayloadsById.get(resolvedMapId);

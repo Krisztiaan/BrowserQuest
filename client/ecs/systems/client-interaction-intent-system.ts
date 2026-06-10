@@ -153,7 +153,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
 
     const targetPos = gridPos(targetRecord.gridX, targetRecord.gridY);
     const lastPos = intent.lastKnownTargetPos;
-    const hasTargetMoved = !lastPos || lastPos.x !== targetPos.x || lastPos.y !== targetPos.y;
+    const hasTargetMoved = lastPos?.x !== targetPos.x || lastPos.y !== targetPos.y;
 
     if (hasTargetMoved) {
         host.kernel.setClientInteractionIntent({ ...intent, lastKnownTargetPos: targetPos });

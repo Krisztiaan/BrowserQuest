@@ -280,7 +280,7 @@ function countPlanPrefixOverlap(existingSteps: ReadonlyArray<GridPos>, nextSteps
     for (let i = 0; i < maxOverlap; i += 1) {
         const existing = existingSteps[i];
         const next = nextSteps[i];
-        if (!existing || !next || existing.x !== next.x || existing.y !== next.y) {
+        if (!existing || existing.x !== next?.x || existing.y !== next.y) {
             break;
         }
         overlap = i + 1;
@@ -295,7 +295,7 @@ function countPlanSuffixPrefixOverlap(existingSteps: ReadonlyArray<GridPos>, nex
         for (let i = 0; i < overlap; i += 1) {
             const existing = existingSteps[existingSteps.length - overlap + i];
             const next = nextSteps[i];
-            if (!existing || !next || existing.x !== next.x || existing.y !== next.y) {
+            if (!existing || existing.x !== next?.x || existing.y !== next.y) {
                 matches = false;
                 break;
             }
@@ -347,7 +347,7 @@ function areGridStepListsEqual(a: ReadonlyArray<GridPos>, b: ReadonlyArray<GridP
     for (let i = 0; i < a.length; i += 1) {
         const left = a[i];
         const right = b[i];
-        if (!left || !right || left.x !== right.x || left.y !== right.y) {
+        if (!left || left.x !== right?.x || left.y !== right.y) {
             return false;
         }
     }

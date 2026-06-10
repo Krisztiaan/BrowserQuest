@@ -328,7 +328,7 @@ function zigZagDecode(value: number): number {
 }
 
 function fixedBinEncodeBatch(batch: WireBatch): Uint8Array {
-    return encodeBinaryActionBatchPayload(batch as unknown[]);
+    return encodeBinaryActionBatchPayload(batch);
 }
 
 function fixedBinDecodeBatch(frame: Uint8Array): WireBatch {
@@ -340,7 +340,7 @@ function fixedBinDecodeBatch(frame: Uint8Array): WireBatch {
 }
 
 function fixedBinC2SEncodeBatch(batch: WireBatch): Uint8Array {
-    return encodeClientToServerBinaryActionBatchPayload(batch as unknown[]);
+    return encodeClientToServerBinaryActionBatchPayload(batch);
 }
 
 function fixedBinC2SDecodeBatch(frame: Uint8Array): WireBatch {
@@ -353,13 +353,13 @@ function fixedBinC2SDecodeBatch(frame: Uint8Array): WireBatch {
         if (!Array.isArray(single)) {
             throw new Error('invalid fixedbin c2s single payload');
         }
-        return single as WireBatch;
+        return single;
     }
     return decoded;
 }
 
 function fixedBinS2CEncodeBatch(batch: WireBatch): Uint8Array {
-    return encodeServerToClientBinaryActionBatchPayload(batch as unknown[]);
+    return encodeServerToClientBinaryActionBatchPayload(batch);
 }
 
 function fixedBinS2CDecodeBatch(frame: Uint8Array): WireBatch {
@@ -372,7 +372,7 @@ function fixedBinS2CDecodeBatch(frame: Uint8Array): WireBatch {
         if (!Array.isArray(single)) {
             throw new Error('invalid fixedbin s2c single payload');
         }
-        return single as WireBatch;
+        return single;
     }
     return decoded;
 }

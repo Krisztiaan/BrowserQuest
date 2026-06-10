@@ -9,10 +9,7 @@ test('shared gametypes module sets global contract', () => {
 });
 
 test('shared browser gametypes module matches canonical contract values', async () => {
-    const browserModule = (await import('../../shared/gametypes-browser')) as {
-        default: typeof Types;
-        Types: typeof Types;
-    };
+    const browserModule = (await import('../../shared/gametypes-browser'));
     const BrowserTypes = browserModule.default;
 
     expect(BrowserTypes).toBeDefined();

@@ -23,16 +23,16 @@ export interface TypedEventBus<TEvents extends TypedEventMap> {
 }
 
 export class TypedEventEmitter<TEvents extends TypedEventMap> implements TypedEventBus<TEvents> {
-    private listeners = new Map<keyof TEvents, Set<EventCallback<TEvents[keyof TEvents]>>>();
+    private listeners = new Map<keyof TEvents, Set<unknown>>();
 
     on<TEventName extends keyof TEvents>(eventName: TEventName, callback: EventCallback<TEvents[TEventName]>): Unsubscribe {
         let callbacks = this.listeners.get(eventName);
         if (!callbacks) {
-            callbacks = new Set<EventCallback<TEvents[TEventName]>>() as Set<EventCallback<TEvents[keyof TEvents]>>;
+            callbacks = new Set<unknown>();
             this.listeners.set(eventName, callbacks);
         }
 
-        callbacks.add(callback as EventCallback<TEvents[keyof TEvents]>);
+        callbacks.add(callback);
 
         return () => {
             this.off(eventName, callback);
@@ -59,7 +59,7 @@ export class TypedEventEmitter<TEvents extends TypedEventMap> implements TypedEv
             return;
         }
 
-        callbacks.delete(callback as EventCallback<TEvents[keyof TEvents]>);
+        callbacks.delete(callback);
         if (callbacks.size === 0) {
             this.listeners.delete(eventName);
         }

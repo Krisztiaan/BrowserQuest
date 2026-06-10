@@ -46,7 +46,7 @@ function createPlayer(wireId: string, name: string, x: number, y: number): Playe
         sendUTF8() {},
         close() {},
     };
-    const player = new Player(connection as never, null);
+    const player = new Player(connection, null);
     player.resetHitPoints(100);
     player.isDead = false;
     player.name = name;

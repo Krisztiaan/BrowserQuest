@@ -880,7 +880,7 @@ export default function processMap(
                 const resolvedMobKind =
                     typeof mobKind === 'string'
                     && typeof resolvedMobKindId === 'number'
-                    && Types.isMob(resolvedMobKindId as Parameters<typeof Types.isMob>[0])
+                    && Types.isMob(resolvedMobKindId)
                         ? mobKind
                         : null;
                 if (resolvedMobKind === null) {
@@ -1276,7 +1276,7 @@ export default function processMap(
             const templateValue = componentEntries.find((entry) => typeof entry.template === 'string' && entry.template.length > 0)?.template;
             const meta: ExportedRenderProp['meta'] = {
                 layer: layer.name,
-                layerPath: getLayerPath(layer as TiledObjectLayer & { _bqMeta?: FlattenedLayerMeta }),
+                layerPath: getLayerPath(layer),
                 depthMode,
                 family: typeof familyValue === 'string' && familyValue.trim().length > 0 ? familyValue.trim() : layer.name,
             };

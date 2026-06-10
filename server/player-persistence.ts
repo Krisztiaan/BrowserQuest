@@ -146,7 +146,7 @@ function normalizeEntityKind(value: string | number | null | undefined): EntityK
             return null;
         }
         const resolved = Types.getKindFromString(normalized);
-        return typeof resolved === 'number' ? (resolved as EntityKind) : null;
+        return typeof resolved === 'number' ? (resolved) : null;
     }
     return null;
 }

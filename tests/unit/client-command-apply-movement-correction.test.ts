@@ -799,7 +799,7 @@ test('combat system never repositions non-local mobs client-side', () => {
         kernel,
     };
 
-    runClientCombatSystem(host as never);
+    runClientCombatSystem(host);
     const cmds = kernel.drainClientCommands();
 
     expect(cmds.some((cmd) => cmd.type === 'combatRepositionAttacker')).toBe(false);

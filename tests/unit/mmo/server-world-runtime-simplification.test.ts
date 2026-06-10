@@ -11,7 +11,7 @@ function createWorld(): WorldServer {
             return undefined;
         },
     };
-    return new WorldServer('world-runtime-simplify', 2000, server as never);
+    return new WorldServer('world-runtime-simplify', 2000, server);
 }
 
 function createPlayer(wireId: string): Player {
@@ -23,7 +23,7 @@ function createPlayer(wireId: string): Player {
         sendUTF8() {},
         close() {},
     };
-    const player = new Player(connection as never, null);
+    const player = new Player(connection, null);
     player.name = 'player-' + wireId;
     player.accountNameKey = player.name;
     player.setPosition(1, 1);
@@ -41,7 +41,7 @@ test('WorldServer.addPlayer syncs spawn replication once through addEntity', () 
     world.ecsPipeline.syncSpawnReplicationEntity = ((...args: Parameters<typeof originalSyncSpawn>) => {
         spawnSyncCalls += 1;
         originalSyncSpawn(...args);
-    }) as typeof world.ecsPipeline.syncSpawnReplicationEntity;
+    });
 
     world.addPlayer(player);
 
@@ -58,7 +58,7 @@ test('WorldServer.removePlayer removes ecs entity exactly once', () => {
     world.ecsPipeline.removeEntity = ((...args: Parameters<typeof originalRemove>) => {
         removeEntityCalls += 1;
         originalRemove(...args);
-    }) as typeof world.ecsPipeline.removeEntity;
+    });
 
     world.removePlayer(player);
 
@@ -80,7 +80,7 @@ test('WorldServer.scheduleMobRespawn allocates fresh id when stale generation id
     ) as typeof world.ecsPipeline.scheduleStaticRespawn;
     world.ecsPipeline.scheduleStaticRespawn = ((entity) => {
         entity.emit('respawn');
-    }) as typeof world.ecsPipeline.scheduleStaticRespawn;
+    });
 
     const aliveBefore = world.ecsPipeline.state.world.entities.aliveCount;
     world.scheduleMobRespawn({

@@ -29,7 +29,7 @@ function createTestPlayer(wireId: number, name: string): Player {
         sendUTF8() {},
         close() {},
     };
-    const player = new Player(connection as never, null);
+    const player = new Player(connection, null);
     player.name = name;
     player.accountNameKey = name;
     player.armor = Types.Entities.CLOTHARMOR;
