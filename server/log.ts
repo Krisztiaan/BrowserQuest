@@ -37,11 +37,11 @@ const METHODS: Record<LogLevelName, ConsoleMethod> = {
 
 function normalizeLevelName(levelName: string): LogLevelName | null {
     if (
-        levelName === 'error'
-        || levelName === 'warn'
-        || levelName === 'warning'
-        || levelName === 'info'
-        || levelName === 'debug'
+        levelName === 'error' ||
+        levelName === 'warn' ||
+        levelName === 'warning' ||
+        levelName === 'info' ||
+        levelName === 'debug'
     ) {
         return levelName;
     }
