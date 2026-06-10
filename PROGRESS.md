@@ -459,7 +459,40 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - 2026-06-10 11:23 UTC: Verification complete.
   - Commit: `feat: enforce strict door graph contract`.
-  - Next action: Proceed to Ticket 2.3 map pack runtime transition support.
-  - `git status --short --branch`: `## modern/cx...origin/modern/cx [ahead 5]`.
 - Next action:
-  - Add strict graph validator tests.
+  - Proceed to Ticket 2.3 layer taxonomy validation.
+
+### 2026-06-10 11:26 UTC - Ticket 2.3 Add Layer Taxonomy Validation
+
+- Status: done
+- Scope:
+  - Define a shared authored map layer contract.
+  - Report unknown recursive layer paths in `world-map-validator`.
+  - Keep current known debt visible through an explicit legacy allowlist.
+  - Document the taxonomy and legacy allowlist.
+- TODO:
+  - done: Inspect recursive layer traversal and validator test setup.
+  - done: Add `shared/maps/layer-contract.ts`.
+  - done: Wire `UNKNOWN_LAYER_PATH` diagnostics into the validator.
+  - done: Add focused validator unit tests.
+  - done: Add `docs/map-layer-contract.md`.
+  - done: Run target validator, focused tests, and static gates.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 2.3.
+- Key actions:
+  - Confirmed current world paths use recursive groups such as `render_world/beach_biome/sand` and `gameplay_markup/doors`.
+  - Decided to keep current non-debt leaf paths explicit in the contract while listing `dry_ground_2`, `cliffs_2`, `village_boundaries_level_2`, and foreground overlay paths as legacy allowlist debt.
+  - Added recursive `layerPath` tracking to flattened validator contexts.
+  - Added `UNKNOWN_LAYER_PATH` diagnostics for paths outside the shared contract.
+  - Added a focused CLI-backed validator test for unknown recursive paths.
+  - Documented canonical targets, gameplay markup paths, and the legacy allowlist.
+- Evidence:
+  - 2026-06-10 11:26 UTC: Ticket started; next action is adding the contract and validator wiring.
+  - `bun run check:world-map:target` passed with 0 errors, 0 warnings, 0 infos.
+  - `bun test tests/unit/world-map-validator.test.ts --timeout 20000` passed with 2 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` initially failed on unsafe matcher typing in the new test; after replacing the matcher with typed diagnostic assertions, it passed.
+  - `git diff --check` passed.
+  - 2026-06-10 11:26 UTC: Verification complete.
+  - Commit: `feat: add map layer contract`.
+  - Next action: Proceed to Ticket 2.4 passability debug and parity checks.

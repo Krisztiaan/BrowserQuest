@@ -2481,7 +2481,7 @@ rtk git commit -m "feat: enforce strict door graph contract"
 
 **Dependencies/blockers:** Ticket 2.2.
 
-- [ ] **Step 1: Create the contract file**
+- [x] **Step 1: Create the contract file**
 
 Create `shared/maps/layer-contract.ts`:
 
@@ -2517,7 +2517,7 @@ export function isKnownLayerPath(path: string): boolean {
 }
 ```
 
-- [ ] **Step 2: Wire validator**
+- [x] **Step 2: Wire validator**
 
 In `tools/content/world-map-validator.ts`, import `isKnownLayerPath` and add a diagnostic:
 
@@ -2527,11 +2527,11 @@ UNKNOWN_LAYER_PATH
 
 for any recursive layer path that returns false.
 
-- [ ] **Step 3: Add docs**
+- [x] **Step 3: Add docs**
 
 Create `docs/map-layer-contract.md` with the layer taxonomy and the current legacy allowlist.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -2547,7 +2547,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 

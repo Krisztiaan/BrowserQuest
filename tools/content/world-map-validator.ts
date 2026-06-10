@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import Types from '../../shared/gametypes-browser';
+import { isKnownLayerPath } from '../../shared/maps/layer-contract';
 import { parseCliArgs } from '../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
@@ -27,9 +28,15 @@ type LayerContext = Readonly<{
     index: number;
     id: number | null;
     name: string;
+    layerPath: string;
     type: string;
     visible: boolean;
     record: UnknownRecord;
+}>;
+
+type FlattenedLayer = Readonly<{
+    record: UnknownRecord;
+    layerPath: string;
 }>;
 
 type TargetLayerSpec = Readonly<{
@@ -325,10 +332,11 @@ function buildLayerContexts(map: ParsedMap, diags: Diagnostic[]): LayerContext[]
 
     const flattenLayers = (
         records: ReadonlyArray<UnknownRecord>,
-        state: Readonly<{ visible: boolean; offsetX: number; offsetY: number }>
-    ): UnknownRecord[] => {
-        const flattened: UnknownRecord[] = [];
+        state: Readonly<{ visible: boolean; offsetX: number; offsetY: number; pathSegments: ReadonlyArray<string> }>
+    ): FlattenedLayer[] => {
+        const flattened: FlattenedLayer[] = [];
         for (const record of records) {
+            const nameRaw = asString(record.name);
             const typeRaw = asString(record.type);
             const visibleRaw = asBoolean(record.visible);
             const ownOffsetX =
@@ -338,6 +346,7 @@ function buildLayerContexts(map: ParsedMap, diags: Diagnostic[]): LayerContext[]
             const effectiveVisible = state.visible && (visibleRaw ?? true);
             const effectiveOffsetX = state.offsetX + ownOffsetX;
             const effectiveOffsetY = state.offsetY + ownOffsetY;
+            const layerPathSegments = [...state.pathSegments, nameRaw ?? '<unnamed>'];
 
             if (typeRaw === 'group') {
                 const nested = asArray(record.layers)
@@ -348,6 +357,7 @@ function buildLayerContexts(map: ParsedMap, diags: Diagnostic[]): LayerContext[]
                         visible: effectiveVisible,
                         offsetX: effectiveOffsetX,
                         offsetY: effectiveOffsetY,
+                        pathSegments: layerPathSegments,
                     })
                 );
                 continue;
@@ -394,17 +404,18 @@ function buildLayerContexts(map: ParsedMap, diags: Diagnostic[]): LayerContext[]
                     clone.data = shifted;
                 }
             }
-            flattened.push(clone);
+            flattened.push({ record: clone, layerPath: layerPathSegments.join('/') });
         }
         return flattened;
     };
 
-    const flattenedLayers = flattenLayers(map.layers, { visible: true, offsetX: 0, offsetY: 0 });
+    const flattenedLayers = flattenLayers(map.layers, { visible: true, offsetX: 0, offsetY: 0, pathSegments: [] });
     for (let index = 0; index < flattenedLayers.length; index += 1) {
-        const record = flattenedLayers[index];
-        if (!record) {
+        const flattened = flattenedLayers[index];
+        if (!flattened) {
             continue;
         }
+        const { record, layerPath } = flattened;
         const nameRaw = asString(record.name);
         const typeRaw = asString(record.type);
         const idRaw = asInteger(record.id);
@@ -425,11 +436,15 @@ function buildLayerContexts(map: ParsedMap, diags: Diagnostic[]): LayerContext[]
             }
             seenIds.add(idRaw);
         }
+        if (nameRaw && !isKnownLayerPath(layerPath)) {
+            pushDiagnostic(diags, 'error', 'UNKNOWN_LAYER_PATH', `Layer path ${layerPath} is not part of the map layer contract.`);
+        }
 
         contexts.push({
             index,
             id: idRaw,
             name: nameRaw ?? `<unnamed_${index}>`,
+            layerPath,
             type: typeRaw ?? '<unknown>',
             visible: visibleRaw ?? true,
             record,
