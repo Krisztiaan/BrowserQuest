@@ -60,6 +60,9 @@ import {
     encodeMoveInputIntentPayload,
     encodeMoveToIntentPayload,
     encodeMoveStepIntentPayload,
+    encodeNpcTalkIntentPayload,
+    encodeShopBuyIntentPayload,
+    encodeShopSellIntentPayload,
     encodeTileEditIntentPayload,
     INTENT_CLAIM_CREATE,
     INTENT_CLAIM_DELETE,
@@ -70,6 +73,9 @@ import {
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
+    INTENT_NPC_TALK,
+    INTENT_SHOP_BUY,
+    INTENT_SHOP_SELL,
     INTENT_TILE_EDIT,
     decodeMapTransitionOutcomePayload,
     OUTCOME_MAP_TRANSITION_BEGIN,
@@ -1029,6 +1035,30 @@ class GameClient extends Evented<GameClientEvents> {
             return null;
         }
         return this.sendIntent(INTENT_CHEST_TRANSFER, payloadBytes);
+    }
+
+    sendNpcTalk(npcId: EntityId): number | null {
+        const payloadBytes = encodeNpcTalkIntentPayload({ npcId: String(toProtocolEntityId(npcId)) });
+        if (payloadBytes === null) {
+            return null;
+        }
+        return this.sendIntent(INTENT_NPC_TALK, payloadBytes);
+    }
+
+    sendShopBuy({ shopId, item, quantity }: { shopId: string; item: string; quantity: number }): number | null {
+        const payloadBytes = encodeShopBuyIntentPayload({ shopId, item, quantity });
+        if (payloadBytes === null) {
+            return null;
+        }
+        return this.sendIntent(INTENT_SHOP_BUY, payloadBytes);
+    }
+
+    sendShopSell({ shopId, item, quantity }: { shopId: string; item: string; quantity: number }): number | null {
+        const payloadBytes = encodeShopSellIntentPayload({ shopId, item, quantity });
+        if (payloadBytes === null) {
+            return null;
+        }
+        return this.sendIntent(INTENT_SHOP_SELL, payloadBytes);
     }
 
     sendLootMove(item: IdCarrier, x: number, y: number): void {

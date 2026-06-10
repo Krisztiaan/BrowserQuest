@@ -91,6 +91,7 @@ export type ClientCommandApplySystemHost = {
               sendAggro(mob: { id: EntityId }): void;
               sendAttack(mob: { id: EntityId }): void;
               sendLootMove(item: { id: EntityId }, x: number, y: number): void;
+              sendNpcTalk(npcId: EntityId): void;
               sendCheck(id: string | number): void;
               sendOpen(chest: { id: EntityId }): void;
               sendWho(ids: EntityId[]): void;
@@ -851,6 +852,13 @@ export function runClientCommandApplySystem(host: ClientCommandApplySystemHost):
                 if (item instanceof Item) {
                     host.client.sendLootMove(item, command.x, command.y);
                 }
+                break;
+            }
+            case 'clientSendNpcTalk': {
+                if (!host.started || !host.client) {
+                    break;
+                }
+                host.client.sendNpcTalk(command.npcId);
                 break;
             }
             case 'enqueueZoningFrom': {

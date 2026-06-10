@@ -85,6 +85,10 @@ import {
 } from './world/map-registry';
 import { compileRuntimeMapPackFromPayload, loadRuntimeMapPackFromSource } from './runtime-map-pack-source';
 import { WORLD_EVENT_NAMES } from './server-event-names';
+import npcDefinitionsJson from '../assets/content/npcs.json';
+import shopDefinitionsJson from '../assets/content/shops.json';
+import type { NpcDefinitions, ShopDefinitions } from './world/shops/shop-state';
+import { resolveNpcDialogue } from './world/shops/shop-service';
 import type {
     MapTransitionEvent,
     MapTransitionRejectReason,
@@ -189,6 +193,8 @@ type PlayerPersistence = Pick<
     | 'persistCheckpoint'
     | 'persistAchievementUnlock'
     | 'transferChestItem'
+    | 'buyShopItem'
+    | 'sellShopItem'
     | 'incrementAchievementCounters'
     | 'getAchievementProgressByName'
 >;
@@ -201,6 +207,9 @@ type WorldEvents = {
     playerAdded: [];
     playerRemoved: [];
 };
+
+const NPC_DEFINITIONS = npcDefinitionsJson as NpcDefinitions;
+const SHOP_DEFINITIONS = shopDefinitionsJson as ShopDefinitions;
 
 class World extends Evented<WorldEvents> {
     id: string;
@@ -567,6 +576,74 @@ class World extends Evented<WorldEvents> {
             itemKind,
             quantity,
             direction,
+        });
+    }
+
+    talkToNpc({
+        playerIdentity,
+        npcId,
+    }: {
+        playerIdentity: string;
+        npcId: string;
+    }): Readonly<{ accepted: true; npcId: string; displayName: string; text: string }> | Readonly<{ accepted: false; reason: string }> {
+        const identityKey = resolveIdentityKey(playerIdentity);
+        if (!identityKey) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        return resolveNpcDialogue(NPC_DEFINITIONS, npcId);
+    }
+
+    buyShopItem({
+        playerIdentity,
+        shopId,
+        item,
+        quantity,
+    }: {
+        playerIdentity: string;
+        shopId: string;
+        item: string;
+        quantity: number;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> {
+        if (!this.playerPersistence) {
+            return { accepted: false, reason: 'persistence_unavailable' };
+        }
+        const identityKey = resolveIdentityKey(playerIdentity);
+        if (!identityKey) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        return this.playerPersistence.buyShopItem({
+            accountNameKey: identityKey,
+            shopId,
+            item,
+            quantity,
+            shopDefinitions: SHOP_DEFINITIONS,
+        });
+    }
+
+    sellShopItem({
+        playerIdentity,
+        shopId,
+        item,
+        quantity,
+    }: {
+        playerIdentity: string;
+        shopId: string;
+        item: string;
+        quantity: number;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }> {
+        if (!this.playerPersistence) {
+            return { accepted: false, reason: 'persistence_unavailable' };
+        }
+        const identityKey = resolveIdentityKey(playerIdentity);
+        if (!identityKey) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        return this.playerPersistence.sellShopItem({
+            accountNameKey: identityKey,
+            shopId,
+            item,
+            quantity,
+            shopDefinitions: SHOP_DEFINITIONS,
         });
     }
 

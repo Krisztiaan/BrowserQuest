@@ -1,0 +1,9 @@
+{
+  "general_store": {
+    "npc": "shopkeeper_general",
+    "buys": ["turnip", "wood", "stone"],
+    "sells": [
+      { "item": "turnip_seed", "price": 5 }
+    ]
+  }
+}

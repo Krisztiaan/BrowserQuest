@@ -987,3 +987,31 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `feat: add persistent resource harvesting`.
   - Next action: Continue Phase 5 with Ticket 5.3 NPC dialogue and shops.
+
+### 2026-06-10 14:26 UTC - Ticket 5.3 Add NPC Dialogue and Shops
+
+- Status: done
+- Scope:
+  - Add static NPC dialogue and simple buy/sell shops.
+  - Keep shop price/item resolution and inventory/gold mutation server-side and atomic.
+- TODO:
+  - done: Add NPC/shop content and item kinds needed by the planned content.
+  - done: Add shop transaction support on persisted progression state.
+  - done: Add NPC/shop intent constants/codecs and ECS/client command wiring.
+  - done: Add unit coverage for dialogue, buy, sell, rejection cases, inventory capacity, and handler registration.
+  - done: Run Ticket 5.3 full verification and commit.
+- Key actions:
+  - 2026-06-10 14:26 UTC: Ticket started.
+  - Existing player inventory/gold lives in `progression_json`; shop transactions will mutate that state under SQLite transactions rather than introducing a second inventory model.
+  - Planned content references `turnip`, `turnip_seed`, `wood`, and `stone`, which need valid `EntityKind` entries before they can be persisted in inventory.
+  - Added NPC/shop content, shared item kinds, and typed shop state/service helpers.
+  - Added transactional `buyShopItem` and `sellShopItem` mutations on player persistence, including gold, ownership, known-item, quantity, and inventory capacity validation.
+  - Added `npc.talk`, `shop.buy`, and `shop.sell` intent constants/codecs plus binary intent ids, ECS bridge commands, core registry handlers, world-server host methods, and client send helpers.
+- Evidence:
+  - `bun test tests/unit/mmo/server-npc-shop.test.ts --timeout 20000` passed: 7 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `bun run verify:modern` passed: 687 pass, 1 skip, 0 fail; client and server builds completed.
+  - `git diff --check` passed.
+  - Commit: `feat: add npc dialogue and shops`.
+  - Next action: Continue Phase 5 with Ticket 5.4 simple mines loop.

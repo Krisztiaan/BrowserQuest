@@ -14,7 +14,10 @@ import {
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
+    INTENT_NPC_TALK,
     INTENT_RESOURCE_HARVEST,
+    INTENT_SHOP_BUY,
+    INTENT_SHOP_SELL,
     INTENT_TILE_EDIT,
     INTENT_TOOL_USE,
     OUTCOME_DOOR_TELEPORT,
@@ -31,7 +34,10 @@ export {
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
+    INTENT_NPC_TALK,
     INTENT_RESOURCE_HARVEST,
+    INTENT_SHOP_BUY,
+    INTENT_SHOP_SELL,
     INTENT_TILE_EDIT,
     INTENT_TOOL_USE,
     OUTCOME_DOOR_TELEPORT,
@@ -137,6 +143,22 @@ export type IntentWorldHost = Readonly<{
         playerMapId: string;
         playerX: number;
         playerY: number;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    talkToNpc?(args: {
+        npcId: string;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true; npcId: string; displayName: string; text: string }> | Readonly<{ accepted: false; reason: string }>;
+    buyShopItem?(args: {
+        shopId: string;
+        item: string;
+        quantity: number;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    sellShopItem?(args: {
+        shopId: string;
+        item: string;
+        quantity: number;
+        playerIdentity: string;
     }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
 }>;
 
@@ -690,6 +712,62 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                         playerMapId: actorMapId,
                         playerX: playerPos.x,
                         playerY: playerPos.y,
+                    });
+                    return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
+                });
+            },
+        },
+        {
+            id: 'core.npc_shop',
+            register(registry) {
+                registry.registerIntentHandler(INTENT_NPC_TALK, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'NPC_TALK');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    if (!ctx.world.talkToNpc) {
+                        return { ok: false, reason: 'npc_unavailable' };
+                    }
+                    const result = ctx.world.talkToNpc({
+                        npcId: cmd.npcId,
+                        playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
+                    });
+                    return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
+                });
+
+                registry.registerIntentHandler(INTENT_SHOP_BUY, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'SHOP_BUY');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    if (!ctx.world.buyShopItem) {
+                        return { ok: false, reason: 'shop_unavailable' };
+                    }
+                    const result = ctx.world.buyShopItem({
+                        shopId: cmd.shopId,
+                        item: cmd.item,
+                        quantity: cmd.quantity,
+                        playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
+                    });
+                    return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
+                });
+
+                registry.registerIntentHandler(INTENT_SHOP_SELL, (rawCtx, rawPayload) => {
+                    const ctx = decodeInboundIntentContext(rawCtx);
+                    const cmd = decodeCommandByType(rawPayload as LooseValue, 'SHOP_SELL');
+                    if (!ctx || !cmd) {
+                        return;
+                    }
+                    if (!ctx.world.sellShopItem) {
+                        return { ok: false, reason: 'shop_unavailable' };
+                    }
+                    const result = ctx.world.sellShopItem({
+                        shopId: cmd.shopId,
+                        item: cmd.item,
+                        quantity: cmd.quantity,
+                        playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
                     });
                     return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
                 });

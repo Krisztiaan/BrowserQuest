@@ -90,7 +90,10 @@ import {
     decodeMoveInputIntentPayload,
     decodeMoveToIntentPayload,
     decodeMoveStepIntentPayload,
+    decodeNpcTalkIntentPayload,
     decodeResourceHarvestIntentPayload,
+    decodeShopBuyIntentPayload,
+    decodeShopSellIntentPayload,
     decodeTileEditIntentPayload,
     decodeToolUseIntentPayload,
     encodeMapTransitionOutcomePayload,
@@ -131,7 +134,10 @@ import {
     INTENT_MOVE_INPUT,
     INTENT_MOVE_TO,
     INTENT_MOVE_STEP,
+    INTENT_NPC_TALK,
     INTENT_RESOURCE_HARVEST,
+    INTENT_SHOP_BUY,
+    INTENT_SHOP_SELL,
     INTENT_TILE_EDIT,
     INTENT_TOOL_USE,
     OUTCOME_DOOR_TELEPORT,
@@ -280,6 +286,22 @@ type WorldCommandHost = Readonly<{
         playerMapId: string;
         playerX: number;
         playerY: number;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    talkToNpc?(args: {
+        npcId: string;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true; npcId: string; displayName: string; text: string }> | Readonly<{ accepted: false; reason: string }>;
+    buyShopItem?(args: {
+        shopId: string;
+        item: string;
+        quantity: number;
+        playerIdentity: string;
+    }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
+    sellShopItem?(args: {
+        shopId: string;
+        item: string;
+        quantity: number;
+        playerIdentity: string;
     }): Readonly<{ accepted: true }> | Readonly<{ accepted: false; reason: string }>;
     recordPlayerMobKill(playerName: string, mobKind: EntityKind): void;
     recordPlayerDamageTaken(playerName: string, damage: number): void;
@@ -2271,6 +2293,37 @@ function createApplyInboundCommandsSystem(
                                   tool: resourceHarvest.tool,
                               } satisfies Extract<Command, { type: 'RESOURCE_HARVEST' }>)
                             : null;
+                    } else if (cmd.intentTypeId === INTENT_NPC_TALK) {
+                        const npcTalk = decodeNpcTalkIntentPayload(cmd.payloadBytes);
+                        bridged = npcTalk
+                            ? ({
+                                  type: 'NPC_TALK',
+                                  source: cmd.source,
+                                  npcId: npcTalk.npcId,
+                              } satisfies Extract<Command, { type: 'NPC_TALK' }>)
+                            : null;
+                    } else if (cmd.intentTypeId === INTENT_SHOP_BUY) {
+                        const shopBuy = decodeShopBuyIntentPayload(cmd.payloadBytes);
+                        bridged = shopBuy
+                            ? ({
+                                  type: 'SHOP_BUY',
+                                  source: cmd.source,
+                                  shopId: shopBuy.shopId,
+                                  item: shopBuy.item,
+                                  quantity: shopBuy.quantity,
+                              } satisfies Extract<Command, { type: 'SHOP_BUY' }>)
+                            : null;
+                    } else if (cmd.intentTypeId === INTENT_SHOP_SELL) {
+                        const shopSell = decodeShopSellIntentPayload(cmd.payloadBytes);
+                        bridged = shopSell
+                            ? ({
+                                  type: 'SHOP_SELL',
+                                  source: cmd.source,
+                                  shopId: shopSell.shopId,
+                                  item: shopSell.item,
+                                  quantity: shopSell.quantity,
+                              } satisfies Extract<Command, { type: 'SHOP_SELL' }>)
+                            : null;
                     }
 
                     if (!bridged) {
@@ -2344,6 +2397,9 @@ function createApplyInboundCommandsSystem(
                 case 'CROP_PLANT':
                 case 'CROP_HARVEST':
                 case 'RESOURCE_HARVEST':
+                case 'NPC_TALK':
+                case 'SHOP_BUY':
+                case 'SHOP_SELL':
                     // Farming/resource commands are only intended to exist as internal bridged payloads inside INTENT handlers.
                     // If they ever land in the inbound command queue, ignore them (do not crash the server).
                     break;

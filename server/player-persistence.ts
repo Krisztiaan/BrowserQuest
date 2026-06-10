@@ -6,8 +6,10 @@ import type { EntityKind } from '../shared/entity-kind-domain';
 import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
 import { normalizeIdentityKey } from './identity';
 import { ensureSchemaVersion } from './sqlite-schema-meta';
+import type { ShopDefinitions, ShopTransactionResult } from './world/shops/shop-state';
 
 const DEFAULT_PLAYER_DB_PATH = './server/.data/player-profiles.sqlite';
+const SHOP_INVENTORY_STACK_CAP = 16;
 type SqliteValue = string | number | bigint | Uint8Array | null;
 type SqliteStatement = ReturnType<Database['prepare']>;
 
@@ -273,6 +275,37 @@ function setInventoryQuantity(
     }
     next.sort((a, b) => Number(a.itemKind) - Number(b.itemKind));
     return next;
+}
+
+function resolveShopItemKind(item: string): EntityKind | null {
+    const normalized = normalizeIdentityKey(item);
+    if (!normalized) {
+        return null;
+    }
+    const itemKind = Types.getKindFromString(normalized);
+    return typeof itemKind === 'number' && Types.isItem(itemKind) ? itemKind : null;
+}
+
+function resolveShopSellPrice(shopDefinitions: ShopDefinitions, shopId: string, item: string): number | null {
+    const shop = shopDefinitions[shopId];
+    if (!shop) {
+        return null;
+    }
+    const normalizedItem = normalizeIdentityKey(item);
+    const entry = shop.sells.find((candidate) => normalizeIdentityKey(candidate.item) === normalizedItem);
+    if (!entry || !Number.isSafeInteger(entry.price) || entry.price <= 0) {
+        return null;
+    }
+    return entry.price;
+}
+
+function shopBuysItem(shopDefinitions: ShopDefinitions, shopId: string, item: string): boolean {
+    const shop = shopDefinitions[shopId];
+    if (!shop) {
+        return false;
+    }
+    const normalizedItem = normalizeIdentityKey(item);
+    return shop.buys.some((candidate) => normalizeIdentityKey(candidate) === normalizedItem);
 }
 
 function normalizeTransportValue(value: string | null | undefined): AuthenticatorTransportFuture | null {
@@ -890,6 +923,141 @@ export class SqlitePlayerPersistence {
         });
 
         return transfer();
+    }
+
+    buyShopItem({
+        accountNameKey,
+        shopId,
+        item,
+        quantity,
+        shopDefinitions,
+    }: {
+        accountNameKey: string;
+        shopId: string;
+        item: string;
+        quantity: number;
+        shopDefinitions: ShopDefinitions;
+    }): ShopTransactionResult {
+        const normalizedName = normalizeIdentityKey(accountNameKey);
+        const normalizedShopId = normalizeIdentityKey(shopId);
+        const normalizedItem = normalizeIdentityKey(item);
+        const itemKind = resolveShopItemKind(normalizedItem);
+        const unitPrice = normalizedShopId ? resolveShopSellPrice(shopDefinitions, normalizedShopId, normalizedItem) : null;
+        const safeQuantity = Math.trunc(quantity);
+        if (!normalizedName) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        if (!normalizedShopId || !shopDefinitions[normalizedShopId]) {
+            return { accepted: false, reason: 'unknown_shop' };
+        }
+        if (!normalizedItem || itemKind === null || unitPrice === null) {
+            return { accepted: false, reason: 'unknown_item' };
+        }
+        if (!Number.isSafeInteger(safeQuantity) || safeQuantity <= 0) {
+            return { accepted: false, reason: 'invalid_quantity' };
+        }
+        const totalPrice = unitPrice * safeQuantity;
+        if (!Number.isSafeInteger(totalPrice) || totalPrice <= 0) {
+            return { accepted: false, reason: 'invalid_price' };
+        }
+
+        const tx = this.#db.transaction((): ShopTransactionResult => {
+            const row = getRow<ProfileRow>(this.#selectProfile, normalizedName);
+            if (!row) {
+                return { accepted: false, reason: 'missing_profile' };
+            }
+            const progression = decodeProgressionState(row.progression_json);
+            if (progression.gold < totalPrice) {
+                return { accepted: false, reason: 'insufficient_gold' };
+            }
+            const currentQuantity = getInventoryQuantity(progression.inventory, itemKind);
+            const stackCount = progression.inventory.filter((entry) => entry.quantity > 0).length;
+            if (currentQuantity === 0 && stackCount >= SHOP_INVENTORY_STACK_CAP) {
+                return { accepted: false, reason: 'inventory_full' };
+            }
+            const nextProgression = {
+                ...progression,
+                gold: progression.gold - totalPrice,
+                inventory: setInventoryQuantity(progression.inventory, itemKind, currentQuantity + safeQuantity),
+            };
+            const now = Date.now();
+            this.#upsertProgression.run(
+                normalizedName,
+                row.display_name,
+                row.armor_kind,
+                row.weapon_kind,
+                row.checkpoint_id,
+                encodeProgressionState(nextProgression),
+                now,
+                now
+            );
+            return { accepted: true };
+        });
+
+        return tx();
+    }
+
+    sellShopItem({
+        accountNameKey,
+        shopId,
+        item,
+        quantity,
+        shopDefinitions,
+    }: {
+        accountNameKey: string;
+        shopId: string;
+        item: string;
+        quantity: number;
+        shopDefinitions: ShopDefinitions;
+    }): ShopTransactionResult {
+        const normalizedName = normalizeIdentityKey(accountNameKey);
+        const normalizedShopId = normalizeIdentityKey(shopId);
+        const normalizedItem = normalizeIdentityKey(item);
+        const itemKind = resolveShopItemKind(normalizedItem);
+        const safeQuantity = Math.trunc(quantity);
+        if (!normalizedName) {
+            return { accepted: false, reason: 'invalid_player' };
+        }
+        if (!normalizedShopId || !shopDefinitions[normalizedShopId]) {
+            return { accepted: false, reason: 'unknown_shop' };
+        }
+        if (!normalizedItem || itemKind === null || !shopBuysItem(shopDefinitions, normalizedShopId, normalizedItem)) {
+            return { accepted: false, reason: 'unknown_item' };
+        }
+        if (!Number.isSafeInteger(safeQuantity) || safeQuantity <= 0) {
+            return { accepted: false, reason: 'invalid_quantity' };
+        }
+
+        const tx = this.#db.transaction((): ShopTransactionResult => {
+            const row = getRow<ProfileRow>(this.#selectProfile, normalizedName);
+            if (!row) {
+                return { accepted: false, reason: 'missing_profile' };
+            }
+            const progression = decodeProgressionState(row.progression_json);
+            const currentQuantity = getInventoryQuantity(progression.inventory, itemKind);
+            if (currentQuantity < safeQuantity) {
+                return { accepted: false, reason: 'missing_inventory_item' };
+            }
+            const nextProgression = {
+                ...progression,
+                gold: progression.gold + safeQuantity,
+                inventory: setInventoryQuantity(progression.inventory, itemKind, currentQuantity - safeQuantity),
+            };
+            const now = Date.now();
+            this.#upsertProgression.run(
+                normalizedName,
+                row.display_name,
+                row.armor_kind,
+                row.weapon_kind,
+                row.checkpoint_id,
+                encodeProgressionState(nextProgression),
+                now,
+                now
+            );
+            return { accepted: true };
+        });
+
+        return tx();
     }
 
     getProfileByName(playerName: string): PersistedPlayerProfile | null {

@@ -26,6 +26,7 @@ export type ClientCommand =
     | Readonly<{ type: 'clientSendAttack'; mobId: EntityId }>
     | Readonly<{ type: 'clientSendAggro'; mobId: EntityId }>
     | Readonly<{ type: 'clientSendLootMove'; itemId: EntityId; x: number; y: number }>
+    | Readonly<{ type: 'clientSendNpcTalk'; npcId: EntityId }>
     | Readonly<{ type: 'enqueueZoningFrom'; x: number; y: number }>
     | Readonly<{ type: 'setPlayerIsOnPlateau'; isOnPlateau: boolean }>
     | Readonly<{ type: 'setPlayerLastCheckpoint'; checkpoint: { id?: string | number } | null }>

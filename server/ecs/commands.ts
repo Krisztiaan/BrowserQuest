@@ -214,6 +214,28 @@ export type ResourceHarvestCommand = Readonly<{
     tool: 'axe' | 'pickaxe' | 'scythe';
 }>;
 
+export type NpcTalkCommand = Readonly<{
+    type: 'NPC_TALK';
+    source: CommandSource;
+    npcId: string;
+}>;
+
+export type ShopBuyCommand = Readonly<{
+    type: 'SHOP_BUY';
+    source: CommandSource;
+    shopId: string;
+    item: string;
+    quantity: number;
+}>;
+
+export type ShopSellCommand = Readonly<{
+    type: 'SHOP_SELL';
+    source: CommandSource;
+    shopId: string;
+    item: string;
+    quantity: number;
+}>;
+
 export type Command =
     | HelloCommand
     | IntentCommand
@@ -241,4 +263,7 @@ export type Command =
     | ToolUseCommand
     | CropPlantCommand
     | CropHarvestCommand
-    | ResourceHarvestCommand;
+    | ResourceHarvestCommand
+    | NpcTalkCommand
+    | ShopBuyCommand
+    | ShopSellCommand;

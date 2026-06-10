@@ -4752,8 +4752,19 @@ rtk git commit -m "feat: add persistent resource harvesting"
 **Files:**
 - Create: `assets/content/npcs.json`
 - Create: `assets/content/shops.json`
+- Create: `server/world/shops/shop-state.ts`
+- Create: `server/world/shops/shop-service.ts`
+- Modify: `server/ecs/commands.ts`
+- Modify: `server/player-persistence.ts`
+- Modify: `server/world-server.ts`
+- Modify: `server/world/ecs-command-pipeline.ts`
 - Modify: `server/world/ecs-command-pipeline/core-module-registry.ts`
+- Modify: `shared/entity-kind-domain.ts`
 - Modify: `shared/protocol/intents.ts`
+- Modify: `shared/protocol/binary-action-codec.ts`
+- Modify: `client/gameclient.ts`
+- Modify: `client/ecs/client-commands.ts`
+- Modify: `client/ecs/systems/client-command-apply-system.ts`
 - Modify: `client/ecs/systems/client-interaction-intent-system.ts`
 - Test: `tests/unit/mmo/server-npc-shop.test.ts`
 
@@ -4769,7 +4780,7 @@ rtk git commit -m "feat: add persistent resource harvesting"
 
 **Dependencies/blockers:** Ticket 4.3.
 
-- [ ] **Step 1: Add content files**
+- [x] **Step 1: Add content files**
 
 Create `assets/content/npcs.json`:
 
@@ -4796,7 +4807,7 @@ Create `assets/content/shops.json`:
 }
 ```
 
-- [ ] **Step 2: Add intents**
+- [x] **Step 2: Add intents**
 
 Add:
 
@@ -4806,7 +4817,7 @@ export const INTENT_SHOP_BUY = 'shop.buy' as const;
 export const INTENT_SHOP_SELL = 'shop.sell' as const;
 ```
 
-- [ ] **Step 3: Add tests**
+- [x] **Step 3: Add tests**
 
 Create `tests/unit/mmo/server-npc-shop.test.ts` with:
 
@@ -4820,11 +4831,11 @@ test('shop buy spends gold and adds item', () => {
 });
 ```
 
-- [ ] **Step 4: Implement server handlers**
+- [x] **Step 4: Implement server handlers**
 
 Keep all price and item resolution server-side. Reject unknown `shopId`, unknown item, non-positive quantity, insufficient gold, and missing inventory item.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -4839,7 +4850,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

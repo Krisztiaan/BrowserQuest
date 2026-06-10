@@ -15,6 +15,9 @@ export const INTENT_TOOL_USE = 'tool.use' as const;
 export const INTENT_CROP_PLANT = 'crop.plant' as const;
 export const INTENT_CROP_HARVEST = 'crop.harvest' as const;
 export const INTENT_RESOURCE_HARVEST = 'resource.harvest' as const;
+export const INTENT_NPC_TALK = 'npc.talk' as const;
+export const INTENT_SHOP_BUY = 'shop.buy' as const;
+export const INTENT_SHOP_SELL = 'shop.sell' as const;
 
 export const OUTCOME_DOOR_TELEPORT = 'teleport.door' as const;
 export const OUTCOME_MAP_TRANSITION_BEGIN = 'map.transition.begin' as const;
@@ -48,7 +51,10 @@ export type CoreIntentTypeId =
     | typeof INTENT_TOOL_USE
     | typeof INTENT_CROP_PLANT
     | typeof INTENT_CROP_HARVEST
-    | typeof INTENT_RESOURCE_HARVEST;
+    | typeof INTENT_RESOURCE_HARVEST
+    | typeof INTENT_NPC_TALK
+    | typeof INTENT_SHOP_BUY
+    | typeof INTENT_SHOP_SELL;
 
 export type IntentPayloadBytes = ReadonlyArray<number> | Uint8Array;
 
@@ -85,6 +91,9 @@ export type ToolUseIntentPayload = Readonly<{ tool: 'hoe' | 'watering_can'; x: n
 export type CropPlantIntentPayload = Readonly<{ cropId: string; seedItemId: string; x: number; y: number }>;
 export type CropHarvestIntentPayload = Readonly<{ x: number; y: number }>;
 export type ResourceHarvestIntentPayload = Readonly<{ nodeId: string; tool: 'axe' | 'pickaxe' | 'scythe' }>;
+export type NpcTalkIntentPayload = Readonly<{ npcId: string }>;
+export type ShopBuyIntentPayload = Readonly<{ shopId: string; item: string; quantity: number }>;
+export type ShopSellIntentPayload = Readonly<{ shopId: string; item: string; quantity: number }>;
 
 const TEXT_ENCODER = new TextEncoder();
 const TEXT_DECODER = new TextDecoder('utf-8', { fatal: true });
@@ -649,6 +658,60 @@ export function decodeResourceHarvestIntentPayload(payload: IntentPayloadBytes):
         return null;
     }
     return { nodeId, tool };
+}
+
+export function encodeNpcTalkIntentPayload(payload: NpcTalkIntentPayload): number[] | null {
+    const npcId = asNonEmptyString(payload.npcId);
+    if (!npcId) {
+        return null;
+    }
+    return encodeJsonIntentPayload({ npcId });
+}
+
+export function decodeNpcTalkIntentPayload(payload: IntentPayloadBytes): NpcTalkIntentPayload | null {
+    const parsed = decodeJsonIntentPayload(payload);
+    const npcId = asNonEmptyString(parsed?.npcId);
+    return npcId ? { npcId } : null;
+}
+
+export function encodeShopBuyIntentPayload(payload: ShopBuyIntentPayload): number[] | null {
+    const shopId = asNonEmptyString(payload.shopId);
+    const item = asNonEmptyString(payload.item);
+    if (!shopId || !item || !isI32(payload.quantity) || payload.quantity <= 0) {
+        return null;
+    }
+    return encodeJsonIntentPayload({ shopId, item, quantity: payload.quantity });
+}
+
+export function decodeShopBuyIntentPayload(payload: IntentPayloadBytes): ShopBuyIntentPayload | null {
+    const parsed = decodeJsonIntentPayload(payload);
+    const shopId = asNonEmptyString(parsed?.shopId);
+    const item = asNonEmptyString(parsed?.item);
+    const quantity = parsed?.quantity;
+    if (!shopId || !item || typeof quantity !== 'number' || !isI32(quantity) || quantity <= 0) {
+        return null;
+    }
+    return { shopId, item, quantity };
+}
+
+export function encodeShopSellIntentPayload(payload: ShopSellIntentPayload): number[] | null {
+    const shopId = asNonEmptyString(payload.shopId);
+    const item = asNonEmptyString(payload.item);
+    if (!shopId || !item || !isI32(payload.quantity) || payload.quantity <= 0) {
+        return null;
+    }
+    return encodeJsonIntentPayload({ shopId, item, quantity: payload.quantity });
+}
+
+export function decodeShopSellIntentPayload(payload: IntentPayloadBytes): ShopSellIntentPayload | null {
+    const parsed = decodeJsonIntentPayload(payload);
+    const shopId = asNonEmptyString(parsed?.shopId);
+    const item = asNonEmptyString(parsed?.item);
+    const quantity = parsed?.quantity;
+    if (!shopId || !item || typeof quantity !== 'number' || !isI32(quantity) || quantity <= 0) {
+        return null;
+    }
+    return { shopId, item, quantity };
 }
 
 export function encodeMapTransitionOutcomePayload(payload: MapTransitionOutcomePayload): string | null {

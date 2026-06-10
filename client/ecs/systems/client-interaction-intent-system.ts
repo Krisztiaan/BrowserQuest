@@ -327,6 +327,7 @@ export function runClientInteractionIntentSystem(host: ClientInteractionIntentSy
         );
         if (adjacent) {
             host.kernel.enqueueClientCommand({ type: 'playerStop' });
+            host.kernel.enqueueClientCommand({ type: 'clientSendNpcTalk', npcId: intent.targetId });
             host.kernel.enqueueClientCommand({ type: 'npcTalk', npcId: intent.targetId });
             host.kernel.enqueueClientCommand({ type: 'playerDisengage' });
             host.kernel.enqueueClientCommand({ type: 'playerIdle' });
