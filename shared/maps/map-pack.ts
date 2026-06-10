@@ -237,6 +237,11 @@ function extractDoorGraphEntries(mapId: string, tiled: unknown, tileSize: number
         const hasTargetDoor = !!targetDoor;
         const orientation = asNonEmptyString(properties.orientation);
         const isWorldInteriorEntryDoor = mapId.startsWith('world_') && orientation === 'u';
+        if (targetMap === 'world') {
+            errors.push(
+                `Invalid map "${mapId}" door "${resolvedDoorId.id}": target_map "world" is not supported; use "world_01".`
+            );
+        }
         if (hasTargetMap !== hasTargetDoor) {
             errors.push(
                 `Invalid map "${mapId}" door "${resolvedDoorId.id}": "target_map" and "target_door" must be provided together.`

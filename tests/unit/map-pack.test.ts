@@ -596,6 +596,46 @@ test('compileMapPack fails when target_map/target_door are partially declared', 
     ).toThrow('"target_map" and "target_door" must be provided together');
 });
 
+test('compileMapPack rejects legacy target_map world references', () => {
+    expect(() =>
+        compileMapPack({
+            maps: [
+                {
+                    id: 'world_01',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 1,
+                                x: 16,
+                                y: 16,
+                                properties: [
+                                    { name: 'door_id', value: 'entry' },
+                                    { name: 'target_map', value: 'world' },
+                                    { name: 'target_door', value: 'exit' },
+                                ],
+                            },
+                        ],
+                    }),
+                },
+                {
+                    id: 'house_01',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 2,
+                                x: 16,
+                                y: 16,
+                                properties: [{ name: 'door_id', value: 'exit' }],
+                            },
+                        ],
+                    }),
+                },
+            ],
+            allowMissingTargetMaps: true,
+        })
+    ).toThrow('target_map "world" is not supported; use "world_01"');
+});
+
 test('compileMapPack fails when legacy door properties are used', () => {
     expect(() =>
         compileMapPack({

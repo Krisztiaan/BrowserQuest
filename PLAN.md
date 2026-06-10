@@ -1846,7 +1846,7 @@ rtk git commit -m "chore: refresh runtime map-pack artifact"
 
 **Dependencies/blockers:** Ticket 1.2.
 
-- [ ] **Step 1: Add failing unit test**
+- [x] **Step 1: Add failing unit test**
 
 In `tests/unit/map-pack.test.ts`, add:
 
@@ -1881,7 +1881,7 @@ test('compileMapPack rejects legacy target_map world references', () => {
 
 Adapt helper names to the existing helpers in `tests/unit/map-pack.test.ts`.
 
-- [ ] **Step 2: Implement the validation**
+- [x] **Step 2: Implement the validation**
 
 In `shared/maps/map-pack.ts`, inside `extractDoorGraphEntries`, after reading `targetMap`, add:
 
@@ -1893,7 +1893,7 @@ if (targetMap === 'world') {
 }
 ```
 
-- [ ] **Step 3: Update authored map data**
+- [x] **Step 3: Update authored map data**
 
 Use a structured JSON edit. Do not use broad string replacement over the file.
 
@@ -1921,7 +1921,7 @@ fs.writeFileSync(path, JSON.stringify(root, null, 2) + "\\n");
 '
 ```
 
-- [ ] **Step 4: Verify map id count**
+- [x] **Step 4: Verify map id count**
 
 Run:
 
@@ -1952,7 +1952,7 @@ Expected:
 {"world":0,"world_01":7}
 ```
 
-- [ ] **Step 5: Regenerate and test**
+- [x] **Step 5: Regenerate and test**
 
 Run:
 
@@ -1969,7 +1969,7 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 Run:
 

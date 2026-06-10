@@ -10206,7 +10206,7 @@
             "tlocal_ty": 231,
             "to": "d",
             "ttarget_door": "world_portal_82_234",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 82,
             "ty": 234
           },
@@ -10219,7 +10219,7 @@
             "tlocal_ty": 235,
             "to": "d",
             "ttarget_door": "world_portal_77_237",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 77,
             "ty": 237
           },
@@ -10972,7 +10972,7 @@
             "tdoor_id": "world_portal_166_33",
             "to": "l",
             "ttarget_door": "world_portal_158_35",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 160,
             "ty": 35
           },
@@ -10985,7 +10985,7 @@
             "tlocal_ty": 28,
             "to": "l",
             "ttarget_door": "world_portal_148_32",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 150,
             "ty": 32
           },
@@ -10998,7 +10998,7 @@
             "tlocal_ty": 26,
             "to": "l",
             "ttarget_door": "world_portal_155_29",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 158,
             "ty": 29
           },
@@ -11011,7 +11011,7 @@
             "tlocal_ty": 26,
             "to": "l",
             "ttarget_door": "world_portal_142_32",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 142,
             "ty": 31
           },
@@ -11024,7 +11024,7 @@
             "tlocal_ty": 31,
             "to": "d",
             "ttarget_door": "world_portal_166_33",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 166,
             "ty": 34
           }
@@ -265528,7 +265528,7 @@
             "tlocal_ty": 231,
             "to": "d",
             "ttarget_door": "world_portal_82_234",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 82,
             "ty": 234
           },
@@ -265541,7 +265541,7 @@
             "tlocal_ty": 235,
             "to": "d",
             "ttarget_door": "world_portal_77_237",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 77,
             "ty": 237
           },
@@ -266294,7 +266294,7 @@
             "tdoor_id": "world_portal_166_33",
             "to": "l",
             "ttarget_door": "world_portal_158_35",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 160,
             "ty": 35
           },
@@ -266307,7 +266307,7 @@
             "tlocal_ty": 28,
             "to": "l",
             "ttarget_door": "world_portal_148_32",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 150,
             "ty": 32
           },
@@ -266320,7 +266320,7 @@
             "tlocal_ty": 26,
             "to": "l",
             "ttarget_door": "world_portal_155_29",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 158,
             "ty": 29
           },
@@ -266333,7 +266333,7 @@
             "tlocal_ty": 26,
             "to": "l",
             "ttarget_door": "world_portal_142_32",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 142,
             "ty": 31
           },
@@ -266346,7 +266346,7 @@
             "tlocal_ty": 31,
             "to": "d",
             "ttarget_door": "world_portal_166_33",
-            "ttarget_map": "world",
+            "ttarget_map": "world_01",
             "tx": 166,
             "ty": 34
           }

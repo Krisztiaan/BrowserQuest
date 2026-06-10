@@ -274,3 +274,39 @@ This is the live execution notebook for `PLAN.md`.
   - `git commit -m "feat: use map-pack config as runtime map source"`: committed and amended with final live-doc metadata.
 - Next action:
   - Proceed to Ticket 1.3 canonical map id work.
+
+### 2026-06-10 10:49 UTC - Ticket 1.3 Canonicalize Map Ids to `world_01`
+
+- Status: done
+- Scope:
+  - Replace authored `target_map: world` door links with `target_map: world_01`.
+  - Add map-pack validation that rejects new `target_map: world` references.
+  - Regenerate the runtime map-pack artifact after the structured JSON edit.
+  - Do not create interior maps or alter door coordinates in this ticket.
+- TODO:
+  - done: Inspect current map-pack test helpers, door extraction, and authored `target_map` counts.
+  - done: Add failing unit test for legacy `target_map: world`.
+  - done: Implement validation in shared map-pack compilation.
+  - done: Update `assets/maps/tiled/world.json` via structured JSON edit.
+  - done: Regenerate `assets/maps/runtime/map-pack.json`.
+  - done: Run map-pack tests, map build/check, recursive count, and static gates as needed.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 1.3.
+- Key actions:
+  - Confirmed Ticket 1.1 commit left a clean branch ahead of origin by one commit.
+  - Added a `compileMapPack` regression test that rejects `target_map: world`.
+  - Added map-pack extraction validation for legacy `target_map: world`.
+  - Replaced 7 authored `target_map` values from `world` to `world_01` with a structure-checked text-preserving edit.
+  - Regenerated `assets/maps/runtime/map-pack.json`.
+  - Committed Ticket 1.3 with message `fix: canonicalize authored map ids`.
+- Evidence:
+  - `git status --short --branch`: `## modern/cx...origin/modern/cx [ahead 1]`.
+  - `bun test tests/unit/map-pack.test.ts --timeout 20000`: initially failed before validation, then passed 18 pass / 0 fail.
+  - Recursive authored map count: `{"world":0,"world_01":7}`.
+  - `bun run build:maps`: regenerated `assets/maps/runtime/map-pack.json`.
+  - `bun run check:maps`: pass, map pack is up to date.
+  - `bun run typecheck`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+  - `git commit -m "fix: canonicalize authored map ids"`: committed and amended with final live-doc metadata.
+- Next action:
+  - Proceed to Ticket 1.4 explicit interior maps.
