@@ -423,3 +423,43 @@ This is the live execution notebook for `PLAN.md`.
   - `git commit -m "feat: add explicit portal semantics"`: committed and amended with final live-doc metadata.
 - Next action:
   - Proceed to Ticket 2.2 strict door graph contract.
+
+### 2026-06-10 11:14 UTC - Ticket 2.2 Add Strict Door Graph Validator
+
+- Status: done
+- Scope:
+  - Enforce complete graph-linked door metadata in map-pack compilation.
+  - Require reverse links unless the source door has `one_way=true`.
+  - Document the graph-linked door contract.
+  - Preserve intentionally same-map plain coordinate doors that are not graph-linked.
+- TODO:
+  - done: Inspect current door graph types and validation path.
+  - done: Add failing unit tests for missing orientation, raw `tx`/`ty`, and missing reverse links.
+  - done: Implement strict graph-linked door validation and source-door `one_way` tracking.
+  - done: Update current map-pack tests to satisfy the stricter contract where they are not testing failures.
+  - done: Update template README and world-map validator checks.
+  - done: Run map-pack tests, target world validation, map build/check, and static gates.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 2.2.
+- Key actions:
+  - Confirmed clean branch state after Ticket 2.1.
+  - Confirmed `MapGraphEdge` has only `from`/`to`, so `one_way` must be tracked separately from source door properties.
+  - Added compiler errors for graph-linked doors missing `orientation` or declaring raw `tx`/`ty`.
+  - Added reverse-link validation with explicit `one_way=true` exemptions tracked from the source door.
+  - Updated the five same-map world portal graph sources to declare `one_way=true`.
+  - Extended world-map target validation to require paired graph targets and forbid raw graph coordinates.
+  - Documented the graph-linked door contract in the Tiled templates README.
+- Evidence:
+  - `bun test tests/unit/map-pack.test.ts --timeout 20000` initially failed for the new missing-orientation/raw-coordinate/reverse-link tests before implementation; after implementation it passed with 24 pass, 0 fail.
+  - `bun run build:maps` initially failed on missing reverse links for the five authored one-way world portals; after adding `one_way=true`, it generated `assets/maps/runtime/map-pack.json`.
+  - `bun run check:world-map:target` passed with 0 errors, 0 warnings, 0 infos.
+  - `bun run check:maps` passed with map pack up to date.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` initially failed on unsafe target property string coercion in `world-map-validator.ts`; after switching to `asString`, it passed.
+  - `git diff --check` passed.
+  - 2026-06-10 11:23 UTC: Verification complete.
+  - Commit: `feat: enforce strict door graph contract`.
+  - Next action: Proceed to Ticket 2.3 map pack runtime transition support.
+  - `git status --short --branch`: `## modern/cx...origin/modern/cx [ahead 5]`.
+- Next action:
+  - Add strict graph validator tests.

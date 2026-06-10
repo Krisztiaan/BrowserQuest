@@ -1009,7 +1009,7 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
             requireProperty(diags, doors, objectId, props, 'target_tx', 'DOOR_PROPERTY_MISSING');
             requireProperty(diags, doors, objectId, props, 'target_ty', 'DOOR_PROPERTY_MISSING');
 
-            const forbidden = ['o', 'x', 'y', 'cx', 'cy'];
+            const forbidden = ['o', 'x', 'y', 'cx', 'cy', 'tx', 'ty'];
             for (const key of forbidden) {
                 if (props.has(key)) {
                     pushDiagnostic(
@@ -1019,6 +1019,21 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
                         `${formatLayerRef(doors)} object ${objectId ?? 'no-id'} still uses legacy property ${key}.`
                     );
                 }
+            }
+
+            const hasTargetMap = (asString(props.get('target_map'))?.trim().length ?? 0) > 0;
+            const hasTargetDoor = (asString(props.get('target_door'))?.trim().length ?? 0) > 0;
+            if (hasTargetMap !== hasTargetDoor) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'DOOR_GRAPH_LINK_INCOMPLETE',
+                    `${formatLayerRef(doors)} object ${objectId ?? 'no-id'} must define target_map and target_door together.`
+                );
+            }
+            if (hasTargetMap && hasTargetDoor) {
+                requireProperty(diags, doors, objectId, props, 'door_id', 'DOOR_GRAPH_PROPERTY_MISSING');
+                requireProperty(diags, doors, objectId, props, 'orientation', 'DOOR_GRAPH_PROPERTY_MISSING');
             }
 
             const objectClass = getObjectClassName(objectRecord) ?? '';

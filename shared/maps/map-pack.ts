@@ -27,6 +27,7 @@ type DoorGraphExtractionResult = Readonly<{
     doors: ReadonlyArray<MapGraphDoor>;
     edges: ReadonlyArray<MapGraphEdge>;
     explicitDoorIds: ReadonlySet<string>;
+    oneWayEdgeKeys: ReadonlySet<string>;
     errors: ReadonlyArray<string>;
 }>;
 
@@ -75,6 +76,17 @@ function asNonEmptyString(value: unknown): string | null {
         return null;
     }
     return value;
+}
+
+function isTruthyProperty(value: unknown): boolean {
+    if (value === true || value === 1) {
+        return true;
+    }
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        return normalized === 'true' || normalized === '1' || normalized === 'yes';
+    }
+    return false;
 }
 
 function flattenLayersForExtraction(
@@ -220,6 +232,7 @@ function extractDoorGraphEntries(mapId: string, tiled: unknown, tileSize: number
     const out: MapGraphDoor[] = [];
     const edges: MapGraphEdge[] = [];
     const explicitDoorIds = new Set<string>();
+    const oneWayEdgeKeys = new Set<string>();
     const errors: string[] = [];
     for (let i = 0; i < doors.length; i += 1) {
         const door = doors[i];
@@ -257,10 +270,24 @@ function extractDoorGraphEntries(mapId: string, tiled: unknown, tileSize: number
             if (!resolvedDoorId.explicit) {
                 errors.push(`Invalid map "${mapId}" door "${resolvedDoorId.id}": graph-linked doors require explicit "door_id" property.`);
             }
-            edges.push({
+            if (!orientation) {
+                errors.push(
+                    `Invalid map "${mapId}" door "${resolvedDoorId.id}": graph-linked doors require explicit "orientation" property.`
+                );
+            }
+            if (properties.tx !== undefined || properties.ty !== undefined) {
+                errors.push(
+                    `Invalid map "${mapId}" door "${resolvedDoorId.id}": graph-linked doors must not declare raw "tx" or "ty".`
+                );
+            }
+            const edge = {
                 from: { mapId, doorId: resolvedDoorId.id },
                 to: { mapId: targetMap, doorId: targetDoor },
-            });
+            };
+            edges.push(edge);
+            if (isTruthyProperty(properties.one_way)) {
+                oneWayEdgeKeys.add(`${mapGraphDoorRefKey(edge.from)}->${mapGraphDoorRefKey(edge.to)}`);
+            }
         }
 
         const x = asNumber(door.x);
@@ -279,8 +306,28 @@ function extractDoorGraphEntries(mapId: string, tiled: unknown, tileSize: number
         doors: out,
         edges,
         explicitDoorIds,
+        oneWayEdgeKeys,
         errors,
     };
+}
+
+function findMissingReverseLinks(edges: ReadonlyArray<MapGraphEdge>, oneWayEdgeKeys: ReadonlySet<string>): ReadonlyArray<string> {
+    const edgeKeys = new Set(edges.map((edge) => `${mapGraphDoorRefKey(edge.from)}->${mapGraphDoorRefKey(edge.to)}`));
+    const errors: string[] = [];
+    for (let i = 0; i < edges.length; i += 1) {
+        const edge = edges[i];
+        if (!edge) {
+            continue;
+        }
+        const key = `${mapGraphDoorRefKey(edge.from)}->${mapGraphDoorRefKey(edge.to)}`;
+        const reverseKey = `${mapGraphDoorRefKey(edge.to)}->${mapGraphDoorRefKey(edge.from)}`;
+        if (!edgeKeys.has(reverseKey) && !oneWayEdgeKeys.has(key)) {
+            errors.push(
+                `Invalid map pack graph: reverse link missing for "${mapGraphDoorRefKey(edge.from)}" -> "${mapGraphDoorRefKey(edge.to)}".`
+            );
+        }
+    }
+    return errors;
 }
 
 function findEdgesWithImplicitDoorIds(
@@ -477,6 +524,7 @@ export function compileMapPack(input: MapPackBuildInput): MapPack {
     const derivedEdges: MapGraphEdge[] = [];
     const authoringErrors: string[] = [];
     const explicitDoorRefs = new Set<string>();
+    const oneWayEdgeKeys = new Set<string>();
     const mapHasRenderableTerrainById = new Map<string, boolean>();
 
     const sortedInputs = [...input.maps].sort((a, b) => compareStrings(a.id, b.id));
@@ -535,6 +583,9 @@ export function compileMapPack(input: MapPackBuildInput): MapPack {
         mapHasRenderableTerrainById.set(mapId, hasRenderableTerrainTiles(client));
 
         derivedEdges.push(...graphDoorExtraction.edges);
+        for (const edgeKey of graphDoorExtraction.oneWayEdgeKeys) {
+            oneWayEdgeKeys.add(edgeKey);
+        }
     }
 
     const edges = sortEdgesStable([...(input.edges ?? []), ...derivedEdges]);
@@ -551,6 +602,7 @@ export function compileMapPack(input: MapPackBuildInput): MapPack {
         authoringErrors.push(...validation.errors);
     } else {
         authoringErrors.push(...findEdgesWithImplicitDoorIds(graph.edges, explicitDoorRefs));
+        authoringErrors.push(...findMissingReverseLinks(graph.edges, oneWayEdgeKeys));
         const transitionDestinations = new Set<string>();
         for (let edgeIndex = 0; edgeIndex < graph.edges.length; edgeIndex += 1) {
             const edge = graph.edges[edgeIndex];

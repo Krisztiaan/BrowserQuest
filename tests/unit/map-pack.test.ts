@@ -120,8 +120,10 @@ test('compileMapPack derives edges from door target_map/target_door properties',
                             y: 16,
                             properties: [
                                 { name: 'door_id', value: 'enter_house' },
+                                { name: 'orientation', value: 'u' },
                                 { name: 'target_map', value: 'house_01' },
                                 { name: 'target_door', value: 'exit' },
+                                { name: 'one_way', value: true },
                             ],
                         },
                     ],
@@ -169,6 +171,7 @@ test('compileMapPack accepts a world-to-house door with reverse house link', () 
                             y: 16,
                             properties: [
                                 { name: 'door_id', value: 'world_house_01_entry' },
+                                { name: 'orientation', value: 'u' },
                                 { name: 'target_map', value: 'house_01' },
                                 { name: 'target_door', value: 'house_01_entry' },
                             ],
@@ -186,6 +189,7 @@ test('compileMapPack accepts a world-to-house door with reverse house link', () 
                             y: 48,
                             properties: [
                                 { name: 'door_id', value: 'house_01_entry' },
+                                { name: 'orientation', value: 'd' },
                                 { name: 'target_map', value: 'world_01' },
                                 { name: 'target_door', value: 'world_house_01_entry' },
                             ],
@@ -328,8 +332,10 @@ test('compileMapPack normalizes graph-linked door tx/ty to destination door coor
                             y: 16,
                             properties: [
                                 { name: 'door_id', value: 'enter_house' },
+                                { name: 'orientation', value: 'u' },
                                 { name: 'target_map', value: 'house_01' },
                                 { name: 'target_door', value: 'exit' },
+                                { name: 'one_way', value: true },
                                 // Deliberately wrong: should be rewritten to the destination door tile.
                                 { name: 'target_tx', value: '999' },
                                 { name: 'target_ty', value: '999' },
@@ -558,8 +564,10 @@ test('compileMapPack carves authored blocking to prevent trapped door soft-locks
                             y: doorPixel.y,
                             properties: [
                                 { name: 'door_id', value: 'enter_house' },
+                                { name: 'orientation', value: 'u' },
                                 { name: 'target_map', value: 'house_01' },
                                 { name: 'target_door', value: 'exit' },
+                                { name: 'one_way', value: true },
                             ],
                         },
                     ],
@@ -681,8 +689,10 @@ test('compileMapPack fails when cross-map transition destination has empty rende
                                 y: 16,
                                 properties: [
                                     { name: 'door_id', value: 'enter_blank_house' },
+                                    { name: 'orientation', value: 'u' },
                                     { name: 'target_map', value: 'house_01' },
                                     { name: 'target_door', value: 'house_entry' },
+                                    { name: 'one_way', value: true },
                                 ],
                             },
                         ],
@@ -755,6 +765,128 @@ test('compileMapPack fails when target_map/target_door are partially declared', 
     ).toThrow('"target_map" and "target_door" must be provided together');
 });
 
+test('compileMapPack fails when graph-linked door omits orientation', () => {
+    expect(() =>
+        compileMapPack({
+            maps: [
+                {
+                    id: 'world',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 1,
+                                x: 16,
+                                y: 16,
+                                properties: [
+                                    { name: 'door_id', value: 'entry' },
+                                    { name: 'target_map', value: 'house_01' },
+                                    { name: 'target_door', value: 'exit' },
+                                    { name: 'one_way', value: true },
+                                ],
+                            },
+                        ],
+                    }),
+                },
+                {
+                    id: 'house_01',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 2,
+                                x: 16,
+                                y: 16,
+                                properties: [{ name: 'door_id', value: 'exit' }],
+                            },
+                        ],
+                    }),
+                },
+            ],
+        })
+    ).toThrow('graph-linked doors require explicit "orientation" property');
+});
+
+test('compileMapPack fails when graph-linked door declares raw tx or ty', () => {
+    expect(() =>
+        compileMapPack({
+            maps: [
+                {
+                    id: 'world',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 1,
+                                x: 16,
+                                y: 16,
+                                properties: [
+                                    { name: 'door_id', value: 'entry' },
+                                    { name: 'orientation', value: 'u' },
+                                    { name: 'target_map', value: 'house_01' },
+                                    { name: 'target_door', value: 'exit' },
+                                    { name: 'tx', value: '2' },
+                                    { name: 'one_way', value: true },
+                                ],
+                            },
+                        ],
+                    }),
+                },
+                {
+                    id: 'house_01',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 2,
+                                x: 16,
+                                y: 16,
+                                properties: [{ name: 'door_id', value: 'exit' }],
+                            },
+                        ],
+                    }),
+                },
+            ],
+        })
+    ).toThrow('graph-linked doors must not declare raw "tx" or "ty"');
+});
+
+test('compileMapPack fails when graph-linked door has no reverse link', () => {
+    expect(() =>
+        compileMapPack({
+            maps: [
+                {
+                    id: 'world',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 1,
+                                x: 16,
+                                y: 16,
+                                properties: [
+                                    { name: 'door_id', value: 'entry' },
+                                    { name: 'orientation', value: 'u' },
+                                    { name: 'target_map', value: 'house_01' },
+                                    { name: 'target_door', value: 'exit' },
+                                ],
+                            },
+                        ],
+                    }),
+                },
+                {
+                    id: 'house_01',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 2,
+                                x: 16,
+                                y: 16,
+                                properties: [{ name: 'door_id', value: 'exit' }],
+                            },
+                        ],
+                    }),
+                },
+            ],
+        })
+    ).toThrow('reverse link missing');
+});
+
 test('compileMapPack rejects legacy target_map world references', () => {
     expect(() =>
         compileMapPack({
@@ -769,6 +901,7 @@ test('compileMapPack rejects legacy target_map world references', () => {
                                 y: 16,
                                 properties: [
                                     { name: 'door_id', value: 'entry' },
+                                    { name: 'orientation', value: 'u' },
                                     { name: 'target_map', value: 'world' },
                                     { name: 'target_door', value: 'exit' },
                                 ],
@@ -880,6 +1013,7 @@ test('compileMapPack fails when a graph-linked source door has no explicit door_
                                 properties: [
                                     { name: 'target_map', value: 'house_01' },
                                     { name: 'target_door', value: 'exit' },
+                                    { name: 'orientation', value: 'u' },
                                 ],
                             },
                         ],
@@ -917,8 +1051,10 @@ test('compileMapPack fails when graph edge references destination door without e
                                 y: 16,
                                 properties: [
                                     { name: 'door_id', value: 'entry' },
+                                    { name: 'orientation', value: 'u' },
                                     { name: 'target_map', value: 'house_01' },
                                     { name: 'target_door', value: '11' },
+                                    { name: 'one_way', value: true },
                                 ],
                             },
                         ],

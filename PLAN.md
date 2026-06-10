@@ -2383,7 +2383,7 @@ rtk git commit -m "feat: add explicit portal semantics"
 
 **Dependencies/blockers:** Ticket 2.1.
 
-- [ ] **Step 1: Add unit tests for each rejected shape**
+- [x] **Step 1: Add unit tests for each rejected shape**
 
 Add tests to `tests/unit/map-pack.test.ts` with expected error substrings:
 
@@ -2396,7 +2396,7 @@ reverse link missing
 
 Each test should compile a tiny two-map pack and assert `toThrow('the expected error substring')`.
 
-- [ ] **Step 2: Implement validations**
+- [x] **Step 2: Implement validations**
 
 In `shared/maps/map-pack.ts`, inside door extraction/graph validation:
 
@@ -2423,7 +2423,7 @@ for (const edge of edges) {
 
 Implement `isOneWayEdge` using a door property lookup, not a global edge assumption.
 
-- [ ] **Step 3: Update docs**
+- [x] **Step 3: Update docs**
 
 In `assets/maps/tiled/templates/README.md`, add:
 
@@ -2431,7 +2431,7 @@ In `assets/maps/tiled/templates/README.md`, add:
 Graph-linked doors must define `door_id`, `target_map`, `target_door`, and `orientation`. They must not define raw `tx` or `ty`; runtime destination coordinates come from the target door. Reverse links are required unless the source door has `one_way=true`.
 ```
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -2449,7 +2449,7 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 

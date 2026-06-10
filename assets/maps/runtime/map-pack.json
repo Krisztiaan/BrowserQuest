@@ -41207,6 +41207,7 @@
             "to": "d",
             "ttarget_door": "world_portal_82_234",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 82,
             "ty": 234
           },
@@ -41220,6 +41221,7 @@
             "to": "d",
             "ttarget_door": "world_portal_77_237",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 77,
             "ty": 237
           },
@@ -41973,6 +41975,7 @@
             "to": "l",
             "ttarget_door": "world_portal_158_35",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 158,
             "ty": 35
           },
@@ -41986,6 +41989,7 @@
             "to": "l",
             "ttarget_door": "world_portal_148_32",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 148,
             "ty": 32
           },
@@ -41999,6 +42003,7 @@
             "to": "l",
             "ttarget_door": "world_portal_155_29",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 155,
             "ty": 29
           },
@@ -42012,6 +42017,7 @@
             "to": "l",
             "ttarget_door": "world_portal_142_32",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 142,
             "ty": 32
           },
@@ -42025,6 +42031,7 @@
             "to": "d",
             "ttarget_door": "world_portal_166_33",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 166,
             "ty": 33
           }
@@ -296529,6 +296536,7 @@
             "to": "d",
             "ttarget_door": "world_portal_82_234",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 82,
             "ty": 234
           },
@@ -296542,6 +296550,7 @@
             "to": "d",
             "ttarget_door": "world_portal_77_237",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 77,
             "ty": 237
           },
@@ -297295,6 +297304,7 @@
             "to": "l",
             "ttarget_door": "world_portal_158_35",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 158,
             "ty": 35
           },
@@ -297308,6 +297318,7 @@
             "to": "l",
             "ttarget_door": "world_portal_148_32",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 148,
             "ty": 32
           },
@@ -297321,6 +297332,7 @@
             "to": "l",
             "ttarget_door": "world_portal_155_29",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 155,
             "ty": 29
           },
@@ -297334,6 +297346,7 @@
             "to": "l",
             "ttarget_door": "world_portal_142_32",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 142,
             "ty": 32
           },
@@ -297347,6 +297360,7 @@
             "to": "d",
             "ttarget_door": "world_portal_166_33",
             "ttarget_map": "world_01",
+            "tone_way": true,
             "tx": 166,
             "ty": 33
           }

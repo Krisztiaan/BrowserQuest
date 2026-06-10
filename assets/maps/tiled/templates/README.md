@@ -22,6 +22,7 @@ Use these with Tiled's **Insert Template** tool (`V`) to avoid property/key drif
 - Place static characters/items/NPCs in the `static_entities` object layer.
 - Place resource, chest, roaming, music, and checkpoint objects in their matching canonical layers.
 - Use `doors` layer for both `Door` and `Portal` objects.
+- Graph-linked doors must define `door_id`, `target_map`, `target_door`, and `orientation`. They must not define raw `tx` or `ty`; runtime destination coordinates come from the target door. Reverse links are required unless the source door has `one_way=true`.
 - Visible object layers can now contain decorative tile objects. Use a normal visible object layer for baked world props, or set the layer `class` to `Foreground` to export those tile objects into the map foreground bucket.
 - For single authored props that should occlude entities by footprint depth instead of a coarse foreground pass, set the object layer `class` to `DepthSorted`. BrowserQuest will export connected tile-object assemblies from that layer as depth-sorted render props.
 - Group layers are now first-class authoring structure. BrowserQuest flattens nested group layers, inheriting visibility, layer/object offsets, and group properties into child layers during export and validation.

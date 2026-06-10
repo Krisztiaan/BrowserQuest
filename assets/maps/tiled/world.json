@@ -76213,6 +76213,11 @@
                                  "value":"world_01"
                                 },
                                 {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
+                                {
                                  "name":"target_tx",
                                  "type":"int",
                                  "value":82
@@ -76265,6 +76270,11 @@
                                  "name":"target_map",
                                  "type":"string",
                                  "value":"world_01"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"target_tx",
@@ -79262,6 +79272,11 @@
                                  "value":"world_01"
                                 },
                                 {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
+                                {
                                  "name":"target_tx",
                                  "type":"int",
                                  "value":160
@@ -79314,6 +79329,11 @@
                                  "name":"target_map",
                                  "type":"string",
                                  "value":"world_01"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"target_tx",
@@ -79370,6 +79390,11 @@
                                  "value":"world_01"
                                 },
                                 {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
+                                {
                                  "name":"target_tx",
                                  "type":"int",
                                  "value":158
@@ -79424,6 +79449,11 @@
                                  "value":"world_01"
                                 },
                                 {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
+                                },
+                                {
                                  "name":"target_tx",
                                  "type":"int",
                                  "value":142
@@ -79476,6 +79506,11 @@
                                  "name":"target_map",
                                  "type":"string",
                                  "value":"world_01"
+                                },
+                                {
+                                 "name":"one_way",
+                                 "type":"bool",
+                                 "value":true
                                 },
                                 {
                                  "name":"target_tx",
