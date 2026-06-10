@@ -357,3 +357,30 @@ This is the live execution notebook for `PLAN.md`.
   - `git commit -m "feat: add stub interior map pack entries"`: committed and amended with final live-doc metadata.
 - Next action:
   - Proceed to Ticket 1.5 strict missing-target validation.
+
+### 2026-06-10 11:04 UTC - Ticket 1.5 Disable Missing Target Maps
+
+- Status: done
+- Scope:
+  - Set `assets/maps/tiled/map-pack.config.json` `allow_missing_target_maps` to `false`.
+  - Verify strict graph validation now passes with the Ticket 1.4 house maps.
+  - Do not add more stub maps in this ticket.
+- TODO:
+  - done: Change `allow_missing_target_maps` to `false`.
+  - done: Regenerate/check the runtime map pack under strict graph validation.
+  - done: Run focused map-pack tests and verify the modern gate reaches map checks cleanly.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 1.5.
+- Key actions:
+  - Confirmed clean branch state after Ticket 1.4.
+  - Set `allow_missing_target_maps` to `false`.
+  - Regenerated the runtime map pack; no artifact diff was produced under strict mode.
+  - Committed Ticket 1.5 with message `chore: enforce strict map target validation`.
+- Evidence:
+  - `git status --short --branch`: `## modern/cx...origin/modern/cx [ahead 3]`.
+  - `bun run build:maps`: pass, generated runtime map pack.
+  - `bun run check:maps`: pass, map pack is up to date with strict graph validation.
+  - `bun test tests/unit/map-pack.test.ts --timeout 20000`: pass, 20 pass / 0 fail.
+  - `bun run verify:modern`: pass; includes strict `check:maps`, 638 pass / 1 skip / 0 fail tests, and client/server builds.
+  - `git commit -m "chore: enforce strict map target validation"`: committed and amended with final live-doc metadata.
+- Next action:
+  - Proceed to Phase 2 door and authoring validation work.

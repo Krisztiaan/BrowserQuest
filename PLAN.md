@@ -2190,7 +2190,7 @@ rtk git commit -m "feat: add stub interior map pack entries"
 
 **Dependencies/blockers:** Ticket 1.4.
 
-- [ ] **Step 1: Change config**
+- [x] **Step 1: Change config**
 
 Set:
 
@@ -2200,7 +2200,7 @@ Set:
 
 in `assets/maps/tiled/map-pack.config.json`.
 
-- [ ] **Step 2: Verify strict graph**
+- [x] **Step 2: Verify strict graph**
 
 Run:
 
@@ -2217,7 +2217,7 @@ Expected:
 Map pack is up to date
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 Run:
 

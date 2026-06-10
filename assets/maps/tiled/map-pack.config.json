@@ -166,5 +166,5 @@
     }
   ],
   "edges": [],
-  "allow_missing_target_maps": true
+  "allow_missing_target_maps": false
 }
