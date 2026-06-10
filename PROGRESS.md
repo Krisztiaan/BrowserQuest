@@ -168,3 +168,25 @@ This is the live execution notebook for `PLAN.md`.
   - `rtk git commit -m "chore: normalize maintenance script lanes"`: committed Ticket 0A.2.
 - Next action:
   - Proceed to Ticket 0A.3 docs archive/index.
+
+### 2026-06-10 11:54 - Ticket 0A.3 Archive Historical Audits and Create Documentation Index
+
+- Status: done
+- Scope:
+  - Move historical February audits behind `docs/archive/2026-02/`.
+  - Import the external audit into `docs/audits/`.
+  - Add docs index and README pointer.
+- Key actions:
+  - Added `tests/unit/docs-index.test.ts` test-first and verified it failed before the index/archive files existed.
+  - Moved three February audit docs into `docs/archive/2026-02/`.
+  - Added historical evidence banners to archived audits.
+  - Moved `EXTERNAL-AUDIT.md` to `docs/audits/external-audit-2026-06-10.md` with an external audit evidence banner.
+  - Added `docs/README.md` and README documentation pointer.
+- Evidence:
+  - `rtk bun test tests/unit/docs-index.test.ts --timeout 20000`: first failed on missing docs/index/archive files, then passed 4 pass / 0 fail.
+  - `rtk rg -n "audit-typing-rules-streamlining|audit-legacy-parity-combat-ai" docs README.md PLAN.md`: references point to `docs/archive/2026-02/` or the plan's move instructions.
+  - `rtk git status --short docs EXTERNAL-AUDIT.md README.md`: shows archive moves, imported external audit path, README update, and no root `EXTERNAL-AUDIT.md`.
+  - `rtk bun run lint`: passed.
+  - `rtk git diff --check`: passed.
+- Next action:
+  - Proceed to Ticket 0A.4 content tool quarantine.

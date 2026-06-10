@@ -1,3 +1,5 @@
+> Historical evidence: this audit records the state and decisions from February 2026. Use `PLAN.md` and `docs/README.md` for current implementation guidance.
+
 # Legacy Parity Audit: Combat, Enemy AI, Death/Despawn, Respawn (2026-02-13)
 
 Scope: modern runtime in `/root/dev/BrowserQuest` vs legacy baseline in `/root/dev/BrowserQuest.wt-origin-master`.

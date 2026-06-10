@@ -1176,7 +1176,7 @@ rtk git commit -m "chore: normalize maintenance script lanes"
 
 **Dependencies/blockers:** Ticket 0A.1.
 
-- [ ] **Step 1: Add docs index test**
+- [x] **Step 1: Add docs index test**
 
 Create `tests/unit/docs-index.test.ts`:
 
@@ -1202,7 +1202,7 @@ test('archived audits carry a historical evidence banner', () => {
 });
 ```
 
-- [ ] **Step 2: Move historical audits**
+- [x] **Step 2: Move historical audits**
 
 Run:
 
@@ -1213,7 +1213,7 @@ rtk git mv docs/audit-typing-rules-streamlining-2026-02-12-followup.md docs/arch
 rtk git mv docs/audit-legacy-parity-combat-ai-2026-02-13.md docs/archive/2026-02/audit-legacy-parity-combat-ai-2026-02-13.md
 ```
 
-- [ ] **Step 3: Add archive banners**
+- [x] **Step 3: Add archive banners**
 
 At the top of each moved audit, add:
 
@@ -1222,7 +1222,7 @@ At the top of each moved audit, add:
 
 ```
 
-- [ ] **Step 4: Import external audit evidence**
+- [x] **Step 4: Import external audit evidence**
 
 If `EXTERNAL-AUDIT.md` exists at repo root, run:
 
@@ -1240,7 +1240,7 @@ Add this banner to the top:
 
 If `EXTERNAL-AUDIT.md` is not tracked yet, use `rtk mv EXTERNAL-AUDIT.md docs/audits/external-audit-2026-06-10.md` and then stage the destination.
 
-- [ ] **Step 5: Create docs index**
+- [x] **Step 5: Create docs index**
 
 Create `docs/README.md`:
 
@@ -1270,7 +1270,7 @@ Create `docs/README.md`:
 - `audits/external-audit-2026-06-10.md`, when present.
 ```
 
-- [ ] **Step 6: Update README**
+- [x] **Step 6: Update README**
 
 In `README.md`, add a short pointer:
 
@@ -1278,7 +1278,7 @@ In `README.md`, add a short pointer:
 Documentation starts at `docs/README.md`. Historical audits are archived under `docs/archive/` and should be treated as evidence, not current implementation instructions.
 ```
 
-- [ ] **Step 7: Verify**
+- [x] **Step 7: Verify**
 
 Run:
 
@@ -1296,7 +1296,7 @@ Expected:
 
 and audit references point to `docs/archive/2026-02/`.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 Run:
 

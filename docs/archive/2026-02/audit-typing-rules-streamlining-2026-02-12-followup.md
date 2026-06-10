@@ -1,3 +1,5 @@
+> Historical evidence: this audit records the state and decisions from February 2026. Use `PLAN.md` and `docs/README.md` for current implementation guidance.
+
 # Audit (Follow-up): Typings, Rules, Bugs, Streamlining (2026-02-12)
 
 Context: This is a follow-up audit after recent refactors/commits. It re-establishes baseline tool output and records additional opportunities.
@@ -48,7 +50,7 @@ Context: This is a follow-up audit after recent refactors/commits. It re-establi
 - **F0 start:** 2026-02-12
 - **Status:** in_progress
 - **Key actions:** Created follow-up audit doc with TODOs + tickets.
-- **Evidence:** `docs/audit-typing-rules-streamlining-2026-02-12-followup.md`
+- **Evidence:** `docs/archive/2026-02/audit-typing-rules-streamlining-2026-02-12-followup.md`
 - **Next action:** Run F1 baseline commands.
 
 #### F1 — Baseline (current HEAD)

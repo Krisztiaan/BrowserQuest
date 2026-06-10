@@ -17,6 +17,8 @@ Quickstart
 2. Start full-stack dev: `bun run dev`
 3. Open `http://localhost:8000/`
 
+Documentation starts at `docs/README.md`. Historical audits are archived under `docs/archive/` and should be treated as evidence, not current implementation instructions.
+
 Active Scripts
 --------------
 

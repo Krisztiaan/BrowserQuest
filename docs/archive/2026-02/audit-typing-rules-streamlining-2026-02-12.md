@@ -1,3 +1,5 @@
+> Historical evidence: this audit records the state and decisions from February 2026. Use `PLAN.md` and `docs/README.md` for current implementation guidance.
+
 # Audit: Typings, Rules, Bugs, Streamlining (2026-02-12)
 
 ## TODOs
@@ -59,7 +61,7 @@
 - **Start:** 2026-02-12
 - **Status:** done
 - **Key actions:** Created audit doc with TODOs + tickets.
-- **Evidence:** `docs/audit-typing-rules-streamlining-2026-02-12.md`
+- **Evidence:** `docs/archive/2026-02/audit-typing-rules-streamlining-2026-02-12.md`
 - **Next action:** Run baseline checks (T1).
 
 #### T1 — Baseline checks
