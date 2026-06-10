@@ -62,7 +62,7 @@
     "bots:soak": "bun tools/bots/soak.ts",
     "admin:claims": "bun tools/admin/claims.ts",
     "verify": "bun run verify:modern",
-    "verify:modern": "bun run check:content:prefabs && bun run check:maps && bun run check:tileset-overlays && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:client && bun run build:server",
+    "verify:modern": "bun run check:content:prefabs && bun run check:maps && bun run check:tileset-overlays && bun run check:world-map:target && bun run check:world-typed-objects && bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build:client && bun run build:server",
     "test": "bun test --timeout 20000",
     "lint": "bun run lint:modern",
     "lint:modern": "eslint --max-warnings=0 \"client/**/*.{ts,js}\" \"server/**/*.{ts,js}\" \"shared/**/*.{ts,js}\" \"tools/**/*.ts\" \"tests/**/*.ts\"",

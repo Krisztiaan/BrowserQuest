@@ -7,6 +7,7 @@ import Detect from './platform/detect';
 import Types from '../shared/gametypes-browser';
 import log from './platform/log';
 import { disableCanvasImageSmoothing, type PixelArtCanvasContext } from './canvas-smoothing';
+import { classifyTileForOverlay, isDebugOverlayEnabled, OVERLAY_COLORS } from './debug-overlay';
 
 type RendererContext2D = PixelArtCanvasContext;
 type DrawScaledImageArg = number | RendererContext2D | CanvasImageSource;
@@ -83,6 +84,10 @@ type RendererGameLike = {
               width: number;
               tilesize: number;
               isAnimatedTile(id: number): boolean;
+              isColliding(x: number, y: number): boolean;
+              isDoor(x: number, y: number): boolean;
+              isPlateau(x: number, y: number): boolean;
+              isCheckpoint(x: number, y: number): boolean;
               renderProps?: Array<{
                   depth: number;
                   minTileX: number;
@@ -406,6 +411,20 @@ class Renderer {
                 }
             }
         }
+    }
+
+    drawDebugOverlay(): void {
+        if (!isDebugOverlayEnabled()) {
+            return;
+        }
+        const map = this.game.map;
+        if (!map) {
+            return;
+        }
+        this.game.camera.forEachVisiblePosition((x, y) => {
+            const tileClass = classifyTileForOverlay(map, x, y);
+            this.drawCellHighlight(x, y, OVERLAY_COLORS[tileClass]);
+        });
     }
 
     drawSelectedCell(): void {
@@ -1124,6 +1143,7 @@ class Renderer {
         this.drawDepthSortedEntitiesAndProps();
         this.drawCombatInfo();
         this.drawForegroundTiles(this.context);
+        this.drawDebugOverlay();
         this.context.restore();
 
         // Overlay UI elements

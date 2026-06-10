@@ -615,6 +615,10 @@ class Map {
         return this.doors[this.GridPositionToTileIndex(x, y)] !== undefined;
     }
 
+    isCheckpoint(x: number, y: number): boolean {
+        return this.checkpoints.some((checkpoint) => checkpoint.contains({ gridX: x, gridY: y }));
+    }
+
     getDoorDestination(x: number, y: number): DoorDestination | undefined {
         return this.doors[this.GridPositionToTileIndex(x, y)];
     }

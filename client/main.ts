@@ -1,6 +1,7 @@
 import App from './app';
 import Detect from './platform/detect';
 import log from './platform/log';
+import { toggleDebugOverlay } from './debug-overlay';
 import type { AchievementId } from './achievement-domain';
 import { TRANSITIONEND } from './platform/util';
 import type Game from './game';
@@ -717,6 +718,12 @@ function initGame(): void {
                         return false;
                     }
 
+                    if (key === 114) {
+                        // F3: toggle the passability debug overlay
+                        toggleDebugOverlay();
+                        e.preventDefault();
+                        return false;
+                    }
                     if (key === 13) {
                         // Enter
                         if (game.ready && chatInput) {

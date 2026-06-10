@@ -1197,6 +1197,150 @@ function printUsage(): never {
     process.exit(0);
 }
 
+export type ReachabilityInput = Readonly<{
+    width: number;
+    height: number;
+    collisions: ReadonlyArray<number>;
+    doors: ReadonlyArray<Readonly<{ x: number; y: number; tx: number; ty: number }>>;
+    checkpoints: ReadonlyArray<Readonly<{ x: number; y: number; w: number; h: number }>>;
+    chestSpawns: ReadonlyArray<Readonly<{ x: number; y: number }>>;
+    resourceNodes: ReadonlyArray<Readonly<{ x: number; y: number }>>;
+    roamingAreas: ReadonlyArray<Readonly<{ x: number; y: number; width: number; height: number; mobKind?: string }>>;
+}>;
+
+/**
+ * Pure reachability rules over the runtime collision grid (same data the
+ * server enforces): door tiles and destinations walkable, checkpoints and
+ * roaming areas contain walkable cells, chest spawns walkable, resource
+ * nodes harvestable from at least one adjacent walkable tile.
+ */
+export function validateReachability(input: ReachabilityInput): string[] {
+    const { width, height } = input;
+    const blocked = new Set(input.collisions);
+    const inBounds = (x: number, y: number): boolean => x >= 0 && y >= 0 && x < width && y < height;
+    const walkable = (x: number, y: number): boolean => inBounds(x, y) && !blocked.has(y * width + x);
+    const problems: string[] = [];
+
+    for (const door of input.doors) {
+        if (!walkable(door.x, door.y)) {
+            problems.push(`door at (${door.x},${door.y}) sits on a blocked or out-of-bounds tile`);
+        }
+        if (!walkable(door.tx, door.ty)) {
+            problems.push(`door at (${door.x},${door.y}) has blocked or out-of-bounds destination (${door.tx},${door.ty})`);
+        }
+    }
+
+    for (const checkpoint of input.checkpoints) {
+        let hasWalkable = false;
+        for (let y = checkpoint.y; y < checkpoint.y + checkpoint.h && !hasWalkable; y += 1) {
+            for (let x = checkpoint.x; x < checkpoint.x + checkpoint.w; x += 1) {
+                if (walkable(x, y)) {
+                    hasWalkable = true;
+                    break;
+                }
+            }
+        }
+        if (!hasWalkable) {
+            problems.push(`checkpoint at (${checkpoint.x},${checkpoint.y}) ${checkpoint.w}x${checkpoint.h} has no walkable tile`);
+        }
+    }
+
+    for (const chest of input.chestSpawns) {
+        if (!walkable(chest.x, chest.y)) {
+            problems.push(`chest spawn at (${chest.x},${chest.y}) sits on a blocked tile`);
+        }
+    }
+
+    for (const node of input.resourceNodes) {
+        const adjacents: ReadonlyArray<readonly [number, number]> = [
+            [node.x + 1, node.y],
+            [node.x - 1, node.y],
+            [node.x, node.y + 1],
+            [node.x, node.y - 1],
+        ];
+        if (!adjacents.some(([x, y]) => walkable(x, y))) {
+            problems.push(`resource node at (${node.x},${node.y}) has no adjacent walkable tile`);
+        }
+    }
+
+    for (const area of input.roamingAreas) {
+        let walkableCells = 0;
+        for (let y = area.y; y < area.y + area.height; y += 1) {
+            for (let x = area.x; x < area.x + area.width; x += 1) {
+                if (walkable(x, y)) {
+                    walkableCells += 1;
+                }
+            }
+        }
+        if (walkableCells === 0) {
+            problems.push(
+                `roaming area${area.mobKind ? ` (${area.mobKind})` : ''} at (${area.x},${area.y}) ${area.width}x${area.height} has no walkable tile`
+            );
+        }
+    }
+
+    return problems;
+}
+
+async function checkRuntimeReachability(diags: Diagnostic[]): Promise<void> {
+    const packPath = 'assets/maps/runtime/map-pack.json';
+    let pack: UnknownRecord | null = null;
+    try {
+        pack = asRecord(JSON.parse(await fs.readFile(packPath, 'utf8')));
+    } catch {
+        pushDiagnostic(diags, 'warn', 'REACHABILITY_PACK_MISSING', `Runtime pack ${packPath} unavailable; run build:maps first.`);
+        return;
+    }
+    for (const mapRaw of asArray(pack?.maps)) {
+        const entry = asRecord(mapRaw);
+        const server = asRecord(entry?.server);
+        if (!entry || !server) {
+            continue;
+        }
+        const mapId = asString(entry.id) ?? '?';
+        const num = (value: unknown): number => (typeof value === 'number' ? value : 0);
+        const doors = asArray(server.doors).flatMap((raw) => {
+            const door = asRecord(raw);
+            return door ? [{ x: num(door.x), y: num(door.y), tx: num(door.tx), ty: num(door.ty) }] : [];
+        });
+        const checkpoints = asArray(server.checkpoints).flatMap((raw) => {
+            const checkpoint = asRecord(raw);
+            return checkpoint
+                ? [{ x: num(checkpoint.x), y: num(checkpoint.y), w: num(checkpoint.w), h: num(checkpoint.h) }]
+                : [];
+        });
+        const chestSpawns = asArray(server.staticChests).flatMap((raw) => {
+            const chest = asRecord(raw);
+            return chest ? [{ x: num(chest.x), y: num(chest.y) }] : [];
+        });
+        const roamingAreas = asArray(server.roamingAreas).flatMap((raw) => {
+            const area = asRecord(raw);
+            return area
+                ? [{
+                    x: num(area.x),
+                    y: num(area.y),
+                    width: num(area.width),
+                    height: num(area.height),
+                    ...(typeof area.mobKind === 'string' ? { mobKind: area.mobKind } : {}),
+                }]
+                : [];
+        });
+        const problems = validateReachability({
+            width: num(server.width),
+            height: num(server.height),
+            collisions: asArray(server.collisions).filter((value): value is number => typeof value === 'number'),
+            doors,
+            checkpoints,
+            chestSpawns,
+            resourceNodes: [],
+            roamingAreas,
+        });
+        for (const problem of problems) {
+            pushDiagnostic(diags, 'error', 'REACHABILITY', `map "${mapId}": ${problem}`);
+        }
+    }
+}
+
 async function main(): Promise<void> {
     const parsedArgs = parseCliArgs(
         process.argv.slice(2),
@@ -1244,6 +1388,7 @@ async function main(): Promise<void> {
     if (profile === 'target') {
         checkTargetLayerContract(layers, diagnostics);
         checkTargetObjectContracts(layers, diagnostics);
+        await checkRuntimeReachability(diagnostics);
     }
 
     const summary = diagnosticsSummary(diagnostics);
