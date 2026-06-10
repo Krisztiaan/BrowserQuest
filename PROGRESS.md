@@ -773,7 +773,7 @@ This is the live execution notebook for `PLAN.md`.
 
 ### 2026-06-10 12:42 UTC - Ticket 3.1 Remove Client-to-Server Legacy `ATTACK` From Schema
 
-- Status: in_progress
+- Status: done
 - Scope:
   - Remove legacy client-to-server `ATTACK` from protocol schema and binary C2S decoding.
   - Keep server-to-client `ATTACK` broadcasts intact.
@@ -803,3 +803,28 @@ This is the live execution notebook for `PLAN.md`.
   - `git diff --check` passed.
   - Commit: `fix: remove legacy client attack opcode`.
   - Next action: Continue Phase 3 with Ticket 3.2 server-authoritative combat contract.
+
+### 2026-06-10 13:24 UTC - Ticket 3.2 Finish Server-Authoritative Combat Contract
+
+- Status: done
+- Scope:
+  - Prove attack intent/command starts server windup without immediate damage.
+  - Keep damage mutation owned by server hit-frame only.
+  - Preserve kill/despawn/respawn smoke behavior.
+- TODO:
+  - done: Add explicit no-immediate-damage regression.
+  - done: Run combat hit-frame and parity verification.
+  - done: Commit Ticket 3.2.
+- Key actions:
+  - 2026-06-10 13:24 UTC: Ticket started.
+  - Existing combat code already applies damage under the hit-frame branch in `runServerAuthoritativeCombatSystem`.
+  - Added `attack intent never applies damage before server hit-frame` regression to `combat-hitframe-state-machine.test.ts`.
+  - No production combat pipeline change was needed; the new regression passed against the existing hit-frame authority implementation.
+- Evidence:
+  - `bun test tests/unit/ecs/combat-hitframe-state-machine.test.ts --timeout 20000` passed: 8 pass, 0 fail.
+  - `bun test tests/unit/ecs/combat-hitframe-state-machine.test.ts tests/unit/ecs/mob-ai-chase.test.ts tests/smoke/modern-gameplay-parity.test.ts --timeout 30000` passed: 30 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+  - Commit: `fix: enforce server-authoritative combat hit frames`.
+  - Next action: Continue Phase 3 with Ticket 3.3 client combat graph cleanup.

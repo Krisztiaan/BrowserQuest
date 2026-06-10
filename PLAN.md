@@ -3985,7 +3985,7 @@ rtk git commit -m "fix: remove legacy client attack opcode"
 
 **Dependencies/blockers:** Ticket 3.1.
 
-- [ ] **Step 1: Add regression for no immediate damage on intent**
+- [x] **Step 1: Add regression for no immediate damage on intent**
 
 In `tests/unit/ecs/combat-hitframe-state-machine.test.ts`, add:
 
@@ -4007,7 +4007,7 @@ test('attack intent never applies damage before server hit-frame', () => {
 
 Adapt fixture names to the existing file.
 
-- [ ] **Step 2: Verify existing hit-frame system**
+- [x] **Step 2: Verify existing hit-frame system**
 
 Run:
 
@@ -4017,7 +4017,7 @@ rtk bun test tests/unit/ecs/combat-hitframe-state-machine.test.ts --timeout 2000
 
 Expected: new test fails only if damage is still applied too early.
 
-- [ ] **Step 3: Fix command pipeline**
+- [x] **Step 3: Fix command pipeline**
 
 If early damage exists, move damage application behind the existing windup/hit-frame component state. Do not add client-driven damage commands.
 
@@ -4027,7 +4027,7 @@ Use this invariant in code comments near the damage branch:
 // Damage authority lives here: player intent may start windup, but only the server hit-frame mutates HP.
 ```
 
-- [ ] **Step 4: Verify combat suite**
+- [x] **Step 4: Verify combat suite**
 
 Run:
 
@@ -4041,7 +4041,7 @@ Expected:
 0 fail
 ```
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 

@@ -197,6 +197,30 @@ test('ATTACK commands drive server-authoritative hit-frame combat', () => {
     expect(pipeline.combat.HitPoints.store.get(mobId) ?? 0).toBeLessThan(1000);
 });
 
+test('attack intent never applies damage before server hit-frame', () => {
+    const { pipeline, player } = createPipelineFixture();
+
+    const mobId = entityIdFromWire(9008);
+    pipeline.state.world.ensureEntity(mobId);
+    pipeline.state.world.addComponent(mobId, pipeline.replication.Kind, Types.Entities.RAT);
+    pipeline.state.world.addComponent(mobId, pipeline.Position, gridPos(1, 0));
+    pipeline.state.world.addComponent(mobId, pipeline.combat.ArmorLevel, 1);
+    pipeline.state.world.addComponent(mobId, pipeline.combat.HitPoints, 1000);
+
+    const beforeHp = pipeline.combat.HitPoints.store.get(mobId);
+    pipeline.enqueue({
+        type: 'ATTACK',
+        source: { connectionId: 'test', playerId: player.id },
+        targetId: mobId,
+    });
+
+    pipeline.tick();
+
+    expect(pipeline.replication.Target.store.get(player.id)).toBe(mobId);
+    expect(pipeline.combat.AttackWindup.store.has(player.id)).toBe(true);
+    expect(pipeline.combat.HitPoints.store.get(mobId)).toBe(beforeHp);
+});
+
 test('player ATTACK broadcast starts when windup really starts, not on out-of-range intent acceptance', () => {
     const { pipeline, player, host } = createPipelineFixture();
 
