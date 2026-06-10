@@ -532,4 +532,39 @@ This is the live execution notebook for `PLAN.md`.
   - After `bun run dev:bun:build-client` refreshed `.tmp/dev-client`, `PW_REUSE_SERVERS=1 bun x playwright test --config=playwright.config.ts tests/browser/map-debug-overlays.playwright.ts` passed with 1 passed.
   - 2026-06-10 11:32 UTC: Verification complete.
   - Commit: `feat: add passability debug overlay`.
-  - Next action: Proceed to Ticket 2.5 map-pack runtime transition support.
+  - Next action: Proceed to Ticket 2A.1 unified terrain authoring audit.
+
+### 2026-06-10 11:45 UTC - Ticket 2A.1 Create Unified Terrain Authoring Audit
+
+- Status: done
+- Scope:
+  - Add a read-only terrain authoring audit contract and CLI.
+  - Generate JSON and Markdown audit artifacts under `artifacts/map-authoring/`.
+  - Include direct map/tileset findings and reuse existing content audit logic where practical.
+  - Add package script, docs, and focused tests.
+- TODO:
+  - done: Inspect existing content audit tools and package script style.
+  - done: Add terrain authoring contract and audit module.
+  - done: Add direct map property and Wang tileset findings.
+  - done: Integrate or summarize existing audit outputs without shelling out.
+  - done: Add package script, unit tests, and docs.
+  - done: Generate audit artifacts and run verification gates.
+  - done: Update `PLAN.md`/`PROGRESS.md` evidence and commit Ticket 2A.1.
+- Key actions:
+  - 2026-06-10 11:45 UTC: Ticket started.
+  - Confirmed existing audit scripts are CLI-shaped and do not export reusable pure helpers.
+  - Added `terrain-authoring-contract.ts` with severity/category/location/finding/audit types.
+  - Added a read-only `terrain-authoring-audit.ts` CLI with exported pure helpers for map properties, Wang tilesets, tile paint, overlay layering, tile objects, door semantics, collision/passability, spawn regions, music regions, and asset references.
+  - Added `check:terrain-authoring` package script.
+  - Added generated JSON and Markdown artifacts under `artifacts/map-authoring/`.
+  - Added interpretation docs and focused unit tests.
+- Evidence:
+  - `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000` passed with 3 pass, 0 fail.
+  - `bun run check:terrain-authoring` passed and wrote `artifacts/map-authoring/terrain-authoring-audit.json`.
+  - Generated audit includes 546 findings with all summary categories present.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` initially failed on two audit module style issues, then on one redundant guard; after cleanup it passed.
+  - `git diff --check` passed.
+  - 2026-06-10 11:45 UTC: Verification complete.
+  - Commit: `feat: add terrain authoring audit`.
+  - Next action: Proceed to Ticket 2A.2 visual map authoring artifacts.

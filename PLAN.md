@@ -2728,7 +2728,7 @@ This phase is intentionally separate from Phase 2's runtime contracts. Phase 2 m
 
 **Dependencies/blockers:** Phase 0 for type/lint stability. Can be developed before Phase 1 because it is read-only.
 
-- [ ] **Step 1: Define finding contract**
+- [x] **Step 1: Define finding contract**
 
 Create `tools/content/terrain-authoring-contract.ts`:
 
@@ -2779,7 +2779,7 @@ export type TerrainAuthoringAudit = Readonly<{
 }>;
 ```
 
-- [ ] **Step 2: Add audit CLI skeleton**
+- [x] **Step 2: Add audit CLI skeleton**
 
 Create `tools/content/terrain-authoring-audit.ts` with:
 
@@ -2850,7 +2850,7 @@ async function main(): Promise<void> {
 await main();
 ```
 
-- [ ] **Step 3: Populate map and tileset findings**
+- [x] **Step 3: Populate map and tileset findings**
 
 In `terrain-authoring-audit.ts`, add direct JSON inspection that emits findings for:
 
@@ -2871,7 +2871,7 @@ const mostlyPureRatio = 0.9;
 
 For a pair Wang set, classify `mixedTransitionCount === 0` as `high`, and `mixedTransitionCount > 0 && mixedTransitionCount < 16` as `medium`.
 
-- [ ] **Step 4: Integrate existing audit outputs**
+- [x] **Step 4: Integrate existing audit outputs**
 
 Import or refactor shared helpers from these existing tools instead of shelling out:
 
@@ -2884,7 +2884,7 @@ tools/content/tileset-wang-audit.ts
 
 If any current tool is too CLI-shaped to import cleanly, move its pure logic into a sibling exported function in the same file and keep the CLI behavior unchanged.
 
-- [ ] **Step 5: Add npm scripts**
+- [x] **Step 5: Add npm scripts**
 
 In `package.json`, add:
 
@@ -2892,7 +2892,7 @@ In `package.json`, add:
 "check:terrain-authoring": "bun tools/content/terrain-authoring-audit.ts"
 ```
 
-- [ ] **Step 6: Add tests**
+- [x] **Step 6: Add tests**
 
 Create `tests/unit/terrain-authoring-audit.test.ts` with fixtures that verify:
 
@@ -2912,7 +2912,7 @@ test('terrain authoring audit requires map-level authoring properties', () => {
 
 Use real helper names exported from the audit module; do not duplicate classification logic in the test.
 
-- [ ] **Step 7: Document interpretation**
+- [x] **Step 7: Document interpretation**
 
 Create `docs/map-authoring-audit.md` explaining:
 
@@ -2930,7 +2930,7 @@ Severity meanings:
 - `info`: evidence only.
 ```
 
-- [ ] **Step 8: Verify**
+- [x] **Step 8: Verify**
 
 Run:
 
@@ -2947,7 +2947,7 @@ Expected:
 Wrote artifacts/map-authoring/terrain-authoring-audit.json
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 Run:
 
