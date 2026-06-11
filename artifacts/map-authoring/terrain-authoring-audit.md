@@ -1,6 +1,6 @@
 # Terrain Authoring Audit
 
-Generated: 2026-06-11T12:49:06.829Z
+Generated: 2026-06-11T13:53:38.576Z
 World: assets/maps/tiled/world.json
 Tileset: assets/maps/tiled/tilesheet.wang.tsj
 
@@ -1521,7 +1521,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1930,"x":36,"y":193,"gid":66}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2045,"x":74,"y":202,"gid":284}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1529,7 +1529,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1931,"x":37,"y":193,"gid":67}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2046,"x":76,"y":202,"gid":286}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1537,7 +1537,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1932,"x":38,"y":193,"gid":68}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2047,"x":77,"y":202,"gid":287}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1545,7 +1545,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1933,"x":39,"y":193,"gid":69}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2048,"x":78,"y":202,"gid":288}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1553,7 +1553,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1934,"x":36,"y":194,"gid":86}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2049,"x":79,"y":202,"gid":289}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1561,7 +1561,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1935,"x":37,"y":194,"gid":87}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2066,"x":74,"y":203,"gid":304}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1569,7 +1569,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1936,"x":38,"y":194,"gid":88}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2067,"x":76,"y":203,"gid":306}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1577,7 +1577,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1937,"x":39,"y":194,"gid":89}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2068,"x":77,"y":203,"gid":307}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1585,7 +1585,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1938,"x":36,"y":195,"gid":106}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2069,"x":78,"y":203,"gid":308}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1593,7 +1593,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1939,"x":37,"y":195,"gid":107}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2070,"x":79,"y":203,"gid":309}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1601,7 +1601,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1940,"x":38,"y":195,"gid":108}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2086,"x":76,"y":204,"gid":326}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1609,7 +1609,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1941,"x":39,"y":195,"gid":109}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2087,"x":77,"y":204,"gid":327}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1617,7 +1617,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1942,"x":34,"y":196,"gid":124}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2088,"x":78,"y":204,"gid":328}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1625,7 +1625,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1943,"x":35,"y":196,"gid":125}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2089,"x":79,"y":204,"gid":329}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1633,7 +1633,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1944,"x":36,"y":196,"gid":126}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2110,"x":74,"y":205,"gid":344}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1641,7 +1641,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1945,"x":37,"y":196,"gid":127}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2111,"x":76,"y":205,"gid":1661}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1649,7 +1649,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1946,"x":38,"y":196,"gid":128}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2112,"x":77,"y":205,"gid":1662}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1657,7 +1657,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1947,"x":39,"y":196,"gid":129}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2113,"x":78,"y":205,"gid":1663}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1665,7 +1665,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1948,"x":40,"y":196,"gid":130}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2114,"x":79,"y":205,"gid":349}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1673,7 +1673,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1949,"x":34,"y":197,"gid":144}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2120,"x":48,"y":206,"gid":384}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1681,7 +1681,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1950,"x":35,"y":197,"gid":145}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2121,"x":49,"y":206,"gid":385}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1689,7 +1689,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1951,"x":36,"y":197,"gid":146}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2122,"x":50,"y":206,"gid":386}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1697,7 +1697,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1952,"x":37,"y":197,"gid":147}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2123,"x":51,"y":206,"gid":387}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1705,7 +1705,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1953,"x":38,"y":197,"gid":148}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2124,"x":52,"y":206,"gid":388}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1713,7 +1713,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":1954,"x":39,"y":197,"gid":149}`
+- Location: `{"objectLayerPath":"render_world/village_biome/houses","objectId":2125,"x":53,"y":206,"gid":389}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object

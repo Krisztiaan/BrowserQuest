@@ -3138,6 +3138,462 @@ Validation evidence:
 - `bun run lint`
 - `git diff --check`
 
+## Execution slice 108 — `house_red_1` / `house_01` village exterior metadata
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the complete `house_red_1` exterior assembly aligned with `world_house_01_entry` at
+  tile bounds `(24, 201)` through `(31, 211)` in `render_world/village_biome/houses`.
+- Treat the open doorway, lower footprint/shadow row, and reused high-GID roof edge tiles as
+  one authored exterior component while preserving the existing graph door object.
+- Add object-level `PropMetadata` to all 78 tile objects in the exterior.
+- Use `prop_instance_id=house_01_exterior` because the aligned door links to
+  `target_map=house_01` and `target_door=house_01_entry`.
+- Add source-tile metadata for anonymous red-house lower-shadow/padding tiles and reused
+  high-GID `house_blue` right-edge blank tiles.
+- Keep the `world_house_01_entry` door object, nearby sword-cache marker, tree objects,
+  blue-house objects, object positions, GIDs, layer membership, and runtime map behavior
+  unchanged.
+
+Before-edit evidence:
+
+- The audit exposed only the first blank top/right-edge rows of this house, starting with
+  objects 1997-2002 and 2011-2015.
+- Object inspection showed the full exterior includes 78 render objects, including open-door
+  tiles, lower footprint/shadow tiles, and high-GID roof edge pieces.
+- Door inspection confirmed `world_house_01_entry` at `(27, 209)` is aligned with this exterior
+  and links to `house_01`.
+- Source inspection showed five lower `house_red_1` blank/shadow tiles and three reused
+  high-GID `house_blue` blank/right-edge tiles were missing semantic metadata.
+
+Visual evidence:
+
+- `.data/map-authoring-crops/world_village_house_red1_slice108_objects.png`
+- `.data/map-authoring-crops/world_village_house_red1_slice108_nomarkers.png`
+
+Applied authoring changes:
+
+- Added source `StructureTile` metadata for red-house lower blank/shadow tiles ID 383, 384, 388,
+  389, and 390 with non-occluding footprint semantics.
+- Added source `StructureTile` metadata for high-GID `house_blue` right-edge blank tiles ID 1458,
+  1478, and 1498.
+- Added `PropMetadata` to all 78 selected exterior objects with shared
+  `prop_instance_id=house_01_exterior`, `prop_family=house_red_1`,
+  `prop_kind=house_exterior`, per-object `asset_part`, `asset_grid_row`, and `asset_grid_col`.
+- Preserved reused source identity in object `asset_part` names for `house_blue` and
+  `house_red_door_open` tiles while grouping the authored component as the `house_01` red-house
+  exterior.
+
+Validation evidence:
+
+- JSON parse check passed for `assets/maps/tiled/world.json` and
+  `assets/maps/tiled/tilesheet.wang.tsj`.
+- Source check confirmed the newly added source tiles carry typed semantic metadata.
+- Source check confirmed all 78 selected house objects use `template:"templates/prop_metadata.tx"`,
+  `type:"PropMetadata"`, and `prop_instance_id=house_01_exterior`.
+- Terrain authoring audit reports 0 findings for the selected `house_01_exterior` object bounds.
+- Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 107 — `house_blue_2` village exterior instance metadata
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the complete `house_blue_2` exterior assembly at tile bounds `(11, 199)` through
+  `(18, 206)` in `render_world/village_biome/houses`.
+- Add object-level `PropMetadata` to all 64 tile objects that make up the blue house roof,
+  wall, trim, blank edge, and foundation pieces.
+- Use `prop_instance_id=house_blue_2_11_199` because nearby gameplay markers are
+  guard/cache/priest/mine-entry markers, not an aligned house door linkage.
+- Reuse existing `house_blue_2` source-tile semantics, including the Slice 102 blank-left
+  source tiles.
+- Keep nearby red-house/cache objects, lower house objects, static entity markers, mine door,
+  object positions, GIDs, layer membership, and runtime map behavior unchanged.
+
+Before-edit evidence:
+
+- The audit exposed only the upper/mid rows of this blue-house assembly, starting with objects
+  1975-1978 and 1993-1996.
+- Object inspection showed the complete house is the same 8x8 `house_blue_2` layout authored in
+  Slice 102, spanning object IDs 3189-3196, 3206-3209, 3222-3225, 3243-3246, 3263, 3275, 3290,
+  and 1975-2097.
+- Gameplay marker inspection showed nearby guard/cache/priest/mine-entry markers, but no aligned
+  graph-linked house door for this exterior.
+
+Visual evidence:
+
+- `.data/map-authoring-crops/world_village_house_blue2_slice107_objects.png`
+- `.data/map-authoring-crops/world_village_house_blue2_slice107_nomarkers.png`
+- `.data/map-authoring-crops/world_village_house_blue2_slice107_context.png`
+
+Applied authoring changes:
+
+- Added `PropMetadata` to all 64 objects in the house assembly with shared
+  `prop_instance_id=house_blue_2_11_199`, `prop_family=house_blue_2`,
+  `prop_kind=house_exterior`, per-object `asset_part`, `asset_grid_row`, and `asset_grid_col`.
+- Left nearby red-house/cache objects, lower house objects, static entity markers, and the mine
+  door untouched.
+
+Validation evidence:
+
+- JSON parse check passed for `assets/maps/tiled/world.json`.
+- Source check confirmed all 64 selected house objects use `template:"templates/prop_metadata.tx"`,
+  `type:"PropMetadata"`, and `prop_instance_id=house_blue_2_11_199`.
+- Terrain authoring audit reports 0 findings for the 64 selected house object IDs.
+- Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 106 — `tube_1` village prop instance metadata
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the complete freestanding `tube_1` prop at tile bounds `(82, 199)` through `(85, 202)`
+  in `render_world/village_biome/houses`.
+- Add object-level `PropMetadata` to all 16 connected tube tile objects.
+- Use `prop_instance_id=tube_1_82_199` because the tube is freestanding and has no aligned
+  door or graph link.
+- Add source-tile metadata for missing bottom-row tube tiles ID 896 / GID 897 and ID 899 /
+  GID 900.
+- Exclude the adjacent red-house exterior and nearby `world_house_31_entry` /
+  `world_house_02_entry` door objects.
+
+Before-edit evidence:
+
+- Rendered review showed the green tube is visually separate from the red house and door markers.
+- Object inspection showed a complete 4x4 connected tube assembly using object IDs 1971-1974,
+  1989-1992, 2003-2006, and 2021-2024.
+- Source inspection showed existing `tube_1` metadata covered 14 of the 16 placed tiles, while
+  the bottom-left and bottom-right cast-shadow/base-edge tiles were absent from source metadata.
+- Earlier `tube_1` source-authoring rationale classified openings and cast shadows as
+  non-occluding prop detail, with preserved footprint metadata.
+
+Visual evidence:
+
+- `.data/map-authoring-crops/world_village_east_house31_slice106_objects.png`
+- `.data/map-authoring-crops/world_village_east_house31_slice106_nomarkers.png`
+
+Applied authoring changes:
+
+- Added source `PropTile` metadata for tile IDs 896 and 899 as `tube_1` non-occluding bottom
+  cast-shadow/base-edge tiles with `render_height=0` and `footprint=true`.
+- Added `PropMetadata` to all 16 selected tube objects with shared
+  `prop_instance_id=tube_1_82_199`, `prop_family=tube_1`, `prop_kind=tube`, per-object
+  `asset_part`, `asset_grid_row`, and `asset_grid_col`.
+- Left the adjacent red-house exterior and nearby graph doors untouched.
+
+Validation evidence:
+
+- JSON parse check passed for `assets/maps/tiled/world.json` and
+  `assets/maps/tiled/tilesheet.wang.tsj`.
+- Source check confirmed tile IDs 896 and 899 are typed `PropTile` records for `tube_1`.
+- Source check confirmed all 16 selected tube objects use `template:"templates/prop_metadata.tx"`,
+  `type:"PropMetadata"`, and `prop_instance_id=tube_1_82_199`.
+- Terrain authoring audit reports 0 findings for the 16 selected tube object IDs.
+- Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 105 — `small_rock_2` village rock prop metadata
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the complete 2x2 gray rock prop at tile bounds `(64, 199)` through `(65, 200)` in
+  `render_world/village_biome/houses`.
+- Add source `PropTile` metadata for the anonymous 2x2 rock source family using tile IDs 256,
+  257, 276, and 277 / GIDs 257, 258, 277, and 278.
+- Name this source family `small_rock_2`, distinct from the existing two-tile `small_rock_1`.
+- Add object-level `PropMetadata` to object IDs 1969, 1970, 1987, and 1988 with
+  `prop_instance_id=small_rock_2_64_199`.
+- Preserve existing tile collision objectgroups, object positions, GIDs, layer membership, and
+  runtime map behavior.
+- Exclude the nearby well, sword cache marker, gate guard marker, cliff, and adjacent house
+  structures.
+
+Before-edit evidence:
+
+- Rendered review crops showed a standalone low gray rock above/right of the well.
+- Source inspection showed all four source tiles already had collision objectgroups but no
+  semantic tile metadata.
+- Existing `small_rock_1` source metadata describes a different two-tile low rock, so reusing
+  that family name for this 2x2 rock would conflate distinct assets.
+- The same four GIDs appear in several other village placements, so source semantics should be
+  added once before repeated instance metadata is authored.
+
+Visual evidence:
+
+- `.data/map-authoring-crops/world_village_gray_rock_slice105_objects.png`
+- `.data/map-authoring-crops/world_village_gray_rock_slice105_nomarkers.png`
+
+Applied authoring changes:
+
+- Tagged tile IDs 256, 257, 276, and 277 as `class:"PropTile"` and `type:"small_rock_2"`.
+- Added `asset_family=small_rock_2`, per-tile `asset_part`, typed `tile_kind=prop`,
+  `occlusion_kind=none`, `render_height`, and `footprint=true` to all four source tiles.
+- Preserved all existing collision objectgroups.
+- Added `PropMetadata` to the four selected object placements with shared
+  `prop_instance_id=small_rock_2_64_199`, `prop_kind=rock`, and per-object grid coordinates.
+
+Validation evidence:
+
+- JSON parse check passed for `assets/maps/tiled/world.json` and
+  `assets/maps/tiled/tilesheet.wang.tsj`.
+- Source check confirmed all four selected rock objects use `template:"templates/prop_metadata.tx"`,
+  `type:"PropMetadata"`, and `prop_instance_id=small_rock_2_64_199`.
+- Source check confirmed all four source tiles are typed `PropTile` records for `small_rock_2`
+  with preserved collision objectgroups and `footprint=true`.
+- Terrain authoring audit reports 0 findings for the four selected rock object IDs.
+- Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 104 — `well_1` village prop instance metadata
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the complete connected `well_1` prop assembly at tile bounds `(61, 201)` through
+  `(63, 205)` in `render_world/village_biome/houses`.
+- Treat the well as a freestanding village prop, not as part of the nearby house, sword cache,
+  guard marker, cliff, or gray rock.
+- Add object-level `PropMetadata` to all 13 tile objects that make up the well roof, stone
+  rim/base, bucket/interior, and cast shadow pieces.
+- Use `prop_instance_id=well_1_61_201` because the well has no aligned door or graph link.
+- Add source-tile metadata for the anonymous bottom-right well shadow tile ID 362 / GID 363.
+
+Before-edit evidence:
+
+- The audit head showed nearby objects at `(64..65, 198..199)`, but rendered review proved those
+  four tiles are a separate small gray rock above/right of the well.
+- Object inspection showed the well itself is the connected 13-object assembly with object IDs
+  3234, 3235, 3253, 3254, 2042-2044, 2063-2065, and 2083-2085.
+- Source inspection showed existing `well_1` `StructureTile` metadata for roof, stone,
+  bucket/interior, and cast-shadow pieces, with only tile ID 362 missing.
+- Earlier `well_1` source-authoring rationale classified cast shadows as non-occluding
+  structure with footprint semantics.
+
+Visual evidence:
+
+- `.data/map-authoring-crops/world_village_east_small_structure_slice104_objects.png`
+- `.data/map-authoring-crops/world_village_east_small_structure_slice104_nomarkers.png`
+- `.data/map-authoring-crops/world_village_east_small_structure_slice104_context.png`
+
+Applied authoring changes:
+
+- Added `PropMetadata` to all 13 connected well objects with shared
+  `prop_instance_id=well_1_61_201`, `prop_family=well_1`, `prop_kind=well`, per-object
+  `asset_part`, `asset_grid_row`, and `asset_grid_col`.
+- Added source `StructureTile` metadata for tile ID 362 as `asset_part=cast_shadow_front`,
+  `tile_kind=structure`, `occlusion_kind=none`, `render_height=0`, and `footprint=true`.
+- Left the nearby gray rock, sword cache marker, gate guard marker, cliff, and adjacent house
+  structures untouched.
+
+Validation evidence:
+
+- JSON parse check passed for `assets/maps/tiled/world.json` and
+  `assets/maps/tiled/tilesheet.wang.tsj`.
+- Source check confirmed all 13 selected well objects use `template:"templates/prop_metadata.tx"`,
+  `type:"PropMetadata"`, and `prop_instance_id=well_1_61_201`.
+- Source check confirmed tile ID 362 is a typed `StructureTile` record for `well_1` with
+  non-occluding cast-shadow semantics.
+- Terrain authoring audit reports 0 findings for the 13 selected well object IDs.
+- Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 103 — `house_red_1` / `house_12` village exterior metadata
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the complete `house_red_1` exterior assembly aligned with `world_house_12_entry` at
+  tile bounds `(48, 198)` through `(55, 206)` in `render_world/village_biome/houses`.
+- Treat the open doorway and house body as one authored exterior component while preserving the
+  existing graph door object.
+- Add object-level `PropMetadata` to all 69 tile objects that make up the roof, walls,
+  foundation, blank edge/padding, and open doorway pieces.
+- Use `prop_instance_id=house_12_exterior` because the aligned door links to
+  `target_map=house_12` and `target_door=house_12_entry`.
+- Add source-tile metadata for anonymous `house_red_1` blank/padding tiles used by this
+  assembly: tile IDs 203, 204, 208, 209, 223, 229, 270, 290, 310, 330, 350, and 370.
+- Keep the `world_house_12_entry` door object, nearby bridge guard, sword cache marker, object
+  positions, GIDs, layer membership, and runtime map behavior unchanged.
+
+Before-edit evidence:
+
+- The audit head exposed blank `house_red_1` objects 1956-1959 and 1967-1968, but object
+  inspection showed they were only the first surfaced rows of a complete 69-object exterior.
+- Rendered crops showed a full red-roof house with an open doorway, separate from the nearby
+  bridge, trees, and shrine structure.
+- Door inspection confirmed `world_house_12_entry` sits at `(51, 205)` and links to `house_12`,
+  so this exterior can carry house identity instead of a purely spatial prop id.
+- Source tile inspection showed most `house_red_1` and `house_red_door_open` tiles were already
+  typed, while the selected red-house blank/padding source tiles were absent from tileset
+  metadata.
+
+Visual evidence:
+
+- `.data/map-authoring-crops/world_village_house_red1_slice103_objects.png`
+- `.data/map-authoring-crops/world_village_house_red1_slice103_nomarkers.png`
+- `.data/map-authoring-crops/world_village_house_red1_slice103_context.png`
+
+Applied authoring changes:
+
+- Added `PropMetadata` to all 69 objects in the exterior with shared
+  `prop_instance_id=house_12_exterior`, `prop_family=house_red_1`,
+  `prop_kind=house_exterior`, per-object `asset_part`, `asset_grid_row`, and `asset_grid_col`.
+- Preserved doorway source identity in object `asset_part` names for the
+  `house_red_door_open` tiles while grouping the whole component as the red-house exterior.
+- Added source `StructureTile` metadata for tile IDs 203, 204, 208, 209, 223, 229, 270, 290,
+  310, 330, 350, and 370 as non-occluding blank/padding structure tiles.
+
+Validation evidence:
+
+- JSON parse check passed for `assets/maps/tiled/world.json` and
+  `assets/maps/tiled/tilesheet.wang.tsj`.
+- Source check confirmed all 69 selected house objects use `template:"templates/prop_metadata.tx"`,
+  `type:"PropMetadata"`, and `prop_instance_id=house_12_exterior`.
+- Source check confirmed all 12 selected padding tiles are typed `StructureTile` records for
+  `house_red_1` with non-occluding semantics.
+- Terrain authoring audit reports 0 findings for the 69 selected house object IDs.
+- Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 102 — `house_blue_2` village exterior object/source metadata
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the complete `house_blue_2` exterior assembly at tile bounds `(34, 193)` through
+  `(41, 200)` in `render_world/village_biome/houses`.
+- Treat the house as one coherent authored structure instead of only clearing the capped audit
+  rows.
+- Add object-level `PropMetadata` to all 64 tile objects that make up the roof, wall, trim,
+  blank edge, and foundation pieces.
+- Use `prop_instance_id=house_blue_2_34_193` because nearby door/static-entity inspection shows
+  no valid gameplay door linkage for this visual building.
+- Add source-tile metadata for the anonymous left transparent/padding column tiles used by this
+  assembly: GIDs 124, 144, 164, and 184.
+- Keep adjacent red-roof buildings, villager/static entity marker, door graph, object positions,
+  GIDs, layer membership, and runtime map behavior unchanged.
+
+Before-edit evidence:
+
+- The current audit head moved into `render_world/village_biome/houses` with blank objects 1930
+  through 1954 from the upper/mid rows of this blue-house assembly.
+- Object inspection showed the complete 8x8 house assembly spans object IDs 3164-3185, 3197,
+  1930-1955, 1960-1966, and 1979-1986.
+- Door/static-entity inspection showed `house_37_200` is a villager marker label and
+  `world_house_37_entry` is far away on the south beach, so the visual house should not inherit
+  that door identity.
+- Source tile inspection showed the visible `house_blue_2` tiles already carried
+  `StructureTile` metadata, while the left blank column tile IDs 123, 143, 163, and 183 were
+  absent from the tileset metadata table.
+
+Visual evidence:
+
+- `.data/map-authoring-crops/world_village_house_blue2_slice102_objects.png`
+- `.data/map-authoring-crops/world_village_house_blue2_slice102_nomarkers.png`
+- `.data/map-authoring-crops/world_village_house_blue2_slice102_context.png`
+
+Applied authoring changes:
+
+- Added `PropMetadata` to all 64 objects in the house assembly with shared
+  `prop_instance_id=house_blue_2_34_193`, `prop_family=house_blue_2`,
+  `prop_kind=house_exterior`, per-object `asset_part`, `asset_grid_row`, and `asset_grid_col`.
+- Added source `StructureTile` metadata for tile IDs 123, 143, 163, and 183 as
+  `asset_part=blank_left`, `tile_kind=structure`, `occlusion_kind=none`, `render_height=0`.
+- Left the separate red-roof structures and the nearby villager/static entity marker untouched.
+
+Validation evidence:
+
+- JSON parse check passed for `assets/maps/tiled/world.json` and
+  `assets/maps/tiled/tilesheet.wang.tsj`.
+- Source check confirmed all 64 selected house objects use `template:"templates/prop_metadata.tx"`,
+  `type:"PropMetadata"`, and `prop_instance_id=house_blue_2_34_193`.
+- Source check confirmed tile IDs 123, 143, 163, and 183 are typed `StructureTile` records for
+  `house_blue_2` with blank non-occluding semantics.
+- Terrain authoring audit reports 0 findings for the 64 selected house object IDs.
+- Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
 ## Execution slice 101 — repeated `palm_tree_1` lower-beach palm triplet object metadata
 
 Status: complete.

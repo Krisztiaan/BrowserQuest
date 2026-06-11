@@ -238130,7 +238130,7 @@
             }
           },
           {
-            "depth": 198,
+            "depth": 200,
             "minTileX": 34,
             "minTileY": 192,
             "maxTileX": 41,
@@ -238397,17 +238397,26 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_blue_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_blue_2"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 200
             }
           },
           {
-            "depth": 205,
+            "depth": 206,
             "minTileX": 48,
             "minTileY": 197,
             "maxTileX": 55,
@@ -238726,17 +238735,27 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_red_1",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_red_1",
+                "world_entry"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 206
             }
           },
           {
-            "depth": 199,
+            "depth": 200,
             "minTileX": 64,
             "minTileY": 198,
             "maxTileX": 65,
@@ -238763,17 +238782,25 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "small_rock_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "rock",
+              "biome": "village",
+              "tags": [
+                "village",
+                "rock",
+                "boulder",
+                "obstacle"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 200
             }
           },
           {
-            "depth": 206,
+            "depth": 202,
             "minTileX": 74,
             "minTileY": 198,
             "maxTileX": 85,
@@ -239132,17 +239159,25 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "tube_1",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "tube",
+              "biome": "village",
+              "tags": [
+                "village",
+                "tube",
+                "pipe",
+                "landmark"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 202
             }
           },
           {
-            "depth": 204,
+            "depth": 206,
             "minTileX": 11,
             "minTileY": 198,
             "maxTileX": 18,
@@ -239409,17 +239444,26 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_blue_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_blue_2"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 206
             }
           },
           {
-            "depth": 209,
+            "depth": 211,
             "minTileX": 24,
             "minTileY": 200,
             "maxTileX": 31,
@@ -239742,17 +239786,27 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_red_1",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_red_1",
+                "world_entry"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 211
             }
           },
           {
-            "depth": 203,
+            "depth": 204,
             "minTileX": 5,
             "minTileY": 202,
             "maxTileX": 6,
@@ -239779,17 +239833,25 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "small_rock_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "rock",
+              "biome": "village",
+              "tags": [
+                "village",
+                "rock",
+                "boulder",
+                "obstacle"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 204
             }
           },
           {
-            "depth": 203,
+            "depth": 205,
             "minTileX": 61,
             "minTileY": 200,
             "maxTileX": 63,
@@ -239852,13 +239914,22 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "well_1",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "well",
+              "biome": "village",
+              "tags": [
+                "village",
+                "well",
+                "structure",
+                "water_source",
+                "landmark"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 205
             }
           },
           {
