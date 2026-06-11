@@ -23,6 +23,93 @@ test('terrain authoring audit classifies a pair set with no mixed transitions as
     expect(finding?.severity).toBe('high');
 });
 
+test('terrain authoring audit reports missing Wang color terrain metadata', () => {
+    const findings = findWangTilesetFindings(
+        {
+            image: 'tilesheet.png',
+            wangsets: [
+                {
+                    name: 'terrain',
+                    colors: [{ name: 'water' }],
+                    wangtiles: [],
+                },
+            ],
+        },
+        'fixture.tsj'
+    );
+
+    const finding = findings.find((entry) => entry.id === 'WANG_COLOR_METADATA_MISSING');
+    expect(finding?.severity).toBe('medium');
+    expect(finding?.evidence.join(';')).toContain('missing=material,terrain_family,terrain_kind,passability');
+});
+
+test('terrain authoring audit accepts Wang color metadata matching terrain grammar', () => {
+    const findings = findWangTilesetFindings(
+        {
+            image: 'tilesheet.png',
+            wangsets: [
+                {
+                    name: 'terrain',
+                    colors: [
+                        {
+                            name: 'water',
+                            properties: [
+                                { name: 'material', value: 'water' },
+                                { name: 'terrain_family', value: 'water' },
+                                { name: 'terrain_kind', value: 'liquid' },
+                                { name: 'passability', value: 'blocked' },
+                            ],
+                        },
+                    ],
+                    wangtiles: [],
+                },
+            ],
+        },
+        'fixture.tsj',
+        {
+            families: [{ id: 'water', kind: 'liquid', passability: 'blocked' }],
+        }
+    );
+
+    expect(findings.some((entry) => entry.id === 'WANG_COLOR_METADATA_MISSING')).toBe(false);
+    expect(findings.some((entry) => entry.id === 'WANG_COLOR_FAMILY_UNKNOWN')).toBe(false);
+    expect(findings.some((entry) => entry.id === 'WANG_COLOR_METADATA_MISMATCH')).toBe(false);
+});
+
+test('terrain authoring audit rejects Wang color metadata that disagrees with terrain grammar', () => {
+    const findings = findWangTilesetFindings(
+        {
+            image: 'tilesheet.png',
+            wangsets: [
+                {
+                    name: 'terrain',
+                    colors: [
+                        {
+                            name: 'water',
+                            properties: [
+                                { name: 'material', value: 'water' },
+                                { name: 'terrain_family', value: 'water' },
+                                { name: 'terrain_kind', value: 'base' },
+                                { name: 'passability', value: 'walkable' },
+                            ],
+                        },
+                    ],
+                    wangtiles: [],
+                },
+            ],
+        },
+        'fixture.tsj',
+        {
+            families: [{ id: 'water', kind: 'liquid', passability: 'blocked' }],
+        }
+    );
+
+    const finding = findings.find((entry) => entry.id === 'WANG_COLOR_METADATA_MISMATCH');
+    expect(finding?.severity).toBe('medium');
+    expect(finding?.evidence.join(';')).toContain('expected_kind=liquid');
+    expect(finding?.evidence.join(';')).toContain('expected_passability=blocked');
+});
+
 test('terrain authoring audit requires map-level authoring properties', () => {
     const findings = findMapPropertyFindings({ layers: [] }, 'fixture.json');
 

@@ -3,7 +3,20 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { expect, test } from 'bun:test';
-import { LEGACY_LAYER_PATH_ALLOWLIST, isKnownLayerPath } from '../../shared/maps/layer-contract';
+import {
+    LAYER_ROLE_VALUES,
+    LEGACY_LAYER_PATH_ALLOWLIST,
+    REQUIRED_SEMANTIC_LAYER_PROPERTIES,
+    SEMANTIC_LAYER_ENUM_PROPERTY_TYPES,
+    SEMANTIC_LAYER_PHASE_ORDER,
+    SEMANTIC_LAYER_STRUCTURE_RULES,
+    getSemanticLayerPhaseOrder,
+    getSemanticLayerStructureRule,
+    isCollisionSource,
+    isKnownLayerPath,
+    isLayerRole,
+    isOcclusionMode,
+} from '../../shared/maps/layer-contract';
 
 type ValidatorJsonOutput = Readonly<{
     summary: Readonly<{ errors: number; warns: number; infos: number }>;
@@ -100,6 +113,35 @@ function writeWorldMapWithDoorPatch(
     writeFileSync(filePath, JSON.stringify(map, null, 2));
 }
 
+function writeWorldMapWithLayerPatch(
+    filePath: string,
+    layerPath: string,
+    patch: (layer: { properties?: Array<{ name: string; type?: string; propertytype?: string; value: string | number | boolean }> }) => void
+): void {
+    const map = JSON.parse(readFileSync('assets/maps/tiled/world.json', 'utf8')) as {
+        layers: Array<Record<string, unknown>>;
+    };
+    const pathSegments = layerPath.split('/');
+
+    function findLayer(layers: Array<Record<string, unknown>>, index: number): Record<string, unknown> | undefined {
+        const segment = pathSegments[index];
+        const layer = layers.find((entry) => entry.name === segment);
+        if (!layer || index === pathSegments.length - 1) {
+            return layer;
+        }
+        return findLayer((layer.layers as Array<Record<string, unknown>> | undefined) ?? [], index + 1);
+    }
+
+    const layer = findLayer(map.layers, 0) as
+        | { properties?: Array<{ name: string; type?: string; propertytype?: string; value: string | number | boolean }> }
+        | undefined;
+    if (!layer) {
+        throw new Error(`Missing layer ${layerPath}`);
+    }
+    patch(layer);
+    writeFileSync(filePath, JSON.stringify(map, null, 2));
+}
+
 test('world-map validator reports unknown recursive layer paths', () => {
     const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-world-map-validator-'));
     try {
@@ -121,6 +163,178 @@ test('world-map validator reports unknown recursive layer paths', () => {
     } finally {
         rmSync(dir, { recursive: true, force: true });
     }
+});
+
+test('world-map validator requires target layer semantic properties', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-world-map-validator-'));
+    try {
+        const mapPath = path.join(dir, 'missing-layer-semantics.json');
+        writeWorldMapWithLayerPatch(mapPath, 'render_world/beach_biome/sand', (layer) => {
+            layer.properties = layer.properties?.filter((property) => property.name !== 'layer_role');
+        });
+
+        const output = runValidator(mapPath);
+
+        expect(output.status).toBe(1);
+        const diagnostic = output.diagnostics.find((entry) => entry.code === 'LAYER_SEMANTIC_PROPERTY_MISSING');
+        expect(diagnostic?.level).toBe('error');
+        expect(diagnostic?.message).toContain('sand');
+        expect(diagnostic?.message).toContain('layer_role');
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('world-map validator rejects invalid target layer semantic enum values', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-world-map-validator-'));
+    try {
+        const mapPath = path.join(dir, 'invalid-layer-semantics.json');
+        writeWorldMapWithLayerPatch(mapPath, 'render_world/beach_biome/sand', (layer) => {
+            const role = layer.properties?.find((property) => property.name === 'layer_role');
+            if (!role) {
+                throw new Error('Expected layer_role on sand layer');
+            }
+            role.value = 'terrainish';
+        });
+
+        const output = runValidator(mapPath);
+
+        expect(output.status).toBe(1);
+        const diagnostic = output.diagnostics.find((entry) => entry.code === 'LAYER_SEMANTIC_PROPERTY_INVALID');
+        expect(diagnostic?.level).toBe('error');
+        expect(diagnostic?.message).toContain('terrainish');
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('world-map validator requires Tiled enum typing on target layer semantic enum properties', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-world-map-validator-'));
+    try {
+        const mapPath = path.join(dir, 'untyped-layer-semantics.json');
+        writeWorldMapWithLayerPatch(mapPath, 'render_world/beach_biome/sand', (layer) => {
+            const role = layer.properties?.find((property) => property.name === 'layer_role');
+            if (!role) {
+                throw new Error('Expected layer_role on sand layer');
+            }
+            delete role.propertytype;
+        });
+
+        const output = runValidator(mapPath);
+
+        expect(output.status).toBe(1);
+        const diagnostic = output.diagnostics.find((entry) => entry.code === 'LAYER_SEMANTIC_PROPERTY_UNTYPED');
+        expect(diagnostic?.level).toBe('error');
+        expect(diagnostic?.message).toContain('layer_role');
+        expect(diagnostic?.message).toContain('LayerRole');
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('world-map validator rejects target layer semantic role structure mismatches', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-world-map-validator-'));
+    try {
+        const mapPath = path.join(dir, 'invalid-layer-structure.json');
+        writeWorldMapWithLayerPatch(mapPath, 'render_world/beach_biome/beach_props', (layer) => {
+            const role = layer.properties?.find((property) => property.name === 'layer_role');
+            if (!role) {
+                throw new Error('Expected layer_role on beach_props layer');
+            }
+            role.value = 'base';
+        });
+
+        const output = runValidator(mapPath);
+
+        expect(output.status).toBe(1);
+        const diagnostic = output.diagnostics.find((entry) => entry.code === 'LAYER_SEMANTIC_STRUCTURE_INVALID');
+        expect(diagnostic?.level).toBe('error');
+        expect(diagnostic?.message).toContain('beach_props');
+        expect(diagnostic?.message).toContain('base');
+        expect(diagnostic?.message).toContain('objectgroup');
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('world-map validator rejects hidden render layers by semantic role', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-world-map-validator-'));
+    try {
+        const mapPath = path.join(dir, 'hidden-render-layer.json');
+        writeWorldMapWithLayerPatch(mapPath, 'render_world/beach_biome/sand', (layer) => {
+            (layer as { visible?: boolean }).visible = false;
+        });
+
+        const output = runValidator(mapPath);
+
+        expect(output.status).toBe(1);
+        const diagnostic = output.diagnostics.find((entry) => entry.code === 'LAYER_SEMANTIC_STRUCTURE_INVALID');
+        expect(diagnostic?.level).toBe('error');
+        expect(diagnostic?.message).toContain('visible=true');
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('world-map validator rejects semantic phase order regressions', () => {
+    const dir = mkdtempSync(path.join(os.tmpdir(), 'bq-world-map-validator-'));
+    try {
+        const mapPath = path.join(dir, 'invalid-layer-phase-order.json');
+        writeWorldMapWithLayerPatch(mapPath, 'render_world/foreground_overlays/cliffs_foreground', (layer) => {
+            const role = layer.properties?.find((property) => property.name === 'layer_role');
+            if (!role) {
+                throw new Error('Expected layer_role on cliffs_foreground layer');
+            }
+            role.value = 'gameplay';
+        });
+
+        const output = runValidator(mapPath);
+
+        expect(output.status).toBe(1);
+        const diagnostic = output.diagnostics.find((entry) => entry.code === 'LAYER_SEMANTIC_PHASE_ORDER_INVALID');
+        expect(diagnostic?.level).toBe('error');
+        expect(diagnostic?.message).toContain('cave_walls_foreground');
+        expect(diagnostic?.message).toContain('cliffs_foreground');
+    } finally {
+        rmSync(dir, { recursive: true, force: true });
+    }
+});
+
+test('semantic layer contract exposes shared domains for validators and docs', () => {
+    expect(REQUIRED_SEMANTIC_LAYER_PROPERTIES).toEqual([
+        'layer_role',
+        'collision_source',
+        'occlusion',
+        'material',
+        'biome',
+        'area_id',
+    ]);
+    expect(SEMANTIC_LAYER_ENUM_PROPERTY_TYPES).toEqual({
+        layer_role: 'LayerRole',
+        collision_source: 'CollisionSource',
+        occlusion: 'OcclusionMode',
+    });
+    expect(SEMANTIC_LAYER_STRUCTURE_RULES.object_depth.requiredClass).toBe('DepthSorted');
+    expect(getSemanticLayerStructureRule('gameplay')).toMatchObject({
+        allowedTypes: ['objectgroup'],
+        allowedCollisionSources: ['none'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: false,
+    });
+    expect(SEMANTIC_LAYER_PHASE_ORDER).toMatchObject({
+        base: 0,
+        foreground: 1,
+        gameplay: 2,
+    });
+    expect(getSemanticLayerPhaseOrder('structure')).toBeLessThan(getSemanticLayerPhaseOrder('foreground'));
+    expect(getSemanticLayerPhaseOrder('foreground')).toBeLessThan(getSemanticLayerPhaseOrder('gameplay'));
+    expect(LAYER_ROLE_VALUES).toContain('object_depth');
+    expect(isLayerRole('hazard')).toBe(true);
+    expect(isLayerRole('terrainish')).toBe(false);
+    expect(isCollisionSource('explicit')).toBe(true);
+    expect(isCollisionSource('blocked')).toBe(false);
+    expect(isOcclusionMode('always_front')).toBe(true);
+    expect(isOcclusionMode('opaque')).toBe(false);
 });
 
 test('layer contract keeps known legacy layer debt explicit', () => {

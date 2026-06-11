@@ -225313,7 +225313,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "indoor_prop"
+              "kind": "indoor_prop",
+              "biome": "subterranean"
             }
           },
           {
@@ -225369,7 +225370,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "indoor_prop"
+              "kind": "indoor_prop",
+              "biome": "subterranean"
             }
           },
           {
@@ -225425,7 +225427,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "indoor_prop"
+              "kind": "indoor_prop",
+              "biome": "subterranean"
             }
           },
           {
@@ -225469,7 +225472,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "indoor_prop"
+              "kind": "indoor_prop",
+              "biome": "subterranean"
             }
           },
           {
@@ -225549,7 +225553,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -225629,7 +225634,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -225709,7 +225715,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -225789,7 +225796,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -225869,7 +225877,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -225949,7 +225958,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226029,7 +226039,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226109,7 +226120,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226189,7 +226201,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226269,7 +226282,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226349,7 +226363,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226429,7 +226444,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226509,7 +226525,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226589,7 +226606,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226669,7 +226687,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226749,7 +226768,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226829,7 +226849,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226909,7 +226930,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -226933,7 +226955,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227013,7 +227036,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227093,7 +227117,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227173,7 +227198,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227253,7 +227279,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227333,7 +227360,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227425,7 +227453,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227589,7 +227618,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227681,7 +227711,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227773,7 +227804,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227865,7 +227897,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -227957,7 +227990,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228049,7 +228083,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228133,7 +228168,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228225,7 +228261,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228317,7 +228354,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228409,7 +228447,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228433,7 +228472,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228457,7 +228497,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228569,7 +228610,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228681,7 +228723,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228877,7 +228920,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -228901,7 +228945,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -229013,7 +229058,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -229125,7 +229171,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -229237,7 +229284,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -229349,7 +229397,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -229461,7 +229510,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -229573,7 +229623,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -229661,7 +229712,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -229773,7 +229825,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -229885,7 +229938,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -230001,7 +230055,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -230113,7 +230168,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -230229,7 +230285,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -230341,7 +230398,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -230429,7 +230487,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -230541,7 +230600,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {
@@ -230653,7 +230713,8 @@
                 "render_world",
                 "subterranean_region"
               ],
-              "kind": "tree"
+              "kind": "tree",
+              "biome": "forest"
             }
           },
           {

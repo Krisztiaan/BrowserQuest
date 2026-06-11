@@ -11,6 +11,148 @@ export const CANONICAL_LAYER_PREFIXES = [
     'gameplay_markup',
 ] as const;
 
+export const LAYER_ROLE_VALUES = [
+    'base',
+    'transition',
+    'hazard',
+    'decal',
+    'structure',
+    'object_depth',
+    'object_fixed',
+    'foreground',
+    'occluder',
+    'lighting',
+    'gameplay',
+    'debug',
+] as const;
+
+export const COLLISION_SOURCE_VALUES = ['none', 'tile', 'object', 'explicit'] as const;
+
+export const OCCLUSION_MODE_VALUES = ['none', 'always_front', 'fade', 'cutaway', 'hide'] as const;
+
+export type LayerRole = typeof LAYER_ROLE_VALUES[number];
+export type CollisionSource = typeof COLLISION_SOURCE_VALUES[number];
+export type OcclusionMode = typeof OCCLUSION_MODE_VALUES[number];
+
+export type SemanticLayerStructureRule = Readonly<{
+    allowedTypes: readonly string[];
+    allowedCollisionSources: readonly CollisionSource[];
+    allowedOcclusionModes: readonly OcclusionMode[];
+    requiredVisible?: boolean;
+    requiredClass?: string;
+}>;
+
+export const REQUIRED_SEMANTIC_LAYER_PROPERTIES = [
+    'layer_role',
+    'collision_source',
+    'occlusion',
+    'material',
+    'biome',
+    'area_id',
+] as const;
+
+export const SEMANTIC_LAYER_ENUM_PROPERTY_TYPES = {
+    layer_role: 'LayerRole',
+    collision_source: 'CollisionSource',
+    occlusion: 'OcclusionMode',
+} as const;
+
+export const SEMANTIC_LAYER_STRUCTURE_RULES: Record<LayerRole, SemanticLayerStructureRule> = {
+    base: {
+        allowedTypes: ['tilelayer'],
+        allowedCollisionSources: ['tile'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: true,
+    },
+    transition: {
+        allowedTypes: ['tilelayer'],
+        allowedCollisionSources: ['tile'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: true,
+    },
+    hazard: {
+        allowedTypes: ['tilelayer'],
+        allowedCollisionSources: ['tile'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: true,
+    },
+    decal: {
+        allowedTypes: ['tilelayer'],
+        allowedCollisionSources: ['none'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: true,
+    },
+    structure: {
+        allowedTypes: ['tilelayer'],
+        allowedCollisionSources: ['tile'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: true,
+    },
+    object_depth: {
+        allowedTypes: ['objectgroup'],
+        allowedCollisionSources: ['object'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: true,
+        requiredClass: 'DepthSorted',
+    },
+    object_fixed: {
+        allowedTypes: ['tilelayer', 'objectgroup'],
+        allowedCollisionSources: ['none', 'tile', 'object'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: true,
+    },
+    foreground: {
+        allowedTypes: ['tilelayer', 'objectgroup'],
+        allowedCollisionSources: ['none'],
+        allowedOcclusionModes: ['always_front'],
+        requiredVisible: true,
+        requiredClass: 'Foreground',
+    },
+    occluder: {
+        allowedTypes: ['tilelayer', 'objectgroup'],
+        allowedCollisionSources: ['none', 'tile', 'object'],
+        allowedOcclusionModes: ['fade', 'cutaway', 'hide'],
+        requiredVisible: true,
+    },
+    lighting: {
+        allowedTypes: ['tilelayer', 'imagelayer', 'objectgroup'],
+        allowedCollisionSources: ['none'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: true,
+    },
+    gameplay: {
+        allowedTypes: ['objectgroup'],
+        allowedCollisionSources: ['none'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: false,
+    },
+    debug: {
+        allowedTypes: ['tilelayer', 'objectgroup', 'imagelayer'],
+        allowedCollisionSources: ['none'],
+        allowedOcclusionModes: ['none'],
+        requiredVisible: false,
+    },
+};
+
+export const SEMANTIC_LAYER_PHASE_ORDER: Record<LayerRole, number> = {
+    base: 0,
+    transition: 0,
+    hazard: 0,
+    decal: 0,
+    structure: 0,
+    object_depth: 0,
+    object_fixed: 0,
+    foreground: 1,
+    occluder: 1,
+    lighting: 1,
+    gameplay: 2,
+    debug: 2,
+};
+
+const LAYER_ROLE_SET = new Set<string>(LAYER_ROLE_VALUES);
+const COLLISION_SOURCE_SET = new Set<string>(COLLISION_SOURCE_VALUES);
+const OCCLUSION_MODE_SET = new Set<string>(OCCLUSION_MODE_VALUES);
+
 export const CURRENT_CANONICAL_LAYER_PATHS = [
     'render_world/beach_biome/sand',
     'render_world/beach_biome/shoreline',
@@ -81,4 +223,24 @@ export function isKnownLayerPath(path: string): boolean {
         || (CURRENT_CANONICAL_LAYER_PATHS as readonly string[]).includes(path)
         || (LEGACY_LAYER_PATH_ALLOWLIST as readonly string[]).includes(path)
     );
+}
+
+export function isLayerRole(value: string): value is typeof LAYER_ROLE_VALUES[number] {
+    return LAYER_ROLE_SET.has(value);
+}
+
+export function isCollisionSource(value: string): value is typeof COLLISION_SOURCE_VALUES[number] {
+    return COLLISION_SOURCE_SET.has(value);
+}
+
+export function isOcclusionMode(value: string): value is typeof OCCLUSION_MODE_VALUES[number] {
+    return OCCLUSION_MODE_SET.has(value);
+}
+
+export function getSemanticLayerStructureRule(role: LayerRole): SemanticLayerStructureRule {
+    return SEMANTIC_LAYER_STRUCTURE_RULES[role];
+}
+
+export function getSemanticLayerPhaseOrder(role: LayerRole): number {
+    return SEMANTIC_LAYER_PHASE_ORDER[role];
 }

@@ -16,9 +16,16 @@ type WangTile = Readonly<{ tileId: number; wangId: number[] }>;
 
 export const defaultWorld = 'assets/maps/tiled/world.json';
 export const defaultTileset = 'assets/maps/tiled/tilesheet.wang.tsj';
+export const defaultGrammar = 'assets/maps/tiled/terrain-authoring.json';
 export const defaultOutDir = 'artifacts/map-authoring';
 export const minimumMixedTransitionsForPair = 16;
 export const mostlyPureRatio = 0.9;
+
+type TerrainFamilyMeta = Readonly<{
+    id: string;
+    kind: string;
+    passability: string;
+}>;
 
 function asRecord(value: unknown): UnknownRecord | null {
     return value && typeof value === 'object' && !Array.isArray(value) ? value as UnknownRecord : null;
@@ -75,6 +82,31 @@ function getProperties(record: UnknownRecord): UnknownRecord[] {
     return asArray(record.properties)
         .map((entry) => asRecord(entry))
         .filter((entry): entry is UnknownRecord => entry !== null);
+}
+
+function getPropertyValue(record: UnknownRecord, propertyName: string): unknown {
+    return getProperties(record).find((property) => asString(property.name) === propertyName)?.value;
+}
+
+function parseTerrainFamilies(grammarRoot: UnknownRecord | null | undefined): Map<string, TerrainFamilyMeta> {
+    const families = new Map<string, TerrainFamilyMeta>();
+    if (!grammarRoot) {
+        return families;
+    }
+    for (const entry of asArray(grammarRoot.families)) {
+        const family = asRecord(entry);
+        if (!family) {
+            continue;
+        }
+        const id = asString(family.id)?.trim();
+        const kind = asString(family.kind)?.trim();
+        const passability = asString(family.passability)?.trim();
+        if (!id || !kind || !passability) {
+            continue;
+        }
+        families.set(id, { id, kind, passability });
+    }
+    return families;
 }
 
 function hasEmptyPropertyValue(property: UnknownRecord): boolean {
@@ -138,8 +170,13 @@ function mixedWangTileCount(tiles: readonly WangTile[]): number {
     return tiles.filter((tile) => !isPureWangTile(tile)).length;
 }
 
-export function findWangTilesetFindings(tilesetRoot: UnknownRecord, tilesetPath = defaultTileset): TerrainAuthoringFinding[] {
+export function findWangTilesetFindings(
+    tilesetRoot: UnknownRecord,
+    tilesetPath = defaultTileset,
+    grammarRoot?: UnknownRecord | null
+): TerrainAuthoringFinding[] {
     const findings: TerrainAuthoringFinding[] = [];
+    const terrainFamilies = parseTerrainFamilies(grammarRoot);
     const image = asString(tilesetRoot.image);
     if (!image) {
         findings.push(
@@ -175,6 +212,71 @@ export function findWangTilesetFindings(tilesetRoot: UnknownRecord, tilesetPath 
             .map((entry) => asRecord(entry))
             .filter((entry): entry is UnknownRecord => entry !== null);
         const tiles = parseWangTiles(wangset);
+        for (const color of colors) {
+            const colorName = asString(color.name)?.trim() ?? '<unnamed_color>';
+            const material = asString(getPropertyValue(color, 'material'))?.trim();
+            const terrainFamily = asString(getPropertyValue(color, 'terrain_family'))?.trim();
+            const terrainKind = asString(getPropertyValue(color, 'terrain_kind'))?.trim();
+            const passability = asString(getPropertyValue(color, 'passability'))?.trim();
+            const missing = [
+                ['material', material],
+                ['terrain_family', terrainFamily],
+                ['terrain_kind', terrainKind],
+                ['passability', passability],
+            ]
+                .filter(([, value]) => !value)
+                .map(([propertyName]) => propertyName);
+            if (missing.length > 0) {
+                findings.push(
+                    finding({
+                        id: 'WANG_COLOR_METADATA_MISSING',
+                        severity: 'medium',
+                        category: 'wang_tileset',
+                        title: 'Wang color lacks terrain metadata',
+                        detail: 'Every Wang color should declare material, terrain family, terrain kind, and passability so terrain brushes carry semantic truth.',
+                        location: { tileset: tilesetPath },
+                        evidence: [`set=${name}`, `color=${colorName}`, `missing=${missing.join(',')}`],
+                    })
+                );
+                continue;
+            }
+            const family = terrainFamilies.get(terrainFamily ?? '');
+            if (!family && terrainFamilies.size > 0) {
+                findings.push(
+                    finding({
+                        id: 'WANG_COLOR_FAMILY_UNKNOWN',
+                        severity: 'high',
+                        category: 'wang_tileset',
+                        title: 'Wang color references unknown terrain family',
+                        detail: 'Wang color terrain_family must match a family declared in terrain-authoring.json.',
+                        location: { tileset: tilesetPath },
+                        evidence: [`set=${name}`, `color=${colorName}`, `terrain_family=${terrainFamily ?? '<missing>'}`],
+                    })
+                );
+                continue;
+            }
+            if (family && (terrainKind !== family.kind || passability !== family.passability)) {
+                findings.push(
+                    finding({
+                        id: 'WANG_COLOR_METADATA_MISMATCH',
+                        severity: 'medium',
+                        category: 'wang_tileset',
+                        title: 'Wang color terrain metadata disagrees with grammar',
+                        detail: 'Wang color terrain_kind/passability should mirror its declared terrain family.',
+                        location: { tileset: tilesetPath },
+                        evidence: [
+                            `set=${name}`,
+                            `color=${colorName}`,
+                            `terrain_family=${terrainFamily}`,
+                            `terrain_kind=${terrainKind}`,
+                            `expected_kind=${family.kind}`,
+                            `passability=${passability}`,
+                            `expected_passability=${family.passability}`,
+                        ],
+                    })
+                );
+            }
+        }
         if (tiles.length === 0) {
             continue;
         }
@@ -565,13 +667,14 @@ export function findWorldAuthoringFindings(worldRoot: UnknownRecord, worldPath =
 export function collectTerrainAuthoringFindings(
     worldRoot: UnknownRecord,
     tilesetRoot: UnknownRecord,
+    grammarRoot?: UnknownRecord | null,
     paths: Readonly<{ world?: string; tileset?: string }> = {}
 ): TerrainAuthoringFinding[] {
     const world = paths.world ?? defaultWorld;
     const tileset = paths.tileset ?? defaultTileset;
     return [
         ...findMapPropertyFindings(worldRoot, world),
-        ...findWangTilesetFindings(tilesetRoot, tileset),
+        ...findWangTilesetFindings(tilesetRoot, tileset, grammarRoot),
         ...findWorldAuthoringFindings(worldRoot, world),
     ];
 }
@@ -607,16 +710,19 @@ export function renderMarkdown(audit: TerrainAuthoringAudit): string {
 export async function buildTerrainAuthoringAudit(options: {
     worldPath?: string;
     tilesetPath?: string;
+    grammarPath?: string;
     generatedAt?: string;
 } = {}): Promise<TerrainAuthoringAudit> {
     const worldPath = path.resolve(process.cwd(), options.worldPath ?? defaultWorld);
     const tilesetPath = path.resolve(process.cwd(), options.tilesetPath ?? defaultTileset);
+    const grammarPath = path.resolve(process.cwd(), options.grammarPath ?? defaultGrammar);
     const worldRoot = asRecord(JSON.parse(await readFile(worldPath, 'utf8')));
     const tilesetRoot = asRecord(JSON.parse(await readFile(tilesetPath, 'utf8')));
-    if (!worldRoot || !tilesetRoot) {
-        throw new Error('World and tileset roots must be JSON objects.');
+    const grammarRoot = asRecord(JSON.parse(await readFile(grammarPath, 'utf8')));
+    if (!worldRoot || !tilesetRoot || !grammarRoot) {
+        throw new Error('World, tileset, and grammar roots must be JSON objects.');
     }
-    const findings = collectTerrainAuthoringFindings(worldRoot, tilesetRoot, {
+    const findings = collectTerrainAuthoringFindings(worldRoot, tilesetRoot, grammarRoot, {
         world: rel(worldPath),
         tileset: rel(tilesetPath),
     });
@@ -630,7 +736,7 @@ export async function buildTerrainAuthoringAudit(options: {
 }
 
 function printUsage(): never {
-    console.log('Usage: bun tools/content/terrain-authoring-audit.ts [--world <path>] [--tileset <path>] [--out-dir <path>]');
+    console.log('Usage: bun tools/content/terrain-authoring-audit.ts [--world <path>] [--tileset <path>] [--grammar <path>] [--out-dir <path>]');
     process.exit(0);
 }
 
@@ -640,6 +746,7 @@ async function main(): Promise<void> {
         [
             { key: 'world', kind: 'string', defaultValue: defaultWorld },
             { key: 'tileset', kind: 'string', defaultValue: defaultTileset },
+            { key: 'grammar', kind: 'string', defaultValue: defaultGrammar },
             { key: 'out-dir', kind: 'string', defaultValue: defaultOutDir },
         ],
         { onHelp: printUsage }
@@ -649,6 +756,7 @@ async function main(): Promise<void> {
     const audit = await buildTerrainAuthoringAudit({
         worldPath: String(parsedArgs.world ?? defaultWorld),
         tilesetPath: String(parsedArgs.tileset ?? defaultTileset),
+        grammarPath: String(parsedArgs.grammar ?? defaultGrammar),
     });
 
     await mkdir(outDir, { recursive: true });

@@ -3085,6 +3085,238 @@ Validation evidence:
 - `bun run check:maps`
 - `bun run check:world-map:target`
 - `bun test tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+
+## Execution slice 52 — world layer semantic metadata
+
+Status: complete.
+
+Ticket scope:
+
+- Add the semantic layer metadata model already used by authored interiors to `world.json`.
+- Keep the target compiler/validator strict: world layers must declare role, collision source,
+  occlusion mode, material, biome, and area ownership.
+- Preserve map geometry, object placement, door links, and runtime map-pack structure.
+
+Before-edit evidence:
+
+- `world.json` had 74 groups/leaves and zero `layer_role` properties.
+- Authored interiors already used `layer_role`, `collision_source`, `occlusion`, `material`,
+  `biome`, and `area_id` on their groups and layers.
+- The target validator still enforced exact world layer paths and object-layer contracts, but
+  it did not require the layers to say what they mean.
+
+Applied authoring changes:
+
+- Added semantic properties to all 74 world groups/leaves.
+- Classified visible world render layers into `base`, `transition`, `hazard`, `decal`,
+  `structure`, `object_depth`, and `foreground` roles.
+- Classified `gameplay_markup` and its object layers as `gameplay`.
+- Added target validator diagnostics for missing semantic layer properties.
+- Added target validator diagnostics for invalid `layer_role`, `collision_source`, and
+  `occlusion` enum values.
+- Added unit coverage for missing and invalid world layer semantics.
+
+Visual evidence:
+
+- `.data/map-authoring-crops/world_layer_semantics_beach_after.png`
+- `.data/map-authoring-crops/world_layer_semantics_forest_maze_after.png`
+- `.data/map-authoring-crops/world_layer_semantics_badlands_after.png`
+
+Validation evidence:
+
+- Source audit confirmed 74 world groups/leaves, 0 missing semantic properties, and role
+  counts: 19 base, 5 transition, 7 hazard, 14 object_depth, 6 decal, 8 structure, 6
+  foreground, 9 gameplay.
+- Runtime comparison against `HEAD` confirmed the only map-pack changes are 61 render props
+  gaining inherited `meta.biome`; no other render-prop fields changed.
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/world-map-validator.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 56 — Wang color terrain semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Make Wang colors carry terrain-family truth, not only visual names/colors.
+- Tie Wang color metadata to `terrain-authoring.json` family kind/passability.
+- Keep transition art gaps visible; this slice does not generate missing transition tiles.
+
+Before-edit evidence:
+
+- `tilesheet.wang.tsj` had 27 Wang colors across terrain, carpet, and scaffold transition
+  Wang sets.
+- All 27 Wang colors had names and probabilities, but none had custom properties carrying
+  material, family, terrain kind, or passability.
+- The terrain authoring audit reported transition-art completeness gaps but could not verify
+  whether Wang brush colors matched the approved terrain grammar.
+
+Applied tileset changes:
+
+- Added `material`, `terrain_family`, `terrain_kind`, and `passability` to all 27 Wang colors.
+- Mapped `rock` colors to grammar family `stone`, `lake` to `water`, and carpet colors to
+  `indoor` while preserving their editor-facing material names.
+- Extended `terrain-authoring-audit.ts` to validate Wang color metadata against
+  `terrain-authoring.json`.
+- Added audit coverage for missing, valid, and grammar-mismatched Wang color metadata.
+- Updated `docs/terrain-authoring-model.md` with the Wang color metadata contract.
+
+Validation evidence:
+
+- Source audit confirmed 27 Wang colors, 0 missing metadata properties, and 0 grammar
+  mismatches.
+- Generated terrain audit reported 0 `WANG_COLOR_METADATA_MISSING`, 0
+  `WANG_COLOR_FAMILY_UNKNOWN`, and 0 `WANG_COLOR_METADATA_MISMATCH`.
+- Remaining Wang findings are transition-art completeness gaps: 8
+  `WANG_PAIR_HAS_NO_MIXED_TRANSITIONS` and 1 `WANG_PAIR_HAS_TOO_FEW_MIXED_TRANSITIONS`.
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun run check:terrain-authoring`
+- `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000`
+- `bun test tests/unit/world-map-validator.test.ts tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 55 — semantic layer phase order
+
+Status: complete.
+
+Ticket scope:
+
+- Validate broad semantic phase order across flattened target world leaf layers.
+- Keep local render-body ordering flexible while the legacy world is still grouped by biome.
+- Preserve authored map/runtime data.
+
+Before-edit evidence:
+
+- Slice 54 validated each layer's semantic role structure, but did not prove that render,
+  overlay, and gameplay layers stayed in coherent flattened order.
+- Current world flattening showed a clear broad phase sequence: render body, foreground
+  overlays, then gameplay markup.
+
+Applied contract changes:
+
+- Added shared `SEMANTIC_LAYER_PHASE_ORDER` and `getSemanticLayerPhaseOrder` to
+  `shared/maps/layer-contract.ts`.
+- Updated the target world validator to emit `LAYER_SEMANTIC_PHASE_ORDER_INVALID` when a
+  lower phase appears after a later phase.
+- Added validator coverage for a foreground-layer role mutation that forces a phase
+  regression.
+- Documented render body, overlay, and markup phases in `docs/map-layer-contract.md`.
+
+Validation evidence:
+
+- Source phase audit confirmed 65 flattened world leaves with phase transitions at index 0
+  (`render_world/beach_biome/sand`, phase 0), index 52
+  (`render_world/foreground_overlays/cliffs_foreground`, phase 1), and index 57
+  (`gameplay_markup/resource_nodes`, phase 2), with 0 phase violations.
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/world-map-validator.test.ts tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun test tests/unit/world-map-validator.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 54 — structural layer role validation
+
+Status: complete.
+
+Ticket scope:
+
+- Add structural rules for semantic layer roles so accepted paths are not enough.
+- Validate layer type, visibility, collision source, occlusion mode, and required class for
+  each target world leaf layer.
+- Preserve the existing path guard and all authored map/runtime data.
+
+Before-edit evidence:
+
+- Slice 53 shared semantic value domains, but a layer could still keep a known path while
+  declaring an incompatible role/type combination.
+- The current world role inventory showed stable structural patterns: render paint as visible
+  tile layers, depth props as visible `DepthSorted` object layers, foregrounds as visible
+  `Foreground` layers, and gameplay as hidden object layers.
+
+Applied contract changes:
+
+- Added shared `SEMANTIC_LAYER_STRUCTURE_RULES` to `shared/maps/layer-contract.ts`.
+- Updated the target world validator to emit `LAYER_SEMANTIC_STRUCTURE_INVALID` for:
+  - role/layer-type mismatches
+  - invalid visibility for a role
+  - collision source not allowed by role
+  - occlusion mode not allowed by role
+  - missing required layer class for `object_depth` and `foreground`
+- Added validator coverage for a depth-prop object layer mislabeled as `base`.
+- Added validator coverage for a hidden render layer.
+- Documented the structural role table in `docs/map-layer-contract.md`.
+
+Validation evidence:
+
+- Source audit confirmed 65 flattened world leaf layers, role counts of 12 base, 5
+  transition, 7 hazard, 14 object_depth, 6 decal, 8 structure, 5 foreground, and 8 gameplay,
+  with 0 structural rule violations.
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/world-map-validator.test.ts tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun test tests/unit/world-map-validator.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 53 — shared semantic layer contract
+
+Status: complete.
+
+Ticket scope:
+
+- Move semantic layer domains out of the world validator and into the shared layer contract.
+- Enforce Tiled custom enum typing for semantic layer enum properties, not only string
+  values.
+- Keep the current path guard in place as a migration safety net while semantics become the
+  primary authored truth.
+
+Before-edit evidence:
+
+- Slice 52 made `world.json` carry semantic layer properties, but
+  `shared/maps/layer-contract.ts` still only represented path allowlists.
+- The target validator checked semantic string values locally and did not prove that the
+  source properties were typed as Tiled custom enums.
+- `docs/map-layer-contract.md` still described recursive paths as the authored contract.
+
+Applied contract changes:
+
+- Added shared `LayerRole`, `CollisionSource`, and `OcclusionMode` domains to
+  `shared/maps/layer-contract.ts`.
+- Added shared required semantic property names and enum propertytype mappings.
+- Updated `world-map-validator.ts` to use the shared contract definitions.
+- Added `LAYER_SEMANTIC_PROPERTY_UNTYPED` for semantic enum properties missing the expected
+  Tiled `propertytype`.
+- Updated `docs/map-layer-contract.md` to describe semantic properties as the primary
+  contract and path checks as migration guards.
+
+Validation evidence:
+
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/world-map-validator.test.ts tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun test tests/unit/world-map-validator.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
 - Runtime comparison against `HEAD` confirmed no door coordinate, target-map, target-door,
   door-id, or orientation changes.
 

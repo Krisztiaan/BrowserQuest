@@ -1,6 +1,6 @@
 # Terrain Authoring Audit
 
-Generated: 2026-06-10T15:43:18.841Z
+Generated: 2026-06-11T02:55:38.648Z
 World: assets/maps/tiled/world.json
 Tileset: assets/maps/tiled/tilesheet.wang.tsj
 
@@ -4379,8 +4379,3 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Detail: Records whether an authored blocking layer exists alongside tileset collision metadata.
 - Location: `{"map":"assets/maps/tiled/world.json"}`
 - Evidence: blocking_layer=missing
-
-## Visual Reference Notes
-
-- Generated stardew-spring-outdoors-contact.png from /root/dev/StardewXnbHack/Content (unpacked-ts)/Maps/spring_outdoorsTileSheet.png; visual organization reference only, not a source asset for copying.
-- Generated stardew-paths-contact.png from /root/dev/StardewXnbHack/Content (unpacked-ts)/Maps/paths.png; visual organization reference only, not a source asset for copying.

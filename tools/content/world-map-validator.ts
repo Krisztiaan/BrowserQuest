@@ -1,7 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import Types from '../../shared/gametypes-browser';
-import { isKnownLayerPath } from '../../shared/maps/layer-contract';
+import {
+    REQUIRED_SEMANTIC_LAYER_PROPERTIES,
+    SEMANTIC_LAYER_ENUM_PROPERTY_TYPES,
+    getSemanticLayerPhaseOrder,
+    getSemanticLayerStructureRule,
+    isCollisionSource,
+    isKnownLayerPath,
+    isLayerRole,
+    isOcclusionMode,
+} from '../../shared/maps/layer-contract';
 import { parseCliArgs } from '../shared/cli-args';
 
 type UnknownRecord = Record<string, unknown>;
@@ -507,6 +516,17 @@ function getPropertyMap(value: unknown): Map<string, unknown> {
     return map;
 }
 
+function getPropertyEntryMap(value: unknown): Map<string, UnknownRecord> {
+    const map = new Map<string, UnknownRecord>();
+    for (const propertyRecord of getPropertyEntries(value)) {
+        const name = asString(propertyRecord.name);
+        if (name !== null) {
+            map.set(name, propertyRecord);
+        }
+    }
+    return map;
+}
+
 function getObjectClassName(objectRecord: UnknownRecord): string | null {
     const objectClass = asString(objectRecord.class)?.trim();
     if (objectClass && objectClass.length > 0) {
@@ -958,6 +978,132 @@ function checkTargetLayerContract(layers: ReadonlyArray<LayerContext>, diags: Di
     }
 }
 
+function checkTargetLayerSemantics(layers: ReadonlyArray<LayerContext>, diags: Diagnostic[]): void {
+    let highestPhaseOrder = -1;
+    let highestPhaseLayer: LayerContext | null = null;
+    for (const layer of layers) {
+        const props = getPropertyMap(layer.record.properties);
+        const propEntries = getPropertyEntryMap(layer.record.properties);
+
+        for (const propertyName of REQUIRED_SEMANTIC_LAYER_PROPERTIES) {
+            const value = asString(props.get(propertyName));
+            if (value === null || value.trim().length === 0) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'LAYER_SEMANTIC_PROPERTY_MISSING',
+                    `${formatLayerRef(layer)} is missing semantic layer property ${propertyName}.`
+                );
+            }
+        }
+
+        const role = asString(props.get('layer_role'))?.trim();
+        if (role && !isLayerRole(role)) {
+            pushDiagnostic(
+                diags,
+                'error',
+                'LAYER_SEMANTIC_PROPERTY_INVALID',
+                `${formatLayerRef(layer)} has invalid layer_role "${role}".`
+            );
+        }
+
+        const collisionSource = asString(props.get('collision_source'))?.trim();
+        if (collisionSource && !isCollisionSource(collisionSource)) {
+            pushDiagnostic(
+                diags,
+                'error',
+                'LAYER_SEMANTIC_PROPERTY_INVALID',
+                `${formatLayerRef(layer)} has invalid collision_source "${collisionSource}".`
+            );
+        }
+
+        const occlusion = asString(props.get('occlusion'))?.trim();
+        if (occlusion && !isOcclusionMode(occlusion)) {
+            pushDiagnostic(
+                diags,
+                'error',
+                'LAYER_SEMANTIC_PROPERTY_INVALID',
+                `${formatLayerRef(layer)} has invalid occlusion "${occlusion}".`
+            );
+        }
+
+        if (role && isLayerRole(role)) {
+            const phaseOrder = getSemanticLayerPhaseOrder(role);
+            if (phaseOrder < highestPhaseOrder) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'LAYER_SEMANTIC_PHASE_ORDER_INVALID',
+                    `${formatLayerRef(layer)} role ${role} appears after later phase layer ${highestPhaseLayer ? formatLayerRef(highestPhaseLayer) : '<unknown>'}.`
+                );
+            } else if (phaseOrder > highestPhaseOrder) {
+                highestPhaseOrder = phaseOrder;
+                highestPhaseLayer = layer;
+            }
+
+            const rule = getSemanticLayerStructureRule(role);
+            const layerClass = asString(layer.record.class)?.trim() ?? '';
+
+            if (!rule.allowedTypes.includes(layer.type)) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'LAYER_SEMANTIC_STRUCTURE_INVALID',
+                    `${formatLayerRef(layer)} role ${role} does not allow layer type ${layer.type}.`
+                );
+            }
+            if (typeof rule.requiredVisible === 'boolean' && layer.visible !== rule.requiredVisible) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'LAYER_SEMANTIC_STRUCTURE_INVALID',
+                    `${formatLayerRef(layer)} role ${role} requires visible=${rule.requiredVisible}.`
+                );
+            }
+            if (collisionSource && isCollisionSource(collisionSource) && !rule.allowedCollisionSources.includes(collisionSource)) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'LAYER_SEMANTIC_STRUCTURE_INVALID',
+                    `${formatLayerRef(layer)} role ${role} does not allow collision_source ${collisionSource}.`
+                );
+            }
+            if (occlusion && isOcclusionMode(occlusion) && !rule.allowedOcclusionModes.includes(occlusion)) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'LAYER_SEMANTIC_STRUCTURE_INVALID',
+                    `${formatLayerRef(layer)} role ${role} does not allow occlusion ${occlusion}.`
+                );
+            }
+            if (rule.requiredClass && layerClass !== rule.requiredClass) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'LAYER_SEMANTIC_STRUCTURE_INVALID',
+                    `${formatLayerRef(layer)} role ${role} requires class ${rule.requiredClass}.`
+                );
+            }
+        }
+
+        for (const [propertyName, expectedPropertyType] of Object.entries(SEMANTIC_LAYER_ENUM_PROPERTY_TYPES)) {
+            const entry = propEntries.get(propertyName);
+            if (!entry) {
+                continue;
+            }
+            const propertyType = asString(entry.propertytype)?.trim();
+            if (propertyType !== expectedPropertyType) {
+                pushDiagnostic(
+                    diags,
+                    'error',
+                    'LAYER_SEMANTIC_PROPERTY_UNTYPED',
+                    `${formatLayerRef(layer)} property ${propertyName} must use Tiled enum type ${expectedPropertyType}.`
+                );
+            }
+        }
+    }
+}
+
 function requireProperty(
     diags: Diagnostic[],
     layer: LayerContext,
@@ -1295,6 +1441,7 @@ async function main(): Promise<void> {
 
     if (profile === 'target') {
         checkTargetLayerContract(layers, diagnostics);
+        checkTargetLayerSemantics(layers, diagnostics);
         checkTargetObjectContracts(layers, diagnostics);
     }
 

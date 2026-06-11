@@ -3100,3 +3100,147 @@ This is the live execution notebook for `PLAN.md`.
   - `bun test tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 36 pass, 0 fail.
 - Next action:
   - Continue with the next rich-authoring gap: richer layer-region authoring or template adoption for repeated gameplay markers.
+
+### 2026-06-11 02:34 UTC - World Layer Semantic Metadata
+
+- Status: done
+- Scope:
+  - Add the same semantic layer metadata model used by authored interiors to `world.json`.
+  - Keep the map compiler strict: target-profile validation should require world layers to declare role, collision source, occlusion, material, biome, and area ownership.
+  - Preserve map geometry, object placement, door links, and runtime map-pack structure.
+- Ticket:
+  - done: Make world render/gameplay layers carry typed authoring semantics instead of relying only on path/name conventions.
+- Key actions:
+  - Confirmed `world.json` had 74 layers/groups and zero `layer_role` properties, while all authored interiors already had semantic layer metadata.
+  - Added target validator checks for required layer semantic properties and enum-domain validation for `layer_role`, `collision_source`, and `occlusion`.
+  - Added validator regression coverage for missing and invalid target layer semantics.
+  - Added semantic properties to all 74 world groups/leaves.
+  - Rendered representative semantic layer subsets for beach shoreline, forest maze foreground/structure, and badlands lava/cliff layers.
+- Evidence:
+  - Source audit confirms 74 world layers/groups, 0 missing semantic properties, and role counts: 19 base, 5 transition, 7 hazard, 14 object_depth, 6 decal, 8 structure, 6 foreground, 9 gameplay.
+  - Visual crops: `.data/map-authoring-crops/world_layer_semantics_beach_after.png`, `.data/map-authoring-crops/world_layer_semantics_forest_maze_after.png`, `.data/map-authoring-crops/world_layer_semantics_badlands_after.png`.
+  - Runtime comparison against `HEAD` confirms the only map-pack changes are 61 render props gaining inherited `meta.biome`; no other render-prop fields changed.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed.
+  - `bun test tests/unit/world-map-validator.test.ts --timeout 20000` passed: 7 pass, 0 fail.
+  - `bun run typecheck:tools` passed.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue toward structural layer-contract replacement or tileset semantic enrichment.
+
+### 2026-06-11 02:38 UTC - Shared Semantic Layer Contract
+
+- Status: done
+- Scope:
+  - Move semantic layer domains out of the world validator and into `shared/maps/layer-contract.ts`.
+  - Enforce Tiled custom enum typing for semantic layer enum properties, not only string values.
+  - Keep the current path guard in place as a migration safety net while semantics become the primary authored truth.
+- Ticket:
+  - done: Add a shared semantic layer contract and typed-enum validation.
+- Key actions:
+  - Added shared `LayerRole`, `CollisionSource`, and `OcclusionMode` value domains to `layer-contract.ts`.
+  - Added shared required semantic layer property names and enum propertytype mapping.
+  - Updated the target world validator to use the shared semantic domains.
+  - Added `LAYER_SEMANTIC_PROPERTY_UNTYPED` for semantic enum properties missing the expected Tiled `propertytype`.
+  - Updated `docs/map-layer-contract.md` from path-first wording to semantic-first wording.
+- Evidence:
+  - `bun run check:world-map:target` passed with the stricter semantic typing checks.
+  - `bun test tests/unit/world-map-validator.test.ts --timeout 20000` passed: 9 pass, 0 fail.
+  - `bun run typecheck:tools` passed.
+  - `bun run check:maps` passed.
+  - `bun test tests/unit/world-map-validator.test.ts tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 40 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue toward replacing path-specific world layer validation with structural role/order rules, or enrich tileset material semantics.
+
+### 2026-06-11 02:41 UTC - Structural Layer Role Validation
+
+- Status: done
+- Scope:
+  - Add structural rules for semantic layer roles so accepted paths are not enough.
+  - Validate layer type, visibility, collision source, occlusion mode, and required class for each target world leaf layer.
+  - Preserve the existing path guard and all authored map/runtime data.
+- Ticket:
+  - done: Enforce structural role/content rules for target world layers.
+- Key actions:
+  - Added shared `SEMANTIC_LAYER_STRUCTURE_RULES` to `layer-contract.ts`.
+  - Updated `world-map-validator.ts` to emit `LAYER_SEMANTIC_STRUCTURE_INVALID` for role/type, visibility, collision, occlusion, or class mismatches.
+  - Added validator coverage for a depth-prop object layer mislabeled as `base` and a hidden render layer.
+  - Documented the structural role table in `docs/map-layer-contract.md`.
+- Evidence:
+  - Source audit confirms 65 flattened world leaf layers, role counts of 12 base, 5 transition, 7 hazard, 14 object_depth, 6 decal, 8 structure, 5 foreground, and 8 gameplay, with 0 structural rule violations.
+  - `bun run check:world-map:target` passed with the stricter role-structure checks.
+  - `bun test tests/unit/world-map-validator.test.ts --timeout 20000` passed: 11 pass, 0 fail.
+  - `bun run typecheck:tools` passed.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun test tests/unit/world-map-validator.test.ts tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 42 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue toward structural phase-order validation or tileset material semantics.
+
+### 2026-06-11 02:44 UTC - Semantic Layer Phase Order
+
+- Status: done
+- Scope:
+  - Validate broad semantic phase order across flattened target world leaf layers.
+  - Keep local render-body ordering flexible while the legacy world is still grouped by biome.
+  - Preserve authored map/runtime data.
+- Ticket:
+  - done: Add semantic phase-order validation for render, overlay, and markup layers.
+- Key actions:
+  - Added shared `SEMANTIC_LAYER_PHASE_ORDER` and `getSemanticLayerPhaseOrder` to `layer-contract.ts`.
+  - Updated `world-map-validator.ts` to emit `LAYER_SEMANTIC_PHASE_ORDER_INVALID` when a lower phase appears after a later phase.
+  - Added validator coverage for a foreground-layer role mutation that forces a phase regression.
+  - Documented render body, overlay, and markup phases in `docs/map-layer-contract.md`.
+- Evidence:
+  - Source phase audit confirms 65 flattened world leaves with phase transitions at index 0 (`render_world/beach_biome/sand`, phase 0), index 52 (`render_world/foreground_overlays/cliffs_foreground`, phase 1), and index 57 (`gameplay_markup/resource_nodes`, phase 2), with 0 phase violations.
+  - `bun run check:world-map:target` passed with phase-order validation.
+  - `bun test tests/unit/world-map-validator.test.ts --timeout 20000` passed: 12 pass, 0 fail.
+  - `bun run typecheck:tools` passed.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun test tests/unit/world-map-validator.test.ts tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 43 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue toward tileset material semantics or replacing current path allowlists with structural authoring rules.
+
+### 2026-06-11 02:50 UTC - Wang Color Terrain Semantics
+
+- Status: done
+- Scope:
+  - Make Wang colors carry terrain-family truth, not only visual names/colors.
+  - Tie Wang color metadata to `terrain-authoring.json` family kind/passability.
+  - Keep transition art gaps visible; this slice does not generate missing transition tiles.
+- Ticket:
+  - done: Enrich Wang colors with material, family, kind, and passability metadata.
+- Key actions:
+  - Added `material`, `terrain_family`, `terrain_kind`, and `passability` properties to all 27 Wang colors in `tilesheet.wang.tsj`.
+  - Mapped `rock` Wang colors to grammar family `stone`, `lake` to `water`, and carpet colors to `indoor` while preserving their material names.
+  - Extended `terrain-authoring-audit.ts` to validate Wang color metadata against `terrain-authoring.json`.
+  - Added audit coverage for missing, valid, and grammar-mismatched Wang color metadata.
+  - Updated `docs/terrain-authoring-model.md` with the Wang color metadata contract.
+- Evidence:
+  - Source audit confirms 27 Wang colors, 0 missing metadata properties, and 0 grammar mismatches.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000` passed: 6 pass, 0 fail.
+  - `bun run check:terrain-authoring` passed and regenerated `artifacts/map-authoring/terrain-authoring-audit.json` / `.md`.
+  - Generated audit now reports 0 `WANG_COLOR_METADATA_MISSING`, 0 `WANG_COLOR_FAMILY_UNKNOWN`, and 0 `WANG_COLOR_METADATA_MISMATCH`; remaining Wang findings are transition-art completeness gaps.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed.
+  - `bun test tests/unit/world-map-validator.test.ts tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 43 pass, 0 fail.
+  - `bun run typecheck` passed.
+  - `bun run typecheck:tools` passed.
+  - `bun run lint` passed.
+  - `git diff --check` passed.
+- Next action:
+  - Continue with tileset tile-class/property semantics or transition asset metadata.
