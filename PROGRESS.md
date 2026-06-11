@@ -18,6 +18,143 @@ This is the live execution notebook for `PLAN.md`.
 
 ## Ticket Log
 
+### 2026-06-11 15:35 UTC - Manual Tiled Authoring Slice 126
+
+- Status: done
+- Scope:
+  - Enrich the `tree_1` overlay at tile bounds `(8, 238)` through `(11, 243)` in `render_world/village_biome/houses`.
+  - Enrich the partial/right-edge `well_1` assembly at tile bounds `(81, 241)` through `(83, 245)` in `render_world/village_biome/houses`.
+  - Reuse existing source `PropTile`/`StructureTile` metadata for all selected tree and well GIDs; do not edit `tilesheet.wang.tsj`.
+  - Preserve the nearby tagged blue/red house objects, one-way portal, rat roaming area, checkpoint, terrain, and cliff objects.
+  - Preserve object positions, GIDs, layer membership, gameplay markers, and runtime behavior.
+- Ticket:
+  - done: Add placed-object metadata for the southwest tree overlay and east well assembly.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_village_tree_overlay_slice126_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_tree_overlay_slice126_nomarkers.png`.
+  - Generated `.data/map-authoring-crops/world_village_well_overlay_slice126_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_well_overlay_slice126_nomarkers.png`.
+  - Visual inspection confirmed the left cluster is a tree overlay on the southwest house edge and the right cluster is a separate small well/shadow assembly beside the red house/cliff edge.
+  - Source inspection confirmed selected `tree_1` and `well_1` source tiles already carry semantic metadata.
+  - Added object-level `PropMetadata` to 22 selected `tree_1_8_238` objects and 15 selected `well_1_81_241` objects.
+  - Re-ran the audit after an initial pass exposed five omitted cells, then folded those cells into the same two instances.
+- Evidence:
+  - Source check confirmed `tree_1_8_238` has 22 objects and `well_1_81_241` has 15 objects with `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, expected `prop_family`, expected `prop_kind`, and matching `prop_instance_id` values.
+  - Terrain authoring audit reports 0 findings for the selected `tree_1_8_238` and `well_1_81_241` object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Inspect the two-tile village object around `(31, 236)` using GIDs 785 and 805, then continue to the deadlands rock clusters.
+
+### 2026-06-11 15:25 UTC - Manual Tiled Authoring Slice 125
+
+- Status: done
+- Scope:
+  - Enrich the large `house_blue` exterior at tile bounds `(59, 213)` through `(66, 222)` in `render_world/village_biome/houses`.
+  - Add missing source `StructureTile` metadata for the four left-edge `house_blue` source tiles used by this footprint: GIDs 1492, 1592, 1612, and 1632.
+  - Add object-level `PropMetadata` to the 78 matching placed `house_blue` objects with `prop_instance_id=house_blue_59_213`.
+  - Exclude the nearby village agent, spawn checkpoint, rat roaming area, tree overlay, path/terrain, and unrelated deadlands objects.
+  - Preserve object positions, GIDs, layer membership, gameplay markers, and runtime behavior.
+- Ticket:
+  - done: Add source and placed-object metadata for the large east-village blue house exterior.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_village_house_blue_large_slice125_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_house_blue_large_slice125_nomarkers.png`.
+  - Visual inspection confirmed a single complete large blue house exterior.
+  - Object inspection found no aligned house-entry door; nearby agent/checkpoint/roaming-area objects are separate gameplay markers.
+  - Source inspection found four missing `StructureTile` records on the selected left edge; all other selected source tiles are already typed as `house_blue`.
+  - Added source `StructureTile` metadata for GIDs 1492, 1592, 1612, and 1632 as non-occluding left-edge `house_blue` padding pieces.
+  - Added object-level `PropMetadata` to 78 matching placed `house_blue` objects with `prop_instance_id=house_blue_59_213`.
+- Evidence:
+  - Source check confirmed GIDs 1492, 1592, 1612, and 1632 now use `class:"StructureTile"`, `type:"house_blue"`, `tile_kind=structure`, `occlusion_kind=none`, and `render_height=0`.
+  - Source check confirmed 78 objects use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, `prop_family=house_blue`, `prop_kind=house_exterior`, and `prop_instance_id=house_blue_59_213`.
+  - Terrain authoring audit reports 0 findings for the selected `house_blue_59_213` object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Inspect the next village tree/well overlay fragments around `(8..11, 238..245)` and `(81..83, 241..245)`, then continue to the deadlands rock clusters.
+
+### 2026-06-11 15:20 UTC - Manual Tiled Authoring Slice 124
+
+- Status: done
+- Scope:
+  - Enrich four low `beach_fence` structure runs currently placed on `render_world/village_biome/houses` near the beach boundary.
+  - Target object IDs 2522 through 2525, 2526 through 2531, 2532 through 2537, and 2538 through 2543.
+  - Reuse existing `beach_fence` source `StructureTile` metadata for GIDs 736 through 740; do not edit `tilesheet.wang.tsj`.
+  - Add stable per-run `prop_instance_id` values while preserving the nearby checkpoint, guard, sword-cache, palm/root, terrain, and house objects as separate objects.
+  - Preserve object positions, GIDs, layer membership, gameplay markers, and runtime behavior.
+- Ticket:
+  - done: Add placed-object metadata for the beach-boundary fence runs.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_beach_fences_slice124_objects.png`.
+  - Generated `.data/map-authoring-crops/world_beach_fences_slice124_nomarkers.png`.
+  - Visual inspection confirmed four separate low fence runs along the beach/cliff edge.
+  - Source inspection confirmed GIDs 736 through 740 already carry `beach_fence` `StructureTile` metadata.
+  - Existing metadata convention from `beach_fence_66_281` uses `prop_family=beach_fence`, `prop_kind=fence`, `biome=beach`, and `depth_mode=collision`.
+  - Added object-level `PropMetadata` to 22 fence objects across `beach_fence_59_253`, `beach_fence_16_255`, `beach_fence_43_255`, and `beach_fence_51_255`.
+- Evidence:
+  - Source check confirmed the four selected fence runs have counts 4, 6, 6, and 6 with `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, `prop_family=beach_fence`, `prop_kind=fence`, and expected `prop_instance_id` values.
+  - Terrain authoring audit reports 0 findings for the selected fence object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Inspect the larger `house_blue` structure around `(59..66, 213..220)`, then continue to the later deadlands rock clusters.
+
+### 2026-06-11 15:15 UTC - Manual Tiled Authoring Slice 123
+
+- Status: done
+- Scope:
+  - Enrich two complete house exteriors in `render_world/village_biome/houses`.
+  - Instance A is the southwest blue-roof `house_blue_2` at tile bounds `(3, 241)` through `(10, 248)` with `prop_instance_id=house_blue_2_3_241`.
+  - Instance B is the east/beach-edge red-roof `house_red_1` at tile bounds `(75, 241)` through `(82, 250)` with `prop_instance_id=house_red_1_75_241`.
+  - Reuse existing source `StructureTile` metadata for both house families; do not edit `tilesheet.wang.tsj`.
+  - Exclude nearby tree, well overlay, rat roaming area, one-way portal, sword cache marker, cliff/terrain, and beach gameplay markers from this house metadata slice.
+  - Preserve object positions, GIDs, layer membership, gameplay markers, and runtime behavior.
+- Ticket:
+  - done: Add placed-object metadata for the next southwest blue and east red village house exteriors.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_village_southwest_southeast_houses_slice123_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_southwest_southeast_houses_slice123_nomarkers.png`.
+  - Visual inspection confirmed two separate complete house exteriors rather than one connected structure.
+  - Object inspection found no aligned house-entry door for either instance; `world_portal_77_237` is a separate one-way portal and remains outside the house exterior metadata.
+  - Source inspection confirmed all selected `house_blue_2` and `house_red_1` source tiles already carry `StructureTile` metadata.
+  - Added object-level `PropMetadata` to 64 matching `house_blue_2_3_241` objects and 80 matching `house_red_1_75_241` objects.
+- Evidence:
+  - Source check confirmed `house_blue_2_3_241` has 64 objects and `house_red_1_75_241` has 80 objects with `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, expected `prop_family`, expected `prop_kind=house_exterior`, and matching `prop_instance_id` values.
+  - Terrain authoring audit reports 0 findings for the selected `house_blue_2_3_241` and `house_red_1_75_241` object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Inspect the next village `houses` blank-object cluster around GIDs 736 through 740 at `(59..62, 253)` and repeated groups around y255, then continue to the later deadlands rock clusters.
+
 ### 2026-06-11 15:07 UTC - Manual Tiled Authoring Slice 122
 
 - Status: done

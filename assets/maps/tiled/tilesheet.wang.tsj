@@ -776,7 +776,7 @@
                 }
                 ],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":57,
          "class":"PropTile",
@@ -859,7 +859,7 @@
                  "value":true
                 }],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":58,
          "class":"PropTile",
@@ -942,7 +942,7 @@
                  "value":true
                 }],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":59,
          "class":"PropTile",
@@ -1025,7 +1025,7 @@
                  "value":true
                 }],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":63,
          "class":"StructureTile",
@@ -34529,6 +34529,40 @@
             }
         }, 
         {
+         "id":1491,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_blue"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"blank_left_roof_mid"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
+         "type":"house_blue"
+        },
+        {
          "id":1492,
          "class":"StructureTile",
          "properties":[
@@ -37359,6 +37393,40 @@
          "id":1585
         }, 
         {
+         "id":1591,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_blue"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"blank_left_lower_wall"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
+         "type":"house_blue"
+        },
+        {
          "id":1592,
          "class":"StructureTile",
          "objectgroup":
@@ -38060,6 +38128,40 @@
                 ],
          "type":"pillar"
         }, 
+        {
+         "id":1611,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_blue"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"blank_left_door_row"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
+         "type":"house_blue"
+        },
         {
          "id":1612,
          "class":"StructureTile",
@@ -38881,6 +38983,40 @@
                  "value":true
                 }]
         }, 
+        {
+         "id":1631,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_blue"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"blank_left_foundation"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
+         "type":"house_blue"
+        },
         {
          "id":1632,
          "class":"StructureTile",
