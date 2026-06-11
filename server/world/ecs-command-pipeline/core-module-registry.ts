@@ -747,17 +747,24 @@ export function createCoreServerModuleRegistry(options: CoreModuleRegistryOption
                         if (!ctx || !cmd) {
                             return;
                         }
-                        const applyTrade = commandType === 'SHOP_BUY' ? ctx.world.buyShopItem : ctx.world.sellShopItem;
+                        const applyTrade =
+                            commandType === 'SHOP_BUY'
+                                ? ctx.world.buyShopItem?.({
+                                      shopId: cmd.shopId,
+                                      item: cmd.item,
+                                      quantity: cmd.quantity,
+                                      playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
+                                  })
+                                : ctx.world.sellShopItem?.({
+                                      shopId: cmd.shopId,
+                                      item: cmd.item,
+                                      quantity: cmd.quantity,
+                                      playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
+                                  });
                         if (!applyTrade) {
                             return { ok: false, reason: 'shop_unavailable' };
                         }
-                        const result = applyTrade({
-                            shopId: cmd.shopId,
-                            item: cmd.item,
-                            quantity: cmd.quantity,
-                            playerIdentity: options.resolvePlayerIdentityKey(ctx.player) ?? ctx.player.name,
-                        });
-                        return result.accepted ? { ok: true } : { ok: false, reason: result.reason };
+                        return applyTrade.accepted ? { ok: true } : { ok: false, reason: applyTrade.reason };
                     });
                 };
 

@@ -23,23 +23,26 @@ Measured against the sources at `assets/maps/tiled/` (Tiled 1.11.2 across all fi
 
 | Aspect | world.json | interiors (`maps/house_*`, `mine_floor_001`) |
 |---|---|---|
-| Size | 172×314, 16px tiles | 12×10 each |
-| Map `class` | none | none |
-| Map properties | `map_id`, `authoring_version`, `default_music`, `default_biome` | **none at all** |
-| Layer tree | deep groups: `render_world/{biome}/…`, `gameplay_markup/*` | flat `floor`, `blocking`, `doors` (+ mine: `resource_nodes`, `roaming_areas`) |
+| Size | 172×314, 16px tiles | 14×10 authored rooms |
+| Map `class` | `BQMap` | `BQMap` |
+| Map properties | `map_id`, `authoring_version`, `default_music`, `default_biome` | `map_id`, `map_kind`, `area_id`, `default_music`, `default_biome`, `camera_policy`, `persistence_scope` |
+| Layer tree | deep groups: `render_world/{biome}/…`, `gameplay_markup/*` | grouped `base`, `structure`, `above`, `gameplay` |
 | Layer data | raw JSON arrays, no encoding/compression | same |
 
-The interiors are generated placeholders, not authored spaces: no identity, no room semantics,
-one floor tile flood plus a blocking ring.
+The original generated interiors were placeholders: no identity, no room semantics, one floor
+tile flood plus a blocking ring. The current source pass has replaced the `house_01` through
+`house_40` placeholders and `mine_floor_001` with authored `BQMap` files carrying identity,
+layer roles, room objects, linked doors, and gameplay metadata.
 
 ### Layers
 
 - Group nesting with inherited offset/opacity/visibility/properties — **used and consumed**
   (the flattener honors all of it; sub-tile offsets are a compile error).
-- Layer `class` — only two values exist: `Foreground` (always-in-front tiles) and
-  `DepthSorted` (object layers turned into depth-sorted render props).
-- Custom layer properties — **zero** in any authored map. All other layer semantics ride on
-  *names*: `blocking`, `doors`, `music_zones`, `checkpoints`, `roaming_areas`,
+- Layer `class` — used for render behavior (`Foreground`, `DepthSorted`) and typed gameplay
+  authoring layers (`Room`, `Door`, `ResourceNode`, `RoamingArea`, plus world gameplay classes).
+- Custom layer properties — now used heavily on authored interiors for `layer_role`,
+  `collision_source`, `occlusion`, `material`, `biome`, and `area_id`. World gameplay still
+  depends heavily on layer names: `doors`, `music_zones`, `checkpoints`, `roaming_areas`,
   `resource_nodes`, `chest_areas`, `chest_spawns`, `static_entities`, plus hardcoded
   water/damage name lists (`sea`, `lava`, …) for the debug overlay.
 - `shared/maps/layer-contract.ts` pins **64 exact layer paths** mirroring world.json's current
@@ -48,13 +51,14 @@ one floor tile flood plus a blocking ring.
 
 ### Objects
 
-- Classes in actual maps: `Door`, `ResourceNode`, `RoamingArea` (interiors), plus the
+- Classes in actual maps: `Room`, `Door`, `ResourceNode`, `RoamingArea` (interiors), plus the
   gameplay_markup classes in world.json (`Checkpoint`, `MusicZone`, `ChestArea`, `ChestSpawn`,
   `StaticEntity`, `PropMetadata`).
 - Shapes: **100% rectangles.** No points, ellipses, polygons, polylines, text, no rotation
   (rotation is a compile error).
-- Templates: **12 `.tx` files exist; zero objects reference them.** Everything was placed or
-  script-generated inline, so identical objects have hand-copied (drift-prone) property sets.
+- Templates: **12 `.tx` files exist and authored rooms/doors now reference them.** Remaining
+  opportunity: move more repeated gameplay markers (`ResourceNode`, `RoamingArea`, world doors)
+  to templates instead of preserving inline drift-prone property sets.
 - Object-to-object reference properties: never used.
 
 ### Tilesets
@@ -2476,3 +2480,375 @@ Runtime link after export:
 
 - `world_01:world_house_39_entry` exports to `house_39:house_39_entry` at `(6, 7)`.
 - `house_39:house_39_entry` exports back to `world_01:world_house_39_entry` at `(147, 254)`.
+
+## Execution slice 40 — `world_house_40_entry` to `house_40_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_40` with an authored interior based on direct exterior evidence.
+- Update only `world_house_40_entry` in `world.json`.
+- Do not fabricate additional extracted house maps beyond the current `house_01` through `house_40` set.
+
+Before-edit evidence:
+
+- `world_house_40_entry` was at world tile `(38, 245)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_40` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- No `house_41.json` exists, so `house_40` was the final current extracted house placeholder
+  candidate.
+- The exterior crop showed a prominent village house on a raised overworld plateau, with
+  a south-facing door and ladder approach.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_40_entry_before.png`
+- `.data/map-authoring-crops/house_40_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_40.json` as a 14x10 authored village plateau house:
+  - `class: BQMap`
+  - map-level identity/properties for `house_40` / `village_plateau_house` / `village`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `village_plateau_house_40_main_room`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_40_entry` with destination coordinates `(6, 7)` and explicit
+  walk-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_40_after.png`
+- `.data/map-authoring-crops/house_40_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- Runtime graph probe for `world_house_40_entry` / `house_40_entry`
+- Placeholder scan for `house_*.json` returned `[]`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_40_entry` exports to `house_40:house_40_entry` at `(6, 7)`.
+- `house_40:house_40_entry` exports back to `world_01:world_house_40_entry` at `(38, 245)`.
+
+## Execution slice 41 — `mine_floor_001` enrichment
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the flat `mine_floor_001` source shape with a rich authored map structure.
+- Preserve the existing simple mines gameplay loop: `mine_exit`, `mine_ore_001`, and `mine_bats`.
+- Preserve the real world entrance and one-way test entrance linkage semantics.
+
+Before-edit evidence:
+
+- `mine_floor_001` was still a 12x10 flat map with `floor`, `blocking`, `doors`,
+  `resource_nodes`, and `roaming_areas`.
+- `world_mine_001_entry` targeted `mine_exit` from world tile `(18, 211)`.
+- `world_mine_001_test_entry` targeted `mine_exit` from world tile `(5, 8)` and was one-way.
+- The real world mine entry crop showed the entrance marker in a village street; the test entry
+  crop showed the browser-test entrance in a badlands/lava area.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_mine_001_entry_before.png`
+- `.data/map-authoring-crops/world_mine_001_test_entry_before.png`
+- `.data/map-authoring-crops/mine_floor_001_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `mine_floor_001.json` as a 14x10 authored cavern:
+  - `class: BQMap`
+  - map-level identity/properties for `mine_floor_001` / `village_mine_floor_001` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `village_mine_floor_001_main_chamber`
+  - a linked `Door` object for `mine_exit` at local tile `(5, 8)`
+  - typed `ResourceNode` and `RoamingArea` gameplay layers for `mine_ore_001` and `mine_bats`
+- Added explicit cave-transition metadata to `world_mine_001_entry`,
+  `world_mine_001_test_entry`, and `mine_exit`; kept the test entry one-way.
+- Fixed shop trade intent handling so registered buy/sell handlers call through `ctx.world`
+  and preserve the `WorldServer` receiver. The enriched mine browser loop exposed this because
+  it sells harvested resources after entering the mine.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/mine_floor_001_after.png`
+- `.data/map-authoring-crops/mine_floor_001_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts tests/unit/mmo/server-npc-shop.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `npx playwright test --config=playwright.config.ts tests/browser/mines-loop.playwright.ts`
+- Runtime graph/resource/roaming probe for `mine_floor_001`
+
+Runtime link after export:
+
+- `world_01:world_mine_001_entry` exports to `mine_floor_001:mine_exit` at `(5, 8)`.
+- `mine_floor_001:mine_exit` exports back to `world_01:world_mine_001_entry` at `(18, 211)`.
+- `world_01:world_mine_001_test_entry` exports one-way to `mine_floor_001:mine_exit`.
+- `mine_floor_001` exports `mine_ore_001` at `(6, 8)` and `mine_bats` as a 4x3 bat roaming area.
+
+## Execution slice 42 — hidden cliff portal cake audit
+
+Status: complete.
+
+Ticket scope:
+
+- Inspect the lone `cake` static entity by source properties and rendered world context.
+- Decide whether it is intentional content or leftover authoring debris.
+- If preserved, make the object's authored intent explicit.
+
+Before-edit evidence:
+
+- The only `cake` static entity was `static_entity_568_103` in
+  `gameplay_markup/static_entities`.
+- It was at world tile `(77, 232)` with `entity_gid=103` and `entity_kind=cake`.
+- Runtime exported exactly one `cake` static entity at world index `39981`.
+- The surrounding crop showed a hidden-looking village cliff pocket with paired one-way portal
+  doors at `(77, 237)` and `(82, 234)`.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_cake_static_entity_before.png`
+- `.data/map-authoring-crops/world_cake_static_entity_before_nomarkers.png`
+
+Applied authoring changes:
+
+- Preserved the cake as intentional hidden reward/easter-egg content rather than removing it.
+- Renamed the object to `hidden_cliff_portal_cake_77_232`.
+- Set `class: StaticEntity` and explicit `EntityKind` property metadata for `entity_kind`.
+- Added `area_id=village_cliff_portal_pocket`, tags
+  `hidden_reward,portal_pocket,legacy_easter_egg`, and an `authoring_note` explaining why the
+  object is not a placeholder-room artifact.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/world_cake_static_entity_after.png`
+- `.data/map-authoring-crops/world_cake_static_entity_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- Runtime static-entity probe confirmed the single cake still exports at index `39981`.
+- `git diff --check`
+
+## Execution slice 43 — world resource node authoring
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the six opaque world `resource_node_*` markers with stable authored copper-vein
+  resource nodes.
+- Preserve tile positions and visual cave context.
+- Add runtime-exporting `resource_kind` and stable `node_id` values.
+
+Before-edit evidence:
+
+- Six `ResourceNode` objects existed in `gameplay_markup/resource_nodes`, all named by raw gid.
+- They only carried `resource_gid`, so `world_01.server.resourceNodes` exported `[]`.
+- The cluster sits in a subterranean cave/water chamber around tiles `(121, 113)` through
+  `(130, 111)`.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_resource_nodes_before.png`
+- `.data/map-authoring-crops/world_resource_nodes_before_nomarkers.png`
+
+Applied authoring changes:
+
+- Renamed the six objects to `subterranean_copper_vein_*` names based on their local placement.
+- Added stable `node_id` values:
+  - `world_subterranean_copper_125_110`
+  - `world_subterranean_copper_127_110`
+  - `world_subterranean_copper_129_110`
+  - `world_subterranean_copper_126_111`
+  - `world_subterranean_copper_130_111`
+  - `world_subterranean_copper_121_113`
+- Set `class: ResourceNode`, `resource_kind=ore_copper_small`,
+  `area_id=subterranean_copper_water_chamber`, `tool=pickaxe`, and location tags.
+- Preserved the existing `resource_gid` values and tile positions.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/world_resource_nodes_after.png`
+- `.data/map-authoring-crops/world_resource_nodes_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-resource-harvesting.test.ts --timeout 20000`
+- Runtime resource probe confirmed six `world_01.server.resourceNodes` entries with stable ids,
+  `ore_copper_small`, and their preserved gids.
+
+## Execution slice 44 — world chest markup authoring
+
+Status: complete.
+
+Ticket scope:
+
+- Replace generated chest spawn/area names with stable authored identifiers.
+- Preserve all chest positions, chest area rectangles, spawn target tiles, and item payloads.
+- Add source metadata that explains area, reward type, and authored intent.
+
+Before-edit evidence:
+
+- 13 `ChestSpawn` objects were named `chest_spawn_1` through `chest_spawn_13`.
+- 8 `ChestArea` objects were named only by spawn coordinates.
+- Runtime exported the expected `staticChests` and `chestAreas`, but the source names carried
+  little authoring meaning.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_chests_subterranean_before.png`
+- `.data/map-authoring-crops/world_chests_badlands_before.png`
+- `.data/map-authoring-crops/world_chests_deadlands_west_before.png`
+- `.data/map-authoring-crops/world_chests_beach_east_before.png`
+
+Applied authoring changes:
+
+- Renamed static chest spawns to stable cache names such as
+  `subterranean_sword_cache_157_141`, `badlands_armory_cache_103_53`,
+  `beach_house_flask_cache_130_257`, and `deadlands_platearmor_cache_46_82`.
+- Renamed chest areas to stable area names such as
+  `subterranean_mailarmor_chest_area_127_115`,
+  `deadlands_west_platearmor_bluesword_area_6_75`, and
+  `southwest_beach_supply_chest_area_17_264`.
+- Set object `class` values for all chest spawn/area objects.
+- Added `chest_id`, `area_id`, and `tags` source metadata while preserving `items`,
+  `spawn_tx`, `spawn_ty`, positions, and rectangles.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/world_chests_subterranean_after.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts --timeout 20000`
+- Runtime chest export probe confirmed `staticChests` and `chestAreas` positions/items are
+  preserved.
+- `git diff --check`
+
+## Execution slice 45 — world roaming area authoring
+
+Status: complete.
+
+Ticket scope:
+
+- Replace generated `roaming_area_*` names with stable authored names.
+- Preserve object order, rectangles, `mob_kind`, and `count`; runtime roaming ids are derived
+  from array order.
+- Add source metadata for area, tags, and ambient respawn policy.
+
+Before-edit evidence:
+
+- 23 world `RoamingArea` objects were named by generated object id.
+- Runtime exported 23 roaming areas with array-index ids, so source object order is part of the
+  behavior contract.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_roaming_village_rats_before.png`
+- `.data/map-authoring-crops/world_roaming_deadlands_skeletons_before.png`
+- `.data/map-authoring-crops/world_roaming_forest_goblins_before.png`
+- `.data/map-authoring-crops/world_roaming_beach_crabs_before.png`
+
+Applied authoring changes:
+
+- Renamed roaming areas to stable biome/mob/position names such as
+  `village_west_rat_roam_10_206`, `deadlands_central_skeleton_roam_30_135`,
+  `forest_central_goblin_roam_59_159`, and `beach_east_crab_roam_61_290`.
+- Set explicit `class: RoamingArea`.
+- Added `area_id`, `tags`, and `respawn_policy=ambient` metadata.
+- Preserved all rectangles, object order, `mob_kind`, and `count`.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/world_roaming_forest_goblins_after.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts --timeout 20000`
+- Runtime roaming export probe confirmed all 23 server roaming areas retained the same ids,
+  rectangles, mob kinds, and counts.
+- `git diff --check`
+
+## Execution slice 46 — world music zone and checkpoint authoring
+
+Status: complete.
+
+Ticket scope:
+
+- Replace generated music-zone/checkpoint names with stable authored identifiers.
+- Preserve music rectangles and `track_id` values.
+- Preserve checkpoint object order, rectangles, `checkpoint_id`, and `spawn` flags because
+  runtime checkpoint ids are array-order based.
+
+Before-edit evidence:
+
+- 15 world `MusicZone` objects were named by track plus generated object id.
+- 24 world `Checkpoint` objects were named by generated object id.
+- Runtime exported 15 client music areas and 24 server checkpoints.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_music_checkpoint_village_before.png`
+- `.data/map-authoring-crops/world_music_checkpoint_desert_deadlands_before.png`
+- `.data/map-authoring-crops/world_music_checkpoint_cave_east_before.png`
+- `.data/map-authoring-crops/world_music_checkpoint_beach_before.png`
+
+Applied authoring changes:
+
+- Renamed music zones to stable area names such as
+  `forest_west_music_zone_4_145`, `village_main_music_zone_1_195`,
+  `subterranean_copper_chamber_music_zone_110_104`, and
+  `east_lavaland_south_island_music_zone_146_176`.
+- Renamed checkpoints to stable area names such as
+  `village_west_spawn_checkpoint_14_210`, `forest_gate_checkpoint_41_184`,
+  `deadlands_mid_checkpoint_55_92`, and `beach_east_checkpoint_65_250`.
+- Set explicit `class` values for music zones and checkpoints.
+- Added `area_id` and `tags` metadata, and gave music `track_id` properties the
+  `MusicTrackId` property type.
+- Preserved all rectangles, track ids, checkpoint object order, `checkpoint_id` values, and
+  `spawn` flags.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/world_music_checkpoint_cave_east_after.png`
+
+Validation evidence:
+
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-resource-harvesting.test.ts tests/unit/mmo/server-npc-shop.test.ts --timeout 20000`
+- Runtime music/checkpoint export probe confirmed 15 music areas and 24 checkpoints are
+  preserved.

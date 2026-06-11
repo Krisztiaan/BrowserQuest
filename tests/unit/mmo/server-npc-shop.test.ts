@@ -140,6 +140,51 @@ test('npc and shop intent handlers are registered in the core module registry', 
     expect(modules.getIntentHandler(INTENT_SHOP_SELL)).toBeDefined();
 });
 
+test('shop intent handler preserves world host method receiver', () => {
+    const modules = createCoreServerModuleRegistry({
+        chunkOverlayStoreResource: createResourceKey<ChunkOverlayStore>('test.chunk_overlays'),
+        resolvePlayerIdentityKey: () => 'player-key',
+        applyMoveIntentCommand: () => undefined,
+        applyMoveToIntentCommand: () => undefined,
+        applyMoveInputIntentCommand: () => undefined,
+        applyTeleportOutcome: () => undefined,
+    });
+    const sellHandler = modules.getIntentHandler(INTENT_SHOP_SELL);
+
+    const world = {
+        marker: 'bound-host',
+        map: {
+            getDoorDestination: () => null,
+        },
+        isValidPosition: () => true,
+        sellShopItem(this: { marker: string }, args: { shopId: string; item: string; quantity: number; playerIdentity: string }) {
+            expect(this.marker).toBe('bound-host');
+            expect(args).toEqual({
+                shopId: 'general_store',
+                item: 'stone',
+                quantity: 1,
+                playerIdentity: 'player-key',
+            });
+            return { accepted: true as const };
+        },
+    };
+
+    const result = sellHandler?.(
+        {
+            world,
+            player: { id: 1, name: 'Fallback Name', x: 0, y: 0 },
+        },
+        {
+            type: 'SHOP_SELL',
+            shopId: 'general_store',
+            item: 'stone',
+            quantity: 1,
+        }
+    );
+
+    expect(result).toEqual({ ok: true });
+});
+
 test('npc interaction returns configured dialogue', () => {
     expect(resolveNpcDialogue(npcDefinitions, 'shopkeeper_general')).toEqual({
         accepted: true,
