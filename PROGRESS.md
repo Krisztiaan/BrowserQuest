@@ -2941,3 +2941,162 @@ This is the live execution notebook for `PLAN.md`.
   - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-resource-harvesting.test.ts tests/unit/mmo/server-npc-shop.test.ts --timeout 20000` passed: 44 pass, 0 fail.
 - Next action:
   - Continue with the larger static entity naming pass, then revisit doors/portals for any remaining authored linkage polish.
+
+### 2026-06-11 02:02 UTC - World Static NPC and Item Authoring
+
+- Status: done
+- Scope:
+  - Enrich the non-mob static entities in `gameplay_markup/static_entities`.
+  - Preserve object ids, positions, gids, `entity_gid`, and `entity_kind` runtime exports.
+  - Add stable authored names, explicit `EntityKind` property typing, `area_id`, and tags.
+  - Keep the larger fixed-mob static placement pass out of scope for this slice.
+- Ticket:
+  - done: Enrich static NPC/item/reward/cameo objects while preserving runtime static entity positions.
+- Key actions:
+  - Confirmed `static_entities` contains 233 objects.
+  - Counted 45 non-mob-ish objects: guards, NPCs/cameos, potions/flasks, sword rewards, one bluesword, and the already-audited cake.
+  - Rendered static marker-only and full-context crops for boss arena, deadlands cache, village, beach guard/reward, southeast lab, king/coder rooms, and nyan cameo regions.
+  - Rendered focused context crops for the lava-pocket flask cache, rick cameo room, and east beach reward.
+  - Renamed 46 static NPC/item/reward/cameo objects by object id, including the already-audited cake for consistent source typing.
+  - Added `EntityKind` property typing to each targeted `entity_kind`.
+  - Added `area_id` and `tags` metadata while preserving positions, gids, `entity_gid`, and `entity_kind`.
+  - Updated `static_entity_rect.tx` so future static placements use the `EntityKind` enum type.
+  - Rebuilt `assets/maps/runtime/map-pack.json`; it remained unchanged by this metadata-only source pass.
+- Evidence:
+  - Visual crops: `.data/map-authoring-crops/world_static_entities_boss_context_before.png`, `.data/map-authoring-crops/world_static_entities_deadlands_cache_context_before.png`, `.data/map-authoring-crops/world_static_entities_village_context_before.png`, `.data/map-authoring-crops/world_static_entities_beach_guards_context_before.png`, `.data/map-authoring-crops/world_static_entities_southeast_lab_context_before.png`, `.data/map-authoring-crops/world_static_entities_king_coder_context_before.png`, `.data/map-authoring-crops/world_static_entities_cameo_nyan_context_before.png`.
+  - Focused visual crops: `.data/map-authoring-crops/world_static_entities_lava_pocket_flasks_context_before.png`, `.data/map-authoring-crops/world_static_entities_rick_context_before.png`, `.data/map-authoring-crops/world_static_entities_east_beach_reward_context_before.png`.
+  - After-edit crops: `.data/map-authoring-crops/world_static_entities_boss_context_after.png`, `.data/map-authoring-crops/world_static_entities_village_context_after.png`, `.data/map-authoring-crops/world_static_entities_southeast_lab_context_after.png`.
+  - Runtime parity probe against `HEAD` confirms `world_01.server.staticEntities` still has 233 entries and no changed keys.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/server-world-map-pack-bootstrap.test.ts tests/unit/server-chest-item-lifecycle.test.ts --timeout 20000` passed: 32 pass, 0 fail.
+- Next action:
+  - Continue the remaining fixed-mob static placement pass, then revisit doors/portals for any remaining authored linkage polish.
+
+### 2026-06-11 02:10 UTC - World Fixed Static Mob Authoring
+
+- Status: done
+- Scope:
+  - Enrich the remaining generated fixed-mob static entities in `gameplay_markup/static_entities`.
+  - Preserve object ids, positions, gids, `entity_gid`, and `entity_kind` runtime exports.
+  - Add stable authored names, explicit `EntityKind` property typing, `area_id`, tags, and fixed-spawn role metadata.
+  - Keep door/portal linkage polish out of scope for this slice.
+- Ticket:
+  - done: Replace generated fixed-mob static names with area/mob/coordinate names while preserving runtime static entity parity.
+- Key actions:
+  - Confirmed 187 generated `static_entity_*` names remain, all fixed mob placements.
+  - Counted remaining generated mob kinds: 28 bats, 28 goblins, 25 skeletons, 23 ogres, 19 spectres, 18 eyes, 18 snakes, 14 skeleton2s, 8 rats, 4 deathknights, 1 boss, and 1 crab.
+  - Rendered broad fixed-mob context crops for north badlands/lavaland, boss/northeast pocket, deadlands, forest maze, east islands, south beach, east beach skeleton caves, and southeast lab/cavern rat rooms.
+  - Renamed all 187 remaining generated fixed-mob objects to stable `area_kind_x_y` names.
+  - Added `EntityKind` property typing, `area_id`, `tags`, and `spawn_role=fixed_mob`.
+  - Rebuilt `assets/maps/runtime/map-pack.json`.
+  - Confirmed no generated `static_entity_*` names remain in `gameplay_markup/static_entities`.
+  - Confirmed all 233 static entities now have `entity_kind` typed as `EntityKind`.
+- Evidence:
+  - Visual crops: `.data/map-authoring-crops/world_static_mobs_north_badlands_before.png`, `.data/map-authoring-crops/world_static_mobs_boss_northeast_before.png`, `.data/map-authoring-crops/world_static_mobs_deadlands_before.png`, `.data/map-authoring-crops/world_static_mobs_forest_maze_before.png`, `.data/map-authoring-crops/world_static_mobs_east_islands_before.png`, `.data/map-authoring-crops/world_static_mobs_southwest_beach_before.png`, `.data/map-authoring-crops/world_static_mobs_east_beach_skeletons_before.png`, `.data/map-authoring-crops/world_static_mobs_southeast_lab_rats_before.png`.
+  - After-edit crops: `.data/map-authoring-crops/world_static_mobs_north_badlands_after.png`, `.data/map-authoring-crops/world_static_mobs_deadlands_after.png`, `.data/map-authoring-crops/world_static_mobs_forest_maze_after.png`, `.data/map-authoring-crops/world_static_mobs_southeast_lab_rats_after.png`.
+  - Runtime parity probe against `HEAD` confirms `world_01.server.staticEntities` still has 233 entries and no changed keys.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/server-world-map-pack-bootstrap.test.ts tests/unit/server-chest-item-lifecycle.test.ts --timeout 20000` passed: 32 pass, 0 fail.
+- Next action:
+  - Revisit doors/portals for any remaining authored linkage polish.
+
+### 2026-06-11 02:18 UTC - World Door and Portal Authoring Polish
+
+- Status: done
+- Scope:
+  - Inspect remaining generated world door names and portal semantics.
+  - Preserve all door coordinates and graph link targets.
+  - Avoid adding arbitrary door metadata that would leak into runtime door payloads.
+  - Add only runtime-meaningful semantics where source intent is clear.
+- Ticket:
+  - done: Rename generated world same-map doors, add explicit portal semantics, and fill missing house-entry transition defaults.
+- Key actions:
+  - Confirmed world `gameplay_markup/doors` contains 86 objects.
+  - Found 37 generated `door_*` same-map coordinate doors.
+  - Found seven `world_portal_*` graph-linked one-way same-map portals that currently lack explicit `door_kind=portal` / `is_portal=true`.
+  - Found `world_house_01_entry` and `world_house_02_entry` still lack the later explicit transition/default properties.
+  - Confirmed door properties are exported wholesale as runtime `t*` fields, so this slice avoids adding source-only `area_id`/`tags` to door objects.
+  - Rendered representative crops for the village cliff portal pair, northeast portal chain, forest maze door cluster, and southeast lab door cluster.
+  - Renamed all 37 generated same-map coordinate doors to concise `area_tp_x_y_to_target` names.
+  - Added `door_kind=portal` and `transition_kind=portal` to all seven named `world_portal_*` objects.
+  - Added missing transition/default properties to `world_house_01_entry` and `world_house_02_entry`.
+  - Added `DoorOrientation` typing to all 86 door `orientation` properties and `TransitionKind` typing to existing transition properties.
+  - Rebuilt `assets/maps/runtime/map-pack.json`.
+  - Confirmed zero generated `door_*` names remain in `gameplay_markup/doors`.
+- Evidence:
+  - Runtime/source inventory confirms generated same-map coordinate doors retain raw `target_tx`/`target_ty`, while graph-linked house/mine doors use `target_map`/`target_door`.
+  - Visual crops: `.data/map-authoring-crops/world_portals_village_cliff_before.png`, `.data/map-authoring-crops/world_portals_northeast_chain_before.png`, `.data/map-authoring-crops/world_doors_forest_maze_cluster_before.png`, `.data/map-authoring-crops/world_doors_southeast_lab_cluster_before.png`.
+  - After-edit crops: `.data/map-authoring-crops/world_portals_village_cliff_after.png`, `.data/map-authoring-crops/world_portals_northeast_chain_after.png`, `.data/map-authoring-crops/world_doors_forest_maze_cluster_after.png`.
+  - Source probe confirms 86 doors, zero generated names, 37 concise `_tp_` same-map names, seven explicit portal semantics, and 86 typed orientations.
+  - Runtime comparison against `HEAD` confirms 86 world doors before/after with no coordinate, target map, target door, door id, or orientation changes.
+  - Runtime comparison shows only nine intended semantic changes: seven portal `p/door_kind/transition` updates plus default transition/enabled/locked/one-way properties for `world_house_01_entry` and `world_house_02_entry`.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 29 pass, 0 fail.
+- Next action:
+  - Audit whether the current validator/compiler should keep requiring redundant `target_tx`/`target_ty` on graph-linked doors, or move that legacy coordinate requirement to plain coordinate doors only.
+
+### 2026-06-11 02:27 UTC - Graph-Linked Door Coordinate Contract
+
+- Status: done
+- Scope:
+  - Remove redundant `target_tx`/`target_ty` requirements from graph-linked doors.
+  - Keep `target_tx`/`target_ty` required for plain same-map coordinate teleports.
+  - Make the compiler and validator reject redundant graph-link target coordinates.
+  - Preserve compiled door destinations resolved from `target_map`/`target_door`.
+- Ticket:
+  - done: Split graph-linked door coordinates from plain coordinate teleport coordinates.
+- Key actions:
+  - Added validator coverage proving graph-linked doors pass without `target_tx`/`target_ty`.
+  - Added validator coverage proving plain coordinate doors still require `target_tx`/`target_ty`.
+  - Added validator and map-pack coverage rejecting redundant `target_tx`/`target_ty` on graph-linked doors.
+  - Updated `world-map-validator.ts` so `target_tx`/`target_ty` are required only on non-graph coordinate doors.
+  - Updated `map-pack.ts` so graph-linked doors with redundant `target_tx`/`target_ty` fail compilation.
+  - Removed 98 redundant coordinate properties from 49 graph-linked world doors.
+  - Removed 82 redundant coordinate properties from 40 house exit doors and `mine_exit`.
+  - Updated `door_linked.tx`, `portal.tx`, and template README guidance.
+  - Rebuilt `assets/maps/runtime/map-pack.json`.
+- Evidence:
+  - Source summary confirms 90 graph-linked doors across all Tiled maps with zero redundant `target_tx`/`target_ty`.
+  - Source summary confirms 37 plain coordinate teleports still have required `target_tx`/`target_ty`.
+  - Runtime comparison against `HEAD` confirms no door coordinate, target-map, target-door, door-id, or orientation changes.
+  - Runtime comparison shows changed graph-linked door records only from the intended removal of redundant exported coordinate properties and prior portal/default semantics.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 35 pass, 0 fail.
+- Next action:
+  - Continue with the next rich-authoring gap: compiler metadata boundary for door/source-only properties, or template adoption for repeated gameplay markers.
+
+### 2026-06-11 02:38 UTC - Door Authoring Metadata Boundary
+
+- Status: done
+- Scope:
+  - Allow doors to carry source-only authoring metadata without leaking it into runtime door payloads.
+  - Add scoped `area_id` and `tags` metadata to world/interior door objects.
+  - Preserve all compiled door coordinates, targets, portal semantics, and graph links.
+- Ticket:
+  - done: Add a door metadata boundary and enrich door source objects with authoring context.
+- Key actions:
+  - Confirmed `processMap` exports every door property as a runtime `t*` field.
+  - Added a focused map-pack regression for stripping `area_id`, `tags`, and `authoring_note` from runtime door payloads.
+  - Added `AUTHORING_ONLY_DOOR_PROPERTIES` to `processmap.ts`.
+  - Verified `bun test tests/unit/map-pack.test.ts --timeout 20000` passes with the new regression.
+  - Added source-only `area_id` and `tags` metadata to all 127 authored doors across `world`, house maps, and `mine_floor_001`.
+  - Rebuilt `assets/maps/runtime/map-pack.json`.
+- Evidence:
+  - The regression proves client/server door payloads retain only runtime fields when source doors include authoring-only metadata.
+  - Source audit confirms 127 authored doors, 127 with `area_id`, 127 with `tags`, 90 graph-linked doors, zero redundant graph target coordinates, and 37 plain coordinate teleports.
+  - Runtime audit confirms 254 client/server door records and zero `tarea_id`/`ttags`/`tauthoring_note` leaks.
+  - Runtime structural comparison against `HEAD` confirms no door coordinate, target-map, target-door, door-id, or orientation changes.
+  - `bun run build:maps` passed.
+  - `bun run check:maps` passed.
+  - `bun run check:world-map:target` passed.
+  - `bun test tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000` passed: 36 pass, 0 fail.
+- Next action:
+  - Continue with the next rich-authoring gap: richer layer-region authoring or template adoption for repeated gameplay markers.

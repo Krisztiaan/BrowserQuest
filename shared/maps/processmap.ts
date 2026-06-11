@@ -488,6 +488,8 @@ function normalizeDoorPropertyName(name: string): string {
     }
 }
 
+const AUTHORING_ONLY_DOOR_PROPERTIES = new Set(['area_id', 'tags', 'authoring_note']);
+
 function assertObjectClassPresent(layerName: string, object: TiledObject): void {
     if (typeof getObjectClassName(object) === 'string') {
         return;
@@ -895,6 +897,9 @@ export default function processMap(
                     throw new Error(
                         `Legacy door property "${property.name}" is not supported; use "${legacyReplacement}".`
                     );
+                }
+                if (AUTHORING_ONLY_DOOR_PROPERTIES.has(property.name)) {
+                    continue;
                 }
                 const normalizedName = normalizeDoorPropertyName(property.name);
                 exportedDoor[`t${normalizedName}`] = normalizeScalar(property.value);

@@ -1108,16 +1108,6 @@
                   "value": "world_house_40_entry"
                 },
                 {
-                  "name": "target_tx",
-                  "type": "int",
-                  "value": 38
-                },
-                {
-                  "name": "target_ty",
-                  "type": "int",
-                  "value": 245
-                },
-                {
                   "name": "transition_kind",
                   "type": "string",
                   "value": "walk",
@@ -1137,6 +1127,16 @@
                   "name": "locked_by",
                   "type": "string",
                   "value": ""
+                },
+                {
+                  "name": "area_id",
+                  "type": "string",
+                  "value": "village_plateau_house"
+                },
+                {
+                  "name": "tags",
+                  "type": "string",
+                  "value": "door,graph_link,interior_exit,transition_walk"
                 }
               ],
               "rotation": 0,

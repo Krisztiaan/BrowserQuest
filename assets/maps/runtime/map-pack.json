@@ -64,12 +64,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_01_entry",
-            "tx": 27,
-            "ty": 209,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 27,
+            "ty": 209
           }
         ],
         "checkpoints": [],
@@ -881,12 +881,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_01_entry",
-            "tx": 27,
-            "ty": 209,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 27,
+            "ty": 209
           }
         ],
         "checkpoints": [],
@@ -1132,12 +1132,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_02_entry",
-            "tx": 80,
-            "ty": 211,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 80,
+            "ty": 211
           }
         ],
         "checkpoints": [],
@@ -1960,12 +1960,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_02_entry",
-            "tx": 80,
-            "ty": 211,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 80,
+            "ty": 211
           }
         ],
         "checkpoints": [],
@@ -2180,12 +2180,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_03_entry",
-            "tx": 18,
-            "ty": 113,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 18,
+            "ty": 113
           }
         ],
         "checkpoints": [],
@@ -2928,12 +2928,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_03_entry",
-            "tx": 18,
-            "ty": 113,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 18,
+            "ty": 113
           }
         ],
         "checkpoints": [],
@@ -3177,12 +3177,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_04_entry",
-            "tx": 70,
-            "ty": 80,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 70,
+            "ty": 80
           }
         ],
         "checkpoints": [],
@@ -4002,12 +4002,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_04_entry",
-            "tx": 70,
-            "ty": 80,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 70,
+            "ty": 80
           }
         ],
         "checkpoints": [],
@@ -4251,12 +4251,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_05_entry",
-            "tx": 79,
-            "ty": 45,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 79,
+            "ty": 45
           }
         ],
         "checkpoints": [],
@@ -5076,12 +5076,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_05_entry",
-            "tx": 79,
-            "ty": 45,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 79,
+            "ty": 45
           }
         ],
         "checkpoints": [],
@@ -5325,12 +5325,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_06_entry",
-            "tx": 78,
-            "ty": 40,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 78,
+            "ty": 40
           }
         ],
         "checkpoints": [],
@@ -6150,12 +6150,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_06_entry",
-            "tx": 78,
-            "ty": 40,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 78,
+            "ty": 40
           }
         ],
         "checkpoints": [],
@@ -6399,12 +6399,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_07_entry",
-            "tx": 91,
-            "ty": 29,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 91,
+            "ty": 29
           }
         ],
         "checkpoints": [],
@@ -7224,12 +7224,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_07_entry",
-            "tx": 91,
-            "ty": 29,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 91,
+            "ty": 29
           }
         ],
         "checkpoints": [],
@@ -7473,12 +7473,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_08_entry",
-            "tx": 6,
-            "ty": 10,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 10
           }
         ],
         "checkpoints": [],
@@ -8298,12 +8298,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_08_entry",
-            "tx": 6,
-            "ty": 10,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 10
           }
         ],
         "checkpoints": [],
@@ -8547,12 +8547,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_09_entry",
-            "tx": 9,
-            "ty": 17,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 9,
+            "ty": 17
           }
         ],
         "checkpoints": [],
@@ -9372,12 +9372,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_09_entry",
-            "tx": 9,
-            "ty": 17,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 9,
+            "ty": 17
           }
         ],
         "checkpoints": [],
@@ -9621,12 +9621,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_10_entry",
-            "tx": 104,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 104,
+            "ty": 7
           }
         ],
         "checkpoints": [],
@@ -10446,12 +10446,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_10_entry",
-            "tx": 104,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 104,
+            "ty": 7
           }
         ],
         "checkpoints": [],
@@ -10697,12 +10697,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_11_entry",
-            "tx": 20,
-            "ty": 145,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 20,
+            "ty": 145
           }
         ],
         "checkpoints": [],
@@ -11525,12 +11525,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_11_entry",
-            "tx": 20,
-            "ty": 145,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 20,
+            "ty": 145
           }
         ],
         "checkpoints": [],
@@ -11748,12 +11748,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_12_entry",
-            "tx": 51,
-            "ty": 205,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 51,
+            "ty": 205
           }
         ],
         "checkpoints": [],
@@ -12565,12 +12565,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_12_entry",
-            "tx": 51,
-            "ty": 205,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 51,
+            "ty": 205
           }
         ],
         "checkpoints": [],
@@ -12785,12 +12785,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_13_entry",
-            "tx": 74,
-            "ty": 145,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 74,
+            "ty": 145
           }
         ],
         "checkpoints": [],
@@ -13533,12 +13533,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_13_entry",
-            "tx": 74,
-            "ty": 145,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 74,
+            "ty": 145
           }
         ],
         "checkpoints": [],
@@ -13782,12 +13782,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_14_entry",
-            "tx": 65,
-            "ty": 125,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 65,
+            "ty": 125
           }
         ],
         "checkpoints": [],
@@ -14607,12 +14607,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_14_entry",
-            "tx": 65,
-            "ty": 125,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 65,
+            "ty": 125
           }
         ],
         "checkpoints": [],
@@ -14856,12 +14856,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_15_entry",
-            "tx": 71,
-            "ty": 3,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 71,
+            "ty": 3
           }
         ],
         "checkpoints": [],
@@ -15681,12 +15681,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_15_entry",
-            "tx": 71,
-            "ty": 3,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 71,
+            "ty": 3
           }
         ],
         "checkpoints": [],
@@ -15930,12 +15930,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_16_entry",
-            "tx": 18,
-            "ty": 86,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 18,
+            "ty": 86
           }
         ],
         "checkpoints": [],
@@ -16755,12 +16755,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_16_entry",
-            "tx": 18,
-            "ty": 86,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 18,
+            "ty": 86
           }
         ],
         "checkpoints": [],
@@ -17004,12 +17004,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_17_entry",
-            "tx": 19,
-            "ty": 77,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 19,
+            "ty": 77
           }
         ],
         "checkpoints": [],
@@ -17829,12 +17829,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_17_entry",
-            "tx": 19,
-            "ty": 77,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 19,
+            "ty": 77
           }
         ],
         "checkpoints": [],
@@ -18078,12 +18078,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_18_entry",
-            "tx": 16,
-            "ty": 135,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 16,
+            "ty": 135
           }
         ],
         "checkpoints": [],
@@ -18903,12 +18903,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_18_entry",
-            "tx": 16,
-            "ty": 135,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 16,
+            "ty": 135
           }
         ],
         "checkpoints": [],
@@ -19152,12 +19152,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_19_entry",
-            "tx": 71,
-            "ty": 21,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 71,
+            "ty": 21
           }
         ],
         "checkpoints": [],
@@ -19977,12 +19977,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_19_entry",
-            "tx": 71,
-            "ty": 21,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 71,
+            "ty": 21
           }
         ],
         "checkpoints": [],
@@ -20228,12 +20228,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_20_entry",
-            "tx": 155,
-            "ty": 86,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 155,
+            "ty": 86
           }
         ],
         "checkpoints": [],
@@ -21056,12 +21056,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_20_entry",
-            "tx": 155,
-            "ty": 86,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 155,
+            "ty": 86
           }
         ],
         "checkpoints": [],
@@ -21276,12 +21276,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_21_entry",
-            "tx": 78,
-            "ty": 137,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 78,
+            "ty": 137
           }
         ],
         "checkpoints": [],
@@ -22024,12 +22024,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_21_entry",
-            "tx": 78,
-            "ty": 137,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 78,
+            "ty": 137
           }
         ],
         "checkpoints": [],
@@ -22273,12 +22273,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_22_entry",
-            "tx": 79,
-            "ty": 102,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 79,
+            "ty": 102
           }
         ],
         "checkpoints": [],
@@ -23098,12 +23098,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_22_entry",
-            "tx": 79,
-            "ty": 102,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 79,
+            "ty": 102
           }
         ],
         "checkpoints": [],
@@ -23347,12 +23347,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_23_entry",
-            "tx": 75,
-            "ty": 102,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 75,
+            "ty": 102
           }
         ],
         "checkpoints": [],
@@ -24172,12 +24172,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_23_entry",
-            "tx": 75,
-            "ty": 102,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 75,
+            "ty": 102
           }
         ],
         "checkpoints": [],
@@ -24423,12 +24423,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_24_entry",
-            "tx": 158,
-            "ty": 208,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 158,
+            "ty": 208
           }
         ],
         "checkpoints": [],
@@ -25251,12 +25251,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_24_entry",
-            "tx": 158,
-            "ty": 208,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 158,
+            "ty": 208
           }
         ],
         "checkpoints": [],
@@ -25502,12 +25502,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_25_entry",
-            "tx": 154,
-            "ty": 196,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 154,
+            "ty": 196
           }
         ],
         "checkpoints": [],
@@ -26330,12 +26330,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_25_entry",
-            "tx": 154,
-            "ty": 196,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 154,
+            "ty": 196
           }
         ],
         "checkpoints": [],
@@ -26581,12 +26581,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_26_entry",
-            "tx": 162,
-            "ty": 196,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 162,
+            "ty": 196
           }
         ],
         "checkpoints": [],
@@ -27409,12 +27409,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_26_entry",
-            "tx": 162,
-            "ty": 196,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 162,
+            "ty": 196
           }
         ],
         "checkpoints": [],
@@ -27660,12 +27660,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_27_entry",
-            "tx": 127,
-            "ty": 208,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 127,
+            "ty": 208
           }
         ],
         "checkpoints": [],
@@ -28488,12 +28488,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_27_entry",
-            "tx": 127,
-            "ty": 208,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 127,
+            "ty": 208
           }
         ],
         "checkpoints": [],
@@ -28739,12 +28739,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_28_entry",
-            "tx": 131,
-            "ty": 208,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 131,
+            "ty": 208
           }
         ],
         "checkpoints": [],
@@ -29567,12 +29567,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_28_entry",
-            "tx": 131,
-            "ty": 208,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 131,
+            "ty": 208
           }
         ],
         "checkpoints": [],
@@ -29818,12 +29818,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_29_entry",
-            "tx": 123,
-            "ty": 208,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 123,
+            "ty": 208
           }
         ],
         "checkpoints": [],
@@ -30646,12 +30646,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_29_entry",
-            "tx": 123,
-            "ty": 208,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 123,
+            "ty": 208
           }
         ],
         "checkpoints": [],
@@ -30897,12 +30897,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_30_entry",
-            "tx": 127,
-            "ty": 183,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 127,
+            "ty": 183
           }
         ],
         "checkpoints": [],
@@ -31725,12 +31725,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_30_entry",
-            "tx": 127,
-            "ty": 183,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 127,
+            "ty": 183
           }
         ],
         "checkpoints": [],
@@ -31948,12 +31948,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_31_entry",
-            "tx": 77,
-            "ty": 206,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 77,
+            "ty": 206
           }
         ],
         "checkpoints": [],
@@ -32765,12 +32765,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_31_entry",
-            "tx": 77,
-            "ty": 206,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 77,
+            "ty": 206
           }
         ],
         "checkpoints": [],
@@ -33014,12 +33014,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_32_entry",
-            "tx": 92,
-            "ty": 52,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 92,
+            "ty": 52
           }
         ],
         "checkpoints": [],
@@ -33839,12 +33839,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_32_entry",
-            "tx": 92,
-            "ty": 52,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 92,
+            "ty": 52
           }
         ],
         "checkpoints": [],
@@ -34090,12 +34090,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_33_entry",
-            "tx": 135,
-            "ty": 88,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 135,
+            "ty": 88
           }
         ],
         "checkpoints": [],
@@ -34918,12 +34918,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_33_entry",
-            "tx": 135,
-            "ty": 88,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 135,
+            "ty": 88
           }
         ],
         "checkpoints": [],
@@ -35169,12 +35169,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_34_entry",
-            "tx": 156,
-            "ty": 181,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 156,
+            "ty": 181
           }
         ],
         "checkpoints": [],
@@ -35997,12 +35997,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_34_entry",
-            "tx": 156,
-            "ty": 181,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 156,
+            "ty": 181
           }
         ],
         "checkpoints": [],
@@ -36248,12 +36248,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_35_entry",
-            "tx": 155,
-            "ty": 158,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 155,
+            "ty": 158
           }
         ],
         "checkpoints": [],
@@ -37076,12 +37076,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_35_entry",
-            "tx": 155,
-            "ty": 158,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 155,
+            "ty": 158
           }
         ],
         "checkpoints": [],
@@ -37330,12 +37330,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_36_entry",
-            "tx": 127,
-            "ty": 158,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 127,
+            "ty": 158
           }
         ],
         "checkpoints": [],
@@ -38188,12 +38188,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_36_entry",
-            "tx": 127,
-            "ty": 158,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 127,
+            "ty": 158
           }
         ],
         "checkpoints": [],
@@ -38439,12 +38439,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_37_entry",
-            "tx": 26,
-            "ty": 296,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 26,
+            "ty": 296
           }
         ],
         "checkpoints": [],
@@ -39270,12 +39270,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_37_entry",
-            "tx": 26,
-            "ty": 296,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 26,
+            "ty": 296
           }
         ],
         "checkpoints": [],
@@ -39519,12 +39519,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_38_entry",
-            "tx": 49,
-            "ty": 97,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 49,
+            "ty": 97
           }
         ],
         "checkpoints": [],
@@ -40350,12 +40350,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_38_entry",
-            "tx": 49,
-            "ty": 97,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 49,
+            "ty": 97
           }
         ],
         "checkpoints": [],
@@ -40601,12 +40601,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_39_entry",
-            "tx": 147,
-            "ty": 254,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 147,
+            "ty": 254
           }
         ],
         "checkpoints": [],
@@ -41429,12 +41429,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_39_entry",
-            "tx": 147,
-            "ty": 254,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 147,
+            "ty": 254
           }
         ],
         "checkpoints": [],
@@ -41652,12 +41652,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_40_entry",
-            "tx": 38,
-            "ty": 245,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 38,
+            "ty": 245
           }
         ],
         "checkpoints": [],
@@ -42469,12 +42469,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_house_40_entry",
-            "tx": 38,
-            "ty": 245,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 38,
+            "ty": 245
           }
         ],
         "checkpoints": [],
@@ -42720,12 +42720,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_mine_001_entry",
-            "tx": 18,
-            "ty": 211,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 18,
+            "ty": 211
           }
         ],
         "checkpoints": [],
@@ -43551,12 +43551,12 @@
             "to": "d",
             "ttarget_map": "world_01",
             "ttarget_door": "world_mine_001_entry",
-            "tx": 18,
-            "ty": 211,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 18,
+            "ty": 211
           }
         ],
         "checkpoints": [],
@@ -53851,6 +53851,10 @@
             "to": "u",
             "ttarget_door": "house_02_entry",
             "ttarget_map": "house_02",
+            "ttransition_kind": "cave",
+            "tone_way": false,
+            "tenabled": true,
+            "tlocked_by": "",
             "tx": 6,
             "ty": 7
           },
@@ -53872,12 +53876,12 @@
             "to": "u",
             "ttarget_door": "house_11_entry",
             "ttarget_map": "house_11",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 16,
@@ -53889,12 +53893,12 @@
             "to": "u",
             "ttarget_door": "house_18_entry",
             "ttarget_map": "house_18",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 157,
@@ -53922,12 +53926,12 @@
             "to": "u",
             "ttarget_door": "house_12_entry",
             "ttarget_map": "house_12",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 154,
@@ -53940,7 +53944,7 @@
           {
             "x": 77,
             "y": 237,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_77_237",
             "tlocal_tx": 72,
             "tlocal_ty": 231,
@@ -53948,13 +53952,15 @@
             "ttarget_door": "world_portal_82_234",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 82,
             "ty": 234
           },
           {
             "x": 82,
             "y": 234,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_82_234",
             "tlocal_tx": 65,
             "tlocal_ty": 235,
@@ -53962,6 +53968,8 @@
             "ttarget_door": "world_portal_77_237",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 77,
             "ty": 237
           },
@@ -53983,12 +53991,12 @@
             "to": "u",
             "ttarget_door": "house_24_entry",
             "ttarget_map": "house_24",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -54018,12 +54026,12 @@
             "to": "u",
             "ttarget_door": "house_25_entry",
             "ttarget_map": "house_25",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 158,
@@ -54043,12 +54051,12 @@
             "to": "u",
             "ttarget_door": "house_26_entry",
             "ttarget_map": "house_26",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 127,
@@ -54068,12 +54076,12 @@
             "to": "u",
             "ttarget_door": "house_27_entry",
             "ttarget_map": "house_27",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 131,
@@ -54085,12 +54093,12 @@
             "to": "u",
             "ttarget_door": "house_28_entry",
             "ttarget_map": "house_28",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 123,
@@ -54102,12 +54110,12 @@
             "to": "u",
             "ttarget_door": "house_29_entry",
             "ttarget_map": "house_29",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 127,
@@ -54159,12 +54167,12 @@
             "to": "u",
             "ttarget_door": "house_30_entry",
             "ttarget_map": "house_30",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -54184,12 +54192,12 @@
             "to": "u",
             "ttarget_door": "house_13_entry",
             "ttarget_map": "house_13",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 65,
@@ -54201,12 +54209,12 @@
             "to": "u",
             "ttarget_door": "house_14_entry",
             "ttarget_map": "house_14",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 155,
@@ -54234,12 +54242,12 @@
             "to": "u",
             "ttarget_door": "house_20_entry",
             "ttarget_map": "house_20",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 155,
@@ -54267,12 +54275,12 @@
             "to": "u",
             "ttarget_door": "house_16_entry",
             "ttarget_map": "house_16",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 19,
@@ -54284,12 +54292,12 @@
             "to": "u",
             "ttarget_door": "house_17_entry",
             "ttarget_map": "house_17",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 126,
@@ -54309,12 +54317,12 @@
             "to": "u",
             "ttarget_door": "house_31_entry",
             "ttarget_map": "house_31",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 92,
@@ -54326,12 +54334,12 @@
             "to": "u",
             "ttarget_door": "house_32_entry",
             "ttarget_map": "house_32",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 79,
@@ -54343,12 +54351,12 @@
             "to": "d",
             "ttarget_door": "house_05_entry",
             "ttarget_map": "house_05",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 78,
@@ -54360,12 +54368,12 @@
             "to": "u",
             "ttarget_door": "house_06_entry",
             "ttarget_map": "house_06",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 91,
@@ -54377,12 +54385,12 @@
             "to": "d",
             "ttarget_door": "house_07_entry",
             "ttarget_map": "house_07",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 135,
@@ -54394,12 +54402,12 @@
             "to": "u",
             "ttarget_door": "house_33_entry",
             "ttarget_map": "house_33",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 117,
@@ -54421,12 +54429,12 @@
             "to": "d",
             "ttarget_door": "house_08_entry",
             "ttarget_map": "house_08",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -54438,12 +54446,12 @@
             "to": "u",
             "ttarget_door": "house_34_entry",
             "ttarget_map": "house_34",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -54463,12 +54471,12 @@
             "to": "u",
             "ttarget_door": "house_09_entry",
             "ttarget_map": "house_09",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 155,
@@ -54480,12 +54488,12 @@
             "to": "u",
             "ttarget_door": "house_35_entry",
             "ttarget_map": "house_35",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 104,
@@ -54497,12 +54505,12 @@
             "to": "d",
             "ttarget_door": "house_10_entry",
             "ttarget_map": "house_10",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 127,
@@ -54522,12 +54530,12 @@
             "to": "u",
             "ttarget_door": "house_36_entry",
             "ttarget_map": "house_36",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 26,
@@ -54539,12 +54547,12 @@
             "to": "u",
             "ttarget_door": "house_37_entry",
             "ttarget_map": "house_37",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 25,
@@ -54566,12 +54574,12 @@
             "to": "u",
             "ttarget_door": "house_38_entry",
             "ttarget_map": "house_38",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 38,
@@ -54599,12 +54607,12 @@
             "to": "u",
             "ttarget_door": "house_39_entry",
             "ttarget_map": "house_39",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 124,
@@ -54632,12 +54640,12 @@
             "to": "u",
             "ttarget_door": "house_22_entry",
             "ttarget_map": "house_22",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 75,
@@ -54649,12 +54657,12 @@
             "to": "u",
             "ttarget_door": "house_23_entry",
             "ttarget_map": "house_23",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 71,
@@ -54666,12 +54674,12 @@
             "to": "u",
             "ttarget_door": "house_15_entry",
             "ttarget_map": "house_15",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 71,
@@ -54683,12 +54691,12 @@
             "to": "u",
             "ttarget_door": "house_19_entry",
             "ttarget_map": "house_19",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 127,
@@ -54708,12 +54716,12 @@
             "to": "u",
             "ttarget_door": "house_40_entry",
             "ttarget_map": "house_40",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 71,
@@ -54733,12 +54741,12 @@
             "to": "u",
             "ttarget_door": "house_21_entry",
             "ttarget_map": "house_21",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -54758,6 +54766,10 @@
             "to": "u",
             "ttarget_door": "house_01_entry",
             "ttarget_map": "house_01",
+            "ttransition_kind": "walk",
+            "tone_way": false,
+            "tenabled": true,
+            "tlocked_by": "",
             "tx": 6,
             "ty": 7
           },
@@ -54769,12 +54781,12 @@
             "to": "u",
             "ttarget_door": "mine_exit",
             "ttarget_map": "mine_floor_001",
-            "tx": 5,
-            "ty": 8,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 5,
+            "ty": 8
           },
           {
             "x": 5,
@@ -54785,11 +54797,11 @@
             "to": "u",
             "ttarget_door": "mine_exit",
             "ttarget_map": "mine_floor_001",
-            "tx": 5,
-            "ty": 8,
             "ttransition_kind": "cave",
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 5,
+            "ty": 8
           },
           {
             "x": 155,
@@ -54825,12 +54837,12 @@
             "to": "u",
             "ttarget_door": "house_03_entry",
             "ttarget_map": "house_03",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 70,
@@ -54842,12 +54854,12 @@
             "to": "u",
             "ttarget_door": "house_04_entry",
             "ttarget_map": "house_04",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 166,
@@ -54880,19 +54892,21 @@
           {
             "x": 166,
             "y": 33,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_166_33",
             "to": "l",
             "ttarget_door": "world_portal_158_35",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 158,
             "ty": 35
           },
           {
             "x": 158,
             "y": 35,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_158_35",
             "tlocal_tx": 142,
             "tlocal_ty": 28,
@@ -54900,13 +54914,15 @@
             "ttarget_door": "world_portal_148_32",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 148,
             "ty": 32
           },
           {
             "x": 148,
             "y": 32,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_148_32",
             "tlocal_tx": 148,
             "tlocal_ty": 26,
@@ -54914,13 +54930,15 @@
             "ttarget_door": "world_portal_155_29",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 155,
             "ty": 29
           },
           {
             "x": 155,
             "y": 29,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_155_29",
             "tlocal_tx": 140,
             "tlocal_ty": 26,
@@ -54928,13 +54946,15 @@
             "ttarget_door": "world_portal_142_32",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 142,
             "ty": 32
           },
           {
             "x": 142,
             "y": 32,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_142_32",
             "tlocal_tx": 155,
             "tlocal_ty": 31,
@@ -54942,6 +54962,8 @@
             "ttarget_door": "world_portal_166_33",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 166,
             "ty": 33
           }
@@ -309350,6 +309372,10 @@
             "to": "u",
             "ttarget_door": "house_02_entry",
             "ttarget_map": "house_02",
+            "ttransition_kind": "cave",
+            "tone_way": false,
+            "tenabled": true,
+            "tlocked_by": "",
             "tx": 6,
             "ty": 7
           },
@@ -309371,12 +309397,12 @@
             "to": "u",
             "ttarget_door": "house_11_entry",
             "ttarget_map": "house_11",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 16,
@@ -309388,12 +309414,12 @@
             "to": "u",
             "ttarget_door": "house_18_entry",
             "ttarget_map": "house_18",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 157,
@@ -309421,12 +309447,12 @@
             "to": "u",
             "ttarget_door": "house_12_entry",
             "ttarget_map": "house_12",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 154,
@@ -309439,7 +309465,7 @@
           {
             "x": 77,
             "y": 237,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_77_237",
             "tlocal_tx": 72,
             "tlocal_ty": 231,
@@ -309447,13 +309473,15 @@
             "ttarget_door": "world_portal_82_234",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 82,
             "ty": 234
           },
           {
             "x": 82,
             "y": 234,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_82_234",
             "tlocal_tx": 65,
             "tlocal_ty": 235,
@@ -309461,6 +309489,8 @@
             "ttarget_door": "world_portal_77_237",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 77,
             "ty": 237
           },
@@ -309482,12 +309512,12 @@
             "to": "u",
             "ttarget_door": "house_24_entry",
             "ttarget_map": "house_24",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -309517,12 +309547,12 @@
             "to": "u",
             "ttarget_door": "house_25_entry",
             "ttarget_map": "house_25",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 158,
@@ -309542,12 +309572,12 @@
             "to": "u",
             "ttarget_door": "house_26_entry",
             "ttarget_map": "house_26",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 127,
@@ -309567,12 +309597,12 @@
             "to": "u",
             "ttarget_door": "house_27_entry",
             "ttarget_map": "house_27",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 131,
@@ -309584,12 +309614,12 @@
             "to": "u",
             "ttarget_door": "house_28_entry",
             "ttarget_map": "house_28",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 123,
@@ -309601,12 +309631,12 @@
             "to": "u",
             "ttarget_door": "house_29_entry",
             "ttarget_map": "house_29",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 127,
@@ -309658,12 +309688,12 @@
             "to": "u",
             "ttarget_door": "house_30_entry",
             "ttarget_map": "house_30",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -309683,12 +309713,12 @@
             "to": "u",
             "ttarget_door": "house_13_entry",
             "ttarget_map": "house_13",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 65,
@@ -309700,12 +309730,12 @@
             "to": "u",
             "ttarget_door": "house_14_entry",
             "ttarget_map": "house_14",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 155,
@@ -309733,12 +309763,12 @@
             "to": "u",
             "ttarget_door": "house_20_entry",
             "ttarget_map": "house_20",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 155,
@@ -309766,12 +309796,12 @@
             "to": "u",
             "ttarget_door": "house_16_entry",
             "ttarget_map": "house_16",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 19,
@@ -309783,12 +309813,12 @@
             "to": "u",
             "ttarget_door": "house_17_entry",
             "ttarget_map": "house_17",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 126,
@@ -309808,12 +309838,12 @@
             "to": "u",
             "ttarget_door": "house_31_entry",
             "ttarget_map": "house_31",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 92,
@@ -309825,12 +309855,12 @@
             "to": "u",
             "ttarget_door": "house_32_entry",
             "ttarget_map": "house_32",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 79,
@@ -309842,12 +309872,12 @@
             "to": "d",
             "ttarget_door": "house_05_entry",
             "ttarget_map": "house_05",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 78,
@@ -309859,12 +309889,12 @@
             "to": "u",
             "ttarget_door": "house_06_entry",
             "ttarget_map": "house_06",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 91,
@@ -309876,12 +309906,12 @@
             "to": "d",
             "ttarget_door": "house_07_entry",
             "ttarget_map": "house_07",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 135,
@@ -309893,12 +309923,12 @@
             "to": "u",
             "ttarget_door": "house_33_entry",
             "ttarget_map": "house_33",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 117,
@@ -309920,12 +309950,12 @@
             "to": "d",
             "ttarget_door": "house_08_entry",
             "ttarget_map": "house_08",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -309937,12 +309967,12 @@
             "to": "u",
             "ttarget_door": "house_34_entry",
             "ttarget_map": "house_34",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -309962,12 +309992,12 @@
             "to": "u",
             "ttarget_door": "house_09_entry",
             "ttarget_map": "house_09",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 155,
@@ -309979,12 +310009,12 @@
             "to": "u",
             "ttarget_door": "house_35_entry",
             "ttarget_map": "house_35",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 104,
@@ -309996,12 +310026,12 @@
             "to": "d",
             "ttarget_door": "house_10_entry",
             "ttarget_map": "house_10",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 127,
@@ -310021,12 +310051,12 @@
             "to": "u",
             "ttarget_door": "house_36_entry",
             "ttarget_map": "house_36",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 26,
@@ -310038,12 +310068,12 @@
             "to": "u",
             "ttarget_door": "house_37_entry",
             "ttarget_map": "house_37",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 25,
@@ -310065,12 +310095,12 @@
             "to": "u",
             "ttarget_door": "house_38_entry",
             "ttarget_map": "house_38",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 38,
@@ -310098,12 +310128,12 @@
             "to": "u",
             "ttarget_door": "house_39_entry",
             "ttarget_map": "house_39",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 124,
@@ -310131,12 +310161,12 @@
             "to": "u",
             "ttarget_door": "house_22_entry",
             "ttarget_map": "house_22",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 75,
@@ -310148,12 +310178,12 @@
             "to": "u",
             "ttarget_door": "house_23_entry",
             "ttarget_map": "house_23",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 71,
@@ -310165,12 +310195,12 @@
             "to": "u",
             "ttarget_door": "house_15_entry",
             "ttarget_map": "house_15",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 71,
@@ -310182,12 +310212,12 @@
             "to": "u",
             "ttarget_door": "house_19_entry",
             "ttarget_map": "house_19",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 127,
@@ -310207,12 +310237,12 @@
             "to": "u",
             "ttarget_door": "house_40_entry",
             "ttarget_map": "house_40",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 71,
@@ -310232,12 +310262,12 @@
             "to": "u",
             "ttarget_door": "house_21_entry",
             "ttarget_map": "house_21",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 156,
@@ -310257,6 +310287,10 @@
             "to": "u",
             "ttarget_door": "house_01_entry",
             "ttarget_map": "house_01",
+            "ttransition_kind": "walk",
+            "tone_way": false,
+            "tenabled": true,
+            "tlocked_by": "",
             "tx": 6,
             "ty": 7
           },
@@ -310268,12 +310302,12 @@
             "to": "u",
             "ttarget_door": "mine_exit",
             "ttarget_map": "mine_floor_001",
-            "tx": 5,
-            "ty": 8,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 5,
+            "ty": 8
           },
           {
             "x": 5,
@@ -310284,11 +310318,11 @@
             "to": "u",
             "ttarget_door": "mine_exit",
             "ttarget_map": "mine_floor_001",
-            "tx": 5,
-            "ty": 8,
             "ttransition_kind": "cave",
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 5,
+            "ty": 8
           },
           {
             "x": 155,
@@ -310324,12 +310358,12 @@
             "to": "u",
             "ttarget_door": "house_03_entry",
             "ttarget_map": "house_03",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "walk",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 70,
@@ -310341,12 +310375,12 @@
             "to": "u",
             "ttarget_door": "house_04_entry",
             "ttarget_map": "house_04",
-            "tx": 6,
-            "ty": 7,
             "ttransition_kind": "cave",
             "tone_way": false,
             "tenabled": true,
-            "tlocked_by": ""
+            "tlocked_by": "",
+            "tx": 6,
+            "ty": 7
           },
           {
             "x": 166,
@@ -310379,19 +310413,21 @@
           {
             "x": 166,
             "y": 33,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_166_33",
             "to": "l",
             "ttarget_door": "world_portal_158_35",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 158,
             "ty": 35
           },
           {
             "x": 158,
             "y": 35,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_158_35",
             "tlocal_tx": 142,
             "tlocal_ty": 28,
@@ -310399,13 +310435,15 @@
             "ttarget_door": "world_portal_148_32",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 148,
             "ty": 32
           },
           {
             "x": 148,
             "y": 32,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_148_32",
             "tlocal_tx": 148,
             "tlocal_ty": 26,
@@ -310413,13 +310451,15 @@
             "ttarget_door": "world_portal_155_29",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 155,
             "ty": 29
           },
           {
             "x": 155,
             "y": 29,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_155_29",
             "tlocal_tx": 140,
             "tlocal_ty": 26,
@@ -310427,13 +310467,15 @@
             "ttarget_door": "world_portal_142_32",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 142,
             "ty": 32
           },
           {
             "x": 142,
             "y": 32,
-            "p": 0,
+            "p": 1,
             "tdoor_id": "world_portal_142_32",
             "tlocal_tx": 155,
             "tlocal_ty": 31,
@@ -310441,6 +310483,8 @@
             "ttarget_door": "world_portal_166_33",
             "ttarget_map": "world_01",
             "tone_way": true,
+            "tdoor_kind": "portal",
+            "ttransition_kind": "portal",
             "tx": 166,
             "ty": 33
           }

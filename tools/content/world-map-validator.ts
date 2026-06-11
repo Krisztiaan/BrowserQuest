@@ -1021,8 +1021,6 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
             requireNonEmptyObjectName(diags, doors, objectRecord, 'OBJECT_NAME_MISSING');
             requireNonEmptyObjectClass(diags, doors, objectRecord, 'OBJECT_CLASS_MISSING');
             requireProperty(diags, doors, objectId, props, 'orientation', 'DOOR_PROPERTY_MISSING');
-            requireProperty(diags, doors, objectId, props, 'target_tx', 'DOOR_PROPERTY_MISSING');
-            requireProperty(diags, doors, objectId, props, 'target_ty', 'DOOR_PROPERTY_MISSING');
 
             const forbidden = ['o', 'x', 'y', 'cx', 'cy', 'tx', 'ty'];
             for (const key of forbidden) {
@@ -1038,6 +1036,10 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
 
             const hasTargetMap = (asString(props.get('target_map'))?.trim().length ?? 0) > 0;
             const hasTargetDoor = (asString(props.get('target_door'))?.trim().length ?? 0) > 0;
+            if (!hasTargetMap && !hasTargetDoor) {
+                requireProperty(diags, doors, objectId, props, 'target_tx', 'DOOR_PROPERTY_MISSING');
+                requireProperty(diags, doors, objectId, props, 'target_ty', 'DOOR_PROPERTY_MISSING');
+            }
             if (hasTargetMap !== hasTargetDoor) {
                 pushDiagnostic(
                     diags,
@@ -1049,6 +1051,14 @@ function checkTargetObjectContracts(layers: ReadonlyArray<LayerContext>, diags: 
             if (hasTargetMap && hasTargetDoor) {
                 requireProperty(diags, doors, objectId, props, 'door_id', 'DOOR_GRAPH_PROPERTY_MISSING');
                 requireProperty(diags, doors, objectId, props, 'orientation', 'DOOR_GRAPH_PROPERTY_MISSING');
+                if (props.has('target_tx') || props.has('target_ty')) {
+                    pushDiagnostic(
+                        diags,
+                        'error',
+                        'DOOR_GRAPH_COORDINATE_REDUNDANT',
+                        `${formatLayerRef(doors)} object ${objectId ?? 'no-id'} is graph-linked and must not define target_tx or target_ty.`
+                    );
+                }
             }
 
             const objectClass = getObjectClassName(objectRecord) ?? '';

@@ -5,8 +5,6 @@
   <properties>
    <property name="door_kind" type="string" value="door"/>
    <property name="orientation" type="string" value="d"/>
-   <property name="target_tx" type="int" value="0"/>
-   <property name="target_ty" type="int" value="0"/>
    <property name="camera_tx" type="int" value="0"/>
    <property name="camera_ty" type="int" value="0"/>
    <property name="door_id" type="string" value=""/>

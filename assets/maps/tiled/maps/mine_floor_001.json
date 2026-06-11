@@ -1150,16 +1150,6 @@
                   "value": "world_mine_001_entry"
                 },
                 {
-                  "name": "target_tx",
-                  "type": "int",
-                  "value": 18
-                },
-                {
-                  "name": "target_ty",
-                  "type": "int",
-                  "value": 211
-                },
-                {
                   "name": "transition_kind",
                   "type": "string",
                   "value": "cave",
@@ -1179,6 +1169,16 @@
                   "name": "locked_by",
                   "type": "string",
                   "value": ""
+                },
+                {
+                  "name": "area_id",
+                  "type": "string",
+                  "value": "village_mine_floor_001"
+                },
+                {
+                  "name": "tags",
+                  "type": "string",
+                  "value": "door,graph_link,interior_exit,transition_cave"
                 }
               ]
             }

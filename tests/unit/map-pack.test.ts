@@ -158,6 +158,43 @@ test('compileMapPack derives edges from door target_map/target_door properties',
     ]);
 });
 
+test('compileMapPack strips authoring-only door metadata from runtime payloads', () => {
+    const pack = compileMapPack({
+        maps: [
+            {
+                id: 'world_01',
+                tiled: createTiledMap({
+                    doors: [
+                        {
+                            id: 1,
+                            x: 16,
+                            y: 16,
+                            properties: [
+                                { name: 'orientation', value: 'd' },
+                                { name: 'target_tx', value: '2' },
+                                { name: 'target_ty', value: '3' },
+                                { name: 'area_id', value: 'forest_maze_rooms' },
+                                { name: 'tags', value: 'door,teleport,forest' },
+                                { name: 'authoring_note', value: 'Source-only note.' },
+                            ],
+                        },
+                    ],
+                }),
+            },
+        ],
+    });
+
+    expect(pack.maps[0]?.client.doors[0]).toEqual({
+        x: 1,
+        y: 1,
+        p: 0,
+        to: 'd',
+        tx: 2,
+        ty: 3,
+    });
+    expect(pack.maps[0]?.server.doors[0]).toEqual(pack.maps[0]?.client.doors[0]);
+});
+
 test('compileMapPack accepts a world-to-house door with reverse house link', () => {
     const pack = compileMapPack({
         maps: [
@@ -335,7 +372,7 @@ test('compileMapPack extracts graph doors from multiple recursive doors layers',
     ]);
 });
 
-test('compileMapPack normalizes graph-linked door tx/ty to destination door coordinates', () => {
+test('compileMapPack resolves graph-linked door tx/ty from destination door coordinates', () => {
     const pack = compileMapPack({
         maps: [
             {
@@ -352,9 +389,6 @@ test('compileMapPack normalizes graph-linked door tx/ty to destination door coor
                                 { name: 'target_map', value: 'house_01' },
                                 { name: 'target_door', value: 'exit' },
                                 { name: 'one_way', value: true },
-                                // Deliberately wrong: should be rewritten to the destination door tile.
-                                { name: 'target_tx', value: '999' },
-                                { name: 'target_ty', value: '999' },
                             ],
                         },
                     ],
@@ -393,6 +427,49 @@ test('compileMapPack normalizes graph-linked door tx/ty to destination door coor
     expect(clientDoor?.ty).toBe(1);
     expect(serverDoor?.tx).toBe(1);
     expect(serverDoor?.ty).toBe(1);
+});
+
+test('compileMapPack fails when graph-linked door declares redundant target coordinates', () => {
+    expect(() =>
+        compileMapPack({
+            maps: [
+                {
+                    id: 'overworld',
+                    tiled: createTiledMap({
+                        doors: [
+                            {
+                                id: 10,
+                                x: 32,
+                                y: 16,
+                                properties: [
+                                    { name: 'door_id', value: 'enter_house' },
+                                    { name: 'orientation', value: 'u' },
+                                    { name: 'target_map', value: 'house_01' },
+                                    { name: 'target_door', value: 'exit' },
+                                    { name: 'target_tx', value: '999' },
+                                ],
+                            },
+                        ],
+                    }),
+                },
+                {
+                    id: 'house_01',
+                    tiled: createTiledMap({
+                        width: 12,
+                        height: 12,
+                        doors: [
+                            {
+                                id: 20,
+                                x: 16,
+                                y: 16,
+                                properties: [{ name: 'door_id', value: 'exit' }],
+                            },
+                        ],
+                    }),
+                },
+            ],
+        })
+    ).toThrow('graph-linked doors must not declare redundant "target_tx" or "target_ty"');
 });
 
 test('compileMapPack accepts legacy object type metadata and skips invalid roaming-area mob kinds', () => {

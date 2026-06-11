@@ -1108,16 +1108,6 @@
                   "value": "world_house_13_entry"
                 },
                 {
-                  "name": "target_tx",
-                  "type": "int",
-                  "value": 74
-                },
-                {
-                  "name": "target_ty",
-                  "type": "int",
-                  "value": 145
-                },
-                {
                   "name": "transition_kind",
                   "type": "class",
                   "value": "walk",
@@ -1137,6 +1127,16 @@
                   "name": "locked_by",
                   "type": "string",
                   "value": ""
+                },
+                {
+                  "name": "area_id",
+                  "type": "string",
+                  "value": "forest_threshold"
+                },
+                {
+                  "name": "tags",
+                  "type": "string",
+                  "value": "door,graph_link,interior_exit,transition_walk"
                 }
               ],
               "rotation": 0,

@@ -22,13 +22,13 @@ Use these with Tiled's **Insert Template** tool (`V`) to avoid property/key drif
 - Place static characters/items/NPCs in the `static_entities` object layer.
 - Place resource, chest, roaming, music, and checkpoint objects in their matching canonical layers.
 - Use `doors` layer for both `Door` and `Portal` objects.
-- Graph-linked doors must define `door_id`, `target_map`, `target_door`, and `orientation`. They must not define raw `tx` or `ty`; runtime destination coordinates come from the target door. Reverse links are required unless the source door has `one_way=true`.
+- Graph-linked doors must define `door_id`, `target_map`, `target_door`, and `orientation`. They must not define raw `tx`/`ty` or redundant `target_tx`/`target_ty`; runtime destination coordinates come from the target door. Plain coordinate doors still use `target_tx`/`target_ty`. Reverse links are required unless the source door has `one_way=true`.
 - Visible object layers can now contain decorative tile objects. Use a normal visible object layer for baked world props, or set the layer `class` to `Foreground` to export those tile objects into the map foreground bucket.
 - For single authored props that should occlude entities by footprint depth instead of a coarse foreground pass, set the object layer `class` to `DepthSorted`. BrowserQuest will export connected tile-object assemblies from that layer as depth-sorted render props.
 - Group layers are now first-class authoring structure. BrowserQuest flattens nested group layers, inheriting visibility, layer/object offsets, and group properties into child layers during export and validation.
 - If a placed prop family is split across multiple visible layers, prefer fewer layers. Keep a separate foreground layer only when the split is for occlusion; do not split just to express collision, because collision already comes from the tile metadata. Use `bun tools/content/world-render-cluster-audit.ts` to spot repeated split assemblies.
 - Keep object `class` set; keep object `type` empty.
-- Use canonical property names only (`orientation`, `target_tx`, `target_ty`, `entity_kind`, `entity_gid`, `mob_kind`, `count`, etc.).
+- Use canonical property names only (`orientation`, `target_tx`, `target_ty`, `entity_kind`, `entity_gid`, `mob_kind`, `count`, etc.), and keep those properties on the object types that actually consume them.
 - For tile-object static entities, `mobs.tsj` uses `objectalignment=topleft`.
 
 ## Prop Metadata Conventions

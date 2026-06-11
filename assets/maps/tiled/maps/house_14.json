@@ -920,16 +920,6 @@
                   "value": "world_house_14_entry"
                 },
                 {
-                  "name": "target_tx",
-                  "type": "int",
-                  "value": 65
-                },
-                {
-                  "name": "target_ty",
-                  "type": "int",
-                  "value": 125
-                },
-                {
                   "name": "transition_kind",
                   "type": "class",
                   "value": "cave",
@@ -949,6 +939,16 @@
                   "name": "locked_by",
                   "type": "string",
                   "value": ""
+                },
+                {
+                  "name": "area_id",
+                  "type": "string",
+                  "value": "deadlands_escarpment"
+                },
+                {
+                  "name": "tags",
+                  "type": "string",
+                  "value": "door,graph_link,interior_exit,transition_cave"
                 }
               ],
               "rotation": 0,

@@ -280,6 +280,11 @@ function extractDoorGraphEntries(mapId: string, tiled: unknown, tileSize: number
                     `Invalid map "${mapId}" door "${resolvedDoorId.id}": graph-linked doors must not declare raw "tx" or "ty".`
                 );
             }
+            if (properties.target_tx !== undefined || properties.target_ty !== undefined) {
+                errors.push(
+                    `Invalid map "${mapId}" door "${resolvedDoorId.id}": graph-linked doors must not declare redundant "target_tx" or "target_ty".`
+                );
+            }
             const edge = {
                 from: { mapId, doorId: resolvedDoorId.id },
                 to: { mapId: targetMap, doorId: targetDoor },

@@ -920,16 +920,6 @@
                   "value": "world_house_26_entry"
                 },
                 {
-                  "name": "target_tx",
-                  "type": "int",
-                  "value": 162
-                },
-                {
-                  "name": "target_ty",
-                  "type": "int",
-                  "value": 196
-                },
-                {
                   "name": "transition_kind",
                   "type": "class",
                   "value": "cave",
@@ -949,6 +939,16 @@
                   "name": "locked_by",
                   "type": "string",
                   "value": ""
+                },
+                {
+                  "name": "area_id",
+                  "type": "string",
+                  "value": "forest_maze_east_chamber_26"
+                },
+                {
+                  "name": "tags",
+                  "type": "string",
+                  "value": "door,graph_link,interior_exit,transition_cave"
                 }
               ],
               "rotation": 0,

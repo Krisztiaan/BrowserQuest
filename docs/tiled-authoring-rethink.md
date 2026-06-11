@@ -2852,3 +2852,279 @@ Validation evidence:
 - `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-resource-harvesting.test.ts tests/unit/mmo/server-npc-shop.test.ts --timeout 20000`
 - Runtime music/checkpoint export probe confirmed 15 music areas and 24 checkpoints are
   preserved.
+
+## Execution slice 47 — world static NPC and item authoring
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the non-mob static entities in `gameplay_markup/static_entities`.
+- Preserve object ids, positions, tile gids, `entity_gid`, and `entity_kind`.
+- Keep the larger fixed-mob static placement pass out of scope for this slice.
+
+Before-edit evidence:
+
+- `static_entities` contained 233 objects.
+- 46 targeted static NPC/item/reward/cameo objects had generated names or needed consistent
+  enum typing: guards, NPCs/cameos, potions/flasks, sword rewards, one bluesword, and the
+  already-audited hidden cake.
+- Runtime exported 233 `world_01.server.staticEntities` entries.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_static_entities_boss_context_before.png`
+- `.data/map-authoring-crops/world_static_entities_deadlands_cache_context_before.png`
+- `.data/map-authoring-crops/world_static_entities_village_context_before.png`
+- `.data/map-authoring-crops/world_static_entities_beach_guards_context_before.png`
+- `.data/map-authoring-crops/world_static_entities_southeast_lab_context_before.png`
+- `.data/map-authoring-crops/world_static_entities_king_coder_context_before.png`
+- `.data/map-authoring-crops/world_static_entities_cameo_nyan_context_before.png`
+- `.data/map-authoring-crops/world_static_entities_lava_pocket_flasks_context_before.png`
+- `.data/map-authoring-crops/world_static_entities_rick_context_before.png`
+- `.data/map-authoring-crops/world_static_entities_east_beach_reward_context_before.png`
+
+Applied authoring changes:
+
+- Renamed targeted static rewards and pickups to stable names such as
+  `boss_arena_west_firepotion_149_51`, `deadlands_west_bluesword_cache_31_75`,
+  `lava_pocket_flask_cache_west_north_153_88`, and
+  `southeast_lab_scientist_firepotion_129_293`.
+- Renamed targeted NPC/cameo objects to stable names such as
+  `village_west_bridge_guard_4_195`, `village_mine_entrance_priest_18_210`,
+  `subterranean_king_room_king_126_138`, `forest_maze_nyan_cameo_75_164`, and
+  `torch_room_rick_cameo_127_186`.
+- Added `EntityKind` property typing to each targeted `entity_kind`.
+- Added `area_id` and `tags` metadata.
+- Updated `assets/maps/tiled/templates/static_entity_rect.tx` so future static placements use
+  the `EntityKind` enum type.
+- Preserved all positions, tile gids, `entity_gid`, and `entity_kind` values.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/world_static_entities_boss_context_after.png`
+- `.data/map-authoring-crops/world_static_entities_village_context_after.png`
+- `.data/map-authoring-crops/world_static_entities_southeast_lab_context_after.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/server-world-map-pack-bootstrap.test.ts tests/unit/server-chest-item-lifecycle.test.ts --timeout 20000`
+- Runtime parity probe against `HEAD` confirmed `world_01.server.staticEntities` still has
+  233 entries and no changed keys.
+
+## Execution slice 48 — world fixed static mob authoring
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the remaining generated fixed-mob static entities in
+  `gameplay_markup/static_entities`.
+- Preserve object ids, positions, tile gids, `entity_gid`, and `entity_kind`.
+- Keep door/portal linkage polish out of scope for this slice.
+
+Before-edit evidence:
+
+- 187 generated `static_entity_*` names remained after the NPC/item pass, all fixed mob
+  placements.
+- Remaining generated mob kinds were 28 bats, 28 goblins, 25 skeletons, 23 ogres,
+  19 spectres, 18 eyes, 18 snakes, 14 skeleton2s, 8 rats, 4 deathknights, 1 boss, and
+  1 crab.
+- Runtime exported 233 `world_01.server.staticEntities` entries.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_static_mobs_north_badlands_before.png`
+- `.data/map-authoring-crops/world_static_mobs_boss_northeast_before.png`
+- `.data/map-authoring-crops/world_static_mobs_deadlands_before.png`
+- `.data/map-authoring-crops/world_static_mobs_forest_maze_before.png`
+- `.data/map-authoring-crops/world_static_mobs_east_islands_before.png`
+- `.data/map-authoring-crops/world_static_mobs_southwest_beach_before.png`
+- `.data/map-authoring-crops/world_static_mobs_east_beach_skeletons_before.png`
+- `.data/map-authoring-crops/world_static_mobs_southeast_lab_rats_before.png`
+
+Applied authoring changes:
+
+- Renamed every remaining generated fixed mob to an area/mob/coordinate name such as
+  `north_badlands_lavaland_spectre_37_9`, `deadlands_west_desert_ogre_14_62`,
+  `forest_south_maze_bat_60_172`, and `south_cavern_rat_room_rat_154_308`.
+- Added `EntityKind` property typing, `area_id`, `tags`, and `spawn_role=fixed_mob`.
+- Preserved all positions, tile gids, `entity_gid`, and `entity_kind` values.
+- Confirmed no generated `static_entity_*` names remain in `gameplay_markup/static_entities`.
+- Confirmed all 233 static entities now have `entity_kind` typed as `EntityKind`.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/world_static_mobs_north_badlands_after.png`
+- `.data/map-authoring-crops/world_static_mobs_deadlands_after.png`
+- `.data/map-authoring-crops/world_static_mobs_forest_maze_after.png`
+- `.data/map-authoring-crops/world_static_mobs_southeast_lab_rats_after.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/server-world-map-pack-bootstrap.test.ts tests/unit/server-chest-item-lifecycle.test.ts --timeout 20000`
+- Runtime parity probe against `HEAD` confirmed `world_01.server.staticEntities` still has
+  233 entries and no changed keys.
+
+## Execution slice 49 — world door and portal authoring polish
+
+Status: complete.
+
+Ticket scope:
+
+- Inspect remaining generated world door names and portal semantics.
+- Preserve all door coordinates and graph link targets.
+- Avoid adding arbitrary door metadata that would leak into runtime door payloads.
+- Add only runtime-meaningful semantics where source intent is clear.
+
+Before-edit evidence:
+
+- World `gameplay_markup/doors` contained 86 objects.
+- 37 same-map coordinate doors still had generated `door_*` names.
+- Seven named `world_portal_*` graph-linked one-way same-map portals lacked explicit
+  `door_kind=portal` / `is_portal=true` semantics, so they exported as `p: 0`.
+- `world_house_01_entry` and `world_house_02_entry` still lacked the explicit transition and
+  default properties added to later house entries.
+- Door properties are exported wholesale as runtime `t*` fields, so source-only metadata such
+  as `area_id`/`tags` does not belong on door objects until the compiler has an authoring
+  metadata boundary.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_portals_village_cliff_before.png`
+- `.data/map-authoring-crops/world_portals_northeast_chain_before.png`
+- `.data/map-authoring-crops/world_doors_forest_maze_cluster_before.png`
+- `.data/map-authoring-crops/world_doors_southeast_lab_cluster_before.png`
+
+Applied authoring changes:
+
+- Renamed all 37 generated same-map coordinate doors to concise names such as
+  `forest_maze_tp_127_190_to_74_145` and `southeast_lab_tp_127_299_to_38_245`.
+- Added `door_kind=portal` and `transition_kind=portal` to all seven named
+  `world_portal_*` objects.
+- Added missing transition/default properties to `world_house_01_entry` and
+  `world_house_02_entry`.
+- Added `DoorOrientation` property typing to all 86 door `orientation` properties and
+  `TransitionKind` typing to transition properties.
+- Preserved every door coordinate, target map, target door, door id, and orientation.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/world_portals_village_cliff_after.png`
+- `.data/map-authoring-crops/world_portals_northeast_chain_after.png`
+- `.data/map-authoring-crops/world_doors_forest_maze_cluster_after.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- Runtime comparison against `HEAD` confirmed 86 world doors before/after with no coordinate,
+  target-map, target-door, door-id, or orientation changes.
+- Runtime comparison showed only nine intended semantic changes: seven portal
+  `p/door_kind/transition` updates plus explicit default transition/enabled/locked/one-way
+  properties for `world_house_01_entry` and `world_house_02_entry`.
+
+Door-model note resolved by slice 50:
+
+- The target validator currently requires `target_tx`/`target_ty` on every door object,
+  including graph-linked doors whose runtime destination is resolved from
+  `target_map`/`target_door`. That keeps redundant legacy coordinates in the source. The
+  next cleanup should split the validator/compiler contract so graph-linked doors no longer
+  require those coordinate fields, while plain coordinate teleports still do.
+
+## Execution slice 50 — graph-linked door coordinate contract
+
+Status: complete.
+
+Ticket scope:
+
+- Remove redundant `target_tx`/`target_ty` requirements from graph-linked doors.
+- Keep `target_tx`/`target_ty` required for plain same-map coordinate teleports.
+- Make the compiler and validator reject redundant graph-link target coordinates.
+- Preserve compiled door destinations resolved from `target_map`/`target_door`.
+
+Before-edit evidence:
+
+- World graph-linked doors, house exit doors, and `mine_exit` still carried
+  `target_tx`/`target_ty`, even though map-pack normalizes graph-linked runtime destinations
+  from the destination door coordinate.
+- The target validator required `target_tx`/`target_ty` for every door object, which forced
+  graph-linked source data to keep legacy coordinate fields.
+
+Applied contract changes:
+
+- Updated `world-map-validator.ts` so `target_tx`/`target_ty` are required only for doors
+  without `target_map`/`target_door`.
+- Added `DOOR_GRAPH_COORDINATE_REDUNDANT` diagnostics for graph-linked doors that still
+  define `target_tx` or `target_ty`.
+- Updated `map-pack.ts` to reject graph-linked doors with redundant `target_tx`/`target_ty`.
+- Updated tests to prove:
+  - graph-linked doors pass validation without raw target coordinates
+  - plain coordinate teleports still require target coordinates
+  - graph-linked doors reject redundant target coordinates in both validator and compiler
+- Removed `target_tx`/`target_ty` from all graph-linked doors in Tiled sources.
+- Removed `target_tx`/`target_ty` from `door_linked.tx` and `portal.tx`.
+- Updated template documentation to distinguish graph-linked doors from plain coordinate
+  teleports.
+
+Validation evidence:
+
+- Source summary confirmed 90 graph-linked doors across all Tiled maps with zero redundant
+  `target_tx`/`target_ty`.
+- Source summary confirmed 37 plain coordinate teleports still have required `target_tx` and
+  `target_ty`.
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- Runtime comparison against `HEAD` confirmed no door coordinate, target-map, target-door,
+  door-id, or orientation changes.
+
+## Execution slice 51 — door authoring metadata boundary
+
+Status: complete.
+
+Ticket scope:
+
+- Allow doors to carry source-only authoring metadata without leaking it into runtime door
+  payloads.
+- Add scoped `area_id` and `tags` metadata to world/interior door objects.
+- Preserve all compiled door coordinates, targets, portal semantics, and graph links.
+
+Before-edit evidence:
+
+- `processMap` exported every door property as a runtime `t*` field, so adding rich source
+  metadata directly to doors would have polluted client/server door payloads.
+- Doors needed source-side context for area ownership and later authoring workflows, but
+  those fields are not runtime transition semantics.
+
+Applied contract changes:
+
+- Added a door metadata boundary in `processmap.ts` for authoring-only fields:
+  `area_id`, `tags`, and `authoring_note`.
+- Added map-pack regression coverage proving those fields are stripped from both client and
+  server door payloads.
+- Added `area_id` and `tags` to all authored world, house, and mine door objects.
+- Rebuilt `assets/maps/runtime/map-pack.json`.
+
+Validation evidence:
+
+- Source audit confirmed 127 authored doors, 127 with `area_id`, 127 with `tags`, 90
+  graph-linked doors, zero redundant graph target coordinates, and 37 plain coordinate
+  teleports.
+- Runtime audit confirmed 254 client/server door records and zero
+  `tarea_id`/`ttags`/`tauthoring_note` leaks.
+- Runtime structural comparison against `HEAD` confirmed no door coordinate, target-map,
+  target-door, door-id, or orientation changes.
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`

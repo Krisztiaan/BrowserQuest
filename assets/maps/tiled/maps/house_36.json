@@ -1108,16 +1108,6 @@
                   "value": "world_house_36_entry"
                 },
                 {
-                  "name": "target_tx",
-                  "type": "int",
-                  "value": 127
-                },
-                {
-                  "name": "target_ty",
-                  "type": "int",
-                  "value": 158
-                },
-                {
                   "name": "transition_kind",
                   "type": "class",
                   "value": "cave",
@@ -1137,6 +1127,16 @@
                   "name": "locked_by",
                   "type": "string",
                   "value": ""
+                },
+                {
+                  "name": "area_id",
+                  "type": "string",
+                  "value": "subterranean_river_chamber"
+                },
+                {
+                  "name": "tags",
+                  "type": "string",
+                  "value": "door,graph_link,interior_exit,transition_cave"
                 }
               ],
               "rotation": 0,
