@@ -18,13 +18,13 @@
                 {
                  "duration":100,
                  "tileid":1
-                }, 
+                },
                 {
                  "duration":100,
                  "tileid":2
                 }],
          "id":0
-        }, 
+        },
         {
          "id":3,
          "objectgroup":
@@ -72,7 +72,7 @@
              "x":0,
              "y":0
             }
-        }, 
+        },
         {
          "id":17,
          "class":"PropTile",
@@ -106,7 +106,7 @@
                 }
                 ],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":18,
          "class":"PropTile",
@@ -140,7 +140,7 @@
                 }
                 ],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":19,
          "class":"PropTile",
@@ -174,7 +174,7 @@
                 }
                 ],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":24,
          "objectgroup":
@@ -228,7 +228,7 @@
                  "type":"bool",
                  "value":true
                 }]
-        }, 
+        },
         {
          "id":37,
          "class":"PropTile",
@@ -311,7 +311,7 @@
                  "value":true
                 }],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":38,
          "class":"PropTile",
@@ -394,7 +394,7 @@
                  "value":true
                 }],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":39,
          "class":"PropTile",
@@ -477,7 +477,7 @@
                  "value":true
                 }],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":40,
          "properties":[
@@ -486,7 +486,7 @@
                  "type":"bool",
                  "value":true
                 }]
-        }, 
+        },
         {
          "id":41,
          "properties":[
@@ -495,7 +495,7 @@
                  "type":"bool",
                  "value":true
                 }]
-        }, 
+        },
         {
          "id":42,
          "properties":[
@@ -504,7 +504,7 @@
                  "type":"bool",
                  "value":true
                 }]
-        }, 
+        },
         {
          "id":43,
          "class":"StructureTile",
@@ -538,7 +538,7 @@
                 }
                 ],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":44,
          "class":"StructureTile",
@@ -2529,14 +2529,14 @@
                  "name":"collider",
                  "type":"bool",
                  "value":true
-                }, 
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":105,
          "class":"StructureTile",
@@ -2617,14 +2617,14 @@
                  "name":"collider",
                  "type":"bool",
                  "value":true
-                }, 
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":106,
          "class":"StructureTile",
@@ -2705,14 +2705,14 @@
                  "name":"collider",
                  "type":"bool",
                  "value":true
-                }, 
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":107,
          "class":"StructureTile",
@@ -2800,7 +2800,7 @@
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":108,
          "class":"StructureTile",
@@ -2888,7 +2888,7 @@
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":109,
          "class":"StructureTile",
@@ -2976,7 +2976,7 @@
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":110,
          "class":"StructureTile",
@@ -3145,14 +3145,14 @@
                  "name":"collider",
                  "type":"bool",
                  "value":true
-                }, 
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":125,
          "class":"StructureTile",
@@ -3233,14 +3233,14 @@
                  "name":"collider",
                  "type":"bool",
                  "value":true
-                }, 
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":126,
          "class":"StructureTile",
@@ -3328,7 +3328,7 @@
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":127,
          "class":"StructureTile",
@@ -3416,7 +3416,7 @@
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":128,
          "class":"StructureTile",
@@ -3504,7 +3504,7 @@
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":129,
          "class":"StructureTile",
@@ -3592,7 +3592,7 @@
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":130,
          "class":"StructureTile",
@@ -3626,17 +3626,107 @@
                 }
                 ],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":140,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"roof_upper_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"roof"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"tent_1"
-        }, 
+        },
         {
          "id":141,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"roof_peak"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"roof"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"tent_1"
-        }, 
+        },
         {
          "id":142,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"rear_roof_upper"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"roof"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"tent_1"
         }, 
         {
@@ -4203,6 +4293,7 @@
         }, 
         {
          "id":160,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -4249,6 +4340,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"canvas_wall_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -4258,6 +4376,7 @@
         }, 
         {
          "id":161,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -4305,6 +4424,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"canvas_wall_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -4313,6 +4459,36 @@
         }, 
         {
          "id":162,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"rear_wall_upper"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"tent_1"
         }, 
         {
@@ -4879,6 +5055,7 @@
         }, 
         {
          "id":180,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -4925,6 +5102,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"doorway_flap_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -4934,6 +5138,7 @@
         }, 
         {
          "id":181,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -4981,6 +5186,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"doorway_header"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -4989,6 +5221,36 @@
         }, 
         {
          "id":182,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"rear_wall_lower"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }
+                ],
          "type":"tent_1"
         }, 
         {
@@ -5066,7 +5328,7 @@
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":186,
          "class":"StructureTile",
@@ -5104,7 +5366,7 @@
                  "value":true
                 }],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":187,
          "class":"StructureTile",
@@ -5255,7 +5517,35 @@
         }, 
         {
          "id":200,
+         "class":"StructureTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_flap_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -5265,7 +5555,35 @@
         }, 
         {
          "id":201,
+         "class":"StructureTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_flap_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -5306,7 +5624,7 @@
                 }
                 ],
          "type":"house_red_1"
-        }, 
+        },
         {
          "id":206,
          "class":"StructureTile",
@@ -5408,7 +5726,7 @@
                 }
                 ],
          "type":"tree_1"
-        }, 
+        },
         {
          "id":213,
          "class":"PropTile",
@@ -5442,7 +5760,7 @@
                 }
                 ],
          "type":"tree_1"
-        }, 
+        },
         {
          "id":214,
          "class":"PropTile",
@@ -5476,7 +5794,7 @@
                 }
                 ],
          "type":"tree_1"
-        }, 
+        },
         {
          "id":215,
          "class":"PropTile",
@@ -5510,7 +5828,7 @@
                 }
                 ],
          "type":"tree_1"
-        }, 
+        },
         {
          "id":224,
          "class":"StructureTile",
@@ -5544,7 +5862,7 @@
                 }
                 ],
          "type":"house_red_1"
-        }, 
+        },
         {
          "id":225,
          "class":"StructureTile",
@@ -6278,7 +6596,7 @@
              "x":0,
              "y":0
             }
-        }, 
+        },
         {
          "id":257,
          "objectgroup":
@@ -6326,7 +6644,7 @@
              "x":0,
              "y":0
             }
-        }, 
+        },
         {
          "id":258,
          "objectgroup":
@@ -9715,10 +10033,70 @@
         }, 
         {
          "id":331,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"cactus_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_arm_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"cactus_1"
         }, 
         {
          "id":332,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"cactus_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_trunk"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"cactus_1"
         }, 
         {
@@ -10543,10 +10921,70 @@
         }, 
         {
          "id":351,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"cactus_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"mid_arm_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }
+                ],
          "type":"cactus_1"
         }, 
         {
          "id":352,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"cactus_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"mid_trunk_right_arm"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }
+                ],
          "type":"cactus_1"
         }, 
         {
@@ -11243,6 +11681,7 @@
         }, 
         {
          "id":371,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -11290,6 +11729,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"cactus_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_left_shadow"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -11298,6 +11764,7 @@
         }, 
         {
          "id":372,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -11344,6 +11811,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"cactus_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_trunk_shadow"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -15665,6 +16159,36 @@
         }, 
         {
          "id":684,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_shadow"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"shadow_top"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
          "type":"totem_shadow"
         }, 
         {
@@ -16167,6 +16691,36 @@
         }, 
         {
          "id":704,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_shadow"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"shadow_upper"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
          "type":"totem_shadow"
         }, 
         {
@@ -16328,6 +16882,36 @@
         }, 
         {
          "id":724,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_shadow"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"shadow_middle"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
          "type":"totem_shadow"
         }, 
         {
@@ -16557,6 +17141,36 @@
         }, 
         {
          "id":744,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_shadow"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"shadow_lower"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
          "type":"totem_shadow"
         }, 
         {
@@ -16604,7 +17218,7 @@
                 }
                 ],
          "type":"large_rock_1"
-        }, 
+        },
         {
          "id":757,
          "class":"PropTile",
@@ -16895,6 +17509,36 @@
         }, 
         {
          "id":764,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_shadow"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"shadow_base"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
          "type":"totem_shadow"
         }, 
         {
@@ -19422,14 +20066,104 @@
         }, 
         {
          "id":884,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"throne"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"back_upper_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }
+                ],
          "type":"throne"
         }, 
         {
          "id":885,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"throne"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"back_upper_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }
+                ],
          "type":"throne"
         }, 
         {
          "id":886,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"throne"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"back_upper_right_shadow"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }
+                ],
          "type":"throne"
         }, 
         {
@@ -19507,7 +20241,7 @@
                  "value":true
                 }],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":898,
          "class":"PropTile",
@@ -19624,7 +20358,35 @@
         },
         {
          "id":904,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"throne"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_left_post"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -19634,6 +20396,7 @@
         }, 
         {
          "id":905,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -19681,6 +20444,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"throne"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"seat_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -19689,7 +20479,35 @@
         }, 
         {
          "id":906,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"throne"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_right_post_shadow"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -19779,7 +20597,7 @@
                  "value":true
                 }],
          "type":"bones_2"
-        }, 
+        },
         {
          "id":921,
          "class":"PropTile",
@@ -20696,7 +21514,7 @@
              "x":0,
              "y":0
             }
-        }, 
+        },
         {
          "id":955,
          "objectgroup":
@@ -20744,7 +21562,7 @@
              "x":0,
              "y":0
             }
-        }, 
+        },
         {
          "id":957,
          "objectgroup":
@@ -20999,7 +21817,7 @@
                  "value":true
                 }],
          "type":"bones_2"
-        }, 
+        },
         {
          "id":966,
          "objectgroup":
@@ -21287,7 +22105,7 @@
              "x":0,
              "y":0
             }
-        }, 
+        },
         {
          "id":974,
          "objectgroup":
@@ -21335,7 +22153,7 @@
              "x":0,
              "y":0
             }
-        }, 
+        },
         {
          "id":975,
          "objectgroup":
@@ -21383,7 +22201,7 @@
              "x":0,
              "y":0
             }
-        }, 
+        },
         {
          "id":978,
          "objectgroup":
@@ -21431,7 +22249,7 @@
              "x":0,
              "y":0
             }
-        }, 
+        },
         {
          "id":979,
          "objectgroup":
@@ -36090,6 +36908,7 @@
         }, 
         {
          "id":1660,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -36135,10 +36954,44 @@
              "x":0,
              "y":0
             },
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_red_door_open"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"roof_eave_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"roof"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
+                 "name":"collider",
+                 "type":"bool",
+                 "value":true
+                }],
          "type":"house_red_door_open"
-        }, 
+        },
         {
          "id":1661,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -36184,10 +37037,44 @@
              "x":0,
              "y":0
             },
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_red_door_open"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"door_arch_upper"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
+                 "name":"collider",
+                 "type":"bool",
+                 "value":true
+                }],
          "type":"house_red_door_open"
         }, 
         {
          "id":1662,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -36233,28 +37120,211 @@
              "x":0,
              "y":0
             },
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_red_door_open"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"roof_eave_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"roof"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
+                 "name":"collider",
+                 "type":"bool",
+                 "value":true
+                }],
          "type":"house_red_door_open"
-        }, 
+        },
         {
          "id":1665,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"monitor_upper"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"desk_1"
-        }, 
+        },
         {
          "id":1666,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"desktop_upper_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"desk_1"
-        }, 
+        },
         {
          "id":1668,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tv_desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"screen_upper_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"tv_desk_1"
-        }, 
+        },
         {
          "id":1669,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tv_desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"screen_upper_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"tv_desk_1"
-        }, 
+        },
         {
          "id":1670,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tv_desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"screen_upper_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"tv_desk_1"
-        }, 
+        },
         {
          "id":1677,
          "class":"PropTile",
@@ -36288,7 +37358,7 @@
                 }
                 ],
          "type":"dead_tree_3"
-        }, 
+        },
         {
          "id":1678,
          "class":"PropTile",
@@ -36322,7 +37392,7 @@
                 }
                 ],
          "type":"dead_tree_3"
-        }, 
+        },
         {
          "id":1679,
          "class":"PropTile",
@@ -36356,111 +37426,10 @@
                 }
                 ],
          "type":"dead_tree_3"
-        }, 
+        },
         {
          "id":1680,
-         "objectgroup":
-            {
-             "draworder":"index",
-             "name":"",
-             "objects":[
-                    {
-                     "class":"CollisionShape",
-                     "height":16,
-                     "id":1,
-                     "name":"",
-                     "properties":[
-                            {
-                             "name":"collision_kind",
-                             "propertytype":"CollisionKind",
-                             "type":"string",
-                             "value":"solid"
-                            },
-                            {
-                             "name":"blocks_player",
-                             "type":"bool",
-                             "value":true
-                            },
-                            {
-                             "name":"blocks_mobs",
-                             "type":"bool",
-                             "value":true
-                            },
-                            {
-                             "name":"blocks_projectiles",
-                             "type":"bool",
-                             "value":true
-                            }],
-                     "rotation":0,
-                     "type":"",
-                     "visible":true,
-                     "width":16,
-                     "x":0,
-                     "y":0
-                    }],
-             "opacity":1,
-             "type":"objectgroup",
-             "visible":true,
-             "x":0,
-             "y":0
-            },
-         "type":"house_red_door_open"
-        }, 
-        {
-         "id":1681,
-         "type":"house_red_door_open"
-        }, 
-        {
-         "id":1682,
-         "objectgroup":
-            {
-             "draworder":"index",
-             "name":"",
-             "objects":[
-                    {
-                     "class":"CollisionShape",
-                     "height":16,
-                     "id":1,
-                     "name":"",
-                     "properties":[
-                            {
-                             "name":"collision_kind",
-                             "propertytype":"CollisionKind",
-                             "type":"string",
-                             "value":"solid"
-                            },
-                            {
-                             "name":"blocks_player",
-                             "type":"bool",
-                             "value":true
-                            },
-                            {
-                             "name":"blocks_mobs",
-                             "type":"bool",
-                             "value":true
-                            },
-                            {
-                             "name":"blocks_projectiles",
-                             "type":"bool",
-                             "value":true
-                            }],
-                     "rotation":0,
-                     "type":"",
-                     "visible":true,
-                     "width":16,
-                     "x":0,
-                     "y":0
-                    }],
-             "opacity":1,
-             "type":"objectgroup",
-             "visible":true,
-             "x":0,
-             "y":0
-            },
-         "type":"house_red_door_open"
-        }, 
-        {
-         "id":1685,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -36507,6 +37476,233 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_red_door_open"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_jamb"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
+                {
+                 "name":"collider",
+                 "type":"bool",
+                 "value":true
+                }],
+         "type":"house_red_door_open"
+        }, 
+        {
+         "id":1681,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_red_door_open"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"open_threshold"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
+         "type":"house_red_door_open"
+        }, 
+        {
+         "id":1682,
+         "class":"StructureTile",
+         "objectgroup":
+            {
+             "draworder":"index",
+             "name":"",
+             "objects":[
+                    {
+                     "class":"CollisionShape",
+                     "height":16,
+                     "id":1,
+                     "name":"",
+                     "properties":[
+                            {
+                             "name":"collision_kind",
+                             "propertytype":"CollisionKind",
+                             "type":"string",
+                             "value":"solid"
+                            },
+                            {
+                             "name":"blocks_player",
+                             "type":"bool",
+                             "value":true
+                            },
+                            {
+                             "name":"blocks_mobs",
+                             "type":"bool",
+                             "value":true
+                            },
+                            {
+                             "name":"blocks_projectiles",
+                             "type":"bool",
+                             "value":true
+                            }],
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":16,
+                     "x":0,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"house_red_door_open"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"right_jamb"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
+                {
+                 "name":"collider",
+                 "type":"bool",
+                 "value":true
+                }],
+         "type":"house_red_door_open"
+        }, 
+        {
+         "id":1685,
+         "class":"PropTile",
+         "objectgroup":
+            {
+             "draworder":"index",
+             "name":"",
+             "objects":[
+                    {
+                     "class":"CollisionShape",
+                     "height":16,
+                     "id":1,
+                     "name":"",
+                     "properties":[
+                            {
+                             "name":"collision_kind",
+                             "propertytype":"CollisionKind",
+                             "type":"string",
+                             "value":"solid"
+                            },
+                            {
+                             "name":"blocks_player",
+                             "type":"bool",
+                             "value":true
+                            },
+                            {
+                             "name":"blocks_mobs",
+                             "type":"bool",
+                             "value":true
+                            },
+                            {
+                             "name":"blocks_projectiles",
+                             "type":"bool",
+                             "value":true
+                            }],
+                     "rotation":0,
+                     "type":"",
+                     "visible":true,
+                     "width":16,
+                     "x":0,
+                     "y":0
+                    }],
+             "opacity":1,
+             "type":"objectgroup",
+             "visible":true,
+             "x":0,
+             "y":0
+            },
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"tabletop_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -36516,6 +37712,7 @@
         }, 
         {
          "id":1686,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -36562,6 +37759,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"tabletop_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -36571,6 +37795,7 @@
         }, 
         {
          "id":1688,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -36617,6 +37842,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tv_desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"screen_lower_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -36626,6 +37878,7 @@
         }, 
         {
          "id":1689,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -36673,6 +37926,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tv_desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"screen_lower_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -36681,6 +37961,7 @@
         }, 
         {
          "id":1690,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -36727,6 +38008,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tv_desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"side_object"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -36838,7 +38146,35 @@
         }, 
         {
          "id":1705,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -36848,7 +38184,35 @@
         }, 
         {
          "id":1706,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -36858,7 +38222,35 @@
         }, 
         {
          "id":1708,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tv_desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"desk_base_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -36868,7 +38260,35 @@
         }, 
         {
          "id":1709,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tv_desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"desk_base_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -36878,7 +38298,35 @@
         }, 
         {
          "id":1710,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tv_desk_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"desk_base_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",

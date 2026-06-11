@@ -18,6 +18,259 @@ This is the live execution notebook for `PLAN.md`.
 
 ## Ticket Log
 
+### 2026-06-11 11:08 UTC - Manual Tiled Authoring Slice 84
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `totem_shadow`.
+  - Preserve legacy `type:"totem_shadow"` while adding `PropTile` metadata.
+  - Keep all shadow tiles non-colliding and non-footprint.
+  - Distinguish the shadow strip from the four neighboring totem body variants.
+- Acceptance criteria:
+  - All 5 `totem_shadow` records carry complete typed `PropTile` metadata.
+  - Existing `totem_shadow` collision and footprint counts remain 0 and 0.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_totem_shadow_before_semantics.png`.
+  - Generated context crop `.data/map-authoring-crops/tileset_totem_shadow_with_totems_context_grid.png`.
+  - Visual inspection identified a standalone vertical dark cast-shadow strip adjacent to the four totem body variants.
+  - Tagged 5 `totem_shadow` tile records as `PropTile`.
+  - Classified every segment as non-occluding shadow with `render_height=0`.
+  - Generated `.data/map-authoring-crops/tileset_totem_shadow_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:totem_shadow=5`.
+  - Source audit confirms `totem_shadow` preserved 0 footprint tiles and 0 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on totem bodies and beach props.
+
+### 2026-06-11 11:02 UTC - Manual Tiled Authoring Slice 83
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `throne`.
+  - Preserve legacy `type:"throne"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+  - Treat the throne as a tall furnishing prop with foreground occlusion rather than architectural structure.
+- Acceptance criteria:
+  - All 6 `throne` records carry complete typed `PropTile` metadata.
+  - Existing `throne` collision and footprint counts remain 1 and 3.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_throne_before_semantics.png`.
+  - Visual inspection identified a red/gold high-backed throne with side posts, seat, and lower base.
+  - Tagged 6 `throne` tile records as `PropTile`.
+  - Classified the high back as canopy-like foreground occlusion and the lower seat/base row as trunk/body occlusion.
+  - Generated `.data/map-authoring-crops/tileset_throne_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:throne=6`.
+  - Source audit confirms `throne` preserved 3 footprint tiles and 1 collision tile, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on totem shadows, totem bodies, and beach props.
+
+### 2026-06-11 10:57 UTC - Manual Tiled Authoring Slice 82
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `house_red_door_open`.
+  - Preserve legacy `type:"house_red_door_open"` while adding `StructureTile` metadata.
+  - Preserve existing collision objectgroups and keep the open center threshold non-colliding.
+  - Do not add tileset transition metadata; cross-map linkage remains authored on map door objects.
+- Acceptance criteria:
+  - All 6 `house_red_door_open` records carry complete typed `StructureTile` metadata.
+  - Existing `house_red_door_open` collision and footprint counts remain 5 and 0.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_house_red_door_open_before_semantics.png`.
+  - Visual inspection identified a 3x2 open red-house doorway with roof/curtain edges, side walls, and an open dark center threshold.
+  - Tagged 6 `house_red_door_open` tile records as `StructureTile`.
+  - Classified roof/eave pieces as roof, side jamb/arch pieces as wall, and the center threshold as non-occluding.
+  - Generated `.data/map-authoring-crops/tileset_house_red_door_open_structure_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `StructureTile:house_red_door_open=6`.
+  - Source audit confirms `house_red_door_open` preserved 0 footprint tiles and 5 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on throne, totems, and beach props.
+
+### 2026-06-11 09:49 UTC - Manual Tiled Authoring Slice 81
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `desk_1`.
+  - Preserve legacy `type:"desk_1"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+  - Keep standalone desk semantics aligned with the newly enriched `tv_desk_1` furniture family.
+- Acceptance criteria:
+  - All 6 `desk_1` records carry complete typed `PropTile` metadata.
+  - Existing `desk_1` collision and footprint counts remain 2 and 4.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_desk_1_before_semantics.png`.
+  - Visual inspection identified a light two-tile-wide computer/workstation desk with monitor, tabletop, and lower supports.
+  - Tagged 6 `desk_1` tile records as `PropTile`.
+  - Classified monitor, tabletop, and base/support pieces as non-occluding furniture prop tiles.
+  - Generated `.data/map-authoring-crops/tileset_desk_1_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:desk_1=6`.
+  - Source audit confirms `desk_1` preserved 4 footprint tiles and 2 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on open red-house door pieces, throne, totems, and beach props.
+
+### 2026-06-11 09:45 UTC - Manual Tiled Authoring Slice 80
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `cactus_1`.
+  - Preserve legacy `type:"cactus_1"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+  - Distinguish cactus body/arms from cast-shadow fragments in prop semantics.
+- Acceptance criteria:
+  - All 6 `cactus_1` records carry complete typed `PropTile` metadata.
+  - Existing `cactus_1` collision and footprint counts remain 2 and 2.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_cactus_1_before_semantics.png`.
+  - Visual inspection identified a tall saguaro-style cactus with arms and a right-side gray cast shadow.
+  - Tagged 6 `cactus_1` tile records as `PropTile`.
+  - Classified upper/middle cactus body and arms as trunk occluders and base/shadow pieces as non-occluding.
+  - Generated `.data/map-authoring-crops/tileset_cactus_1_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:cactus_1=6`.
+  - Source audit confirms `cactus_1` preserved 2 footprint tiles and 2 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on standalone desks, open red-house door pieces, throne, totems, and beach props.
+
+### 2026-06-11 09:38 UTC - Manual Tiled Authoring Slice 79
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `tv_desk_1`.
+  - Preserve legacy `type:"tv_desk_1"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+  - Treat the TV/desk as furniture/prop semantics rather than architectural structure.
+- Acceptance criteria:
+  - All 9 `tv_desk_1` records carry complete typed `PropTile` metadata.
+  - Existing `tv_desk_1` collision and footprint counts remain 3 and 6.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_tv_desk_1_before_semantics.png`.
+  - Visual inspection identified a large dark TV/monitor on a low wooden desk with a small right-side object.
+  - Tagged 9 `tv_desk_1` tile records as `PropTile`.
+  - Classified screen, side object, and desk base pieces as non-occluding furniture prop tiles.
+  - Generated `.data/map-authoring-crops/tileset_tv_desk_1_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:tv_desk_1=9`.
+  - Source audit confirms `tv_desk_1` preserved 6 footprint tiles and 3 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on cactus/totems, standalone desks, throne, open red-house door pieces, and beach props.
+
+### 2026-06-11 09:34 UTC - Manual Tiled Authoring Slice 78
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `tent_1`.
+  - Preserve legacy `type:"tent_1"` while adding `StructureTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+  - Keep the visual doorway non-colliding by preserving the current authored collision shape.
+- Acceptance criteria:
+  - All 11 `tent_1` records carry complete typed `StructureTile` metadata.
+  - Existing `tent_1` collision and footprint counts remain 4 and 6.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_tent_1_before_semantics.png`.
+  - Visual inspection identified a peaked canvas tent with pale front fabric, darker rear/right side panel, open doorway, and bottom flap/base tiles.
+  - Tagged 11 `tent_1` tile records as `StructureTile`.
+  - Classified top canvas pieces as roof occluders and canvas wall, doorway, rear panel, and base flap pieces as wall occluders.
+  - Generated `.data/map-authoring-crops/tileset_tent_1_structure_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `StructureTile:tent_1=11`.
+  - Source audit confirms `tent_1` preserved 6 footprint tiles and 4 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on interior furniture, cactus/totems, open red-house door pieces, and beach props.
+
 ### 2026-06-11 10:45 UTC - Manual Tiled Authoring Slice 77
 
 - Status: done

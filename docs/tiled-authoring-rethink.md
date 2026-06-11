@@ -3138,6 +3138,397 @@ Validation evidence:
 - `bun run lint`
 - `git diff --check`
 
+## Execution slice 84 — `totem_shadow` prop tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the next largest unclassified source family, `totem_shadow`.
+- Preserve legacy `type:"totem_shadow"` while adding `PropTile` metadata.
+- Keep all shadow tiles non-colliding and non-footprint.
+- Distinguish the shadow strip from the four neighboring totem body variants.
+
+Before-edit evidence:
+
+- Remaining unclassified source-family inventory showed `totem_shadow` as a 5-tile gap with
+  0 collision tiles and 0 footprint tiles.
+- Visual inspection of `.data/map-authoring-crops/tileset_totem_shadow_before_semantics.png`
+  and `.data/map-authoring-crops/tileset_totem_shadow_with_totems_context_grid.png` showed a
+  standalone vertical dark cast-shadow strip adjacent to the four totem body variants.
+- The strip is not authored as a gameplay obstacle or foreground occluder; it is visual ground
+  shading that should not affect collision, footprint, or entity ordering.
+
+Applied tileset changes:
+
+- Tagged all 5 `totem_shadow` tile records as `class:"PropTile"` while preserving
+  `type:"totem_shadow"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `totem_shadow` tile.
+- Classified every shadow segment as `occlusion_kind=none` with `render_height=0`.
+- Preserved the existing zero collision and zero footprint contract; source check confirmed
+  0 collision tiles and 0 footprint tiles after enrichment.
+- Generated review crop:
+  `.data/map-authoring-crops/tileset_totem_shadow_prop_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 5 `PropTile` records for `totem_shadow`.
+- Source audit confirmed 0 semantic metadata leaks into `totem_shadow` collision objects.
+- Source audit confirmed `totem_shadow` preserved 0 collision tiles and 0 footprint tiles.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Next gap:
+
+- Continue source-asset enrichment on the remaining unclassified totem body and beach prop
+  families.
+
+## Execution slice 83 — `throne` prop tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the next largest unclassified source family, `throne`.
+- Preserve legacy `type:"throne"` while adding `PropTile` metadata.
+- Preserve existing collision objectgroups and `footprint` properties.
+- Treat the throne as a tall furnishing prop with foreground occlusion rather than architectural
+  structure.
+
+Before-edit evidence:
+
+- Remaining unclassified source-family inventory showed `throne` as a 6-tile gap with
+  1 collision tile and 3 footprint tiles.
+- Visual inspection of `.data/map-authoring-crops/tileset_throne_before_semantics.png`
+  showed a red/gold high-backed throne with side posts, seat, and lower base.
+- The high back should participate in foreground/prop occlusion semantics, while existing
+  collision remains limited to the center seat/base tile.
+
+Applied tileset changes:
+
+- Tagged all 6 `throne` tile records as `class:"PropTile"` while preserving `type:"throne"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `throne` tile.
+- Classified the upper high-back row as canopy-like foreground occlusion and the lower seat/base
+  row as trunk/body occlusion.
+- Preserved all existing collision objectgroups and footprint properties; source check confirmed
+  1 collision tile and 3 footprint tiles after enrichment.
+- Generated review crop:
+  `.data/map-authoring-crops/tileset_throne_prop_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 6 `PropTile` records for `throne`.
+- Source audit confirmed 0 semantic metadata leaks into `throne` collision objects.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Next gap:
+
+- Continue source-asset enrichment on the remaining unclassified families, likely totem shadows,
+  totem bodies, and beach props.
+
+## Execution slice 82 — `house_red_door_open` structure tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the next largest unclassified source family, `house_red_door_open`.
+- Preserve legacy `type:"house_red_door_open"` while adding `StructureTile` metadata.
+- Preserve existing collision objectgroups and keep the open center threshold non-colliding.
+- Do not add tileset transition metadata; cross-map linkage remains authored on map door objects.
+
+Before-edit evidence:
+
+- Remaining unclassified source-family inventory showed `house_red_door_open` as a 6-tile gap
+  with 5 collision tiles and 0 footprint tiles.
+- Visual inspection of
+  `.data/map-authoring-crops/tileset_house_red_door_open_before_semantics.png` showed a 3x2
+  open red-house doorway with roof/curtain edges, side walls, and an open dark center threshold.
+- Nearby enriched house families classify doorway pieces as `StructureTile`; map object layers
+  carry actual door/transition linkage.
+
+Applied tileset changes:
+
+- Tagged all 6 `house_red_door_open` tile records as `class:"StructureTile"` while preserving
+  `type:"house_red_door_open"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `house_red_door_open` tile.
+- Classified roof/eave pieces as roof occluders, side jamb/arch pieces as wall occluders, and
+  the center open threshold as non-occluding.
+- Preserved all existing collision objectgroups; source check confirmed 5 collision tiles,
+  0 footprint tiles, and an unblocked `open_threshold` center tile after enrichment.
+- Generated review crop:
+  `.data/map-authoring-crops/tileset_house_red_door_open_structure_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 6 `StructureTile` records for `house_red_door_open`.
+- Source audit confirmed 0 semantic metadata leaks into `house_red_door_open` collision objects.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Next gap:
+
+- Continue source-asset enrichment on the remaining unclassified families, likely throne, totems,
+  and beach props.
+
+## Execution slice 81 — `desk_1` prop tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the next largest unclassified source family, `desk_1`.
+- Preserve legacy `type:"desk_1"` while adding `PropTile` metadata.
+- Preserve existing collision objectgroups and `footprint` properties.
+- Keep standalone desk semantics aligned with the newly enriched `tv_desk_1` furniture family.
+
+Before-edit evidence:
+
+- Remaining unclassified source-family inventory showed `desk_1` as a 6-tile gap with
+  2 collision tiles and 4 footprint tiles.
+- Visual inspection of `.data/map-authoring-crops/tileset_desk_1_before_semantics.png`
+  showed a light two-tile-wide computer/workstation desk with monitor, tabletop, and lower
+  supports.
+- Collision exists on the tabletop/body row, while the lower support row is footprint-only.
+
+Applied tileset changes:
+
+- Tagged all 6 `desk_1` tile records as `class:"PropTile"` while preserving `type:"desk_1"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `desk_1` tile.
+- Classified monitor, tabletop, and base/support pieces as non-occluding furniture prop tiles.
+- Assigned render heights 2, 1, and 0 across upper monitor, tabletop, and base rows.
+- Preserved all existing collision objectgroups and footprint properties; source check confirmed
+  2 collision tiles and 4 footprint tiles after enrichment.
+- Generated review crop:
+  `.data/map-authoring-crops/tileset_desk_1_prop_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 6 `PropTile` records for `desk_1`.
+- Source audit confirmed 0 semantic metadata leaks into `desk_1` collision objects.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Next gap:
+
+- Continue source-asset enrichment on the remaining unclassified families, likely open red-house
+  door pieces, throne, totems, and beach props.
+
+## Execution slice 80 — `cactus_1` prop tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the next largest unclassified source family, `cactus_1`.
+- Preserve legacy `type:"cactus_1"` while adding `PropTile` metadata.
+- Preserve existing collision objectgroups and `footprint` properties.
+- Distinguish cactus body/arms from right-side cast-shadow fragments in source semantics.
+
+Before-edit evidence:
+
+- Remaining unclassified source-family inventory showed `cactus_1` as a 6-tile gap with
+  2 collision tiles and 2 footprint tiles.
+- Visual inspection of `.data/map-authoring-crops/tileset_cactus_1_before_semantics.png`
+  showed a tall saguaro-style cactus with left and right arms, a central trunk, and a gray
+  right-side cast shadow.
+- Collision exists only on the base row, matching the walk-blocking footprint of the cactus body.
+
+Applied tileset changes:
+
+- Tagged all 6 `cactus_1` tile records as `class:"PropTile"` while preserving
+  `type:"cactus_1"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `cactus_1` tile.
+- Classified upper and middle cactus body/arm tiles as trunk occluders with render heights 2 and 1.
+- Classified base/shadow tiles as non-occluding base tiles with `render_height=0`.
+- Preserved all existing collision objectgroups and footprint properties; source check confirmed
+  2 collision tiles and 2 footprint tiles after enrichment.
+- Generated review crop:
+  `.data/map-authoring-crops/tileset_cactus_1_prop_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 6 `PropTile` records for `cactus_1`.
+- Source audit confirmed 0 semantic metadata leaks into `cactus_1` collision objects.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Next gap:
+
+- Continue source-asset enrichment on the remaining unclassified families, likely standalone desks,
+  open red-house door pieces, throne, totems, and beach props.
+
+## Execution slice 79 — `tv_desk_1` prop tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the next largest unclassified source family, `tv_desk_1`.
+- Preserve legacy `type:"tv_desk_1"` while adding `PropTile` metadata.
+- Preserve existing collision objectgroups and `footprint` properties.
+- Treat the TV/desk assembly as interior furniture/prop semantics rather than architectural
+  structure semantics.
+
+Before-edit evidence:
+
+- Remaining unclassified source-family inventory showed `tv_desk_1` as the next largest gap:
+  9 tiles, 3 collision tiles, and 6 footprint tiles.
+- Visual inspection of `.data/map-authoring-crops/tileset_tv_desk_1_before_semantics.png`
+  showed a large dark TV/monitor on a low wooden desk with a small right-side object.
+- The assembly blocks movement only where collision is already authored on the middle row; the
+  bottom desk tiles remain footprint-only and the top screen row remains visual-only.
+
+Applied tileset changes:
+
+- Tagged all 9 `tv_desk_1` tile records as `class:"PropTile"` while preserving
+  `type:"tv_desk_1"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `tv_desk_1` tile.
+- Classified screen, side object, and desk base pieces as non-occluding prop tiles with
+  render heights descending from 2 to 0.
+- Preserved all existing collision objectgroups and footprint properties; source check confirmed
+  3 collision tiles and 6 footprint tiles after enrichment.
+- Generated review crop:
+  `.data/map-authoring-crops/tileset_tv_desk_1_prop_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 9 `PropTile` records for `tv_desk_1`.
+- Source audit confirmed 0 semantic metadata leaks into `tv_desk_1` collision objects.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Next gap:
+
+- Continue source-asset enrichment on the remaining unclassified families, likely cactus/totems,
+  standalone desks, throne, open red-house door pieces, and beach props.
+
+## Execution slice 78 — `tent_1` structure tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Enrich the next largest unclassified source family, `tent_1`.
+- Preserve legacy `type:"tent_1"` while adding `StructureTile` metadata.
+- Preserve existing collision objectgroups and `footprint` properties.
+- Keep runtime collision semantics stable, including the visible open doorway's current non-colliding
+  gap.
+
+Before-edit evidence:
+
+- Remaining unclassified source-family inventory showed `tent_1` as the next largest gap:
+  11 tiles, 4 collision tiles, and 6 footprint tiles.
+- Visual inspection of `.data/map-authoring-crops/tileset_tent_1_before_semantics.png`
+  showed a peaked canvas tent with pale front fabric, a darker rear/right side panel, a visible
+  open doorway, and two bottom flap/base tiles.
+- The tent is a structure-scale authored object rather than a low prop: its upper canvas should
+  participate in roof/wall occlusion semantics, while collision must remain limited to the
+  already-authored blocking canvas tiles.
+
+Applied tileset changes:
+
+- Tagged all 11 `tent_1` tile records as `class:"StructureTile"` while preserving
+  `type:"tent_1"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `tent_1` tile.
+- Classified the top canvas peak and rear upper panel as roof occluders with `render_height=3`.
+- Classified mid/lower canvas body, rear panel, doorway flap/header, and base flaps as wall
+  occluders with descending render heights from 2 to 0.
+- Preserved all existing collision objectgroups and footprint properties; source check confirmed
+  4 collision tiles and 6 footprint tiles after enrichment.
+- Generated review crop:
+  `.data/map-authoring-crops/tileset_tent_1_structure_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 11 `StructureTile` records for `tent_1`.
+- Source audit confirmed 0 semantic metadata leaks into `tent_1` collision objects.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Next gap:
+
+- Continue source-asset enrichment on the remaining unclassified families, likely interior
+  furniture, cactus/totems, open red-house door pieces, and beach props.
+
 ## Execution slice 77 — `large_rock_1` prop tile semantics
 
 Status: complete.
