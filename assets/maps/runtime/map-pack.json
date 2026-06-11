@@ -239933,7 +239933,7 @@
             }
           },
           {
-            "depth": 210,
+            "depth": 211,
             "minTileX": 6,
             "minTileY": 207,
             "maxTileX": 8,
@@ -240004,13 +240004,22 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "well_1",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "well",
+              "biome": "village",
+              "tags": [
+                "village",
+                "well",
+                "structure",
+                "water_source",
+                "landmark"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 211
             }
           },
           {
@@ -240041,17 +240050,25 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "small_rock_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "rock",
+              "biome": "village",
+              "tags": [
+                "village",
+                "rock",
+                "boulder",
+                "obstacle"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 215
             }
           },
           {
-            "depth": 220,
+            "depth": 222,
             "minTileX": 11,
             "minTileY": 214,
             "maxTileX": 18,
@@ -240318,17 +240335,26 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_blue_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_blue_2"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 222
             }
           },
           {
-            "depth": 222,
+            "depth": 224,
             "minTileX": 33,
             "minTileY": 216,
             "maxTileX": 40,
@@ -240595,13 +240621,22 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_blue_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_blue_2"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 224
             }
           },
           {
@@ -240632,13 +240667,21 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "small_rock_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "rock",
+              "biome": "village",
+              "tags": [
+                "village",
+                "rock",
+                "boulder",
+                "obstacle"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 219
             }
           },
           {

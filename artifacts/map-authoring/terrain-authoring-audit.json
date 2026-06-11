@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-11T13:53:38.576Z",
+  "generatedAt": "2026-06-11T14:28:20.980Z",
   "world": "assets/maps/tiled/world.json",
   "tileset": "assets/maps/tiled/tilesheet.wang.tsj",
   "findings": [
@@ -2994,9 +2994,230 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2045,
-        "x": 74,
-        "y": 202,
+        "objectId": 2252,
+        "x": 3,
+        "y": 222,
+        "gid": 257
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2253,
+        "x": 4,
+        "y": 222,
+        "gid": 258
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2254,
+        "x": 24,
+        "y": 222,
+        "gid": 204
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2255,
+        "x": 25,
+        "y": 222,
+        "gid": 205
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2256,
+        "x": 29,
+        "y": 222,
+        "gid": 209
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2257,
+        "x": 30,
+        "y": 222,
+        "gid": 210
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2258,
+        "x": 31,
+        "y": 222,
+        "gid": 211
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2266,
+        "x": 3,
+        "y": 223,
+        "gid": 277
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2267,
+        "x": 4,
+        "y": 223,
+        "gid": 278
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2268,
+        "x": 24,
+        "y": 223,
+        "gid": 224
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2269,
+        "x": 30,
+        "y": 223,
+        "gid": 230
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2270,
+        "x": 31,
+        "y": 223,
+        "gid": 231
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2279,
+        "x": 31,
+        "y": 224,
+        "gid": 251
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/village_biome/houses",
+        "objectId": 2280,
+        "x": 24,
+        "y": 226,
         "gid": 284
       },
       "evidence": [
@@ -3011,9 +3232,9 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2046,
-        "x": 76,
-        "y": 202,
+        "objectId": 2281,
+        "x": 26,
+        "y": 226,
         "gid": 286
       },
       "evidence": [
@@ -3028,9 +3249,9 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2047,
-        "x": 77,
-        "y": 202,
+        "objectId": 2282,
+        "x": 27,
+        "y": 226,
         "gid": 287
       },
       "evidence": [
@@ -3045,9 +3266,9 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2048,
-        "x": 78,
-        "y": 202,
+        "objectId": 2283,
+        "x": 28,
+        "y": 226,
         "gid": 288
       },
       "evidence": [
@@ -3062,9 +3283,9 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2049,
-        "x": 79,
-        "y": 202,
+        "objectId": 2284,
+        "x": 29,
+        "y": 226,
         "gid": 289
       },
       "evidence": [
@@ -3079,9 +3300,9 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2066,
-        "x": 74,
-        "y": 203,
+        "objectId": 2285,
+        "x": 24,
+        "y": 227,
         "gid": 304
       },
       "evidence": [
@@ -3096,9 +3317,9 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2067,
-        "x": 76,
-        "y": 203,
+        "objectId": 2286,
+        "x": 26,
+        "y": 227,
         "gid": 306
       },
       "evidence": [
@@ -3113,9 +3334,9 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2068,
-        "x": 77,
-        "y": 203,
+        "objectId": 2287,
+        "x": 27,
+        "y": 227,
         "gid": 307
       },
       "evidence": [
@@ -3130,9 +3351,9 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2069,
-        "x": 78,
-        "y": 203,
+        "objectId": 2288,
+        "x": 28,
+        "y": 227,
         "gid": 308
       },
       "evidence": [
@@ -3147,9 +3368,9 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2070,
-        "x": 79,
-        "y": 203,
+        "objectId": 2289,
+        "x": 29,
+        "y": 227,
         "gid": 309
       },
       "evidence": [
@@ -3164,10 +3385,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2086,
-        "x": 76,
-        "y": 204,
-        "gid": 326
+        "objectId": 2290,
+        "x": 18,
+        "y": 228,
+        "gid": 219
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3181,231 +3402,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2087,
-        "x": 77,
-        "y": 204,
-        "gid": 327
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2088,
-        "x": 78,
-        "y": 204,
-        "gid": 328
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2089,
-        "x": 79,
-        "y": 204,
-        "gid": 329
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2110,
-        "x": 74,
-        "y": 205,
-        "gid": 344
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2111,
-        "x": 76,
-        "y": 205,
-        "gid": 1661
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2112,
-        "x": 77,
-        "y": 205,
-        "gid": 1662
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2113,
-        "x": 78,
-        "y": 205,
-        "gid": 1663
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2114,
-        "x": 79,
-        "y": 205,
-        "gid": 349
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2120,
-        "x": 48,
-        "y": 206,
-        "gid": 384
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2121,
-        "x": 49,
-        "y": 206,
-        "gid": 385
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2122,
-        "x": 50,
-        "y": 206,
-        "gid": 386
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2123,
-        "x": 51,
-        "y": 206,
-        "gid": 387
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2124,
-        "x": 52,
-        "y": 206,
-        "gid": 388
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/village_biome/houses",
-        "objectId": 2125,
-        "x": 53,
-        "y": 206,
-        "gid": 389
+        "objectId": 2291,
+        "x": 19,
+        "y": 228,
+        "gid": 220
       },
       "evidence": [
         "missing name/type/class/template/properties"

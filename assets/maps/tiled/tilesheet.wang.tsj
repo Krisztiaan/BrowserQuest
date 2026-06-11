@@ -8207,7 +8207,41 @@
                 }
                 ],
          "type":"well_1"
-        }, 
+        },
+        {
+         "id":282,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"blank_right_roof_peak"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
+         "type":"well_1"
+        },
         {
          "id":270,
          "class":"StructureTile",
@@ -9168,7 +9202,41 @@
                 }
                 ],
          "type":"well_1"
-        }, 
+        },
+        {
+         "id":302,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"blank_right_roof_eave"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
+         "type":"well_1"
+        },
         {
          "id":290,
          "class":"StructureTile",
