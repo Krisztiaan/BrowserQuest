@@ -991,6 +991,50 @@
       "useAs": [
         "tile"
       ]
+    },
+    {
+      "color": "#fffce94f",
+      "id": 226,
+      "members": [
+        {
+          "name": "asset_family",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "asset_part",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "tile_kind",
+          "propertyType": "TileKind",
+          "type": "string",
+          "value": "transition"
+        },
+        {
+          "name": "occlusion_kind",
+          "propertyType": "TileOcclusionKind",
+          "type": "string",
+          "value": "none"
+        },
+        {
+          "name": "transition_kind",
+          "propertyType": "TransitionKind",
+          "type": "string",
+          "value": "ladder"
+        },
+        {
+          "name": "render_height",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "TransitionTile",
+      "type": "class",
+      "useAs": [
+        "tile"
+      ]
     }
   ]
 }

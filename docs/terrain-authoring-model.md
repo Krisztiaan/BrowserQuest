@@ -40,17 +40,28 @@ Renderable prop tiles can use `class: PropTile` to carry editor and runtime-faci
 - `occlusion_kind`: typed `TileOcclusionKind` enum such as `canopy`, `trunk`, or `none`
 - `render_height`: non-negative integer rows above the prop base
 
-The first enriched prop families are `tree_1`, `dead_tree_3`, and `palm_tree_1`.
-Canopy/branch/frond rows are tagged as canopy occluders with descending render heights, trunk/root
-rows carry trunk occlusion, and transparent padding, sparse ground-anchor, or shadow tiles are
-explicitly non-occluding. The terrain authoring audit rejects incomplete prop tile metadata,
-untyped semantic enums, asset-family/type mismatches, and negative render heights.
+The first enriched prop families are `tree_1`, `dead_tree_1`, `dead_tree_3`, `palm_tree_1`,
+`skull_deco`, `small_rock_1`, and `bones_1`. Canopy/branch/frond rows are tagged as canopy
+occluders with descending render heights, trunk/root rows carry trunk occlusion, and transparent
+padding, sparse ground-anchor, shadow, stump fragments, bone, skull, low-rock, and
+skeletal-remains tiles are explicitly non-occluding. The terrain authoring audit rejects
+incomplete prop tile metadata, untyped semantic enums, asset-family/type mismatches, and negative
+render heights.
 
 Structure tiles use the same semantic property set with `class: StructureTile` and
-`tile_kind=structure`. The first enriched structure families are `house_blue_2` and
-`house_red_1`; roof rows are tagged as roof occluders with higher render heights,
-wall/foundation/entry rows are tagged as wall occluders, and blank padding tiles are explicitly
-non-occluding. The audit validates both `PropTile` and `StructureTile` records through the same
-semantic-tile contract while checking that the tile class and `tile_kind` agree.
+`tile_kind=structure`. The first enriched structure families are `house_blue_2`, `house_red_1`,
+`house_blue`, `pillar`, `ruin_hut_1`, `ruin_hut_2`, and `open_hut_1`; roof rows are tagged as
+roof occluders with higher render heights, wall/foundation/entry/pillar/ruin-hut rows are tagged
+as wall occluders, and blank padding, interior shadow, base shadow, or cast-shadow tiles are explicitly non-occluding. Large source
+buildings can use render heights above the earlier compact-house range when the authored source
+block is taller. The audit validates `PropTile`, `StructureTile`, and `TransitionTile` records
+through the same semantic-tile contract while checking that the tile class and `tile_kind` agree.
+
+Transition art tiles use `class: TransitionTile` when the visible tile is part of a gameplay
+transition affordance rather than terrain or decoration. They use the same semantic property set
+plus `transition_kind`, a typed `TransitionKind` enum. The first enriched transition families are
+`ladder_hole_1` and `ladder_hole_2`; ladder/rim tiles carry `render_height=1`, opening shadow
+tiles carry `render_height=0`, and all currently remain non-occluding. The audit requires typed
+`transition_kind` metadata for `TransitionTile` records and checks that `tile_kind=transition`.
 
 Stardew-style reference assets under `/Users/krisztiaan/dev/stardew-assets/Maps` are used only to study organization: seasonal outdoor sheets, focused path and overlay sheets, shadows, water, cliffs, and building chunks. BrowserQuest must use its own assets or newly authored/generated assets.

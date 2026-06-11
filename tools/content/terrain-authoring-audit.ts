@@ -33,7 +33,9 @@ const requiredSemanticTileProperties = ['asset_family', 'asset_part', 'tile_kind
 const semanticTileClasses: ReadonlyMap<string, string> = new Map([
     ['PropTile', 'prop'],
     ['StructureTile', 'structure'],
+    ['TransitionTile', 'transition'],
 ] as const);
+const semanticTileExtraProperties: ReadonlyMap<string, readonly string[]> = new Map([['TransitionTile', ['transition_kind']]] as const);
 
 function asRecord(value: unknown): UnknownRecord | null {
     return value && typeof value === 'object' && !Array.isArray(value) ? value as UnknownRecord : null;
@@ -417,17 +419,20 @@ export function findTilesetTileSemanticFindings(tilesetRoot: UnknownRecord, tile
         .filter((entry): entry is UnknownRecord => entry !== null)) {
         const tileClass = asString(tile.class);
         const expectedTileKind = tileClass ? semanticTileClasses.get(tileClass) : undefined;
-        if (!expectedTileKind) {
+        if (!tileClass || !expectedTileKind) {
             continue;
         }
+        const semanticTileClass: string = tileClass;
         const tileId = asInteger(tile.id);
         const legacyType = asString(tile.type)?.trim();
         const props = new Map(getProperties(tile).map((property) => [asString(property.name), property]));
-        const missing = requiredSemanticTileProperties.filter((propertyName) => !props.has(propertyName));
+        const requiredProperties = [...requiredSemanticTileProperties, ...(semanticTileExtraProperties.get(semanticTileClass) ?? [])];
+        const missing = requiredProperties.filter((propertyName) => !props.has(propertyName));
         const assetFamily = asString(props.get('asset_family')?.value)?.trim();
         const assetPart = asString(props.get('asset_part')?.value)?.trim();
         const tileKind = asString(props.get('tile_kind')?.value)?.trim();
         const occlusionKind = asString(props.get('occlusion_kind')?.value)?.trim();
+        const transitionKind = asString(props.get('transition_kind')?.value)?.trim();
         const renderHeight = asInteger(props.get('render_height')?.value);
         if (missing.length > 0 || !assetFamily || !assetPart || !tileKind || !occlusionKind || renderHeight === null) {
             findings.push(
@@ -445,6 +450,7 @@ export function findTilesetTileSemanticFindings(tilesetRoot: UnknownRecord, tile
                         `asset_part=${assetPart ?? '<missing>'}`,
                         `tile_kind=${tileKind ?? '<missing>'}`,
                         `occlusion_kind=${occlusionKind ?? '<missing>'}`,
+                        `transition_kind=${transitionKind ?? '<missing>'}`,
                         `render_height=${renderHeight ?? '<missing>'}`,
                     ],
                 })
@@ -466,19 +472,26 @@ export function findTilesetTileSemanticFindings(tilesetRoot: UnknownRecord, tile
         }
         const tileKindProperty = props.get('tile_kind');
         const occlusionKindProperty = props.get('occlusion_kind');
-        if (asString(tileKindProperty?.propertytype) !== 'TileKind' || asString(occlusionKindProperty?.propertytype) !== 'TileOcclusionKind') {
+        const transitionKindProperty = props.get('transition_kind');
+        const transitionKindUntyped = semanticTileClass === 'TransitionTile' && asString(transitionKindProperty?.propertytype) !== 'TransitionKind';
+        if (
+            asString(tileKindProperty?.propertytype) !== 'TileKind' ||
+            asString(occlusionKindProperty?.propertytype) !== 'TileOcclusionKind' ||
+            transitionKindUntyped
+        ) {
             findings.push(
                 finding({
                     id: 'TILE_SEMANTIC_ENUM_UNTYPED',
                     severity: 'medium',
                     category: 'asset_reference',
                     title: 'Tile semantic enum is not typed',
-                    detail: 'tile_kind and occlusion_kind should be backed by Tiled enum property types, not free-form strings.',
+                    detail: 'Semantic tile enums should be backed by Tiled enum property types, not free-form strings.',
                     location: { tileset: tilesetPath, tileId: tileId ?? undefined },
                     evidence: [
                         `class=${tileClass}`,
                         `tile_kind_propertytype=${asString(tileKindProperty?.propertytype) ?? '<none>'}`,
                         `occlusion_kind_propertytype=${asString(occlusionKindProperty?.propertytype) ?? '<none>'}`,
+                        `transition_kind_propertytype=${asString(transitionKindProperty?.propertytype) ?? '<none>'}`,
                     ],
                 })
             );

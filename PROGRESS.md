@@ -18,6 +18,314 @@ This is the live execution notebook for `PLAN.md`.
 
 ## Ticket Log
 
+### 2026-06-11 02:35 UTC - Manual Tiled Authoring Slice 71
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `open_hut_1`.
+  - Preserve legacy `type:"open_hut_1"` while adding `StructureTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 15 `open_hut_1` records carry complete typed `StructureTile` metadata.
+  - Existing `open_hut_1` collision and footprint counts remain 8 and 9.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_open_hut_1_before_semantics.png`.
+  - Tagged 15 `open_hut_1` tile records as `StructureTile`.
+  - Classified roof/gable pieces as roof, posts as wall, and interior/threshold pieces as non-occluding.
+  - Generated `.data/map-authoring-crops/tileset_open_hut_1_structure_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `StructureTile:open_hut_1=15`.
+  - Source audit confirms `open_hut_1` preserved 9 footprint tiles and 8 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on `dead_tree_2`, `tube_1`, `bones_2`, and rock/well/tent/interior furniture groups.
+
+### 2026-06-11 02:15 UTC - Manual Tiled Authoring Slice 70
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `ruin_hut_2`.
+  - Preserve legacy `type:"ruin_hut_2"` while adding `StructureTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 18 `ruin_hut_2` records carry complete typed `StructureTile` metadata.
+  - Existing `ruin_hut_2` collision and footprint counts remain 6 and 9.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_ruin_hut_2_before_semantics.png`.
+  - Tagged 18 `ruin_hut_2` tile records as `StructureTile`.
+  - Classified broken roof/gable pieces as roof, damaged wall/door/post pieces as wall, and lower base-shadow pieces as non-occluding.
+  - Generated `.data/map-authoring-crops/tileset_ruin_hut_2_structure_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `StructureTile:ruin_hut_2=18`.
+  - Source audit confirms `ruin_hut_2` preserved 9 footprint tiles and 6 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on the remaining unclassified families, likely `open_hut_1`, `dead_tree_2`, `tube_1`, `bones_2`, and rock/well/tent/interior furniture groups.
+
+### 2026-06-11 01:55 UTC - Manual Tiled Authoring Slice 69
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `ruin_hut_1`.
+  - Preserve legacy `type:"ruin_hut_1"` while adding `StructureTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 18 `ruin_hut_1` records carry complete typed `StructureTile` metadata.
+  - Existing `ruin_hut_1` collision and footprint counts remain 6 and 9.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_ruin_hut_1_before_semantics.png`.
+  - Tagged 18 `ruin_hut_1` tile records as `StructureTile`.
+  - Classified roof/gable pieces as roof, wall/door/post pieces as wall, and lower base-shadow pieces as non-occluding.
+  - Generated `.data/map-authoring-crops/tileset_ruin_hut_1_structure_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `StructureTile:ruin_hut_1=18`.
+  - Source audit confirms `ruin_hut_1` preserved 9 footprint tiles and 6 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on the remaining unclassified families, likely `ruin_hut_2`, `open_hut_1`, `dead_tree_2`, `tube_1`, `bones_2`, and rock/well/tent/interior furniture groups.
+
+### 2026-06-11 01:35 UTC - Manual Tiled Authoring Slice 68
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `pillar`.
+  - Preserve legacy `type:"pillar"` while adding `StructureTile` metadata.
+  - Preserve the existing collision objectgroup.
+- Acceptance criteria:
+  - All 19 `pillar` records carry complete typed `StructureTile` metadata.
+  - Existing `pillar` collision and footprint counts remain 1 and 0.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_pillar_before_semantics.png`.
+  - Tagged 19 `pillar` tile records as `StructureTile`.
+  - Classified visible stone pillar parts as wall-occluding structure tiles and cast-shadow parts as non-occluding.
+  - Generated `.data/map-authoring-crops/tileset_pillar_structure_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `StructureTile:pillar=19`.
+  - Source audit confirms `pillar` preserved 0 footprint tiles and 1 collision tile, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on the remaining unclassified families, likely `ruin_hut_1`, `ruin_hut_2`, `open_hut_1`, `dead_tree_2`, `tube_1`, `bones_2`, and rock/well/tent/interior furniture groups.
+
+### 2026-06-11 01:15 UTC - Manual Tiled Authoring Slice 67
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `dead_tree_1`.
+  - Preserve legacy `type:"dead_tree_1"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 20 `dead_tree_1` records carry complete typed `PropTile` metadata.
+  - Existing `dead_tree_1` collision and footprint counts remain 2 and 6.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_dead_tree_1_before_semantics.png`.
+  - Tagged 20 `dead_tree_1` tile records as `PropTile`.
+  - Classified upper branches as canopy, trunk/root tiles as trunk, and stump fragments as non-occluding.
+  - Generated `.data/map-authoring-crops/tileset_dead_tree_1_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:dead_tree_1=20`.
+  - Source audit confirms `dead_tree_1` preserved 6 footprint tiles and 2 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on the remaining unclassified families, likely `pillar`, `ruin_hut_1`, `ruin_hut_2`, `open_hut_1`, `dead_tree_2`, `tube_1`, `bones_2`, and rock/well/tent/interior furniture groups.
+
+### 2026-06-11 00:55 UTC - Manual Tiled Authoring Slice 66
+
+- Status: done
+- Scope:
+  - Enrich the largest remaining unclassified prop/source family after `house_blue`, `bones_1`.
+  - Preserve legacy `type:"bones_1"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 24 `bones_1` records carry complete typed `PropTile` metadata.
+  - Existing `bones_1` collision and footprint counts remain 4 and 17.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_bones_1_before_semantics.png`.
+  - Tagged 24 `bones_1` tile records as `PropTile`.
+  - Classified horn/rib/spine/fragment parts as non-occluding skeletal-remains prop tiles with render heights 6 down to 0.
+  - Generated `.data/map-authoring-crops/tileset_bones_1_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:bones_1=24`.
+  - Source audit confirms `bones_1` preserved 17 footprint tiles and 4 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on the remaining unclassified families, likely `dead_tree_1`, `pillar`, `ruin_hut_1`, `ruin_hut_2`, `open_hut_1`, `dead_tree_2`, `tube_1`, `bones_2`, and rock/well/tent/interior furniture groups.
+
+### 2026-06-11 00:35 UTC - Manual Tiled Authoring Slice 65
+
+- Status: done
+- Scope:
+  - Enrich the largest remaining unclassified source asset family, `house_blue`.
+  - Preserve legacy `type:"house_blue"` while adding `StructureTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 71 `house_blue` records carry complete typed `StructureTile` metadata.
+  - Existing `house_blue` collision and footprint counts remain 30 and 36.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_house_blue_before_semantics.png`.
+  - Tagged 71 `house_blue` tile records as `StructureTile`.
+  - Classified roof, wall/facade/foundation, and blank tiles with render heights 9 down to 0.
+  - Generated `.data/map-authoring-crops/tileset_house_blue_structure_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `StructureTile:house_blue=71`, alongside `house_blue_2=60` and `house_red_1=60`.
+  - Source audit confirms `house_blue` preserved 36 footprint tiles and 30 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on the remaining unclassified families, likely `bones_1`, `dead_tree_1`, `pillar`, `ruin_hut_1`, `ruin_hut_2`, `open_hut_1`, `dead_tree_2`, and rock/well/tent/interior furniture groups.
+
+### 2026-06-11 00:15 UTC - Manual Tiled Authoring Slice 64
+
+- Status: done
+- Scope:
+  - Clear the remaining untagged typed tile families that are currently placed in authored maps.
+  - Preserve legacy `type:"skull_deco"` and `type:"small_rock_1"` while adding `PropTile` metadata.
+  - Preserve existing `small_rock_1` collision and `footprint` metadata.
+- Acceptance criteria:
+  - All placed typed tile families in authored maps have semantic tile classes.
+  - `skull_deco` and `small_rock_1` records carry complete typed `PropTile` metadata.
+  - Tile 97 keeps collision object metadata and `footprint=true`.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_skull_deco_before_semantics.png` and `.data/map-authoring-crops/tileset_small_rock_1_before_semantics.png`.
+  - Tagged 3 `skull_deco` tiles and 2 `small_rock_1` tiles as `PropTile`.
+  - Verified tile 97 semantic properties live at tile scope while its nested `CollisionShape` keeps only collision properties.
+  - Generated `.data/map-authoring-crops/tileset_skull_deco_prop_tile_semantics.png` and `.data/map-authoring-crops/tileset_small_rock_1_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Authored map placement inventory reports `[]` for untagged typed tile families.
+  - Source audit confirms `PropTile:small_rock_1=2` and `PropTile:skull_deco=3`.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000`: pass, 15 pass / 0 fail.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment beyond currently placed families: `house_blue`, `dead_tree_1`, `dead_tree_2`, rocks, tents, bones, huts, wells, totems, cactus, beach props, and interior furniture.
+
+### 2026-06-11 00:00 UTC - Manual Tiled Authoring Slice 63
+
+- Status: done
+- Scope:
+  - Add a semantic tile class for ladder-hole transition affordances.
+  - Preserve legacy `type:"ladder_hole_1"` and `type:"ladder_hole_2"` values while adding typed metadata.
+  - Validate the new class contract in the terrain authoring audit.
+- Acceptance criteria:
+  - `TransitionTile` exists in the Tiled project and uses existing `TileKind=transition` and `TransitionKind=ladder` enums.
+  - All 8 ladder-hole tile records carry complete semantic metadata.
+  - The terrain authoring audit rejects missing or untyped transition metadata.
+  - Map build/runtime validation remains unchanged in behavior.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_ladder_holes_before_semantics.png` to inspect the two ladder-hole assemblies.
+  - Added `TransitionTile` to `assets/maps/tiled/browserquest.tiled-project`.
+  - Extended `tools/content/terrain-authoring-audit.ts` and `tests/unit/terrain-authoring-audit.test.ts` for transition semantic tiles.
+  - Tagged `ladder_hole_1` and `ladder_hole_2` tile records in `assets/maps/tiled/tilesheet.wang.tsj`.
+  - Generated `.data/map-authoring-crops/tileset_ladder_holes_transition_tile_semantics.png` for review.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms 8 `TransitionTile` records total: 4 `ladder_hole_1` and 4 `ladder_hole_2`.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000`: pass, 15 pass / 0 fail.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue semantic tile classes on the remaining untagged placed tiles (`skull_deco`, `small_rock_1`) and broader source families (`house_blue`, `dead_tree_1`, `dead_tree_2`, rocks, tents, bones, huts, wells, and interior furniture).
+
 ### 2026-06-10 11:00 - Ticket 0.1 Restore Formatting Baseline
 
 - Status: done

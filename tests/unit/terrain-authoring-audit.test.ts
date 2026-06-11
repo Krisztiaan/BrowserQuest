@@ -229,7 +229,20 @@ test('terrain authoring audit reports prop tiles without semantic metadata', () 
     expect(finding?.evidence.join(';')).toContain('missing=asset_family,asset_part,tile_kind,occlusion_kind,render_height');
 });
 
-test('terrain authoring audit accepts typed prop and structure tile metadata', () => {
+test('terrain authoring audit reports transition tiles without transition metadata', () => {
+    const findings = findTilesetTileSemanticFindings(
+        {
+            tiles: [{ id: 1833, class: 'TransitionTile', type: 'ladder_hole_1' }],
+        },
+        'fixture.tsj'
+    );
+
+    const finding = findings.find((entry) => entry.id === 'TILE_SEMANTIC_METADATA_MISSING');
+    expect(finding?.severity).toBe('medium');
+    expect(finding?.evidence.join(';')).toContain('missing=asset_family,asset_part,tile_kind,occlusion_kind,render_height,transition_kind');
+});
+
+test('terrain authoring audit accepts typed prop, structure, and transition tile metadata', () => {
     const findings = findTilesetTileSemanticFindings(
         {
             tiles: [
@@ -255,6 +268,19 @@ test('terrain authoring audit accepts typed prop and structure tile metadata', (
                         { name: 'tile_kind', propertytype: 'TileKind', value: 'structure' },
                         { name: 'occlusion_kind', propertytype: 'TileOcclusionKind', value: 'roof' },
                         { name: 'render_height', value: 6 },
+                    ],
+                },
+                {
+                    id: 1833,
+                    class: 'TransitionTile',
+                    type: 'ladder_hole_1',
+                    properties: [
+                        { name: 'asset_family', value: 'ladder_hole_1' },
+                        { name: 'asset_part', value: 'ladder_top_rim' },
+                        { name: 'tile_kind', propertytype: 'TileKind', value: 'transition' },
+                        { name: 'occlusion_kind', propertytype: 'TileOcclusionKind', value: 'none' },
+                        { name: 'transition_kind', propertytype: 'TransitionKind', value: 'ladder' },
+                        { name: 'render_height', value: 1 },
                     ],
                 },
             ],
@@ -315,6 +341,33 @@ test('terrain authoring audit rejects tile kind that disagrees with semantic til
     const finding = findings.find((entry) => entry.id === 'TILE_SEMANTIC_KIND_MISMATCH');
     expect(finding?.severity).toBe('medium');
     expect(finding?.evidence.join(';')).toContain('expected=structure');
+});
+
+test('terrain authoring audit rejects untyped transition tile enum metadata', () => {
+    const findings = findTilesetTileSemanticFindings(
+        {
+            tiles: [
+                {
+                    id: 1833,
+                    class: 'TransitionTile',
+                    type: 'ladder_hole_1',
+                    properties: [
+                        { name: 'asset_family', value: 'ladder_hole_1' },
+                        { name: 'asset_part', value: 'ladder_top_rim' },
+                        { name: 'tile_kind', propertytype: 'TileKind', value: 'transition' },
+                        { name: 'occlusion_kind', propertytype: 'TileOcclusionKind', value: 'none' },
+                        { name: 'transition_kind', value: 'ladder' },
+                        { name: 'render_height', value: 1 },
+                    ],
+                },
+            ],
+        },
+        'fixture.tsj'
+    );
+
+    const finding = findings.find((entry) => entry.id === 'TILE_SEMANTIC_ENUM_UNTYPED');
+    expect(finding?.severity).toBe('medium');
+    expect(finding?.evidence.join(';')).toContain('transition_kind_propertytype=<none>');
 });
 
 test('terrain authoring audit requires map-level authoring properties', () => {
