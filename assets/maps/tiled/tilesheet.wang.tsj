@@ -572,7 +572,7 @@
                 }
                 ],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":45,
          "class":"StructureTile",
@@ -606,7 +606,7 @@
                 }
                 ],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":46,
          "class":"StructureTile",
@@ -640,7 +640,7 @@
                 }
                 ],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":47,
          "class":"StructureTile",
@@ -674,7 +674,7 @@
                 }
                 ],
          "type":"house_blue_2"
-        }, 
+        },
         {
          "id":48,
          "class":"StructureTile",
@@ -2793,7 +2793,7 @@
                  "name":"collider",
                  "type":"bool",
                  "value":true
-                }, 
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -2881,7 +2881,7 @@
                  "name":"collider",
                  "type":"bool",
                  "value":true
-                }, 
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -5592,6 +5592,39 @@
          "type":"tent_1"
         }, 
         {
+         "id":202,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tent_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_shadow_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }],
+         "type":"tent_1"
+        },
+        {
          "id":205,
          "class":"StructureTile",
          "properties":[
@@ -5692,7 +5725,7 @@
                 }
                 ],
          "type":"house_red_1"
-        }, 
+        },
         {
          "id":212,
          "class":"PropTile",
@@ -5896,7 +5929,7 @@
                 }
                 ],
          "type":"house_red_1"
-        }, 
+        },
         {
          "id":226,
          "class":"StructureTile",
@@ -5930,7 +5963,7 @@
                 }
                 ],
          "type":"house_red_1"
-        }, 
+        },
         {
          "id":227,
          "class":"StructureTile",
@@ -5964,7 +5997,7 @@
                 }
                 ],
          "type":"house_red_1"
-        }, 
+        },
         {
          "id":228,
          "class":"StructureTile",
@@ -9109,6 +9142,72 @@
                 }],
          "type":"house_red_1"
         }, 
+        {
+         "id":311,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tree_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"root_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }],
+         "type":"tree_1"
+        },
+        {
+         "id":312,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tree_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"root_right_shadow"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }],
+         "type":"tree_1"
+        },
         {
          "id":313,
          "class":"PropTile",
@@ -14031,14 +14130,73 @@
         }, 
         {
          "id":480,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_umbrella"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"canopy_upper_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
          "type":"beach_umbrella"
         }, 
         {
          "id":481,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_umbrella"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"canopy_upper_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
          "type":"beach_umbrella"
         }, 
         {
          "id":500,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -14086,14 +14244,42 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_umbrella"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"pole_and_shadow"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"beach_umbrella"
-        }, 
+        },
         {
          "id":501,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -14141,12 +14327,39 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_umbrella"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"canopy_lower_right_shadow"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"beach_umbrella"
-        }, 
+        },
         {
          "id":600,
          "class":"StructureTile",
@@ -14180,7 +14393,7 @@
                 }
                 ],
          "type":"ruin_hut_2"
-        }, 
+        },
         {
          "id":601,
          "class":"StructureTile",
@@ -14214,7 +14427,7 @@
                 }
                 ],
          "type":"ruin_hut_2"
-        }, 
+        },
         {
          "id":602,
          "class":"StructureTile",
@@ -14254,17 +14467,17 @@
                 {
                  "duration":500,
                  "tileid":605
-                }, 
+                },
                 {
                  "duration":500,
                  "tileid":606
-                }, 
+                },
                 {
                  "duration":500,
                  "tileid":607
                 }],
          "id":605
-        }, 
+        },
         {
          "id":610,
          "objectgroup":
@@ -16675,20 +16888,136 @@
         }, 
         {
          "id":700,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"cap_and_head"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }],
          "type":"totem_1"
         }, 
         {
          "id":701,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"cap_and_head"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }],
          "type":"totem_2"
-        }, 
+        },
         {
          "id":702,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_3"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"cap_and_head"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }],
          "type":"totem_3"
-        }, 
+        },
         {
          "id":703,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_4"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"cap_and_head"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }],
          "type":"totem_4"
-        }, 
+        },
         {
          "id":704,
          "class":"PropTile",
@@ -16722,7 +17051,7 @@
                 }
                 ],
          "type":"totem_shadow"
-        }, 
+        },
         {
          "animation":[
                 {
@@ -16732,11 +17061,11 @@
                 {
                  "duration":100,
                  "tileid":706
-                }, 
+                },
                 {
                  "duration":100,
                  "tileid":707
-                }, 
+                },
                 {
                  "duration":100,
                  "tileid":708
@@ -16866,20 +17195,136 @@
         }, 
         {
          "id":720,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_carved_body"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }],
          "type":"totem_1"
         }, 
         {
          "id":721,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_carved_body"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }],
          "type":"totem_2"
-        }, 
+        },
         {
          "id":722,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_3"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_carved_body"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }],
          "type":"totem_3"
-        }, 
+        },
         {
          "id":723,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_4"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_carved_body"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }],
          "type":"totem_4"
-        }, 
+        },
         {
          "id":724,
          "class":"PropTile",
@@ -16913,7 +17358,7 @@
                 }
                 ],
          "type":"totem_shadow"
-        }, 
+        },
         {
          "animation":[
                 {
@@ -16980,7 +17425,41 @@
             }
         }, 
         {
+         "id":735,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_fence"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"post_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
+         "type":"beach_fence"
+        },
+        {
          "id":736,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17025,10 +17504,40 @@
              "visible":true,
              "x":0,
              "y":0
-            }
+            },
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_fence"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"rail_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
+         "type":"beach_fence"
         }, 
         {
          "id":737,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17073,10 +17582,40 @@
              "visible":true,
              "x":0,
              "y":0
-            }
+            },
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_fence"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"post_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
+         "type":"beach_fence"
         }, 
         {
          "id":738,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17121,24 +17660,202 @@
              "visible":true,
              "x":0,
              "y":0
-            }
-        }, 
+            },
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_fence"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"rail_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
+         "type":"beach_fence"
+        },
+        {
+         "id":739,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_fence"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"post_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
+         "type":"beach_fence"
+        },
         {
          "id":740,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_carved_body"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
          "type":"totem_1"
-        }, 
+        },
         {
          "id":741,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_carved_body"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
          "type":"totem_2"
-        }, 
+        },
         {
          "id":742,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_3"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_carved_body"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
          "type":"totem_3"
-        }, 
+        },
         {
          "id":743,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_4"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_carved_body"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }],
          "type":"totem_4"
-        }, 
+        },
         {
          "id":744,
          "class":"PropTile",
@@ -17172,19 +17889,19 @@
                 }
                 ],
          "type":"totem_shadow"
-        }, 
+        },
         {
          "animation":[
                 {
                  "duration":500,
                  "tileid":747
-                }, 
+                },
                 {
                  "duration":500,
                  "tileid":748
                 }],
          "id":747
-        }, 
+        },
         {
          "id":756,
          "class":"PropTile",
@@ -17252,7 +17969,7 @@
                 }
                 ],
          "type":"large_rock_1"
-        }, 
+        },
         {
          "id":758,
          "class":"PropTile",
@@ -17289,6 +18006,7 @@
         },
         {
          "id":760,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17335,15 +18053,43 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"totem_1"
-        }, 
+        },
         {
          "id":761,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17390,15 +18136,43 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"totem_2"
-        }, 
+        },
         {
          "id":762,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17446,14 +18220,42 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_3"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"totem_3"
-        }, 
+        },
         {
          "id":763,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17500,6 +18302,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"totem_4"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -39603,6 +40432,39 @@
          "type":"palm_tree_1"
         },
         {
+         "id":1825,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_shell"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"shell_fan"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }],
+         "type":"beach_shell"
+        },
+        {
          "id":1833,
          "class":"TransitionTile",
          "properties":[
@@ -39743,6 +40605,39 @@
                 }
                 ],
          "type":"palm_tree_1"
+        },
+        {
+         "id":1845,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"beach_shell"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"shell"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }],
+         "type":"beach_shell"
         },
         {
          "id":1852,
@@ -41068,6 +41963,39 @@
                 ],
          "type":"open_hut_1"
         }, 
+        {
+         "id":1900,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"palm_tree_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"trunk_base_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }],
+         "type":"palm_tree_1"
+        },
         {
          "id":1901,
          "class":"PropTile",

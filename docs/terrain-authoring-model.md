@@ -41,7 +41,7 @@ Renderable prop tiles can use `class: PropTile` to carry editor and runtime-faci
 - `render_height`: non-negative integer rows above the prop base
 
 The first enriched prop families are `tree_1`, `dead_tree_1`, `dead_tree_2`, `dead_tree_3`,
-`palm_tree_1`, `tube_1`, `skull_deco`, `small_rock_1`, `large_rock_1`, `large_rock_2`, `bones_1`, `bones_2`, `tv_desk_1`, `desk_1`, `throne`, `cactus_1`, and `totem_shadow`. Canopy/branch/frond rows are tagged as canopy
+`palm_tree_1`, `tube_1`, `skull_deco`, `small_rock_1`, `large_rock_1`, `large_rock_2`, `bones_1`, `bones_2`, `tv_desk_1`, `desk_1`, `throne`, `cactus_1`, `beach_umbrella`, `totem_1`, `totem_2`, `totem_3`, `totem_4`, and `totem_shadow`. Canopy/branch/frond rows are tagged as canopy
 occluders with descending render heights, trunk/root rows carry trunk occlusion, and transparent
 padding, sparse ground-anchor, tube openings, cast shadows, stump fragments, bone, skull, low-rock, boulder, furniture screen, furniture desk bases, throne base, cactus shadow, totem shadow, and
 skeletal-remains tiles are explicitly non-occluding. The terrain authoring audit rejects

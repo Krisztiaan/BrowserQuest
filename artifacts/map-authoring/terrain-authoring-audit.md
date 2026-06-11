@@ -1,6 +1,6 @@
 # Terrain Authoring Audit
 
-Generated: 2026-06-11T11:13:32.664Z
+Generated: 2026-06-11T12:18:12.482Z
 World: assets/maps/tiled/world.json
 Tileset: assets/maps/tiled/tilesheet.wang.tsj
 
@@ -1521,7 +1521,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5056,"x":69,"y":255,"gid":312}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1212,"x":16,"y":260,"gid":141}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1529,7 +1529,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5057,"x":70,"y":255,"gid":313}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1213,"x":17,"y":260,"gid":142}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1537,7 +1537,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5058,"x":46,"y":257,"gid":312}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1214,"x":18,"y":260,"gid":143}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1545,7 +1545,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5059,"x":47,"y":257,"gid":313}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1215,"x":64,"y":260,"gid":1861}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1553,7 +1553,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5060,"x":58,"y":258,"gid":312}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1216,"x":65,"y":260,"gid":1862}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1561,7 +1561,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5061,"x":59,"y":258,"gid":313}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1217,"x":66,"y":260,"gid":1863}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1569,7 +1569,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5062,"x":16,"y":261,"gid":161}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1218,"x":67,"y":260,"gid":1864}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1577,7 +1577,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5063,"x":17,"y":261,"gid":162}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1219,"x":68,"y":260,"gid":1865}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1585,7 +1585,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5064,"x":16,"y":262,"gid":181}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1220,"x":18,"y":261,"gid":163}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1593,7 +1593,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5065,"x":17,"y":262,"gid":182}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1221,"x":64,"y":261,"gid":1881}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1601,7 +1601,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5066,"x":64,"y":262,"gid":1901}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1222,"x":65,"y":261,"gid":1882}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1609,7 +1609,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5067,"x":65,"y":262,"gid":1902}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1223,"x":66,"y":261,"gid":1883}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1617,7 +1617,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5068,"x":16,"y":263,"gid":201}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1224,"x":67,"y":261,"gid":1884}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1625,7 +1625,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5069,"x":17,"y":263,"gid":202}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1225,"x":68,"y":261,"gid":1885}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1633,7 +1633,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5070,"x":18,"y":263,"gid":203}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1226,"x":18,"y":262,"gid":183}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1641,7 +1641,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5071,"x":70,"y":265,"gid":161}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1227,"x":66,"y":262,"gid":1903}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1649,7 +1649,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5072,"x":71,"y":265,"gid":162}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1228,"x":70,"y":264,"gid":141}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1657,7 +1657,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5073,"x":70,"y":266,"gid":181}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1229,"x":71,"y":264,"gid":142}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1665,7 +1665,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5074,"x":71,"y":266,"gid":182}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1230,"x":72,"y":264,"gid":143}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1673,7 +1673,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5075,"x":17,"y":267,"gid":312}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1231,"x":72,"y":265,"gid":163}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1681,7 +1681,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5076,"x":18,"y":267,"gid":313}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1232,"x":72,"y":266,"gid":183}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1689,7 +1689,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5077,"x":70,"y":267,"gid":201}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1233,"x":9,"y":267,"gid":1821}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1697,7 +1697,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5078,"x":71,"y":267,"gid":202}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1234,"x":10,"y":267,"gid":1822}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1705,7 +1705,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5079,"x":72,"y":267,"gid":203}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1235,"x":11,"y":267,"gid":1823}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object
@@ -1713,7 +1713,7 @@ Tileset: assets/maps/tiled/tilesheet.wang.tsj
 - Severity: medium
 - Category: tile_object
 - Detail: Renderable tile objects should have a class, type, template, name, or semantic properties.
-- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":5080,"x":81,"y":267,"gid":1846}`
+- Location: `{"objectLayerPath":"render_world/beach_biome/beach_props","objectId":1236,"x":59,"y":267,"gid":1821}`
 - Evidence: missing name/type/class/template/properties
 
 ### BLANK_TILE_OBJECT: Blank tile object

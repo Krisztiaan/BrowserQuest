@@ -243200,14 +243200,20 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 255
             }
           },
           {
@@ -243229,14 +243235,20 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 257
             }
           },
           {
@@ -243258,18 +243270,24 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 258
             }
           },
           {
-            "depth": 262,
+            "depth": 261,
             "minTileX": 16,
             "minTileY": 260,
             "maxTileX": 18,
@@ -243328,17 +243346,26 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "tent_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tent_front",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tent",
+                "structure",
+                "canvas_wall"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthOffset": -2,
+              "depthRow": 263
             }
           },
           {
-            "depth": 262,
+            "depth": 263,
             "minTileX": 64,
             "minTileY": 258,
             "maxTileX": 68,
@@ -243425,17 +243452,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 263
             }
           },
           {
-            "depth": 266,
+            "depth": 265,
             "minTileX": 70,
             "minTileY": 264,
             "maxTileX": 72,
@@ -243494,17 +243528,26 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "tent_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tent_front",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tent",
+                "structure",
+                "canvas_wall"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthOffset": -2,
+              "depthRow": 267
             }
           },
           {
-            "depth": 267,
+            "depth": 268,
             "minTileX": 17,
             "minTileY": 267,
             "maxTileX": 18,
@@ -243522,14 +243565,20 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 268
             }
           },
           {
@@ -243547,18 +243596,26 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "beach_shell",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "shell",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "shell",
+                "debris",
+                "nonblocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 267
             }
           },
           {
-            "depth": 269,
+            "depth": 270,
             "minTileX": 66,
             "minTileY": 269,
             "maxTileX": 67,
@@ -243576,18 +243633,24 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 270
             }
           },
           {
-            "depth": 271,
+            "depth": 272,
             "minTileX": 9,
             "minTileY": 267,
             "maxTileX": 13,
@@ -243674,17 +243737,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 272
             }
           },
           {
-            "depth": 271,
+            "depth": 272,
             "minTileX": 59,
             "minTileY": 267,
             "maxTileX": 63,
@@ -243771,17 +243841,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 272
             }
           },
           {
-            "depth": 272,
+            "depth": 273,
             "minTileX": 35,
             "minTileY": 268,
             "maxTileX": 39,
@@ -243868,17 +243945,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 273
             }
           },
           {
-            "depth": 273,
+            "depth": 274,
             "minTileX": 78,
             "minTileY": 269,
             "maxTileX": 82,
@@ -243965,17 +244049,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 274
             }
           },
           {
-            "depth": 274,
+            "depth": 275,
             "minTileX": 6,
             "minTileY": 274,
             "maxTileX": 7,
@@ -243993,18 +244084,24 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 275
             }
           },
           {
-            "depth": 274,
+            "depth": 275,
             "minTileX": 20,
             "minTileY": 270,
             "maxTileX": 24,
@@ -244091,17 +244188,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 275
             }
           },
           {
-            "depth": 276,
+            "depth": 277,
             "minTileX": 49,
             "minTileY": 272,
             "maxTileX": 53,
@@ -244188,17 +244292,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 277
             }
           },
           {
-            "depth": 278,
+            "depth": 279,
             "minTileX": 82,
             "minTileY": 278,
             "maxTileX": 83,
@@ -244216,14 +244327,20 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 279
             }
           },
           {
@@ -244241,18 +244358,26 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "beach_shell",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "shell",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "shell",
+                "debris",
+                "nonblocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 279
             }
           },
           {
-            "depth": 279,
+            "depth": 280,
             "minTileX": 72,
             "minTileY": 275,
             "maxTileX": 76,
@@ -244339,17 +244464,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 280
             }
           },
           {
-            "depth": 280,
+            "depth": 281,
             "minTileX": 61,
             "minTileY": 280,
             "maxTileX": 62,
@@ -244367,14 +244499,20 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 281
             }
           },
           {
@@ -244392,18 +244530,26 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "beach_shell",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "shell",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "shell",
+                "debris",
+                "nonblocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 281
             }
           },
           {
-            "depth": 283,
+            "depth": 281,
             "minTileX": 66,
             "minTileY": 281,
             "maxTileX": 75,
@@ -244462,17 +244608,26 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "beach_fence",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "fence",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "fence",
+                "structure",
+                "blocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthOffset": -2,
+              "depthRow": 283
             }
           },
           {
-            "depth": 282,
+            "depth": 283,
             "minTileX": 22,
             "minTileY": 282,
             "maxTileX": 23,
@@ -244490,18 +244645,24 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 283
             }
           },
           {
-            "depth": 283,
+            "depth": 284,
             "minTileX": 46,
             "minTileY": 283,
             "maxTileX": 47,
@@ -244519,14 +244680,20 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 284
             }
           },
           {
@@ -244544,18 +244711,26 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "beach_shell",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "shell",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "shell",
+                "debris",
+                "nonblocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 285
             }
           },
           {
-            "depth": 285,
+            "depth": 286,
             "minTileX": 16,
             "minTileY": 281,
             "maxTileX": 20,
@@ -244642,17 +244817,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 286
             }
           },
           {
-            "depth": 286,
+            "depth": 287,
             "minTileX": 38,
             "minTileY": 282,
             "maxTileX": 42,
@@ -244739,17 +244921,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 287
             }
           },
           {
-            "depth": 290,
+            "depth": 291,
             "minTileX": 30,
             "minTileY": 290,
             "maxTileX": 31,
@@ -244767,18 +244956,24 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 291
             }
           },
           {
-            "depth": 290,
+            "depth": 291,
             "minTileX": 60,
             "minTileY": 286,
             "maxTileX": 64,
@@ -244865,17 +245060,24 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 291
             }
           },
           {
-            "depth": 291,
+            "depth": 292,
             "minTileX": 15,
             "minTileY": 291,
             "maxTileX": 16,
@@ -244893,14 +245095,20 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 292
             }
           },
           {
@@ -244918,14 +245126,22 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "beach_shell",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "shell",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "shell",
+                "debris",
+                "nonblocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 292
             }
           },
           {
@@ -244943,14 +245159,22 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "beach_shell",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "shell",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "shell",
+                "debris",
+                "nonblocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 293
             }
           },
           {
@@ -244981,17 +245205,25 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "beach_umbrella",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "beach_umbrella",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "umbrella",
+                "depth_anchor",
+                "footprint"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 293
             }
           },
           {
-            "depth": 293,
+            "depth": 294,
             "minTileX": 84,
             "minTileY": 293,
             "maxTileX": 85,
@@ -245009,18 +245241,24 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 294
             }
           },
           {
-            "depth": 297,
+            "depth": 295,
             "minTileX": 43,
             "minTileY": 293,
             "maxTileX": 48,
@@ -245114,14 +245352,20 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 295
             }
           },
           {
@@ -245139,18 +245383,26 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "beach_shell",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "shell",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "shell",
+                "debris",
+                "nonblocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 295
             }
           },
           {
-            "depth": 296,
+            "depth": 297,
             "minTileX": 65,
             "minTileY": 296,
             "maxTileX": 66,
@@ -245168,18 +245420,24 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "tree_root",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "tree_root"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 297
             }
           },
           {
-            "depth": 297,
+            "depth": 298,
             "minTileX": 19,
             "minTileY": 293,
             "maxTileX": 23,
@@ -245266,13 +245524,20 @@
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
               "depthMode": "collision",
-              "family": "beach_props",
+              "family": "palm_tree_1",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "palm_base",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "palm",
+                "palm_base"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 298
             }
           },
           {
@@ -245290,14 +245555,22 @@
             "meta": {
               "layer": "beach_props",
               "layerPath": "render_world/beach_biome/beach_props",
-              "depthMode": "collision",
-              "family": "beach_props",
+              "depthMode": "bottom",
+              "family": "beach_shell",
               "groupPath": [
                 "render_world",
                 "beach_biome"
               ],
-              "kind": "beach_prop",
-              "biome": "beach"
+              "kind": "shell",
+              "biome": "beach",
+              "tags": [
+                "beach_prop",
+                "shell",
+                "debris",
+                "nonblocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 298
             }
           }
         ],

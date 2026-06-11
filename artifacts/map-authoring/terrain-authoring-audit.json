@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-11T11:13:32.664Z",
+  "generatedAt": "2026-06-11T12:18:12.482Z",
   "world": "assets/maps/tiled/world.json",
   "tileset": "assets/maps/tiled/tilesheet.wang.tsj",
   "findings": [
@@ -2994,112 +2994,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5056,
-        "x": 69,
-        "y": 255,
-        "gid": 312
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5057,
-        "x": 70,
-        "y": 255,
-        "gid": 313
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5058,
-        "x": 46,
-        "y": 257,
-        "gid": 312
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5059,
-        "x": 47,
-        "y": 257,
-        "gid": 313
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5060,
-        "x": 58,
-        "y": 258,
-        "gid": 312
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5061,
-        "x": 59,
-        "y": 258,
-        "gid": 313
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5062,
+        "objectId": 1212,
         "x": 16,
-        "y": 261,
-        "gid": 161
+        "y": 260,
+        "gid": 141
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3113,10 +3011,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5063,
+        "objectId": 1213,
         "x": 17,
-        "y": 261,
-        "gid": 162
+        "y": 260,
+        "gid": 142
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3130,10 +3028,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5064,
-        "x": 16,
-        "y": 262,
-        "gid": 181
+        "objectId": 1214,
+        "x": 18,
+        "y": 260,
+        "gid": 143
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3147,27 +3045,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5065,
-        "x": 17,
-        "y": 262,
-        "gid": 182
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5066,
+        "objectId": 1215,
         "x": 64,
-        "y": 262,
-        "gid": 1901
+        "y": 260,
+        "gid": 1861
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3181,10 +3062,180 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5067,
+        "objectId": 1216,
         "x": 65,
+        "y": 260,
+        "gid": 1862
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1217,
+        "x": 66,
+        "y": 260,
+        "gid": 1863
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1218,
+        "x": 67,
+        "y": 260,
+        "gid": 1864
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1219,
+        "x": 68,
+        "y": 260,
+        "gid": 1865
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1220,
+        "x": 18,
+        "y": 261,
+        "gid": 163
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1221,
+        "x": 64,
+        "y": 261,
+        "gid": 1881
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1222,
+        "x": 65,
+        "y": 261,
+        "gid": 1882
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1223,
+        "x": 66,
+        "y": 261,
+        "gid": 1883
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1224,
+        "x": 67,
+        "y": 261,
+        "gid": 1884
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1225,
+        "x": 68,
+        "y": 261,
+        "gid": 1885
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1226,
+        "x": 18,
         "y": 262,
-        "gid": 1902
+        "gid": 183
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3198,10 +3249,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5068,
-        "x": 16,
-        "y": 263,
-        "gid": 201
+        "objectId": 1227,
+        "x": 66,
+        "y": 262,
+        "gid": 1903
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3215,44 +3266,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5069,
-        "x": 17,
-        "y": 263,
-        "gid": 202
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5070,
-        "x": 18,
-        "y": 263,
-        "gid": 203
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5071,
+        "objectId": 1228,
         "x": 70,
-        "y": 265,
-        "gid": 161
+        "y": 264,
+        "gid": 141
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3266,10 +3283,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5072,
+        "objectId": 1229,
         "x": 71,
-        "y": 265,
-        "gid": 162
+        "y": 264,
+        "gid": 142
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3283,112 +3300,10 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5073,
-        "x": 70,
-        "y": 266,
-        "gid": 181
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5074,
-        "x": 71,
-        "y": 266,
-        "gid": 182
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5075,
-        "x": 17,
-        "y": 267,
-        "gid": 312
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5076,
-        "x": 18,
-        "y": 267,
-        "gid": 313
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5077,
-        "x": 70,
-        "y": 267,
-        "gid": 201
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5078,
-        "x": 71,
-        "y": 267,
-        "gid": 202
-      },
-      "evidence": [
-        "missing name/type/class/template/properties"
-      ]
-    },
-    {
-      "id": "BLANK_TILE_OBJECT",
-      "severity": "medium",
-      "category": "tile_object",
-      "title": "Blank tile object",
-      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
-      "location": {
-        "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5079,
+        "objectId": 1230,
         "x": 72,
-        "y": 267,
-        "gid": 203
+        "y": 264,
+        "gid": 143
       },
       "evidence": [
         "missing name/type/class/template/properties"
@@ -3402,10 +3317,95 @@
       "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
       "location": {
         "objectLayerPath": "render_world/beach_biome/beach_props",
-        "objectId": 5080,
-        "x": 81,
+        "objectId": 1231,
+        "x": 72,
+        "y": 265,
+        "gid": 163
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1232,
+        "x": 72,
+        "y": 266,
+        "gid": 183
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1233,
+        "x": 9,
         "y": 267,
-        "gid": 1846
+        "gid": 1821
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1234,
+        "x": 10,
+        "y": 267,
+        "gid": 1822
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1235,
+        "x": 11,
+        "y": 267,
+        "gid": 1823
+      },
+      "evidence": [
+        "missing name/type/class/template/properties"
+      ]
+    },
+    {
+      "id": "BLANK_TILE_OBJECT",
+      "severity": "medium",
+      "category": "tile_object",
+      "title": "Blank tile object",
+      "detail": "Renderable tile objects should have a class, type, template, name, or semantic properties.",
+      "location": {
+        "objectLayerPath": "render_world/beach_biome/beach_props",
+        "objectId": 1236,
+        "x": 59,
+        "y": 267,
+        "gid": 1821
       },
       "evidence": [
         "missing name/type/class/template/properties"
