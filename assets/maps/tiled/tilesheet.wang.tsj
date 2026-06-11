@@ -75,14 +75,104 @@
         }, 
         {
          "id":17,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"top_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"large_rock_2"
         }, 
         {
          "id":18,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"top_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"large_rock_2"
         }, 
         {
          "id":19,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"top_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"large_rock_2"
         }, 
         {
@@ -141,6 +231,7 @@
         }, 
         {
          "id":37,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -187,6 +278,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"mid_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -196,6 +314,7 @@
         }, 
         {
          "id":38,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -243,6 +362,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"mid_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -251,6 +397,7 @@
         }, 
         {
          "id":39,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -297,6 +444,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"mid_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -605,6 +779,7 @@
         }, 
         {
          "id":57,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -651,6 +826,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -660,6 +862,7 @@
         }, 
         {
          "id":58,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -707,6 +910,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -715,6 +945,7 @@
         }, 
         {
          "id":59,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -761,6 +992,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -1312,21 +1570,107 @@
         }, 
         {
          "id":77,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_shadow_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                }
+                ],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":78,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"large_rock_2"
-        }, 
+        },
         {
          "id":79,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -6837,10 +7181,70 @@
         }, 
         {
          "id":280,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"roof_peak_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"roof"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":4
+                }
+                ],
          "type":"well_1"
         }, 
         {
          "id":281,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"roof_peak_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"roof"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":4
+                }
+                ],
          "type":"well_1"
         }, 
         {
@@ -7705,10 +8109,70 @@
         }, 
         {
          "id":300,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"roof_eave_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"roof"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"well_1"
-        }, 
+        },
         {
          "id":301,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"roof_eave_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"roof"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"well_1"
         }, 
         {
@@ -8431,6 +8895,7 @@
         }, 
         {
          "id":320,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -8477,6 +8942,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_stone_rim"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -8486,6 +8978,7 @@
         }, 
         {
          "id":321,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -8533,22 +9026,77 @@
             },
          "properties":[
                 {
-                 "name":"footprint",
-                 "type":"bool",
-                 "value":true
-                }],
-         "type":"well_1"
-        }, 
-        {
-         "id":322,
-         "properties":[
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"center_post_and_interior"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"well_1"
-        }, 
+        },
+        {
+         "id":322,
+         "class":"StructureTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"cast_shadow_upper"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
+                 "name":"footprint",
+                 "type":"bool",
+                 "value":true
+                }],
+         "type":"well_1"
+        },
         {
          "id":323,
          "class":"StructureTile",
@@ -9175,6 +9723,7 @@
         }, 
         {
          "id":340,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -9221,6 +9770,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_stone_base"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -9230,6 +9806,7 @@
         }, 
         {
          "id":341,
+         "class":"StructureTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -9277,6 +9854,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"center_stone_base_and_bucket"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -9285,7 +9889,35 @@
         }, 
         {
          "id":342,
+         "class":"StructureTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"cast_shadow_lower"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -9919,7 +10551,35 @@
         }, 
         {
          "id":360,
+         "class":"StructureTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"front_stone_base_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -9929,7 +10589,35 @@
         }, 
         {
          "id":361,
+         "class":"StructureTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"well_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"front_stone_base_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"structure"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -15885,16 +16573,106 @@
         }, 
         {
          "id":756,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"top_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"large_rock_1"
         }, 
         {
          "id":757,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"top_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"large_rock_1"
         }, 
         {
          "id":758,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"top_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"large_rock_1"
-        }, 
+        },
         {
          "id":760,
          "objectgroup":
@@ -16121,6 +16899,7 @@
         }, 
         {
          "id":776,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -16167,6 +16946,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"mid_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -16176,6 +16982,7 @@
         }, 
         {
          "id":777,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -16223,6 +17030,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"mid_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -16231,6 +17065,7 @@
         }, 
         {
          "id":778,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -16277,6 +17112,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"mid_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -16388,10 +17250,41 @@
         }, 
         {
          "id":794,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_branch_tip"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":5
+                }
+                ],
          "type":"dead_tree_2"
         }, 
         {
          "id":796,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -16438,6 +17331,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -16447,6 +17367,7 @@
         }, 
         {
          "id":797,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -16494,6 +17415,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -16502,6 +17450,7 @@
         }, 
         {
          "id":798,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -16548,6 +17497,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -16693,19 +17669,137 @@
         },
         {
          "id":813,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_branch_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":4
+                }
+                ],
          "type":"dead_tree_2"
         },
         {
          "id":814,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_trunk_fork"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":4
+                }
+                ],
          "type":"dead_tree_2"
-        }, 
+        },
         {
          "id":815,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"upper_branch_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":4
+                }
+                ],
          "type":"dead_tree_2"
-        }, 
+        },
         {
          "id":816,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -16715,7 +17809,35 @@
         }, 
         {
          "id":817,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_center"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -16725,7 +17847,35 @@
         }, 
         {
          "id":818,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"large_rock_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -16977,32 +18127,242 @@
         }, 
         {
          "id":833,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_branch_mid"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"dead_tree_2"
-        }, 
+        },
         {
          "id":834,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"trunk_mid_fork"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"dead_tree_2"
-        }, 
+        },
         {
          "id":835,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"right_branch_mid"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"dead_tree_2"
-        }, 
+        },
         {
          "id":836,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"rim_upper_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":837,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"opening_top_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":838,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"opening_top_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":839,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"rim_upper_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                }
+                ],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":840,
          "class":"PropTile",
@@ -17085,7 +18445,7 @@
                  "value":true
                 }],
          "type":"bones_1"
-        }, 
+        },
         {
          "id":841,
          "class":"PropTile",
@@ -17123,7 +18483,7 @@
                  "value":true
                 }],
          "type":"bones_1"
-        }, 
+        },
         {
          "id":842,
          "class":"PropTile",
@@ -17161,7 +18521,7 @@
                  "value":true
                 }],
          "type":"bones_1"
-        }, 
+        },
         {
          "id":843,
          "class":"PropTile",
@@ -17247,32 +18607,242 @@
         },
         {
          "id":853,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_branch_lower"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"dead_tree_2"
         },
         {
          "id":854,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"trunk_lower"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"dead_tree_2"
-        }, 
+        },
         {
          "id":855,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"right_branch_lower"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"canopy"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"dead_tree_2"
-        }, 
+        },
         {
          "id":856,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"rim_left_side"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":857,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"opening_lower_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":858,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"tube_wall_upper"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                }
+                ],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":859,
+         "class":"PropTile",
+         "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"cast_shadow_upper"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                }
+                ],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":860,
          "class":"PropTile",
@@ -17310,7 +18880,7 @@
                  "value":true
                 }],
          "type":"bones_1"
-        }, 
+        },
         {
          "id":861,
          "class":"PropTile",
@@ -17386,7 +18956,7 @@
                  "value":true
                 }],
          "type":"bones_1"
-        }, 
+        },
         {
          "id":863,
          "class":"PropTile",
@@ -17424,19 +18994,48 @@
                  "value":true
                 }],
          "type":"bones_1"
-        }, 
+        },
         {
          "id":873,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_root"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"dead_tree_2"
-        }, 
+        },
         {
          "id":874,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17484,6 +19083,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"trunk_base"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -17492,7 +19118,35 @@
         }, 
         {
          "id":875,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"right_root"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -17502,17 +19156,73 @@
         }, 
         {
          "id":876,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"tube_wall_lower_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
                 }],
          "type":"tube_1"
-        }, 
+        },
         {
          "id":877,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"tube_wall_front"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -17522,7 +19232,35 @@
         }, 
         {
          "id":878,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"tube_wall_lower_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -17532,7 +19270,35 @@
         }, 
         {
          "id":879,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"cast_shadow_lower"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -17668,7 +19434,35 @@
         }, 
         {
          "id":894,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"dead_tree_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"bottom_root_tip"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"trunk"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -17678,7 +19472,35 @@
         }, 
         {
          "id":897,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_left"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -17688,7 +19510,35 @@
         }, 
         {
          "id":898,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"tube_1"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"base_right"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"wall"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -17849,6 +19699,7 @@
         }, 
         {
          "id":920,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17895,6 +19746,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_horn_tip"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -17904,6 +19782,7 @@
         }, 
         {
          "id":921,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -17950,6 +19829,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_horn_base"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -17959,6 +19865,7 @@
         }, 
         {
          "id":922,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -18005,6 +19912,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"skull_forehead"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -18014,6 +19948,7 @@
         }, 
         {
          "id":923,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -18061,6 +19996,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"right_horn_base"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -18069,6 +20031,7 @@
         }, 
         {
          "id":924,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -18115,6 +20078,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"right_horn_tip"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":3
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -18316,6 +20306,7 @@
         }, 
         {
          "id":941,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -18362,6 +20353,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_eye_socket"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -18371,6 +20389,7 @@
         }, 
         {
          "id":942,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -18418,6 +20437,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"skull_nasal_bridge"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -18426,6 +20472,7 @@
         }, 
         {
          "id":943,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -18472,6 +20519,33 @@
              "y":0
             },
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"right_eye_socket"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":2
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -18769,7 +20843,35 @@
         }, 
         {
          "id":961,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"left_loose_fragment"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -18779,6 +20881,7 @@
         }, 
         {
          "id":962,
+         "class":"PropTile",
          "objectgroup":
             {
              "draworder":"index",
@@ -18826,6 +20929,33 @@
             },
          "properties":[
                 {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"muzzle_jaw"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
+                {
                  "name":"footprint",
                  "type":"bool",
                  "value":true
@@ -18834,7 +20964,35 @@
         }, 
         {
          "id":963,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"right_loose_fragment"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":1
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -19324,7 +21482,35 @@
         }, 
         {
          "id":981,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_left_fragment"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -19334,7 +21520,35 @@
         }, 
         {
          "id":982,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_center_fragment"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",
@@ -19344,7 +21558,35 @@
         }, 
         {
          "id":983,
+         "class":"PropTile",
          "properties":[
+                {
+                 "name":"asset_family",
+                 "type":"string",
+                 "value":"bones_2"
+                },
+                {
+                 "name":"asset_part",
+                 "type":"string",
+                 "value":"lower_right_fragment"
+                },
+                {
+                 "name":"tile_kind",
+                 "propertytype":"TileKind",
+                 "type":"string",
+                 "value":"prop"
+                },
+                {
+                 "name":"occlusion_kind",
+                 "propertytype":"TileOcclusionKind",
+                 "type":"string",
+                 "value":"none"
+                },
+                {
+                 "name":"render_height",
+                 "type":"int",
+                 "value":0
+                },
                 {
                  "name":"footprint",
                  "type":"bool",

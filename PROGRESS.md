@@ -18,6 +18,216 @@ This is the live execution notebook for `PLAN.md`.
 
 ## Ticket Log
 
+### 2026-06-11 10:45 UTC - Manual Tiled Authoring Slice 77
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified prop/source family, `large_rock_1`.
+  - Preserve legacy `type:"large_rock_1"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 12 `large_rock_1` records carry complete typed `PropTile` metadata.
+  - Existing `large_rock_1` collision and footprint counts remain 6 and 9.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_large_rock_1_before_semantics.png`.
+  - Visual inspection identified a squat gray boulder variant with bright top face, darker side walls, and a fully footprinted base row.
+  - Tagged 12 `large_rock_1` tile records as `PropTile`.
+  - Classified top, middle, lower, and base boulder pieces as non-occluding prop tiles.
+  - Generated `.data/map-authoring-crops/tileset_large_rock_1_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:large_rock_1=12`.
+  - Source audit confirms `large_rock_1` preserved 9 footprint tiles and 6 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on `tent_1`, interior furniture, cactus/totems, and beach props.
+
+### 2026-06-11 10:25 UTC - Manual Tiled Authoring Slice 76
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified source family, `well_1`.
+  - Preserve legacy `type:"well_1"` while adding `StructureTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 12 `well_1` records carry complete typed `StructureTile` metadata.
+  - Existing `well_1` collision and footprint counts remain 4 and 8.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_well_1_before_semantics.png`.
+  - Visual inspection identified an architectural well with roof pieces, central post, stone rim, bucket, dark interior, and cast shadow.
+  - Tagged 12 `well_1` tile records as `StructureTile`.
+  - Classified roof pieces as roof, stone/post/bucket pieces as wall, and cast shadows as non-occluding.
+  - Generated `.data/map-authoring-crops/tileset_well_1_structure_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `StructureTile:well_1=12`.
+  - Source audit confirms `well_1` preserved 8 footprint tiles and 4 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on `large_rock_1`, tents, cactus/totems, and interior furniture groups.
+
+### 2026-06-11 10:05 UTC - Manual Tiled Authoring Slice 75
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified prop/source family, `large_rock_2`.
+  - Preserve legacy `type:"large_rock_2"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 12 `large_rock_2` records carry complete typed `PropTile` metadata.
+  - Existing `large_rock_2` collision and footprint counts remain 6 and 8.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_large_rock_2_before_semantics.png`.
+  - Visual inspection identified a squat gray boulder with bright top face, darker side walls, and small base grass/shadow pixels.
+  - Tagged 12 `large_rock_2` tile records as `PropTile`.
+  - Classified top, middle, lower, and base/shadow boulder pieces as non-occluding prop tiles.
+  - Generated `.data/map-authoring-crops/tileset_large_rock_2_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:large_rock_2=12`.
+  - Source audit confirms `large_rock_2` preserved 8 footprint tiles and 6 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on `well_1`, `large_rock_1`, tents, cactus/totems, and interior furniture groups.
+
+### 2026-06-11 09:45 UTC - Manual Tiled Authoring Slice 74
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified prop/source family, `bones_2`.
+  - Preserve legacy `type:"bones_2"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 14 `bones_2` records carry complete typed `PropTile` metadata.
+  - Existing `bones_2` collision and footprint counts remain 9 and 14.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_bones_2_before_semantics.png`.
+  - Visual inspection identified a skull-and-horns skeletal-remains prop with central skull, horn caps, eye sockets, muzzle pieces, and small loose fragments.
+  - Tagged 14 `bones_2` tile records as `PropTile`.
+  - Classified horn, skull, socket, muzzle, and loose-fragment pieces as non-occluding skeletal-remains prop tiles.
+  - Generated `.data/map-authoring-crops/tileset_bones_2_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:bones_2=14`.
+  - Source audit confirms `bones_2` preserved 14 footprint tiles and 9 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on rocks, wells, tents, cactus/totems, and interior furniture groups.
+
+### 2026-06-11 09:20 UTC - Manual Tiled Authoring Slice 73
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified prop/source family, `tube_1`.
+  - Preserve legacy `type:"tube_1"` while adding `PropTile` metadata.
+  - Preserve existing `footprint` properties.
+- Acceptance criteria:
+  - All 14 `tube_1` records carry complete typed `PropTile` metadata.
+  - Existing `tube_1` collision and footprint counts remain 0 and 6.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_tube_1_before_semantics.png`.
+  - Visual inspection identified a green vertical pipe/tube with a dark open mouth, wall-like body, bottom base, and gray cast-shadow pieces.
+  - Tagged 14 `tube_1` tile records as `PropTile`.
+  - Classified green rim/body/base tiles as wall-like prop occluders and dark opening/cast-shadow tiles as non-occluding.
+  - Generated `.data/map-authoring-crops/tileset_tube_1_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:tube_1=14`.
+  - Source audit confirms `tube_1` preserved 6 footprint tiles and 0 collision tiles, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on `bones_2`, rocks, wells, tents, and interior furniture groups.
+
+### 2026-06-11 09:00 UTC - Manual Tiled Authoring Slice 72
+
+- Status: done
+- Scope:
+  - Enrich the next largest unclassified prop/source family, `dead_tree_2`.
+  - Preserve legacy `type:"dead_tree_2"` while adding `PropTile` metadata.
+  - Preserve existing collision objectgroups and `footprint` properties.
+- Acceptance criteria:
+  - All 14 `dead_tree_2` records carry complete typed `PropTile` metadata.
+  - Existing `dead_tree_2` collision and footprint counts remain 1 and 4.
+  - No semantic tile metadata is written into nested collision object properties.
+  - Terrain authoring, map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Generated `.data/map-authoring-crops/tileset_dead_tree_2_before_semantics.png`.
+  - Visual inspection identified a narrow leaning dead tree with upper branch/crown tiles, trunk tiles, root/ground-anchor tiles, and one transparent lower-left padding tile.
+  - Tagged 14 `dead_tree_2` tile records as `PropTile`.
+  - Classified upper branches as canopy and trunk/root/base pieces as trunk.
+  - Generated `.data/map-authoring-crops/tileset_dead_tree_2_prop_tile_semantics.png`.
+  - Updated `docs/terrain-authoring-model.md` and `docs/tiled-authoring-rethink.md`.
+- Evidence:
+  - Source audit confirms `PropTile:dead_tree_2=14`.
+  - Source audit confirms `dead_tree_2` preserved 4 footprint tiles and 1 collision tile, with 0 semantic metadata leaks into collision object properties.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue source-asset enrichment on `tube_1`, `bones_2`, and rock/well/tent/interior furniture groups.
+
 ### 2026-06-11 02:35 UTC - Manual Tiled Authoring Slice 71
 
 - Status: done
