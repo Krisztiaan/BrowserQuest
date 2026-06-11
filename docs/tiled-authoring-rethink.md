@@ -1788,3 +1788,691 @@ Runtime link after export:
 
 - `world_01:world_house_27_entry` exports to `house_27:house_27_entry` at `(6, 7)`.
 - `house_27:house_27_entry` exports back to `world_01:world_house_27_entry` at `(127, 208)`.
+
+## Execution slice 28 — `world_house_28_entry` to `house_28_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_28` with an authored interior based on direct exterior evidence.
+- Update only `world_house_28_entry` in `world.json`.
+- Keep neighboring `world_house_29_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_28_entry` was at world tile `(131, 208)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_28` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed the right/east entry in the same adjacent forest-maze door pair
+  as `house_27`, using maze floor, maze wall, and maze foreground-wall layers.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_28_entry_before.png`
+- `.data/map-authoring-crops/house_28_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_28.json` as a 14x10 authored forest-maze east alcove:
+  - `class: BQMap`
+  - map-level identity/properties for `house_28` / `forest_maze_east_alcove` / `maze`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `forest_maze_28_east_alcove`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_28_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_28_after.png`
+- `.data/map-authoring-crops/house_28_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_28_entry` exports to `house_28:house_28_entry` at `(6, 7)`.
+- `house_28:house_28_entry` exports back to `world_01:world_house_28_entry` at `(131, 208)`.
+
+## Execution slice 29 — `world_house_29_entry` to `house_29_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_29` with an authored interior based on direct exterior evidence.
+- Update only `world_house_29_entry` in `world.json`.
+- Keep neighboring authored doors `world_house_27_entry` and `world_house_28_entry` unchanged,
+  and keep later placeholder `world_house_30_entry` out of scope.
+
+Before-edit evidence:
+
+- `world_house_29_entry` was at world tile `(123, 208)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_29` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed the far-west doorway in a three-door forest-maze alcove row,
+  with `house_27` and `house_28` to the east.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_29_entry_before.png`
+- `.data/map-authoring-crops/house_29_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_29.json` as a 14x10 authored forest-maze far-west alcove:
+  - `class: BQMap`
+  - map-level identity/properties for `house_29` / `forest_maze_far_west_alcove` / `maze`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `forest_maze_29_far_west_alcove`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_29_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_29_after.png`
+- `.data/map-authoring-crops/house_29_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_29_entry` exports to `house_29:house_29_entry` at `(6, 7)`.
+- `house_29:house_29_entry` exports back to `world_01:world_house_29_entry` at `(123, 208)`.
+
+## Execution slice 30 — `world_house_30_entry` to `house_30_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_30` with an authored interior based on direct exterior evidence.
+- Update only `world_house_30_entry` in `world.json`.
+- Keep later placeholder `world_house_31_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_30_entry` was at world tile `(127, 183)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_30` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed a compact standalone forest-maze chamber with a north-wall
+  doorway flanked by torches.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_30_entry_before.png`
+- `.data/map-authoring-crops/house_30_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_30.json` as a 14x10 authored forest-maze north chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `house_30` / `forest_maze_north_chamber` / `maze`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `forest_maze_30_north_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_30_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_30_after.png`
+- `.data/map-authoring-crops/house_30_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_30_entry` exports to `house_30:house_30_entry` at `(6, 7)`.
+- `house_30:house_30_entry` exports back to `world_01:world_house_30_entry` at `(127, 183)`.
+
+## Execution slice 31 — `world_house_31_entry` to `house_31_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_31` with an authored interior based on direct exterior evidence.
+- Update only `world_house_31_entry` in `world.json`.
+- Keep nearby cliff-side placeholder `world_house_32_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_31_entry` was at world tile `(77, 206)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_31` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed the doorway on the visible large village inn/house, with the
+  separate `world_house_32_entry` cliff-side doorway nearby but not part of this slice.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_31_entry_before.png`
+- `.data/map-authoring-crops/house_31_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_31.json` as a 14x10 authored village inn interior:
+  - `class: BQMap`
+  - map-level identity/properties for `house_31` / `village_inn` / `village`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `village_inn_31_main_room`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_31_entry` with destination coordinates `(6, 7)` and explicit
+  walk-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_31_after.png`
+- `.data/map-authoring-crops/house_31_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_31_entry` exports to `house_31:house_31_entry` at `(6, 7)`.
+- `house_31:house_31_entry` exports back to `world_01:world_house_31_entry` at `(77, 206)`.
+
+## Execution slice 32 — `world_house_32_entry` to `house_32_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_32` with an authored interior based on direct exterior evidence.
+- Update only `world_house_32_entry` in `world.json`.
+- Keep later placeholder `world_house_33_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_32_entry` was at world tile `(92, 52)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_32` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed a cliff-side doorway inside a badlands lava-canyon region,
+  with dry badlands ground, lava, canyon, and cliff layers present in the source.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_32_entry_before.png`
+- `.data/map-authoring-crops/house_32_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_32.json` as a 14x10 authored badlands lava-canyon cave:
+  - `class: BQMap`
+  - map-level identity/properties for `house_32` / `badlands_lava_canyon` / `badlands`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `badlands_lava_canyon_32_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_32_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_32_after.png`
+- `.data/map-authoring-crops/house_32_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_32_entry` exports to `house_32:house_32_entry` at `(6, 7)`.
+- `house_32:house_32_entry` exports back to `world_01:world_house_32_entry` at `(92, 52)`.
+
+## Execution slice 33 — `world_house_33_entry` to `house_33_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_33` with an authored interior based on direct exterior evidence.
+- Update only `world_house_33_entry` in `world.json`.
+- Keep later placeholder `world_house_34_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_33_entry` was at world tile `(135, 88)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_33` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed a small subterranean cave pocket with black cave floor, cave
+  walls, and a nearby lava pool.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_33_entry_before.png`
+- `.data/map-authoring-crops/house_33_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_33.json` as a 14x10 authored subterranean lava pocket:
+  - `class: BQMap`
+  - map-level identity/properties for `house_33` / `subterranean_lava_pocket` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `subterranean_lava_pocket_33_chamber`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_33_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_33_after.png`
+- `.data/map-authoring-crops/house_33_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_33_entry` exports to `house_33:house_33_entry` at `(6, 7)`.
+- `house_33:house_33_entry` exports back to `world_01:world_house_33_entry` at `(135, 88)`.
+
+## Execution slice 34 — `world_house_34_entry` to `house_34_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_34` with an authored interior based on direct exterior evidence.
+- Update only `world_house_34_entry` in `world.json`.
+- Keep later placeholder `world_house_35_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_34_entry` was at world tile `(156, 181)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_34` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed a compact subterranean cave chamber with a ladder-like north
+  entrance and torch-lit cave walls.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_34_entry_before.png`
+- `.data/map-authoring-crops/house_34_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_34.json` as a 14x10 authored subterranean ladder chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `house_34` / `subterranean_ladder_chamber` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `subterranean_ladder_chamber_34`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_34_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_34_after.png`
+- `.data/map-authoring-crops/house_34_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_34_entry` exports to `house_34:house_34_entry` at `(6, 7)`.
+- `house_34:house_34_entry` exports back to `world_01:world_house_34_entry` at `(156, 181)`.
+
+## Execution slice 35 — `world_house_35_entry` to `house_35_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_35` with an authored interior based on direct exterior evidence.
+- Update only `world_house_35_entry` in `world.json`.
+- Keep nearby placeholder `world_house_36_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_35_entry` was at world tile `(155, 158)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_35` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed a subterranean north ladder entry feeding a wider east-west
+  cave tunnel/chamber.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_35_entry_before.png`
+- `.data/map-authoring-crops/house_35_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_35.json` as a 14x10 authored subterranean tunnel junction:
+  - `class: BQMap`
+  - map-level identity/properties for `house_35` / `subterranean_tunnel_junction` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `subterranean_tunnel_junction_35`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_35_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_35_after.png`
+- `.data/map-authoring-crops/house_35_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_35_entry` exports to `house_35:house_35_entry` at `(6, 7)`.
+- `house_35:house_35_entry` exports back to `world_01:world_house_35_entry` at `(155, 158)`.
+
+## Execution slice 36 — `world_house_36_entry` to `house_36_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_36` with an authored interior based on direct exterior evidence.
+- Update only `world_house_36_entry` in `world.json`.
+- Keep later placeholder `world_house_37_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_36_entry` was at world tile `(127, 158)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_36` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed a compact subterranean chamber with a north ladder entrance
+  and a visible cave-river/water inlet.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_36_entry_before.png`
+- `.data/map-authoring-crops/house_36_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_36.json` as a 14x10 authored subterranean river chamber:
+  - `class: BQMap`
+  - map-level identity/properties for `house_36` / `subterranean_river_chamber` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - a visible `cave_river` base layer that keeps the exit path clear
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `subterranean_river_chamber_36`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_36_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_36_after.png`
+- `.data/map-authoring-crops/house_36_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_36_entry` exports to `house_36:house_36_entry` at `(6, 7)`.
+- `house_36:house_36_entry` exports back to `world_01:world_house_36_entry` at `(127, 158)`.
+
+## Execution slice 37 — `world_house_37_entry` to `house_37_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_37` with an authored interior based on direct exterior evidence.
+- Update only `world_house_37_entry` in `world.json`.
+- Keep later placeholder `world_house_38_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_37_entry` was at world tile `(26, 296)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_37` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed a beach/coastal cliff doorway just above the shoreline, with a
+  separate nearby door marker kept out of scope.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_37_entry_before.png`
+- `.data/map-authoring-crops/house_37_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_37.json` as a 14x10 authored beach cliff shelter:
+  - `class: BQMap`
+  - map-level identity/properties for `house_37` / `beach_cliff_shelter` / `beach`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - a visible sand inset in the base floor near the entry to carry the coastal context
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `beach_cliff_shelter_37`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_37_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_37_after.png`
+- `.data/map-authoring-crops/house_37_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_37_entry` exports to `house_37:house_37_entry` at `(6, 7)`.
+- `house_37:house_37_entry` exports back to `world_01:world_house_37_entry` at `(26, 296)`.
+
+## Execution slice 38 — `world_house_38_entry` to `house_38_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_38` with an authored interior based on direct exterior evidence.
+- Update only `world_house_38_entry` in `world.json`.
+- Keep later placeholder `world_house_39_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_38_entry` was at world tile `(49, 97)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_38` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed a sandy deadlands/badlands cliff doorway in a canyon corridor
+  with cactus, ruin columns, and a nearby campfire.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_38_entry_before.png`
+- `.data/map-authoring-crops/house_38_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_38.json` as a 14x10 authored deadlands canyon shelter:
+  - `class: BQMap`
+  - map-level identity/properties for `house_38` / `deadlands_canyon_shelter` / `deadlands`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - a visible dry-ground inset near the entry to carry the sandy canyon context
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `deadlands_canyon_shelter_38`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_38_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_38_after.png`
+- `.data/map-authoring-crops/house_38_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_38_entry` exports to `house_38:house_38_entry` at `(6, 7)`.
+- `house_38:house_38_entry` exports back to `world_01:world_house_38_entry` at `(49, 97)`.
+
+## Execution slice 39 — `world_house_39_entry` to `house_39_entry`
+
+Status: complete.
+
+Ticket scope:
+
+- Replace the placeholder `house_39` with an authored interior based on direct exterior evidence.
+- Update only `world_house_39_entry` in `world.json`.
+- Keep later placeholder `world_house_40_entry` unchanged.
+
+Before-edit evidence:
+
+- `world_house_39_entry` was at world tile `(147, 254)` and still targeted placeholder
+  local tile `(3, 3)`.
+- `house_39` was still the generated 12x10 placeholder with `floor`, `blocking`, and an
+  inline `doors` object layer.
+- The exterior crop showed a subterranean west-end ladder entrance into a long eastward
+  cave passage.
+
+Visual references:
+
+- `.data/map-authoring-crops/world_house_39_entry_before.png`
+- `.data/map-authoring-crops/house_39_before.png`
+
+Applied authoring changes:
+
+- Rebuilt `house_39.json` as a 14x10 authored subterranean passage head:
+  - `class: BQMap`
+  - map-level identity/properties for `house_39` / `subterranean_passage_head` / `subterranean`
+  - grouped `base`, `structure`, `above`, and `gameplay` layers
+  - role/collision/occlusion/material/biome/area properties on groups and layers
+  - a `Room` object for `subterranean_passage_head_39`
+  - a template-backed linked door at local tile `(6, 7)`
+- Updated only `world_house_39_entry` with destination coordinates `(6, 7)` and explicit
+  cave-transition metadata.
+
+After-edit visual evidence:
+
+- `.data/map-authoring-crops/house_39_after.png`
+- `.data/map-authoring-crops/house_39_after_nomarkers.png`
+
+Validation evidence:
+
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/map-pack.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run typecheck:tools`
+- `bun run lint`
+- `git diff --check`
+
+Runtime link after export:
+
+- `world_01:world_house_39_entry` exports to `house_39:house_39_entry` at `(6, 7)`.
+- `house_39:house_39_entry` exports back to `world_01:world_house_39_entry` at `(147, 254)`.
