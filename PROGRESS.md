@@ -18,6 +18,237 @@ This is the live execution notebook for `PLAN.md`.
 
 ## Ticket Log
 
+### 2026-06-11 12:47 UTC - Manual Tiled Authoring Slice 101
+
+- Status: done
+- Scope:
+  - Enrich the repeated blank `palm_tree_1` canopy/trunk/shadow objects for three complete beach palms in `render_world/beach_biome/beach_props`.
+  - Attach the remaining objects for the palm at `(60, 291)` to the existing `prop_instance_id=palm_base_60_291`.
+  - Attach the remaining objects for the palm at `(19, 298)` to the existing `prop_instance_id=palm_base_19_298`.
+  - Attach the remaining objects for the palm at `(43, 298)` to the existing `prop_instance_id=palm_base_43_298`.
+  - Exclude nearby non-palm objects, including the authored tree-root object 5138 at `(47, 295)`.
+  - Reuse existing source-tile semantics for GIDs 1821-1823, 1841-1843, 1861-1865, 1881-1885, and 1903 without changing source tile collision or render semantics.
+  - Preserve object positions, GIDs, layer membership, and runtime map generation behavior.
+- Acceptance criteria:
+  - All 51 selected blank palm canopy/trunk/shadow objects carry non-blank `PropMetadata` object metadata.
+  - The selected objects reuse their already-authored `palm_base_*` instance ids and sort from the corresponding base row.
+  - The selected object IDs disappear from `tile_object` findings without adding new semantic-tile findings.
+  - Map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_triplet_slice101_objects.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_triplet_slice101_nomarkers.png`.
+  - Visual inspection identified three complete repeated palm assemblies with surrounding shell/debris and tree-root objects kept separate.
+  - Source/object inspection confirmed the three palms have existing base instance ids `palm_base_60_291`, `palm_base_19_298`, and `palm_base_43_298`.
+  - Added object-level `PropMetadata` to 51 repeated palm canopy/trunk/shadow objects across the three instances.
+- Evidence:
+  - JSON parse check passed for `assets/maps/tiled/world.json`.
+  - Source check confirms the selected 51 objects use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, their existing `palm_base_*` instance ids, and `depth_mode=explicit`.
+  - Source check confirms adjacent tree-root object 5138 retained `prop_instance_id=tree_root_47_295`.
+  - Terrain authoring audit reports 0 findings for the 51 selected palm object IDs.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue with remaining lower-beach `beach_props` debris, shells, fences, and any final palm clusters still visible in the capped audit.
+
+### 2026-06-11 12:43 UTC - Manual Tiled Authoring Slice 100
+
+- Status: done
+- Scope:
+  - Enrich the repeated blank `palm_tree_1` canopy/trunk/shadow objects for three complete lower-beach palms in `render_world/beach_biome/beach_props`.
+  - Attach the remaining objects for the palm at `(72, 280)` to the existing `prop_instance_id=palm_base_72_280`.
+  - Attach the remaining objects for the palm at `(16, 286)` to the existing `prop_instance_id=palm_base_16_286`.
+  - Attach the remaining objects for the palm at `(38, 287)` to the existing `prop_instance_id=palm_base_38_287`.
+  - Reuse existing source-tile semantics for GIDs 1821-1823, 1841-1843, 1861-1865, 1881-1885, and 1903 without changing source tile collision or render semantics.
+  - Preserve object positions, GIDs, layer membership, and runtime map generation behavior.
+- Acceptance criteria:
+  - All 51 selected blank palm canopy/trunk/shadow objects carry non-blank `PropMetadata` object metadata.
+  - The selected objects reuse their already-authored `palm_base_*` instance ids and sort from the corresponding base row.
+  - The selected object IDs disappear from `tile_object` findings without adding new semantic-tile findings.
+  - Map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_triplet_slice100_objects.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_triplet_slice100_nomarkers.png`.
+  - Visual inspection identified three complete repeated palm assemblies with already-authored base tiles.
+  - Source/object inspection confirmed the three palms have existing base instance ids `palm_base_72_280`, `palm_base_16_286`, and `palm_base_38_287`.
+  - Added object-level `PropMetadata` to 51 repeated palm canopy/trunk/shadow objects across the three instances.
+- Evidence:
+  - JSON parse check passed for `assets/maps/tiled/world.json`.
+  - Source check confirms the selected 51 objects use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, their existing `palm_base_*` instance ids, and `depth_mode=explicit`.
+  - Terrain authoring audit reports 0 findings for the 51 selected palm object IDs.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue with the remaining lower-beach `beach_props` clusters, likely smaller debris/shell and mixed prop groups now that repeated palm assemblies are mostly handled.
+
+### 2026-06-11 12:38 UTC - Manual Tiled Authoring Slice 99
+
+- Status: done
+- Scope:
+  - Enrich the repeated blank `palm_tree_1` canopy/trunk/shadow objects for two complete beach palms in `render_world/beach_biome/beach_props`.
+  - Attach the remaining objects for the palm at `(20, 275)` to the existing `prop_instance_id=palm_base_20_275`.
+  - Attach the remaining objects for the palm at `(49, 277)` to the existing `prop_instance_id=palm_base_49_277`.
+  - Reuse existing source-tile semantics for GIDs 1821-1823, 1841-1843, 1861-1865, 1881-1885, and 1903 without changing source tile collision or render semantics.
+  - Preserve object positions, GIDs, layer membership, and runtime map generation behavior.
+- Acceptance criteria:
+  - All 34 selected blank palm canopy/trunk/shadow objects carry non-blank `PropMetadata` object metadata.
+  - The selected objects reuse their already-authored `palm_base_*` instance ids and sort from the corresponding base row.
+  - The selected object IDs disappear from `tile_object` findings without adding new semantic-tile findings.
+  - Map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_pair_slice99_objects.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_pair_slice99_nomarkers.png`.
+  - Visual inspection identified two complete repeated palm assemblies with already-authored base tiles.
+  - Source/object inspection confirmed the two palms have existing base instance ids `palm_base_20_275` and `palm_base_49_277`.
+  - Added object-level `PropMetadata` to 34 repeated palm canopy/trunk/shadow objects across the two instances.
+- Evidence:
+  - JSON parse check passed for `assets/maps/tiled/world.json`.
+  - Source check confirms the selected 34 objects use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, their existing `palm_base_*` instance ids, and `depth_mode=explicit`.
+  - Terrain authoring audit reports 0 findings for the 34 selected palm object IDs.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue with the next remaining `beach_props` object clusters, likely non-palm debris and singleton props now that the repeated palm run is mostly coherent.
+
+### 2026-06-11 12:33 UTC - Manual Tiled Authoring Slice 98
+
+- Status: done
+- Scope:
+  - Enrich the repeated blank `palm_tree_1` canopy/trunk/shadow objects for four complete beach palms in `render_world/beach_biome/beach_props`.
+  - Attach the remaining objects for the palm at `(9, 272)` to the existing `prop_instance_id=palm_base_9_272`.
+  - Attach the remaining objects for the palm at `(35, 273)` to the existing `prop_instance_id=palm_base_35_273`.
+  - Attach the remaining objects for the palm at `(59, 272)` to the existing `prop_instance_id=palm_base_59_272`.
+  - Attach the remaining objects for the palm at `(78, 274)` to the existing `prop_instance_id=palm_base_78_274`.
+  - Reuse existing source-tile semantics for GIDs 1821-1823, 1841-1843, 1861-1865, 1881-1885, and 1903 without changing source tile collision or render semantics.
+  - Preserve object positions, GIDs, layer membership, and runtime map generation behavior.
+- Acceptance criteria:
+  - All selected blank palm canopy/trunk/shadow objects carry non-blank `PropMetadata` object metadata.
+  - The selected objects reuse their already-authored `palm_base_*` instance ids and sort from the corresponding base row.
+  - The selected object IDs disappear from `tile_object` findings without adding new semantic-tile findings.
+  - Map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_repeat_slice98_west_objects.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_repeat_slice98_west_nomarkers.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_repeat_slice98_east_objects.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_repeat_slice98_east_nomarkers.png`.
+  - Visual inspection identified four complete repeated palm assemblies with already-authored base tiles.
+  - Source/object inspection confirmed the four palms have existing base instance ids `palm_base_9_272`, `palm_base_35_273`, `palm_base_59_272`, and `palm_base_78_274`.
+  - Added object-level `PropMetadata` to 68 repeated palm canopy/trunk/shadow objects across the four instances.
+- Evidence:
+  - JSON parse check passed for `assets/maps/tiled/world.json`.
+  - Source check confirms the selected 68 objects use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, their existing `palm_base_*` instance ids, and `depth_mode=explicit`.
+  - Terrain authoring audit reports 0 findings for the 68 selected palm object IDs.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue with the remaining repeated `beach_props` palm/debris clusters or move to the next capped object layer once the beach slice is coherent.
+
+### 2026-06-11 12:28 UTC - Manual Tiled Authoring Slice 97
+
+- Status: done
+- Scope:
+  - Enrich the 11-object `palm_tree_1` lower-canopy/trunk/shadow cluster in `render_world/beach_biome/beach_props`.
+  - Attach object IDs 1215, 1216, 1217, 1218, 1219, 1221, 1222, 1223, 1224, 1225, and 1227 to the already-authored `prop_instance_id=palm_canopy_64_258` palm instance from Slice 93.
+  - Reuse existing source-tile semantics for GIDs 1861-1865, 1881-1885, and 1903 without changing source tile collision or render semantics.
+  - Preserve object positions, GIDs, layer membership, and runtime map generation behavior.
+- Acceptance criteria:
+  - All 11 selected objects carry non-blank `PropMetadata` object metadata.
+  - The selected objects use the same palm instance id and explicit depth row as the existing upper canopy objects.
+  - The selected object IDs disappear from `tile_object` findings without adding new semantic-tile findings.
+  - Map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_lower_slice97_objects.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_lower_slice97_context.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_lower_slice97_nomarkers.png`.
+  - Visual inspection confirmed the blank lower-canopy/trunk/shadow objects complete the same palm instance as the already-authored upper canopy objects 1206 through 1211.
+  - Source inspection confirmed tile IDs 1860, 1861, 1862, 1863, 1864, 1880, 1881, 1882, 1883, 1884, and 1902 already carry typed `PropTile` metadata for `palm_tree_1`.
+  - Added object-level `PropMetadata` to object IDs 1215, 1216, 1217, 1218, 1219, 1221, 1222, 1223, 1224, 1225, and 1227.
+- Evidence:
+  - JSON parse check passed for `assets/maps/tiled/world.json`.
+  - Source check confirms the selected 11 objects use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, `prop_instance_id=palm_canopy_64_258`, and `depth_mode=explicit`.
+  - Terrain authoring audit reports 0 findings for object IDs 1215, 1216, 1217, 1218, 1219, 1221, 1222, 1223, 1224, 1225, and 1227.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue with the next repeated `palm_tree_1` canopy clusters in `beach_props`.
+
+### 2026-06-11 12:23 UTC - Manual Tiled Authoring Slice 96
+
+- Status: done
+- Scope:
+  - Enrich the ten remaining blank `tent_1` roof/rear objects that complete the two already-authored beach tent instances in `render_world/beach_biome/beach_props`.
+  - Attach object IDs 1212, 1213, 1214, 1220, and 1226 to `prop_instance_id=tent_front_16_261`.
+  - Attach object IDs 1228, 1229, 1230, 1231, and 1232 to `prop_instance_id=tent_front_70_265`.
+  - Reuse existing source-tile semantics for GIDs 141, 142, 143, 163, and 183 without changing source tile collision or render semantics.
+  - Preserve object positions, GIDs, layer membership, and runtime map generation behavior.
+- Acceptance criteria:
+  - All ten selected objects carry non-blank `PropMetadata` object metadata.
+  - The selected objects use the same tent instance ids and compatible depth model as their existing `tent_front_*` neighbors.
+  - The selected object IDs disappear from `tile_object` findings without adding new semantic-tile findings.
+  - Map, typecheck, lint, and focused unit gates pass.
+- Key actions:
+  - Rendered `.data/map-authoring-crops/world_beach_props_tent_slice96_objects.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_tent_slice96_context.png`.
+  - Rendered `.data/map-authoring-crops/world_beach_props_palm_tent_slice96_objects.png`.
+  - Visual inspection confirmed the blank GID 141/142/143/163/183 objects are roof/rear pieces of the two beach tent facades already partially authored in Slice 89.
+  - Source inspection confirmed tile IDs 140, 141, 142, 162, and 182 already carry typed `StructureTile` metadata for `tent_1`.
+  - Added object-level `PropMetadata` to object IDs 1212, 1213, 1214, 1220, 1226, 1228, 1229, 1230, 1231, and 1232.
+- Evidence:
+  - JSON parse check passed for `assets/maps/tiled/world.json`.
+  - Source check confirms the selected ten objects use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, the existing `tent_front_16_261` / `tent_front_70_265` instance IDs, and `depth_mode=collision`.
+  - Terrain authoring audit reports 0 findings for object IDs 1212, 1213, 1214, 1220, 1226, 1228, 1229, 1230, 1231, and 1232.
+  - Generated terrain audit reports 0 `TILE_SEMANTIC_METADATA_MISSING`, 0 `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0 `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue with the adjacent `palm_tree_1` trunk/lower-canopy object cluster in `beach_props`.
+
 ### 2026-06-11 12:13 UTC - Manual Tiled Authoring Slice 95
 
 - Status: done
