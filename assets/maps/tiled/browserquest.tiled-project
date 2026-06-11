@@ -690,6 +690,52 @@
       "valuesAsFlags": false
     },
     {
+      "id": 208,
+      "name": "CollisionKind",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "solid",
+        "passable_carve",
+        "water",
+        "hazard",
+        "ledge"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 209,
+      "name": "TileKind",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "terrain",
+        "transition",
+        "water",
+        "hazard",
+        "structure",
+        "prop",
+        "foreground",
+        "marker"
+      ],
+      "valuesAsFlags": false
+    },
+    {
+      "id": 210,
+      "name": "TileOcclusionKind",
+      "storageType": "string",
+      "type": "enum",
+      "values": [
+        "none",
+        "canopy",
+        "trunk",
+        "roof",
+        "wall",
+        "foreground"
+      ],
+      "valuesAsFlags": false
+    },
+    {
       "color": "#ff729fcf",
       "id": 220,
       "members": [
@@ -831,6 +877,119 @@
       "type": "class",
       "useAs": [
         "layer"
+      ]
+    },
+    {
+      "color": "#ff6b6b6b",
+      "id": 223,
+      "members": [
+        {
+          "name": "collision_kind",
+          "propertyType": "CollisionKind",
+          "type": "string",
+          "value": "solid"
+        },
+        {
+          "name": "blocks_player",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "blocks_mobs",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "blocks_projectiles",
+          "type": "bool",
+          "value": true
+        },
+        {
+          "name": "damage_kind",
+          "type": "string",
+          "value": ""
+        }
+      ],
+      "name": "CollisionShape",
+      "type": "class",
+      "useAs": [
+        "object"
+      ]
+    },
+    {
+      "color": "#ff8ae234",
+      "id": 224,
+      "members": [
+        {
+          "name": "asset_family",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "asset_part",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "tile_kind",
+          "propertyType": "TileKind",
+          "type": "string",
+          "value": "prop"
+        },
+        {
+          "name": "occlusion_kind",
+          "propertyType": "TileOcclusionKind",
+          "type": "string",
+          "value": "none"
+        },
+        {
+          "name": "render_height",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "PropTile",
+      "type": "class",
+      "useAs": [
+        "tile"
+      ]
+    },
+    {
+      "color": "#ff729fcf",
+      "id": 225,
+      "members": [
+        {
+          "name": "asset_family",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "asset_part",
+          "type": "string",
+          "value": ""
+        },
+        {
+          "name": "tile_kind",
+          "propertyType": "TileKind",
+          "type": "string",
+          "value": "structure"
+        },
+        {
+          "name": "occlusion_kind",
+          "propertyType": "TileOcclusionKind",
+          "type": "string",
+          "value": "wall"
+        },
+        {
+          "name": "render_height",
+          "type": "int",
+          "value": 0
+        }
+      ],
+      "name": "StructureTile",
+      "type": "class",
+      "useAs": [
+        "tile"
       ]
     }
   ]

@@ -3138,6 +3138,325 @@ Validation evidence:
 - `bun run lint`
 - `git diff --check`
 
+## Execution slice 62 — `palm_tree_1` prop tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Continue prop tile enrichment with the next highest-use untagged prop family.
+- Preserve legacy tile `type:"palm_tree_1"` while adding `PropTile` class and semantic tile
+  properties.
+- Classify palm fronds, trunk pieces, sparse shadow/anchor tiles, occlusion kind, and render
+  height from visual inspection.
+
+Before-edit evidence:
+
+- `palm_tree_1` was the highest-use untagged tile family after `dead_tree_3`.
+- Visual inspection of `.data/map-authoring-crops/tileset_palm_tree_1_before_semantics.png`
+  showed frond/canopy rows, trunk fragments, sparse shadow/anchor tiles, and one footprint base
+  tile.
+- Generic semantic-tile validation already covered `PropTile`, so this slice only needed source
+  enrichment and visual review.
+
+Applied tileset changes:
+
+- Tagged all 18 `palm_tree_1` tile records as `class:"PropTile"` while preserving
+  `type:"palm_tree_1"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `palm_tree_1` tile.
+- Classified frond/canopy rows as `occlusion_kind=canopy` with render heights 5 through 3.
+- Classified trunk fragments and the footprint base as `occlusion_kind=trunk`.
+- Classified sparse shadow/anchor tiles as `occlusion_kind=none`, `render_height=0`.
+- Generated review contact sheet:
+  `.data/map-authoring-crops/tileset_palm_tree_1_prop_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 55 `PropTile` records total: 23 `tree_1`, 14 `dead_tree_3`, and 18
+  `palm_tree_1`.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 61 — `dead_tree_3` prop tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Continue prop tile enrichment with the highest-use untagged prop family.
+- Preserve legacy tile `type:"dead_tree_3"` while adding `PropTile` class and semantic tile
+  properties.
+- Classify branch, trunk, root, sparse anchor, occlusion kind, and render height from visual
+  inspection.
+
+Before-edit evidence:
+
+- `dead_tree_3` was the highest-use untagged prop family after the tree and house slices.
+- Visual inspection of `.data/map-authoring-crops/tileset_dead_tree_3_before_semantics.png`
+  showed upper branch fragments, mid branches, trunk blocks, root/footprint pieces, and a sparse
+  ground anchor.
+- The generic semantic-tile audit already covered `PropTile`, so this slice was focused on source
+  enrichment and visual review.
+
+Applied tileset changes:
+
+- Tagged all 14 `dead_tree_3` tile records as `class:"PropTile"` while preserving
+  `type:"dead_tree_3"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `dead_tree_3` tile.
+- Classified branch fragments as `occlusion_kind=canopy` with render heights 4 through 2.
+- Classified trunk/base/root pieces as `occlusion_kind=trunk` with render heights 2 through 0.
+- Classified the sparse ground anchor as `occlusion_kind=none`, `render_height=0`.
+- Generated review contact sheet:
+  `.data/map-authoring-crops/tileset_dead_tree_3_prop_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 37 `PropTile` records total: 23 `tree_1` and 14 `dead_tree_3`.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 60 — `house_red_1` structure tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Continue structure tile enrichment with the next highest-use untagged building family.
+- Preserve legacy tile `type:"house_red_1"` while adding `StructureTile` class and semantic tile
+  properties.
+- Classify red-house roof, wall, foundation, entry, diagonal, and blank padding tiles from visual
+  inspection.
+
+Before-edit evidence:
+
+- `house_red_1` was the highest-use untagged tile family after `tree_1` and `house_blue_2` were
+  enriched.
+- Visual inspection of `.data/map-authoring-crops/tileset_house_red_1_before_semantics.png`
+  showed a red roof/gable assembly, wall panels, door/entry tiles, foundation trim, and transparent
+  padding tiles.
+- `StructureTile` existed from slice 59, so this slice needed data enrichment rather than schema
+  expansion.
+
+Applied tileset changes:
+
+- Tagged all 60 `house_red_1` tile records as `class:"StructureTile"` while preserving
+  `type:"house_red_1"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `house_red_1` tile.
+- Classified roof/gable/eave/cutout/diagonal rows as `occlusion_kind=roof`.
+- Classified wall panels, side trims, windows, arched door/entry, lower wall, and foundation trim
+  as `occlusion_kind=wall`.
+- Classified transparent padding tiles as `asset_part=blank`, `occlusion_kind=none`, and
+  `render_height=0`.
+- Generated review contact sheet:
+  `.data/map-authoring-crops/tileset_house_red_1_structure_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 120 `StructureTile` records total: 60 `house_blue_2` and 60
+  `house_red_1`.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 59 — `house_blue_2` structure tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Extend tile `class` + per-tile property adoption from props into structure/building tiles.
+- Preserve legacy tile `type:"house_blue_2"` while adding `StructureTile` class and richer tile
+  metadata.
+- Describe roof, wall, foundation, diagonal roof-wall, trim, blank padding, occlusion kind, and
+  render height as authored data.
+
+Before-edit evidence:
+
+- `house_blue_2` is the second highest-use typed tileset family in current maps by placement
+  count after the already-enriched `tree_1` family.
+- Visual inspection of `.data/map-authoring-crops/tileset_house_blue_2_before_semantics.png`
+  showed roof rows, wall/window rows, diagonal roof-wall tiles, foundation trim, and blank
+  padding tiles.
+- The semantic tile audit covered `PropTile` only; no structure tile class existed.
+
+Applied tileset changes:
+
+- Added `StructureTile` tile class to `browserquest.tiled-project`, reusing `TileKind` and
+  `TileOcclusionKind`.
+- Tagged all 60 `house_blue_2` tile records as `class:"StructureTile"` while preserving
+  `type:"house_blue_2"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `house_blue_2` tile.
+- Classified roof/top/eave/diagonal roof rows as `occlusion_kind=roof` with render heights 6
+  through 2.
+- Classified wall, window, side trim, lower wall, and foundation rows as `occlusion_kind=wall`
+  with render heights 5 through 0.
+- Classified transparent padding tiles as `asset_part=blank`, `occlusion_kind=none`, and
+  `render_height=0`.
+- Generalized `terrain-authoring-audit.ts` semantic tile validation across `PropTile` and
+  `StructureTile`, including class-specific `tile_kind` checks.
+- Added unit coverage for valid structure tile metadata and class/kind mismatches.
+- Generated review contact sheet:
+  `.data/map-authoring-crops/tileset_house_blue_2_structure_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 60 `StructureTile` records, all from `house_blue_2`.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 58 — `tree_1` prop tile semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Start tile `class` + per-tile property adoption with one high-use visible prop family.
+- Preserve legacy tile `type:"tree_1"` while adding `PropTile` class and richer tile metadata.
+- Describe tree canopy, trunk/root, blank padding, occlusion kind, and render height as authored
+  data instead of implicit atlas position.
+
+Before-edit evidence:
+
+- No tiles had a Tiled `class`, `asset_family`, `asset_part`, `tile_kind`, `occlusion_kind`, or
+  `render_height`.
+- `tree_1` is the most-used typed tileset family in current maps by placement count.
+- Visual inspection of `.data/map-authoring-crops/tileset_tree_1_before_semantics.png` showed
+  canopy rows, trunk collision tiles, root/padding tiles, and one blank padding tile.
+
+Applied tileset changes:
+
+- Added `TileKind` and `TileOcclusionKind` enums plus `PropTile` tile class to
+  `browserquest.tiled-project`.
+- Tagged all 23 `tree_1` tile records as `class:"PropTile"` while preserving
+  `type:"tree_1"`.
+- Added `asset_family`, `asset_part`, typed `tile_kind`, typed `occlusion_kind`, and
+  `render_height` to every `tree_1` tile.
+- Classified canopy rows as `occlusion_kind=canopy` with render heights 5 through 2.
+- Classified trunk/root rows as `occlusion_kind=trunk` with render heights 1 or 0.
+- Classified the transparent padding tile as `asset_part=blank`, `occlusion_kind=none`, and
+  `render_height=0`.
+- Extended `terrain-authoring-audit.ts` to validate tagged `PropTile` metadata, enum typing,
+  asset-family/type continuity, and non-negative render heights.
+- Added unit coverage for missing, valid, untyped, mismatched, and invalid prop tile metadata.
+- Generated review contact sheet:
+  `.data/map-authoring-crops/tileset_tree_1_prop_tile_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 23 `PropTile` records, all from `tree_1`, with 0 incomplete records.
+- Generated terrain audit reported 0 `TILE_SEMANTIC_METADATA_MISSING`, 0
+  `TILE_SEMANTIC_ASSET_FAMILY_MISMATCH`, 0 `TILE_SEMANTIC_ENUM_UNTYPED`, 0
+  `TILE_SEMANTIC_KIND_MISMATCH`, and 0 `TILE_SEMANTIC_RENDER_HEIGHT_INVALID`.
+- `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
+
+## Execution slice 57 — collision shape semantics
+
+Status: complete.
+
+Ticket scope:
+
+- Make tileset collision objects carry semantic shape metadata instead of anonymous rectangles.
+- Preserve the current runtime collision rule: tiles with collision objects block unless the tile
+  has the legacy `passable` carve-out property.
+- Add audit coverage so missing classes, untyped collision kinds, or mismatched blocking flags are
+  reported as authoring debt.
+
+Before-edit evidence:
+
+- `tilesheet.wang.tsj` had 472 tile collision objects and none had `class` or semantic
+  properties.
+- Existing runtime compilation treated every tile objectgroup as colliding, then carved collision
+  for tiles with `passable`.
+- Tile properties were still limited to `passable`, `footprint`, and `collider`, which made shape
+  intent implicit.
+
+Applied tileset changes:
+
+- Added `CollisionKind` enum and `CollisionShape` class to `browserquest.tiled-project`.
+- Tagged all 472 tileset collision objects as `CollisionShape`.
+- Added typed `collision_kind` plus `blocks_player`, `blocks_mobs`, and `blocks_projectiles` to
+  every collision object.
+- Classified 470 shapes as `solid` blockers and 2 passable bridge/deck carve-outs as
+  `passable_carve` with all blocking booleans false.
+- Extended `terrain-authoring-audit.ts` to validate collision shape class, typed
+  `CollisionKind`, and passability/blocking consistency.
+- Added unit coverage for missing, valid, untyped, and inconsistent collision-shape metadata.
+- Generated review contact sheet:
+  `.data/map-authoring-crops/tileset_collision_shape_semantics.png`.
+
+Validation evidence:
+
+- Source audit confirmed 472 collision shapes, 0 missing classes, 0 untyped collision kinds, and
+  0 passability/blocking mismatches.
+- Generated terrain audit reported 0 `COLLISION_SHAPE_METADATA_MISSING`, 0
+  `COLLISION_SHAPE_KIND_UNTYPED`, and 0 `COLLISION_SHAPE_BLOCKING_MISMATCH`.
+- `bun test tests/unit/terrain-authoring-audit.test.ts --timeout 20000`
+- `bun run typecheck:tools`
+- `bun run check:terrain-authoring`
+- `bun run build:maps`
+- `bun run check:maps`
+- `bun run check:world-map:target`
+- `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`
+- `bun run typecheck`
+- `bun run lint`
+- `git diff --check`
+
 ## Execution slice 56 — Wang color terrain semantics
 
 Status: complete.

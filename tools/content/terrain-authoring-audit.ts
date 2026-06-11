@@ -27,6 +27,14 @@ type TerrainFamilyMeta = Readonly<{
     passability: string;
 }>;
 
+const requiredCollisionShapeProperties = ['collision_kind', 'blocks_player', 'blocks_mobs', 'blocks_projectiles'] as const;
+const blockingCollisionKinds = new Set(['solid', 'water', 'hazard', 'ledge']);
+const requiredSemanticTileProperties = ['asset_family', 'asset_part', 'tile_kind', 'occlusion_kind', 'render_height'] as const;
+const semanticTileClasses: ReadonlyMap<string, string> = new Map([
+    ['PropTile', 'prop'],
+    ['StructureTile', 'structure'],
+] as const);
+
 function asRecord(value: unknown): UnknownRecord | null {
     return value && typeof value === 'object' && !Array.isArray(value) ? value as UnknownRecord : null;
 }
@@ -322,6 +330,184 @@ export function findWangTilesetFindings(
                     })
                 );
             }
+        }
+    }
+    return findings;
+}
+
+export function findTilesetCollisionShapeFindings(tilesetRoot: UnknownRecord, tilesetPath = defaultTileset): TerrainAuthoringFinding[] {
+    const findings: TerrainAuthoringFinding[] = [];
+    for (const tile of asArray(tilesetRoot.tiles)
+        .map((entry) => asRecord(entry))
+        .filter((entry): entry is UnknownRecord => entry !== null)) {
+        const tileId = asInteger(tile.id);
+        const tileProps = getProperties(tile);
+        const isPassableTile = tileProps.some((property) => asString(property.name) === 'passable' && property.value === true);
+        const objects = asArray(asRecord(tile.objectgroup)?.objects)
+            .map((entry) => asRecord(entry))
+            .filter((entry): entry is UnknownRecord => entry !== null);
+        for (const object of objects) {
+            const objectId = asInteger(object.id);
+            const props = new Map(getProperties(object).map((property) => [asString(property.name), property]));
+            const collisionKind = asString(props.get('collision_kind')?.value)?.trim();
+            const missing = requiredCollisionShapeProperties.filter((propertyName) => !props.has(propertyName));
+            if (asString(object.class) !== 'CollisionShape' || missing.length > 0 || !collisionKind) {
+                findings.push(
+                    finding({
+                        id: 'COLLISION_SHAPE_METADATA_MISSING',
+                        severity: 'medium',
+                        category: 'collision_passability',
+                        title: 'Tileset collision shape lacks semantic metadata',
+                        detail: 'Every tileset collision object should use class CollisionShape and declare collision kind plus blocking booleans.',
+                        location: { tileset: tilesetPath, tileId: tileId ?? undefined, objectId: objectId ?? undefined },
+                        evidence: [
+                            `class=${asString(object.class) ?? '<none>'}`,
+                            `collision_kind=${collisionKind ?? '<missing>'}`,
+                            `missing=${missing.join(',') || '<none>'}`,
+                        ],
+                    })
+                );
+                continue;
+            }
+            const collisionKindProperty = props.get('collision_kind');
+            if (asString(collisionKindProperty?.propertytype) !== 'CollisionKind') {
+                findings.push(
+                    finding({
+                        id: 'COLLISION_SHAPE_KIND_UNTYPED',
+                        severity: 'medium',
+                        category: 'collision_passability',
+                        title: 'Tileset collision kind is not typed',
+                        detail: 'collision_kind should be backed by the Tiled CollisionKind enum so invalid shape semantics are not free-form strings.',
+                        location: { tileset: tilesetPath, tileId: tileId ?? undefined, objectId: objectId ?? undefined },
+                        evidence: [`propertytype=${asString(collisionKindProperty?.propertytype) ?? '<none>'}`],
+                    })
+                );
+            }
+            const shouldBlock = !isPassableTile && blockingCollisionKinds.has(collisionKind);
+            const mismatchedBlocks = ['blocks_player', 'blocks_mobs', 'blocks_projectiles'].filter(
+                (propertyName) => props.get(propertyName)?.value !== shouldBlock
+            );
+            if (mismatchedBlocks.length > 0) {
+                findings.push(
+                    finding({
+                        id: 'COLLISION_SHAPE_BLOCKING_MISMATCH',
+                        severity: 'medium',
+                        category: 'collision_passability',
+                        title: 'Tileset collision shape blocking flags disagree with tile passability',
+                        detail: 'Blocking flags should mirror the current runtime rule: passable tiles carve collision, other collision shapes block.',
+                        location: { tileset: tilesetPath, tileId: tileId ?? undefined, objectId: objectId ?? undefined },
+                        evidence: [
+                            `collision_kind=${collisionKind}`,
+                            `tile_passable=${isPassableTile}`,
+                            `expected_blocks=${shouldBlock}`,
+                            `mismatch=${mismatchedBlocks.join(',')}`,
+                        ],
+                    })
+                );
+            }
+        }
+    }
+    return findings;
+}
+
+export function findTilesetTileSemanticFindings(tilesetRoot: UnknownRecord, tilesetPath = defaultTileset): TerrainAuthoringFinding[] {
+    const findings: TerrainAuthoringFinding[] = [];
+    for (const tile of asArray(tilesetRoot.tiles)
+        .map((entry) => asRecord(entry))
+        .filter((entry): entry is UnknownRecord => entry !== null)) {
+        const tileClass = asString(tile.class);
+        const expectedTileKind = tileClass ? semanticTileClasses.get(tileClass) : undefined;
+        if (!expectedTileKind) {
+            continue;
+        }
+        const tileId = asInteger(tile.id);
+        const legacyType = asString(tile.type)?.trim();
+        const props = new Map(getProperties(tile).map((property) => [asString(property.name), property]));
+        const missing = requiredSemanticTileProperties.filter((propertyName) => !props.has(propertyName));
+        const assetFamily = asString(props.get('asset_family')?.value)?.trim();
+        const assetPart = asString(props.get('asset_part')?.value)?.trim();
+        const tileKind = asString(props.get('tile_kind')?.value)?.trim();
+        const occlusionKind = asString(props.get('occlusion_kind')?.value)?.trim();
+        const renderHeight = asInteger(props.get('render_height')?.value);
+        if (missing.length > 0 || !assetFamily || !assetPart || !tileKind || !occlusionKind || renderHeight === null) {
+            findings.push(
+                finding({
+                    id: 'TILE_SEMANTIC_METADATA_MISSING',
+                    severity: 'medium',
+                    category: 'asset_reference',
+                    title: 'Tile lacks semantic metadata',
+                    detail: 'Semantic tile records should declare asset family, asset part, typed tile kind, typed occlusion kind, and render height.',
+                    location: { tileset: tilesetPath, tileId: tileId ?? undefined },
+                    evidence: [
+                        `class=${tileClass}`,
+                        `missing=${missing.join(',') || '<none>'}`,
+                        `asset_family=${assetFamily ?? '<missing>'}`,
+                        `asset_part=${assetPart ?? '<missing>'}`,
+                        `tile_kind=${tileKind ?? '<missing>'}`,
+                        `occlusion_kind=${occlusionKind ?? '<missing>'}`,
+                        `render_height=${renderHeight ?? '<missing>'}`,
+                    ],
+                })
+            );
+            continue;
+        }
+        if (legacyType && assetFamily !== legacyType) {
+            findings.push(
+                finding({
+                    id: 'TILE_SEMANTIC_ASSET_FAMILY_MISMATCH',
+                    severity: 'medium',
+                    category: 'asset_reference',
+                    title: 'Tile asset family disagrees with legacy tile type',
+                    detail: 'During migration, asset_family should preserve the existing Tiled tile type so runtime/editor references remain traceable.',
+                    location: { tileset: tilesetPath, tileId: tileId ?? undefined },
+                    evidence: [`class=${tileClass}`, `type=${legacyType}`, `asset_family=${assetFamily}`],
+                })
+            );
+        }
+        const tileKindProperty = props.get('tile_kind');
+        const occlusionKindProperty = props.get('occlusion_kind');
+        if (asString(tileKindProperty?.propertytype) !== 'TileKind' || asString(occlusionKindProperty?.propertytype) !== 'TileOcclusionKind') {
+            findings.push(
+                finding({
+                    id: 'TILE_SEMANTIC_ENUM_UNTYPED',
+                    severity: 'medium',
+                    category: 'asset_reference',
+                    title: 'Tile semantic enum is not typed',
+                    detail: 'tile_kind and occlusion_kind should be backed by Tiled enum property types, not free-form strings.',
+                    location: { tileset: tilesetPath, tileId: tileId ?? undefined },
+                    evidence: [
+                        `class=${tileClass}`,
+                        `tile_kind_propertytype=${asString(tileKindProperty?.propertytype) ?? '<none>'}`,
+                        `occlusion_kind_propertytype=${asString(occlusionKindProperty?.propertytype) ?? '<none>'}`,
+                    ],
+                })
+            );
+        }
+        if (tileKind !== expectedTileKind) {
+            findings.push(
+                finding({
+                    id: 'TILE_SEMANTIC_KIND_MISMATCH',
+                    severity: 'medium',
+                    category: 'asset_reference',
+                    title: 'Tile kind disagrees with semantic tile class',
+                    detail: 'Semantic tile classes should carry the matching tile_kind value so class and property contracts stay aligned.',
+                    location: { tileset: tilesetPath, tileId: tileId ?? undefined },
+                    evidence: [`class=${tileClass}`, `tile_kind=${tileKind}`, `expected=${expectedTileKind}`],
+                })
+            );
+        }
+        if (renderHeight < 0) {
+            findings.push(
+                finding({
+                    id: 'TILE_SEMANTIC_RENDER_HEIGHT_INVALID',
+                    severity: 'medium',
+                    category: 'asset_reference',
+                    title: 'Tile render height is invalid',
+                    detail: 'render_height should be a non-negative integer measured in rows above the prop base.',
+                    location: { tileset: tilesetPath, tileId: tileId ?? undefined },
+                    evidence: [`class=${tileClass}`, `render_height=${renderHeight}`],
+                })
+            );
         }
     }
     return findings;
@@ -675,6 +861,8 @@ export function collectTerrainAuthoringFindings(
     return [
         ...findMapPropertyFindings(worldRoot, world),
         ...findWangTilesetFindings(tilesetRoot, tileset, grammarRoot),
+        ...findTilesetCollisionShapeFindings(tilesetRoot, tileset),
+        ...findTilesetTileSemanticFindings(tilesetRoot, tileset),
         ...findWorldAuthoringFindings(worldRoot, world),
     ];
 }
@@ -703,6 +891,9 @@ export function renderMarkdown(audit: TerrainAuthoringAudit): string {
         lines.push(`- Location: \`${JSON.stringify(entry.location)}\``);
         lines.push(`- Evidence: ${entry.evidence.join('; ') || 'none'}`);
         lines.push('');
+    }
+    while (lines.at(-1) === '') {
+        lines.pop();
     }
     return `${lines.join('\n')}\n`;
 }
