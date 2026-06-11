@@ -240712,17 +240712,25 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "small_rock_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "rock",
+              "biome": "village",
+              "tags": [
+                "village",
+                "rock",
+                "boulder",
+                "obstacle"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 223
             }
           },
           {
-            "depth": 230,
+            "depth": 231,
             "minTileX": 24,
             "minTileY": 222,
             "maxTileX": 31,
@@ -241053,13 +241061,22 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_red_1",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_red_1"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 231
             }
           },
           {
@@ -241089,18 +241106,27 @@
             "meta": {
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
-              "depthMode": "collision",
-              "family": "houses",
+              "depthMode": "flat",
+              "family": "bone_debris_1",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "ground_debris",
+              "biome": "village",
+              "tags": [
+                "village",
+                "bone",
+                "debris",
+                "ground_debris",
+                "nonblocking"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 229
             }
           },
           {
-            "depth": 236,
+            "depth": 237,
             "minTileX": 47,
             "minTileY": 230,
             "maxTileX": 54,
@@ -241367,17 +241393,26 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_blue_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_blue_2"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 237
             }
           },
           {
-            "depth": 237,
+            "depth": 238,
             "minTileX": 60,
             "minTileY": 231,
             "maxTileX": 67,
@@ -241644,13 +241679,22 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_blue_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_blue_2"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 238
             }
           },
           {
@@ -241681,17 +241725,25 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "small_rock_2",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "rock",
+              "biome": "village",
+              "tags": [
+                "village",
+                "rock",
+                "boulder",
+                "obstacle"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 236
             }
           },
           {
-            "depth": 245,
+            "depth": 246,
             "minTileX": 35,
             "minTileY": 237,
             "maxTileX": 42,
@@ -241986,13 +242038,23 @@
               "layer": "houses",
               "layerPath": "render_world/village_biome/houses",
               "depthMode": "collision",
-              "family": "houses",
+              "family": "house_red_1",
               "groupPath": [
                 "render_world",
                 "village_biome"
               ],
-              "kind": "house",
-              "biome": "village"
+              "kind": "house_exterior",
+              "biome": "village",
+              "tags": [
+                "village",
+                "house",
+                "building",
+                "structure",
+                "house_red_1",
+                "door_open"
+              ],
+              "template": "templates/prop_metadata.tx",
+              "depthRow": 246
             }
           },
           {

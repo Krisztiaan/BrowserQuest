@@ -18,6 +18,203 @@ This is the live execution notebook for `PLAN.md`.
 
 ## Ticket Log
 
+### 2026-06-11 15:07 UTC - Manual Tiled Authoring Slice 122
+
+- Status: done
+- Scope:
+  - Enrich the linked red-roof `house_red_1` exterior for `house_40` in `render_world/village_biome/houses`.
+  - Target the visually confirmed open-door footprint around tile bounds `(35, 237)` through `(42, 246)` and use `prop_instance_id=house_40_exterior`.
+  - Preserve the existing `gameplay_markup/doors` object `world_house_40_entry`, including its `target_map=house_40` and `target_door=house_40_entry` linkage.
+  - Reuse existing source `StructureTile` metadata for `house_red_1`, including open-door GIDs 1661 through 1663 and 1681 through 1683; do not edit `tilesheet.wang.tsj` unless validation exposes a source metadata gap.
+  - Preserve object positions, GIDs, layer membership, surrounding paths/trees/terrain, and runtime behavior.
+- Ticket:
+  - done: Add placed-object metadata for the linked `house_40` red-roof exterior.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_village_house40_slice122_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_house40_slice122_nomarkers.png`.
+  - Visual inspection confirmed a complete red-roof exterior with an open centered doorway.
+  - Gameplay inspection found door `world_house_40_entry` at tile `(38, 245)`, targeting map `house_40` and door `house_40_entry`.
+  - Spawned a read-only Spark explorer to inspect the next red/blue house candidates after this slice while the local Slice 122 edit proceeds.
+  - Added object-level `PropMetadata` to 71 matching placed house objects with `prop_instance_id=house_40_exterior`.
+  - Used `door_open` tagging and `open_*` asset parts for the six open-door override tiles while preserving the linked gameplay door object.
+- Evidence:
+  - Source check confirmed 71 objects use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, `prop_family=house_red_1`, `prop_kind=house_exterior`, and `prop_instance_id=house_40_exterior`.
+  - Terrain authoring audit reports 0 findings for the selected `house_40_exterior` object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Continue with the next red/blue house clusters around `(75..82, 241..250)` and `(5..12, 242..249)`.
+
+### 2026-06-11 15:01 UTC - Manual Tiled Authoring Slice 121
+
+- Status: done
+- Scope:
+  - Enrich the complete 2x2 gray rock prop at tile bounds `(18, 235)` through `(19, 236)` in `render_world/village_biome/houses`.
+  - Reuse existing `small_rock_2` source `PropTile` metadata for GIDs 257, 258, 277, and 278; do not edit `tilesheet.wang.tsj`.
+  - Add object-level `PropMetadata` to object IDs 2349, 2350, 2365, and 2366 with `prop_instance_id=small_rock_2_18_235`.
+  - Preserve object positions, GIDs, source collision objectgroups, nearby tree/gameplay markers, and runtime behavior.
+- Ticket:
+  - done: Add placed-object metadata for the repeated village `small_rock_2` boulder.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_village_gray_rock_slice121_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_gray_rock_slice121_nomarkers.png`.
+  - Visual inspection confirmed a standalone gray 2x2 boulder near the southwest village path.
+  - Source inspection confirmed GIDs 257, 258, 277, and 278 already carry `small_rock_2` `PropTile` metadata and collision objectgroups.
+- Evidence:
+  - Source check confirmed object IDs 2349, 2350, 2365, and 2366 use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, `prop_family=small_rock_2`, `prop_kind=rock`, and `prop_instance_id=small_rock_2_18_235`.
+  - Terrain authoring audit reports 0 findings for the selected `small_rock_2_18_235` object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Inspect the next house/structure cluster around `(35..40, 241..248)`, then continue with red/blue house clusters around `(75..82, 241..250)` and `(5..12, 242..249)`.
+
+### 2026-06-11 14:56 UTC - Manual Tiled Authoring Slice 120
+
+- Status: done
+- Scope:
+  - Enrich two complete `house_blue_2` exteriors in `render_world/village_biome/houses`.
+  - Instance A spans tile bounds `(47, 230)` through `(54, 237)` with `prop_instance_id=house_blue_2_47_230`.
+  - Instance B spans tile bounds `(60, 231)` through `(67, 238)` with `prop_instance_id=house_blue_2_60_231`.
+  - Reuse existing source `StructureTile` metadata for `house_blue_2`; do not edit `tilesheet.wang.tsj`.
+  - Exclude nearby tree, camp, and roaming-area objects from this house slice.
+  - Preserve object positions, GIDs, layer membership, nearby overlays/gameplay areas, and runtime behavior.
+- Ticket:
+  - done: Add placed-object metadata for two southeast/east village `house_blue_2` exteriors.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_village_blue_houses_slice120_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_blue_houses_slice120_nomarkers.png`.
+  - Visual inspection confirmed two complete blue-roof house exteriors with nearby trees and rat roaming areas.
+  - Gameplay inspection found nearby rat roaming areas but no aligned door objects.
+  - Source inspection confirmed the `house_blue_2` 8x8 source grid already has complete `StructureTile` metadata.
+  - A Spark explorer side task was started for independent confirmation but did not return before local validation completed; it was closed without using its result.
+- Evidence:
+  - Source check confirmed each instance has 64 objects with `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, `prop_family=house_blue_2`, `prop_kind=house_exterior`, and the expected `prop_instance_id`.
+  - Terrain authoring audit reports 0 findings for the selected `house_blue_2_47_230` and `house_blue_2_60_231` object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Inspect the repeated `small_rock_2` instance around `(18..19, 235..236)`, then continue with the next house clusters around `(35..40, 241..248)`, `(75..82, 241..250)`, and `(5..12, 242..249)`.
+
+### 2026-06-11 14:51 UTC - Manual Tiled Authoring Slice 119
+
+- Status: done
+- Scope:
+  - Enrich the complete 2x2 white ground debris/bone prop at tile bounds `(18, 228)` through `(19, 229)` in `render_world/village_biome/houses`.
+  - Add source `PropTile` metadata for missing source tile IDs 218, 219, 238, and 239.
+  - Add object-level `PropMetadata` to object IDs 2290, 2291, 2296, and 2297 with `prop_instance_id=bone_debris_1_18_228`.
+  - Preserve object positions, GIDs, layer membership, nearby trees/house objects, and runtime behavior.
+  - Document that this low ground prop currently lives on the `houses` layer even though its semantic family is ground debris.
+- Ticket:
+  - done: Add source and placed-object metadata for the small village bone debris prop.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_village_house_fragment_slice119_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_house_fragment_slice119_nomarkers.png`.
+  - Generated `.data/map-authoring-crops/world_village_house_blue2_context_slice119_objects.png`.
+  - Generated `.data/map-authoring-crops/tileset_ground_debris_slice119_source.png`.
+  - Visual inspection confirmed a low white ground debris/bone prop, not a partial house structure.
+  - Added source `PropTile` metadata for tile IDs 218, 219, 238, and 239 as `bone_debris_1`.
+- Evidence:
+  - Source check confirmed tile IDs 218, 219, 238, and 239 use `class:"PropTile"`, `type:"bone_debris_1"`, `tile_kind=prop`, `occlusion_kind=none`, and low `render_height` values.
+  - Source check confirmed object IDs 2290, 2291, 2296, and 2297 use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, `prop_family=bone_debris_1`, `prop_kind=ground_debris`, and `prop_instance_id=bone_debris_1_18_228`.
+  - Terrain authoring audit reports 0 findings for the selected `bone_debris_1_18_228` object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Inspect the next blue-house clusters around `(49..56, 231..238)` and `(62..69, 232..239)`.
+
+### 2026-06-11 14:39 UTC - Manual Tiled Authoring Slice 118
+
+- Status: done
+- Scope:
+  - Enrich the complete red-roof `house_red_1` exterior at tile bounds `(24, 222)` through `(31, 231)` in `render_world/village_biome/houses`.
+  - Use visual inspection and existing typed `house_red_1` instances to infer exact object-level `PropMetadata`.
+  - Reuse existing source `StructureTile` metadata for `house_red_1`, adding only source metadata gaps found during inspection.
+  - Exclude overlapping tree, camp, path, and gameplay marker objects from this house slice.
+  - Preserve object positions, GIDs, layer membership, nearby trees/camps/roaming areas, and runtime behavior.
+- Ticket:
+  - done: Add placed-object metadata for the south village red-roof house exterior.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_village_red_house_slice118_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_red_house_slice118_nomarkers.png`.
+  - Visual inspection confirmed a complete red-roof house exterior centered in the south village.
+  - Gameplay inspection found a nearby rat roaming area but no aligned door object in the rendered slice.
+  - Spark explorer independently mapped the target objects against existing typed `house_red_1` instances and confirmed no aligned gameplay door object.
+  - Added missing source `StructureTile` metadata for tile IDs 210, 230, and 250 as non-occluding right-padding pieces.
+  - Extended the initial 72-object scope to include the lower footprint row after the audit exposed GIDs 384 through 391 as the same exterior.
+- Evidence:
+  - Source check confirmed tile IDs 210, 230, and 250 are typed `StructureTile` records for `house_red_1` with non-occluding right-padding semantics.
+  - Source check confirmed 80 objects use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, `prop_family=house_red_1`, `prop_kind=house_exterior`, and `prop_instance_id=house_red_1_24_222`.
+  - Terrain authoring audit reports 0 findings for the selected `house_red_1_24_222` object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Inspect the adjacent two-column house/structure fragment around `(18..19, 228..229)`, then the next blue-house cluster around `(49..56, 231..238)`.
+
+### 2026-06-11 14:33 UTC - Manual Tiled Authoring Slice 117
+
+- Status: done
+- Scope:
+  - Enrich the complete 2x2 gray rock prop at tile bounds `(3, 222)` through `(4, 223)` in `render_world/village_biome/houses`.
+  - Reuse existing `small_rock_2` source `PropTile` metadata for GIDs 257, 258, 277, and 278; do not edit `tilesheet.wang.tsj`.
+  - Add object-level `PropMetadata` to object IDs 2252, 2253, 2266, and 2267 with `prop_instance_id=small_rock_2_3_222`.
+  - Preserve object positions, GIDs, source collision objectgroups, nearby tree/large-rock objects, and runtime behavior.
+- Ticket:
+  - done: Add placed-object metadata for the repeated west-edge village `small_rock_2` boulder.
+- Key actions:
+  - Generated `.data/map-authoring-crops/world_village_gray_rock_slice117_objects.png`.
+  - Generated `.data/map-authoring-crops/world_village_gray_rock_slice117_nomarkers.png`.
+  - Visual inspection confirmed a standalone gray 2x2 boulder near the west village edge.
+  - Source inspection confirmed GIDs 257, 258, 277, and 278 already carry `small_rock_2` `PropTile` metadata and collision objectgroups.
+- Evidence:
+  - Source check confirmed object IDs 2252, 2253, 2266, and 2267 use `template:"templates/prop_metadata.tx"`, `type:"PropMetadata"`, `prop_family=small_rock_2`, `prop_kind=rock`, and `prop_instance_id=small_rock_2_3_222`.
+  - Terrain authoring audit reports 0 findings for the selected `small_rock_2_3_222` object IDs.
+  - `bun run check:terrain-authoring`: pass.
+  - `bun run build:maps`: pass.
+  - `bun run check:maps`: pass.
+  - `bun run check:world-map:target`: pass.
+  - `bun test tests/unit/terrain-authoring-audit.test.ts tests/unit/map-pack.test.ts tests/unit/world-map-validator.test.ts tests/unit/mmo/server-map-doors.test.ts --timeout 20000`: pass, 58 pass / 0 fail.
+  - `bun run typecheck`: pass.
+  - `bun run typecheck:tools`: pass.
+  - `bun run lint`: pass.
+  - `git diff --check`: pass.
+- Next action:
+  - Inspect the red-house/structure cluster around `(24..31, 222..228)` before deciding whether it is one full exterior instance, multiple adjacent structures, or a partial edge assembly.
+
 ### 2026-06-11 14:27 UTC - Manual Tiled Authoring Slice 116
 
 - Status: done
